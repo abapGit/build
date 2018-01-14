@@ -98,6 +98,13 @@ ENDCLASS.
 CLASS zcx_abapgit_cancel IMPLEMENTATION.
 ENDCLASS.
 
+INTERFACE zif_abapgit_sap_package DEFERRED.
+INTERFACE zif_abapgit_dot_abapgit DEFERRED.
+INTERFACE zif_abapgit_definitions DEFERRED.
+INTERFACE zif_abapgit_gui_page DEFERRED.
+INTERFACE zif_abapgit_persistence DEFERRED.
+INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_comparison_result DEFERRED.
 CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
@@ -490,6 +497,49 @@ INTERFACE zif_abapgit_persistence.
     END OF ty_content .
   TYPES:
     tt_content TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_object.
+
+  METHODS:
+    serialize
+      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+      RAISING   zcx_abapgit_exception,
+    deserialize
+      IMPORTING iv_package TYPE devclass
+                io_xml     TYPE REF TO zcl_abapgit_xml_input
+      RAISING   zcx_abapgit_exception,
+    delete
+      RAISING zcx_abapgit_exception,
+    exists
+      RETURNING VALUE(rv_bool) TYPE abap_bool
+      RAISING   zcx_abapgit_exception,
+    changed_by
+      RETURNING VALUE(rv_user) TYPE xubname
+      RAISING   zcx_abapgit_exception,
+    jump
+      RAISING zcx_abapgit_exception,
+    get_metadata
+      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
+    has_changed_since
+      IMPORTING iv_timestamp      TYPE timestamp
+      RETURNING VALUE(rv_changed) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+  METHODS:
+    compare_to_remote_version
+      IMPORTING io_remote_version_xml       TYPE REF TO zcl_abapgit_xml_input
+      RETURNING VALUE(ro_comparison_result) TYPE REF TO zif_abapgit_comparison_result
+      RAISING   zcx_abapgit_exception.
+
+  DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_comparison_result.
+
+  METHODS:
+    show_confirmation_dialog,
+    is_result_complete_halt
+      RETURNING VALUE(rv_response) TYPE abap_bool.
 
 ENDINTERFACE.
 CLASS zcl_abapgit_git_branch_list DEFINITION
@@ -13036,71 +13086,23 @@ CLASS lcl_objects_activation IMPLEMENTATION.
 
 ENDCLASS.                    "lcl_objects_activation IMPLEMENTATION
 
-INTERFACE lif_comparison_result.
-  METHODS:
-    show_confirmation_dialog,
-    is_result_complete_halt
-      RETURNING VALUE(rv_response) TYPE abap_bool.
-ENDINTERFACE.
-
 "Null Object Pattern
 CLASS lcl_comparison_null DEFINITION FINAL.
   PUBLIC SECTION.
-    INTERFACES lif_comparison_result.
+    INTERFACES zif_abapgit_comparison_result.
 ENDCLASS.
 
 CLASS lcl_comparison_null IMPLEMENTATION.
 
-  METHOD lif_comparison_result~is_result_complete_halt.
+  METHOD zif_abapgit_comparison_result~is_result_complete_halt.
     rv_response = abap_false.
   ENDMETHOD.
 
-  METHOD lif_comparison_result~show_confirmation_dialog.
+  METHOD zif_abapgit_comparison_result~show_confirmation_dialog.
     RETURN.
   ENDMETHOD.
 
 ENDCLASS.
-
-*----------------------------------------------------------------------*
-*       INTERFACE lif_object DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-INTERFACE lif_object.
-
-  METHODS:
-    serialize
-      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
-      RAISING   zcx_abapgit_exception,
-    deserialize
-      IMPORTING iv_package TYPE devclass
-                io_xml     TYPE REF TO zcl_abapgit_xml_input
-      RAISING   zcx_abapgit_exception,
-    delete
-      RAISING zcx_abapgit_exception,
-    exists
-      RETURNING VALUE(rv_bool) TYPE abap_bool
-      RAISING   zcx_abapgit_exception,
-    changed_by
-      RETURNING VALUE(rv_user) TYPE xubname
-      RAISING   zcx_abapgit_exception,
-    jump
-      RAISING zcx_abapgit_exception,
-    get_metadata
-      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
-    has_changed_since
-      IMPORTING iv_timestamp      TYPE timestamp
-      RETURNING VALUE(rv_changed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-  METHODS:
-    compare_to_remote_version
-      IMPORTING io_remote_version_xml       TYPE REF TO zcl_abapgit_xml_input
-      RETURNING VALUE(ro_comparison_result) TYPE REF TO lif_comparison_result
-      RAISING   zcx_abapgit_exception.
-
-  DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
-
-ENDINTERFACE.                    "lif_object DEFINITION
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_objects_super DEFINITION
@@ -13175,8 +13177,8 @@ CLASS lcl_objects_bridge DEFINITION INHERITING FROM lcl_objects_super FINAL.
       IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
       RAISING   cx_sy_create_object_error.
 
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     DATA: mo_plugin TYPE REF TO object.
@@ -13198,11 +13200,11 @@ ENDCLASS.                    "lcl_objects_bridge DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_objects_bridge IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.  "lif_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGIT_PLUGIN~GET_METADATA')
       RECEIVING
@@ -13210,7 +13212,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~get_metadata
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
@@ -13238,7 +13240,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     CALL METHOD mo_plugin->('WRAP_SERIALIZE')
       EXPORTING
@@ -13246,7 +13248,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lx_plugin        TYPE REF TO cx_static_check.
 
@@ -13260,7 +13262,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.                    "lif_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
     DATA lx_plugin TYPE REF TO cx_static_check.
 
     TRY.
@@ -13271,7 +13273,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGIT_PLUGIN~EXISTS')
       RECEIVING
@@ -13279,7 +13281,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGIT_PLUGIN~JUMP').
 
@@ -13343,7 +13345,7 @@ CLASS lcl_objects_bridge IMPLEMENTATION.
 
   ENDMETHOD.                    "class_constructor
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -14411,7 +14413,7 @@ CLASS lcl_objects_saxx_super DEFINITION ABSTRACT
 
   PUBLIC SECTION.
     INTERFACES:
-      lif_object.
+      zif_abapgit_object.
 
   PROTECTED SECTION.
     METHODS:
@@ -14459,11 +14461,11 @@ ENDCLASS.
 
 CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lr_data TYPE REF TO data.
 
@@ -14494,12 +14496,12 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: object_key TYPE seu_objkey.
 
@@ -14521,7 +14523,7 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lr_data             TYPE REF TO data.
 
@@ -14583,7 +14585,7 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lr_data TYPE REF TO data.
 
@@ -14605,8 +14607,8 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
       CHANGING
         cg_data = <ls_data> ).
 
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     TRY.
@@ -14642,7 +14644,7 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: object_key TYPE seu_objkey.
 
@@ -14663,7 +14665,7 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -14673,7 +14675,7 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -14791,7 +14793,7 @@ CLASS lcl_objects DEFINITION FINAL.
     TYPES: ty_types_tt TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_deserialization,
-             obj     TYPE REF TO lif_object,
+             obj     TYPE REF TO zif_abapgit_object,
              xml     TYPE REF TO zcl_abapgit_xml_input,
              package TYPE devclass,
              item    TYPE zif_abapgit_definitions=>ty_item,
@@ -14853,7 +14855,7 @@ CLASS lcl_objects DEFINITION FINAL.
                 iv_language    TYPE spras
                 is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
                 iv_native_only TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(ri_obj)  TYPE REF TO lif_object
+      RETURNING VALUE(ri_obj)  TYPE REF TO zif_abapgit_object
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS
@@ -14884,7 +14886,7 @@ CLASS lcl_objects DEFINITION FINAL.
 
     CLASS-METHODS compare_remote_to_local
       IMPORTING
-        io_object TYPE REF TO lif_object
+        io_object TYPE REF TO zif_abapgit_object
         it_remote TYPE zif_abapgit_definitions=>ty_files_tt
         is_result TYPE zif_abapgit_definitions=>ty_result
       RAISING
@@ -17523,7 +17525,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD exists.
 
-    DATA: li_obj TYPE REF TO lif_object.
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
     TRY.
         li_obj = create_object( is_item = is_item
                                 iv_language = zif_abapgit_definitions=>gc_english ).
@@ -17543,7 +17545,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD jump.
 
-    DATA: li_obj              TYPE REF TO lif_object,
+    DATA: li_obj              TYPE REF TO zif_abapgit_object,
           lv_adt_jump_enabled TYPE abap_bool.
 
     li_obj = create_object( is_item     = is_item
@@ -17566,7 +17568,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD changed_by.
 
-    DATA: li_obj TYPE REF TO lif_object.
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
     IF is_item IS INITIAL.
 * eg. ".abapgit.xml" file
       rv_user = lcl_objects_super=>c_user_unknown.
@@ -17610,7 +17612,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD delete_obj.
 
-    DATA: li_obj TYPE REF TO lif_object.
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
     IF is_supported( is_item ) = abap_true.
       li_obj = create_object( is_item     = is_item
                               iv_language = zif_abapgit_definitions=>gc_english ).
@@ -17632,7 +17634,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD serialize.
 
-    DATA: li_obj   TYPE REF TO lif_object,
+    DATA: li_obj   TYPE REF TO zif_abapgit_object,
           lo_xml   TYPE REF TO zcl_abapgit_xml_output,
           lo_files TYPE REF TO zcl_abapgit_objects_files.
     IF is_supported( is_item ) = abap_false.
@@ -17712,7 +17714,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
     DATA: ls_item    TYPE zif_abapgit_definitions=>ty_item,
           lv_cancel  TYPE abap_bool,
-          li_obj     TYPE REF TO lif_object,
+          li_obj     TYPE REF TO zif_abapgit_object,
           lt_remote  TYPE zif_abapgit_definitions=>ty_files_tt,
           lv_package TYPE devclass,
           lo_files   TYPE REF TO zcl_abapgit_objects_files,
@@ -17858,7 +17860,7 @@ CLASS lcl_objects IMPLEMENTATION.
     DATA: ls_remote_file       TYPE zif_abapgit_definitions=>ty_file,
           lo_remote_version    TYPE REF TO zcl_abapgit_xml_input,
           lv_count             TYPE i,
-          lo_comparison_result TYPE REF TO lif_comparison_result.
+          lo_comparison_result TYPE REF TO zif_abapgit_comparison_result.
     FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
 
     IF is_result-filename CS '.XML' AND lv_count = 2.
@@ -17910,8 +17912,8 @@ ENDCLASS.                    "lcl_objects IMPLEMENTATION
 CLASS lcl_object_acid DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS: create_object
@@ -17927,15 +17929,15 @@ ENDCLASS.                    "lcl_object_acid DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_acid IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.  "lif_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.                    "lif_object~get_metadata
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
     rv_user = c_user_unknown.
   ENDMETHOD.
@@ -17957,11 +17959,11 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "create_object
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_aab         TYPE REF TO cl_aab_id,
           lv_description TYPE aab_id_descript.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -17976,7 +17978,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_description TYPE aab_id_descript,
           lo_aab         TYPE REF TO cl_aab_id.
@@ -17991,7 +17993,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_aab TYPE REF TO cl_aab_id.
     lo_aab = create_object( ).
@@ -18015,7 +18017,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_state TYPE flag,
           lo_aab   TYPE REF TO cl_aab_id.
@@ -18028,7 +18030,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -18039,7 +18041,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -18059,8 +18061,8 @@ ENDCLASS.                    "lcl_object_acid IMPLEMENTATION
 CLASS lcl_object_auth DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_auth DEFINITION
 
@@ -18071,20 +18073,20 @@ ENDCLASS.                    "lcl_object_auth DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_auth IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.  "lif_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.                    "lif_object~get_metadata
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_authx TYPE authx.
     SELECT SINGLE * FROM authx INTO ls_authx
@@ -18098,7 +18100,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see include LSAUT_FIELDF02
 
     DATA: ls_authx TYPE authx,
@@ -18122,7 +18124,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_fieldname TYPE authx-fieldname.
     lv_fieldname = ms_item-obj_name.
@@ -18144,7 +18146,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_fieldname TYPE authx-fieldname.
     SELECT SINGLE fieldname FROM authx
@@ -18154,7 +18156,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: field TYPE fieldname.
 
@@ -18167,7 +18169,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -18868,8 +18870,8 @@ ENDCLASS.
 CLASS lcl_object_clas DEFINITION INHERITING FROM lcl_objects_program.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
@@ -18907,7 +18909,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_clas IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     DATA:
       lt_includes TYPE seoincl_t.
 
@@ -18923,13 +18925,13 @@ CLASS lcl_object_clas IMPLEMENTATION.
         RETURN.
       ENDIF.
     ENDLOOP.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     TYPES: BEGIN OF ty_includes,
              programm TYPE programm,
@@ -18964,14 +18966,14 @@ CLASS lcl_object_clas IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
     DATA: ls_class_key TYPE seoclskey.
     ls_class_key-clsname = ms_item-obj_name.
 
     rv_bool = mo_object_oriented_object_fct->exists( iv_object_name = ls_class_key ).
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
         operation     = 'SHOW'
@@ -18980,21 +18982,21 @@ CLASS lcl_object_clas IMPLEMENTATION.
         in_new_window = abap_true.
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
     DATA: ls_clskey TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
 
     mo_object_oriented_object_fct->delete( ls_clskey ).
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lt_source    TYPE seop_source_string,
           ls_class_key TYPE seoclskey.
 
     ls_class_key-clsname = ms_item-obj_name.
 
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -19121,7 +19123,7 @@ CLASS lcl_object_clas IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize_xml
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
     deserialize_abap( io_xml     = io_xml
                       iv_package = iv_package ).
 
@@ -19248,7 +19250,7 @@ CLASS lcl_object_clas IMPLEMENTATION.
     mo_object_oriented_object_fct->add_to_activation_list( ms_item ).
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -20030,7 +20032,7 @@ CLASS lcl_object_cmpt DEFINITION INHERITING FROM lcl_objects_super FINAL.
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
 
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     DATA: mo_cmp_db TYPE REF TO object.
@@ -20054,13 +20056,13 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: mi_cmp_template TYPE REF TO object.
 
@@ -20082,14 +20084,14 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: name TYPE c LENGTH 30.
 
@@ -20109,7 +20111,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lr_template TYPE REF TO data.
     FIELD-SYMBOLS: <template> TYPE any.
@@ -20133,7 +20135,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lr_template TYPE REF TO data.
     FIELD-SYMBOLS: <template> TYPE any.
@@ -20178,7 +20180,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: deleted TYPE abap_bool.
 
@@ -20201,7 +20203,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -20219,7 +20221,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -20239,8 +20241,8 @@ ENDCLASS.
 CLASS lcl_object_cus0 DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -20272,19 +20274,19 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( |TODO: Jump| ).
 
@@ -20298,7 +20300,7 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_message TYPE hier_mess.
 
@@ -20310,9 +20312,9 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
     rv_bool = boolc( ls_message IS INITIAL ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_message TYPE hier_mess.
 
@@ -20328,7 +20330,7 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_img_activity TYPE ty_img_activity.
 
@@ -20352,7 +20354,7 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_img_activity TYPE ty_img_activity,
           ls_text         LIKE LINE OF ls_img_activity-texts.
@@ -20377,7 +20379,7 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -20395,8 +20397,8 @@ ENDCLASS.                    "lcl_object_cus0 IMPLEMENTATION
 CLASS lcl_object_cus1 DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -20439,25 +20441,25 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( |TODO: Jump| ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     CALL FUNCTION 'S_CUS_ACTIVITY_EXIST'
       EXPORTING
@@ -20468,9 +20470,9 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_message TYPE hier_mess.
 
@@ -20486,7 +20488,7 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_customzing_activity TYPE ty_customzing_activity.
 
@@ -20511,7 +20513,7 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_customzing_activity TYPE ty_customzing_activity,
           ls_message             TYPE hier_mess.
@@ -20543,7 +20545,7 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -20561,8 +20563,8 @@ ENDCLASS.                    "lcl_object_cus1 IMPLEMENTATION
 CLASS lcl_object_cus2 DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -20605,25 +20607,25 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( |TODO: Jump| ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     CALL FUNCTION 'S_CUS_ATTRIBUTES_EXIST'
       EXPORTING
@@ -20634,9 +20636,9 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_message TYPE hier_mess.
 
@@ -20652,7 +20654,7 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_customizing_attribute TYPE ty_customizing_attribute.
 
@@ -20677,7 +20679,7 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_customizing_attribute TYPE ty_customizing_attribute,
           ls_message               TYPE hier_mess.
@@ -20704,7 +20706,7 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -20719,29 +20721,29 @@ ENDCLASS.                    "lcl_object_cus2 IMPLEMENTATION
 CLASS lcl_object_dcls DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.
 
 CLASS lcl_object_dcls IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
     rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: li_dcl TYPE REF TO object.
 
@@ -20762,7 +20764,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     TRY.
 
@@ -20775,7 +20777,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_dcl TYPE REF TO object.
 
@@ -20794,7 +20796,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lr_data TYPE REF TO data,
           li_dcl  TYPE REF TO object.
@@ -20852,7 +20854,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lr_data TYPE REF TO data,
           li_dcl  TYPE REF TO object.
@@ -20896,7 +20898,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -20916,8 +20918,8 @@ ENDCLASS.
 CLASS lcl_object_ddls DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PROTECTED SECTION.
     METHODS open_adt_stob
@@ -20933,11 +20935,11 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_ddls IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: li_ddl   TYPE REF TO object,
           lr_data  TYPE REF TO data.
@@ -20969,16 +20971,16 @@ CLASS lcl_object_ddls IMPLEMENTATION.
       rv_user = c_user_unknown.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
     rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_state TYPE objstate,
           li_ddl   TYPE REF TO object.
@@ -21002,9 +21004,9 @@ CLASS lcl_object_ddls IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lv_typename   TYPE typename.
     DATA: lv_ddtypekind TYPE ddtypekind.
@@ -21027,7 +21029,7 @@ CLASS lcl_object_ddls IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_ddl TYPE REF TO object.
     CALL METHOD ('CL_DD_DDL_HANDLER_FACTORY')=>('CREATE')
@@ -21044,7 +21046,7 @@ CLASS lcl_object_ddls IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: li_ddl  TYPE REF TO object,
           lr_data TYPE REF TO data.
@@ -21092,7 +21094,7 @@ CLASS lcl_object_ddls IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: li_ddl  TYPE REF TO object,
           lr_data TYPE REF TO data.
@@ -21133,9 +21135,9 @@ CLASS lcl_object_ddls IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-  ENDMETHOD.                    "lif_object~compare_to_remote_version
+  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
   METHOD open_adt_stob.
 
@@ -21202,8 +21204,8 @@ ENDCLASS.                    "lcl_object_view IMPLEMENTATION
 CLASS lcl_object_ddlx DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     DATA: mo_persistence TYPE REF TO if_wb_object_persist.
 
@@ -21229,20 +21231,20 @@ ENDCLASS.
 
 CLASS lcl_object_ddlx IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_object_key TYPE seu_objkey.
 
@@ -21261,7 +21263,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     TRY.
         jump_adt( i_obj_name = ms_item-obj_name
@@ -21273,7 +21275,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_object_key TYPE seu_objkey,
           lo_data_model TYPE REF TO if_wb_object_data_model,
@@ -21296,7 +21298,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_object_key TYPE seu_objkey,
           lo_data_model TYPE REF TO if_wb_object_data_model,
@@ -21339,7 +21341,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_data_model TYPE REF TO if_wb_object_data_model,
           lr_data       TYPE REF TO data,
@@ -21373,7 +21375,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
   METHOD get_persistence.
@@ -21451,9 +21453,9 @@ CLASS lcl_object_devc DEFINITION
 
   PUBLIC SECTION.
     INTERFACES:
-      lif_object.
+      zif_abapgit_object.
     ALIASES:
-      mo_files FOR lif_object~mo_files.
+      mo_files FOR zif_abapgit_object~mo_files.
     METHODS:
       constructor IMPORTING is_item     TYPE zif_abapgit_definitions=>ty_item
                             iv_language TYPE spras.
@@ -21480,7 +21482,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_package.
-    IF me->lif_object~exists( ) = abap_true.
+    IF me->zif_abapgit_object~exists( ) = abap_true.
       cl_package_factory=>load_package(
         EXPORTING
           i_package_name             = mv_local_devclass
@@ -21502,15 +21504,15 @@ CLASS lcl_object_devc IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = get_package( )->changed_by.
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
     " Package deletion is a bit tricky. A package can only be deleted if there are no objects
     " contained in it. This includes subpackages, so first the leaf packages need to be deleted.
     " Unfortunately deleted objects that are still contained in an unreleased transport request
@@ -21518,7 +21520,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
     " -> Package deletion is currently not supported by abapGit
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
     DATA: li_package         TYPE REF TO if_package,
           ls_package_data    TYPE scompkdtln,
           ls_data_sign       TYPE scompksign,
@@ -21679,7 +21681,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
     set_lock( ii_package = li_package iv_lock = abap_false ).
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     " Check remote package if deserialize has not been called before this
     IF mv_local_devclass IS INITIAL.
@@ -21700,15 +21702,15 @@ CLASS lcl_object_devc IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
         operation           = 'SHOW'
@@ -21724,7 +21726,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
     DATA: ls_package_data TYPE scompkdtln,
           li_package      TYPE REF TO if_package,
           lt_intf_usages  TYPE tpak_permission_to_use_list,
@@ -21972,7 +21974,7 @@ ENDCLASS.
 CLASS lcl_object_dial DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_dialog_module,
@@ -21990,25 +21992,25 @@ ENDCLASS.
 
 CLASS lcl_object_dial IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_tdct TYPE tdct.
 
@@ -22018,7 +22020,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_dialog_module TYPE ty_dialog_module.
 
@@ -22033,7 +22035,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_dialog_module TYPE ty_dialog_module.
 
@@ -22067,7 +22069,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -22127,7 +22129,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: objectname TYPE tdct-dnam.
 
@@ -22147,7 +22149,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -22175,8 +22177,8 @@ ENDCLASS.
 CLASS lcl_object_doct DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     CONSTANTS: c_id      TYPE dokhl-id VALUE 'TX',
@@ -22202,14 +22204,14 @@ ENDCLASS.                    "lcl_object_msag DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_doct IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD read.
 
@@ -22231,14 +22233,14 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
     IF rv_user IS INITIAL.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_id     TYPE dokil-id,
           lv_object TYPE dokhl-object.
@@ -22250,9 +22252,9 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_dokentry TYPE dokentry,
           ls_bcdata   TYPE bdcdata,
@@ -22299,7 +22301,7 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_object TYPE dokhl-object.
     lv_object = ms_item-obj_name.
@@ -22319,7 +22321,7 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_data TYPE ty_data.
     io_xml->read( EXPORTING iv_name = c_name
@@ -22336,7 +22338,7 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_data TYPE ty_data.
     ls_data = read( ).
@@ -22355,7 +22357,7 @@ CLASS lcl_object_doct IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -22370,8 +22372,8 @@ ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
 CLASS lcl_object_docv DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     CONSTANTS: c_typ     TYPE dokhl-typ VALUE 'E',
@@ -22396,16 +22398,16 @@ ENDCLASS.                    "lcl_object_msag DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_docv IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
     IF rv_user IS INITIAL.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
   METHOD read.
 
@@ -22429,12 +22431,12 @@ CLASS lcl_object_docv IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_id     TYPE dokhl-id,
           lv_object TYPE dokhl-object.
@@ -22447,15 +22449,15 @@ CLASS lcl_object_docv IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( 'todo, jump DOCV' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_id     TYPE dokhl-id,
           lv_object TYPE dokhl-object.
@@ -22477,7 +22479,7 @@ CLASS lcl_object_docv IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_data TYPE ty_data.
     io_xml->read( EXPORTING iv_name = c_name
@@ -22494,7 +22496,7 @@ CLASS lcl_object_docv IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_data   TYPE ty_data.
     ls_data = read( ).
@@ -22513,7 +22515,7 @@ CLASS lcl_object_docv IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -22533,8 +22535,8 @@ ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
 CLASS lcl_object_doma DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
 
@@ -22573,7 +22575,7 @@ ENDCLASS.                    "lcl_object_doma DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_doma IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -22589,9 +22591,9 @@ CLASS lcl_object_doma IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd01l INTO rv_user
       WHERE domname = ms_item-obj_name
@@ -22603,12 +22605,12 @@ CLASS lcl_object_doma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_domname TYPE dd01l-domname.
     SELECT SINGLE domname FROM dd01l INTO lv_domname
@@ -22617,16 +22619,16 @@ CLASS lcl_object_doma IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DOMA'
                iv_field = 'RSRD1-DOMA_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 * see class CL_WB_DDIC
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
@@ -22648,7 +22650,7 @@ CLASS lcl_object_doma IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name    TYPE ddobjname,
           ls_dd01v   TYPE dd01v,
@@ -22698,7 +22700,7 @@ CLASS lcl_object_doma IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
 * package SEDD
 * package SDIC
@@ -22880,7 +22882,7 @@ CLASS lcl_object_doma IMPLEMENTATION.
 
   ENDMETHOD.  "deserialize_texts
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -22900,8 +22902,8 @@ ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
 CLASS lcl_object_dtel DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
 
@@ -22933,7 +22935,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_dtel IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -22949,9 +22951,9 @@ CLASS lcl_object_dtel IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd04l INTO rv_user
       WHERE rollname = ms_item-obj_name
@@ -22963,12 +22965,12 @@ CLASS lcl_object_dtel IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_rollname TYPE dd04l-rollname.
     SELECT SINGLE rollname FROM dd04l INTO lv_rollname
@@ -22977,16 +22979,16 @@ CLASS lcl_object_dtel IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
 
@@ -23007,7 +23009,7 @@ CLASS lcl_object_dtel IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 * fm DDIF_DTEL_GET bypasses buffer, so SELECTs are
 * done directly from here
 
@@ -23075,7 +23077,7 @@ CLASS lcl_object_dtel IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_dd04v TYPE dd04v,
           lv_name  TYPE ddobjname,
@@ -23211,7 +23213,7 @@ CLASS lcl_object_dtel IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -23229,8 +23231,8 @@ ENDCLASS.                    "lcl_object_dtel IMPLEMENTATION
 CLASS lcl_object_dsys DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -23271,23 +23273,23 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
     IF rv_user IS INITIAL.
       rv_user = c_user_unknown.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'DSYS_SHOW'
       EXPORTING
@@ -23304,7 +23306,7 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     SELECT SINGLE object FROM dokil INTO mv_object
            WHERE id   = c_id
@@ -23312,9 +23314,9 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     CALL FUNCTION 'DOCU_DEL'
       EXPORTING
@@ -23332,7 +23334,7 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_data   TYPE ty_data.
 
@@ -23352,7 +23354,7 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_data TYPE ty_data.
 
@@ -23372,7 +23374,7 @@ CLASS lcl_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -24498,8 +24500,8 @@ ENDCLASS.                    "lcl_object_enho_wdyconf IMPLEMENTATION
 CLASS lcl_object_enho DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
 
@@ -24521,19 +24523,19 @@ ENDCLASS.                    "lcl_object_enho DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_enho IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_enh_id TYPE enhname.
     lv_enh_id = ms_item-obj_name.
@@ -24546,14 +24548,14 @@ CLASS lcl_object_enho IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_enh_id   TYPE enhname,
           li_enho     TYPE REF TO lif_object_enho,
           li_enh_tool TYPE REF TO if_enh_tool.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -24617,12 +24619,12 @@ CLASS lcl_object_enho IMPLEMENTATION.
 
   ENDMETHOD.                    "factory
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_tool TYPE enhtooltype,
           li_enho TYPE REF TO lif_object_enho.
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -24637,7 +24639,7 @@ CLASS lcl_object_enho IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_enh_id     TYPE enhname,
           li_enh_object TYPE REF TO if_enh_object.
@@ -24655,7 +24657,7 @@ CLASS lcl_object_enho IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -24666,9 +24668,9 @@ CLASS lcl_object_enho IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-  ENDMETHOD.                    "lif_object~compare_to_remote_version
+  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "lcl_object_enho IMPLEMENTATION
 ****************************************************
@@ -24702,8 +24704,8 @@ ENDINTERFACE.                    "lif_object_enho
 CLASS lcl_object_enhs DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -24752,11 +24754,11 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 CLASS lcl_object_enhs IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_spot_name TYPE enhspotname,
           li_spot_ref  TYPE REF TO if_enh_spot_tool.
@@ -24773,7 +24775,7 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_parent    TYPE enhspotcompositename,
           lv_spot_name TYPE enhspotname,
@@ -24783,8 +24785,8 @@ CLASS lcl_object_enhs IMPLEMENTATION.
           li_enhs      TYPE REF TO lif_object_enhs,
           lx_root      TYPE REF TO cx_root.
 
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -24817,7 +24819,7 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.  "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_spot_name TYPE enhspotname,
           li_spot_ref  TYPE REF TO if_enh_spot_tool,
@@ -24840,7 +24842,7 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.  "serialize
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_spot_name TYPE enhspotname,
           li_spot_ref  TYPE REF TO if_enh_spot_tool.
@@ -24858,7 +24860,7 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.  "exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_spot_name  TYPE enhspotname,
           li_enh_object TYPE REF TO if_enh_object,
@@ -24881,11 +24883,11 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.  "delete
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.  "get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -24896,7 +24898,7 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.  "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -25108,8 +25110,8 @@ ENDCLASS.
 CLASS lcl_object_enqu DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_dtel DEFINITION
 
@@ -25120,7 +25122,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_enqu IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -25136,9 +25138,9 @@ CLASS lcl_object_enqu IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd25l
       INTO rv_user
@@ -25151,12 +25153,12 @@ CLASS lcl_object_enqu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_viewname TYPE dd25l-viewname.
     SELECT SINGLE viewname FROM dd25l INTO lv_viewname
@@ -25165,16 +25167,16 @@ CLASS lcl_object_enqu IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-ENQU'
                iv_field = 'RSRD1-ENQU_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
@@ -25195,7 +25197,7 @@ CLASS lcl_object_enqu IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
@@ -25236,7 +25238,7 @@ CLASS lcl_object_enqu IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
@@ -25275,7 +25277,7 @@ CLASS lcl_object_enqu IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -25289,8 +25291,8 @@ ENDCLASS.                    "lcl_object_enqu IMPLEMENTATION
 
 CLASS lcl_object_ensc DEFINITION INHERITING FROM lcl_objects_super FINAL.
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS. "lcl_object_ensc
 
@@ -25299,15 +25301,15 @@ ENDCLASS. "lcl_object_ensc
 *----------------------------------------------------------------------*
 CLASS lcl_object_ensc IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_spot_name  TYPE enhspotcompositename,
           lv_message    TYPE string,
@@ -25328,8 +25330,8 @@ CLASS lcl_object_ensc IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'COMP_ENH_SPOTS' "Composite enhancement spots
                   CHANGING  cg_data = lt_comp_spots ).
 
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     lv_package = iv_package.
@@ -25368,7 +25370,7 @@ CLASS lcl_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.  "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_spot_name  TYPE enhspotcompositename,
           lv_message    TYPE string,
@@ -25410,7 +25412,7 @@ CLASS lcl_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.  "serialize
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_spot_name TYPE enhspotcompositename,
           li_spot_ref  TYPE REF TO if_enh_spot_composite.
@@ -25427,7 +25429,7 @@ CLASS lcl_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.  "exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
     DATA: lv_spot_name TYPE enhspotcompositename,
           lv_message   TYPE string,
           lx_root      TYPE REF TO cx_root,
@@ -25454,11 +25456,11 @@ CLASS lcl_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.  "delete
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.  "get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -25469,7 +25471,7 @@ CLASS lcl_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.  "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -25486,8 +25488,8 @@ ENDCLASS. "lcl_object_ensc
 CLASS lcl_object_form DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     CONSTANTS: c_objectname_form    TYPE thead-tdobject VALUE 'FORM' ##NO_TEXT.
@@ -25570,7 +25572,7 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 CLASS lcl_object_form IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: ls_last_changed    TYPE tys_form_header.
     DATA: lv_last_changed_ts TYPE timestamp.
@@ -25584,7 +25586,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_last_changed TYPE tys_form_header.
 
@@ -25598,14 +25600,14 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_form_name TYPE thead-tdform.
 
@@ -25620,7 +25622,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
 
@@ -25652,7 +25654,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name TYPE itcta-tdform.
 
@@ -25665,7 +25667,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lt_form_data              TYPE tyt_form_data.
     DATA: ls_form_data              TYPE tys_form_data.
@@ -25709,7 +25711,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lt_form_data            TYPE tyt_form_data.
     DATA: lt_lines                TYPE tyt_lines.
@@ -25721,6 +25723,7 @@ CLASS lcl_object_form IMPLEMENTATION.
     LOOP AT lt_form_data ASSIGNING <ls_form_data>.
 
       lt_lines = _extract_tdlines( <ls_form_data> ).
+
       _save_form( EXPORTING it_lines     = lt_lines
                   CHANGING  cs_form_data = <ls_form_data> ).
 
@@ -25736,7 +25739,7 @@ CLASS lcl_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -25897,8 +25900,8 @@ ENDCLASS.                    "lcl_object_FORM IMPLEMENTATION
 CLASS lcl_object_fugr DEFINITION INHERITING FROM lcl_objects_program FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: ty_rs38l_incl_tt TYPE STANDARD TABLE OF rs38l_incl WITH DEFAULT KEY.
@@ -25972,7 +25975,7 @@ ENDCLASS.                    "lcl_object_fugr DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_fugr IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lt_functab  TYPE ty_rs38l_incl_tt,
           lt_includes TYPE rso_t_objnm.
@@ -26002,9 +26005,9 @@ CLASS lcl_object_fugr IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     TYPES: BEGIN OF ty_stamps,
              user TYPE xubname,
@@ -26069,11 +26072,11 @@ CLASS lcl_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_pool  TYPE tlibg-area.
     lv_pool = ms_item-obj_name.
@@ -26084,7 +26087,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
         pool_not_exists = 1.
     rv_bool = boolc( sy-subrc <> 1 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD deserialize_functions.
 
@@ -26546,7 +26549,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
 * function group SEUF
 * function group SIFP
@@ -26558,7 +26561,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua.
 
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -26585,7 +26588,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_program_name TYPE programm,
           lt_functions    TYPE ty_function_tt,
@@ -26616,7 +26619,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_area TYPE rs38l-area.
     lv_area = ms_item-obj_name.
@@ -26643,7 +26646,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -26654,7 +26657,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -26674,8 +26677,8 @@ ENDCLASS.                    "lcl_object_fugr IMPLEMENTATION
 CLASS lcl_object_iamu DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_internet_appl_comp_binary,
@@ -26716,25 +26719,25 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 CLASS lcl_object_iamu IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_internet_appl_comp_binary TYPE ty_internet_appl_comp_binary.
 
@@ -26745,7 +26748,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_internet_appl_comp_binary TYPE ty_internet_appl_comp_binary.
 
@@ -26761,7 +26764,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     load_mime_api( ).
 
@@ -26814,7 +26817,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_mime_name TYPE iacikeym.
 
@@ -26828,7 +26831,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -26838,7 +26841,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -26990,8 +26993,8 @@ ENDCLASS.
 CLASS lcl_object_iarp DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -27013,17 +27016,17 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_iarp IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD read.
 
@@ -27056,11 +27059,11 @@ CLASS lcl_object_iarp IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_attr       TYPE w3resoattr,
           lt_parameters TYPE w3resopara_tabletype.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -27072,7 +27075,7 @@ CLASS lcl_object_iarp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
   METHOD save.
 
@@ -27088,7 +27091,7 @@ CLASS lcl_object_iarp IMPLEMENTATION.
 
   ENDMETHOD.                    "save
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_attr       TYPE w3resoattr,
           lt_parameters TYPE w3resopara_tabletype.
@@ -27101,9 +27104,9 @@ CLASS lcl_object_iarp IMPLEMENTATION.
     save( is_attr       = ls_attr
           it_parameters = lt_parameters ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_resource TYPE REF TO if_w3_api_resource,
           ls_name     TYPE w3resokey.
@@ -27127,9 +27130,9 @@ CLASS lcl_object_iarp IMPLEMENTATION.
     li_resource->if_w3_api_object~delete( ).
     li_resource->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_name TYPE w3resokey.
     ls_name = ms_item-obj_name.
@@ -27150,9 +27153,9 @@ CLASS lcl_object_iarp IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -27160,9 +27163,9 @@ CLASS lcl_object_iarp IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -27182,8 +27185,8 @@ ENDCLASS.                    "lcl_object_iarp IMPLEMENTATION
 CLASS lcl_object_iasp DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -27205,17 +27208,17 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_iasp IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD read.
 
@@ -27248,11 +27251,11 @@ CLASS lcl_object_iasp IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_attr       TYPE w3servattr,
           lt_parameters TYPE w3servpara_tabletype.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -27264,7 +27267,7 @@ CLASS lcl_object_iasp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
   METHOD save.
 
@@ -27280,7 +27283,7 @@ CLASS lcl_object_iasp IMPLEMENTATION.
 
   ENDMETHOD.                    "save
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_attr       TYPE w3servattr,
           lt_parameters TYPE w3servpara_tabletype.
@@ -27293,9 +27296,9 @@ CLASS lcl_object_iasp IMPLEMENTATION.
     save( is_attr       = ls_attr
           it_parameters = lt_parameters ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_service TYPE REF TO if_w3_api_service,
           lv_name    TYPE itsappl.
@@ -27319,9 +27322,9 @@ CLASS lcl_object_iasp IMPLEMENTATION.
     li_service->if_w3_api_object~delete( ).
     li_service->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE itsappl.
     lv_name = ms_item-obj_name.
@@ -27342,9 +27345,9 @@ CLASS lcl_object_iasp IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -27352,9 +27355,9 @@ CLASS lcl_object_iasp IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -27374,8 +27377,8 @@ ENDCLASS.                    "lcl_object_iasp IMPLEMENTATION
 CLASS lcl_object_iatu DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -27397,17 +27400,17 @@ ENDCLASS.                    "lcl_object_iatu DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_iatu IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD read.
 
@@ -27443,11 +27446,11 @@ CLASS lcl_object_iatu IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_attr   TYPE w3tempattr,
           lv_source TYPE string.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -27460,7 +27463,7 @@ CLASS lcl_object_iatu IMPLEMENTATION.
     mo_files->add_string( iv_ext    = 'html'
                           iv_string = lv_source ) ##NO_TEXT.
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
   METHOD save.
 
@@ -27489,7 +27492,7 @@ CLASS lcl_object_iatu IMPLEMENTATION.
 
   ENDMETHOD.                    "save
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_attr   TYPE w3tempattr,
           lv_source TYPE string.
@@ -27502,9 +27505,9 @@ CLASS lcl_object_iatu IMPLEMENTATION.
     save( is_attr   = ls_attr
           iv_source = lv_source ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_template TYPE REF TO if_w3_api_template,
           ls_name     TYPE iacikeyt.
@@ -27528,9 +27531,9 @@ CLASS lcl_object_iatu IMPLEMENTATION.
     li_template->if_w3_api_object~delete( ).
     li_template->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_name TYPE iacikeyt.
     ls_name = ms_item-obj_name.
@@ -27551,9 +27554,9 @@ CLASS lcl_object_iatu IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -27561,9 +27564,9 @@ CLASS lcl_object_iatu IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -27578,7 +27581,7 @@ ENDCLASS.                    "lcl_object_iatu IMPLEMENTATION
 CLASS lcl_object_jobd DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: ty_jd_name TYPE c LENGTH 32.
@@ -27587,26 +27590,26 @@ ENDCLASS.
 
 CLASS lcl_object_jobd IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: jd_name TYPE ty_jd_name.
 
@@ -27625,7 +27628,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lr_job_definition TYPE REF TO data,
           lo_job_definition TYPE REF TO object,
@@ -27679,7 +27682,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lr_job_definition TYPE REF TO data,
           lo_job_definition TYPE REF TO object,
@@ -27720,7 +27723,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_job_definition TYPE REF TO object,
           jd_name           TYPE c LENGTH 32.
@@ -27740,7 +27743,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: obj_name TYPE e071-obj_name.
 
@@ -27762,7 +27765,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -27783,8 +27786,8 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 CLASS lcl_object_intf DEFINITION FINAL INHERITING FROM lcl_objects_program.
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
@@ -27815,7 +27818,7 @@ CLASS lcl_object_intf IMPLEMENTATION.
     mo_object_oriented_object_fct = lcl_oo_factory=>make( iv_object_type = ms_item-obj_type ).
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
     deserialize_abap( io_xml     = io_xml
                       iv_package = iv_package ).
 
@@ -27872,7 +27875,7 @@ CLASS lcl_object_intf IMPLEMENTATION.
       iv_language    = mv_language ).
   ENDMETHOD.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     DATA:
       lv_program  TYPE program,
       lt_includes TYPE seoincl_t.
@@ -27886,14 +27889,14 @@ CLASS lcl_object_intf IMPLEMENTATION.
       iv_skip_gui  = abap_true ).
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lt_source        TYPE seop_source_string,
           ls_interface_key TYPE seoclskey.
 
     ls_interface_key-clsname = ms_item-obj_name.
 
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -27948,7 +27951,7 @@ CLASS lcl_object_intf IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     TYPES: BEGIN OF ty_includes,
              programm TYPE programm,
            END OF ty_includes.
@@ -27981,18 +27984,18 @@ CLASS lcl_object_intf IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
     DATA: ls_clskey TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
 
     mo_object_oriented_object_fct->delete( ls_clskey ).
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_class_key TYPE seoclskey,
           lv_category  TYPE seoclassdf-category.
@@ -28013,11 +28016,11 @@ CLASS lcl_object_intf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
         operation     = 'SHOW'
@@ -28114,8 +28117,8 @@ ENDCLASS.
 CLASS lcl_object_msag DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_t100_texts,
@@ -28141,11 +28144,11 @@ ENDCLASS.                    "lcl_object_msag DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_msag IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM t100a INTO rv_user
       WHERE arbgb = ms_item-obj_name.                   "#EC CI_GENBUFF
@@ -28155,20 +28158,20 @@ CLASS lcl_object_msag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_arbgb TYPE t100a-arbgb.
     SELECT SINGLE arbgb FROM t100a INTO lv_arbgb
       WHERE arbgb = ms_item-obj_name.                   "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -28179,7 +28182,7 @@ CLASS lcl_object_msag IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
 * parameter SUPPRESS_DIALOG doesnt exist in all versions
     CALL FUNCTION 'RS_DELETE_MESSAGE_ID'
@@ -28196,7 +28199,7 @@ CLASS lcl_object_msag IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * fm RPY_MESSAGE_ID_INSERT almost works, but not in older versions
 
     DATA: ls_t100a  TYPE t100a,
@@ -28276,7 +28279,7 @@ CLASS lcl_object_msag IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_msg_id TYPE rglif-message_id,
           ls_inf    TYPE t100a,
@@ -28392,7 +28395,7 @@ CLASS lcl_object_msag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -28412,8 +28415,8 @@ ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
 CLASS lcl_object_nrob DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -28429,11 +28432,11 @@ ENDCLASS.                    "lcl_object_nrob DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_nrob IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_objectid TYPE cdhdr-objectid,
           lt_cdhdr    TYPE cdhdr_tab.
@@ -28466,21 +28469,21 @@ CLASS lcl_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-late_deser = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_object TYPE tnro-object.
     SELECT SINGLE object FROM tnro INTO lv_object
       WHERE object = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_object     TYPE tnro-object,
           ls_attributes TYPE tnro,
@@ -28510,7 +28513,7 @@ CLASS lcl_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lt_errors     TYPE TABLE OF inoer,
           ls_attributes TYPE tnro,
@@ -28616,7 +28619,7 @@ CLASS lcl_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_object TYPE tnro-object.
     lv_object = ms_item-obj_name.
@@ -28638,7 +28641,7 @@ CLASS lcl_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata   TYPE bdcdata,
           lt_bcdata   TYPE STANDARD TABLE OF bdcdata.
@@ -28674,7 +28677,7 @@ CLASS lcl_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -28694,8 +28697,8 @@ ENDCLASS.                    "lcl_object_nrob IMPLEMENTATION
 CLASS lcl_object_para DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_para DEFINITION
 
@@ -28706,29 +28709,29 @@ ENDCLASS.                    "lcl_object_para DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_para IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_paramid TYPE tpara-paramid.
     SELECT SINGLE paramid FROM tpara INTO lv_paramid
       WHERE paramid = ms_item-obj_name.                 "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_tpara  TYPE tpara,
           ls_tparat TYPE tparat.
@@ -28749,7 +28752,7 @@ CLASS lcl_object_para IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see fm RS_PARAMETER_ADD and RS_PARAMETER_EDIT
 
     DATA: lv_mode   TYPE c LENGTH 1,
@@ -28793,7 +28796,7 @@ CLASS lcl_object_para IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_paramid TYPE tpara-paramid.
     lv_paramid = ms_item-obj_name.
@@ -28809,7 +28812,7 @@ CLASS lcl_object_para IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -28820,7 +28823,7 @@ CLASS lcl_object_para IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -28840,7 +28843,7 @@ ENDCLASS.                    "lcl_object_para IMPLEMENTATION
 CLASS lcl_object_pinf DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_pinf,
@@ -28877,11 +28880,11 @@ ENDCLASS.                    "lcl_object_PINF DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_pinf IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE changed_by FROM intf INTO rv_user
       WHERE intf_name = ms_item-obj_name.
@@ -28891,11 +28894,11 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_pack_name TYPE intf-pack_name,
           lv_main_pack TYPE tdevc-mainpack.
@@ -28909,9 +28912,9 @@ CLASS lcl_object_pinf IMPLEMENTATION.
       rv_bool = boolc( sy-subrc = 0 ).
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_pinf      TYPE ty_pinf,
           lv_name      TYPE scomifnam,
@@ -28964,7 +28967,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: li_interface TYPE REF TO if_package_interface,
           ls_pinf      TYPE ty_pinf.
@@ -29072,7 +29075,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   METHOD create_or_load.
 
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       cl_package_interface=>create_new_package_interface(
         EXPORTING
           i_pkg_interface_name    = is_pinf-attributes-intf_name
@@ -29126,7 +29129,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name      TYPE scomifnam,
           li_interface TYPE REF TO if_package_interface.
@@ -29160,7 +29163,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -29171,7 +29174,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -29186,7 +29189,7 @@ ENDCLASS.                    "lcl_object_PINF IMPLEMENTATION
 CLASS lcl_object_prag DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_pragma,
@@ -29213,26 +29216,26 @@ ENDCLASS.
 
 CLASS lcl_object_prag IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     TRY.
         cl_abap_pragma=>get_ref( ms_item-obj_name ).
@@ -29246,7 +29249,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_pragma TYPE REF TO cl_abap_pragma,
           pragma    TYPE lcl_object_prag=>ty_pragma.
@@ -29268,7 +29271,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: pragma    TYPE ty_pragma,
           lo_pragma TYPE REF TO cl_abap_pragma.
@@ -29299,7 +29302,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_pragma TYPE REF TO cl_abap_pragma.
 
@@ -29316,7 +29319,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -29330,7 +29333,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -29370,8 +29373,8 @@ ENDCLASS.
 CLASS lcl_object_prog DEFINITION INHERITING FROM lcl_objects_program FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_tpool_i18n,
@@ -29397,28 +29400,28 @@ ENDCLASS.                    "lcl_object_prog DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_prog IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = check_prog_changed_since(
       iv_program   = ms_item-obj_name
       iv_timestamp = iv_timestamp ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     SELECT SINGLE unam FROM reposrc INTO rv_user
       WHERE progname = ms_item-obj_name
       AND r3state = 'A'.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_progname TYPE reposrc-progname.
 
@@ -29427,9 +29430,9 @@ CLASS lcl_object_prog IMPLEMENTATION.
       AND r3state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -29440,7 +29443,7 @@ CLASS lcl_object_prog IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_program LIKE sy-repid.
 
@@ -29464,7 +29467,7 @@ CLASS lcl_object_prog IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     serialize_program( io_xml   = io_xml
                        is_item  = ms_item
@@ -29475,7 +29478,7 @@ CLASS lcl_object_prog IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_serialize~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_program_name TYPE programm,
           ls_progdir      TYPE ty_progdir,
@@ -29518,9 +29521,9 @@ CLASS lcl_object_prog IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_serialize~deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-  ENDMETHOD.                    "lif_object~compare_to_remote_version
+  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
   METHOD serialize_texts.
 
@@ -29675,7 +29678,7 @@ ENDCLASS.                    "lcl_object_sAPC IMPLEMENTATION
 CLASS lcl_object_sfbf DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     METHODS:
@@ -29692,11 +29695,11 @@ ENDCLASS.                    "lcl_object_SFBF DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sfbf IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_bf.
 
@@ -29710,12 +29713,12 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
           lv_bf    TYPE sfw_bfunction.
@@ -29733,7 +29736,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
     ENDIF.
 
     rv_bool = abap_true.
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD get.
 
@@ -29751,7 +29754,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_bf                TYPE REF TO cl_sfw_bf,
           ls_header            TYPE sfw_bf,
@@ -29763,7 +29766,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
           ls_sfw_bfc_tc        TYPE sfw_bfc_tc,
           ls_sfw_bfc_rn        TYPE sfw_bfc_rn,
           lt_parent_bfs        TYPE sfw_bs_bf_outtab.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -29812,7 +29815,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_bf                TYPE sfw_bfunction,
           lo_bf                TYPE REF TO cl_sfw_bf,
@@ -29876,7 +29879,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_bf     TYPE sfw_bfunction,
           lt_delete TYPE sfw_bftab,
@@ -29894,7 +29897,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -29905,7 +29908,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -29925,7 +29928,7 @@ ENDCLASS.                    "lcl_object_SFBF IMPLEMENTATION
 CLASS lcl_object_sfbs DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     METHODS:
@@ -29942,11 +29945,11 @@ ENDCLASS.                    "lcl_object_SFBS DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sfbs IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_bs.
 
@@ -29975,12 +29978,12 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
           lv_bfset TYPE sfw_bset.
@@ -29998,9 +30001,9 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
     rv_bool = abap_true.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_bfs         TYPE REF TO cl_sfw_bfs,
           ls_header      TYPE sfw_bs,
@@ -30009,7 +30012,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
           lt_assigned_bf TYPE sfw_bfbs_outtab,
           lt_nested_bfs  TYPE sfw_bsbs_outtab,
           lt_parent_bfs  TYPE sfw_bs_bs_parent_outtab.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -30047,7 +30050,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_bfset       TYPE sfw_bset,
           lo_bfs         TYPE REF TO cl_sfw_bfs,
@@ -30098,7 +30101,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_bfset  TYPE sfw_bset,
           lt_delete TYPE sfw_bstab,
@@ -30116,7 +30119,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -30127,7 +30130,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -30147,8 +30150,8 @@ ENDCLASS.                    "lcl_object_SFBS IMPLEMENTATION
 CLASS lcl_object_sfpf DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     CLASS-METHODS:
       fix_oref
@@ -30172,11 +30175,11 @@ ENDCLASS.                    "lcl_object_doma DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sfpf IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM fplayout
       INTO rv_user
@@ -30194,11 +30197,11 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE fpname.
 
@@ -30208,9 +30211,9 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
       AND state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -30220,7 +30223,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name TYPE fpname,
           lo_wb_form TYPE REF TO cl_fp_wb_form.
@@ -30311,7 +30314,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_xstr     TYPE xstring,
           li_document TYPE REF TO if_ixml_document.
@@ -30322,7 +30325,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_xstr      TYPE xstring,
           lv_name      TYPE fpname,
@@ -30346,7 +30349,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -30366,8 +30369,8 @@ ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
 CLASS lcl_object_sfpi DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -30387,11 +30390,11 @@ ENDCLASS.                    "lcl_object_doma DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sfpi IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM fpinterface
       INTO rv_user
@@ -30409,11 +30412,11 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE fpinterface-name.
 
@@ -30423,9 +30426,9 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
       AND state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -30435,7 +30438,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name TYPE fpname,
           lo_wb_interface TYPE REF TO cl_fp_wb_interface.
@@ -30478,7 +30481,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_xstr     TYPE xstring,
           li_document TYPE REF TO if_ixml_document.
@@ -30489,7 +30492,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_xstr      TYPE xstring,
           lv_name      TYPE fpname,
@@ -30513,7 +30516,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -30533,7 +30536,7 @@ ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
 CLASS lcl_object_sfsw DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     METHODS:
@@ -30550,11 +30553,11 @@ ENDCLASS.                    "lcl_object_sfsw DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sfsw IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_switch.
     ls_data = get( )->get_header_data( ).
@@ -30566,12 +30569,12 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir     TYPE tadir,
           lv_switch_id TYPE sfw_switch_id.
@@ -30588,7 +30591,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
     ENDIF.
 
     rv_bool = abap_true.
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD get.
 
@@ -30604,7 +30607,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_switch    TYPE REF TO cl_sfw_sw,
           ls_header    TYPE sfw_switch,
@@ -30612,7 +30615,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
           lv_name_80   TYPE sfw_name80,
           lt_parent_bf TYPE sfw_bf_sw_outtab,
           lt_conflicts TYPE sfw_confl_outtab.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -30647,7 +30650,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_switch    TYPE REF TO cl_sfw_sw,
           lv_switch_id TYPE sfw_switch_id,
@@ -30699,7 +30702,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_switch_id TYPE sfw_switch_id,
           lo_switch    TYPE REF TO cl_sfw_sw.
@@ -30714,7 +30717,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -30725,7 +30728,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -30743,8 +30746,8 @@ ENDCLASS.                    "lcl_object_sfsw IMPLEMENTATION
 CLASS lcl_object_shi3 DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -30767,11 +30770,11 @@ ENDCLASS.                    "lcl_object_shi3 DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_shi3 IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_head TYPE ttree.
 
@@ -30790,9 +30793,9 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
     mv_tree_id = ms_item-obj_name.
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD jump_se43.
 
@@ -30832,7 +30835,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.                    "jump_se43
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_head TYPE ttree.
 
@@ -30851,7 +30854,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_msg    TYPE hier_mess,
           ls_header TYPE ttree,
@@ -30868,9 +30871,9 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
     rv_bool = boolc( ls_header-id IS NOT INITIAL ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     CALL FUNCTION 'BMENU_DELETE_TREE'
       EXPORTING
@@ -30886,7 +30889,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_msg    TYPE hier_mess,
           ls_head   TYPE ttree,
@@ -30948,7 +30951,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.                    "strip_stamps
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_msg    TYPE hier_mess,
           ls_head   TYPE ttree,
@@ -30968,8 +30971,8 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'TREE_TEXTS'
                   CHANGING  cg_data = lt_texts ).
 
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     CALL FUNCTION 'STREE_HIERARCHY_SAVE'
@@ -30996,7 +30999,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -31014,8 +31017,8 @@ ENDCLASS.                    "lcl_object_shi3 IMPLEMENTATION
 CLASS lcl_object_shi5 DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -31047,23 +31050,23 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.                    "constructor
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     zcx_abapgit_exception=>raise( |TODO: Jump { ms_item-obj_type }| ).
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_extension_header TYPE ttree_ext.
 
@@ -31075,9 +31078,9 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
 
     rv_bool = boolc( ls_extension_header IS NOT INITIAL ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_message             TYPE hier_mess,
           lv_deletion_successful TYPE hier_yesno.
@@ -31095,7 +31098,7 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_extension TYPE ty_extension.
 
@@ -31114,7 +31117,7 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     " We cannot use STREE_EXTENSION_NAME_CREATE
     " the create logic is directly tied to the UI
@@ -31136,7 +31139,7 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -31156,8 +31159,8 @@ ENDCLASS.                    "lcl_object_shi5 IMPLEMENTATION
 CLASS lcl_object_shlp DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_dtel DEFINITION
 
@@ -31168,7 +31171,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_shlp IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -31183,9 +31186,9 @@ CLASS lcl_object_shlp IMPLEMENTATION.
      iv_date      = lv_date
      iv_time      = lv_time ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd30l INTO rv_user
       WHERE shlpname = ms_item-obj_name
@@ -31196,12 +31199,12 @@ CLASS lcl_object_shlp IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_shlpname TYPE dd30l-shlpname.
     SELECT SINGLE shlpname FROM dd30l INTO lv_shlpname
@@ -31209,16 +31212,16 @@ CLASS lcl_object_shlp IMPLEMENTATION.
       AND as4local = 'A'.                               "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-SHMA'
                iv_field = 'RSRD1-SHMA_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
@@ -31239,7 +31242,7 @@ CLASS lcl_object_shlp IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd30v TYPE dd30v,
@@ -31301,7 +31304,7 @@ CLASS lcl_object_shlp IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd30v TYPE dd30v,
@@ -31344,7 +31347,7 @@ CLASS lcl_object_shlp IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -31359,31 +31362,31 @@ ENDCLASS.                    "lcl_object_shlp IMPLEMENTATION
 CLASS lcl_object_shma DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
 ENDCLASS.
 
 CLASS lcl_object_shma IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_area_name TYPE shm_area_name.
 
@@ -31396,7 +31399,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_area_name       TYPE shm_area_name,
           ls_area_attributes TYPE shma_attributes.
@@ -31426,7 +31429,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_area_name       TYPE shm_area_name,
           ls_area_attributes TYPE shma_attributes.
@@ -31454,7 +31457,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     " We can't use FM SHMA_DELETE_AREA because it depends
     " on the corresponding class, but in abapGit it has its own
@@ -31582,7 +31585,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -31618,7 +31621,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -31640,8 +31643,8 @@ ENDCLASS.
 CLASS lcl_object_sicf DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: ty_icfhandler_tt TYPE STANDARD TABLE OF icfhandler WITH DEFAULT KEY.
@@ -31693,11 +31696,11 @@ ENDCLASS.                    "lcl_object_sicf DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_sicf IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_icfservice TYPE icfservice.
     read( EXPORTING iv_clear = abap_false
@@ -31711,11 +31714,11 @@ CLASS lcl_object_sicf IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
           ls_key   TYPE ty_sicf_key.
@@ -31732,9 +31735,9 @@ CLASS lcl_object_sicf IMPLEMENTATION.
       rv_bool = boolc( sy-subrc = 0 ).
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_icfservice TYPE icfservice,
           ls_icfdocu    TYPE icfdocu,
@@ -31819,7 +31822,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_icfservice TYPE icfservice,
           ls_read       TYPE icfservice,
@@ -31835,7 +31838,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
                   CHANGING cg_data = ls_icfdocu ).
     io_xml->read( EXPORTING iv_name = 'ICFHANDLER_TABLE'
                   CHANGING cg_data = lt_icfhandler ).
-    lv_exists = lif_object~exists( ).
+    lv_exists = zif_abapgit_object~exists( ).
     IF lv_exists = abap_false.
       insert_sicf( is_icfservice = ls_icfservice
                    is_icfdocu    = ls_icfdocu
@@ -32007,7 +32010,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
 
   ENDMETHOD.                    "change_sicf
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_icfservice TYPE icfservice.
 
@@ -32050,7 +32053,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -32086,7 +32089,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -32106,8 +32109,8 @@ ENDCLASS.                    "lcl_object_sicf IMPLEMENTATION
 CLASS lcl_object_smim DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS get_filename
@@ -32138,11 +32141,11 @@ ENDCLASS.                    "lcl_object_smim DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_smim IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_loio TYPE sdok_docid.
     lv_loio = ms_item-obj_name.
@@ -32155,11 +32158,11 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_loio TYPE sdok_docid.
     lv_loio = ms_item-obj_name.
@@ -32247,7 +32250,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.                    "get_filename
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_url      TYPE string,
           lv_folder   TYPE abap_bool,
@@ -32305,7 +32308,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_url      TYPE string,
           lv_folder   TYPE abap_bool,
@@ -32380,7 +32383,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_api TYPE REF TO if_mr_api,
           lv_url TYPE string.
@@ -32410,7 +32413,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -32420,7 +32423,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -32440,8 +32443,8 @@ ENDCLASS.                    "lcl_object_smim IMPLEMENTATION
 CLASS lcl_object_splo DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_splo DEFINITION
 
@@ -32452,11 +32455,11 @@ ENDCLASS.                    "lcl_object_splo DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_splo IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE chgname1 FROM tsp1d INTO rv_user
       WHERE papart = ms_item-obj_name.
@@ -32466,17 +32469,17 @@ CLASS lcl_object_splo IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_tsp1t TYPE tsp1t,
           ls_tsp1d TYPE tsp1d,
           ls_tsp0p TYPE tsp0p.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -32500,9 +32503,9 @@ CLASS lcl_object_splo IMPLEMENTATION.
     io_xml->add( iv_name = 'TSP0P'
                  ig_data = ls_tsp0p ).
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_tsp1t    TYPE tsp1t,
           ls_tsp1d    TYPE tsp1d,
@@ -32520,30 +32523,30 @@ CLASS lcl_object_splo IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DELETE FROM tsp1t WHERE papart = ms_item-obj_name. "#EC CI_NOFIRST "#EC CI_SUBRC
     DELETE FROM tsp1d WHERE papart = ms_item-obj_name.    "#EC CI_SUBRC
     DELETE FROM tsp0p WHERE pdpaper = ms_item-obj_name.   "#EC CI_SUBRC
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_papart TYPE tsp1d-papart.
     SELECT SINGLE papart INTO lv_papart FROM tsp1d
       WHERE papart = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     zcx_abapgit_exception=>raise( 'todo, jump, SPLO' ).
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -32557,32 +32560,32 @@ ENDCLASS.                    "lcl_object_splo IMPLEMENTATION
 CLASS lcl_object_srfc DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
 ENDCLASS.
 
 CLASS lcl_object_srfc IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lo_object_data  TYPE REF TO if_wb_object_data_model,
           lo_srfc_persist TYPE REF TO if_wb_object_persist.
@@ -32606,7 +32609,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_object_data  TYPE REF TO if_wb_object_data_model,
           lo_srfc_persist TYPE REF TO if_wb_object_persist,
@@ -32644,7 +32647,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_srfc_persist TYPE REF TO if_wb_object_persist,
           lo_object_data  TYPE REF TO if_wb_object_data_model,
@@ -32681,7 +32684,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_srfc_persist TYPE REF TO if_wb_object_persist,
           lx_error        TYPE REF TO cx_root,
@@ -32699,7 +32702,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -32718,7 +32721,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -32740,8 +32743,8 @@ ENDCLASS.
 CLASS lcl_object_ssfo DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS: fix_ids IMPORTING ii_xml_doc TYPE REF TO if_ixml_document.
@@ -32755,11 +32758,11 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_ssfo IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM stxfadm INTO rv_user
       WHERE formname = ms_item-obj_name.
@@ -32769,21 +32772,21 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_formname TYPE stxfadm-formname.
     SELECT SINGLE formname FROM stxfadm INTO lv_formname
       WHERE formname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
 
@@ -32821,7 +32824,7 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_formname TYPE tdsfname.
     lv_formname = ms_item-obj_name.
@@ -32845,7 +32848,7 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 * see function module FB_DOWNLOAD_FORM
 
     DATA: lo_sf       TYPE REF TO cl_ssf_fb_smart_form,
@@ -32951,7 +32954,7 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see function module FB_UPLOAD_FORM
 
     DATA: li_node     TYPE REF TO if_ixml_node,
@@ -33002,7 +33005,7 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -33022,8 +33025,8 @@ ENDCLASS.                    "lcl_object_ssfo IMPLEMENTATION
 CLASS lcl_object_ssst DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
     CONSTANTS: c_style_active TYPE tdactivate VALUE 'A'.
 
   PRIVATE SECTION.
@@ -33040,11 +33043,11 @@ ENDCLASS.                    "lcl_object_ssst DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_ssst IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM stxsadm INTO rv_user
       WHERE stylename = ms_item-obj_name.
@@ -33054,12 +33057,12 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_stylename TYPE stxsadm-stylename.
 
@@ -33070,7 +33073,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
         AND vari      = ''.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD validate_font.
 
@@ -33083,7 +33086,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.                    "validate_font
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 * see fm SSF_DOWNLOAD_STYLE
 
     DATA: lv_style_name TYPE tdssname,
@@ -33140,7 +33143,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see fm SSF_UPLOAD_STYLE
 
     DATA: ls_header     TYPE ssfcats,
@@ -33206,7 +33209,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_stylename TYPE tdssname.
     lv_stylename = ms_item-obj_name.
@@ -33230,7 +33233,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -33266,7 +33269,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -33286,8 +33289,8 @@ ENDCLASS.                    "lcl_object_ssst IMPLEMENTATION
 CLASS lcl_object_styl DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_style,
@@ -33306,11 +33309,11 @@ ENDCLASS.                    "lcl_object_styl DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_styl IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_style TYPE ty_style,
           lv_name  TYPE itcda-tdstyle.
@@ -33330,12 +33333,12 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: ls_style TYPE ty_style,
           lv_name  TYPE itcda-tdstyle,
@@ -33354,9 +33357,9 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
     rv_bool = boolc( lv_found = abap_true ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -33402,7 +33405,7 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_style TYPE itcda-tdstyle.
     lv_style = ms_item-obj_name.
@@ -33414,7 +33417,7 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_style TYPE ty_style.
     io_xml->read( EXPORTING iv_name = 'STYLE'
@@ -33432,7 +33435,7 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_style TYPE ty_style,
           lv_name  TYPE itcda-tdstyle.
@@ -33462,7 +33465,7 @@ CLASS lcl_object_styl IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -33482,8 +33485,8 @@ ENDCLASS.                    "lcl_object_styl IMPLEMENTATION
 CLASS lcl_object_susc DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_susc DEFINITION
 
@@ -33494,28 +33497,28 @@ ENDCLASS.                    "lcl_object_susc DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_susc IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_oclss TYPE tobc-oclss.
     SELECT SINGLE oclss FROM tobc INTO lv_oclss
       WHERE oclss = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_tobc  TYPE tobc,
           ls_tobct TYPE tobct.
@@ -33536,7 +33539,7 @@ CLASS lcl_object_susc IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
 
     DATA: ls_tobc       TYPE tobc,
@@ -33563,7 +33566,7 @@ CLASS lcl_object_susc IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objclass TYPE tobc-oclss.
     lv_objclass = ms_item-obj_name.
@@ -33573,7 +33576,7 @@ CLASS lcl_object_susc IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lv_objclass TYPE tobc-oclss.
     lv_objclass = ms_item-obj_name.
@@ -33583,7 +33586,7 @@ CLASS lcl_object_susc IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -33603,8 +33606,8 @@ ENDCLASS.                    "lcl_object_susc IMPLEMENTATION
 CLASS lcl_object_suso DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_suso DEFINITION
 
@@ -33615,28 +33618,28 @@ ENDCLASS.                    "lcl_object_suso DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_suso IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_objct TYPE tobj-objct.
     SELECT SINGLE objct FROM tobj INTO lv_objct
       WHERE objct = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_tobj       TYPE tobj,
           ls_tobjt      TYPE tobjt,
@@ -33688,7 +33691,7 @@ CLASS lcl_object_suso IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
 
     DATA: lv_objectname TYPE e071-obj_name,
@@ -33734,7 +33737,7 @@ CLASS lcl_object_suso IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_object TYPE tobj-objct.
     lv_object = ms_item-obj_name.
@@ -33744,7 +33747,7 @@ CLASS lcl_object_suso IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lv_object TYPE tobj-objct.
     lv_object = ms_item-obj_name.
@@ -33754,7 +33757,7 @@ CLASS lcl_object_suso IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -33769,7 +33772,7 @@ ENDCLASS.                    "lcl_object_suso IMPLEMENTATION
 CLASS lcl_object_sxci DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_classic_badi_implementation,
@@ -33793,25 +33796,25 @@ ENDCLASS.
 
 CLASS lcl_object_sxci IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_implementation_name TYPE rsexscrn-imp_name.
 
@@ -33829,7 +33832,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_implementation_name         TYPE rsexscrn-imp_name,
           lv_exit_name                   TYPE rsexscrn-exit_name,
@@ -33914,7 +33917,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_badi_definition             TYPE badi_data,
           lo_filter_object               TYPE REF TO cl_badi_flt_struct,
@@ -33995,7 +33998,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_implementation_name TYPE rsexscrn-imp_name.
 
@@ -34017,7 +34020,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -34036,7 +34039,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -34068,7 +34071,7 @@ CLASS lcl_tabl_valid_dialog DEFINITION FINAL.
       constructor
         IMPORTING
           iv_message TYPE string.
-    INTERFACES: lif_comparison_result.
+    INTERFACES: zif_abapgit_comparison_result.
 
   PRIVATE SECTION.
     DATA mv_message TYPE string.
@@ -34113,11 +34116,11 @@ CLASS lcl_tabl_valid_dialog IMPLEMENTATION.
     mv_message = iv_message.
   ENDMETHOD.
 
-  METHOD lif_comparison_result~is_result_complete_halt.
+  METHOD zif_abapgit_comparison_result~is_result_complete_halt.
     rv_response = mv_halt.
   ENDMETHOD.
 
-  METHOD lif_comparison_result~show_confirmation_dialog.
+  METHOD zif_abapgit_comparison_result~show_confirmation_dialog.
     DATA lv_answer TYPE string.
     TRY.
         lv_answer = lcl_popups=>popup_to_confirm(
@@ -34281,8 +34284,8 @@ ENDCLASS.
 CLASS lcl_object_tabl DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_dtel DEFINITION
 
@@ -34293,7 +34296,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_tabl IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date    TYPE dats,
           lv_time    TYPE tims,
@@ -34346,9 +34349,9 @@ CLASS lcl_object_tabl IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_as4date TYPE dd02l-as4date,
           lv_as4time TYPE dd02l-as4time.
@@ -34371,12 +34374,12 @@ CLASS lcl_object_tabl IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_tabname TYPE dd02l-tabname.
     SELECT SINGLE tabname FROM dd02l INTO lv_tabname
@@ -34385,16 +34388,16 @@ CLASS lcl_object_tabl IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname  TYPE rsedd0-ddobjname,
           lv_tabclass TYPE dd02l-tabclass,
@@ -34435,7 +34438,7 @@ CLASS lcl_object_tabl IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name    TYPE ddobjname,
           ls_dd02v   TYPE dd02v,
@@ -34609,7 +34612,7 @@ CLASS lcl_object_tabl IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name      TYPE ddobjname,
           lv_tname     TYPE trobj_name,
@@ -34716,14 +34719,14 @@ CLASS lcl_object_tabl IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     DATA: lo_table_validation     TYPE REF TO lcl_object_tabl_valid,
           lo_local_version_output TYPE REF TO zcl_abapgit_xml_output,
           lo_local_version_input  TYPE REF TO zcl_abapgit_xml_input,
           lv_validation_text      TYPE string.
 
     CREATE OBJECT lo_local_version_output.
-    me->lif_object~serialize( lo_local_version_output ).
+    me->zif_abapgit_object~serialize( lo_local_version_output ).
 
     CREATE OBJECT lo_local_version_input
       EXPORTING
@@ -34760,8 +34763,8 @@ ENDCLASS.                    "lcl_object_TABL IMPLEMENTATION
 CLASS lcl_object_tobj DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_tobj,
@@ -34811,11 +34814,11 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_type_pos TYPE i.
 
@@ -34830,12 +34833,12 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-late_deser = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_objectname TYPE objh-objectname,
           lv_type_pos   TYPE i.
@@ -34847,9 +34850,9 @@ CLASS lcl_object_tobj IMPLEMENTATION.
       AND objecttype = ms_item-obj_name+lv_type_pos.    "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_objh     TYPE objh,
           ls_objt     TYPE objt,
@@ -34910,7 +34913,7 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_objh  TYPE objh,
           ls_objt  TYPE objt,
@@ -34961,7 +34964,7 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: ls_objh     TYPE objh,
           lv_type_pos TYPE i.
@@ -34991,7 +34994,7 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
           lt_bcdata TYPE STANDARD TABLE OF bdcdata.
@@ -35033,7 +35036,7 @@ CLASS lcl_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -35053,8 +35056,8 @@ ENDCLASS.                    "lcl_object_tobj IMPLEMENTATION
 CLASS lcl_object_tran DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
 
@@ -35099,17 +35102,17 @@ ENDCLASS.                    "lcl_object_TRAN DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_tran IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD split_parameters_comp.
     DATA: lv_off TYPE i.
@@ -35250,16 +35253,16 @@ CLASS lcl_object_tran IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.                    "split_parameters
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_tcode TYPE tstc-tcode.
     SELECT SINGLE tcode FROM tstc INTO lv_tcode
       WHERE tcode = ms_item-obj_name.                   "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
 
@@ -35293,7 +35296,7 @@ CLASS lcl_object_tran IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_transaction TYPE tstc-tcode.
     lv_transaction = ms_item-obj_name.
@@ -35311,7 +35314,7 @@ CLASS lcl_object_tran IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     CONSTANTS: lc_hex_tra TYPE x VALUE '00',
 *               c_hex_men TYPE x VALUE '01',
@@ -35330,8 +35333,8 @@ CLASS lcl_object_tran IMPLEMENTATION.
           ls_tstcp        TYPE tstcp,
           lt_param_values TYPE TABLE OF rsparam,
           ls_rsstcd       TYPE rsstcd.
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TSTC'
@@ -35403,7 +35406,7 @@ CLASS lcl_object_tran IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_transaction TYPE tstc-tcode,
           lt_tcodes      TYPE TABLE OF tstc,
@@ -35460,7 +35463,7 @@ CLASS lcl_object_tran IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -35523,8 +35526,8 @@ ENDCLASS.                    "lcl_object_tran IMPLEMENTATION
 CLASS lcl_object_ttyp DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_dtel DEFINITION
 
@@ -35535,7 +35538,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_ttyp IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -35550,9 +35553,9 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd40l INTO rv_user
       WHERE typename = ms_item-obj_name
@@ -35563,12 +35566,12 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_typename TYPE dd40l-typename.
     SELECT SINGLE typename FROM dd40l INTO lv_typename
@@ -35576,16 +35579,16 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
       AND as4local = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
@@ -35606,7 +35609,7 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
           lt_dd42v TYPE dd42v_tab,
@@ -35651,7 +35654,7 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
           lt_dd42v TYPE dd42v_tab,
@@ -35690,7 +35693,7 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -35710,8 +35713,8 @@ ENDCLASS.                    "lcl_object_ttyp IMPLEMENTATION
 CLASS lcl_object_type DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     CONSTANTS: c_prefix TYPE c LENGTH 3 VALUE '%_C'.
@@ -35737,19 +35740,19 @@ ENDCLASS.                    "lcl_object_type DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_type IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     TRY.
         read( ).
@@ -35758,7 +35761,7 @@ CLASS lcl_object_type IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD read.
 
@@ -35793,7 +35796,7 @@ CLASS lcl_object_type IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_ddtext TYPE ddtypet-ddtext,
           lt_source TYPE abaptxt255_tab.
@@ -35846,7 +35849,7 @@ CLASS lcl_object_type IMPLEMENTATION.
 
   ENDMETHOD.                    "create
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_ddtext    TYPE ddtypet-ddtext,
           lt_source    TYPE abaptxt255_tab,
@@ -35858,7 +35861,7 @@ CLASS lcl_object_type IMPLEMENTATION.
 
     lt_source = mo_files->read_abap( ).
 
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       create( iv_ddtext   = lv_ddtext
               it_source   = lt_source
               iv_devclass = iv_package ).
@@ -35871,7 +35874,7 @@ CLASS lcl_object_type IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
@@ -35894,12 +35897,12 @@ CLASS lcl_object_type IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
     jump_se11( iv_radio = 'RSRD1-TYMA'
                iv_field = 'RSRD1-TYMA_VAL' ).
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -35914,7 +35917,7 @@ ENDCLASS.                    "lcl_object_type IMPLEMENTATION
 CLASS lcl_object_ucsa DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES:
@@ -35941,26 +35944,26 @@ ENDCLASS.
 
 CLASS lcl_object_ucsa IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_id          TYPE ty_id,
           lo_persistence TYPE REF TO object.
@@ -35988,7 +35991,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_id                     TYPE ty_id,
           lx_root                   TYPE REF TO cx_root,
@@ -36026,7 +36029,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_id                     TYPE ty_id,
           lx_root                   TYPE REF TO cx_root,
@@ -36067,7 +36070,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_id          TYPE ty_id,
           lx_root        TYPE REF TO cx_root,
@@ -36089,7 +36092,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -36108,7 +36111,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
 
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
 
@@ -36185,7 +36188,7 @@ ENDCLASS.
 CLASS lcl_object_vcls DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
 * See include MTOBJCON:
@@ -36201,19 +36204,19 @@ ENDCLASS.                    "lcl_object_vcls DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_vcls IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA lv_changedate TYPE vcldir-changedate.
 
@@ -36227,16 +36230,16 @@ CLASS lcl_object_vcls IMPLEMENTATION.
       rv_bool = abap_false.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_vclname      TYPE vcl_name,
           ls_vcldir_entry TYPE v_vcldir,
           lt_vclstruc     TYPE TABLE OF v_vclstruc,
           lt_vclstrudep   TYPE TABLE OF v_vclstdep,
           lt_vclmf        TYPE TABLE OF v_vclmf.
-    IF lif_object~exists( ) = abap_false.
+    IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -36272,7 +36275,7 @@ CLASS lcl_object_vcls IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_vcldir_entry TYPE v_vcldir,
           lt_vclstruc     TYPE TABLE OF v_vclstruc,
@@ -36318,7 +36321,7 @@ CLASS lcl_object_vcls IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 * Do the same as in VIEWCLUSTER_SAVE_DEFINITION
     DATA: lv_vclname TYPE vcl_name.
     lv_vclname = ms_item-obj_name.
@@ -36332,7 +36335,7 @@ CLASS lcl_object_vcls IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: lv_vclname      TYPE  vcl_name.
 
@@ -36364,7 +36367,7 @@ CLASS lcl_object_vcls IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -36384,8 +36387,8 @@ ENDCLASS.                    "lcl_object_vcls IMPLEMENTATION
 CLASS lcl_object_view DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.                    "lcl_object_dtel DEFINITION
 
@@ -36396,7 +36399,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_view IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
           lv_time TYPE tims.
@@ -36429,9 +36432,9 @@ CLASS lcl_object_view IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd25l INTO rv_user
       WHERE viewname = ms_item-obj_name
@@ -36441,14 +36444,14 @@ CLASS lcl_object_view IMPLEMENTATION.
       rv_user = c_user_unknown.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_viewname TYPE dd25l-viewname,
           lv_ddl_view TYPE abap_bool.
@@ -36473,16 +36476,16 @@ CLASS lcl_object_view IMPLEMENTATION.
       ENDTRY.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-VIMA'
                iv_field = 'RSRD1-VIMA_VAL' ).
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
@@ -36503,7 +36506,7 @@ CLASS lcl_object_view IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
@@ -36586,7 +36589,7 @@ CLASS lcl_object_view IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
@@ -36637,9 +36640,9 @@ CLASS lcl_object_view IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-  ENDMETHOD.                    "lif_object~compare_to_remote_version
+  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "lcl_object_view IMPLEMENTATION
 ****************************************************
@@ -36657,7 +36660,7 @@ ENDCLASS.                    "lcl_object_view IMPLEMENTATION
 CLASS lcl_object_w3super DEFINITION INHERITING FROM lcl_objects_super ABSTRACT.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
     TYPES ty_wwwparams_tt TYPE STANDARD TABLE OF wwwparams WITH DEFAULT KEY.
 
@@ -36723,11 +36726,11 @@ CLASS lcl_object_w3super IMPLEMENTATION.
     ms_key-objid = ms_item-obj_name.
   ENDMETHOD.  " constructor.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE chname INTO rv_user
       FROM wwwdata
@@ -36741,7 +36744,7 @@ CLASS lcl_object_w3super IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     DATA: ls_bdcdata TYPE bdcdata,
           lt_bdcdata TYPE tty_bdcdata.
@@ -36791,16 +36794,16 @@ CLASS lcl_object_w3super IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD get_metadata. "Redefinition
     rs_metadata         = super->get_metadata( ).
     rs_metadata-version = 'v2.0.0'. " Seriazation v2, separate data file
   ENDMETHOD.  " get_metadata. "Redefinition
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     SELECT SINGLE objid INTO ms_key-objid
       FROM wwwdata
@@ -36814,9 +36817,9 @@ CLASS lcl_object_w3super IMPLEMENTATION.
 
     rv_bool = abap_true.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA lt_w3mime    TYPE STANDARD TABLE OF w3mime.
     DATA lt_w3html    TYPE STANDARD TABLE OF w3html.
@@ -36902,13 +36905,13 @@ CLASS lcl_object_w3super IMPLEMENTATION.
                  ig_data = lt_w3params ).
 
     " Seriazation v2, separate data file. 'extra' added to prevent conflict with .xml
-    lif_object~mo_files->add_raw( iv_data  = lv_xstring
+    zif_abapgit_object~mo_files->add_raw( iv_data  = lv_xstring
                                   iv_extra = 'data'
                                   iv_ext   = get_ext( lt_w3params ) ).
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA lv_base64str TYPE string.
     DATA lt_w3params  TYPE STANDARD TABLE OF wwwparams.
@@ -36929,7 +36932,7 @@ CLASS lcl_object_w3super IMPLEMENTATION.
                       CHANGING  cg_data = lv_base64str ).
         lv_xstring = cl_http_utility=>decode_x_base64( lv_base64str ).
       WHEN 'v2.0.0'.
-        lv_xstring = lif_object~mo_files->read_raw( iv_extra = 'data'
+        lv_xstring = zif_abapgit_object~mo_files->read_raw( iv_extra = 'data'
                                                     iv_ext   = get_ext( lt_w3params ) ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'W3xx: Unknown serializer version' ).
@@ -37045,9 +37048,9 @@ CLASS lcl_object_w3super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot update TADIR for W3xx' ).
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     CALL FUNCTION 'WWWDATA_DELETE'
       EXPORTING
@@ -37070,7 +37073,7 @@ CLASS lcl_object_w3super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot delete W3xx params' ).
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
   METHOD get_ext.
 
@@ -37129,7 +37132,7 @@ CLASS lcl_object_w3super IMPLEMENTATION.
 
   ENDMETHOD.  " find_param.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -37208,8 +37211,8 @@ ENDCLASS.
 CLASS lcl_object_wapa DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_page,
@@ -37245,11 +37248,11 @@ ENDCLASS.                    "lcl_object_TRAN DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_wapa IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_name   TYPE o2applname,
           lt_pages  TYPE STANDARD TABLE OF o2pagdir WITH DEFAULT KEY,
@@ -37271,11 +37274,11 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE o2applname.
     lv_name = ms_item-obj_name.
@@ -37289,9 +37292,9 @@ CLASS lcl_object_wapa IMPLEMENTATION.
         error_occured       = 3 ).
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -37302,7 +37305,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name        TYPE o2applname,
           lo_bsp         TYPE REF TO cl_o2_api_application,
@@ -37398,7 +37401,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_bsp        TYPE REF TO cl_o2_api_application,
           ls_attributes TYPE o2applattr,
@@ -37423,8 +37426,8 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
     ls_attributes-devclass = iv_package.
 
-    IF me->lif_object~exists( ) = abap_true.
-      me->lif_object~delete( ).
+    IF me->zif_abapgit_object~exists( ) = abap_true.
+      me->zif_abapgit_object~delete( ).
     ENDIF.
 
     cl_o2_api_application=>create_new(
@@ -37497,7 +37500,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name       TYPE o2applname,
           ls_attributes TYPE o2applattr,
@@ -37669,7 +37672,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -37689,8 +37692,8 @@ ENDCLASS.                    "lcl_object_tran IMPLEMENTATION
 CLASS lcl_object_wdya DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS read
@@ -37713,11 +37716,11 @@ ENDCLASS.                    "lcl_object_wdya DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_wdya IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: li_app  TYPE REF TO if_wdy_md_application,
           ls_app  TYPE wdy_application,
@@ -37741,11 +37744,11 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE wdy_application_name.
     lv_name = ms_item-obj_name.
@@ -37761,7 +37764,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'WDYA, permission failure' ).
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD read.
 
@@ -37799,7 +37802,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_app        TYPE wdy_application,
           lt_properties TYPE wdy_app_property_table.
@@ -37840,7 +37843,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.                    "save
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_app        TYPE wdy_application,
           lt_properties TYPE wdy_app_property_table.
@@ -37855,7 +37858,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: li_app    TYPE REF TO if_wdy_md_application,
           lv_objkey TYPE wdy_wb_appl_name,
@@ -37889,7 +37892,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -37900,7 +37903,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -37920,8 +37923,8 @@ ENDCLASS.                    "lcl_object_wdya IMPLEMENTATION
 CLASS lcl_object_wdyn DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
 
@@ -37992,19 +37995,19 @@ ENDCLASS.                    "lcl_object_wdyn DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_wdyn IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_component_name TYPE wdy_component-component_name.
     SELECT SINGLE component_name FROM wdy_component
@@ -38013,7 +38016,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
       AND version = 'A'.                                "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
   METHOD delta_definition.
 
@@ -38611,7 +38614,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
 
   ENDMETHOD.                    "add_fm_exception
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_component TYPE wdy_component_metadata.
     ls_component = read( ).
@@ -38625,7 +38628,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_component TYPE wdy_component_metadata.
 
@@ -38660,7 +38663,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_component   TYPE REF TO cl_wdy_wb_component,
           lo_request     TYPE REF TO cl_wb_request,
@@ -38681,7 +38684,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
 
   ENDMETHOD.                    "delete
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -38692,9 +38695,9 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
 
   ENDMETHOD.                    "jump
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-  ENDMETHOD.                    "lif_object~compare_to_remote_version
+  ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_wdyn IMPLEMENTATION
 ****************************************************
@@ -38712,7 +38715,7 @@ ENDCLASS.                    "lcl_object_wdyn IMPLEMENTATION
 CLASS lcl_object_webi DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
+    INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_webi,
@@ -38764,15 +38767,15 @@ ENDCLASS.                    "lcl_object_SFBS DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_webi IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "lif_object~changed_by
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: ls_webi    TYPE ty_webi,
           lt_modilog TYPE STANDARD TABLE OF smodilog WITH DEFAULT KEY,
@@ -38842,7 +38845,7 @@ CLASS lcl_object_webi IMPLEMENTATION.
     io_xml->add( iv_name = 'WEBI'
                  ig_data = ls_webi ).
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
   METHOD handle_endpoint.
 
@@ -39051,7 +39054,7 @@ CLASS lcl_object_webi IMPLEMENTATION.
 
   ENDMETHOD.                    "handle_soap
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_webi   TYPE ty_webi,
           lv_name   TYPE vepname,
@@ -39103,9 +39106,9 @@ CLASS lcl_object_webi IMPLEMENTATION.
 
     lcl_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lv_name TYPE vepname,
           lo_vif  TYPE REF TO cl_ws_md_vif_root.
@@ -39118,9 +39121,9 @@ CLASS lcl_object_webi IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deleting WEBI' ).
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE vepname.
     lv_name = ms_item-obj_name.
@@ -39129,9 +39132,9 @@ CLASS lcl_object_webi IMPLEMENTATION.
       name      = lv_name
       i_version = sews_c_vif_version-active ).
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -39140,13 +39143,13 @@ CLASS lcl_object_webi IMPLEMENTATION.
         object_type   = ms_item-obj_type
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -39166,8 +39169,8 @@ ENDCLASS.                    "lcl_object_webi IMPLEMENTATION
 CLASS lcl_object_xslt DEFINITION INHERITING FROM lcl_objects_super FINAL.
 
   PUBLIC SECTION.
-    INTERFACES lif_object.
-    ALIASES mo_files FOR lif_object~mo_files.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
   PRIVATE SECTION.
     METHODS:
@@ -39184,11 +39187,11 @@ ENDCLASS.                    "lcl_object_xslt DEFINITION
 *----------------------------------------------------------------------*
 CLASS lcl_object_xslt IMPLEMENTATION.
 
-  METHOD lif_object~has_changed_since.
+  METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
-  METHOD lif_object~changed_by.
+  METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
 
@@ -39212,7 +39215,7 @@ CLASS lcl_object_xslt IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD lif_object~serialize.
+  METHOD zif_abapgit_object~serialize.
 
     DATA: lo_xslt       TYPE REF TO cl_o2_api_xsltdesc,
           lv_source     TYPE string,
@@ -39236,16 +39239,16 @@ CLASS lcl_object_xslt IMPLEMENTATION.
                           iv_ext    = 'xml'
                           iv_string = lv_source ) ##NO_TEXT.
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.                    "zif_abapgit_object~serialize
 
-  METHOD lif_object~deserialize.
+  METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_source     TYPE string,
           lo_xslt       TYPE REF TO cl_o2_api_xsltdesc,
           lv_len        TYPE i,
           ls_attributes TYPE o2xsltattr.
-    IF lif_object~exists( ) = abap_true.
-      lif_object~delete( ).
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
@@ -39287,9 +39290,9 @@ CLASS lcl_object_xslt IMPLEMENTATION.
 
     lcl_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.                    "zif_abapgit_object~deserialize
 
-  METHOD lif_object~delete.
+  METHOD zif_abapgit_object~delete.
 
     DATA: lo_xslt TYPE REF TO cl_o2_api_xsltdesc,
           lv_name TYPE cxsltdesc.
@@ -39314,9 +39317,9 @@ CLASS lcl_object_xslt IMPLEMENTATION.
     lo_xslt->delete( ).
     lo_xslt->save( ).
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.                    "zif_abapgit_object~delete
 
-  METHOD lif_object~exists.
+  METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE cxsltdesc.
     lv_name = ms_item-obj_name.
@@ -39328,9 +39331,9 @@ CLASS lcl_object_xslt IMPLEMENTATION.
       rv_bool = abap_false.
     ENDIF.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.                    "zif_abapgit_object~exists
 
-  METHOD lif_object~jump.
+  METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -39338,13 +39341,13 @@ CLASS lcl_object_xslt IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.                    "zif_abapgit_object~jump
 
-  METHOD lif_object~get_metadata.
+  METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
-  METHOD lif_object~compare_to_remote_version.
+  METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
   ENDMETHOD.
 
@@ -51305,7 +51308,7 @@ CLASS ltc_oo_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.
       mo_fake_object_files       TYPE REF TO ltd_fake_object_files,
       mo_xml_input               TYPE REF TO zcl_abapgit_xml_input,
       mo_xml_out                 TYPE REF TO zcl_abapgit_xml_output,
-      mo_oo_object               TYPE REF TO lif_object,
+      mo_oo_object               TYPE REF TO zif_abapgit_object,
       ms_item                    TYPE zif_abapgit_definitions=>ty_item.
 
     METHODS: when_deserializing
@@ -53124,5 +53127,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-14T14:19:56.822Z
+* abapmerge - 2018-01-14T15:01:58.573Z
 ****************************************************
