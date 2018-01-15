@@ -14469,8 +14469,8 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
 
     DATA: lr_data TYPE REF TO data.
 
-    FIELD-SYMBOLS: <lg_data>    TYPE any,
-                   <lg_header>  TYPE any,
+    FIELD-SYMBOLS: <lg_data>       TYPE any,
+                   <lg_header>     TYPE any,
                    <lg_changed_by> TYPE any.
 
     create_channel_objects( ).
@@ -14492,7 +14492,11 @@ CLASS lcl_objects_saxx_super IMPLEMENTATION.
     ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_changed_by>.
     ASSERT sy-subrc = 0.
 
-    rv_user = <lg_changed_by>.
+    IF <lg_changed_by> IS NOT INITIAL.
+      rv_user = <lg_changed_by>.
+    ELSE.
+      rv_user = c_user_unknown.
+    ENDIF.
 
   ENDMETHOD.
 
@@ -53127,5 +53131,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-14T15:07:47.967Z
+* abapmerge - 2018-01-15T12:39:20.843Z
 ****************************************************
