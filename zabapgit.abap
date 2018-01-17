@@ -21479,11 +21479,12 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
 
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lv_object_key TYPE seu_objkey,
-          lo_data_model TYPE REF TO if_wb_object_data_model,
-          lr_data       TYPE REF TO data,
-          lv_text       TYPE string,
-          lx_error      TYPE REF TO cx_root.
+    DATA: lv_object_key  TYPE seu_objkey,
+          lo_data_model  TYPE REF TO if_wb_object_data_model,
+          lo_persistence TYPE REF TO if_wb_object_persist,
+          lr_data        TYPE REF TO data,
+          lv_text        TYPE string,
+          lx_error       TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_data> TYPE any.
 
@@ -21497,12 +21498,13 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
         CREATE OBJECT lo_data_model
           TYPE ('CL_DDLX_WB_OBJECT_DATA').
 
-        get_persistence( )->get(
+        lo_persistence = get_persistence( ).
+        lo_persistence->get(
           EXPORTING
-            p_object_key           = lv_object_key
-            p_version              = swbm_version_active
+            p_object_key  = lv_object_key
+            p_version     = swbm_version_active
           CHANGING
-            p_object_data          = lo_data_model ).
+            p_object_data = lo_data_model ).
 
         lo_data_model->get_data(
           IMPORTING
@@ -21873,8 +21875,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
           e_package_exists        = rv_bool
         EXCEPTIONS
           intern_err              = 1
-          package_hierarchy_error = 2
-          OTHERS                  = 3 ).
+          OTHERS                  = 2 ).
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( |Error from CL_PACKAGE_HELPER=>CHECK_PACKAGE_EXISTENCE { sy-subrc }| ).
       ENDIF.
@@ -53454,5 +53455,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-17T18:36:57.383Z
+* abapmerge - 2018-01-17T19:17:27.806Z
 ****************************************************
