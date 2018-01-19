@@ -13165,12 +13165,12 @@ CLASS lcl_objects_activation IMPLEMENTATION.
 
   METHOD activate_ddic.
 
-    DATA: lt_gentab  TYPE STANDARD TABLE OF dcgentb,
-          ls_gentab  LIKE LINE OF lt_gentab,
-          lv_rc      TYPE sy-subrc,
-          lt_deltab  TYPE STANDARD TABLE OF dcdeltb,
-          action_tab TYPE dctablrestab,
-          lv_logname TYPE ddmass-logname.
+    DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
+          ls_gentab     LIKE LINE OF lt_gentab,
+          lv_rc         TYPE sy-subrc,
+          lt_deltab     TYPE STANDARD TABLE OF dcdeltb,
+          lt_action_tab TYPE STANDARD TABLE OF dctablres,
+          lv_logname    TYPE ddmass-logname.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF gt_objects.
 
@@ -13201,7 +13201,7 @@ CLASS lcl_objects_activation IMPLEMENTATION.
         TABLES
           gentab         = lt_gentab
           deltab         = lt_deltab
-          cnvtab         = action_tab
+          cnvtab         = lt_action_tab
         EXCEPTIONS
           access_failure = 1
           no_objects     = 2
@@ -53455,5 +53455,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-17T19:17:27.806Z
+* abapmerge - 2018-01-19T11:59:14.987Z
 ****************************************************
