@@ -3775,9 +3775,23 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
         intern_err            = 6
         OTHERS                = 7 ).
     IF sy-subrc <> 0.
+
       MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
         WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO lv_err.
+
+      " Here we have to delete the package,
+      " otherwise it would remain in the memory
+      " and cannot created again in this session.
+      li_package->delete(
+        EXCEPTIONS
+          object_not_empty      = 1
+          object_not_changeable = 2
+          object_invalid        = 3
+          intern_err            = 4
+          others                = 5 ).
+
       zcx_abapgit_exception=>raise( lv_err ).
+
     ENDIF.
 
     li_package->set_changeable( abap_false ).
@@ -15882,6 +15896,18 @@ CLASS lcl_popups DEFINITION FINAL.
                   i_select_column_text  TYPE csequence
                   it_columns_to_display TYPE stringtab
         EXPORTING VALUE(et_list)        TYPE STANDARD TABLE
+        RAISING   zcx_abapgit_exception,
+      branch_popup_callback
+        IMPORTING iv_code       TYPE clike
+        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+                  cs_error      TYPE svale
+                  cv_show_popup TYPE char01
+        RAISING   zcx_abapgit_exception,
+      package_popup_callback
+        IMPORTING iv_code       TYPE clike
+        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+                  cs_error      TYPE svale
+                  cv_show_popup TYPE char01
         RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
@@ -16993,6 +17019,88 @@ CLASS lcl_popups IMPLEMENTATION.
     ev_branch = <ls_field>-value.
 
   ENDMETHOD.
+  METHOD branch_popup_callback.
+
+    DATA: lv_url          TYPE string,
+          ls_package_data TYPE scompkdtln,
+          ls_branch       TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
+          lv_create       TYPE boolean.
+
+    FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
+                   <ls_fbranch>  LIKE LINE OF ct_fields,
+                   <ls_fpackage> LIKE LINE OF ct_fields.
+
+    CLEAR cs_error.
+
+    IF iv_code = 'COD1'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
+      IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
+        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.       "#EC NOTEXT
+        RETURN.
+      ENDIF.
+      lv_url = <ls_furl>-value.
+
+      ls_branch = lcl_popups=>branch_list_popup( lv_url ).
+      IF ls_branch IS INITIAL.
+        RETURN.
+      ENDIF.
+
+      READ TABLE ct_fields ASSIGNING <ls_fbranch> WITH KEY tabname = 'TEXTL'.
+      ASSERT sy-subrc = 0.
+      <ls_fbranch>-value = ls_branch-name.
+
+    ELSEIF iv_code = 'COD2'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
+      ASSERT sy-subrc = 0.
+      ls_package_data-devclass = <ls_fpackage>-value.
+
+      lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
+                                                     ev_create       = lv_create ).
+      IF lv_create = abap_false.
+        RETURN.
+      ENDIF.
+
+      zcl_abapgit_sap_package=>create( ls_package_data ).
+      COMMIT WORK.
+
+      <ls_fpackage>-value = ls_package_data-devclass.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD package_popup_callback.
+
+    DATA: ls_package_data TYPE scompkdtln,
+          lv_create       TYPE boolean.
+
+    FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF ct_fields.
+
+    CLEAR cs_error.
+
+    IF iv_code = 'COD1'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
+      ASSERT sy-subrc = 0.
+      ls_package_data-devclass = <ls_fpackage>-value.
+
+      lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
+                                                     ev_create       = lv_create ).
+      IF lv_create = abap_false.
+        RETURN.
+      ENDIF.
+
+      zcl_abapgit_sap_package=>create( ls_package_data ).
+      COMMIT WORK.
+
+      <ls_fpackage>-value = ls_package_data-devclass.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 ****************************************************
 * abapmerge - ZABAPGIT_ZIP
@@ -53316,60 +53424,20 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
                   RAISING zcx_abapgit_exception ##called ##needed.
 * called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
 
-  DATA: lv_url          TYPE string,
-        lx_error        TYPE REF TO zcx_abapgit_exception,
-        ls_package_data TYPE scompkdtln,
-        ls_branch       TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
-        lv_create       TYPE boolean.
+  DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
-  FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF tt_fields,
-                 <ls_fbranch>  LIKE LINE OF tt_fields,
-                 <ls_fpackage> LIKE LINE OF tt_fields.
+  TRY.
+      lcl_popups=>branch_popup_callback(
+        EXPORTING
+          iv_code       = pv_code
+        CHANGING
+          ct_fields     = tt_fields[]
+          cs_error      = cs_error
+          cv_show_popup = cv_show_popup ).
 
-  CLEAR cs_error.
-
-  IF pv_code = 'COD1'.
-    cv_show_popup = abap_true.
-
-    READ TABLE tt_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
-    IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
-      MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.         "#EC NOTEXT
-      RETURN.
-    ENDIF.
-    lv_url = <ls_furl>-value.
-
-    TRY.
-        ls_branch = lcl_popups=>branch_list_popup( lv_url ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-        RETURN.
-    ENDTRY.
-    IF ls_branch IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    READ TABLE tt_fields ASSIGNING <ls_fbranch> WITH KEY tabname = 'TEXTL'.
-    ASSERT sy-subrc = 0.
-    <ls_fbranch>-value = ls_branch-name.
-
-  ELSEIF pv_code = 'COD2'.
-    cv_show_popup = abap_true.
-
-    READ TABLE tt_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-    ASSERT sy-subrc = 0.
-    ls_package_data-devclass = <ls_fpackage>-value.
-
-    lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                                   ev_create       = lv_create ).
-    IF lv_create = abap_false.
-      RETURN.
-    ENDIF.
-
-    zcl_abapgit_sap_package=>create( ls_package_data ).
-    COMMIT WORK.
-
-    <ls_fpackage>-value = ls_package_data-devclass.
-  ENDIF.
+    CATCH zcx_abapgit_exception INTO lx_error.
+      MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
+  ENDTRY.
 
 ENDFORM.                    "branch_popup
 
@@ -53380,31 +53448,20 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
                    RAISING  zcx_abapgit_exception ##called ##needed.
 * called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
 
-  DATA: ls_package_data TYPE scompkdtln,
-        lv_create       TYPE boolean.
+  DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
-  FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF tt_fields.
+  TRY.
+      lcl_popups=>package_popup_callback(
+        EXPORTING
+          iv_code       = pv_code
+        CHANGING
+          ct_fields     = tt_fields[]
+          cs_error      = cs_error
+          cv_show_popup = cv_show_popup ).
 
-  CLEAR cs_error.
-
-  IF pv_code = 'COD1'.
-    cv_show_popup = abap_true.
-
-    READ TABLE tt_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-    ASSERT sy-subrc = 0.
-    ls_package_data-devclass = <ls_fpackage>-value.
-
-    lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                                   ev_create       = lv_create ).
-    IF lv_create = abap_false.
-      RETURN.
-    ENDIF.
-
-    zcl_abapgit_sap_package=>create( ls_package_data ).
-    COMMIT WORK.
-
-    <ls_fpackage>-value = ls_package_data-devclass.
-  ENDIF.
+    CATCH zcx_abapgit_exception INTO lx_error.
+      MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
+  ENDTRY.
 
 ENDFORM.                    "package_popup
 
@@ -53455,5 +53512,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-19T11:59:14.987Z
+* abapmerge - 2018-01-19T14:19:21.272Z
 ****************************************************
