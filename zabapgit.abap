@@ -202,6 +202,7 @@ INTERFACE zif_abapgit_definitions.
     ty_bitbyte TYPE c LENGTH 8 .
   TYPES:
     ty_sha1    TYPE c LENGTH 40 .
+  TYPES: ty_adler32 TYPE x LENGTH 4.
   TYPES:
     BEGIN OF ty_file_signature,
       path     TYPE string,
@@ -288,9 +289,10 @@ INTERFACE zif_abapgit_definitions.
     ty_chmod TYPE c LENGTH 6 .
   TYPES:
     BEGIN OF ty_object,
-      sha1 TYPE zif_abapgit_definitions=>ty_sha1,
-      type TYPE zif_abapgit_definitions=>ty_type,
-      data TYPE xstring,
+      sha1    TYPE zif_abapgit_definitions=>ty_sha1,
+      type    TYPE zif_abapgit_definitions=>ty_type,
+      data    TYPE xstring,
+      adler32 TYPE ty_adler32,
     END OF ty_object .
   TYPES:
     ty_objects_tt TYPE STANDARD TABLE OF ty_object WITH DEFAULT KEY .
@@ -660,6 +662,11 @@ CLASS zcl_abapgit_git_pack DEFINITION
         committer TYPE string,
         body      TYPE string,
       END OF ty_commit .
+    TYPES:
+      BEGIN OF ty_adler32,
+        sha1    TYPE zif_abapgit_definitions=>ty_sha1,
+        type    TYPE zif_abapgit_definitions=>ty_type,
+      END OF ty_adler32 .
 
     CLASS-METHODS decode
       IMPORTING
@@ -699,6 +706,51 @@ CLASS zcl_abapgit_git_pack DEFINITION
         !is_commit     TYPE ty_commit
       RETURNING
         VALUE(rv_data) TYPE xstring .
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      c_pack_start TYPE x LENGTH 4 VALUE '5041434B' ##NO_TEXT.
+    CONSTANTS:
+      c_zlib       TYPE x LENGTH 2 VALUE '789C' ##NO_TEXT.
+    CONSTANTS:
+      c_zlib_hmm   TYPE x LENGTH 2 VALUE '7801' ##NO_TEXT.
+    CONSTANTS:                                                  " PACK
+      c_version    TYPE x LENGTH 4 VALUE '00000002' ##NO_TEXT.
+
+    CLASS-METHODS decode_deltas
+      CHANGING
+        !ct_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS delta
+      IMPORTING
+        !is_object  TYPE zif_abapgit_definitions=>ty_object
+      CHANGING
+        !ct_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS delta_header
+      EXPORTING
+        !ev_header TYPE i
+      CHANGING
+        !cv_delta  TYPE xstring .
+    CLASS-METHODS sort_tree
+      IMPORTING
+        !it_nodes       TYPE ty_nodes_tt
+      RETURNING
+        VALUE(rt_nodes) TYPE ty_nodes_tt .
+    CLASS-METHODS get_type
+      IMPORTING
+        !iv_x          TYPE x
+      RETURNING
+        VALUE(rv_type) TYPE zif_abapgit_definitions=>ty_type
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_length
+      EXPORTING
+        !ev_length TYPE i
+      CHANGING
+        !cv_data   TYPE xstring .
     CLASS-METHODS type_and_length
       IMPORTING
         !iv_type          TYPE zif_abapgit_definitions=>ty_type
@@ -707,43 +759,12 @@ CLASS zcl_abapgit_git_pack DEFINITION
         VALUE(rv_xstring) TYPE xstring
       RAISING
         zcx_abapgit_exception .
-  PRIVATE SECTION.
-    CONSTANTS: c_pack_start TYPE x LENGTH 4 VALUE '5041434B', " PACK
-               c_zlib       TYPE x LENGTH 2 VALUE '789C',
-               c_zlib_hmm   TYPE x LENGTH 2 VALUE '7801',
-               c_version    TYPE x LENGTH 4 VALUE '00000002'.
-
-    CLASS-METHODS decode_deltas
-      CHANGING ct_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING  zcx_abapgit_exception.
-
-    CLASS-METHODS delta
-      IMPORTING is_object  TYPE zif_abapgit_definitions=>ty_object
-      CHANGING  ct_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS delta_header
-      EXPORTING ev_header TYPE i
-      CHANGING  cv_delta  TYPE xstring.
-
-    CLASS-METHODS sort_tree
-      IMPORTING it_nodes        TYPE ty_nodes_tt
-      RETURNING VALUE(rt_nodes) TYPE ty_nodes_tt.
-
-    CLASS-METHODS get_type
-      IMPORTING iv_x           TYPE x
-      RETURNING VALUE(rv_type) TYPE zif_abapgit_definitions=>ty_type
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS get_length
-      EXPORTING ev_length TYPE i
-      CHANGING  cv_data   TYPE xstring.
-
     CLASS-METHODS zlib_decompress
-      CHANGING cv_data         TYPE xstring
-               cv_decompressed TYPE xstring
-      RAISING  zcx_abapgit_exception.
-
+      CHANGING
+        !cv_data         TYPE xstring
+        !cv_decompressed TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_git_utils DEFINITION
   CREATE PUBLIC .
@@ -1943,11 +1964,9 @@ CLASS zcl_abapgit_hash DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: ty_adler32 TYPE x LENGTH 4.
-
     CLASS-METHODS adler32
       IMPORTING iv_xstring         TYPE xstring
-      RETURNING VALUE(rv_checksum) TYPE ty_adler32.
+      RETURNING VALUE(rv_checksum) TYPE zif_abapgit_definitions=>ty_adler32.
 
     CLASS-METHODS sha1
       IMPORTING iv_type        TYPE zif_abapgit_definitions=>ty_type
@@ -8510,11 +8529,10 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
                                   cv_decompressed = lv_decompressed ).
       ENDIF.
 
+      CLEAR ls_object.
+      ls_object-adler32 = lv_data(4).
       lv_data = lv_data+4. " skip adler checksum
 
-*************************
-
-      CLEAR ls_object.
       IF lv_type = zif_abapgit_definitions=>gc_type-ref_d.
         ls_object-sha1 = lv_ref_delta.
         TRANSLATE ls_object-sha1 TO LOWER CASE.
@@ -8796,14 +8814,13 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD encode.
 
     DATA: lv_sha1          TYPE x LENGTH 20,
-          lv_adler32       TYPE zcl_abapgit_hash=>ty_adler32,
+          lv_adler32       TYPE zif_abapgit_definitions=>ty_adler32,
           lv_compressed    TYPE xstring,
           lv_xstring       TYPE xstring,
           lo_progress      TYPE REF TO zcl_abapgit_progress,
           lv_objects_total TYPE i.
 
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects.
-
+    FIELD-SYMBOLS: <ls_object>  LIKE LINE OF it_objects.
     rv_data = c_pack_start.
 
     CONCATENATE rv_data c_version INTO rv_data IN BYTE MODE.
@@ -8818,7 +8835,6 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
         iv_total = lv_objects_total.
 
     LOOP AT it_objects ASSIGNING <ls_object>.
-
       lo_progress->show(
         iv_current = sy-tabix
         iv_text    = |Encoding objects ( { sy-tabix } of { lv_objects_total } )| ).
@@ -8836,7 +8852,11 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CONCATENATE rv_data c_zlib lv_compressed INTO rv_data IN BYTE MODE.
 
-      lv_adler32 = zcl_abapgit_hash=>adler32( <ls_object>-data ).
+      IF NOT <ls_object>-adler32 IS INITIAL.
+        lv_adler32 = <ls_object>-adler32.
+      ELSE.
+        lv_adler32 = zcl_abapgit_hash=>adler32( <ls_object>-data ).
+      ENDIF.
       CONCATENATE rv_data lv_adler32 INTO rv_data IN BYTE MODE.
 
     ENDLOOP.
@@ -9053,7 +9073,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     DATA: ls_data           TYPE zcl_abapgit_zlib=>ty_decompress,
           lv_compressed_len TYPE i,
-          lv_adler32        TYPE zcl_abapgit_hash=>ty_adler32.
+          lv_adler32        TYPE zif_abapgit_definitions=>ty_adler32.
     ls_data = zcl_abapgit_zlib=>decompress( cv_data ).
     lv_compressed_len = ls_data-compressed_len.
     cv_decompressed = ls_data-raw.
@@ -53587,5 +53607,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-21T11:07:42.091Z
+* abapmerge - 2018-01-21T11:09:00.727Z
 ****************************************************
