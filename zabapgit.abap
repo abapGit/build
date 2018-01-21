@@ -17752,10 +17752,10 @@ CLASS lcl_objects IMPLEMENTATION.
       lv_class_name = class_name( is_item ).
     ENDIF.
 
-    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true
-        AND is_item-obj_type = 'CLAS'.
-      lv_class_name = 'LCL_OBJECT_CLAS_NEW'.
-    ENDIF.
+*    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true
+*        AND is_item-obj_type = 'CLAS'.
+*      lv_class_name = 'LCL_OBJECT_CLAS_NEW'.
+*    ENDIF.
 
     TRY.
         CREATE OBJECT ri_obj TYPE (lv_class_name)
@@ -19173,7 +19173,7 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 *
 *----------------------------------------------------------------------*
-CLASS lcl_object_clas DEFINITION INHERITING FROM lcl_objects_program.
+CLASS lcl_object_clas_old DEFINITION INHERITING FROM lcl_objects_program.
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
@@ -19213,7 +19213,7 @@ ENDCLASS.                    "lcl_object_dtel DEFINITION
 *----------------------------------------------------------------------*
 *
 *----------------------------------------------------------------------*
-CLASS lcl_object_clas IMPLEMENTATION.
+CLASS lcl_object_clas_old IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     DATA:
@@ -20241,7 +20241,7 @@ CLASS lcl_oo_class_new IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_object_clas_new DEFINITION INHERITING FROM lcl_object_clas.
+CLASS lcl_object_clas DEFINITION INHERITING FROM lcl_object_clas_old.
 
   PUBLIC SECTION.
     METHODS: constructor
@@ -20255,7 +20255,7 @@ CLASS lcl_object_clas_new DEFINITION INHERITING FROM lcl_object_clas.
 
 ENDCLASS.
 
-CLASS lcl_object_clas_new IMPLEMENTATION.
+CLASS lcl_object_clas IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( is_item     = is_item
@@ -53534,5 +53534,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-20T05:08:31.577Z
+* abapmerge - 2018-01-21T06:12:26.646Z
 ****************************************************
