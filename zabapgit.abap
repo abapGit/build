@@ -15308,9 +15308,11 @@ CLASS lcl_tadir IMPLEMENTATION.
 * rows from database table TADIR are not removed for
 * transportable objects until the transport is released
     LOOP AT it_tadir ASSIGNING <ls_tadir>.
-      lo_progress->show(
-        iv_current = sy-tabix
-        iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
+      IF sy-tabix MOD 200 = 0.
+        lo_progress->show(
+          iv_current = sy-tabix
+          iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
+      ENDIF.
 
       ls_item-obj_type = <ls_tadir>-object.
       ls_item-obj_name = <ls_tadir>-obj_name.
@@ -53609,5 +53611,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-21T12:59:46.368Z
+* abapmerge - 2018-01-21T13:10:03.283Z
 ****************************************************
