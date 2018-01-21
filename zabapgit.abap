@@ -41095,6 +41095,7 @@ CLASS lcl_background IMPLEMENTATION.
           lo_stage      TYPE REF TO zcl_abapgit_stage.
 
     FIELD-SYMBOLS: <ls_changed> LIKE LINE OF lt_changed,
+                   <ls_remote>  LIKE LINE OF ls_files-remote,
                    <ls_local>   LIKE LINE OF ls_files-local.
     ls_files = lcl_stage_logic=>get( io_repo ).
 
@@ -41139,6 +41140,21 @@ CLASS lcl_background IMPLEMENTATION.
                          iv_data     = <ls_local>-file-data ).
 
           APPEND <ls_local> TO ls_user_files-local.
+
+          LOOP AT ls_files-remote ASSIGNING <ls_remote>
+              WHERE filename = <ls_local>-file-filename
+              AND path <> <ls_local>-file-path
+              AND filename <> 'package.devc.xml'.
+            WRITE: / 'rm' ##NO_TEXT,
+              <ls_remote>-path,
+              <ls_remote>-filename.
+
+* rm old file when object has moved
+            lo_stage->rm(
+              iv_path     = <ls_remote>-path
+              iv_filename = <ls_remote>-filename ).
+            EXIT. " assumption: only one file
+          ENDLOOP.
         ENDIF.
       ENDLOOP.
 
@@ -53562,5 +53578,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-21T06:17:32.851Z
+* abapmerge - 2018-01-21T11:07:09.076Z
 ****************************************************
