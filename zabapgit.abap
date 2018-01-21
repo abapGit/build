@@ -2102,22 +2102,23 @@ CLASS zcl_abapgit_progress DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS:
-      show
-        IMPORTING
-          !iv_key           TYPE string
-          VALUE(iv_current) TYPE i
-          !iv_total         TYPE i
-          !iv_text          TYPE csequence .
+    METHODS show
+      IMPORTING
+        VALUE(iv_current) TYPE i
+        !iv_text          TYPE csequence .
+    METHODS constructor
+      IMPORTING
+        !iv_total TYPE i .
+  PROTECTED SECTION.
 
+    DATA mv_total TYPE i .
+
+    METHODS calc_pct
+      IMPORTING
+        !iv_current   TYPE i
+      RETURNING
+        VALUE(rv_pct) TYPE i .
   PRIVATE SECTION.
-    CLASS-METHODS:
-      calc_pct
-        IMPORTING
-          !iv_current   TYPE i
-          !iv_total     TYPE i
-        RETURNING
-          VALUE(rv_pct) TYPE i .
 ENDCLASS.
 CLASS zcl_abapgit_state DEFINITION
   CREATE PUBLIC .
@@ -5002,12 +5003,12 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_progress IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
   METHOD calc_pct.
 
     DATA: lv_f TYPE f.
 
-    lv_f = ( iv_current / iv_total ) * 100.
+    lv_f = ( iv_current / mv_total ) * 100.
     rv_pct = lv_f.
 
     IF rv_pct = 100.
@@ -5015,22 +5016,23 @@ CLASS zcl_abapgit_progress IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD constructor.
+
+    mv_total = iv_total.
+
+  ENDMETHOD.
   METHOD show.
 
-    DATA: lv_pct  TYPE i,
-          lv_text TYPE string.
+    DATA: lv_pct TYPE i.
 
-    lv_pct = calc_pct( iv_current = iv_current
-                       iv_total   = iv_total ).
-    CONCATENATE iv_key '-' iv_text INTO lv_text SEPARATED BY space.
+    lv_pct = calc_pct( iv_current ).
 
     CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
       EXPORTING
         percentage = lv_pct
-        text       = lv_text.
+        text       = iv_text.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
@@ -8600,19 +8602,22 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.                    "decode_commit
   METHOD decode_deltas.
 
-    DATA: ls_object LIKE LINE OF ct_objects,
-          lt_deltas LIKE ct_objects.
-    zcl_abapgit_progress=>show( iv_key     = 'Decode'
-                                iv_current = 1
-                                iv_total   = 1
-                                iv_text    = 'Deltas' ) ##NO_TEXT.
-
+    DATA: ls_object   LIKE LINE OF ct_objects,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lt_deltas   LIKE ct_objects.
     LOOP AT ct_objects INTO ls_object WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
       DELETE ct_objects INDEX sy-tabix.
       APPEND ls_object TO lt_deltas.
     ENDLOOP.
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_deltas ).
+
     LOOP AT lt_deltas INTO ls_object.
+      lo_progress->show( iv_current = sy-tabix
+                         iv_text    = 'Decode deltas' ) ##NO_TEXT.
+
       delta( EXPORTING is_object = ls_object
              CHANGING ct_objects = ct_objects ).
     ENDLOOP.
@@ -8794,12 +8799,12 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.                    "delta_header
   METHOD encode.
 
-    DATA: lv_sha1              TYPE x LENGTH 20,
-          lv_adler32           TYPE zcl_abapgit_hash=>ty_adler32,
-          lv_compressed        TYPE xstring,
-          lv_xstring           TYPE xstring,
-          lv_objects_total     TYPE i,
-          lv_objects_processed TYPE i.
+    DATA: lv_sha1          TYPE x LENGTH 20,
+          lv_adler32       TYPE zcl_abapgit_hash=>ty_adler32,
+          lv_compressed    TYPE xstring,
+          lv_xstring       TYPE xstring,
+          lo_progress      TYPE REF TO zcl_abapgit_progress,
+          lv_objects_total TYPE i.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects.
 
@@ -8812,13 +8817,15 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_objects_total = lines( it_objects ).
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lv_objects_total.
+
     LOOP AT it_objects ASSIGNING <ls_object>.
 
-      lv_objects_processed = sy-tabix.
-
-      cl_progress_indicator=>progress_indicate( i_text      = |encoding objects &1% ( &2 of &3 )|
-                                                i_processed = lv_objects_processed
-                                                i_total     = lv_objects_total ).
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Encoding objects ( { sy-tabix } of { lv_objects_total } )| ).
 
       lv_xstring = type_and_length(
         iv_type   = <ls_object>-type
@@ -13129,25 +13136,27 @@ CLASS lcl_objects_activation IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_new.
 
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+
     IF gt_objects IS INITIAL.
       RETURN.
     ENDIF.
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 100.
+
     IF iv_ddic = abap_true.
 
-      zcl_abapgit_progress=>show( iv_key     = 'Activating DDIC'
-                                  iv_current = '98'
-                                  iv_total   = '100'
-                                  iv_text    = '...' ).
+      lo_progress->show( iv_current = 98
+                         iv_text    = 'Activating DDIC' ).
 
       activate_ddic( ).
 
     ELSE.
 
-      zcl_abapgit_progress=>show( iv_key     = 'Activating non DDIC'
-                                  iv_current = '98'
-                                  iv_total   = '100'
-                                  iv_text    = '...' ).
+      lo_progress->show( iv_current = 98
+                         iv_text    = 'Activating non DDIC' ).
 
       activate_old( ).
 
@@ -17893,7 +17902,7 @@ CLASS lcl_objects IMPLEMENTATION.
   METHOD delete.
 
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
-*          lv_tabclass TYPE dd02l-tabclass,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
           lt_tadir    LIKE it_tadir.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
@@ -17902,11 +17911,13 @@ CLASS lcl_objects IMPLEMENTATION.
 
     zcl_abapgit_dependencies=>resolve( CHANGING ct_tadir = lt_tadir ).
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_tadir ).
+
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-      zcl_abapgit_progress=>show( iv_key     = 'Delete'
-                                  iv_current = sy-tabix
-                                  iv_total   = lines( lt_tadir )
-                                  iv_text    = <ls_tadir>-obj_name ) ##NO_TEXT.
+      lo_progress->show( iv_current = sy-tabix
+                         iv_text    = |Delete { <ls_tadir>-obj_name }| ) ##NO_TEXT.
 
       CLEAR ls_item.
       ls_item-obj_type = <ls_tadir>-object.
@@ -18018,18 +18029,19 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD deserialize.
 
-    DATA: ls_item    TYPE zif_abapgit_definitions=>ty_item,
-          lv_cancel  TYPE abap_bool,
-          li_obj     TYPE REF TO zif_abapgit_object,
-          lt_remote  TYPE zif_abapgit_definitions=>ty_files_tt,
-          lv_package TYPE devclass,
-          lo_files   TYPE REF TO zcl_abapgit_objects_files,
-          lo_xml     TYPE REF TO zcl_abapgit_xml_input,
-          lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
-          lt_ddic    TYPE TABLE OF ty_deserialization,
-          lt_rest    TYPE TABLE OF ty_deserialization,
-          lt_late    TYPE TABLE OF ty_deserialization,
-          lv_path    TYPE string.
+    DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lv_cancel   TYPE abap_bool,
+          li_obj      TYPE REF TO zif_abapgit_object,
+          lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_package  TYPE devclass,
+          lo_files    TYPE REF TO zcl_abapgit_objects_files,
+          lo_xml      TYPE REF TO zcl_abapgit_xml_input,
+          lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
+          lt_ddic     TYPE TABLE OF ty_deserialization,
+          lt_rest     TYPE TABLE OF ty_deserialization,
+          lt_late     TYPE TABLE OF ty_deserialization,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lv_path     TYPE string.
 
     FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
                    <ls_deser>  LIKE LINE OF lt_late.
@@ -18051,12 +18063,14 @@ CLASS lcl_objects IMPLEMENTATION.
 
     warning_overwrite( CHANGING ct_results = lt_results ).
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_results ).
+
     LOOP AT lt_results ASSIGNING <ls_result> WHERE obj_type IS NOT INITIAL
         AND NOT ( lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL ).
-      zcl_abapgit_progress=>show( iv_key     = 'Deserialize'
-                                  iv_current = sy-tabix
-                                  iv_total   = lines( lt_results )
-                                  iv_text    = <ls_result>-obj_name ) ##NO_TEXT.
+      lo_progress->show( iv_current = sy-tabix
+                         iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
 
       CLEAR ls_item.
       ls_item-obj_type = <ls_result>-obj_type.
@@ -18140,14 +18154,19 @@ CLASS lcl_objects IMPLEMENTATION.
 
   METHOD deserialize_objects.
 
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
     lcl_objects_activation=>clear( ).
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( it_objects ).
+
     LOOP AT it_objects ASSIGNING <ls_obj>.
-      zcl_abapgit_progress=>show( iv_key     = |Deserialize { iv_descr }|
-                                  iv_current = sy-tabix
-                                  iv_total   = lines( it_objects )
-                                  iv_text    = <ls_obj>-item-obj_name ) ##NO_TEXT.
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Deserialize { iv_descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
 
       <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
                                  io_xml     = <ls_obj>-xml ).
@@ -39965,15 +39984,18 @@ CLASS lcl_repo_online IMPLEMENTATION.
 
   METHOD refresh.
 
-    DATA: lx_exception TYPE REF TO zcx_abapgit_exception.
+    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
+          lx_exception TYPE REF TO zcx_abapgit_exception.
 
     super->refresh( iv_drop_cache ).
     reset_status( ).
 
-    zcl_abapgit_progress=>show( iv_key     = 'Fetch'
-                                iv_current = 1
-                                iv_total   = 1
-                                iv_text    = 'Remote files' ) ##NO_TEXT.
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 1.
+
+    lo_progress->show( iv_current = 1
+                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
 
     TRY.
 
@@ -40486,10 +40508,11 @@ CLASS lcl_repo IMPLEMENTATION.
 
   METHOD get_files_local.
 
-    DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          ls_item  TYPE zif_abapgit_definitions=>ty_item,
-          lt_files TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_cache TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
+    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lt_files    TYPE zif_abapgit_definitions=>ty_files_tt,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lt_cache    TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
                    WITH NON-UNIQUE KEY item.
 
     DATA: lt_filter       TYPE SORTED TABLE OF tadir
@@ -40523,6 +40546,10 @@ CLASS lcl_repo IMPLEMENTATION.
     lt_filter = it_filter.
     lv_filter_exist = boolc( lines( lt_filter ) > 0 ).
 
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_tadir ).
+
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       IF lv_filter_exist = abap_true.
         READ TABLE lt_filter TRANSPORTING NO FIELDS WITH KEY object = <ls_tadir>-object
@@ -40533,10 +40560,9 @@ CLASS lcl_repo IMPLEMENTATION.
         ENDIF.
       ENDIF.
 
-      zcl_abapgit_progress=>show( iv_key     = 'Serialize'
-                                  iv_current = sy-tabix
-                                  iv_total   = lines( lt_tadir )
-                                  iv_text    = <ls_tadir>-obj_name ) ##NO_TEXT.
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Serialize { <ls_tadir>-obj_name }| ) ##NO_TEXT.
 
       ls_item-obj_type = <ls_tadir>-object.
       ls_item-obj_name = <ls_tadir>-obj_name.
@@ -46706,12 +46732,15 @@ CLASS lcl_branch_overview IMPLEMENTATION.
 
   METHOD get_git_objects.
 
-    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
+    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
+          lo_progress    TYPE REF TO zcl_abapgit_progress.
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 1.
 
-    zcl_abapgit_progress=>show( iv_key     = 'Get git objects'
-                                iv_current = 1
-                                iv_total   = 1
-                                iv_text    = io_repo->get_name( ) ) ##NO_TEXT.
+    lo_progress->show(
+      iv_current = 1
+      iv_text    = |Get git objects { io_repo->get_name( ) }| ) ##NO_TEXT.
 
 * get objects directly from git, mo_repo only contains a shallow clone of only
 * the selected branch
@@ -47796,17 +47825,20 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
   METHOD render_content.
 
-    DATA ls_diff_file LIKE LINE OF mt_diff_files.
-
+    DATA: ls_diff_file LIKE LINE OF mt_diff_files,
+          lo_progress  TYPE REF TO zcl_abapgit_progress.
     CREATE OBJECT ro_html.
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( mt_diff_files ).
 
     ro_html->add( |<div id="diff-list" data-repo-key="{ mv_repo_key }">| ).
     ro_html->add( lcl_gui_chunk_lib=>render_js_error_banner( ) ).
     LOOP AT mt_diff_files INTO ls_diff_file.
-      zcl_abapgit_progress=>show( iv_key     = 'Diff'
-                                  iv_current = sy-tabix
-                                  iv_total   = lines( mt_diff_files )
-                                  iv_text    = |Render Diff - { ls_diff_file-filename }| ).
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Render Diff - { ls_diff_file-filename }| ).
 
       ro_html->add( render_diff( ls_diff_file ) ).
     ENDLOOP.
@@ -47825,17 +47857,17 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
     " Content
     IF is_diff-type <> 'binary'.
-      ro_html->add( '<div class="diff_content">' ).           "#EC NOTEXT
-      ro_html->add( '<table class="diff_tab syntax-hl">' ).   "#EC NOTEXT
+      ro_html->add( '<div class="diff_content">' ).         "#EC NOTEXT
+      ro_html->add( '<table class="diff_tab syntax-hl">' ). "#EC NOTEXT
       ro_html->add( render_table_head( ) ).
       ro_html->add( render_lines( is_diff ) ).
-      ro_html->add( '</table>' ).                             "#EC NOTEXT
-      ro_html->add( '</div>' ).                               "#EC NOTEXT
+      ro_html->add( '</table>' ).                           "#EC NOTEXT
+      ro_html->add( '</div>' ).                             "#EC NOTEXT
     ELSE.
       ro_html->add( '<div class="diff_content paddings center grey">' ). "#EC NOTEXT
-      ro_html->add( 'The content seems to be binary.' ).      "#EC NOTEXT
-      ro_html->add( 'Cannot display as diff.' ).              "#EC NOTEXT
-      ro_html->add( '</div>' ).                               "#EC NOTEXT
+      ro_html->add( 'The content seems to be binary.' ).    "#EC NOTEXT
+      ro_html->add( 'Cannot display as diff.' ).            "#EC NOTEXT
+      ro_html->add( '</div>' ).                             "#EC NOTEXT
     ENDIF.
 
     ro_html->add( '</div>' ).                               "#EC NOTEXT
@@ -47884,22 +47916,22 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     IF mv_unified = abap_true.
-      ro_html->add( '<thead class="header">' ).               "#EC NOTEXT
-      ro_html->add( '<tr>' ).                                 "#EC NOTEXT
-      ro_html->add( '<th class="num">old</th>' ).             "#EC NOTEXT
-      ro_html->add( '<th class="num">new</th>' ).             "#EC NOTEXT
-      ro_html->add( '<th>code</th>' ).                        "#EC NOTEXT
-      ro_html->add( '</tr>' ).                                "#EC NOTEXT
-      ro_html->add( '</thead>' ).                             "#EC NOTEXT
+      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
+      ro_html->add( '<tr>' ).                               "#EC NOTEXT
+      ro_html->add( '<th class="num">old</th>' ).           "#EC NOTEXT
+      ro_html->add( '<th class="num">new</th>' ).           "#EC NOTEXT
+      ro_html->add( '<th>code</th>' ).                      "#EC NOTEXT
+      ro_html->add( '</tr>' ).                              "#EC NOTEXT
+      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ELSE.
-      ro_html->add( '<thead class="header">' ).               "#EC NOTEXT
-      ro_html->add( '<tr>' ).                                 "#EC NOTEXT
-      ro_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
-      ro_html->add( '<th>LOCAL</th>' ).                       "#EC NOTEXT
-      ro_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
-      ro_html->add( '<th>REMOTE</th>' ).                      "#EC NOTEXT
-      ro_html->add( '</tr>' ).                                "#EC NOTEXT
-      ro_html->add( '</thead>' ).                             "#EC NOTEXT
+      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
+      ro_html->add( '<tr>' ).                               "#EC NOTEXT
+      ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
+      ro_html->add( '<th>LOCAL</th>' ).                     "#EC NOTEXT
+      ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
+      ro_html->add( '<th>REMOTE</th>' ).                    "#EC NOTEXT
+      ro_html->add( '</tr>' ).                              "#EC NOTEXT
+      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ENDIF.
 
   ENDMETHOD.  " render_table_head.
@@ -48017,7 +48049,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
           && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
-    ro_html->add( '<tr>' ).                               "#EC NOTEXT
+    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
     IF iv_fstate = c_fstate-remote. " Remote file leading changes
       ro_html->add( lv_old ). " local
       ro_html->add( lv_new ). " remote
@@ -48025,7 +48057,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
       ro_html->add( lv_new ). " local
       ro_html->add( lv_old ). " remote
     ENDIF.
-    ro_html->add( '</tr>' ).                              "#EC NOTEXT
+    ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
   ENDMETHOD. "render_line_split
 
@@ -48038,23 +48070,23 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
     " Release delayed subsequent update lines
     IF is_diff_line-result <> zcl_abapgit_diff=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <diff_line>.
-        ro_html->add( '<tr>' ).                               "#EC NOTEXT
+        ro_html->add( '<tr>' ).                             "#EC NOTEXT
         ro_html->add( |<td class="num" line-num="{ <diff_line>-old_num }"></td>|
                    && |<td class="num" line-num=""></td>|
                    && |<td class="code diff_del">-{ <diff_line>-old }</td>| ).
-        ro_html->add( '</tr>' ).                              "#EC NOTEXT
+        ro_html->add( '</tr>' ).                            "#EC NOTEXT
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <diff_line>.
-        ro_html->add( '<tr>' ).                               "#EC NOTEXT
+        ro_html->add( '<tr>' ).                             "#EC NOTEXT
         ro_html->add( |<td class="num" line-num=""></td>|
                    && |<td class="num" line-num="{ <diff_line>-new_num }"></td>|
                    && |<td class="code diff_ins">+{ <diff_line>-new }</td>| ).
-        ro_html->add( '</tr>' ).                              "#EC NOTEXT
+        ro_html->add( '</tr>' ).                            "#EC NOTEXT
       ENDLOOP.
       CLEAR mt_delayed_lines.
     ENDIF.
 
-    ro_html->add( '<tr>' ).                               "#EC NOTEXT
+    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
     CASE is_diff_line-result.
       WHEN zcl_abapgit_diff=>c_diff-update.
         APPEND is_diff_line TO mt_delayed_lines. " Delay output of subsequent updates
@@ -48071,7 +48103,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
                    && |<td class="num" line-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="code"> { is_diff_line-old }</td>| ).
     ENDCASE.
-    ro_html->add( '</tr>' ).                              "#EC NOTEXT
+    ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
   ENDMETHOD. "render_line_unified
 
@@ -53534,5 +53566,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-21T06:12:26.646Z
+* abapmerge - 2018-01-21T06:12:38.158Z
 ****************************************************
