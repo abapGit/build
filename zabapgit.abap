@@ -433,6 +433,7 @@ INTERFACE zif_abapgit_definitions.
       git_branch_delete        TYPE string VALUE 'git_branch_delete',
       git_tag_create           TYPE string VALUE 'git_tag_create',
       git_tag_delete           TYPE string VALUE 'git_tag_delete',
+      git_tag_switch           TYPE string VALUE 'git_tag_switch',
       git_commit               TYPE string VALUE 'git_commit',
 
       db_delete                TYPE string VALUE 'db_delete',
@@ -16499,7 +16500,6 @@ CLASS lcl_popups IMPLEMENTATION.
       LOOP AT lt_tags ASSIGNING <ls_tag>.
 
         <ls_tag>-name = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
-        <ls_tag>-sha1 = <ls_tag>-sha1(7).
 
       ENDLOOP.
 
@@ -16516,7 +16516,7 @@ CLASS lcl_popups IMPLEMENTATION.
           lo_columns->get_column( `IS_HEAD` )->set_technical( ).
           lo_columns->get_column( `DISPLAY_NAME` )->set_technical( ).
 
-          lo_columns->get_column( `SHA1` )->set_output_length( 10 ).
+          lo_columns->get_column( `SHA1` )->set_output_length( 30 ).
           lo_columns->get_column( `SHA1` )->set_medium_text( 'SHA' ).
 
           lo_columns->get_column( `NAME` )->set_medium_text( 'Tag name' ).
@@ -16524,9 +16524,9 @@ CLASS lcl_popups IMPLEMENTATION.
           lo_columns->set_optimize( ).
 
           lo_alv->set_screen_popup( start_column = 5
-                                    end_column   = 50
+                                    end_column   = 70
                                     start_line   = 5
-                                    end_line     = 20 ).
+                                    end_line     = 25 ).
 
           CREATE OBJECT lo_table_header
             EXPORTING
@@ -40138,7 +40138,15 @@ CLASS lcl_repo_online IMPLEMENTATION.
   METHOD push.
 
     DATA: lv_branch        TYPE zif_abapgit_definitions=>ty_sha1,
-          lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt.
+          lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+          lv_text          TYPE string.
+
+    IF ms_data-branch_name CP 'refs/tags*'.
+      lv_text = |You're working on a tag. Currently it's not |
+             && |possible to push on tags. Consider creating a branch instead|.
+      zcx_abapgit_exception=>raise( lv_text ).
+    ENDIF.
+
     handle_stage_ignore( io_stage ).
 
     lcl_git_porcelain=>push( EXPORTING is_comment       = is_comment
@@ -41665,6 +41673,10 @@ CLASS lcl_services_git DEFINITION FINAL.
       IMPORTING iv_key TYPE zcl_abapgit_persistence_repo=>ty_repo-key
       RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
 
+    CLASS-METHODS switch_tag
+      IMPORTING iv_key TYPE zcl_abapgit_persistence_repo=>ty_repo-key
+      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
+
     CLASS-METHODS tag_overview
       IMPORTING iv_key TYPE zcl_abapgit_persistence_repo=>ty_repo-key
       RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
@@ -41901,6 +41913,27 @@ CLASS lcl_services_git IMPLEMENTATION.
     lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
 
     MESSAGE lv_text TYPE 'S'.
+
+  ENDMETHOD.
+
+  METHOD switch_tag.
+
+    DATA: lo_repo TYPE REF TO lcl_repo_online,
+          ls_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
+          lv_text TYPE string.
+
+    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+
+    ls_tag = lcl_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    IF ls_tag IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo->set_branch_name( ls_tag-name ).
+
+    COMMIT WORK.
+
+    lo_repo->deserialize( ).
 
   ENDMETHOD.
 
@@ -45244,6 +45277,9 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
 
       lo_tb_tag->add( iv_txt = 'Overview'
                       iv_act = |{ zif_abapgit_definitions=>gc_action-go_tag_overview }?{ lv_key }| ).
+      lo_tb_tag->add( iv_txt = 'Switch'
+                      iv_act = |{ zif_abapgit_definitions=>gc_action-git_tag_switch }?{ lv_key }|
+                      iv_opt = lv_wp_opt ).
       lo_tb_tag->add( iv_txt = 'Create'
                       iv_act = |{ zif_abapgit_definitions=>gc_action-git_tag_create }?{ lv_key }| ).
       lo_tb_tag->add( iv_txt = 'Delete'
@@ -49760,6 +49796,9 @@ CLASS lcl_gui_router IMPLEMENTATION.
         lcl_services_git=>delete_tag( lv_key ).
         lcl_services_repo=>refresh( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+      WHEN zif_abapgit_definitions=>gc_action-git_tag_switch.                " GIT Switch Tag
+        lcl_services_git=>switch_tag( lv_key ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
 
         "Others
       WHEN OTHERS.
@@ -53611,5 +53650,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-21T13:10:03.283Z
+* abapmerge - 2018-01-22T15:29:51.128Z
 ****************************************************
