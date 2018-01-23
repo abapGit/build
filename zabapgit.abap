@@ -124,6 +124,7 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_state DEFINITION DEFERRED.
+CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
 CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
@@ -145,6 +146,7 @@ CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
@@ -854,6 +856,52 @@ CLASS zcl_abapgit_http_digest DEFINITION
       parse
         IMPORTING
           ii_client TYPE REF TO if_http_client.
+
+ENDCLASS.
+CLASS zcl_abapgit_objects_activation DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS add
+      IMPORTING iv_type   TYPE trobjtype
+                iv_name   TYPE clike
+                iv_delete TYPE abap_bool DEFAULT abap_false
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS add_item
+      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS activate
+      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS clear.
+
+  PRIVATE SECTION.
+    CLASS-METHODS fix_class_methods
+      IMPORTING iv_obj_name TYPE trobj_name
+      CHANGING  ct_objects  TYPE dwinactiv_tab.
+
+    CLASS-METHODS use_new_activation_logic
+      RETURNING VALUE(rv_use_new_activation_logic) TYPE abap_bool.
+
+    CLASS-METHODS activate_new
+      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS activate_old
+      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS activate_ddic
+      RAISING zcx_abapgit_exception.
+
+    CLASS-METHODS show_activation_errors
+      IMPORTING iv_logname TYPE ddmass-logname
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-DATA: gt_objects TYPE TABLE OF dwinactiv.
 
 ENDCLASS.
 CLASS zcl_abapgit_objects_files DEFINITION
@@ -2135,6 +2183,58 @@ CLASS zcl_abapgit_progress DEFINITION
       RETURNING
         VALUE(rv_pct) TYPE i .
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_requirement_helper DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_requirement_status,
+        met               TYPE abap_bool,
+        component         TYPE dlvunit,
+        description       TYPE text80,
+        installed_release TYPE saprelease,
+        installed_patch   TYPE sappatchlv,
+        required_release  TYPE saprelease,
+        required_patch    TYPE sappatchlv,
+      END OF ty_requirement_status .
+
+    TYPES:
+      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
+
+    CLASS-METHODS:
+      check_requirements
+        IMPORTING
+          !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+          !iv_show_popup   TYPE abap_bool DEFAULT abap_true
+        RAISING
+          zcx_abapgit_exception,
+
+      get_requirement_met_status
+        IMPORTING
+          !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+        RETURNING
+          VALUE(rt_status) TYPE ty_requirement_status_tt
+        RAISING
+          zcx_abapgit_exception .
+
+  PRIVATE SECTION.
+
+    CLASS-METHODS:
+      show_requirement_popup
+        IMPORTING
+          !it_requirements TYPE ty_requirement_status_tt
+        RAISING
+          zcx_abapgit_exception,
+
+      version_greater_or_equal
+        IMPORTING
+          !is_status     TYPE ty_requirement_status
+        RETURNING
+          VALUE(rv_true) TYPE abap_bool .
+
 ENDCLASS.
 CLASS zcl_abapgit_state DEFINITION
   CREATE PUBLIC .
@@ -5014,6 +5114,171 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
       cv_prev = iv_cur.
     ELSE.
       cv_prev = zif_abapgit_definitions=>gc_state-mixed.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
+  METHOD check_requirements.
+
+    DATA: lt_met_status TYPE ty_requirement_status_tt,
+          lv_answer     TYPE c LENGTH 1.
+
+    lt_met_status = get_requirement_met_status( it_requirements ).
+
+    IF iv_show_popup = abap_true.
+      show_requirement_popup( lt_met_status ).
+    ENDIF.
+
+    LOOP AT lt_met_status TRANSPORTING NO FIELDS WHERE met = abap_false.
+      EXIT.
+    ENDLOOP.
+
+    IF sy-subrc = 0.
+      CALL FUNCTION 'POPUP_TO_CONFIRM'
+        EXPORTING
+          text_question = 'The project has unmet requirements. Do you want to continue?'
+        IMPORTING
+          answer        = lv_answer.
+      IF lv_answer <> '1'.
+        zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_requirement_met_status.
+    DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
+
+    FIELD-SYMBOLS: <ls_requirement>    TYPE zif_abapgit_dot_abapgit=>ty_requirement,
+                   <ls_status>         TYPE ty_requirement_status,
+                   <ls_installed_comp> TYPE cvers_sdu.
+    CALL FUNCTION 'DELIVERY_GET_INSTALLED_COMPS'
+      TABLES
+        tt_comptab       = lt_installed
+      EXCEPTIONS
+        no_release_found = 1
+        OTHERS           = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ) ##no_text.
+    ENDIF.
+
+    LOOP AT it_requirements ASSIGNING <ls_requirement>.
+      APPEND INITIAL LINE TO rt_status ASSIGNING <ls_status>.
+      <ls_status>-component = <ls_requirement>-component.
+      <ls_status>-required_release = <ls_requirement>-min_release.
+      <ls_status>-required_patch = <ls_requirement>-min_patch.
+
+      READ TABLE lt_installed WITH KEY component = <ls_requirement>-component
+                              ASSIGNING <ls_installed_comp>.
+      IF sy-subrc = 0.
+        " Component is installed, requirement is met if the installed version is greater or equal
+        " to the required one.
+        <ls_status>-installed_release = <ls_installed_comp>-release.
+        <ls_status>-installed_patch = <ls_installed_comp>-extrelease.
+        <ls_status>-description = <ls_installed_comp>-desc_text.
+        <ls_status>-met = version_greater_or_equal( <ls_status> ).
+      ELSE.
+        " Component is not installed at all
+        <ls_status>-met = abap_false.
+      ENDIF.
+
+      UNASSIGN <ls_installed_comp>.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD show_requirement_popup.
+    TYPES: BEGIN OF lty_color_line,
+             color TYPE lvc_t_scol.
+        INCLUDE TYPE ty_requirement_status.
+    TYPES: END OF lty_color_line,
+    lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
+
+    DATA: lo_alv            TYPE REF TO cl_salv_table,
+          lo_column         TYPE REF TO cl_salv_column,
+          lo_columns        TYPE REF TO cl_salv_columns_table,
+          lt_color_table    TYPE lty_color_tab,
+          lt_color_negative TYPE lvc_t_scol,
+          lt_color_positive TYPE lvc_t_scol,
+          ls_color          TYPE lvc_s_scol,
+          lx_ex             TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS: <ls_line>        TYPE lty_color_line,
+                   <ls_requirement> LIKE LINE OF it_requirements.
+    ls_color-color-col = col_negative.
+    APPEND ls_color TO lt_color_negative.
+
+    ls_color-color-col = col_positive.
+    APPEND ls_color TO lt_color_positive.
+
+    CLEAR ls_color.
+
+    LOOP AT it_requirements ASSIGNING <ls_requirement>.
+      APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
+      MOVE-CORRESPONDING <ls_requirement> TO <ls_line>.
+    ENDLOOP.
+
+    LOOP AT lt_color_table ASSIGNING <ls_line>.
+      IF <ls_line>-met = abap_false.
+        <ls_line>-color = lt_color_negative.
+      ELSE.
+        <ls_line>-color = lt_color_positive.
+      ENDIF.
+    ENDLOOP.
+    UNASSIGN <ls_line>.
+
+    TRY.
+        cl_salv_table=>factory( IMPORTING r_salv_table = lo_alv
+                                CHANGING t_table       = lt_color_table ).
+
+        lo_columns = lo_alv->get_columns( ).
+        lo_columns->get_column( 'MET' )->set_short_text( 'Met' ).
+        lo_columns->set_color_column( 'COLOR' ).
+        lo_columns->set_optimize( ).
+
+        lo_column = lo_columns->get_column( 'REQUIRED_RELEASE' ).
+*        lo_column->set_fixed_header_text( 'S' ).
+        lo_column->set_short_text( 'Req. Rel.' ).
+
+        lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
+*        lo_column->set_fixed_header_text( 'S' ).
+        lo_column->set_short_text( 'Req. SP L.' ).
+
+        lo_alv->set_screen_popup( start_column = 30
+                                  end_column   = 100
+                                  start_line   = 10
+                                  end_line     = 20 ).
+        lo_alv->get_display_settings( )->set_list_header( 'Requirements' ).
+        lo_alv->display( ).
+
+      CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error INTO lx_ex.
+        zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD version_greater_or_equal.
+
+    DATA: lv_number TYPE numc4 ##NEEDED.
+
+    TRY.
+        MOVE EXACT: is_status-installed_release TO lv_number,
+                    is_status-installed_patch   TO lv_number,
+                    is_status-required_release  TO lv_number,
+                    is_status-required_patch    TO lv_number.
+      CATCH cx_sy_conversion_error.
+        " Cannot compare by number, assume requirement not fullfilled (user can force install
+        " anyways if this was an error)
+        rv_true = abap_false.
+        RETURN.
+    ENDTRY.
+
+    " Versions are comparable by number, compare release and if necessary patch level
+    IF is_status-installed_release > is_status-required_release
+       OR ( is_status-installed_release = is_status-required_release
+            AND ( is_status-required_patch IS INITIAL OR
+                  is_status-installed_patch >= is_status-required_patch ) ).
+
+      rv_true = abap_true.
     ENDIF.
 
   ENDMETHOD.
@@ -8259,6 +8524,270 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   ENDMETHOD.                    "set_files
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
+  METHOD activate.
+
+    IF use_new_activation_logic( ) = abap_true.
+
+      activate_new( iv_ddic ).
+
+    ELSE.
+
+      activate_old( iv_ddic ).
+
+    ENDIF.
+
+  ENDMETHOD.                    "activate
+  METHOD activate_ddic.
+
+    DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
+          ls_gentab     LIKE LINE OF lt_gentab,
+          lv_rc         TYPE sy-subrc,
+          lt_deltab     TYPE STANDARD TABLE OF dcdeltb,
+          lt_action_tab TYPE STANDARD TABLE OF dctablres,
+          lv_logname    TYPE ddmass-logname.
+
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF gt_objects.
+
+    LOOP AT gt_objects ASSIGNING <ls_object>.
+
+      ls_gentab-name = <ls_object>-obj_name.
+      ls_gentab-type = <ls_object>-object.
+      INSERT ls_gentab INTO TABLE lt_gentab.
+
+    ENDLOOP.
+
+    IF lt_gentab IS NOT INITIAL.
+
+      lv_logname = |ABAPGIT_{ sy-datum }_{ sy-uzeit }|.
+
+      CALL FUNCTION 'DD_MASS_ACT_C3'
+        EXPORTING
+          ddmode         = 'C'
+          medium         = 'T'
+          device         = 'T'
+          logname        = lv_logname
+          write_log      = abap_true
+          log_head_tail  = abap_true
+          t_on           = space
+          prid           = 1
+        IMPORTING
+          act_rc         = lv_rc
+        TABLES
+          gentab         = lt_gentab
+          deltab         = lt_deltab
+          cnvtab         = lt_action_tab
+        EXCEPTIONS
+          access_failure = 1
+          no_objects     = 2
+          locked         = 3
+          internal_error = 4
+          OTHERS         = 5.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from DD_MASS_ACT_C3' ).
+      ENDIF.
+
+      IF lv_rc > 0.
+
+        show_activation_errors( lv_logname ).
+
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD activate_new.
+
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+
+    IF gt_objects IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 100.
+
+    IF iv_ddic = abap_true.
+
+      lo_progress->show( iv_current = 98
+                         iv_text    = 'Activating DDIC' ).
+
+      activate_ddic( ).
+
+    ELSE.
+
+      lo_progress->show( iv_current = 98
+                         iv_text    = 'Activating non DDIC' ).
+
+      activate_old( ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD activate_old.
+
+    IF gt_objects IS NOT INITIAL.
+
+      CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+        EXPORTING
+          activate_ddic_objects  = iv_ddic
+          with_popup             = abap_true
+        TABLES
+          objects                = gt_objects
+        EXCEPTIONS
+          excecution_error       = 1
+          cancelled              = 2
+          insert_into_corr_error = 3
+          OTHERS                 = 4.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add.
+
+* function group SEWORKINGAREA
+* function module RS_INSERT_INTO_WORKING_AREA
+* class CL_WB_ACTIVATION_WORK_AREA
+
+    DATA: lt_objects  TYPE dwinactiv_tab,
+          lv_obj_name TYPE dwinactiv-obj_name.
+
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF lt_objects.
+    lv_obj_name = iv_name.
+
+    CASE iv_type.
+      WHEN 'CLAS' OR 'WDYN'.
+* todo, move this to the object type include instead
+        CALL FUNCTION 'RS_INACTIVE_OBJECTS_IN_OBJECT'
+          EXPORTING
+            obj_name         = lv_obj_name
+            object           = iv_type
+          TABLES
+            inactive_objects = lt_objects
+          EXCEPTIONS
+            object_not_found = 1
+            OTHERS           = 2.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
+        ENDIF.
+
+        IF iv_type = 'CLAS'.
+          fix_class_methods( EXPORTING iv_obj_name = lv_obj_name
+                             CHANGING ct_objects = lt_objects ).
+        ENDIF.
+
+        LOOP AT lt_objects ASSIGNING <ls_object>.
+          <ls_object>-delet_flag = iv_delete.
+        ENDLOOP.
+
+        APPEND LINES OF lt_objects TO gt_objects.
+      WHEN OTHERS.
+        APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
+        <ls_object>-object     = iv_type.
+        <ls_object>-obj_name   = lv_obj_name.
+        <ls_object>-delet_flag = iv_delete.
+    ENDCASE.
+
+  ENDMETHOD.                    "activate
+  METHOD add_item.
+    add( iv_type = is_item-obj_type
+         iv_name = is_item-obj_name ).
+  ENDMETHOD.                    "add_item
+  METHOD clear.
+    CLEAR gt_objects.
+  ENDMETHOD.                    "clear
+  METHOD fix_class_methods.
+* function module RS_WORKING_OBJECTS_ACTIVATE assumes that
+* METH lines contains spaces between class and method name
+* however, classes named with 30 characters
+* eg. ZCL_CLAS_TESTTESTTESTTESTTESTT
+* this will not be true, so find all the method includes instead
+
+    DATA: lt_methods TYPE seop_methods_w_include,
+          lv_class   TYPE seoclsname.
+
+    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_methods,
+                   <ls_object> LIKE LINE OF ct_objects.
+    lv_class = iv_obj_name.
+
+    cl_oo_classname_service=>get_all_method_includes(
+      EXPORTING
+        clsname            = lv_class
+      RECEIVING
+        result             = lt_methods
+      EXCEPTIONS
+        class_not_existing = 1
+        OTHERS             = 2 ).
+    ASSERT sy-subrc = 0.
+    DELETE ct_objects WHERE object = 'METH'.
+    LOOP AT lt_methods ASSIGNING <ls_method>.
+      APPEND INITIAL LINE TO ct_objects ASSIGNING <ls_object>.
+      <ls_object>-object = 'METH'.
+      <ls_object>-obj_name = <ls_method>-incname.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD show_activation_errors.
+
+    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
+          lv_logname_db TYPE ddprh-protname,
+          lo_log        TYPE REF TO zcl_abapgit_log.
+
+    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
+
+    lv_logname_db = iv_logname.
+
+    CALL FUNCTION 'TR_READ_LOG'
+      EXPORTING
+        iv_log_type   = 'DB'
+        iv_logname_db = lv_logname_db
+      TABLES
+        et_lines      = lt_lines
+      EXCEPTIONS
+        invalid_input = 1
+        access_error  = 2
+        OTHERS        = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from TR_READ_LOG' ).
+    ENDIF.
+
+    DELETE lt_lines WHERE severity <> 'E'.
+
+    CREATE OBJECT lo_log.
+
+    LOOP AT lt_lines ASSIGNING <ls_line>.
+      lo_log->add( <ls_line>-line ).
+    ENDLOOP.
+
+    lo_log->show( ).
+
+  ENDMETHOD.
+  METHOD use_new_activation_logic.
+
+    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true.
+
+      CALL FUNCTION 'FUNCTION_EXISTS'
+        EXPORTING
+          funcname           = 'DD_MASS_ACT_C3'    " Name of Function Module
+        EXCEPTIONS
+          function_not_exist = 1
+          OTHERS             = 2.
+
+      IF sy-subrc = 0.
+        rv_use_new_activation_logic = abap_true.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
   METHOD constructor.
 
@@ -9510,219 +10039,7 @@ ENDCLASS.   "lcl_app
 *&  Include  zabapgit_requirements
 *&---------------------------------------------------------------------*
 
-*----------------------------------------------------------------------*
-*       CLASS lcl_requirement_helper DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_requirement_helper DEFINITION FINAL.
-  PUBLIC SECTION.
-    TYPES:
-      BEGIN OF ty_requirement_status,
-        met               TYPE abap_bool,
-        component         TYPE dlvunit,
-        description       TYPE text80,
-        installed_release TYPE saprelease,
-        installed_patch   TYPE sappatchlv,
-        required_release  TYPE saprelease,
-        required_patch    TYPE sappatchlv,
-      END OF ty_requirement_status,
-      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY.
-    CLASS-METHODS:
-      "! Check if the given requirements are met with user interaction
-      "! <p>
-      "! Shows a popup if requested and asks the user if he wants to continue if there are unmet
-      "! requirements. If not an exception is raised.
-      "! </p>
-      "! @parameter it_requirements | The requirements to check
-      "! @parameter iv_show_popup | Show popup with requirements
-      "! @raising zcx_abapgit_exception | Cancelled by user or internal error
-      check_requirements IMPORTING it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-                                   iv_show_popup   TYPE abap_bool DEFAULT abap_true
-                         RAISING   zcx_abapgit_exception,
-      "! Get a table with information about each requirement
-      "! @parameter it_requirements | Requirements
-      "! @parameter rt_status | Result
-      "! @raising zcx_abapgit_exception | Internal error
-      get_requirement_met_status IMPORTING it_requirements  TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-                                 RETURNING VALUE(rt_status) TYPE ty_requirement_status_tt
-                                 RAISING   zcx_abapgit_exception.
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      show_requirement_popup IMPORTING it_requirements TYPE ty_requirement_status_tt
-                             RAISING   zcx_abapgit_exception,
-      version_greater_or_equal IMPORTING is_status      TYPE ty_requirement_status
-                               RETURNING VALUE(rv_true) TYPE abap_bool.
-ENDCLASS.                    "lcl_requirement_helper DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_requirement_helper IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_requirement_helper IMPLEMENTATION.
-  METHOD check_requirements.
-    DATA: lt_met_status TYPE ty_requirement_status_tt,
-          lv_answer     TYPE c LENGTH 1.
-
-    lt_met_status = get_requirement_met_status( it_requirements ).
-
-    IF iv_show_popup = abap_true.
-      show_requirement_popup( lt_met_status ).
-    ENDIF.
-
-    LOOP AT lt_met_status TRANSPORTING NO FIELDS WHERE met = abap_false.
-      EXIT.
-    ENDLOOP.
-
-    IF sy-subrc = 0.
-      CALL FUNCTION 'POPUP_TO_CONFIRM'
-        EXPORTING
-          text_question = 'The project has unmet requirements. Do you want to continue?'
-        IMPORTING
-          answer        = lv_answer.
-      IF lv_answer <> '1'.
-        zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
-      ENDIF.
-    ENDIF.
-  ENDMETHOD.                    "check_requirements
-
-  METHOD get_requirement_met_status.
-
-    DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
-
-    FIELD-SYMBOLS: <ls_requirement>    TYPE zif_abapgit_dot_abapgit=>ty_requirement,
-                   <ls_status>         TYPE ty_requirement_status,
-                   <ls_installed_comp> TYPE cvers_sdu.
-    CALL FUNCTION 'DELIVERY_GET_INSTALLED_COMPS'
-      TABLES
-        tt_comptab       = lt_installed
-      EXCEPTIONS
-        no_release_found = 1
-        OTHERS           = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ) ##no_text.
-    ENDIF.
-
-    LOOP AT it_requirements ASSIGNING <ls_requirement>.
-      APPEND INITIAL LINE TO rt_status ASSIGNING <ls_status>.
-      <ls_status>-component = <ls_requirement>-component.
-      <ls_status>-required_release = <ls_requirement>-min_release.
-      <ls_status>-required_patch = <ls_requirement>-min_patch.
-
-      READ TABLE lt_installed WITH KEY component = <ls_requirement>-component
-                              ASSIGNING <ls_installed_comp>.
-      IF sy-subrc = 0.
-        " Component is installed, requirement is met if the installed version is greater or equal
-        " to the required one.
-        <ls_status>-installed_release = <ls_installed_comp>-release.
-        <ls_status>-installed_patch = <ls_installed_comp>-extrelease.
-        <ls_status>-description = <ls_installed_comp>-desc_text.
-        <ls_status>-met = version_greater_or_equal( <ls_status> ).
-      ELSE.
-        " Component is not installed at all
-        <ls_status>-met = abap_false.
-      ENDIF.
-
-      UNASSIGN <ls_installed_comp>.
-    ENDLOOP.
-  ENDMETHOD.                    "get_requirement_met_status
-
-  METHOD version_greater_or_equal.
-    DATA: lv_number TYPE numc4 ##NEEDED.
-
-    TRY.
-        MOVE EXACT: is_status-installed_release TO lv_number,
-                    is_status-installed_patch   TO lv_number,
-                    is_status-required_release  TO lv_number,
-                    is_status-required_patch    TO lv_number.
-      CATCH cx_sy_conversion_error.
-        " Cannot compare by number, assume requirement not fullfilled (user can force install
-        " anyways if this was an error)
-        rv_true = abap_false.
-        RETURN.
-    ENDTRY.
-
-    " Versions are comparable by number, compare release and if necessary patch level
-    IF is_status-installed_release > is_status-required_release
-       OR ( is_status-installed_release = is_status-required_release
-            AND ( is_status-required_patch IS INITIAL OR
-                  is_status-installed_patch >= is_status-required_patch ) ).
-
-      rv_true = abap_true.
-    ENDIF.
-  ENDMETHOD.                    "version_greater_or_equal
-
-  METHOD show_requirement_popup.
-
-    TYPES: BEGIN OF lty_color_line,
-             color TYPE lvc_t_scol.
-        INCLUDE TYPE ty_requirement_status.
-    TYPES: END OF lty_color_line,
-    lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
-
-    DATA: lo_alv            TYPE REF TO cl_salv_table,
-          lo_column         TYPE REF TO cl_salv_column,
-          lo_columns        TYPE REF TO cl_salv_columns_table,
-          lt_color_table    TYPE lty_color_tab,
-          lt_color_negative TYPE lvc_t_scol,
-          lt_color_positive TYPE lvc_t_scol,
-          ls_color          TYPE lvc_s_scol,
-          lx_ex             TYPE REF TO cx_root.
-
-    FIELD-SYMBOLS: <ls_line>        TYPE lty_color_line,
-                   <ls_requirement> LIKE LINE OF it_requirements.
-    ls_color-color-col = col_negative.
-    APPEND ls_color TO lt_color_negative.
-
-    ls_color-color-col = col_positive.
-    APPEND ls_color TO lt_color_positive.
-
-    CLEAR ls_color.
-
-    LOOP AT it_requirements ASSIGNING <ls_requirement>.
-      APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
-      MOVE-CORRESPONDING <ls_requirement> TO <ls_line>.
-    ENDLOOP.
-
-    LOOP AT lt_color_table ASSIGNING <ls_line>.
-      IF <ls_line>-met = abap_false.
-        <ls_line>-color = lt_color_negative.
-      ELSE.
-        <ls_line>-color = lt_color_positive.
-      ENDIF.
-    ENDLOOP.
-    UNASSIGN <ls_line>.
-
-    TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = lo_alv
-                                CHANGING t_table       = lt_color_table ).
-
-        lo_columns = lo_alv->get_columns( ).
-        lo_columns->get_column( 'MET' )->set_short_text( 'Met' ).
-        lo_columns->set_color_column( 'COLOR' ).
-        lo_columns->set_optimize( ).
-
-        lo_column = lo_columns->get_column( 'REQUIRED_RELEASE' ).
-*        lo_column->set_fixed_header_text( 'S' ).
-        lo_column->set_short_text( 'Req. Rel.' ).
-
-        lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
-*        lo_column->set_fixed_header_text( 'S' ).
-        lo_column->set_short_text( 'Req. SP L.' ).
-
-        lo_alv->set_screen_popup( start_column = 30
-                                  end_column   = 100
-                                  start_line   = 10
-                                  end_line     = 20 ).
-        lo_alv->get_display_settings( )->set_list_header( 'Requirements' ).
-        lo_alv->display( ).
-
-      CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error INTO lx_ex.
-        zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
-    ENDTRY.
-  ENDMETHOD.                    "show_requirement_popup
-ENDCLASS.                    "lcl_requirement_helper IMPLEMENTATION
+* todo, include will be deleted later
 ****************************************************
 * abapmerge - ZABAPGIT_AUTHORIZATIONS
 ****************************************************
@@ -12975,333 +13292,6 @@ ENDCLASS.                    "lcl_porcelain IMPLEMENTATION
 *&  Include           ZABAPGIT_OBJECTS
 *&---------------------------------------------------------------------*
 
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_activation DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_objects_activation DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    CLASS-METHODS add
-      IMPORTING iv_type   TYPE trobjtype
-                iv_name   TYPE clike
-                iv_delete TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS add_item
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS activate
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS clear.
-
-  PRIVATE SECTION.
-    CLASS-METHODS fix_class_methods
-      IMPORTING iv_obj_name TYPE trobj_name
-      CHANGING  ct_objects  TYPE dwinactiv_tab.
-
-    CLASS-METHODS use_new_activation_logic
-      RETURNING VALUE(rv_use_new_activation_logic) TYPE abap_bool.
-
-    CLASS-METHODS activate_new
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS activate_old
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS activate_ddic
-      RAISING zcx_abapgit_exception.
-
-    CLASS-METHODS show_activation_errors
-      IMPORTING iv_logname TYPE ddmass-logname
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-DATA: gt_objects TYPE TABLE OF dwinactiv.
-
-ENDCLASS.                    "lcl_objects_activation DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_activation IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_objects_activation IMPLEMENTATION.
-
-  METHOD add_item.
-    add( iv_type = is_item-obj_type
-         iv_name = is_item-obj_name ).
-  ENDMETHOD.                    "add_item
-
-  METHOD clear.
-    CLEAR gt_objects.
-  ENDMETHOD.                    "clear
-
-  METHOD activate.
-
-    IF use_new_activation_logic( ) = abap_true.
-
-      activate_new( iv_ddic ).
-
-    ELSE.
-
-      activate_old( iv_ddic ).
-
-    ENDIF.
-
-  ENDMETHOD.                    "activate
-
-  METHOD fix_class_methods.
-* function module RS_WORKING_OBJECTS_ACTIVATE assumes that
-* METH lines contains spaces between class and method name
-* however, classes named with 30 characters
-* eg. ZCL_CLAS_TESTTESTTESTTESTTESTT
-* this will not be true, so find all the method includes instead
-
-    DATA: lt_methods TYPE seop_methods_w_include,
-          lv_class   TYPE seoclsname.
-
-    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_methods,
-                   <ls_object> LIKE LINE OF ct_objects.
-    lv_class = iv_obj_name.
-
-    cl_oo_classname_service=>get_all_method_includes(
-      EXPORTING
-        clsname            = lv_class
-      RECEIVING
-        result             = lt_methods
-      EXCEPTIONS
-        class_not_existing = 1
-        OTHERS             = 2 ).
-    ASSERT sy-subrc = 0.
-    DELETE ct_objects WHERE object = 'METH'.
-    LOOP AT lt_methods ASSIGNING <ls_method>.
-      APPEND INITIAL LINE TO ct_objects ASSIGNING <ls_object>.
-      <ls_object>-object = 'METH'.
-      <ls_object>-obj_name = <ls_method>-incname.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD add.
-
-* function group SEWORKINGAREA
-* function module RS_INSERT_INTO_WORKING_AREA
-* class CL_WB_ACTIVATION_WORK_AREA
-
-    DATA: lt_objects  TYPE dwinactiv_tab,
-          lv_obj_name TYPE dwinactiv-obj_name.
-
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF lt_objects.
-    lv_obj_name = iv_name.
-
-    CASE iv_type.
-      WHEN 'CLAS' OR 'WDYN'.
-* todo, move this to the object type include instead
-        CALL FUNCTION 'RS_INACTIVE_OBJECTS_IN_OBJECT'
-          EXPORTING
-            obj_name         = lv_obj_name
-            object           = iv_type
-          TABLES
-            inactive_objects = lt_objects
-          EXCEPTIONS
-            object_not_found = 1
-            OTHERS           = 2.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
-        ENDIF.
-
-        IF iv_type = 'CLAS'.
-          fix_class_methods( EXPORTING iv_obj_name = lv_obj_name
-                             CHANGING ct_objects = lt_objects ).
-        ENDIF.
-
-        LOOP AT lt_objects ASSIGNING <ls_object>.
-          <ls_object>-delet_flag = iv_delete.
-        ENDLOOP.
-
-        APPEND LINES OF lt_objects TO gt_objects.
-      WHEN OTHERS.
-        APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
-        <ls_object>-object     = iv_type.
-        <ls_object>-obj_name   = lv_obj_name.
-        <ls_object>-delet_flag = iv_delete.
-    ENDCASE.
-
-  ENDMETHOD.                    "activate
-  METHOD use_new_activation_logic.
-
-    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true.
-
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = 'DD_MASS_ACT_C3'    " Name of Function Module
-        EXCEPTIONS
-          function_not_exist = 1
-          OTHERS             = 2.
-
-      IF sy-subrc = 0.
-        rv_use_new_activation_logic = abap_true.
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD activate_new.
-
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
-
-    IF gt_objects IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 100.
-
-    IF iv_ddic = abap_true.
-
-      lo_progress->show( iv_current = 98
-                         iv_text    = 'Activating DDIC' ).
-
-      activate_ddic( ).
-
-    ELSE.
-
-      lo_progress->show( iv_current = 98
-                         iv_text    = 'Activating non DDIC' ).
-
-      activate_old( ).
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD activate_old.
-
-    IF gt_objects IS NOT INITIAL.
-
-      CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-        EXPORTING
-          activate_ddic_objects  = iv_ddic
-          with_popup             = abap_true
-        TABLES
-          objects                = gt_objects
-        EXCEPTIONS
-          excecution_error       = 1
-          cancelled              = 2
-          insert_into_corr_error = 3
-          OTHERS                 = 4.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ).
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD activate_ddic.
-
-    DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
-          ls_gentab     LIKE LINE OF lt_gentab,
-          lv_rc         TYPE sy-subrc,
-          lt_deltab     TYPE STANDARD TABLE OF dcdeltb,
-          lt_action_tab TYPE STANDARD TABLE OF dctablres,
-          lv_logname    TYPE ddmass-logname.
-
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF gt_objects.
-
-    LOOP AT gt_objects ASSIGNING <ls_object>.
-
-      ls_gentab-name = <ls_object>-obj_name.
-      ls_gentab-type = <ls_object>-object.
-      INSERT ls_gentab INTO TABLE lt_gentab.
-
-    ENDLOOP.
-
-    IF lt_gentab IS NOT INITIAL.
-
-      lv_logname = |ABAPGIT_{ sy-datum }_{ sy-uzeit }|.
-
-      CALL FUNCTION 'DD_MASS_ACT_C3'
-        EXPORTING
-          ddmode         = 'C'
-          medium         = 'T'
-          device         = 'T'
-          logname        = lv_logname
-          write_log      = abap_true
-          log_head_tail  = abap_true
-          t_on           = space
-          prid           = 1
-        IMPORTING
-          act_rc         = lv_rc
-        TABLES
-          gentab         = lt_gentab
-          deltab         = lt_deltab
-          cnvtab         = lt_action_tab
-        EXCEPTIONS
-          access_failure = 1
-          no_objects     = 2
-          locked         = 3
-          internal_error = 4
-          OTHERS         = 5.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DD_MASS_ACT_C3' ).
-      ENDIF.
-
-      IF lv_rc > 0.
-
-        show_activation_errors( lv_logname ).
-
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD show_activation_errors.
-
-    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
-          lv_logname_db TYPE ddprh-protname,
-          lo_log        TYPE REF TO zcl_abapgit_log.
-
-    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
-
-    lv_logname_db = iv_logname.
-
-    CALL FUNCTION 'TR_READ_LOG'
-      EXPORTING
-        iv_log_type   = 'DB'
-        iv_logname_db = lv_logname_db
-      TABLES
-        et_lines      = lt_lines
-      EXCEPTIONS
-        invalid_input = 1
-        access_error  = 2
-        OTHERS        = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from TR_READ_LOG' ).
-    ENDIF.
-
-    DELETE lt_lines WHERE severity <> 'E'.
-
-    CREATE OBJECT lo_log.
-
-    LOOP AT lt_lines ASSIGNING <ls_line>.
-      lo_log->add( <ls_line>-line ).
-    ENDLOOP.
-
-    lo_log->show( ).
-
-  ENDMETHOD.
-
-ENDCLASS.                    "lcl_objects_activation IMPLEMENTATION
-
 "Null Object Pattern
 CLASS lcl_comparison_null DEFINITION FINAL.
   PUBLIC SECTION.
@@ -13990,8 +13980,9 @@ CLASS lcl_objects_program IMPLEMENTATION.
         AND state = ls_progdir_new-state.                 "#EC CI_SUBRC
     ENDIF.
 
-    lcl_objects_activation=>add( iv_type = 'REPS'
-                                 iv_name = is_progdir-name ).
+    zcl_abapgit_objects_activation=>add(
+      iv_type = 'REPS'
+      iv_name = is_progdir-name ).
 
   ENDMETHOD.                    "deserialize_program
 
@@ -14160,8 +14151,9 @@ CLASS lcl_objects_program IMPLEMENTATION.
         INTO lv_name RESPECTING BLANKS.
       ASSERT NOT lv_name IS INITIAL.
 
-      lcl_objects_activation=>add( iv_type = 'DYNP'
-                                   iv_name = lv_name ).
+      zcl_abapgit_objects_activation=>add(
+        iv_type = 'DYNP'
+        iv_name = lv_name ).
 
     ENDLOOP.
 
@@ -14247,9 +14239,10 @@ CLASS lcl_objects_program IMPLEMENTATION.
     ENDIF.
 
     IF lv_state = 'I'. "Textpool in master language needs to be activated
-      lcl_objects_activation=>add( iv_type   = 'REPT'
-                                   iv_name   = iv_program
-                                   iv_delete = lv_delete ).
+      zcl_abapgit_objects_activation=>add(
+        iv_type   = 'REPT'
+        iv_name   = iv_program
+        iv_delete = lv_delete ).
     ENDIF.
   ENDMETHOD.                    "deserialize_textpool
 
@@ -14312,8 +14305,9 @@ CLASS lcl_objects_program IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_WRITE' ).
     ENDIF.
 
-    lcl_objects_activation=>add( iv_type = 'CUAD'
-                                 iv_name = iv_program_name ).
+    zcl_abapgit_objects_activation=>add(
+      iv_type = 'CUAD'
+      iv_name = iv_program_name ).
 
   ENDMETHOD.                    "deserialize_cua
 
@@ -15707,9 +15701,10 @@ CLASS lcl_file_status IMPLEMENTATION.
     IF lv_type = 'DEVC'.
       ASSERT lv_name = 'PACKAGE'.
       lv_name = zcl_abapgit_folder_logic=>path_to_package(
-        iv_top  = iv_devclass
-        io_dot  = io_dot
-        iv_path = iv_path ).
+        iv_top                  = iv_devclass
+        io_dot                  = io_dot
+        iv_create_if_not_exists = abap_false
+        iv_path                 = iv_path ).
     ENDIF.
 
     CLEAR es_item.
@@ -18078,7 +18073,7 @@ CLASS lcl_objects IMPLEMENTATION.
 
     zcl_abapgit_default_task=>get_instance( )->set( lv_package ).
 
-    lcl_objects_activation=>clear( ).
+    zcl_abapgit_objects_activation=>clear( ).
 
     lt_remote = io_repo->get_files_remote( ).
 
@@ -18185,7 +18180,7 @@ CLASS lcl_objects IMPLEMENTATION.
     DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
 
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
-    lcl_objects_activation=>clear( ).
+    zcl_abapgit_objects_activation=>clear( ).
 
     CREATE OBJECT lo_progress
       EXPORTING
@@ -18201,7 +18196,7 @@ CLASS lcl_objects IMPLEMENTATION.
       APPEND LINES OF <ls_obj>-obj->mo_files->get_accessed_files( ) TO ct_files.
     ENDLOOP.
 
-    lcl_objects_activation=>activate( iv_ddic ).
+    zcl_abapgit_objects_activation=>activate( iv_ddic ).
 
   ENDMETHOD.
 
@@ -19054,7 +19049,7 @@ CLASS lcl_oo_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD lif_oo_object_fnc~add_to_activation_list.
-    lcl_objects_activation=>add_item( is_item ).
+    zcl_abapgit_objects_activation=>add_item( is_item ).
   ENDMETHOD.
 
   METHOD lif_oo_object_fnc~update_descriptions.
@@ -19687,8 +19682,8 @@ CLASS lcl_oo_class IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
     ENDIF.
 
-    lcl_objects_activation=>add( iv_type = 'REPT'
-                                 iv_name = lv_cp ).
+    zcl_abapgit_objects_activation=>add( iv_type = 'REPT'
+                                         iv_name = lv_cp ).
   ENDMETHOD.
 
   METHOD lif_oo_object_fnc~create_sotr.
@@ -21254,7 +21249,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DCLS error' ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
 
@@ -21491,7 +21486,7 @@ CLASS lcl_object_ddls IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DDLS error writing TADIR' ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -23102,7 +23097,7 @@ CLASS lcl_object_doma IMPLEMENTATION.
                        is_dd01v = ls_dd01v
                        it_dd07v = lt_dd07v ).
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -23470,7 +23465,7 @@ CLASS lcl_object_dtel IMPLEMENTATION.
     deserialize_texts( io_xml   = io_xml
                        is_dd04v = ls_dd04v ).
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -24996,7 +24991,7 @@ CLASS lcl_object_enho IMPLEMENTATION.
     li_enho->deserialize( io_xml     = io_xml
                           iv_package = iv_package ).
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -25634,7 +25629,7 @@ CLASS lcl_object_enqu IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_ENQU_PUT' ).
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -28080,7 +28075,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Error deserializing JOBD| ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
 
@@ -30236,7 +30231,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
     lo_bf->save_all( ).
     SET PARAMETER ID 'EUK' FIELD ''.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -30458,7 +30453,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
     lo_bfs->save_all( ).
     SET PARAMETER ID 'EUK' FIELD ''.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -30706,7 +30701,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'SFPF error, deserialize' ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -30873,7 +30868,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'SFPI error, deserialize' ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -31059,7 +31054,8 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error in CL_SFW_SW->SAVE_ALL' ).
     ENDIF.
-    lcl_objects_activation=>add_item( ms_item ).
+
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -31852,7 +31848,7 @@ CLASS lcl_object_shlp IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_SHLP_PUT' ).
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -35182,7 +35178,7 @@ CLASS lcl_object_tabl IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_TABL_PUT' ).
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
 * handle indexes
     LOOP AT lt_dd12v INTO ls_dd12v.
@@ -35221,8 +35217,8 @@ CLASS lcl_object_tabl IMPLEMENTATION.
         IMPORTING
           obj_name = lv_tname.
 
-      lcl_objects_activation=>add( iv_type = 'INDX'
-                                   iv_name = lv_tname ).
+      zcl_abapgit_objects_activation=>add( iv_type = 'INDX'
+                                           iv_name = lv_tname ).
 
     ENDLOOP.
 
@@ -36198,7 +36194,7 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_TTYP_PUT' ).
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -36379,7 +36375,7 @@ CLASS lcl_object_type IMPLEMENTATION.
       INSERT REPORT lv_progname FROM lt_source STATE 'I'.
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -37145,7 +37141,7 @@ CLASS lcl_object_view IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_PUT' ).
     ENDIF.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -37967,7 +37963,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
 
     ls_item-obj_type = 'WAPD'.
     ls_item-obj_name = ms_item-obj_name.
-    lcl_objects_activation=>add_item( ls_item ).
+    zcl_abapgit_objects_activation=>add_item( ls_item ).
 
     lv_objkey = ls_item-obj_name.
 * todo, hmm, the WAPD is not added to the worklist during activation
@@ -38002,8 +37998,8 @@ CLASS lcl_object_wapa IMPLEMENTATION.
         p_key_component2 = <ls_page>-attributes-pagekey
         p_external_id    = 'WG ' ).
 
-      lcl_objects_activation=>add( iv_type = 'WAPP'
-                                   iv_name = lv_obj_name ).
+      zcl_abapgit_objects_activation=>add( iv_type = 'WAPP'
+                                           iv_name = lv_obj_name ).
 
     ENDLOOP.
 
@@ -39168,7 +39164,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
       recover_view( <ls_view> ).
     ENDLOOP.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "deserialize
 
@@ -39613,7 +39609,7 @@ CLASS lcl_object_webi IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing WEBI' ).
     ENDTRY.
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "zif_abapgit_object~deserialize
 
@@ -39797,7 +39793,7 @@ CLASS lcl_object_xslt IMPLEMENTATION.
 
     lo_xslt->set_changeable( abap_false ).
 
-    lcl_objects_activation=>add_item( ms_item ).
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.                    "zif_abapgit_object~deserialize
 
@@ -40512,8 +40508,8 @@ CLASS lcl_repo IMPLEMENTATION.
 
     lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
     IF lt_requirements IS NOT INITIAL.
-      lcl_requirement_helper=>check_requirements( it_requirements = lt_requirements
-                                                  iv_show_popup   = abap_true ).
+      zcl_abapgit_requirement_helper=>check_requirements( it_requirements = lt_requirements
+                                                          iv_show_popup   = abap_true ).
     ENDIF.
 
     TRY.
@@ -53656,5 +53652,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-23T16:47:22.673Z
+* abapmerge - 2018-01-23T16:48:40.049Z
 ****************************************************
