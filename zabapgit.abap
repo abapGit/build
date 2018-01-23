@@ -11995,12 +11995,11 @@ CLASS lcl_http IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
     CALL FUNCTION 'ICM_GET_INFO2'
       TABLES
-        servlist           = lt_list
+        servlist    = lt_list
       EXCEPTIONS
-        icm_error          = 1
-        icm_timeout        = 2
-        icm_not_authorized = 3
-        OTHERS             = 4.
+        icm_error   = 1
+        icm_timeout = 2
+        OTHERS      = 3.
     IF sy-subrc <> 0.
       RETURN.
     ENDIF.
@@ -18516,6 +18515,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
 
     field = ms_item-obj_name.
 
+* TODO, this function module does not exist in 702
     CALL FUNCTION 'SU20_MAINTAIN_SNGL'
       EXPORTING
         id_field    = field
@@ -19947,7 +19947,9 @@ CLASS lcl_oo_class_new DEFINITION INHERITING FROM lcl_oo_class.
           it_source         TYPE zif_abapgit_definitions=>ty_string_tt
           iv_name           TYPE seoclsname
         RETURNING
-          VALUE(ro_scanner) TYPE REF TO cl_oo_source_scanner_class,
+          VALUE(ro_scanner) TYPE REF TO cl_oo_source_scanner_class
+        RAISING
+          zcx_abapgit_exception,
       update_full_class_include
         IMPORTING
           iv_classname TYPE seoclsname
@@ -20037,10 +20039,14 @@ CLASS lcl_oo_class_new IMPLEMENTATION.
 
   METHOD init_scanner.
 
-    ro_scanner = cl_oo_source_scanner_class=>create_class_scanner(
-      clif_name = iv_name
-      source    = it_source ).
-    ro_scanner->scan( ).
+    TRY.
+        ro_scanner = cl_oo_source_scanner_class=>create_class_scanner(
+          clif_name = iv_name
+          source    = it_source ).
+        ro_scanner->scan( ).
+      CATCH cx_clif_scan_error.
+        zcx_abapgit_exception=>raise( 'error initializing CLAS scanner' ).
+    ENDTRY.
 
   ENDMETHOD.
 
@@ -53650,5 +53656,5 @@ AT SELECTION-SCREEN.
   ENDIF.
 
 ****************************************************
-* abapmerge - 2018-01-22T15:29:51.128Z
+* abapmerge - 2018-01-23T16:47:22.673Z
 ****************************************************
