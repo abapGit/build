@@ -133,6 +133,7 @@ CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
@@ -1670,6 +1671,43 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     METHODS get_inline_images
       RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_page.
+
+  PROTECTED SECTION.
+
+    TYPES: BEGIN OF ty_control,
+             redirect_url TYPE string,
+             page_title   TYPE string,
+             page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
+           END OF  ty_control.
+
+    DATA: ms_control TYPE ty_control.
+
+    METHODS render_content ABSTRACT
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING   zcx_abapgit_exception.
+
+    METHODS scripts
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+
+    METHODS html_head
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+
+    METHODS title
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    METHODS footer
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+
+    METHODS redirect
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
 ENDCLASS.
 CLASS zcl_abapgit_html DEFINITION
@@ -6687,6 +6725,122 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD. "study_line
+ENDCLASS.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+  METHOD footer.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<div id="footer">' ).                    "#EC NOTEXT
+
+    ro_html->add( '<img src="img/logo" alt="logo">' ).      "#EC NOTEXT
+    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
+
+    ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
+    ro_html->add( |<td><span class="version">{ zif_abapgit_definitions=>gc_abap_version }</span></td>| ). "#EC NOTEXT
+    ro_html->add( '<td id="debug-output" class="w40"></td>' ). "#EC NOTEXT
+
+    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
+    ro_html->add( '</div>' ).                               "#EC NOTEXT
+
+  ENDMETHOD. "footer
+  METHOD html_head.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<head>' ).                               "#EC NOTEXT
+
+    ro_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ). "#EC NOTEXT
+    ro_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ). "#EC NOTEXT
+
+    ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
+    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+    ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
+
+    ro_html->add( zcl_abapgit_gui_asset_manager=>get_webfont_link( ) ). " Web fonts
+
+    ro_html->add( '</head>' ).                              "#EC NOTEXT
+
+  ENDMETHOD.                    "html_head
+  METHOD redirect.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
+    ro_html->add( '<html>' ).                               "#EC NOTEXT
+    ro_html->add( '<head>' ).                               "#EC NOTEXT
+    ro_html->add( |<meta http-equiv="refresh" content="0; url={
+                  ms_control-redirect_url }">| ).           "#EC NOTEXT
+    ro_html->add( '</head>' ).                              "#EC NOTEXT
+    ro_html->add( '</html>' ).                              "#EC NOTEXT
+
+  ENDMETHOD.
+  METHOD scripts.
+    ASSERT 1 = 1. " Dummy
+  ENDMETHOD. "scripts
+  METHOD title.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<div id="header">' ).                    "#EC NOTEXT
+    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
+
+    ro_html->add( |<td class="logo">{
+                  zcl_abapgit_html=>a( iv_txt = '<img src="img/logo" alt="logo">'
+                                       iv_act = zif_abapgit_definitions=>gc_action-abapgit_home )
+                  }</td>| ).                                "#EC NOTEXT
+
+    ro_html->add( |<td><span class="page_title"> &#x25BA; {
+                  ms_control-page_title
+                  }</span></td>| ).                         "#EC NOTEXT
+
+    IF ms_control-page_menu IS BOUND.
+      ro_html->add( '<td class="right">' ).                 "#EC NOTEXT
+      ro_html->add( ms_control-page_menu->render( iv_right = abap_true ) ).
+      ro_html->add( '</td>' ).                              "#EC NOTEXT
+    ENDIF.
+
+    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
+    ro_html->add( '</div>' ).                               "#EC NOTEXT
+
+  ENDMETHOD.                    "render page title
+  METHOD zif_abapgit_gui_page~on_event.
+    ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
+  ENDMETHOD. "lif_gui_page~on_event
+  METHOD zif_abapgit_gui_page~render.
+
+    DATA lo_script TYPE REF TO zcl_abapgit_html.
+
+    " Redirect
+    IF ms_control-redirect_url IS NOT INITIAL.
+      ro_html = redirect( ).
+      RETURN.
+    ENDIF.
+
+    " Real page
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
+    ro_html->add( '<html>' ).                               "#EC NOTEXT
+    ro_html->add( html_head( ) ).
+    ro_html->add( '<body>' ).                               "#EC NOTEXT
+    ro_html->add( title( ) ).
+    ro_html->add( render_content( ) ).
+    ro_html->add( footer( ) ).
+    ro_html->add( '</body>' ).                              "#EC NOTEXT
+
+    lo_script = scripts( ).
+
+    IF lo_script IS BOUND AND lo_script->is_empty( ) = abap_false.
+      ro_html->add( '<script type="text/javascript">' ).
+      ro_html->add( lo_script ).
+      ro_html->add( 'confirmInitialized();' ).
+      ro_html->add( '</script>' ).
+    ENDIF.
+
+    ro_html->add( '</html>' ).                              "#EC NOTEXT
+
+  ENDMETHOD.  " lif_gui_page~render.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD get_asset.
@@ -44533,167 +44687,7 @@ ENDCLASS. "lcl_gui_chunk_lib
 *&  Include           ZABAPGIT_PAGE
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page DEFINITION ABSTRACT.
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_page.
-
-  PROTECTED SECTION.
-
-    TYPES: BEGIN OF ty_control,
-             redirect_url TYPE string,
-             page_title   TYPE string,
-             page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
-           END OF  ty_control.
-
-    DATA: ms_control TYPE ty_control.
-
-    METHODS render_content ABSTRACT
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
-    METHODS scripts
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-
-    METHODS html_head
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
-    METHODS title
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-    METHODS footer
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
-    METHODS redirect
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
-ENDCLASS. "lcl_gui_page
-
-CLASS lcl_gui_page IMPLEMENTATION.
-
-  METHOD html_head.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<head>' ).                               "#EC NOTEXT
-
-    ro_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ). "#EC NOTEXT
-    ro_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ). "#EC NOTEXT
-
-    ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
-    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
-    ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
-
-    ro_html->add( zcl_abapgit_gui_asset_manager=>get_webfont_link( ) ). " Web fonts
-
-    ro_html->add( '</head>' ).                              "#EC NOTEXT
-
-  ENDMETHOD.                    "html_head
-
-  METHOD title.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<div id="header">' ).                    "#EC NOTEXT
-    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
-
-    ro_html->add( |<td class="logo">{
-                  zcl_abapgit_html=>a( iv_txt = '<img src="img/logo" alt="logo">'
-                                       iv_act = zif_abapgit_definitions=>gc_action-abapgit_home )
-                  }</td>| ).                                "#EC NOTEXT
-
-    ro_html->add( |<td><span class="page_title"> &#x25BA; {
-                  ms_control-page_title
-                  }</span></td>| ).                         "#EC NOTEXT
-
-    IF ms_control-page_menu IS BOUND.
-      ro_html->add( '<td class="right">' ).                 "#EC NOTEXT
-      ro_html->add( ms_control-page_menu->render( iv_right = abap_true ) ).
-      ro_html->add( '</td>' ).                              "#EC NOTEXT
-    ENDIF.
-
-    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
-
-  ENDMETHOD.                    "render page title
-
-  METHOD footer.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<div id="footer">' ).                    "#EC NOTEXT
-
-    ro_html->add( '<img src="img/logo" alt="logo">' ).      "#EC NOTEXT
-    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
-
-    ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
-    ro_html->add( |<td><span class="version">{ zif_abapgit_definitions=>gc_abap_version }</span></td>| ). "#EC NOTEXT
-    ro_html->add( '<td id="debug-output" class="w40"></td>' ). "#EC NOTEXT
-
-    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
-
-  ENDMETHOD. "footer
-
-  METHOD redirect.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
-    ro_html->add( '<html>' ).                               "#EC NOTEXT
-    ro_html->add( '<head>' ).                               "#EC NOTEXT
-    ro_html->add( |<meta http-equiv="refresh" content="0; url={
-                  ms_control-redirect_url }">| ).           "#EC NOTEXT
-    ro_html->add( '</head>' ).                              "#EC NOTEXT
-    ro_html->add( '</html>' ).                              "#EC NOTEXT
-
-  ENDMETHOD.
-
-  METHOD scripts.
-    ASSERT 1 = 1. " Dummy
-  ENDMETHOD. "scripts
-
-  METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
-  ENDMETHOD. "lif_gui_page~on_event
-
-  METHOD zif_abapgit_gui_page~render.
-
-    DATA lo_script TYPE REF TO zcl_abapgit_html.
-
-    " Redirect
-    IF ms_control-redirect_url IS NOT INITIAL.
-      ro_html = redirect( ).
-      RETURN.
-    ENDIF.
-
-    " Real page
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
-    ro_html->add( '<html>' ).                               "#EC NOTEXT
-    ro_html->add( html_head( ) ).
-    ro_html->add( '<body>' ).                               "#EC NOTEXT
-    ro_html->add( title( ) ).
-    ro_html->add( render_content( ) ).
-    ro_html->add( footer( ) ).
-    ro_html->add( '</body>' ).                              "#EC NOTEXT
-
-    lo_script = scripts( ).
-
-    IF lo_script IS BOUND AND lo_script->is_empty( ) = abap_false.
-      ro_html->add( '<script type="text/javascript">' ).
-      ro_html->add( lo_script ).
-      ro_html->add( 'confirmInitialized();' ).
-      ro_html->add( '</script>' ).
-    ENDIF.
-
-    ro_html->add( '</html>' ).                              "#EC NOTEXT
-
-  ENDMETHOD.  " lif_gui_page~render.
-
-ENDCLASS. "lcl_gui_page
+* todo, include to be deleted
 * Utils and helpers
 ****************************************************
 * abapmerge - ZABAPGIT_REPO_BROWSER_UTIL
@@ -45635,7 +45629,7 @@ ENDCLASS.                       "lcl_gui_view_tutorial
 *&  Include           ZABAPGIT_PAGE_COMMIT
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_commit DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_commit DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
 
@@ -46209,7 +46203,7 @@ ENDCLASS.
 
 *********************************
 
-CLASS lcl_gui_page_merge DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_merge DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS:
@@ -46379,8 +46373,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_BACKGROUND
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_bkg_run DEFINITION FINAL
-    INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_bkg_run DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS constructor.
@@ -46447,8 +46440,7 @@ CLASS lcl_gui_page_bkg_run IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_gui_page_bkg DEFINITION FINAL
-    INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_bkg DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS:
@@ -46949,7 +46941,7 @@ ENDCLASS.
 
 ***********************
 
-CLASS lcl_gui_page_boverview DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_boverview DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS:
@@ -47250,7 +47242,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_DB
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_db_dis DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_db_dis DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS: constructor
@@ -47327,7 +47319,7 @@ CLASS lcl_gui_page_db_dis IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_gui_page_db_edit DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_db_edit DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS: constructor
@@ -47398,7 +47390,7 @@ CLASS lcl_gui_page_db_edit IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_gui_page_db DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_db DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS constructor.
@@ -47533,7 +47525,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_DIFF
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_diff DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_diff DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
 
@@ -48181,7 +48173,7 @@ ENDCLASS. "lcl_gui_page_diff
 *&  Include           ZABAPGIT_PAGE_EXPLORE
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_explore DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_explore DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
 
     CONSTANTS c_explore_url TYPE string
@@ -48214,13 +48206,13 @@ ENDCLASS.                       "lcl_gui_page_explore IMPLEMENTATION
 *&  Include           ZABAPGIT_PAGE_MAIN
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_main DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_main DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     METHODS:
       constructor
         RAISING zcx_abapgit_exception,
-      zif_abapgit_gui_page~on_event   REDEFINITION.
+      zif_abapgit_gui_page~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
@@ -48530,7 +48522,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_STAGE
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_stage DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_stage DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     CONSTANTS: BEGIN OF c_action,
@@ -48896,7 +48888,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_DEBUG
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_debuginfo DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_debuginfo DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS constructor.
 
@@ -49004,7 +48996,7 @@ ENDCLASS.                       "lcl_gui_page_debuginfo
 *&  Include           ZABAPGIT_PAGE_SETTINGS
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_settings DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_settings DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
     CONSTANTS:
@@ -49339,7 +49331,7 @@ ENDCLASS.
 *&  Include           ZABAPGIT_PAGE_REPO_SETTINGS
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_repo_sett DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_repo_sett DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
       constructor
@@ -49470,18 +49462,13 @@ ENDCLASS.                       "lcl_gui_page_debuginfo
 *&  Include           ZABAPGIT_PAGE_REPO_SETTINGS
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_syntax_check DEFINITION FINAL INHERITING FROM lcl_gui_page.
+CLASS lcl_gui_page_syntax_check DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
       constructor
         IMPORTING io_repo TYPE REF TO lcl_repo.
 
   PROTECTED SECTION.
-*    CONSTANTS:
-*      BEGIN OF c_action,
-*        back TYPE string VALUE 'back',
-*      END OF c_action.
-
     DATA: mo_repo TYPE REF TO lcl_repo.
 
     METHODS:
@@ -53627,5 +53614,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-04T09:58:44.795Z
+* abapmerge - 2018-02-04T10:14:25.419Z
 ****************************************************
