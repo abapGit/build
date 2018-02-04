@@ -133,6 +133,7 @@ CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
@@ -1638,6 +1639,37 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
   PROTECTED SECTION.
 
     METHODS order_matches REDEFINITION.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS get_asset
+      IMPORTING iv_asset_name  TYPE string
+      RETURNING VALUE(rv_data) TYPE xstring
+      RAISING   zcx_abapgit_exception.
+
+    METHODS get_images
+      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
+
+    CLASS-METHODS get_webfont_link
+      RETURNING VALUE(rv_link) TYPE string.
+
+  PRIVATE SECTION.
+
+    METHODS get_inline_asset
+      IMPORTING iv_asset_name  TYPE string
+      RETURNING VALUE(rv_data) TYPE xstring
+      RAISING   zcx_abapgit_exception.
+
+    METHODS get_mime_asset
+      IMPORTING iv_asset_name  TYPE c
+      RETURNING VALUE(rv_data) TYPE xstring
+      RAISING   zcx_abapgit_exception.
+
+    METHODS get_inline_images
+      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
 
 ENDCLASS.
 CLASS zcl_abapgit_html DEFINITION
@@ -6655,6 +6687,1573 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD. "study_line
+ENDCLASS.
+CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+  METHOD get_asset.
+
+    DATA: lv_asset_name TYPE string,
+          lv_mime_name  TYPE wwwdatatab-objid.
+
+    lv_asset_name = to_upper( iv_asset_name ).
+
+    CASE lv_asset_name.
+      WHEN 'CSS_COMMON'.
+        lv_mime_name = 'ZABAPGIT_CSS_COMMON'.
+      WHEN 'JS_COMMON'.
+        lv_mime_name = 'ZABAPGIT_JS_COMMON'.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |Improper resource name: { iv_asset_name }| ).
+    ENDCASE.
+
+    " Inline is default (for older AG snapshots to work)
+    rv_data = get_inline_asset( lv_asset_name ).
+    IF rv_data IS INITIAL.
+      rv_data = get_mime_asset( lv_mime_name ). " Get MIME object
+    ENDIF.
+
+    IF rv_data IS INITIAL.
+      zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_name }| ).
+    ENDIF.
+
+  ENDMETHOD.  " get_asset.
+  METHOD get_images.
+
+    FIELD-SYMBOLS <image> LIKE LINE OF rt_images.
+
+    rt_images = get_inline_images( ).
+
+    " Convert to xstring
+    LOOP AT rt_images ASSIGNING <image>.
+      CALL FUNCTION 'SSFC_BASE64_DECODE'
+        EXPORTING
+          b64data = <image>-base64
+        IMPORTING
+          bindata = <image>-content
+        EXCEPTIONS
+          OTHERS  = 1.
+      ASSERT sy-subrc = 0. " Image data error
+    ENDLOOP.
+
+  ENDMETHOD.  " get_images.
+  METHOD get_inline_asset.
+
+* used by abapmerge
+    DEFINE _inline.
+      APPEND &1 TO lt_data.
+    END-OF-DEFINITION.
+
+    DATA: lt_data TYPE zif_abapgit_definitions=>ty_string_tt,
+          lv_str  TYPE string.
+
+    CASE iv_asset_name.
+      WHEN 'CSS_COMMON'.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
+****************************************************
+        _inline '/*'.
+        _inline ' * ABAPGIT COMMON CSS'.
+        _inline ' */'.
+        _inline ''.
+        _inline '/* GLOBALS */'.
+        _inline ''.
+        _inline 'body {'.
+        _inline '  font-family: Arial,Helvetica,sans-serif;'.
+        _inline '  font-size:   12pt;'.
+        _inline '  background:  #E8E8E8;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'a, a:visited {'.
+        _inline '  color:            #4078c0;'.
+        _inline '  text-decoration:  none;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'a:hover, a:active {'.
+        _inline '  cursor: pointer;'.
+        _inline '  text-decoration: underline;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'img               { border: 0px; vertical-align: middle; }'.
+        _inline 'table             { border-collapse: collapse; }'.
+        _inline 'pre               { display: inline; }'.
+        _inline 'sup {'.
+        _inline '  vertical-align: top;'.
+        _inline '  position: relative;'.
+        _inline '  top: -0.5em;'.
+        _inline '  font-size: 75%;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'input, textarea, select {'.
+        _inline '  padding: 3px 6px;'.
+        _inline '  border: 1px solid #ddd;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'input:focus, textarea:focus {'.
+        _inline '  border: 1px solid #8cadd9;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* COLOR PALETTE */'.
+        _inline '.grey             { color: lightgrey  !important; }'.
+        _inline '.grey70           { color: #b3b3b3    !important; }'.
+        _inline '.grey80           { color: #ccc       !important; }'.
+        _inline '.bgorange         { background-color: orange; }'.
+        _inline '.darkgrey         { color: #808080    !important; }'.
+        _inline '.attention        { color: red        !important; }'.
+        _inline '.error            { color: #d41919    !important; }'.
+        _inline '.warning          { color: #efb301    !important; }'.
+        _inline '.blue             { color: #5e8dc9    !important; }'.
+        _inline '.red              { color: red        !important; }'.
+        _inline '.white            { color: white      !important; }'.
+        _inline ''.
+        _inline '/* MODIFIERS */'.
+        _inline '.emphasis         { font-weight: bold !important; }'.
+        _inline '.crossout         { text-decoration: line-through !important; }'.
+        _inline '.right            { text-align:right; }'.
+        _inline '.center           { text-align:center; }'.
+        _inline '.paddings         { padding: 0.5em 0.5em; }'.
+        _inline '.pad-sides        { padding-left: 0.3em; padding-right: 0.3em; }'.
+        _inline '.margin-v5        { margin-top: 0.5em; margin-bottom: 0.5em; }'.
+        _inline '.indent5em        { padding-left: 0.5em; }'.
+        _inline '.pad4px           { padding: 4px; }'.
+        _inline '.w100             { width: 100%; }'.
+        _inline '.w40              { width: 40%; }'.
+        _inline '.float-right      { float: right; }'.
+        _inline '.pad-right        { padding-right: 6px; }'.
+        _inline ''.
+        _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
+        _inline 'div#header {'.
+        _inline '  padding:          0.5em 0.5em;'.
+        _inline '  border-bottom:    3px double lightgrey;'.
+        _inline '}'.
+        _inline 'div#header td.logo       { width: 164px; }'.
+        _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
+        _inline 'div#header span.page_title {'.
+        _inline '  font-weight: normal;'.
+        _inline '  font-size: 18pt;'.
+        _inline '  color: #bbb;'.
+        _inline '  padding-left: 0.4em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div#toc {'.
+        _inline '  padding:          0.5em 1em;'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '}'.
+        _inline 'div#toc .favorites a { opacity: 0.5; }'.
+        _inline 'div#toc .favorites:hover a { opacity: 1; }'.
+        _inline ''.
+        _inline 'div#footer {'.
+        _inline '  padding:          0.5em 1em;'.
+        _inline '  border-top:       3px double lightgrey;'.
+        _inline '  text-align:       center;'.
+        _inline '}'.
+        _inline 'div#footer span.version {'.
+        _inline '  display: block;'.
+        _inline '  color: grey;'.
+        _inline '  margin-top: 0.3em;'.
+        _inline '}'.
+        _inline ''.
+        _inline '#debug-output {'.
+        _inline '  text-align: right;'.
+        _inline '  padding-right: 0.5em;'.
+        _inline '  color: #ccc;'.
+        _inline '  font-style: italic;'.
+        _inline '  font-size: small;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.dummydiv {'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '  padding:          0.5em 1em;'.
+        _inline '  text-align:       center;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* ERROR LOG */'.
+        _inline ''.
+        _inline 'div.log {'.
+        _inline '  padding: 6px;'.
+        _inline '  margin: 4px;'.
+        _inline '  background-color: #fee6e6;'.
+        _inline '  border: 1px #fdcece solid;'.
+        _inline '  border-radius: 4px;'.
+        _inline '}'.
+        _inline 'div.log > span   { display:block; }'.
+        _inline 'div.log .octicon { padding-right: 6px; }'.
+        _inline ''.
+        _inline '/* REPOSITORY */'.
+        _inline 'div.repo {'.
+        _inline '  margin-top:       3px;'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '  padding: 0.5em 1em 0.5em 1em;'.
+        _inline '  position: relative;'.
+        _inline '}'.
+        _inline '.repo_name span.name {'.
+        _inline '  font-weight: bold;'.
+        _inline '  color: #333;'.
+        _inline '  font-size: 14pt;'.
+        _inline '}'.
+        _inline '.repo_name span.url {'.
+        _inline '  color: #ccc;'.
+        _inline '  font-size: 12pt;'.
+        _inline '  margin-left: 0.5em;'.
+        _inline '}'.
+        _inline '.repo_name img {'.
+        _inline '  vertical-align: baseline;'.
+        _inline '  margin: 0 5px 0 5px;'.
+        _inline '}'.
+        _inline '.repo_attr {'.
+        _inline '  color: grey;'.
+        _inline '  font-size: 12pt;'.
+        _inline '}'.
+        _inline '.repo_attr span {'.
+        _inline '  margin-left: 0.2em;'.
+        _inline '  margin-right: 0.5em;'.
+        _inline '}'.
+        _inline '.repo_attr span.bg_marker {'.
+        _inline '  border: 1px solid #d2d2d2;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  background: #d8d8d8;'.
+        _inline '  color: #fff;'.
+        _inline '  font-size: 8pt;'.
+        _inline '  padding: 4px 2px 3px 2px;'.
+        _inline '}'.
+        _inline '.repo_attr span.branch {'.
+        _inline '  padding: 2px 4px;'.
+        _inline '  border: 1px solid #d9d9d9;'.
+        _inline '  border-radius: 4px;'.
+        _inline '  background-color: #e2e2e2;'.
+        _inline '}'.
+        _inline '.repo_attr span.branch_head {'.
+        _inline '  border-color: #d8dff3;'.
+        _inline '  background-color: #eceff9;'.
+        _inline '}'.
+        _inline '.repo_attr span.branch_branch {'.
+        _inline '  border-color: #e7d9b1;'.
+        _inline '  background-color: #f8f0d8;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* MISC AND REFACTOR */'.
+        _inline '.hidden-submit {'.
+        _inline '  border: 0 none;'.
+        _inline '  height: 0;'.
+        _inline '  width: 0;'.
+        _inline '  padding: 0;'.
+        _inline '  margin: 0;'.
+        _inline '  overflow: hidden;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* REPOSITORY TABLE*/'.
+        _inline 'div.repo_container {'.
+        _inline '  position: relative;'.
+        _inline '}'.
+        _inline 'table.repo_tab {'.
+        _inline '  border: 1px solid #DDD;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  background: #fff;'.
+        _inline '  width: 100%;'.
+        _inline '}'.
+        _inline '.repo_tab td {'.
+        _inline '  border-top: 1px solid #eee;'.
+        _inline '  vertical-align: middle;'.
+        _inline '  color: #333;'.
+        _inline '  padding-top: 2px;'.
+        _inline '  padding-bottom: 2px;'.
+        _inline '}'.
+        _inline '.repo_tab td.icon {'.
+        _inline '  width: 32px;'.
+        _inline '  text-align: center;'.
+        _inline '}'.
+        _inline '.repo_tab td.type {'.
+        _inline '  width: 3em;'.
+        _inline '}'.
+        _inline '.repo_tab td.object {'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '}'.
+        _inline '.repo_tab td.files {'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd {'.
+        _inline '  text-align: right;'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '  padding-right: 0.7em;'.
+        _inline '}'.
+        _inline '.repo_tab tr.unsupported    { color: lightgrey; }'.
+        _inline '.repo_tab tr.modified       { background: #fbf7e9; }'.
+        _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
+        _inline '.repo_tab td.current_dir    { color: #ccc; }'.
+        _inline '.repo_tab td.cmd span.state-block {'.
+        _inline '  margin-left: 1em;'.
+        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+        _inline '  font-size: x-small;'.
+        _inline '  vertical-align: 13%;'.
+        _inline '  display: inline-block;'.
+        _inline '  text-align: center;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span {'.
+        _inline '  display: inline-block;'.
+        _inline '  padding: 0px 2px;'.
+        _inline '  border: 1px solid #000;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span.added {'.
+        _inline '  background-color: #69ad74;'.
+        _inline '  border-color: #579e64;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span.changed {'.
+        _inline '  background-color: #e0c150;'.
+        _inline '  border-color: #d4af25;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span.mixed {'.
+        _inline '  background-color: #e0c150;'.
+        _inline '  border-color: #579e64;'.
+        _inline '  color: #69ad74;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span.deleted {'.
+        _inline '  background-color: #c76861;'.
+        _inline '  border-color: #b8605a;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline '.repo_tab td.cmd span.state-block span.none {'.
+        _inline '  background-color: #e8e8e8;'.
+        _inline '  border-color: #dbdbdb;'.
+        _inline '  color: #c8c8c8;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* STAGE */'.
+        _inline 'div.stage-container { width: 850px; }'.
+        _inline 'input.stage-filter { width: 18em; }'.
+        _inline ''.
+        _inline '.stage_tab {'.
+        _inline '  border: 1px solid #DDD;'.
+        _inline '  background: #fff;'.
+        _inline '  margin-top: 0.2em;'.
+        _inline '}'.
+        _inline '.stage_tab td {'.
+        _inline '  border-top: 1px solid #eee;'.
+        _inline '  color: #333;'.
+        _inline '  vertical-align: middle;'.
+        _inline '  padding: 2px 0.5em;'.
+        _inline '}'.
+        _inline '.stage_tab th {'.
+        _inline '  color: #BBB;'.
+        _inline '  text-align: left;'.
+        _inline '  font-weight: normal;'.
+        _inline '  background-color: #edf2f9;'.
+        _inline '  padding: 4px 0.5em;'.
+        _inline '}'.
+        _inline '.stage_tab td.status {'.
+        _inline '  width: 2em;'.
+        _inline '  text-align: center;'.
+        _inline '  color: #ccc;'.
+        _inline '  background-color: #fafafa;'.
+        _inline '}'.
+        _inline '.stage_tab td.highlight {'.
+        _inline '  color: #444 !important;'.
+        _inline '  font-weight: bold;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.stage_tab td.cmd {  cursor: pointer; }'.
+        _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
+        _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
+        _inline '.stage_tab td.method { color: #ccc; }'.
+        _inline '.stage_tab td.user { color: #aaa; }'.
+        _inline '.stage_tab td.type { color: #aaa; }'.
+        _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+        _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+        _inline '.stage_tab mark {'.
+        _inline '  color: white;'.
+        _inline '  background-color: #79a0d2;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* COMMIT */'.
+        _inline 'div.form-container {'.
+        _inline '  background-color: #F8F8F8;'.
+        _inline '  padding: 1em 1em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'form.aligned-form {'.
+        _inline '  display: table;'.
+        _inline '  border-spacing: 2px;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'form.aligned-form label {'.
+        _inline '  color: #BBB;'.
+        _inline '  padding-right: 1em;'.
+        _inline '  vertical-align: middle;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'form.aligned-form span.sub-title {'.
+        _inline '  color: #BBB;'.
+        _inline '  font-size: smaller;'.
+        _inline '  padding-top: 8px;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'form.aligned-form div.row { display: table-row; }'.
+        _inline 'form.aligned-form label { display: table-cell; }'.
+        _inline 'form.aligned-form input { display: table-cell; }'.
+        _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
+        _inline 'form.aligned-form span.cell { display: table-cell; }'.
+        _inline ''.
+        _inline '/* SETTINGS STYLES */'.
+        _inline 'div.settings_container {'.
+        _inline '  padding: 0.5em;'.
+        _inline '  font-size: 10pt;'.
+        _inline '  color: #444;'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* DIFF */'.
+        _inline 'div.diff {'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '  padding: 0.7em'.
+        _inline '}'.
+        _inline 'div.diff_head {'.
+        _inline '  padding-bottom: 0.7em;'.
+        _inline '}'.
+        _inline 'span.diff_name {'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '  color: grey;'.
+        _inline '}'.
+        _inline 'span.diff_changed_by {'.
+        _inline '  color: grey;'.
+        _inline '  float: right;'.
+        _inline '}'.
+        _inline 'span.diff_changed_by span.user {'.
+        _inline '  border-radius: 3px;'.
+        _inline '  border: solid 1px #c2d4ea;'.
+        _inline '  background-color: #d9e4f2;'.
+        _inline '  padding: 1px 0.4em;'.
+        _inline '}'.
+        _inline 'span.diff_name strong {'.
+        _inline '  color: #333;'.
+        _inline '}'.
+        _inline 'span.diff_banner {'.
+        _inline '  border-style: solid;'.
+        _inline '  border-width: 1px;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  padding-left: 0.3em;'.
+        _inline '  padding-right: 0.3em;'.
+        _inline '}'.
+        _inline '.diff_ins {'.
+        _inline '  border-color: #abf2ab;'.
+        _inline '  background-color: #e0ffe0;'.
+        _inline '}'.
+        _inline '.diff_del {'.
+        _inline '  border-color: #ff667d;'.
+        _inline '  background-color: #ffccd4;'.
+        _inline '}'.
+        _inline '.diff_upd {'.
+        _inline '  border-color: #dada00;'.
+        _inline '  background-color: #ffffcc;'.
+        _inline '}'.
+        _inline 'div.diff_content {'.
+        _inline '  background: #fff;'.
+        _inline '  border-top: 1px solid #DDD;'.
+        _inline '  border-bottom: 1px solid #DDD;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block {'.
+        _inline '  margin-left: 0.5em;'.
+        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+        _inline '  display: inline-block;'.
+        _inline '  text-align: center;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span {'.
+        _inline '  display: inline-block;'.
+        _inline '  padding: 0px 4px;'.
+        _inline '  border: 1px solid #000;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span.added {'.
+        _inline '  background-color: #69ad74;'.
+        _inline '  border-color: #579e64;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span.changed {'.
+        _inline '  background-color: #e0c150;'.
+        _inline '  border-color: #d4af25;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span.mixed {'.
+        _inline '  background-color: #e0c150;'.
+        _inline '  border-color: #579e64;'.
+        _inline '  color: #69ad74;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span.deleted {'.
+        _inline '  background-color: #c76861;'.
+        _inline '  border-color: #b8605a;'.
+        _inline '  color: white;'.
+        _inline '}'.
+        _inline 'div.diff_head span.state-block span.none {'.
+        _inline '  background-color: #e8e8e8;'.
+        _inline '  border-color: #dbdbdb;'.
+        _inline '  color: #c8c8c8;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* DIFF TABLE */'.
+        _inline 'table.diff_tab {'.
+        _inline '  font-family: Consolas, Courier, monospace;'.
+        _inline '  font-size: 10pt;'.
+        _inline '  width: 100%;'.
+        _inline '}'.
+        _inline 'table.diff_tab td,th {'.
+        _inline '  color: #444;'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '  padding-right: 0.5em;'.
+        _inline '}'.
+        _inline 'table.diff_tab th {'.
+        _inline '  text-align: left;'.
+        _inline '  font-weight: normal;'.
+        _inline '  padding-top: 3px;'.
+        _inline '  padding-bottom: 3px;'.
+        _inline '}'.
+        _inline 'table.diff_tab thead.header th {'.
+        _inline '  color: #EEE;'.
+        _inline '  background-color: #BBB;'.
+        _inline '  text-align: left;'.
+        _inline '  font-weight: bold;'.
+        _inline '  padding-left: 0.5em;'.
+        _inline '  font-size: 9pt;'.
+        _inline '}'.
+        _inline 'table.diff_tab thead.nav_line {'.
+        _inline '  background-color: #edf2f9;'.
+        _inline '}'.
+        _inline 'table.diff_tab thead.nav_line th {'.
+        _inline '  color: #bbb;'.
+        _inline '}'.
+        _inline 'table.diff_tab td.num, th.num {'.
+        _inline '  width: 1%;'.
+        _inline '  min-width: 2em;'.
+        _inline '  padding-right: 8px;'.
+        _inline '  padding-left:  8px;'.
+        _inline '  text-align: right !important;'.
+        _inline '  color: #ccc;'.
+        _inline '  border-left: 1px solid #eee;'.
+        _inline '  border-right: 1px solid #eee;'.
+        _inline '  -ms-user-select: none;'.
+        _inline '  user-select: none;'.
+        _inline '}'.
+        _inline 'table.diff_tab td.num::before {'.
+        _inline '  content: attr(line-num);'.
+        _inline '}'.
+        _inline 'table.diff_tab code {'.
+        _inline '  font-family: inherit;'.
+        _inline '  white-space: pre;'.
+        _inline '}'.
+        _inline 'table.diff_tab td.code {'.
+        _inline '  word-wrap: break-word;'.
+        _inline '  white-space: pre-wrap;'.
+        _inline '  overflow: visible;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+        _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+        _inline ''.
+        _inline '/* STYLES for Syntax Highlighting */'.
+        _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
+        _inline '.syntax-hl span.text     { color: #48ce4f; }'.
+        _inline '.syntax-hl span.comment  { color: #808080; font-style: italic; }'.
+        _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
+        _inline '.syntax-hl span.attr     { color: #b777fb; }'.
+        _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
+        _inline ''.
+        _inline '/* DEBUG INFO STYLES */'.
+        _inline 'div.debug_container {'.
+        _inline '  padding: 0.5em;'.
+        _inline '  font-size: 10pt;'.
+        _inline '  color: #444;'.
+        _inline '  font-family: Consolas, Courier, monospace;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.debug_container p {'.
+        _inline '  margin: 0px;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* DB ENTRIES */'.
+        _inline 'div.db_list {'.
+        _inline '  background-color: #fff;'.
+        _inline '  padding: 0.5em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'table.db_tab pre {'.
+        _inline '  display: inline-block;'.
+        _inline '  overflow: hidden;'.
+        _inline '  word-wrap:break-word;'.
+        _inline '  white-space: pre-wrap;'.
+        _inline '  margin: 0px;'.
+        _inline '  width: 30em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
+        _inline 'table.db_tab th {'.
+        _inline '  color: #888888;'.
+        _inline '  text-align: left;'.
+        _inline '  padding: 0.5em;'.
+        _inline '  border-bottom: 1px #ddd solid;'.
+        _inline '}'.
+        _inline 'table.db_tab td {'.
+        _inline '  color: #333;'.
+        _inline '  padding: 4px 8px;'.
+        _inline '  vertical-align: middle;'.
+        _inline '}'.
+        _inline 'table.db_tab td.data {'.
+        _inline '  color: #888;'.
+        _inline '  font-style: italic;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'table.db_tab tbody tr:hover, tr:active {'.
+        _inline '  background-color: #f4f4f4;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* DB ENTRY DISPLAY */'.
+        _inline 'div.db_entry {'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '  padding: 0.5em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.db_entry pre {'.
+        _inline '  display: block;'.
+        _inline '  font-size: 10pt;'.
+        _inline '  overflow: hidden;'.
+        _inline '  word-wrap:break-word;'.
+        _inline '  white-space: pre-wrap;'.
+        _inline '  background-color: #fcfcfc;'.
+        _inline '  border: 1px #eaeaea solid;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  padding: 0.5em;'.
+        _inline '  margin: 0.5em 0em;'.
+        _inline '  width: 60em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.db_entry table.toolbar {'.
+        _inline '  width: 50em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'table.tag {'.
+        _inline '  display: inline-block;'.
+        _inline '  border: 1px #b3c1cc solid;'.
+        _inline '  background-color: #eee;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  margin-right: 0.5em;'.
+        _inline '}'.
+        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
+        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
+        _inline ''.
+        _inline '/* DB ENTRY DISPLAY */'.
+        _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
+        _inline 'table.tag {'.
+        _inline '  display: inline-block;'.
+        _inline '  border: 1px #b3c1cc solid;'.
+        _inline '  background-color: #eee;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  margin-right: 0.5em;'.
+        _inline '}'.
+        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
+        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
+        _inline ''.
+        _inline '/* TUTORIAL */'.
+        _inline ''.
+        _inline 'div.tutorial {'.
+        _inline '  margin-top:       3px;'.
+        _inline '  background-color: #f2f2f2;'.
+        _inline '  padding: 0.5em 1em 0.5em 1em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.tutorial hr { border-color: #CCC; }'.
+        _inline 'div.tutorial li { margin: 2px 0px }'.
+        _inline 'div.tutorial h1 {'.
+        _inline '  font-size: 18pt;'.
+        _inline '  color: #404040;'.
+        _inline '}'.
+        _inline 'div.tutorial h2 {'.
+        _inline '  font-size: 14pt;'.
+        _inline '  color: #404040;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* NEW MENU */'.
+        _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
+        _inline '/* container div, aligned left, '.
+        _inline '   but with .float-right modifier alignes right */'.
+        _inline '.nav-container ul'.
+        _inline '{'.
+        _inline '  list-style: none;'.
+        _inline '  position: relative;'.
+        _inline '  float: left;'.
+        _inline '  margin: 0;'.
+        _inline '  padding: 0;'.
+        _inline '}'.
+        _inline '.nav-container.float-right ul { float: right; }'.
+        _inline ''.
+        _inline '.nav-container ul a'.
+        _inline '{'.
+        _inline '  display: block;'.
+        _inline '  text-decoration: none;'.
+        _inline '  line-height: 30px;'.
+        _inline '  padding: 0 12px;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
+        _inline '.nav-container:after { clear: both; display: block; content: ""; } '.
+        _inline ''.
+        _inline '/* submenues align to left or right border of the active item'.
+        _inline '   depending on .float-right modifier */'.
+        _inline '.nav-container ul li'.
+        _inline '{'.
+        _inline '  position: relative;'.
+        _inline '  float: left;'.
+        _inline '  margin: 0;'.
+        _inline '  padding: 0;'.
+        _inline '}'.
+        _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
+        _inline ''.
+        _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
+        _inline '.nav-container ul li:hover > ul { display: block; }'.
+        _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
+        _inline ''.
+        _inline '/* special selection style for 1st level items (see also .corner below) */'.
+        _inline '.nav-container > ul > li:hover > a { '.
+        _inline '  background-color: rgba(255, 255, 255, 0.5); '.
+        _inline '}'.
+        _inline ''.
+        _inline '.nav-container ul ul'.
+        _inline '{'.
+        _inline '  display: none;'.
+        _inline '  position: absolute;'.
+        _inline '  top: 100%;'.
+        _inline '  left: 0;'.
+        _inline '  z-index: 1;'.
+        _inline '  background: #fff;'.
+        _inline '  padding: 0;'.
+        _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.nav-container ul ul li'.
+        _inline '{'.
+        _inline '  float: none;'.
+        _inline '  min-width: 160px;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.nav-container ul ul a'.
+        _inline '{'.
+        _inline '  line-height: 120%;'.
+        _inline '  padding: 8px 15px;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.nav-container ul ul ul'.
+        _inline '{'.
+        _inline '  top: 0;'.
+        _inline '  left: 100%;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.nav-container.float-right ul ul ul'.
+        _inline '{'.
+        _inline '  left: auto;'.
+        _inline '  right: 100%;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* Minizone to extent hover area, '.
+        _inline '   aligned to the left or to the right of the selected item '.
+        _inline '   depending on .float-right modifier */'.
+        _inline '.nav-container > ul > li > div.minizone {'.
+        _inline '  display: none;'.
+        _inline '  z-index: 1;'.
+        _inline '  position: absolute;'.
+        _inline '  padding: 0px;'.
+        _inline '  width: 16px;'.
+        _inline '  height: 100%;'.
+        _inline '  bottom: 0px;'.
+        _inline '  left: 100%;'.
+        _inline '}'.
+        _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
+        _inline '.nav-container.float-right > ul > li > div.minizone {'.
+        _inline '  left: auto;'.
+        _inline '  right: 100%;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* icons - text-align strictly left - otherwise look ugly'.
+        _inline '   + bite a bit of left padding for nicer look '.
+        _inline '   + forbids item text wrapping (maybe can be done differently) */'.
+        _inline '.nav-container ul ul li a .octicon {'.
+        _inline '  padding-right: 10px;'.
+        _inline '  margin-left: -3px;'.
+        _inline '}'.
+        _inline '.nav-container ul.with-icons li {'.
+        _inline '  text-align: left;'.
+        _inline '  white-space: nowrap;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* Special .corner modifier - hangs menu at the top right corner'.
+        _inline '   and cancels 1st level background coloring */'.
+        _inline '.nav-container.corner {'.
+        _inline '  position: absolute;'.
+        _inline '  right: 0px;'.
+        _inline '}'.
+        _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
+        _inline ''.
+        _inline '/* Toolbar separator style */'.
+        _inline '.nav-container ul ul li.separator'.
+        _inline '{'.
+        _inline '  font-size: x-small;'.
+        _inline '  text-align: center;'.
+        _inline '  padding: 4px 0;'.
+        _inline '  text-transform: uppercase;'.
+        _inline '  color: #bbb;'.
+        _inline '  border-bottom: 1px solid #eee;'.
+        _inline '  border-top: 1px solid #eee;'.
+        _inline '}'.
+        _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
+        _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
+        _inline ''.
+        _inline '/* News Announcement */'.
+        _inline ''.
+        _inline 'div.news { '.
+        _inline '  position: absolute;'.
+        _inline '  z-index: 99;'.
+        _inline '  top: 36px;'.
+        _inline '  left: 50%;'.
+        _inline '  width: 40em;'.
+        _inline '  margin-left: -20em;'.
+        _inline '  background-color: white;'.
+        _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news div.headbar {'.
+        _inline '  text-transform: uppercase;'.
+        _inline '  font-size: small;'.
+        _inline '  padding: 4px 6px;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news div.title {'.
+        _inline '  color: #f8f8f8;'.
+        _inline '  background-color: #888;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news div.title a.close-btn { '.
+        _inline '  color: #d8d8d8; '.
+        _inline '  padding-left: 12px; '.
+        _inline '  padding-right: 2px;'.
+        _inline '  position: relative;'.
+        _inline '  bottom: 1px;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news div.important { color: #aaa; }'.
+        _inline 'div.news div.newslist {'.
+        _inline '  padding: 0.5em 0.7em;'.
+        _inline '  color: #444;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news li {'.
+        _inline '  padding-left: 10px;'.
+        _inline '  list-style-type: none;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news h1:first-child { margin: auto; }'.
+        _inline 'div.news h1 { '.
+        _inline '  font-size: inherit;'.
+        _inline '  padding: 6px 4px;'.
+        _inline '  margin: 4px auto auto;'.
+        _inline '  text-decoration: underline;'.
+        _inline '  font-weight: normal;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news .version-marker {'.
+        _inline '  color: white;'.
+        _inline '  display: inline-block;'.
+        _inline '  margin-left: 20px;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  padding: 0px 6px;'.
+        _inline '  border: #c0c0c0 1px solid;'.
+        _inline '  background-color: #ccc;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.news .update {'.
+        _inline '  border: #e8ba30 1px solid;'.
+        _inline '  background-color: #f5c538;'.
+        _inline '}'.
+      WHEN 'JS_COMMON'.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
+****************************************************
+        _inline '/**********************************************************'.
+        _inline ' * ABAPGIT JS function library'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Polyfills'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/'.
+        _inline 'if (!Function.prototype.bind) {'.
+        _inline '  Function.prototype.bind = function(oThis) {'.
+        _inline '    if (typeof this !== "function") {'.
+        _inline '      throw new TypeError("Function.prototype.bind - subject is not callable");'.
+        _inline '    }'.
+        _inline ''.
+        _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
+        _inline '        fToBind = this,'.
+        _inline '        fNOP    = function() {},'.
+        _inline '        fBound  = function() {'.
+        _inline '          return fToBind.apply(this instanceof fNOP'.
+        _inline '                 ? this'.
+        _inline '                 : oThis,'.
+        _inline '                 aArgs.concat(Array.prototype.slice.call(arguments)));'.
+        _inline '        };'.
+        _inline ''.
+        _inline '    if (this.prototype) {'.
+        _inline '      fNOP.prototype = this.prototype; '.
+        _inline '    }'.
+        _inline '    fBound.prototype = new fNOP();'.
+        _inline ''.
+        _inline '    return fBound;'.
+        _inline '  };'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Common functions'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '// Output text to the debug div'.
+        _inline 'function debugOutput(text, dstID) {'.
+        _inline '  var stdout       = document.getElementById(dstID || "debug-output");'.
+        _inline '  var wrapped      = "<p>" + text + "</p>";'.
+        _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Create hidden form and submit with sapevent'.
+        _inline 'function submitSapeventForm(params, action, method) {'.
+        _inline '  var form = document.createElement("form");'.
+        _inline '  form.setAttribute("method", method || "post");'.
+        _inline '  form.setAttribute("action", "sapevent:" + action);'.
+        _inline '  '.
+        _inline '  for(var key in params) {'.
+        _inline '    var hiddenField = document.createElement("input");'.
+        _inline '    hiddenField.setAttribute("type", "hidden");'.
+        _inline '    hiddenField.setAttribute("name", key);'.
+        _inline '    hiddenField.setAttribute("value", params[key]);'.
+        _inline '    form.appendChild(hiddenField);'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  document.body.appendChild(form);'.
+        _inline '  form.submit();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Set focus to a control'.
+        _inline 'function setInitialFocus(id) {'.
+        _inline '  document.getElementById(id).focus();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Submit an existing form'.
+        _inline 'function submitFormById(id) {'.
+        _inline '  document.getElementById(id).submit();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// JS error stub'.
+        _inline 'function errorStub(event) {'.
+        _inline '  var element    = event.target || event.srcElement;'.
+        _inline '  var targetName = element.id || element.name || "???";'.
+        _inline '  alert("JS Error, please log an issue (@" + targetName + ")");'.
+        _inline '}'.
+        _inline ''.
+        _inline '// confirm JS initilization'.
+        _inline 'function confirmInitialized() {'.
+        _inline '  var errorBanner = document.getElementById("js-error-banner");'.
+        _inline '  if (errorBanner) {'.
+        _inline '    errorBanner.style.display = "none";'.
+        _inline '  }'.
+        _inline '  debugOutput("js: OK"); // Final final confirmation :)'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Performance utils (for debugging)'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline 'var gPerf = [];'.
+        _inline ''.
+        _inline 'function perfOut(prefix) {'.
+        _inline '  var totals = {};'.
+        _inline '  for (var i = gPerf.length - 1; i >= 0; i--) {'.
+        _inline '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};'.
+        _inline '    totals[gPerf[i].name].time  += gPerf[i].time;'.
+        _inline '    totals[gPerf[i].name].count += 1;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  var keys = Object.keys(totals);'.
+        _inline '  for (var i = keys.length - 1; i >= 0; i--) {'.
+        _inline '    console.log(prefix '.
+        _inline '      + " " + keys[i] + ": " '.
+        _inline '      + totals[keys[i]].time.toFixed(3) + "ms"'.
+        _inline '      + " (" + totals[keys[i]].count.toFixed() +")");'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline 'function perfLog(name, startTime) {'.
+        _inline '  gPerf.push({name: name, time: window.performance.now() - startTime});'.
+        _inline '}'.
+        _inline ''.
+        _inline 'function perfClear() {'.
+        _inline '  gPerf = [];'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * STAGE PAGE Logic'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '// Stage helper constructor'.
+        _inline 'function StageHelper(params) {'.
+        _inline '  this.pageSeed        = params.seed;'.
+        _inline '  this.formAction      = params.formAction;'.
+        _inline '  this.choiseCount     = 0;'.
+        _inline '  this.lastSearchValue = "";'.
+        _inline ''.
+        _inline '  // DOM nodes'.
+        _inline '  this.dom = {'.
+        _inline '    stageTab:     document.getElementById(params.ids.stageTab),'.
+        _inline '    commitBtn:    document.getElementById(params.ids.commitBtn),'.
+        _inline '    commitAllBtn: document.getElementById(params.ids.commitAllBtn),'.
+        _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
+        _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
+        _inline '  };'.
+        _inline '  '.
+        _inline '  // Table columns (autodetection)'.
+        _inline '  this.colIndex      = this.detectColumns();'.
+        _inline '  this.filterTargets = ["name", "user"];'.
+        _inline ''.
+        _inline '  // Constants'.
+        _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
+        _inline '  this.STATUS = {'.
+        _inline '    add:    "A",'.
+        _inline '    remove: "R",'.
+        _inline '    ignore: "I",'.
+        _inline '    reset:  "?",'.
+        _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1; }'.
+        _inline '  };'.
+        _inline '  '.
+        _inline '  this.TEMPLATES = {'.
+        _inline '    cmdReset:  "<a>reset</a>",'.
+        _inline '    cmdLocal:  "<a>add</a>",'.
+        _inline '    cmdRemote: "<a>ignore</a><a>remove</a>"'.
+        _inline '  };'.
+        _inline ''.
+        _inline '  this.setHooks();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Hook global click listener on table, load/unload actions'.
+        _inline 'StageHelper.prototype.setHooks = function() {'.
+        _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
+        _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
+        _inline '  this.dom.objectSearch.oninput    = this.onSearch.bind(this);'.
+        _inline '  this.dom.objectSearch.onkeypress = this.onSearch.bind(this);'.
+        _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
+        _inline '  window.onload                    = this.onPageLoad.bind(this);'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Detect column index'.
+        _inline 'StageHelper.prototype.detectColumns = function() {'.
+        _inline '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];'.
+        _inline '  var colIndex = {};'.
+        _inline ''.
+        _inline '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {'.
+        _inline '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  return colIndex;'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Store table state on leaving the page'.
+        _inline 'StageHelper.prototype.onPageUnload = function() {'.
+        _inline '  if (!window.sessionStorage) return;'.
+        _inline ''.
+        _inline '  var data = this.collectData();'.
+        _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Re-store table state on entering the page'.
+        _inline 'StageHelper.prototype.onPageLoad = function() {'.
+        _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));'.
+        _inline ''.
+        _inline '  this.iterateStageTab(true, function (row) {'.
+        _inline '    var status = data && data[row.cells[this.colIndex["name"]].innerText];'.
+        _inline '    this.updateRow(row, status || this.STATUS.reset);'.
+        _inline '  });'.
+        _inline ''.
+        _inline '  this.updateMenu();'.
+        _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Table event handler, change status'.
+        _inline 'StageHelper.prototype.onTableClick = function (event) {'.
+        _inline '  var target = event.target || event.srcElement;'.
+        _inline '  if (!target) return;'.
+        _inline ''.
+        _inline '  if (target.tagName === "A") {'.
+        _inline '    var td = target.parentNode;'.
+        _inline '  } else if (target.tagName === "TD") {'.
+        _inline '    var td = target;'.
+        _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
+        _inline '      target = td.children[0];'.
+        _inline '    } else return;'.
+        _inline '  } else return;'.
+        _inline ''.
+        _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
+        _inline '  '.
+        _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
+        _inline '  var targetRow = td.parentNode;'.
+        _inline '  '.
+        _inline '  if (td.tagName === "TD") {'.
+        _inline '    this.updateRow(targetRow, status);'.
+        _inline '  } else { // TH'.
+        _inline '    this.iterateStageTab(true, function (row) {'.
+        _inline '      if (row.style.display !== "none"            // Not filtered out'.
+        _inline '        && row.className === targetRow.className  // Same context as header'.
+        _inline '        ) {'.
+        _inline '        this.updateRow(row, status);'.
+        _inline '      }'.
+        _inline '    });'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  this.updateMenu();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Search object'.
+        _inline 'StageHelper.prototype.onSearch = function (e) {'.
+        _inline '  if ( // Enter hit or clear, IE SUCKS !'.
+        _inline '       e.type === "input" && !e.target.value && this.lastSearchValue'.
+        _inline '    || e.type === "keypress" && e.which === 13 ) { '.
+        _inline ''.
+        _inline '    this.lastSearchValue = e.target.value;'.
+        _inline '    this.iterateStageTab(true, this.applyFilterToRow, e.target.value);'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Apply filter to a single stage line - hide or show'.
+        _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
+        _inline '  // Collect data cells'.
+        _inline '  var targets = this.filterTargets.map(function(attr) {'.
+        _inline '    var elem = row.cells[this.colIndex[attr]];'.
+        _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
+        _inline '    return {'.
+        _inline '      elem:      elem,'.
+        _inline '      plainText: elem.innerText, // without tags'.
+        _inline '      curHtml:   elem.innerHTML'.
+        _inline '    };'.
+        _inline '  }, this);'.
+        _inline ''.
+        _inline '  var isVisible = false; '.
+        _inline ''.
+        _inline '  // Apply filter to cells, mark filtered text'.
+        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
+        _inline '    var target = targets[i];'.
+        _inline '    target.newHtml = (filter)'.
+        _inline '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")'.
+        _inline '      : target.plainText;'.
+        _inline '    target.isChanged = target.newHtml !== target.curHtml;'.
+        _inline '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  // Update DOM'.
+        _inline '  row.style.display = isVisible ? "" : "none";'.
+        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
+        _inline '    if (targets[i].isChanged) targets[i].elem.innerHTML = targets[i].newHtml;'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Get how status should affect object counter'.
+        _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
+        _inline '  if (typeof status !== "string" '.
+        _inline '    || status.length !== 1 '.
+        _inline '    || this.STATUS.isValid(status) ) {'.
+        _inline '    alert("Unknown status");'.
+        _inline '  } else {'.
+        _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Update table line'.
+        _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
+        _inline '  var oldStatus = row.cells[this.colIndex["status"]].innerText;'.
+        _inline ''.
+        _inline '  if (oldStatus !== newStatus) {'.
+        _inline '    this.updateRowStatus(row, newStatus);'.
+        _inline '    this.updateRowCommand(row, newStatus);'.
+        _inline '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {'.
+        _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Update Status cell (render set of commands)'.
+        _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
+        _inline '  row.cells[this.colIndex["status"]].innerText = status;'.
+        _inline '  if (status === this.STATUS.reset) {'.
+        _inline '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);'.
+        _inline '  } else {'.
+        _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Update Command cell (render set of commands)'.
+        _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
+        _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
+        _inline '  if (status === this.STATUS.reset) {'.
+        _inline '    cell.innerHTML = (row.className == "local") '.
+        _inline '      ? this.TEMPLATES.cmdLocal '.
+        _inline '      : this.TEMPLATES.cmdRemote;'.
+        _inline '  } else {'.
+        _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Update menu items visibility'.
+        _inline 'StageHelper.prototype.updateMenu = function () {'.
+        _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
+        _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
+        _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Submit stage state to the server'.
+        _inline 'StageHelper.prototype.submit = function () {'.
+        _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Extract data from the table'.
+        _inline 'StageHelper.prototype.collectData = function () {'.
+        _inline '  var data  = {};'.
+        _inline '  this.iterateStageTab(false, function (row) {'.
+        _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
+        _inline '  });'.
+        _inline '  return data;'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Table iteration helper'.
+        _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {  '.
+        _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
+        _inline '  var table    = this.dom.stageTab;'.
+        _inline ''.
+        _inline '  if (changeMode) {'.
+        _inline '    var scrollOffset = window.pageYOffset;'.
+        _inline '    this.dom.stageTab.style.display = "none";'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
+        _inline '    var tbody = table.tBodies[b];'.
+        _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
+        _inline '      args = [tbody.rows[r]].concat(restArgs);'.
+        _inline '      cb.apply(this, args); // callback'.
+        _inline '    }'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  if (changeMode) {'.
+        _inline '    this.dom.stageTab.style.display = "";'.
+        _inline '    window.scrollTo(0, scrollOffset);'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Check list wrapper'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline 'function CheckListWrapper(id, cbAction) {'.
+        _inline '  this.id         = document.getElementById(id);'.
+        _inline '  this.cbAction   = cbAction;'.
+        _inline '  this.id.onclick = this.onClick.bind(this);'.
+        _inline '}'.
+        _inline ''.
+        _inline 'CheckListWrapper.prototype.onClick = function(e) {'.
+        _inline '  // Get nodes'.
+        _inline '  var target = event.target || event.srcElement;'.
+        _inline '  if (!target) return;'.
+        _inline '  if (target.tagName !== "A") { target = target.parentNode; } // icon clicked'.
+        _inline '  if (target.tagName !== "A") return;'.
+        _inline '  if (target.parentNode.tagName !== "LI") return;'.
+        _inline ''.
+        _inline '  var nodeA    = target;'.
+        _inline '  var nodeLi   = target.parentNode;'.
+        _inline '  var nodeIcon = target.children[0];'.
+        _inline '  if (!nodeIcon.classList.contains("octicon")) return;'.
+        _inline ''.
+        _inline '  // Node updates'.
+        _inline '  var option   = nodeA.innerText;'.
+        _inline '  var oldState = nodeLi.getAttribute("data-check");'.
+        _inline '  if (oldState === null) return; // no data-check attribute - non-checkbox'.
+        _inline '  var newState = oldState === "X" ? false : true;'.
+        _inline ''.
+        _inline '  if (newState) {'.
+        _inline '    nodeIcon.classList.remove("grey");'.
+        _inline '    nodeIcon.classList.add("blue");'.
+        _inline '    nodeLi.setAttribute("data-check", "X");'.
+        _inline '  } else {'.
+        _inline '    nodeIcon.classList.remove("blue");'.
+        _inline '    nodeIcon.classList.add("grey");'.
+        _inline '    nodeLi.setAttribute("data-check", "");'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  // Action callback'.
+        _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Diff page logic'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '// Diff helper constructor'.
+        _inline 'function DiffHelper(params) {'.
+        _inline '  this.pageSeed    = params.seed;'.
+        _inline '  this.counter     = 0;'.
+        _inline '  this.stageAction = params.stageAction;'.
+        _inline ''.
+        _inline '  // DOM nodes'.
+        _inline '  this.dom = {'.
+        _inline '    diffList:    document.getElementById(params.ids.diffList),'.
+        _inline '    stageButton: document.getElementById(params.ids.stageButton)'.
+        _inline '  };'.
+        _inline ''.
+        _inline '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");'.
+        _inline '  if (!this.repoKey) return; // Unexpected'.
+        _inline ''.
+        _inline '  // Checklist wrapper'.
+        _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
+        _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
+        _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
+        _inline '  } '.
+        _inline ''.
+        _inline '  // Hijack stage command'.
+        _inline '  if (this.dom.stageButton) {'.
+        _inline '    this.dom.stageButton.href    = "#";'.
+        _inline '    this.dom.stageButton.onclick = this.onStage.bind(this);'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Action on filter click'.
+        _inline 'DiffHelper.prototype.onFilter = function(attr, target, state) {'.
+        _inline '  this.applyFilter(attr, target, state);'.
+        _inline '  this.highlightButton(state);'.
+        _inline '};'.
+        _inline ''.
+        _inline '// Hide/show diff based on params'.
+        _inline 'DiffHelper.prototype.applyFilter = function (attr, target, state) {'.
+        _inline '  this.iterateDiffList(function(div) {'.
+        _inline '    if (div.getAttribute("data-"+attr) === target) {'.
+        _inline '      div.style.display = state ? "" : "none";'.
+        _inline '    }'.
+        _inline '  });'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Action on stage -> save visible diffs as state for stage page'.
+        _inline 'DiffHelper.prototype.onStage = function (e) {'.
+        _inline '  if (window.sessionStorage) {'.
+        _inline '    var data = this.buildStageCache();'.
+        _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
+        _inline '  }'.
+        _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
+        _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Collect visible diffs'.
+        _inline 'DiffHelper.prototype.buildStageCache = function () {'.
+        _inline '  var list = {};'.
+        _inline '  this.iterateDiffList(function(div) {'.
+        _inline '    var filename = div.getAttribute("data-file");'.
+        _inline '    if (!div.style.display && filename) { // No display override - visible !!'.
+        _inline '      list[filename] = "A"; // Add'.
+        _inline '    }'.
+        _inline '  });'.
+        _inline '  return list;'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Table iterator'.
+        _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
+        _inline '  var restArgs = Array.prototype.slice.call(arguments, 1);'.
+        _inline '  var diffList = this.dom.diffList;'.
+        _inline ''.
+        _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
+        _inline '    var div = diffList.children[i];'.
+        _inline '    if (div.className !== "diff") continue;'.
+        _inline '    args = [div].concat(restArgs);'.
+        _inline '    cb.apply(this, args); // callback'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Highlight Filter button if filter is activate'.
+        _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
+        _inline '  this.counter += state ? -1 : 1;'.
+        _inline '  if (this.counter > 0) {'.
+        _inline '    this.dom.filterButton.classList.add("bgorange");'.
+        _inline '  } else {'.
+        _inline '    this.dom.filterButton.classList.remove("bgorange");'.
+        _inline '  }'.
+        _inline '};'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Other functions'.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline '// News announcement'.
+        _inline 'function displayNews() {'.
+        _inline '  var div = document.getElementById("news"); '.
+        _inline '  div.style.display = (div.style.display)?'''':''none'';  '.
+        _inline '}'.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
+    ENDCASE.
+
+    CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>gc_newline.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text   = lv_str
+      IMPORTING
+        buffer = rv_data
+      EXCEPTIONS
+        OTHERS = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.  " get_inline_asset.
+  METHOD get_inline_images.
+
+    DATA ls_image TYPE zif_abapgit_definitions=>ty_web_asset.
+
+* see https://github.com/larshp/abapGit/issues/201 for source SVG
+    ls_image-url     = 'img/logo' ##NO_TEXT.
+    ls_image-base64 =
+         'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
+      && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
+      && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
+      && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
+      && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
+      && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
+      && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
+      && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
+      && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
+      && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
+      && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
+      && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
+      && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
+      && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
+      && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
+      && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
+      && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
+      && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
+      && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
+      && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
+      && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
+      && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
+      && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
+      && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
+      && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
+      && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
+      && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
+      && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
+      && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
+      && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
+      && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
+      && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
+      && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
+      && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
+      && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
+      && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
+      && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
+      && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
+      && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
+      && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
+      && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
+      && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
+      && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
+      && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
+      && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
+      && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
+      && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
+      && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
+      && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
+      && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
+      && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
+      && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
+      && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
+      && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
+      && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
+      && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
+      && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
+      && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
+      && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
+      && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
+      && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
+      && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
+      && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
+      && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
+      && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
+      && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
+      && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
+      && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
+      && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
+      && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
+      && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
+      && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
+      && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
+      && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
+      && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
+      && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
+      && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
+      && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
+      && 'cpUAAAAASUVORK5CYII='.
+    APPEND ls_image TO rt_images.
+
+  ENDMETHOD.  " get_inline_images.
+  METHOD get_mime_asset.
+
+    DATA: ls_key    TYPE wwwdatatab,
+          lv_size_c TYPE wwwparams-value,
+          lv_size   TYPE i,
+          lt_w3mime TYPE STANDARD TABLE OF w3mime.
+
+    ls_key-relid = 'MI'.
+    ls_key-objid = iv_asset_name.
+
+    " Get exact file size
+    CALL FUNCTION 'WWWPARAMS_READ'
+      EXPORTING
+        relid            = ls_key-relid
+        objid            = ls_key-objid
+        name             = 'filesize'
+      IMPORTING
+        value            = lv_size_c
+      EXCEPTIONS
+        entry_not_exists = 1.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_size = lv_size_c.
+
+    " Get binary data
+    CALL FUNCTION 'WWWDATA_IMPORT'
+      EXPORTING
+        key               = ls_key
+      TABLES
+        mime              = lt_w3mime
+      EXCEPTIONS
+        wrong_object_type = 1
+        import_error      = 2.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
+      EXPORTING
+        input_length = lv_size
+      IMPORTING
+        buffer       = rv_data
+      TABLES
+        binary_tab   = lt_w3mime
+      EXCEPTIONS
+        failed       = 1 ##FM_SUBRC_OK.
+
+  ENDMETHOD.  " get_mime_asset.
+  METHOD get_webfont_link.
+
+    rv_link = '<link rel="stylesheet"'
+           && ' type="text/css" href="'
+           && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
+           && '">'.                                         "#EC NOTEXT
+
+  ENDMETHOD.  " get_webfont_link
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
@@ -42609,1611 +44208,7 @@ ENDCLASS. "lcl_services_background
 *&  Include           ZABAPGIT_GUI_ASSET_MANAGER
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_asset_manager DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_gui.
-  PUBLIC SECTION.
-
-    METHODS get_asset
-      IMPORTING iv_asset_name  TYPE string
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-    METHODS get_images
-      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
-
-    CLASS-METHODS get_webfont_link
-      RETURNING VALUE(rv_link) TYPE string.
-
-  PRIVATE SECTION.
-
-    METHODS get_inline_asset
-      IMPORTING iv_asset_name  TYPE string
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-    METHODS get_mime_asset
-      IMPORTING iv_asset_name  TYPE c
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-    METHODS get_inline_images
-      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
-
-ENDCLASS. "lcl_gui_asset_manager
-
-CLASS lcl_gui_asset_manager IMPLEMENTATION.
-
-  METHOD get_asset.
-
-    DATA: lv_asset_name TYPE string,
-          lv_mime_name  TYPE wwwdatatab-objid.
-
-    lv_asset_name = to_upper( iv_asset_name ).
-
-    CASE lv_asset_name.
-      WHEN 'CSS_COMMON'.
-        lv_mime_name = 'ZABAPGIT_CSS_COMMON'.
-      WHEN 'JS_COMMON'.
-        lv_mime_name = 'ZABAPGIT_JS_COMMON'.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |Improper resource name: { iv_asset_name }| ).
-    ENDCASE.
-
-    " Inline is default (for older AG snapshots to work)
-    rv_data = get_inline_asset( lv_asset_name ).
-    IF rv_data IS INITIAL.
-      rv_data = get_mime_asset( lv_mime_name ). " Get MIME object
-    ENDIF.
-
-    IF rv_data IS INITIAL.
-      zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_name }| ).
-    ENDIF.
-
-  ENDMETHOD.  " get_asset.
-
-  METHOD get_mime_asset.
-
-    DATA: ls_key    TYPE wwwdatatab,
-          lv_size_c TYPE wwwparams-value,
-          lv_size   TYPE i,
-          lt_w3mime TYPE STANDARD TABLE OF w3mime.
-
-    ls_key-relid = 'MI'.
-    ls_key-objid = iv_asset_name.
-
-    " Get exact file size
-    CALL FUNCTION 'WWWPARAMS_READ'
-      EXPORTING
-        relid            = ls_key-relid
-        objid            = ls_key-objid
-        name             = 'filesize'
-      IMPORTING
-        value            = lv_size_c
-      EXCEPTIONS
-        entry_not_exists = 1.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    lv_size = lv_size_c.
-
-    " Get binary data
-    CALL FUNCTION 'WWWDATA_IMPORT'
-      EXPORTING
-        key               = ls_key
-      TABLES
-        mime              = lt_w3mime
-      EXCEPTIONS
-        wrong_object_type = 1
-        import_error      = 2.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = lv_size
-      IMPORTING
-        buffer       = rv_data
-      TABLES
-        binary_tab   = lt_w3mime
-      EXCEPTIONS
-        failed       = 1 ##FM_SUBRC_OK.
-
-  ENDMETHOD.  " get_mime_asset.
-
-  METHOD get_images.
-
-    FIELD-SYMBOLS <image> LIKE LINE OF rt_images.
-
-    rt_images = get_inline_images( ).
-
-    " Convert to xstring
-    LOOP AT rt_images ASSIGNING <image>.
-      CALL FUNCTION 'SSFC_BASE64_DECODE'
-        EXPORTING
-          b64data = <image>-base64
-        IMPORTING
-          bindata = <image>-content
-        EXCEPTIONS
-          OTHERS  = 1.
-      ASSERT sy-subrc = 0. " Image data error
-    ENDLOOP.
-
-  ENDMETHOD.  " get_images.
-
-  METHOD get_inline_asset.
-
-* used by abapmerge
-    DEFINE _inline.
-      APPEND &1 TO lt_data.
-    END-OF-DEFINITION.
-
-    DATA: lt_data TYPE zif_abapgit_definitions=>ty_string_tt,
-          lv_str  TYPE string.
-
-    CASE iv_asset_name.
-      WHEN 'CSS_COMMON'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
-****************************************************
-        _inline '/*'.
-        _inline ' * ABAPGIT COMMON CSS'.
-        _inline ' */'.
-        _inline ''.
-        _inline '/* GLOBALS */'.
-        _inline ''.
-        _inline 'body {'.
-        _inline '  font-family: Arial,Helvetica,sans-serif;'.
-        _inline '  font-size:   12pt;'.
-        _inline '  background:  #E8E8E8;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'a, a:visited {'.
-        _inline '  color:            #4078c0;'.
-        _inline '  text-decoration:  none;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'a:hover, a:active {'.
-        _inline '  cursor: pointer;'.
-        _inline '  text-decoration: underline;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'img               { border: 0px; vertical-align: middle; }'.
-        _inline 'table             { border-collapse: collapse; }'.
-        _inline 'pre               { display: inline; }'.
-        _inline 'sup {'.
-        _inline '  vertical-align: top;'.
-        _inline '  position: relative;'.
-        _inline '  top: -0.5em;'.
-        _inline '  font-size: 75%;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'input, textarea, select {'.
-        _inline '  padding: 3px 6px;'.
-        _inline '  border: 1px solid #ddd;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'input:focus, textarea:focus {'.
-        _inline '  border: 1px solid #8cadd9;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* COLOR PALETTE */'.
-        _inline '.grey             { color: lightgrey  !important; }'.
-        _inline '.grey70           { color: #b3b3b3    !important; }'.
-        _inline '.grey80           { color: #ccc       !important; }'.
-        _inline '.bgorange         { background-color: orange; }'.
-        _inline '.darkgrey         { color: #808080    !important; }'.
-        _inline '.attention        { color: red        !important; }'.
-        _inline '.error            { color: #d41919    !important; }'.
-        _inline '.warning          { color: #efb301    !important; }'.
-        _inline '.blue             { color: #5e8dc9    !important; }'.
-        _inline '.red              { color: red        !important; }'.
-        _inline '.white            { color: white      !important; }'.
-        _inline ''.
-        _inline '/* MODIFIERS */'.
-        _inline '.emphasis         { font-weight: bold !important; }'.
-        _inline '.crossout         { text-decoration: line-through !important; }'.
-        _inline '.right            { text-align:right; }'.
-        _inline '.center           { text-align:center; }'.
-        _inline '.paddings         { padding: 0.5em 0.5em; }'.
-        _inline '.pad-sides        { padding-left: 0.3em; padding-right: 0.3em; }'.
-        _inline '.margin-v5        { margin-top: 0.5em; margin-bottom: 0.5em; }'.
-        _inline '.indent5em        { padding-left: 0.5em; }'.
-        _inline '.pad4px           { padding: 4px; }'.
-        _inline '.w100             { width: 100%; }'.
-        _inline '.w40              { width: 40%; }'.
-        _inline '.float-right      { float: right; }'.
-        _inline '.pad-right        { padding-right: 6px; }'.
-        _inline ''.
-        _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-        _inline 'div#header {'.
-        _inline '  padding:          0.5em 0.5em;'.
-        _inline '  border-bottom:    3px double lightgrey;'.
-        _inline '}'.
-        _inline 'div#header td.logo       { width: 164px; }'.
-        _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
-        _inline 'div#header span.page_title {'.
-        _inline '  font-weight: normal;'.
-        _inline '  font-size: 18pt;'.
-        _inline '  color: #bbb;'.
-        _inline '  padding-left: 0.4em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div#toc {'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '}'.
-        _inline 'div#toc .favorites a { opacity: 0.5; }'.
-        _inline 'div#toc .favorites:hover a { opacity: 1; }'.
-        _inline ''.
-        _inline 'div#footer {'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  border-top:       3px double lightgrey;'.
-        _inline '  text-align:       center;'.
-        _inline '}'.
-        _inline 'div#footer span.version {'.
-        _inline '  display: block;'.
-        _inline '  color: grey;'.
-        _inline '  margin-top: 0.3em;'.
-        _inline '}'.
-        _inline ''.
-        _inline '#debug-output {'.
-        _inline '  text-align: right;'.
-        _inline '  padding-right: 0.5em;'.
-        _inline '  color: #ccc;'.
-        _inline '  font-style: italic;'.
-        _inline '  font-size: small;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.dummydiv {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  text-align:       center;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* ERROR LOG */'.
-        _inline ''.
-        _inline 'div.log {'.
-        _inline '  padding: 6px;'.
-        _inline '  margin: 4px;'.
-        _inline '  background-color: #fee6e6;'.
-        _inline '  border: 1px #fdcece solid;'.
-        _inline '  border-radius: 4px;'.
-        _inline '}'.
-        _inline 'div.log > span   { display:block; }'.
-        _inline 'div.log .octicon { padding-right: 6px; }'.
-        _inline ''.
-        _inline '/* REPOSITORY */'.
-        _inline 'div.repo {'.
-        _inline '  margin-top:       3px;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em 1em 0.5em 1em;'.
-        _inline '  position: relative;'.
-        _inline '}'.
-        _inline '.repo_name span.name {'.
-        _inline '  font-weight: bold;'.
-        _inline '  color: #333;'.
-        _inline '  font-size: 14pt;'.
-        _inline '}'.
-        _inline '.repo_name span.url {'.
-        _inline '  color: #ccc;'.
-        _inline '  font-size: 12pt;'.
-        _inline '  margin-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_name img {'.
-        _inline '  vertical-align: baseline;'.
-        _inline '  margin: 0 5px 0 5px;'.
-        _inline '}'.
-        _inline '.repo_attr {'.
-        _inline '  color: grey;'.
-        _inline '  font-size: 12pt;'.
-        _inline '}'.
-        _inline '.repo_attr span {'.
-        _inline '  margin-left: 0.2em;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_attr span.bg_marker {'.
-        _inline '  border: 1px solid #d2d2d2;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  background: #d8d8d8;'.
-        _inline '  color: #fff;'.
-        _inline '  font-size: 8pt;'.
-        _inline '  padding: 4px 2px 3px 2px;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch {'.
-        _inline '  padding: 2px 4px;'.
-        _inline '  border: 1px solid #d9d9d9;'.
-        _inline '  border-radius: 4px;'.
-        _inline '  background-color: #e2e2e2;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch_head {'.
-        _inline '  border-color: #d8dff3;'.
-        _inline '  background-color: #eceff9;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch_branch {'.
-        _inline '  border-color: #e7d9b1;'.
-        _inline '  background-color: #f8f0d8;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* MISC AND REFACTOR */'.
-        _inline '.hidden-submit {'.
-        _inline '  border: 0 none;'.
-        _inline '  height: 0;'.
-        _inline '  width: 0;'.
-        _inline '  padding: 0;'.
-        _inline '  margin: 0;'.
-        _inline '  overflow: hidden;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* REPOSITORY TABLE*/'.
-        _inline 'div.repo_container {'.
-        _inline '  position: relative;'.
-        _inline '}'.
-        _inline 'table.repo_tab {'.
-        _inline '  border: 1px solid #DDD;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  background: #fff;'.
-        _inline '  width: 100%;'.
-        _inline '}'.
-        _inline '.repo_tab td {'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '  vertical-align: middle;'.
-        _inline '  color: #333;'.
-        _inline '  padding-top: 2px;'.
-        _inline '  padding-bottom: 2px;'.
-        _inline '}'.
-        _inline '.repo_tab td.icon {'.
-        _inline '  width: 32px;'.
-        _inline '  text-align: center;'.
-        _inline '}'.
-        _inline '.repo_tab td.type {'.
-        _inline '  width: 3em;'.
-        _inline '}'.
-        _inline '.repo_tab td.object {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_tab td.files {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd {'.
-        _inline '  text-align: right;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  padding-right: 0.7em;'.
-        _inline '}'.
-        _inline '.repo_tab tr.unsupported    { color: lightgrey; }'.
-        _inline '.repo_tab tr.modified       { background: #fbf7e9; }'.
-        _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
-        _inline '.repo_tab td.current_dir    { color: #ccc; }'.
-        _inline '.repo_tab td.cmd span.state-block {'.
-        _inline '  margin-left: 1em;'.
-        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-        _inline '  font-size: x-small;'.
-        _inline '  vertical-align: 13%;'.
-        _inline '  display: inline-block;'.
-        _inline '  text-align: center;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span {'.
-        _inline '  display: inline-block;'.
-        _inline '  padding: 0px 2px;'.
-        _inline '  border: 1px solid #000;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.added {'.
-        _inline '  background-color: #69ad74;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.changed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #d4af25;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.mixed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: #69ad74;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.deleted {'.
-        _inline '  background-color: #c76861;'.
-        _inline '  border-color: #b8605a;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.none {'.
-        _inline '  background-color: #e8e8e8;'.
-        _inline '  border-color: #dbdbdb;'.
-        _inline '  color: #c8c8c8;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* STAGE */'.
-        _inline 'div.stage-container { width: 850px; }'.
-        _inline 'input.stage-filter { width: 18em; }'.
-        _inline ''.
-        _inline '.stage_tab {'.
-        _inline '  border: 1px solid #DDD;'.
-        _inline '  background: #fff;'.
-        _inline '  margin-top: 0.2em;'.
-        _inline '}'.
-        _inline '.stage_tab td {'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '  color: #333;'.
-        _inline '  vertical-align: middle;'.
-        _inline '  padding: 2px 0.5em;'.
-        _inline '}'.
-        _inline '.stage_tab th {'.
-        _inline '  color: #BBB;'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: normal;'.
-        _inline '  background-color: #edf2f9;'.
-        _inline '  padding: 4px 0.5em;'.
-        _inline '}'.
-        _inline '.stage_tab td.status {'.
-        _inline '  width: 2em;'.
-        _inline '  text-align: center;'.
-        _inline '  color: #ccc;'.
-        _inline '  background-color: #fafafa;'.
-        _inline '}'.
-        _inline '.stage_tab td.highlight {'.
-        _inline '  color: #444 !important;'.
-        _inline '  font-weight: bold;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.stage_tab td.cmd {  cursor: pointer; }'.
-        _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
-        _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
-        _inline '.stage_tab td.method { color: #ccc; }'.
-        _inline '.stage_tab td.user { color: #aaa; }'.
-        _inline '.stage_tab td.type { color: #aaa; }'.
-        _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-        _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-        _inline '.stage_tab mark {'.
-        _inline '  color: white;'.
-        _inline '  background-color: #79a0d2;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* COMMIT */'.
-        _inline 'div.form-container {'.
-        _inline '  background-color: #F8F8F8;'.
-        _inline '  padding: 1em 1em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form {'.
-        _inline '  display: table;'.
-        _inline '  border-spacing: 2px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form label {'.
-        _inline '  color: #BBB;'.
-        _inline '  padding-right: 1em;'.
-        _inline '  vertical-align: middle;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form span.sub-title {'.
-        _inline '  color: #BBB;'.
-        _inline '  font-size: smaller;'.
-        _inline '  padding-top: 8px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form div.row { display: table-row; }'.
-        _inline 'form.aligned-form label { display: table-cell; }'.
-        _inline 'form.aligned-form input { display: table-cell; }'.
-        _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
-        _inline 'form.aligned-form span.cell { display: table-cell; }'.
-        _inline ''.
-        _inline '/* SETTINGS STYLES */'.
-        _inline 'div.settings_container {'.
-        _inline '  padding: 0.5em;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  color: #444;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DIFF */'.
-        _inline 'div.diff {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.7em'.
-        _inline '}'.
-        _inline 'div.diff_head {'.
-        _inline '  padding-bottom: 0.7em;'.
-        _inline '}'.
-        _inline 'span.diff_name {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  color: grey;'.
-        _inline '}'.
-        _inline 'span.diff_changed_by {'.
-        _inline '  color: grey;'.
-        _inline '  float: right;'.
-        _inline '}'.
-        _inline 'span.diff_changed_by span.user {'.
-        _inline '  border-radius: 3px;'.
-        _inline '  border: solid 1px #c2d4ea;'.
-        _inline '  background-color: #d9e4f2;'.
-        _inline '  padding: 1px 0.4em;'.
-        _inline '}'.
-        _inline 'span.diff_name strong {'.
-        _inline '  color: #333;'.
-        _inline '}'.
-        _inline 'span.diff_banner {'.
-        _inline '  border-style: solid;'.
-        _inline '  border-width: 1px;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding-left: 0.3em;'.
-        _inline '  padding-right: 0.3em;'.
-        _inline '}'.
-        _inline '.diff_ins {'.
-        _inline '  border-color: #abf2ab;'.
-        _inline '  background-color: #e0ffe0;'.
-        _inline '}'.
-        _inline '.diff_del {'.
-        _inline '  border-color: #ff667d;'.
-        _inline '  background-color: #ffccd4;'.
-        _inline '}'.
-        _inline '.diff_upd {'.
-        _inline '  border-color: #dada00;'.
-        _inline '  background-color: #ffffcc;'.
-        _inline '}'.
-        _inline 'div.diff_content {'.
-        _inline '  background: #fff;'.
-        _inline '  border-top: 1px solid #DDD;'.
-        _inline '  border-bottom: 1px solid #DDD;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block {'.
-        _inline '  margin-left: 0.5em;'.
-        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-        _inline '  display: inline-block;'.
-        _inline '  text-align: center;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span {'.
-        _inline '  display: inline-block;'.
-        _inline '  padding: 0px 4px;'.
-        _inline '  border: 1px solid #000;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.added {'.
-        _inline '  background-color: #69ad74;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.changed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #d4af25;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.mixed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: #69ad74;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.deleted {'.
-        _inline '  background-color: #c76861;'.
-        _inline '  border-color: #b8605a;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.none {'.
-        _inline '  background-color: #e8e8e8;'.
-        _inline '  border-color: #dbdbdb;'.
-        _inline '  color: #c8c8c8;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DIFF TABLE */'.
-        _inline 'table.diff_tab {'.
-        _inline '  font-family: Consolas, Courier, monospace;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  width: 100%;'.
-        _inline '}'.
-        _inline 'table.diff_tab td,th {'.
-        _inline '  color: #444;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  padding-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.diff_tab th {'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: normal;'.
-        _inline '  padding-top: 3px;'.
-        _inline '  padding-bottom: 3px;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.header th {'.
-        _inline '  color: #EEE;'.
-        _inline '  background-color: #BBB;'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: bold;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  font-size: 9pt;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.nav_line {'.
-        _inline '  background-color: #edf2f9;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.nav_line th {'.
-        _inline '  color: #bbb;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.num, th.num {'.
-        _inline '  width: 1%;'.
-        _inline '  min-width: 2em;'.
-        _inline '  padding-right: 8px;'.
-        _inline '  padding-left:  8px;'.
-        _inline '  text-align: right !important;'.
-        _inline '  color: #ccc;'.
-        _inline '  border-left: 1px solid #eee;'.
-        _inline '  border-right: 1px solid #eee;'.
-        _inline '  -ms-user-select: none;'.
-        _inline '  user-select: none;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.num::before {'.
-        _inline '  content: attr(line-num);'.
-        _inline '}'.
-        _inline 'table.diff_tab code {'.
-        _inline '  font-family: inherit;'.
-        _inline '  white-space: pre;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.code {'.
-        _inline '  word-wrap: break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  overflow: visible;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-        _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-        _inline ''.
-        _inline '/* STYLES for Syntax Highlighting */'.
-        _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
-        _inline '.syntax-hl span.text     { color: #48ce4f; }'.
-        _inline '.syntax-hl span.comment  { color: #808080; font-style: italic; }'.
-        _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
-        _inline '.syntax-hl span.attr     { color: #b777fb; }'.
-        _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
-        _inline ''.
-        _inline '/* DEBUG INFO STYLES */'.
-        _inline 'div.debug_container {'.
-        _inline '  padding: 0.5em;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  color: #444;'.
-        _inline '  font-family: Consolas, Courier, monospace;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.debug_container p {'.
-        _inline '  margin: 0px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DB ENTRIES */'.
-        _inline 'div.db_list {'.
-        _inline '  background-color: #fff;'.
-        _inline '  padding: 0.5em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab pre {'.
-        _inline '  display: inline-block;'.
-        _inline '  overflow: hidden;'.
-        _inline '  word-wrap:break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  margin: 0px;'.
-        _inline '  width: 30em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
-        _inline 'table.db_tab th {'.
-        _inline '  color: #888888;'.
-        _inline '  text-align: left;'.
-        _inline '  padding: 0.5em;'.
-        _inline '  border-bottom: 1px #ddd solid;'.
-        _inline '}'.
-        _inline 'table.db_tab td {'.
-        _inline '  color: #333;'.
-        _inline '  padding: 4px 8px;'.
-        _inline '  vertical-align: middle;'.
-        _inline '}'.
-        _inline 'table.db_tab td.data {'.
-        _inline '  color: #888;'.
-        _inline '  font-style: italic;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab tbody tr:hover, tr:active {'.
-        _inline '  background-color: #f4f4f4;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DB ENTRY DISPLAY */'.
-        _inline 'div.db_entry {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.db_entry pre {'.
-        _inline '  display: block;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  overflow: hidden;'.
-        _inline '  word-wrap:break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  background-color: #fcfcfc;'.
-        _inline '  border: 1px #eaeaea solid;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 0.5em;'.
-        _inline '  margin: 0.5em 0em;'.
-        _inline '  width: 60em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.db_entry table.toolbar {'.
-        _inline '  width: 50em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.tag {'.
-        _inline '  display: inline-block;'.
-        _inline '  border: 1px #b3c1cc solid;'.
-        _inline '  background-color: #eee;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-        _inline ''.
-        _inline '/* DB ENTRY DISPLAY */'.
-        _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
-        _inline 'table.tag {'.
-        _inline '  display: inline-block;'.
-        _inline '  border: 1px #b3c1cc solid;'.
-        _inline '  background-color: #eee;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-        _inline ''.
-        _inline '/* TUTORIAL */'.
-        _inline ''.
-        _inline 'div.tutorial {'.
-        _inline '  margin-top:       3px;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em 1em 0.5em 1em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.tutorial hr { border-color: #CCC; }'.
-        _inline 'div.tutorial li { margin: 2px 0px }'.
-        _inline 'div.tutorial h1 {'.
-        _inline '  font-size: 18pt;'.
-        _inline '  color: #404040;'.
-        _inline '}'.
-        _inline 'div.tutorial h2 {'.
-        _inline '  font-size: 14pt;'.
-        _inline '  color: #404040;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* NEW MENU */'.
-        _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
-        _inline '/* container div, aligned left, '.
-        _inline '   but with .float-right modifier alignes right */'.
-        _inline '.nav-container ul'.
-        _inline '{'.
-        _inline '  list-style: none;'.
-        _inline '  position: relative;'.
-        _inline '  float: left;'.
-        _inline '  margin: 0;'.
-        _inline '  padding: 0;'.
-        _inline '}'.
-        _inline '.nav-container.float-right ul { float: right; }'.
-        _inline ''.
-        _inline '.nav-container ul a'.
-        _inline '{'.
-        _inline '  display: block;'.
-        _inline '  text-decoration: none;'.
-        _inline '  line-height: 30px;'.
-        _inline '  padding: 0 12px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
-        _inline '.nav-container:after { clear: both; display: block; content: ""; } '.
-        _inline ''.
-        _inline '/* submenues align to left or right border of the active item'.
-        _inline '   depending on .float-right modifier */'.
-        _inline '.nav-container ul li'.
-        _inline '{'.
-        _inline '  position: relative;'.
-        _inline '  float: left;'.
-        _inline '  margin: 0;'.
-        _inline '  padding: 0;'.
-        _inline '}'.
-        _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
-        _inline ''.
-        _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
-        _inline '.nav-container ul li:hover > ul { display: block; }'.
-        _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
-        _inline ''.
-        _inline '/* special selection style for 1st level items (see also .corner below) */'.
-        _inline '.nav-container > ul > li:hover > a { '.
-        _inline '  background-color: rgba(255, 255, 255, 0.5); '.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul'.
-        _inline '{'.
-        _inline '  display: none;'.
-        _inline '  position: absolute;'.
-        _inline '  top: 100%;'.
-        _inline '  left: 0;'.
-        _inline '  z-index: 1;'.
-        _inline '  background: #fff;'.
-        _inline '  padding: 0;'.
-        _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul li'.
-        _inline '{'.
-        _inline '  float: none;'.
-        _inline '  min-width: 160px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul a'.
-        _inline '{'.
-        _inline '  line-height: 120%;'.
-        _inline '  padding: 8px 15px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul ul'.
-        _inline '{'.
-        _inline '  top: 0;'.
-        _inline '  left: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container.float-right ul ul ul'.
-        _inline '{'.
-        _inline '  left: auto;'.
-        _inline '  right: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Minizone to extent hover area, '.
-        _inline '   aligned to the left or to the right of the selected item '.
-        _inline '   depending on .float-right modifier */'.
-        _inline '.nav-container > ul > li > div.minizone {'.
-        _inline '  display: none;'.
-        _inline '  z-index: 1;'.
-        _inline '  position: absolute;'.
-        _inline '  padding: 0px;'.
-        _inline '  width: 16px;'.
-        _inline '  height: 100%;'.
-        _inline '  bottom: 0px;'.
-        _inline '  left: 100%;'.
-        _inline '}'.
-        _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
-        _inline '.nav-container.float-right > ul > li > div.minizone {'.
-        _inline '  left: auto;'.
-        _inline '  right: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* icons - text-align strictly left - otherwise look ugly'.
-        _inline '   + bite a bit of left padding for nicer look '.
-        _inline '   + forbids item text wrapping (maybe can be done differently) */'.
-        _inline '.nav-container ul ul li a .octicon {'.
-        _inline '  padding-right: 10px;'.
-        _inline '  margin-left: -3px;'.
-        _inline '}'.
-        _inline '.nav-container ul.with-icons li {'.
-        _inline '  text-align: left;'.
-        _inline '  white-space: nowrap;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Special .corner modifier - hangs menu at the top right corner'.
-        _inline '   and cancels 1st level background coloring */'.
-        _inline '.nav-container.corner {'.
-        _inline '  position: absolute;'.
-        _inline '  right: 0px;'.
-        _inline '}'.
-        _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
-        _inline ''.
-        _inline '/* Toolbar separator style */'.
-        _inline '.nav-container ul ul li.separator'.
-        _inline '{'.
-        _inline '  font-size: x-small;'.
-        _inline '  text-align: center;'.
-        _inline '  padding: 4px 0;'.
-        _inline '  text-transform: uppercase;'.
-        _inline '  color: #bbb;'.
-        _inline '  border-bottom: 1px solid #eee;'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '}'.
-        _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
-        _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
-        _inline ''.
-        _inline '/* News Announcement */'.
-        _inline ''.
-        _inline 'div.news { '.
-        _inline '  position: absolute;'.
-        _inline '  z-index: 99;'.
-        _inline '  top: 36px;'.
-        _inline '  left: 50%;'.
-        _inline '  width: 40em;'.
-        _inline '  margin-left: -20em;'.
-        _inline '  background-color: white;'.
-        _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news div.headbar {'.
-        _inline '  text-transform: uppercase;'.
-        _inline '  font-size: small;'.
-        _inline '  padding: 4px 6px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news div.title {'.
-        _inline '  color: #f8f8f8;'.
-        _inline '  background-color: #888;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news div.title a.close-btn { '.
-        _inline '  color: #d8d8d8; '.
-        _inline '  padding-left: 12px; '.
-        _inline '  padding-right: 2px;'.
-        _inline '  position: relative;'.
-        _inline '  bottom: 1px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news div.important { color: #aaa; }'.
-        _inline 'div.news div.newslist {'.
-        _inline '  padding: 0.5em 0.7em;'.
-        _inline '  color: #444;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news li {'.
-        _inline '  padding-left: 10px;'.
-        _inline '  list-style-type: none;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news h1:first-child { margin: auto; }'.
-        _inline 'div.news h1 { '.
-        _inline '  font-size: inherit;'.
-        _inline '  padding: 6px 4px;'.
-        _inline '  margin: 4px auto auto;'.
-        _inline '  text-decoration: underline;'.
-        _inline '  font-weight: normal;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news .version-marker {'.
-        _inline '  color: white;'.
-        _inline '  display: inline-block;'.
-        _inline '  margin-left: 20px;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 0px 6px;'.
-        _inline '  border: #c0c0c0 1px solid;'.
-        _inline '  background-color: #ccc;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.news .update {'.
-        _inline '  border: #e8ba30 1px solid;'.
-        _inline '  background-color: #f5c538;'.
-        _inline '}'.
-      WHEN 'JS_COMMON'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
-****************************************************
-        _inline '/**********************************************************'.
-        _inline ' * ABAPGIT JS function library'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Polyfills'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/'.
-        _inline 'if (!Function.prototype.bind) {'.
-        _inline '  Function.prototype.bind = function(oThis) {'.
-        _inline '    if (typeof this !== "function") {'.
-        _inline '      throw new TypeError("Function.prototype.bind - subject is not callable");'.
-        _inline '    }'.
-        _inline ''.
-        _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
-        _inline '        fToBind = this,'.
-        _inline '        fNOP    = function() {},'.
-        _inline '        fBound  = function() {'.
-        _inline '          return fToBind.apply(this instanceof fNOP'.
-        _inline '                 ? this'.
-        _inline '                 : oThis,'.
-        _inline '                 aArgs.concat(Array.prototype.slice.call(arguments)));'.
-        _inline '        };'.
-        _inline ''.
-        _inline '    if (this.prototype) {'.
-        _inline '      fNOP.prototype = this.prototype; '.
-        _inline '    }'.
-        _inline '    fBound.prototype = new fNOP();'.
-        _inline ''.
-        _inline '    return fBound;'.
-        _inline '  };'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Common functions'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Output text to the debug div'.
-        _inline 'function debugOutput(text, dstID) {'.
-        _inline '  var stdout       = document.getElementById(dstID || "debug-output");'.
-        _inline '  var wrapped      = "<p>" + text + "</p>";'.
-        _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Create hidden form and submit with sapevent'.
-        _inline 'function submitSapeventForm(params, action, method) {'.
-        _inline '  var form = document.createElement("form");'.
-        _inline '  form.setAttribute("method", method || "post");'.
-        _inline '  form.setAttribute("action", "sapevent:" + action);'.
-        _inline '  '.
-        _inline '  for(var key in params) {'.
-        _inline '    var hiddenField = document.createElement("input");'.
-        _inline '    hiddenField.setAttribute("type", "hidden");'.
-        _inline '    hiddenField.setAttribute("name", key);'.
-        _inline '    hiddenField.setAttribute("value", params[key]);'.
-        _inline '    form.appendChild(hiddenField);'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  document.body.appendChild(form);'.
-        _inline '  form.submit();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Set focus to a control'.
-        _inline 'function setInitialFocus(id) {'.
-        _inline '  document.getElementById(id).focus();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Submit an existing form'.
-        _inline 'function submitFormById(id) {'.
-        _inline '  document.getElementById(id).submit();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// JS error stub'.
-        _inline 'function errorStub(event) {'.
-        _inline '  var element    = event.target || event.srcElement;'.
-        _inline '  var targetName = element.id || element.name || "???";'.
-        _inline '  alert("JS Error, please log an issue (@" + targetName + ")");'.
-        _inline '}'.
-        _inline ''.
-        _inline '// confirm JS initilization'.
-        _inline 'function confirmInitialized() {'.
-        _inline '  var errorBanner = document.getElementById("js-error-banner");'.
-        _inline '  if (errorBanner) {'.
-        _inline '    errorBanner.style.display = "none";'.
-        _inline '  }'.
-        _inline '  debugOutput("js: OK"); // Final final confirmation :)'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Performance utils (for debugging)'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline 'var gPerf = [];'.
-        _inline ''.
-        _inline 'function perfOut(prefix) {'.
-        _inline '  var totals = {};'.
-        _inline '  for (var i = gPerf.length - 1; i >= 0; i--) {'.
-        _inline '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};'.
-        _inline '    totals[gPerf[i].name].time  += gPerf[i].time;'.
-        _inline '    totals[gPerf[i].name].count += 1;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var keys = Object.keys(totals);'.
-        _inline '  for (var i = keys.length - 1; i >= 0; i--) {'.
-        _inline '    console.log(prefix '.
-        _inline '      + " " + keys[i] + ": " '.
-        _inline '      + totals[keys[i]].time.toFixed(3) + "ms"'.
-        _inline '      + " (" + totals[keys[i]].count.toFixed() +")");'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function perfLog(name, startTime) {'.
-        _inline '  gPerf.push({name: name, time: window.performance.now() - startTime});'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function perfClear() {'.
-        _inline '  gPerf = [];'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * STAGE PAGE Logic'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Stage helper constructor'.
-        _inline 'function StageHelper(params) {'.
-        _inline '  this.pageSeed        = params.seed;'.
-        _inline '  this.formAction      = params.formAction;'.
-        _inline '  this.choiseCount     = 0;'.
-        _inline '  this.lastSearchValue = "";'.
-        _inline ''.
-        _inline '  // DOM nodes'.
-        _inline '  this.dom = {'.
-        _inline '    stageTab:     document.getElementById(params.ids.stageTab),'.
-        _inline '    commitBtn:    document.getElementById(params.ids.commitBtn),'.
-        _inline '    commitAllBtn: document.getElementById(params.ids.commitAllBtn),'.
-        _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
-        _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
-        _inline '  };'.
-        _inline '  '.
-        _inline '  // Table columns (autodetection)'.
-        _inline '  this.colIndex      = this.detectColumns();'.
-        _inline '  this.filterTargets = ["name", "user"];'.
-        _inline ''.
-        _inline '  // Constants'.
-        _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
-        _inline '  this.STATUS = {'.
-        _inline '    add:    "A",'.
-        _inline '    remove: "R",'.
-        _inline '    ignore: "I",'.
-        _inline '    reset:  "?",'.
-        _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1; }'.
-        _inline '  };'.
-        _inline '  '.
-        _inline '  this.TEMPLATES = {'.
-        _inline '    cmdReset:  "<a>reset</a>",'.
-        _inline '    cmdLocal:  "<a>add</a>",'.
-        _inline '    cmdRemote: "<a>ignore</a><a>remove</a>"'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.setHooks();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Hook global click listener on table, load/unload actions'.
-        _inline 'StageHelper.prototype.setHooks = function() {'.
-        _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
-        _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
-        _inline '  this.dom.objectSearch.oninput    = this.onSearch.bind(this);'.
-        _inline '  this.dom.objectSearch.onkeypress = this.onSearch.bind(this);'.
-        _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
-        _inline '  window.onload                    = this.onPageLoad.bind(this);'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Detect column index'.
-        _inline 'StageHelper.prototype.detectColumns = function() {'.
-        _inline '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];'.
-        _inline '  var colIndex = {};'.
-        _inline ''.
-        _inline '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {'.
-        _inline '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  return colIndex;'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Store table state on leaving the page'.
-        _inline 'StageHelper.prototype.onPageUnload = function() {'.
-        _inline '  if (!window.sessionStorage) return;'.
-        _inline ''.
-        _inline '  var data = this.collectData();'.
-        _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Re-store table state on entering the page'.
-        _inline 'StageHelper.prototype.onPageLoad = function() {'.
-        _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));'.
-        _inline ''.
-        _inline '  this.iterateStageTab(true, function (row) {'.
-        _inline '    var status = data && data[row.cells[this.colIndex["name"]].innerText];'.
-        _inline '    this.updateRow(row, status || this.STATUS.reset);'.
-        _inline '  });'.
-        _inline ''.
-        _inline '  this.updateMenu();'.
-        _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Table event handler, change status'.
-        _inline 'StageHelper.prototype.onTableClick = function (event) {'.
-        _inline '  var target = event.target || event.srcElement;'.
-        _inline '  if (!target) return;'.
-        _inline ''.
-        _inline '  if (target.tagName === "A") {'.
-        _inline '    var td = target.parentNode;'.
-        _inline '  } else if (target.tagName === "TD") {'.
-        _inline '    var td = target;'.
-        _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
-        _inline '      target = td.children[0];'.
-        _inline '    } else return;'.
-        _inline '  } else return;'.
-        _inline ''.
-        _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
-        _inline '  '.
-        _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
-        _inline '  var targetRow = td.parentNode;'.
-        _inline '  '.
-        _inline '  if (td.tagName === "TD") {'.
-        _inline '    this.updateRow(targetRow, status);'.
-        _inline '  } else { // TH'.
-        _inline '    this.iterateStageTab(true, function (row) {'.
-        _inline '      if (row.style.display !== "none"            // Not filtered out'.
-        _inline '        && row.className === targetRow.className  // Same context as header'.
-        _inline '        ) {'.
-        _inline '        this.updateRow(row, status);'.
-        _inline '      }'.
-        _inline '    });'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  this.updateMenu();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Search object'.
-        _inline 'StageHelper.prototype.onSearch = function (e) {'.
-        _inline '  if ( // Enter hit or clear, IE SUCKS !'.
-        _inline '       e.type === "input" && !e.target.value && this.lastSearchValue'.
-        _inline '    || e.type === "keypress" && e.which === 13 ) { '.
-        _inline ''.
-        _inline '    this.lastSearchValue = e.target.value;'.
-        _inline '    this.iterateStageTab(true, this.applyFilterToRow, e.target.value);'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Apply filter to a single stage line - hide or show'.
-        _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
-        _inline '  // Collect data cells'.
-        _inline '  var targets = this.filterTargets.map(function(attr) {'.
-        _inline '    var elem = row.cells[this.colIndex[attr]];'.
-        _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
-        _inline '    return {'.
-        _inline '      elem:      elem,'.
-        _inline '      plainText: elem.innerText, // without tags'.
-        _inline '      curHtml:   elem.innerHTML'.
-        _inline '    };'.
-        _inline '  }, this);'.
-        _inline ''.
-        _inline '  var isVisible = false; '.
-        _inline ''.
-        _inline '  // Apply filter to cells, mark filtered text'.
-        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
-        _inline '    var target = targets[i];'.
-        _inline '    target.newHtml = (filter)'.
-        _inline '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")'.
-        _inline '      : target.plainText;'.
-        _inline '    target.isChanged = target.newHtml !== target.curHtml;'.
-        _inline '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // Update DOM'.
-        _inline '  row.style.display = isVisible ? "" : "none";'.
-        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
-        _inline '    if (targets[i].isChanged) targets[i].elem.innerHTML = targets[i].newHtml;'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Get how status should affect object counter'.
-        _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
-        _inline '  if (typeof status !== "string" '.
-        _inline '    || status.length !== 1 '.
-        _inline '    || this.STATUS.isValid(status) ) {'.
-        _inline '    alert("Unknown status");'.
-        _inline '  } else {'.
-        _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Update table line'.
-        _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
-        _inline '  var oldStatus = row.cells[this.colIndex["status"]].innerText;'.
-        _inline ''.
-        _inline '  if (oldStatus !== newStatus) {'.
-        _inline '    this.updateRowStatus(row, newStatus);'.
-        _inline '    this.updateRowCommand(row, newStatus);'.
-        _inline '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {'.
-        _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Update Status cell (render set of commands)'.
-        _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
-        _inline '  row.cells[this.colIndex["status"]].innerText = status;'.
-        _inline '  if (status === this.STATUS.reset) {'.
-        _inline '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);'.
-        _inline '  } else {'.
-        _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Update Command cell (render set of commands)'.
-        _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
-        _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
-        _inline '  if (status === this.STATUS.reset) {'.
-        _inline '    cell.innerHTML = (row.className == "local") '.
-        _inline '      ? this.TEMPLATES.cmdLocal '.
-        _inline '      : this.TEMPLATES.cmdRemote;'.
-        _inline '  } else {'.
-        _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Update menu items visibility'.
-        _inline 'StageHelper.prototype.updateMenu = function () {'.
-        _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
-        _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
-        _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Submit stage state to the server'.
-        _inline 'StageHelper.prototype.submit = function () {'.
-        _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Extract data from the table'.
-        _inline 'StageHelper.prototype.collectData = function () {'.
-        _inline '  var data  = {};'.
-        _inline '  this.iterateStageTab(false, function (row) {'.
-        _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
-        _inline '  });'.
-        _inline '  return data;'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Table iteration helper'.
-        _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {  '.
-        _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
-        _inline '  var table    = this.dom.stageTab;'.
-        _inline ''.
-        _inline '  if (changeMode) {'.
-        _inline '    var scrollOffset = window.pageYOffset;'.
-        _inline '    this.dom.stageTab.style.display = "none";'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
-        _inline '    var tbody = table.tBodies[b];'.
-        _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
-        _inline '      args = [tbody.rows[r]].concat(restArgs);'.
-        _inline '      cb.apply(this, args); // callback'.
-        _inline '    }'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  if (changeMode) {'.
-        _inline '    this.dom.stageTab.style.display = "";'.
-        _inline '    window.scrollTo(0, scrollOffset);'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Check list wrapper'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline 'function CheckListWrapper(id, cbAction) {'.
-        _inline '  this.id         = document.getElementById(id);'.
-        _inline '  this.cbAction   = cbAction;'.
-        _inline '  this.id.onclick = this.onClick.bind(this);'.
-        _inline '}'.
-        _inline ''.
-        _inline 'CheckListWrapper.prototype.onClick = function(e) {'.
-        _inline '  // Get nodes'.
-        _inline '  var target = event.target || event.srcElement;'.
-        _inline '  if (!target) return;'.
-        _inline '  if (target.tagName !== "A") { target = target.parentNode; } // icon clicked'.
-        _inline '  if (target.tagName !== "A") return;'.
-        _inline '  if (target.parentNode.tagName !== "LI") return;'.
-        _inline ''.
-        _inline '  var nodeA    = target;'.
-        _inline '  var nodeLi   = target.parentNode;'.
-        _inline '  var nodeIcon = target.children[0];'.
-        _inline '  if (!nodeIcon.classList.contains("octicon")) return;'.
-        _inline ''.
-        _inline '  // Node updates'.
-        _inline '  var option   = nodeA.innerText;'.
-        _inline '  var oldState = nodeLi.getAttribute("data-check");'.
-        _inline '  if (oldState === null) return; // no data-check attribute - non-checkbox'.
-        _inline '  var newState = oldState === "X" ? false : true;'.
-        _inline ''.
-        _inline '  if (newState) {'.
-        _inline '    nodeIcon.classList.remove("grey");'.
-        _inline '    nodeIcon.classList.add("blue");'.
-        _inline '    nodeLi.setAttribute("data-check", "X");'.
-        _inline '  } else {'.
-        _inline '    nodeIcon.classList.remove("blue");'.
-        _inline '    nodeIcon.classList.add("grey");'.
-        _inline '    nodeLi.setAttribute("data-check", "");'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // Action callback'.
-        _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Diff page logic'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Diff helper constructor'.
-        _inline 'function DiffHelper(params) {'.
-        _inline '  this.pageSeed    = params.seed;'.
-        _inline '  this.counter     = 0;'.
-        _inline '  this.stageAction = params.stageAction;'.
-        _inline ''.
-        _inline '  // DOM nodes'.
-        _inline '  this.dom = {'.
-        _inline '    diffList:    document.getElementById(params.ids.diffList),'.
-        _inline '    stageButton: document.getElementById(params.ids.stageButton)'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");'.
-        _inline '  if (!this.repoKey) return; // Unexpected'.
-        _inline ''.
-        _inline '  // Checklist wrapper'.
-        _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
-        _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
-        _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
-        _inline '  } '.
-        _inline ''.
-        _inline '  // Hijack stage command'.
-        _inline '  if (this.dom.stageButton) {'.
-        _inline '    this.dom.stageButton.href    = "#";'.
-        _inline '    this.dom.stageButton.onclick = this.onStage.bind(this);'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Action on filter click'.
-        _inline 'DiffHelper.prototype.onFilter = function(attr, target, state) {'.
-        _inline '  this.applyFilter(attr, target, state);'.
-        _inline '  this.highlightButton(state);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Hide/show diff based on params'.
-        _inline 'DiffHelper.prototype.applyFilter = function (attr, target, state) {'.
-        _inline '  this.iterateDiffList(function(div) {'.
-        _inline '    if (div.getAttribute("data-"+attr) === target) {'.
-        _inline '      div.style.display = state ? "" : "none";'.
-        _inline '    }'.
-        _inline '  });'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Action on stage -> save visible diffs as state for stage page'.
-        _inline 'DiffHelper.prototype.onStage = function (e) {'.
-        _inline '  if (window.sessionStorage) {'.
-        _inline '    var data = this.buildStageCache();'.
-        _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-        _inline '  }'.
-        _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
-        _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Collect visible diffs'.
-        _inline 'DiffHelper.prototype.buildStageCache = function () {'.
-        _inline '  var list = {};'.
-        _inline '  this.iterateDiffList(function(div) {'.
-        _inline '    var filename = div.getAttribute("data-file");'.
-        _inline '    if (!div.style.display && filename) { // No display override - visible !!'.
-        _inline '      list[filename] = "A"; // Add'.
-        _inline '    }'.
-        _inline '  });'.
-        _inline '  return list;'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Table iterator'.
-        _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
-        _inline '  var restArgs = Array.prototype.slice.call(arguments, 1);'.
-        _inline '  var diffList = this.dom.diffList;'.
-        _inline ''.
-        _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
-        _inline '    var div = diffList.children[i];'.
-        _inline '    if (div.className !== "diff") continue;'.
-        _inline '    args = [div].concat(restArgs);'.
-        _inline '    cb.apply(this, args); // callback'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Highlight Filter button if filter is activate'.
-        _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
-        _inline '  this.counter += state ? -1 : 1;'.
-        _inline '  if (this.counter > 0) {'.
-        _inline '    this.dom.filterButton.classList.add("bgorange");'.
-        _inline '  } else {'.
-        _inline '    this.dom.filterButton.classList.remove("bgorange");'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Other functions'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// News announcement'.
-        _inline 'function displayNews() {'.
-        _inline '  var div = document.getElementById("news"); '.
-        _inline '  div.style.display = (div.style.display)?'''':''none'';  '.
-        _inline '}'.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
-    ENDCASE.
-
-    CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>gc_newline.
-
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = lv_str
-      IMPORTING
-        buffer = rv_data
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.  " get_inline_asset.
-
-  METHOD get_inline_images.
-
-    DATA ls_image TYPE zif_abapgit_definitions=>ty_web_asset.
-
-* see https://github.com/larshp/abapGit/issues/201 for source SVG
-    ls_image-url     = 'img/logo' ##NO_TEXT.
-    ls_image-base64 =
-         'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
-      && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
-      && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
-      && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
-      && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
-      && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
-      && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
-      && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
-      && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
-      && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
-      && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
-      && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
-      && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
-      && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
-      && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
-      && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
-      && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
-      && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
-      && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
-      && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
-      && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
-      && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
-      && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
-      && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
-      && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
-      && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
-      && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
-      && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
-      && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
-      && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
-      && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
-      && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
-      && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
-      && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
-      && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
-      && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
-      && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
-      && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
-      && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
-      && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
-      && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
-      && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
-      && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
-      && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
-      && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
-      && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
-      && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
-      && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
-      && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
-      && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
-      && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
-      && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
-      && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
-      && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
-      && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
-      && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
-      && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
-      && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
-      && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
-      && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
-      && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
-      && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
-      && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
-      && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
-      && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
-      && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
-      && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
-      && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
-      && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
-      && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
-      && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
-      && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
-      && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
-      && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
-      && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
-      && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
-      && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
-      && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
-      && 'cpUAAAAASUVORK5CYII='.
-    APPEND ls_image TO rt_images.
-
-  ENDMETHOD.  " get_inline_images.
-
-  METHOD get_webfont_link.
-
-    rv_link = '<link rel="stylesheet"'
-           && ' type="text/css" href="'
-           && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
-           && '">'.                                         "#EC NOTEXT
-
-  ENDMETHOD.  " get_webfont_link
-
-ENDCLASS. "lcl_gui_asset_manager
+* todo, include to be deleted
 
 ****************************************************
 * abapmerge - ZABAPGIT_GUI_PAGES
@@ -44590,7 +44585,7 @@ CLASS lcl_gui_page IMPLEMENTATION.
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
 
-    ro_html->add( lcl_gui_asset_manager=>get_webfont_link( ) ). " Web fonts
+    ro_html->add( zcl_abapgit_gui_asset_manager=>get_webfont_link( ) ). " Web fonts
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
@@ -49962,7 +49957,7 @@ CLASS lcl_gui DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
     DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_page,
           mt_stack       TYPE STANDARD TABLE OF ty_page_stack,
           mo_router      TYPE REF TO lcl_gui_router,
-          mo_asset_man   TYPE REF TO lcl_gui_asset_manager,
+          mo_asset_man   TYPE REF TO zcl_abapgit_gui_asset_manager,
           mo_html_viewer TYPE REF TO cl_gui_html_viewer.
 
     METHODS constructor
@@ -53632,5 +53627,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-04T09:22:10.148Z
+* abapmerge - 2018-02-04T09:58:44.795Z
 ****************************************************
