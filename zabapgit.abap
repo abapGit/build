@@ -41,7 +41,6 @@ CLASS zcx_abapgit_not_found DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
-
 CLASS zcx_abapgit_exception DEFINITION
   INHERITING FROM cx_static_check
   CREATE PUBLIC .
@@ -85,7 +84,6 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
 CLASS zcx_abapgit_cancel DEFINITION
   INHERITING FROM cx_static_check
   FINAL
@@ -97,7 +95,6 @@ CLASS zcx_abapgit_cancel DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_cancel IMPLEMENTATION.
 ENDCLASS.
-
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
@@ -170,6 +167,7 @@ INTERFACE zif_abapgit_sap_package.
       RETURNING VALUE(rv_bool) TYPE abap_bool.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
@@ -196,6 +194,7 @@ INTERFACE zif_abapgit_dot_abapgit.
     END OF c_folder_logic .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_definitions.
 
   TYPES:
@@ -469,6 +468,7 @@ INTERFACE zif_abapgit_definitions.
     END OF gc_version .
   CONSTANTS gc_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_page.
 
   METHODS on_event
@@ -485,6 +485,7 @@ INTERFACE zif_abapgit_gui_page.
     RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_persistence.
 
   TYPES:
@@ -501,6 +502,7 @@ INTERFACE zif_abapgit_persistence.
     tt_content TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_object.
 
   METHODS:
@@ -536,6 +538,7 @@ INTERFACE zif_abapgit_object.
   DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_comparison_result.
 
   METHODS:
@@ -544,6 +547,7 @@ INTERFACE zif_abapgit_comparison_result.
       RETURNING VALUE(rv_response) TYPE abap_bool.
 
 ENDINTERFACE.
+
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
 
@@ -3028,7 +3032,6 @@ CLASS ZCL_ABAPGIT_ZLIB_STREAM IMPLEMENTATION.
 
   ENDMETHOD.                    "take_int
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
   METHOD constructor.
 
@@ -3089,7 +3092,6 @@ CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
     READ TABLE mt_symbol INDEX iv_index INTO rv_value.    "#EC CI_SUBRC
   ENDMETHOD.                    "symbol
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
   METHOD bits_to_int.
 
@@ -3132,7 +3134,6 @@ CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "int_to_hex
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   METHOD copy_out.
 
@@ -3504,7 +3505,6 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
   ENDMETHOD.                    "read_pair
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   METHOD create_inspection.
 
@@ -3623,7 +3623,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
   METHOD add.
     append( iv_path     = iv_path
@@ -3716,7 +3715,6 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
             iv_method   = c_method-rm ).
   ENDMETHOD.        "rm
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_settings-adt_jump_enabled.
@@ -3810,7 +3808,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
@@ -4022,7 +4019,6 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   METHOD package_to_path.
 
@@ -4133,7 +4129,6 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
 
@@ -4292,7 +4287,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
@@ -4516,7 +4510,6 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
 
   ENDMETHOD.                    "resolve_ddic
 ENDCLASS.
-
 CLASS zcl_abapgit_default_task IMPLEMENTATION.
   METHOD get_instance.
 
@@ -4736,7 +4729,6 @@ CLASS zcl_abapgit_default_task IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
   METHOD print.
 
@@ -4778,7 +4770,6 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
   METHOD add.
 
@@ -4873,7 +4864,6 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
     mi_raw = ii_raw.
   ENDMETHOD.                    "set_raw
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
   METHOD constructor.
 
@@ -4925,7 +4915,6 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
 
   ENDMETHOD.                    "read
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
   METHOD constructor.
     mi_ixml = cl_ixml=>create( ).
@@ -5027,7 +5016,6 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
 
   ENDMETHOD.                    "to_xml
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   METHOD host.
 
@@ -5059,7 +5047,6 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
   METHOD get.
 
@@ -5104,7 +5091,6 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
 
   ENDMETHOD.                    "get
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   METHOD reduce.
 
@@ -5118,7 +5104,6 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
   METHOD check_requirements.
 
@@ -5283,7 +5268,6 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
   METHOD calc_pct.
 
@@ -5315,7 +5299,6 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
   METHOD change_dir.
 
@@ -5402,7 +5385,6 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
 
   ENDMETHOD.  "split_file_location
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   METHOD append.
 
@@ -5473,7 +5455,6 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD add.
 
@@ -5551,7 +5532,6 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS zcl_abapgit_language IMPLEMENTATION.
   METHOD class_constructor.
     DATA lv_dummy TYPE string.
@@ -5570,7 +5550,6 @@ CLASS zcl_abapgit_language IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
   METHOD adler32.
 
@@ -5658,7 +5637,6 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
 
   ENDMETHOD.                                                "sha1_raw
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   METHOD calculate_line_num_and_stats.
 
@@ -5900,7 +5878,6 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
 
   ENDMETHOD.                    "unpack
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD bitbyte_to_int.
 
@@ -5998,7 +5975,6 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
@@ -6154,7 +6130,6 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
   ENDMETHOD.  "render_items
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
@@ -6421,7 +6396,6 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD a.
 
@@ -6675,7 +6649,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
   ENDMETHOD. "study_line
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
 
@@ -6751,7 +6724,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
 
   ENDMETHOD.                    " order_matches
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
   METHOD add_rule.
 
@@ -6901,7 +6873,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
 
   ENDMETHOD.                    " process_line
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -7133,7 +7104,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
 
   ENDMETHOD.  " parse_line.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   METHOD constructor.
     mv_user = iv_user.
@@ -7411,7 +7381,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
   ENDMETHOD.  "update_repo_config
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   METHOD add.
 
@@ -7686,7 +7655,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
 
@@ -7803,7 +7771,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
   ENDMETHOD.  " validate_and_unprettify_xml
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
   METHOD get_instance.
 
@@ -7857,7 +7824,6 @@ CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
   METHOD lock_create.
 
@@ -8225,7 +8191,6 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
   METHOD constructor.
     mo_db = zcl_abapgit_persistence_db=>get_instance( ).
@@ -8306,7 +8271,6 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
       RESULT XML rv_string.
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   METHOD add.
     APPEND is_file TO mt_files.
@@ -8523,7 +8487,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     mt_files = it_files.
   ENDMETHOD.                    "set_files
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
@@ -8787,7 +8750,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
   METHOD constructor.
 
@@ -8884,7 +8846,6 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS zcl_abapgit_tag IMPLEMENTATION.
 
   METHOD add_tag_prefix.
@@ -8903,7 +8864,6 @@ CLASS zcl_abapgit_tag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
@@ -8963,7 +8923,6 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
 
   ENDMETHOD.                    "pkt_string
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
 
@@ -9628,7 +9587,6 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
@@ -9790,7 +9748,6 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
   ENDMETHOD.  "parse_head_params
 ENDCLASS.
-
 ****************************************************
 * abapmerge - ZABAPGIT_PASSWORD_DIALOG
 ****************************************************
@@ -9925,7 +9882,6 @@ CLASS lcl_password_dialog IMPLEMENTATION.
   ENDMETHOD.  "on_screen_event
 
 ENDCLASS. " lcl_password_dialog IMPLEMENTATION
-
 ****************************************************
 * abapmerge - ZABAPGIT_MACROS
 ****************************************************
@@ -9934,6 +9890,7 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_ZLIB
 ****************************************************
@@ -9942,6 +9899,7 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 *&---------------------------------------------------------------------*
 
 * todo, lets wait deleting the includes? and delete multiple at a time?
+
 ****************************************************
 * abapmerge - ZABAPGIT_HTML
 ****************************************************
@@ -9950,6 +9908,7 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted later
+
 ****************************************************
 * abapmerge - ZABAPGIT_XML
 ****************************************************
@@ -9958,7 +9917,6 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 *&---------------------------------------------------------------------*
 
 * todo, include will be deleted later
-
 ****************************************************
 * abapmerge - ZABAPGIT_APP
 ****************************************************
@@ -9992,6 +9950,7 @@ CLASS lcl_app DEFINITION FINAL.
                 go_proxy        TYPE REF TO lcl_proxy_configuration.
 
 ENDCLASS.   "lcl_app
+
 ****************************************************
 * abapmerge - ZABAPGIT_PERSISTENCE_OLD
 ****************************************************
@@ -10000,6 +9959,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * empty
+
 ****************************************************
 * abapmerge - ZABAPGIT_DOT_ABAPGIT
 ****************************************************
@@ -10008,6 +9968,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_PERSISTENCE
 ****************************************************
@@ -10016,6 +9977,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_SAP_PACKAGE
 ****************************************************
@@ -10024,6 +9986,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_FOLDER_LOGIC
 ****************************************************
@@ -10032,6 +9995,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_REQUIREMENTS
 ****************************************************
@@ -10040,6 +10004,7 @@ ENDCLASS.   "lcl_app
 *&---------------------------------------------------------------------*
 
 * todo, include will be deleted later
+
 ****************************************************
 * abapmerge - ZABAPGIT_AUTHORIZATIONS
 ****************************************************
@@ -10095,6 +10060,7 @@ CLASS lcl_auth IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_EXIT
 ****************************************************
@@ -10171,6 +10137,7 @@ CLASS lcl_exit IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PROXY
 ****************************************************
@@ -10255,13 +10222,13 @@ CLASS lcl_proxy_configuration IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
 ****************************************************
 * abapmerge - ZABAPGIT_TAG
 ****************************************************
 *&---------------------------------------------------------------------*
 *& Include zabapgit_tag
 *&---------------------------------------------------------------------*
+
 ****************************************************
 * abapmerge - ZABAPGIT_STAGE
 ****************************************************
@@ -10270,6 +10237,7 @@ ENDCLASS.
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_GIT_HELPERS
 ****************************************************
@@ -10278,6 +10246,7 @@ ENDCLASS.
 *&---------------------------------------------------------------------*
 
 * todo, to be deleted later
+
 ****************************************************
 * abapmerge - ZABAPGIT_REPO
 ****************************************************
@@ -10525,6 +10494,7 @@ CLASS lcl_repo_srv DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
       RAISING   zcx_abapgit_exception.
 
 ENDCLASS.                    "lcl_repo_srv DEFINITION
+
 ****************************************************
 * abapmerge - ZABAPGIT_NEWS
 ****************************************************
@@ -11060,6 +11030,7 @@ CLASS ltcl_news IMPLEMENTATION.
   ENDMETHOD.                    "parse
 
 ENDCLASS.                    "ltcl_news IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_STAGE_LOGIC
 ****************************************************
@@ -11162,6 +11133,7 @@ CLASS lcl_stage_logic IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_2FA
 ****************************************************
@@ -11963,6 +11935,7 @@ CLASS lcl_2fa_auth_registry IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_HTTP
 ****************************************************
@@ -12406,6 +12379,7 @@ CLASS lcl_http IMPLEMENTATION.
   ENDMETHOD.  "acquire_login_details
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_GIT
 ****************************************************
@@ -13285,6 +13259,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
   ENDMETHOD.                    "walk
 
 ENDCLASS.                    "lcl_porcelain IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECTS
 ****************************************************
@@ -15114,6 +15089,7 @@ CLASS lcl_objects DEFINITION FINAL.
       RAISING   zcx_abapgit_exception.
 
 ENDCLASS.                    "lcl_object DEFINITION
+
 ****************************************************
 * abapmerge - ZABAPGIT_TADIR
 ****************************************************
@@ -15419,6 +15395,7 @@ CLASS lcl_tadir IMPLEMENTATION.
   ENDMETHOD.                    "build
 
 ENDCLASS.                    "lcl_tadir IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_FILE_STATUS
 ****************************************************
@@ -15831,6 +15808,7 @@ CLASS lcl_file_status IMPLEMENTATION.
   ENDMETHOD.  "build_new_remote
 
 ENDCLASS.                    "lcl_file_status IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_POPUPS
 ****************************************************
@@ -17153,6 +17131,7 @@ CLASS lcl_popups IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_ZIP
 ****************************************************
@@ -17639,6 +17618,7 @@ CLASS lcl_zip IMPLEMENTATION.
   ENDMETHOD.  "export_package
 
 ENDCLASS.                    "lcl_zip IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECTS_IMPL
 ****************************************************
@@ -18235,7 +18215,6 @@ CLASS lcl_objects IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_objects IMPLEMENTATION
-
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SERIALIZING
 ****************************************************
@@ -18394,6 +18373,7 @@ CLASS lcl_object_acid IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_acid IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_AUTH
 ****************************************************
@@ -18523,6 +18503,7 @@ CLASS lcl_object_auth IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_auth IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_OO_FUNCTIONS
 ****************************************************
@@ -19204,6 +19185,7 @@ ENDCLASS.
 "lcl_object_oriented_factory implementation is in include ZABAPGIT_OBJECT_OO_FACTORY.
 "Reason: In this way, clas and intf specific OO functions implementations can be done
 "at the own includes.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CLAS
 ****************************************************
@@ -19891,6 +19873,7 @@ CLASS lcl_oo_class IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CLAS_NEW
 ****************************************************
@@ -20376,6 +20359,7 @@ CLASS lcl_object_clas IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CMPT
 ****************************************************
@@ -20588,6 +20572,7 @@ CLASS lcl_object_cmpt IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CUS0
 ****************************************************
@@ -20744,6 +20729,7 @@ CLASS lcl_object_cus0 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_cus0 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CUS1
 ****************************************************
@@ -20910,6 +20896,7 @@ CLASS lcl_object_cus1 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_cus1 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_CUS2
 ****************************************************
@@ -21071,6 +21058,7 @@ CLASS lcl_object_cus2 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_cus2 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DCLS
 ****************************************************
@@ -21263,6 +21251,7 @@ CLASS lcl_object_dcls IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DDLS
 ****************************************************
@@ -21554,6 +21543,7 @@ CLASS lcl_object_ddls IMPLEMENTATION.
   ENDMETHOD.                    "open_adt_stob
 
 ENDCLASS.                    "lcl_object_view IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DDLX
 ****************************************************
@@ -21802,6 +21792,7 @@ CLASS lcl_object_ddlx IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DEVC
 ****************************************************
@@ -22326,6 +22317,7 @@ CLASS lcl_object_devc IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DIAL
 ****************************************************
@@ -22528,6 +22520,7 @@ CLASS lcl_object_dial IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DOCT
 ****************************************************
@@ -22723,6 +22716,7 @@ CLASS lcl_object_doct IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DOCV
 ****************************************************
@@ -22881,6 +22875,7 @@ CLASS lcl_object_docv IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DOMA
 ****************************************************
@@ -23248,6 +23243,7 @@ CLASS lcl_object_doma IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DTEL
 ****************************************************
@@ -23579,6 +23575,7 @@ CLASS lcl_object_dtel IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_dtel IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_DSYS
 ****************************************************
@@ -23757,6 +23754,7 @@ CLASS lcl_object_dsys IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_dsys IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_ENHO
 ****************************************************
@@ -25034,6 +25032,7 @@ CLASS lcl_object_enho IMPLEMENTATION.
   ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "lcl_object_enho IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_ENHS
 ****************************************************
@@ -25456,6 +25455,7 @@ CLASS lcl_object_enhs_hook_def IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_ENQU
 ****************************************************
@@ -25643,6 +25643,7 @@ CLASS lcl_object_enqu IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_enqu IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_ENSC
 ****************************************************
@@ -25837,6 +25838,7 @@ CLASS lcl_object_ensc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS. "lcl_object_ensc
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_FORM
 ****************************************************
@@ -26246,6 +26248,7 @@ CLASS lcl_object_form IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_FORM IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_FUGR
 ****************************************************
@@ -27023,6 +27026,7 @@ CLASS lcl_object_fugr IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_fugr IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_IAMU
 ****************************************************
@@ -27339,6 +27343,7 @@ CLASS lcl_object_iamu IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_IARP
 ****************************************************
@@ -27531,6 +27536,7 @@ CLASS lcl_object_iarp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_iarp IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_IASP
 ****************************************************
@@ -27723,6 +27729,7 @@ CLASS lcl_object_iasp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_iasp IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_IATU
 ****************************************************
@@ -27932,6 +27939,7 @@ CLASS lcl_object_iatu IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_iatu IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_JOBD
 ****************************************************
@@ -28133,6 +28141,7 @@ CLASS lcl_object_jobd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_INTF
 ****************************************************
@@ -28463,6 +28472,7 @@ CLASS lcl_oo_interface IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_MSAG
 ****************************************************
@@ -28761,6 +28771,7 @@ CLASS lcl_object_msag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_msag IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_NROB
 ****************************************************
@@ -29043,6 +29054,7 @@ CLASS lcl_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_nrob IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_PARA
 ****************************************************
@@ -29189,6 +29201,7 @@ CLASS lcl_object_para IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_para IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_PINF
 ****************************************************
@@ -29540,6 +29553,7 @@ CLASS lcl_object_pinf IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_PINF IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_PRAG
 ****************************************************
@@ -29719,6 +29733,7 @@ CLASS lcl_object_prag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_PROG
 ****************************************************
@@ -29938,6 +29953,7 @@ CLASS lcl_object_prog IMPLEMENTATION.
   ENDMETHOD.                    "deserialize_texts
 
 ENDCLASS.                    "lcl_object_prog IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SAMC
 ****************************************************
@@ -29981,6 +29997,7 @@ CLASS lcl_object_samc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_samc IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SAPC
 ****************************************************
@@ -30024,6 +30041,7 @@ CLASS lcl_object_sapc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_sAPC IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SFBF
 ****************************************************
@@ -30274,6 +30292,7 @@ CLASS lcl_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_SFBF IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SFBS
 ****************************************************
@@ -30496,6 +30515,7 @@ CLASS lcl_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_SFBS IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SFPF
 ****************************************************
@@ -30715,6 +30735,7 @@ CLASS lcl_object_sfpf IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SFPI
 ****************************************************
@@ -30882,6 +30903,7 @@ CLASS lcl_object_sfpi IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_doma IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SFSW
 ****************************************************
@@ -31095,6 +31117,7 @@ CLASS lcl_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_sfsw IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SHI3
 ****************************************************
@@ -31366,6 +31389,7 @@ CLASS lcl_object_shi3 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_shi3 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SHI5
 ****************************************************
@@ -31506,6 +31530,7 @@ CLASS lcl_object_shi5 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_shi5 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SHI8
 ****************************************************
@@ -31654,6 +31679,7 @@ CLASS lcl_object_shi8 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_shi8 IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SHLP
 ****************************************************
@@ -31862,6 +31888,7 @@ CLASS lcl_object_shlp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_shlp IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SHMA
 ****************************************************
@@ -32138,6 +32165,7 @@ CLASS lcl_object_shma IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SICF
 ****************************************************
@@ -32604,6 +32632,7 @@ CLASS lcl_object_sicf IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_sicf IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SMIM
 ****************************************************
@@ -32938,6 +32967,7 @@ CLASS lcl_object_smim IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_smim IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SPLO
 ****************************************************
@@ -33061,6 +33091,7 @@ CLASS lcl_object_splo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_splo IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SRFC
 ****************************************************
@@ -33238,6 +33269,7 @@ CLASS lcl_object_srfc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SSFO
 ****************************************************
@@ -33520,6 +33552,7 @@ CLASS lcl_object_ssfo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_ssfo IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SSST
 ****************************************************
@@ -33784,6 +33817,7 @@ CLASS lcl_object_ssst IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_ssst IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_STYL
 ****************************************************
@@ -33980,6 +34014,7 @@ CLASS lcl_object_styl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_styl IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SUSC
 ****************************************************
@@ -34101,6 +34136,7 @@ CLASS lcl_object_susc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_susc IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SUSO
 ****************************************************
@@ -34272,6 +34308,7 @@ CLASS lcl_object_suso IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_suso IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_SXCI
 ****************************************************
@@ -34556,6 +34593,7 @@ CLASS lcl_object_sxci IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TABL_VALID
 ****************************************************
@@ -34778,6 +34816,7 @@ CLASS ltcl_table_validation IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TABL
 ****************************************************
@@ -35258,6 +35297,7 @@ CLASS lcl_object_tabl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_TABL IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TOBJ
 ****************************************************
@@ -35551,6 +35591,7 @@ CLASS lcl_object_tobj IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_tobj IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TRAN
 ****************************************************
@@ -36021,6 +36062,7 @@ CLASS lcl_object_tran IMPLEMENTATION.
 
   ENDMETHOD.                    "deserialize_texts
 ENDCLASS.                    "lcl_object_tran IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TTYP
 ****************************************************
@@ -36208,6 +36250,7 @@ CLASS lcl_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_ttyp IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_TYPE
 ****************************************************
@@ -36417,6 +36460,7 @@ CLASS lcl_object_type IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_type IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_UCSA
 ****************************************************
@@ -36683,6 +36727,7 @@ CLASS lcl_object_ucsa IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_VCLS
 ****************************************************
@@ -36882,6 +36927,7 @@ CLASS lcl_object_vcls IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_vcls IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_VIEW
 ****************************************************
@@ -37155,6 +37201,7 @@ CLASS lcl_object_view IMPLEMENTATION.
   ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "lcl_object_view IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_W3XX
 ****************************************************
@@ -37706,6 +37753,7 @@ CLASS lcl_object_w3ht IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_WAPA
 ****************************************************
@@ -38187,6 +38235,7 @@ CLASS lcl_object_wapa IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_tran IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_WDYA
 ****************************************************
@@ -38418,6 +38467,7 @@ CLASS lcl_object_wdya IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_wdya IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_WDYN
 ****************************************************
@@ -39210,6 +39260,7 @@ CLASS lcl_object_wdyn IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_wdyn IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_WEBI
 ****************************************************
@@ -39664,6 +39715,7 @@ CLASS lcl_object_webi IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_webi IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_XSLT
 ****************************************************
@@ -39862,6 +39914,7 @@ CLASS lcl_object_xslt IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_object_xslt IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_OBJECT_OO_FACTORY
 ****************************************************
@@ -39944,7 +39997,6 @@ CLASS lcl_skip_objects IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-
 ****************************************************
 * abapmerge - ZABAPGIT_REPO_IMPL
 ****************************************************
@@ -41014,6 +41066,7 @@ CLASS lcl_repo_srv IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "lcl_repo_srv IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_BACKGROUND
 ****************************************************
@@ -41275,6 +41328,7 @@ CLASS lcl_background IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_TRANSPORT
 ****************************************************
@@ -41624,7 +41678,6 @@ CLASS lcl_transport_2_branch IMPLEMENTATION.
       it_object_statuses = it_object_statuses ).
   ENDMETHOD.
 ENDCLASS.
-
 ****************************************************
 * abapmerge - ZABAPGIT_SERVICES
 ****************************************************
@@ -41995,6 +42048,7 @@ CLASS lcl_services_git IMPLEMENTATION.
   ENDMETHOD.  "commit
 
 ENDCLASS. " lcl_services_git
+
 ****************************************************
 * abapmerge - ZABAPGIT_SERVICES_REPO
 ****************************************************
@@ -42337,6 +42391,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS. "lcl_services_repo
+
 ****************************************************
 * abapmerge - ZABAPGIT_SERVICES_ABAPGIT
 ****************************************************
@@ -42521,6 +42576,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
   ENDMETHOD.                    "is_installed_pi
 
 ENDCLASS. "lcl_services_abapgit
+
 ****************************************************
 * abapmerge - ZABAPGIT_SERVICES_DB
 ****************************************************
@@ -42586,6 +42642,7 @@ CLASS lcl_services_db IMPLEMENTATION.
   ENDMETHOD.  "update
 
 ENDCLASS. "lcl_services_db
+
 ****************************************************
 * abapmerge - ZABAPGIT_SERVICES_BACKGROUND
 ****************************************************
@@ -42778,7 +42835,7 @@ CLASS lcl_gui_asset_manager IMPLEMENTATION.
     CASE iv_asset_name.
       WHEN 'CSS_COMMON'.
 ****************************************************
-* abapmerge - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
+* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
 ****************************************************
         _inline '/*'.
         _inline ' * ABAPGIT COMMON CSS'.
@@ -43598,7 +43655,7 @@ CLASS lcl_gui_asset_manager IMPLEMENTATION.
         _inline '}'.
       WHEN 'JS_COMMON'.
 ****************************************************
-* abapmerge - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
+* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
 ****************************************************
         _inline '/**********************************************************'.
         _inline ' * ABAPGIT JS function library'.
@@ -44236,6 +44293,7 @@ CLASS lcl_gui_asset_manager IMPLEMENTATION.
   ENDMETHOD.  " get_webfont_link
 
 ENDCLASS. "lcl_gui_asset_manager
+
 ****************************************************
 * abapmerge - ZABAPGIT_GUI_PAGES
 ****************************************************
@@ -44551,6 +44609,7 @@ CLASS lcl_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD. "render_news
 
 ENDCLASS. "lcl_gui_chunk_lib
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE
 ****************************************************
@@ -44719,7 +44778,6 @@ CLASS lcl_gui_page IMPLEMENTATION.
   ENDMETHOD.  " lif_gui_page~render.
 
 ENDCLASS. "lcl_gui_page
-
 * Utils and helpers
 ****************************************************
 * abapmerge - ZABAPGIT_HTML_ACTION_UTILS
@@ -44729,6 +44787,7 @@ ENDCLASS. "lcl_gui_page
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
+
 ****************************************************
 * abapmerge - ZABAPGIT_REPO_BROWSER_UTIL
 ****************************************************
@@ -44969,6 +45028,7 @@ CLASS lcl_repo_content_list IMPLEMENTATION.
   ENDMETHOD. "build_repo_items_online
 
 ENDCLASS. "lcl_repo_content_browser
+
 ****************************************************
 * abapmerge - ZABAPGIT_SYNTAX_HIGHLIGHTER
 ****************************************************
@@ -44977,7 +45037,6 @@ ENDCLASS. "lcl_repo_content_browser
 *&---------------------------------------------------------------------*
 
 * todo, include to be deleted
-
 * Components and templates
 ****************************************************
 * abapmerge - ZABAPGIT_VIEW_REPO
@@ -45574,6 +45633,7 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
   ENDMETHOD.  "build_obj_jump_link
 
 ENDCLASS. "lcl_gui_view_repo_content
+
 ****************************************************
 * abapmerge - ZABAPGIT_VIEW_TUTORIAL
 ****************************************************
@@ -45669,7 +45729,6 @@ CLASS lcl_gui_view_tutorial IMPLEMENTATION.
   ENDMETHOD. " render_content.
 
 ENDCLASS.                       "lcl_gui_view_tutorial
-
 * Pages
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_COMMIT
@@ -45937,6 +45996,7 @@ CLASS lcl_gui_page_commit IMPLEMENTATION.
   ENDMETHOD.    "scripts
 
 ENDCLASS.       "lcl_gui_page_commit
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_MERGE
 ****************************************************
@@ -46413,6 +46473,7 @@ CLASS lcl_gui_page_merge IMPLEMENTATION.
   ENDMETHOD.  "render_content
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_BACKGROUND
 ****************************************************
@@ -46661,6 +46722,7 @@ CLASS lcl_gui_page_bkg IMPLEMENTATION.
   ENDMETHOD.  "render_content
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_BRANCH_OVERVIEW
 ****************************************************
@@ -47282,6 +47344,7 @@ CLASS lcl_gui_page_boverview IMPLEMENTATION.
   ENDMETHOD.  "render_content
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_DB
 ****************************************************
@@ -47564,6 +47627,7 @@ CLASS lcl_gui_page_db IMPLEMENTATION.
   ENDMETHOD.  "explain_content
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_DIFF
 ****************************************************
@@ -48211,6 +48275,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
   ENDMETHOD.  "scripts
 ENDCLASS. "lcl_gui_page_diff
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_EXPLORE
 ****************************************************
@@ -48243,6 +48308,7 @@ CLASS lcl_gui_page_explore IMPLEMENTATION.
   ENDMETHOD. "render_content.
 
 ENDCLASS.                       "lcl_gui_page_explore IMPLEMENTATION
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_MAIN
 ****************************************************
@@ -48558,6 +48624,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
   ENDMETHOD.  "render_repo
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_STAGE
 ****************************************************
@@ -48923,6 +48990,7 @@ CLASS lcl_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_DEBUG
 ****************************************************
@@ -49030,6 +49098,7 @@ CLASS lcl_gui_page_debuginfo IMPLEMENTATION.
   ENDMETHOD.  "scripts
 
 ENDCLASS.                       "lcl_gui_page_debuginfo
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_SETTINGS
 ****************************************************
@@ -49364,6 +49433,7 @@ CLASS lcl_gui_page_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_REPO_SETTINGS
 ****************************************************
@@ -49490,6 +49560,7 @@ CLASS lcl_gui_page_repo_sett IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                       "lcl_gui_page_debuginfo
+
 ****************************************************
 * abapmerge - ZABAPGIT_PAGE_SYNTAX_CHECK
 ****************************************************
@@ -49952,6 +50023,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
   ENDMETHOD.  "get_page_playground
 
 ENDCLASS.           " lcl_gui_router
+
 ****************************************************
 * abapmerge - ZABAPGIT_GUI
 ****************************************************
@@ -50285,7 +50357,6 @@ CLASS lcl_gui IMPLEMENTATION.
   ENDMETHOD.  "get_current_page_name
 
 ENDCLASS.                     "lcl_gui IMPLEMENTATION
-
 ****************************************************
 * abapmerge - ZABAPGIT_APP_IMPL
 ****************************************************
@@ -50324,6 +50395,7 @@ CLASS lcl_app IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.   "lcl_app
+
 ****************************************************
 * abapmerge - ZABAPGIT_UNIT_TEST
 ****************************************************
@@ -52981,6 +53053,7 @@ CLASS ltcl_delete_oo_test IMPLEMENTATION.
       exp = ls_expected_delete_key ).
   ENDMETHOD.
 ENDCLASS.
+
 ****************************************************
 * abapmerge - ZABAPGIT_UNIT_TEST_TRANSPORT
 ****************************************************
@@ -53505,6 +53578,7 @@ CLASS lcl_migrations IMPLEMENTATION.
   ENDMETHOD.  " rebuild_local_checksums_20161112.
 
 ENDCLASS. "lcl_migrations
+
 ****************************************************
 * abapmerge - ZABAPGIT_FORMS
 ****************************************************
@@ -53631,7 +53705,6 @@ FORM exit RAISING zcx_abapgit_exception.
       ENDIF.
   ENDCASE.
 ENDFORM.
-
 **********************************************************************
 INITIALIZATION.
   lcl_password_dialog=>on_screen_init( ).
@@ -53655,7 +53728,6 @@ AT SELECTION-SCREEN.
   IF sy-dynnr = lcl_password_dialog=>dynnr.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
-
 ****************************************************
-* abapmerge - 2018-02-03T09:22:11.938Z
+* abapmerge - 2018-02-04T07:51:58.295Z
 ****************************************************
