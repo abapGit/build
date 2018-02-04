@@ -862,8 +862,7 @@ CLASS zcl_abapgit_http_digest DEFINITION
           ii_client TYPE REF TO if_http_client.
 
 ENDCLASS.
-CLASS zcl_abapgit_objects_activation DEFINITION
-  CREATE PUBLIC .
+CLASS zcl_abapgit_objects_activation DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
     CLASS-METHODS add
@@ -883,30 +882,38 @@ CLASS zcl_abapgit_objects_activation DEFINITION
     CLASS-METHODS clear.
 
   PRIVATE SECTION.
+
+    CLASS-DATA:
+      gt_classes TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY,
+      gt_objects TYPE TABLE OF dwinactiv.
+
+    CLASS-METHODS update_where_used .
     CLASS-METHODS fix_class_methods
-      IMPORTING iv_obj_name TYPE trobj_name
-      CHANGING  ct_objects  TYPE dwinactiv_tab.
-
+      IMPORTING
+        !iv_obj_name TYPE trobj_name
+      CHANGING
+        !ct_objects  TYPE dwinactiv_tab .
     CLASS-METHODS use_new_activation_logic
-      RETURNING VALUE(rv_use_new_activation_logic) TYPE abap_bool.
-
+      RETURNING
+        VALUE(rv_use_new_activation_logic) TYPE abap_bool .
     CLASS-METHODS activate_new
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS activate_old
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS activate_ddic
-      RAISING zcx_abapgit_exception.
-
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS show_activation_errors
-      IMPORTING iv_logname TYPE ddmass-logname
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-DATA: gt_objects TYPE TABLE OF dwinactiv.
-
+      IMPORTING
+        !iv_logname TYPE ddmass-logname
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_objects_files DEFINITION
   CREATE PUBLIC .
@@ -8491,14 +8498,12 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
     IF use_new_activation_logic( ) = abap_true.
-
       activate_new( iv_ddic ).
-
     ELSE.
-
       activate_old( iv_ddic ).
-
     ENDIF.
+
+    update_where_used( ).
 
   ENDMETHOD.                    "activate
   METHOD activate_ddic.
@@ -8624,7 +8629,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
     lv_obj_name = iv_name.
 
     CASE iv_type.
-      WHEN 'CLAS' OR 'WDYN'.
+      WHEN 'CLAS'.
+        APPEND iv_name TO gt_classes.
+      WHEN 'WDYN'.
 * todo, move this to the object type include instead
         CALL FUNCTION 'RS_INACTIVE_OBJECTS_IN_OBJECT'
           EXPORTING
@@ -8639,10 +8646,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
           zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
         ENDIF.
 
-        IF iv_type = 'CLAS'.
-          fix_class_methods( EXPORTING iv_obj_name = lv_obj_name
-                             CHANGING ct_objects = lt_objects ).
-        ENDIF.
+*        IF iv_type = 'CLAS'.
+*          fix_class_methods( EXPORTING iv_obj_name = lv_obj_name
+*                             CHANGING ct_objects = lt_objects ).
+*        ENDIF.
 
         LOOP AT lt_objects ASSIGNING <ls_object>.
           <ls_object>-delet_flag = iv_delete.
@@ -8663,6 +8670,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.                    "add_item
   METHOD clear.
     CLEAR gt_objects.
+    CLEAR gt_classes.
   ENDMETHOD.                    "clear
   METHOD fix_class_methods.
 * function module RS_WORKING_OBJECTS_ACTIVATE assumes that
@@ -8670,6 +8678,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 * however, classes named with 30 characters
 * eg. ZCL_CLAS_TESTTESTTESTTESTTESTT
 * this will not be true, so find all the method includes instead
+
+* TODO, this class is obsolete with new CLAS deserialization logic
 
     DATA: lt_methods TYPE seop_methods_w_include,
           lv_class   TYPE seoclsname.
@@ -8729,6 +8739,23 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
     ENDLOOP.
 
     lo_log->show( ).
+
+  ENDMETHOD.
+  METHOD update_where_used.
+
+    DATA: lv_class   LIKE LINE OF gt_classes,
+          lo_cross   TYPE REF TO cl_wb_crossreference,
+          lv_include TYPE programm.
+    LOOP AT gt_classes INTO lv_class.
+      lv_include = cl_oo_classname_service=>get_classpool_name( lv_class ).
+
+      CREATE OBJECT lo_cross
+        EXPORTING
+          p_name    = lv_include
+          p_include = lv_include.
+
+      lo_cross->index_actualize( ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD use_new_activation_logic.
@@ -17926,6 +17953,9 @@ CLASS lcl_objects IMPLEMENTATION.
       ls_item-obj_type = <ls_tadir>-object.
       ls_item-obj_name = <ls_tadir>-obj_name.
       delete_obj( ls_item ).
+
+* make sure to save object deletions
+      COMMIT WORK.
     ENDLOOP.
 
   ENDMETHOD.                    "delete
@@ -20226,6 +20256,11 @@ CLASS lcl_oo_class_new IMPLEMENTATION.
     update_full_class_include( iv_classname = is_key-clsname
                                it_source    = it_source
                                it_methods   = lt_methods ).
+
+* TODO, perhaps move this call to somewhere else, to be done while cleaning up the CLAS deserialization
+    zcl_abapgit_objects_activation=>add(
+      iv_type = 'CLAS'
+      iv_name = is_key-clsname ).
 
   ENDMETHOD.
 
@@ -53729,5 +53764,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-04T07:51:58.295Z
+* abapmerge - 2018-02-04T09:21:54.361Z
 ****************************************************
