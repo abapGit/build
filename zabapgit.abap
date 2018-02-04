@@ -11671,7 +11671,7 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 
 CLASS lcl_gui DEFINITION DEFERRED.
 CLASS lcl_repo_srv DEFINITION DEFERRED.
-CLASS lcl_proxy_configuration DEFINITION DEFERRED.
+CLASS lcl_proxy_config DEFINITION DEFERRED.
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_app DEFINITION
@@ -11687,12 +11687,12 @@ CLASS lcl_app DEFINITION FINAL.
       RETURNING VALUE(ro_repo_srv) TYPE REF TO lcl_repo_srv.
 
     CLASS-METHODS proxy
-      RETURNING VALUE(ro_proxy) TYPE REF TO lcl_proxy_configuration.
+      RETURNING VALUE(ro_proxy) TYPE REF TO lcl_proxy_config.
 
   PRIVATE SECTION.
     CLASS-DATA: go_gui          TYPE REF TO lcl_gui,
                 go_repo_srv     TYPE REF TO lcl_repo_srv,
-                go_proxy        TYPE REF TO lcl_proxy_configuration.
+                go_proxy        TYPE REF TO lcl_proxy_config.
 
 ENDCLASS.   "lcl_app
 
@@ -11836,7 +11836,7 @@ ENDCLASS.
 *& Include zabapgit_proxy
 *&---------------------------------------------------------------------*
 
-CLASS lcl_proxy_configuration DEFINITION CREATE PUBLIC.
+CLASS lcl_proxy_config DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
     METHODS:
@@ -11866,7 +11866,7 @@ CLASS lcl_proxy_configuration DEFINITION CREATE PUBLIC.
 
 ENDCLASS.
 
-CLASS lcl_proxy_configuration IMPLEMENTATION.
+CLASS lcl_proxy_config IMPLEMENTATION.
 
   METHOD constructor.
 
@@ -13253,7 +13253,7 @@ CLASS lcl_2fa_github_auth IMPLEMENTATION.
   METHOD is_2fa_required.
 
     DATA: li_client TYPE REF TO if_http_client,
-          lo_proxy  TYPE REF TO lcl_proxy_configuration.
+          lo_proxy  TYPE REF TO lcl_proxy_config.
 
     lo_proxy = lcl_app=>proxy( ).
 
@@ -13862,7 +13862,7 @@ CLASS lcl_http IMPLEMENTATION.
     DATA: lv_uri                 TYPE string,
           lv_scheme              TYPE string,
           li_client              TYPE REF TO if_http_client,
-          lo_proxy_configuration TYPE REF TO lcl_proxy_configuration,
+          lo_proxy_configuration TYPE REF TO lcl_proxy_config,
           lv_text                TYPE string.
 
     lo_proxy_configuration = lcl_app=>proxy( ).
@@ -26756,7 +26756,7 @@ ENDCLASS. "lcl_object_enhs
 *----------------------------------------------------------------------*
 *       CLASS lcl_object_enhs_badi_def DEFINITION
 *----------------------------------------------------------------------*
-CLASS lcl_object_enhs_badi_def DEFINITION.
+CLASS lcl_object_enhs_badi_d DEFINITION.
 
   PUBLIC SECTION.
     INTERFACES: lif_object_enhs.
@@ -26766,7 +26766,7 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 *       CLASS lcl_object_enhs_hook_def DEFINITION
 *----------------------------------------------------------------------*
-CLASS lcl_object_enhs_hook_def DEFINITION.
+CLASS lcl_object_enhs_hook_d DEFINITION.
 
   PUBLIC SECTION.
     INTERFACES: lif_object_enhs.
@@ -26940,9 +26940,9 @@ CLASS lcl_object_enhs IMPLEMENTATION.
 
     CASE iv_tool.
       WHEN cl_enh_tool_badi_def=>tooltype.
-        CREATE OBJECT ri_enho TYPE lcl_object_enhs_badi_def.
+        CREATE OBJECT ri_enho TYPE lcl_object_enhs_badi_d.
       WHEN cl_enh_tool_hook_def=>tool_type.
-        CREATE OBJECT ri_enho TYPE lcl_object_enhs_hook_def.
+        CREATE OBJECT ri_enho TYPE lcl_object_enhs_hook_d.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |ENHS: Unsupported tool { iv_tool }| ).
     ENDCASE.
@@ -26954,7 +26954,7 @@ ENDCLASS. "lcl_object_enhs
 *----------------------------------------------------------------------*
 *       CLASS lcl_object_enhs_badi_def IMPLEMENTATION
 *----------------------------------------------------------------------*
-CLASS lcl_object_enhs_badi_def IMPLEMENTATION.
+CLASS lcl_object_enhs_badi_d IMPLEMENTATION.
 
   METHOD lif_object_enhs~deserialize.
 
@@ -27042,7 +27042,7 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 *       CLASS lcl_object_enhs_hook_def IMPLEMENTATION
 *----------------------------------------------------------------------*
-CLASS lcl_object_enhs_hook_def IMPLEMENTATION.
+CLASS lcl_object_enhs_hook_d IMPLEMENTATION.
 
   METHOD lif_object_enhs~deserialize.
 
@@ -49462,7 +49462,7 @@ ENDCLASS.                       "lcl_gui_page_debuginfo
 *&  Include           ZABAPGIT_PAGE_REPO_SETTINGS
 *&---------------------------------------------------------------------*
 
-CLASS lcl_gui_page_syntax_check DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
+CLASS lcl_gui_page_syntax DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
       constructor
@@ -49476,7 +49476,7 @@ CLASS lcl_gui_page_syntax_check DEFINITION FINAL INHERITING FROM zcl_abapgit_gui
 
 ENDCLASS.
 
-CLASS lcl_gui_page_syntax_check IMPLEMENTATION.
+CLASS lcl_gui_page_syntax IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
@@ -49676,7 +49676,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
         lcl_services_repo=>refresh( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-repo_syntax_check.
-        CREATE OBJECT ei_page TYPE lcl_gui_page_syntax_check
+        CREATE OBJECT ei_page TYPE lcl_gui_page_syntax
           EXPORTING
             io_repo = lcl_app=>repo_srv( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
@@ -53614,5 +53614,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-04T10:14:25.419Z
+* abapmerge - 2018-02-04T12:40:22.434Z
 ****************************************************
