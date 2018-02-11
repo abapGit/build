@@ -96,6 +96,7 @@ ENDCLASS.
 CLASS zcx_abapgit_cancel IMPLEMENTATION.
 ENDCLASS.
 INTERFACE zif_abapgit_sap_package DEFERRED.
+INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
@@ -117,6 +118,7 @@ CLASS zcl_abapgit_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_default_task DEFINITION DEFERRED.
@@ -269,6 +271,25 @@ INTERFACE zif_abapgit_sap_package.
       RAISING   zcx_abapgit_exception,
     exists
       RETURNING VALUE(rv_bool) TYPE abap_bool.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_exit.
+
+  METHODS:
+    change_local_host
+      CHANGING ct_hosts TYPE zif_abapgit_definitions=>ty_icm_sinfo2_tt,
+    allow_sap_objects
+      RETURNING VALUE(rv_allowed) TYPE abap_bool,
+    change_proxy_url
+      IMPORTING iv_repo_url TYPE csequence
+      CHANGING  c_proxy_url TYPE string,
+    change_proxy_port
+      IMPORTING iv_repo_url  TYPE csequence
+      CHANGING  c_proxy_port TYPE string,
+    change_proxy_authentication
+      IMPORTING iv_repo_url            TYPE csequence
+      CHANGING  c_proxy_authentication TYPE abap_bool.
 
 ENDINTERFACE.
 
@@ -5162,6 +5183,15 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         RETURNING VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
 ENDCLASS.
+CLASS zcl_abapgit_exit DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS: get_instance RETURNING VALUE(ri_exit) TYPE REF TO zif_abapgit_exit.
+
+    INTERFACES: zif_abapgit_exit.
+
+ENDCLASS.
 CLASS zcl_abapgit_folder_logic DEFINITION
   CREATE PUBLIC .
 
@@ -6951,6 +6981,36 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
       lv_parent = rv_package.
     ENDWHILE.
 
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+  METHOD get_instance.
+
+    TRY.
+        CREATE OBJECT ri_exit TYPE ('ZCL_ABAPGIT_USER_EXIT').
+      CATCH cx_sy_create_object_error.
+        CREATE OBJECT ri_exit TYPE zcl_abapgit_exit.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~allow_sap_objects.
+    rv_allowed = abap_false.
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_local_host.
+* default behavior
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_proxy_authentication.
+* default behavior change nothing
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_proxy_port.
+* default behavior change nothing
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_proxy_url.
+* default behavior change nothing
+    RETURN.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
@@ -33922,75 +33982,9 @@ ENDCLASS.
 *&  Include           ZABAPGIT_USER_EXITS
 *&---------------------------------------------------------------------*
 
-INTERFACE lif_exit.
-
-  METHODS:
-    change_local_host
-      CHANGING ct_hosts TYPE zif_abapgit_definitions=>ty_icm_sinfo2_tt,
-    allow_sap_objects
-      RETURNING VALUE(rv_allowed) TYPE abap_bool,
-    change_proxy_url
-      IMPORTING iv_repo_url TYPE csequence
-      CHANGING  c_proxy_url TYPE string,
-    change_proxy_port
-      IMPORTING iv_repo_url  TYPE csequence
-      CHANGING  c_proxy_port TYPE string,
-    change_proxy_authentication
-      IMPORTING iv_repo_url            TYPE csequence
-      CHANGING  c_proxy_authentication TYPE abap_bool.
-ENDINTERFACE.
-
-* add class LCL_USER_EXIT implementing LIF_EXIT in following include,
+* add class ZCL_ABAPGIT_USER_EXIT implementing ZIF_ABAPGIT_EXIT in following include,
 * place the include in a different package than ZABAPGIT
 INCLUDE zabapgit_user_exit IF FOUND.
-
-*******************
-
-CLASS lcl_exit DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    CLASS-METHODS: get_instance RETURNING VALUE(ri_exit) TYPE REF TO lif_exit.
-
-    INTERFACES: lif_exit.
-
-ENDCLASS.
-
-CLASS lcl_exit IMPLEMENTATION.
-
-  METHOD get_instance.
-
-    TRY.
-        CREATE OBJECT ri_exit TYPE ('LCL_USER_EXIT').
-      CATCH cx_sy_create_object_error.
-        CREATE OBJECT ri_exit TYPE lcl_exit.
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD lif_exit~change_local_host.
-* default behavior
-    RETURN.
-  ENDMETHOD.
-
-  METHOD lif_exit~allow_sap_objects.
-    rv_allowed = abap_false.
-  ENDMETHOD.
-  METHOD lif_exit~change_proxy_url.
-* default behavior change nothing
-    RETURN.
-  ENDMETHOD.
-
-  METHOD lif_exit~change_proxy_port.
-* default behavior change nothing
-    RETURN.
-  ENDMETHOD.
-
-  METHOD lif_exit~change_proxy_authentication.
-* default behavior change nothing
-    RETURN.
-  ENDMETHOD.
-
-ENDCLASS.
 
 ****************************************************
 * abapmerge - ZABAPGIT_PROXY
@@ -34025,7 +34019,7 @@ CLASS lcl_proxy_config DEFINITION CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
-          mi_exit     TYPE REF TO lif_exit.
+          mi_exit     TYPE REF TO zif_abapgit_exit.
 
 ENDCLASS.
 
@@ -34035,7 +34029,7 @@ CLASS lcl_proxy_config IMPLEMENTATION.
 
     mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
 
-    mi_exit = lcl_exit=>get_instance( ).
+    mi_exit = zcl_abapgit_exit=>get_instance( ).
 
   ENDMETHOD.
 
@@ -35952,7 +35946,7 @@ CLASS lcl_http IMPLEMENTATION.
 
     DATA: lv_host TYPE string,
           lt_list TYPE zif_abapgit_definitions=>ty_icm_sinfo2_tt,
-          li_exit TYPE REF TO lif_exit.
+          li_exit TYPE REF TO zif_abapgit_exit.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
     CALL FUNCTION 'ICM_GET_INFO2'
@@ -35969,7 +35963,7 @@ CLASS lcl_http IMPLEMENTATION.
     APPEND INITIAL LINE TO lt_list ASSIGNING <ls_list>.
     <ls_list>-hostname = 'localhost'.
 
-    li_exit = lcl_exit=>get_instance( ).
+    li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_local_host( CHANGING ct_hosts = lt_list ).
 
     FIND REGEX 'https?://([^/^:]*)' IN iv_url
@@ -41361,6 +41355,7 @@ CLASS lcl_repo_srv IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.  "switch_repo_type
+
   METHOD is_sap_object_allowed.
 
     rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
@@ -41368,7 +41363,7 @@ CLASS lcl_repo_srv IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    rv_allowed = lcl_exit=>get_instance( )->allow_sap_objects( ).
+    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
 
   ENDMETHOD.
 
@@ -51642,5 +51637,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T09:27:32.511Z
+* abapmerge - 2018-02-11T10:12:45.365Z
 ****************************************************
