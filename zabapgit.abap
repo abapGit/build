@@ -490,11 +490,13 @@ CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
+CLASS zcl_abapgit_http DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_github_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_registry DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 INTERFACE zif_abapgit_sap_package.
@@ -1388,6 +1390,62 @@ CLASS zcl_abapgit_git_pack DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_git_transport DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+* remote to local
+    CLASS-METHODS upload_pack
+      IMPORTING iv_url         TYPE string
+                iv_branch_name TYPE string
+                iv_deepen      TYPE abap_bool DEFAULT abap_true
+                it_branches    TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt OPTIONAL
+      EXPORTING et_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
+                ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING   zcx_abapgit_exception.
+
+* local to remote
+    CLASS-METHODS receive_pack
+      IMPORTING iv_url         TYPE string
+                iv_old         TYPE zif_abapgit_definitions=>ty_sha1
+                iv_new         TYPE zif_abapgit_definitions=>ty_sha1
+                iv_branch_name TYPE string
+                iv_pack        TYPE xstring
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS branches
+      IMPORTING iv_url                TYPE string
+      RETURNING VALUE(ro_branch_list) TYPE REF TO zcl_abapgit_git_branch_list
+      RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    CONSTANTS: BEGIN OF c_service,
+                 receive TYPE string VALUE 'receive',       "#EC NOTEXT
+                 upload  TYPE string VALUE 'upload',        "#EC NOTEXT
+               END OF c_service.
+
+    CLASS-METHODS branch_list
+      IMPORTING iv_url         TYPE string
+                iv_service     TYPE string
+      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
+                eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS find_branch
+      IMPORTING iv_url         TYPE string
+                iv_service     TYPE string
+                iv_branch_name TYPE string
+      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
+                ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS parse
+      EXPORTING ev_pack TYPE xstring
+      CHANGING  cv_data TYPE xstring
+      RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_git_utils DEFINITION
   CREATE PUBLIC .
 
@@ -1545,6 +1603,41 @@ CLASS zcl_abapgit_2fa_github_auth DEFINITION
                                          zcx_abapgit_2fa_comm_error.
     DATA:
       mi_authenticated_session TYPE REF TO if_http_client.
+
+ENDCLASS.
+CLASS zcl_abapgit_http DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CONSTANTS: BEGIN OF gc_scheme,
+                 digest TYPE string VALUE 'Digest',
+               END OF gc_scheme.
+
+    CLASS-METHODS:
+      get_agent
+        RETURNING VALUE(rv_agent) TYPE string,
+      create_by_url
+        IMPORTING iv_url           TYPE string
+                  iv_service       TYPE string
+        RETURNING VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      check_auth_requested
+        IMPORTING ii_client                TYPE REF TO if_http_client
+        RETURNING VALUE(rv_auth_requested) TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
+      is_local_system
+        IMPORTING iv_url         TYPE string
+        RETURNING VALUE(rv_bool) TYPE abap_bool,
+      acquire_login_details
+        IMPORTING ii_client        TYPE REF TO if_http_client
+                  io_client        TYPE REF TO zcl_abapgit_http_client
+                  iv_url           TYPE string
+        RETURNING VALUE(rv_scheme) TYPE string
+        RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_http_digest DEFINITION
@@ -33434,6 +33527,196 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
+  METHOD acquire_login_details.
+
+    DATA: lv_default_user TYPE string,
+          lv_user         TYPE string,
+          lv_pass         TYPE string,
+          lo_digest       TYPE REF TO zcl_abapgit_http_digest.
+    lv_default_user = zcl_abapgit_persistence_user=>get_instance( )->get_repo_login( iv_url ).
+    lv_user         = lv_default_user.
+
+    zcl_abapgit_password_dialog=>popup(
+      EXPORTING
+        iv_repo_url     = iv_url
+      CHANGING
+        cv_user         = lv_user
+        cv_pass         = lv_pass ).
+
+    IF lv_user IS INITIAL.
+      zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
+    ENDIF.
+
+    IF lv_user <> lv_default_user.
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_login(
+        iv_url   = iv_url
+        iv_login = lv_user ).
+    ENDIF.
+
+    " Offer two factor authentication if it is available and required
+    zcl_abapgit_2fa_auth_registry=>use_2fa_if_required(
+      EXPORTING
+        iv_url      = iv_url
+      CHANGING
+        cv_username = lv_user
+        cv_password = lv_pass ).
+
+    rv_scheme = ii_client->response->get_header_field( 'www-authenticate' ).
+    FIND REGEX '^(\w+)' IN rv_scheme SUBMATCHES rv_scheme.
+
+    CASE rv_scheme.
+      WHEN gc_scheme-digest.
+* https://en.wikipedia.org/wiki/Digest_access_authentication
+* e.g. used by https://www.gerritcodereview.com/
+        CREATE OBJECT lo_digest
+          EXPORTING
+            ii_client   = ii_client
+            iv_username = lv_user
+            iv_password = lv_pass.
+        lo_digest->run( ii_client ).
+        io_client->set_digest( lo_digest ).
+      WHEN OTHERS.
+* https://en.wikipedia.org/wiki/Basic_access_authentication
+        ii_client->authenticate(
+          username = lv_user
+          password = lv_pass ).
+    ENDCASE.
+
+  ENDMETHOD.  "acquire_login_details
+  METHOD check_auth_requested.
+
+    DATA: lv_code TYPE i.
+
+    ii_client->response->get_status(
+      IMPORTING
+        code   = lv_code ).
+    IF lv_code = 401.
+      rv_auth_requested = abap_true.
+    ENDIF.
+
+  ENDMETHOD.  "check_auth_requested
+  METHOD create_by_url.
+
+    DATA: lv_uri                 TYPE string,
+          lv_scheme              TYPE string,
+          li_client              TYPE REF TO if_http_client,
+          lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config,
+          lv_text                TYPE string.
+    CREATE OBJECT lo_proxy_configuration.
+
+    cl_http_client=>create_by_url(
+      EXPORTING
+        url                = zcl_abapgit_url=>host( iv_url )
+        ssl_id             = 'ANONYM'
+        proxy_host         = lo_proxy_configuration->get_proxy_url( iv_url )
+        proxy_service      = lo_proxy_configuration->get_proxy_port( iv_url )
+      IMPORTING
+        client             = li_client
+      EXCEPTIONS
+        argument_not_found = 1
+        plugin_not_active  = 2
+        internal_error     = 3
+        OTHERS             = 4 ).
+    IF sy-subrc <> 0.
+      CASE sy-subrc.
+        WHEN 1.
+          " make sure:
+          " a) SSL is setup properly in STRUST
+          lv_text = 'HTTPS ARGUMENT_NOT_FOUND | STRUST/SSL Setup correct?'.
+        WHEN OTHERS.
+          lv_text = 'While creating HTTP Client'.           "#EC NOTEXT
+
+      ENDCASE.
+      zcx_abapgit_exception=>raise( lv_text ).
+    ENDIF.
+
+    IF lo_proxy_configuration->get_proxy_authentication( iv_url ) = abap_true.
+      zcl_abapgit_proxy_auth=>run( li_client ).
+    ENDIF.
+
+    CREATE OBJECT ro_client
+      EXPORTING
+        ii_client = li_client.
+
+    IF is_local_system( iv_url ) = abap_true.
+      li_client->send_sap_logon_ticket( ).
+    ENDIF.
+
+    li_client->request->set_cdata( '' ).
+    li_client->request->set_header_field(
+        name  = '~request_method'
+        value = 'GET' ).
+    li_client->request->set_header_field(
+        name  = 'user-agent'
+        value = get_agent( ) ).                             "#EC NOTEXT
+    lv_uri = zcl_abapgit_url=>path_name( iv_url ) &&
+             '/info/refs?service=git-' &&
+             iv_service &&
+             '-pack'.
+    li_client->request->set_header_field(
+        name  = '~request_uri'
+        value = lv_uri ).
+
+    " Disable internal auth dialog (due to its unclarity)
+    li_client->propertytype_logon_popup = if_http_client=>co_disabled.
+
+    zcl_abapgit_login_manager=>load( iv_uri    = iv_url
+                                     ii_client = li_client ).
+
+    ro_client->send_receive( ).
+    IF check_auth_requested( li_client ) = abap_true.
+      lv_scheme = acquire_login_details( ii_client = li_client
+                                         io_client = ro_client
+                                         iv_url    = iv_url ).
+      ro_client->send_receive( ).
+    ENDIF.
+    ro_client->check_http_200( ).
+
+    IF lv_scheme <> gc_scheme-digest.
+      zcl_abapgit_login_manager=>save( iv_uri    = iv_url
+                                       ii_client = li_client ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_agent.
+
+* bitbucket require agent prefix = "git/"
+    rv_agent = 'git/abapGit-' && zif_abapgit_definitions=>gc_abap_version.
+
+  ENDMETHOD.
+  METHOD is_local_system.
+
+    DATA: lv_host TYPE string,
+          lt_list TYPE zif_abapgit_exit=>ty_icm_sinfo2_tt,
+          li_exit TYPE REF TO zif_abapgit_exit.
+
+    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+    CALL FUNCTION 'ICM_GET_INFO2'
+      TABLES
+        servlist    = lt_list
+      EXCEPTIONS
+        icm_error   = 1
+        icm_timeout = 2
+        OTHERS      = 3.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    APPEND INITIAL LINE TO lt_list ASSIGNING <ls_list>.
+    <ls_list>-hostname = 'localhost'.
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_local_host( CHANGING ct_hosts = lt_list ).
+
+    FIND REGEX 'https?://([^/^:]*)' IN iv_url
+      SUBMATCHES lv_host.
+
+    READ TABLE lt_list WITH KEY hostname = lv_host TRANSPORTING NO FIELDS.
+    rv_bool = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   METHOD constructor.
     super->constructor( '^https?://(www\.)?github.com.*$' ).
@@ -33969,6 +34252,207 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
     rv_pkt = rv_pkt && '00' && lv_x && iv_string.
 
   ENDMETHOD.                    "pkt_string
+ENDCLASS.
+CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
+  METHOD branches.
+
+    DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
+    branch_list(
+      EXPORTING
+        iv_url         = iv_url
+        iv_service     = c_service-upload
+      IMPORTING
+        eo_client      = lo_client
+        eo_branch_list = ro_branch_list ).
+
+    lo_client->close( ).
+
+  ENDMETHOD.                    "branches
+  METHOD branch_list.
+
+    DATA: lv_data TYPE string.
+    eo_client = zcl_abapgit_http=>create_by_url(
+      iv_url     = iv_url
+      iv_service = iv_service ).
+
+    lv_data = eo_client->get_cdata( ).
+
+    CREATE OBJECT eo_branch_list
+      EXPORTING
+        iv_data = lv_data.
+
+  ENDMETHOD.                    "branch_list
+  METHOD find_branch.
+
+    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
+
+    branch_list(
+      EXPORTING
+        iv_url          = iv_url
+        iv_service      = iv_service
+      IMPORTING
+        eo_client       = eo_client
+        eo_branch_list  = lo_branch_list ).
+
+    IF ev_branch IS SUPPLIED.
+      ev_branch = lo_branch_list->find_by_name( iv_branch_name )-sha1.
+    ENDIF.
+
+  ENDMETHOD.                    "find_branch
+  METHOD parse.
+
+    CONSTANTS: lc_band1 TYPE x VALUE '01'.
+
+    DATA: lv_len      TYPE i,
+          lv_contents TYPE xstring,
+          lv_pack     TYPE xstring.
+    WHILE xstrlen( cv_data ) >= 4.
+      lv_len = zcl_abapgit_git_utils=>length_utf8_hex( cv_data ).
+
+      IF lv_len > xstrlen( cv_data ).
+        zcx_abapgit_exception=>raise( 'parse, string length too large' ).
+      ENDIF.
+
+      lv_contents = cv_data(lv_len).
+      IF lv_len = 0.
+        cv_data = cv_data+4.
+        CONTINUE.
+      ELSE.
+        cv_data = cv_data+lv_len.
+      ENDIF.
+
+      lv_contents = lv_contents+4.
+
+      IF xstrlen( lv_contents ) > 1 AND lv_contents(1) = lc_band1.
+        CONCATENATE lv_pack lv_contents+1 INTO lv_pack IN BYTE MODE.
+      ENDIF.
+
+    ENDWHILE.
+
+    ev_pack = lv_pack.
+
+  ENDMETHOD.                    "parse
+  METHOD receive_pack.
+
+    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
+          lv_cmd_pkt  TYPE string,
+          lv_line     TYPE string,
+          lv_tmp      TYPE xstring,
+          lv_xstring  TYPE xstring,
+          lv_string   TYPE string,
+          lv_cap_list TYPE string,
+          lv_buffer   TYPE string.
+    find_branch(
+      EXPORTING
+        iv_url         = iv_url
+        iv_service     = c_service-receive
+        iv_branch_name = iv_branch_name
+      IMPORTING
+        eo_client      = lo_client ).
+
+    lo_client->set_headers(
+      iv_url     = iv_url
+      iv_service = c_service-receive ).
+
+    lv_cap_list = 'report-status agent=' && zcl_abapgit_http=>get_agent( ) ##NO_TEXT.
+
+    lv_line = iv_old &&
+              ` ` &&
+              iv_new &&
+              ` ` &&
+              iv_branch_name &&
+              zcl_abapgit_git_utils=>get_null( ) &&
+              ` ` &&
+              lv_cap_list &&
+              zif_abapgit_definitions=>gc_newline.          "#EC NOTEXT
+    lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
+
+    lv_buffer = lv_cmd_pkt && '0000'.
+    lv_tmp = zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ).
+
+    CONCATENATE lv_tmp iv_pack INTO lv_xstring IN BYTE MODE.
+
+    lv_xstring = lo_client->send_receive_close( lv_xstring ).
+
+    lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_xstring ).
+    IF NOT lv_string CP '*unpack ok*'.
+      zcx_abapgit_exception=>raise( 'unpack not ok' ).
+    ELSEIF lv_string CP '*pre-receive hook declined*'.
+      zcx_abapgit_exception=>raise( 'pre-receive hook declined' ).
+    ELSEIF lv_string CP '*funny refname*'.
+      zcx_abapgit_exception=>raise( 'funny refname' ).
+    ELSEIF lv_string CP '*failed to update ref*'.
+      zcx_abapgit_exception=>raise( 'failed to update ref' ).
+    ENDIF.
+
+  ENDMETHOD.                    "receive_pack
+  METHOD upload_pack.
+
+    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
+          lv_buffer   TYPE string,
+          lv_xstring  TYPE xstring,
+          lv_line     TYPE string,
+          lv_pack     TYPE xstring,
+          lt_branches TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
+          lv_capa     TYPE string.
+
+    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
+    CLEAR et_objects.
+
+    find_branch(
+      EXPORTING
+        iv_url         = iv_url
+        iv_service     = c_service-upload
+        iv_branch_name = iv_branch_name
+      IMPORTING
+        eo_client      = lo_client
+        ev_branch      = ev_branch ).
+
+    IF it_branches IS INITIAL.
+      APPEND INITIAL LINE TO lt_branches ASSIGNING <ls_branch>.
+      <ls_branch>-sha1 = ev_branch.
+    ELSE.
+      lt_branches = it_branches.
+    ENDIF.
+
+    lo_client->set_headers( iv_url     = iv_url
+                            iv_service = c_service-upload ).
+
+    LOOP AT lt_branches FROM 1 ASSIGNING <ls_branch>.
+      IF sy-tabix = 1.
+        lv_capa = 'side-band-64k no-progress multi_ack agent='
+          && zcl_abapgit_http=>get_agent( ) ##NO_TEXT.
+        lv_line = 'want' && ` ` && <ls_branch>-sha1
+          && ` ` && lv_capa && zif_abapgit_definitions=>gc_newline. "#EC NOTEXT
+      ELSE.
+        lv_line = 'want' && ` ` && <ls_branch>-sha1
+          && zif_abapgit_definitions=>gc_newline.           "#EC NOTEXT
+      ENDIF.
+      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
+    ENDLOOP.
+
+    IF iv_deepen = abap_true.
+      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
+        && zif_abapgit_definitions=>gc_newline ).           "#EC NOTEXT
+    ENDIF.
+
+    lv_buffer = lv_buffer
+             && '0000'
+             && '0009done' && zif_abapgit_definitions=>gc_newline.
+
+    lv_xstring = lo_client->send_receive_close(
+      zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ) ).
+
+    parse( IMPORTING ev_pack = lv_pack
+           CHANGING cv_data = lv_xstring ).
+
+    IF lv_pack IS INITIAL.
+      zcx_abapgit_exception=>raise( 'empty pack' ).
+    ENDIF.
+
+    et_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
+
+  ENDMETHOD.                    "upload_pack
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
@@ -35028,15 +35512,6 @@ ENDCLASS.
 * add class ZCL_ABAPGIT_USER_EXIT implementing ZIF_ABAPGIT_EXIT in following include,
 * place the include in a different package than ZABAPGIT
 INCLUDE zabapgit_user_exit IF FOUND.
-
-****************************************************
-* abapmerge - ZABAPGIT_PROXY
-****************************************************
-*&---------------------------------------------------------------------*
-*& Include zabapgit_proxy
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
 ****************************************************
 * abapmerge - ZABAPGIT_REPO
 ****************************************************
@@ -35925,530 +36400,11 @@ CLASS lcl_stage_logic IMPLEMENTATION.
 ENDCLASS.
 
 ****************************************************
-* abapmerge - ZABAPGIT_2FA
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_2FA
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
-
-****************************************************
-* abapmerge - ZABAPGIT_HTTP
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_HTTP
-*&---------------------------------------------------------------------*
-
-CLASS lcl_http DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    CONSTANTS: BEGIN OF gc_scheme,
-                 digest TYPE string VALUE 'Digest',
-               END OF gc_scheme.
-
-    CLASS-METHODS:
-      get_agent
-        RETURNING VALUE(rv_agent) TYPE string,
-      create_by_url
-        IMPORTING iv_url           TYPE string
-                  iv_service       TYPE string
-        RETURNING VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      check_auth_requested
-        IMPORTING ii_client                TYPE REF TO if_http_client
-        RETURNING VALUE(rv_auth_requested) TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      is_local_system
-        IMPORTING iv_url         TYPE string
-        RETURNING VALUE(rv_bool) TYPE abap_bool,
-      acquire_login_details
-        IMPORTING ii_client        TYPE REF TO if_http_client
-                  io_client        TYPE REF TO zcl_abapgit_http_client
-                  iv_url           TYPE string
-        RETURNING VALUE(rv_scheme) TYPE string
-        RAISING   zcx_abapgit_exception.
-
-ENDCLASS.
-
-CLASS lcl_http IMPLEMENTATION.
-
-  METHOD get_agent.
-
-* bitbucket require agent prefix = "git/"
-    rv_agent = 'git/abapGit-' && zif_abapgit_definitions=>gc_abap_version.
-
-  ENDMETHOD.
-
-  METHOD create_by_url.
-
-    DATA: lv_uri                 TYPE string,
-          lv_scheme              TYPE string,
-          li_client              TYPE REF TO if_http_client,
-          lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config,
-          lv_text                TYPE string.
-    CREATE OBJECT lo_proxy_configuration.
-
-    cl_http_client=>create_by_url(
-      EXPORTING
-        url                = zcl_abapgit_url=>host( iv_url )
-        ssl_id             = 'ANONYM'
-        proxy_host         = lo_proxy_configuration->get_proxy_url( iv_url )
-        proxy_service      = lo_proxy_configuration->get_proxy_port( iv_url )
-      IMPORTING
-        client             = li_client
-      EXCEPTIONS
-        argument_not_found = 1
-        plugin_not_active  = 2
-        internal_error     = 3
-        OTHERS             = 4 ).
-    IF sy-subrc <> 0.
-      CASE sy-subrc.
-        WHEN 1.
-          " make sure:
-          " a) SSL is setup properly in STRUST
-          lv_text = 'HTTPS ARGUMENT_NOT_FOUND | STRUST/SSL Setup correct?'.
-        WHEN OTHERS.
-          lv_text = 'While creating HTTP Client'.           "#EC NOTEXT
-
-      ENDCASE.
-      zcx_abapgit_exception=>raise( lv_text ).
-    ENDIF.
-
-    IF lo_proxy_configuration->get_proxy_authentication( iv_url ) = abap_true.
-      zcl_abapgit_proxy_auth=>run( li_client ).
-    ENDIF.
-
-    CREATE OBJECT ro_client
-      EXPORTING
-        ii_client = li_client.
-
-    IF is_local_system( iv_url ) = abap_true.
-      li_client->send_sap_logon_ticket( ).
-    ENDIF.
-
-    li_client->request->set_cdata( '' ).
-    li_client->request->set_header_field(
-        name  = '~request_method'
-        value = 'GET' ).
-    li_client->request->set_header_field(
-        name  = 'user-agent'
-        value = get_agent( ) ).                             "#EC NOTEXT
-    lv_uri = zcl_abapgit_url=>path_name( iv_url ) &&
-             '/info/refs?service=git-' &&
-             iv_service &&
-             '-pack'.
-    li_client->request->set_header_field(
-        name  = '~request_uri'
-        value = lv_uri ).
-
-    " Disable internal auth dialog (due to its unclarity)
-    li_client->propertytype_logon_popup = if_http_client=>co_disabled.
-
-    zcl_abapgit_login_manager=>load( iv_uri    = iv_url
-                                     ii_client = li_client ).
-
-    ro_client->send_receive( ).
-    IF check_auth_requested( li_client ) = abap_true.
-      lv_scheme = acquire_login_details( ii_client = li_client
-                                         io_client = ro_client
-                                         iv_url    = iv_url ).
-      ro_client->send_receive( ).
-    ENDIF.
-    ro_client->check_http_200( ).
-
-    IF lv_scheme <> gc_scheme-digest.
-      zcl_abapgit_login_manager=>save( iv_uri    = iv_url
-                                       ii_client = li_client ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD is_local_system.
-
-    DATA: lv_host TYPE string,
-          lt_list TYPE zif_abapgit_exit=>ty_icm_sinfo2_tt,
-          li_exit TYPE REF TO zif_abapgit_exit.
-
-    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
-    CALL FUNCTION 'ICM_GET_INFO2'
-      TABLES
-        servlist    = lt_list
-      EXCEPTIONS
-        icm_error   = 1
-        icm_timeout = 2
-        OTHERS      = 3.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-
-    APPEND INITIAL LINE TO lt_list ASSIGNING <ls_list>.
-    <ls_list>-hostname = 'localhost'.
-
-    li_exit = zcl_abapgit_exit=>get_instance( ).
-    li_exit->change_local_host( CHANGING ct_hosts = lt_list ).
-
-    FIND REGEX 'https?://([^/^:]*)' IN iv_url
-      SUBMATCHES lv_host.
-
-    READ TABLE lt_list WITH KEY hostname = lv_host TRANSPORTING NO FIELDS.
-    rv_bool = boolc( sy-subrc = 0 ).
-
-  ENDMETHOD.
-
-  METHOD check_auth_requested.
-
-    DATA: lv_code TYPE i.
-
-    ii_client->response->get_status(
-      IMPORTING
-        code   = lv_code ).
-    IF lv_code = 401.
-      rv_auth_requested = abap_true.
-    ENDIF.
-
-  ENDMETHOD.  "check_auth_requested
-
-  METHOD acquire_login_details.
-
-    DATA: lv_default_user TYPE string,
-          lv_user         TYPE string,
-          lv_pass         TYPE string,
-          lo_digest       TYPE REF TO zcl_abapgit_http_digest.
-    lv_default_user = zcl_abapgit_persistence_user=>get_instance( )->get_repo_login( iv_url ).
-    lv_user         = lv_default_user.
-
-    zcl_abapgit_password_dialog=>popup(
-      EXPORTING
-        iv_repo_url     = iv_url
-      CHANGING
-        cv_user         = lv_user
-        cv_pass         = lv_pass ).
-
-    IF lv_user IS INITIAL.
-      zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
-    ENDIF.
-
-    IF lv_user <> lv_default_user.
-      zcl_abapgit_persistence_user=>get_instance( )->set_repo_login(
-        iv_url   = iv_url
-        iv_login = lv_user ).
-    ENDIF.
-
-    " Offer two factor authentication if it is available and required
-    zcl_abapgit_2fa_auth_registry=>use_2fa_if_required(
-      EXPORTING
-        iv_url      = iv_url
-      CHANGING
-        cv_username = lv_user
-        cv_password = lv_pass ).
-
-    rv_scheme = ii_client->response->get_header_field( 'www-authenticate' ).
-    FIND REGEX '^(\w+)' IN rv_scheme SUBMATCHES rv_scheme.
-
-    CASE rv_scheme.
-      WHEN gc_scheme-digest.
-* https://en.wikipedia.org/wiki/Digest_access_authentication
-* e.g. used by https://www.gerritcodereview.com/
-        CREATE OBJECT lo_digest
-          EXPORTING
-            ii_client   = ii_client
-            iv_username = lv_user
-            iv_password = lv_pass.
-        lo_digest->run( ii_client ).
-        io_client->set_digest( lo_digest ).
-      WHEN OTHERS.
-* https://en.wikipedia.org/wiki/Basic_access_authentication
-        ii_client->authenticate(
-          username = lv_user
-          password = lv_pass ).
-    ENDCASE.
-
-  ENDMETHOD.  "acquire_login_details
-
-ENDCLASS.
-
-****************************************************
 * abapmerge - ZABAPGIT_GIT
 ****************************************************
 *&---------------------------------------------------------------------*
 *&  Include           ZABAPGIT_GIT
 *&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_transport DEFINITION
-*----------------------------------------------------------------------*
-
-CLASS lcl_git_transport DEFINITION FINAL.
-  PUBLIC SECTION.
-
-* remote to local
-    CLASS-METHODS upload_pack
-      IMPORTING io_repo     TYPE REF TO lcl_repo_online
-                iv_deepen   TYPE abap_bool DEFAULT abap_true
-                it_branches TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt OPTIONAL
-      EXPORTING et_objects  TYPE zif_abapgit_definitions=>ty_objects_tt
-                ev_branch   TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-* local to remote
-    CLASS-METHODS receive_pack
-      IMPORTING iv_url         TYPE string
-                iv_old         TYPE zif_abapgit_definitions=>ty_sha1
-                iv_new         TYPE zif_abapgit_definitions=>ty_sha1
-                iv_branch_name TYPE string
-                iv_pack        TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS branches
-      IMPORTING iv_url                TYPE string
-      RETURNING VALUE(ro_branch_list) TYPE REF TO zcl_abapgit_git_branch_list
-      RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    CONSTANTS: BEGIN OF c_service,
-                 receive TYPE string VALUE 'receive',       "#EC NOTEXT
-                 upload  TYPE string VALUE 'upload',        "#EC NOTEXT
-               END OF c_service.
-
-    CLASS-METHODS branch_list
-      IMPORTING iv_url         TYPE string
-                iv_service     TYPE string
-      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
-                eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS find_branch
-      IMPORTING iv_url         TYPE string
-                iv_service     TYPE string
-                iv_branch_name TYPE string
-      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
-                ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS parse
-      EXPORTING ev_pack TYPE xstring
-      CHANGING  cv_data TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_transport DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_transport IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_git_transport IMPLEMENTATION.
-
-  METHOD find_branch.
-
-    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
-
-    branch_list(
-      EXPORTING
-        iv_url          = iv_url
-        iv_service      = iv_service
-      IMPORTING
-        eo_client       = eo_client
-        eo_branch_list  = lo_branch_list ).
-
-    IF ev_branch IS SUPPLIED.
-      ev_branch = lo_branch_list->find_by_name( iv_branch_name )-sha1.
-    ENDIF.
-
-  ENDMETHOD.                    "find_branch
-
-  METHOD branches.
-
-    DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
-    lcl_git_transport=>branch_list(
-      EXPORTING
-        iv_url         = iv_url
-        iv_service     = c_service-upload
-      IMPORTING
-        eo_client      = lo_client
-        eo_branch_list = ro_branch_list ).
-
-    lo_client->close( ).
-
-  ENDMETHOD.                    "branches
-
-  METHOD branch_list.
-
-    DATA: lv_data TYPE string.
-    eo_client = lcl_http=>create_by_url(
-      iv_url     = iv_url
-      iv_service = iv_service ).
-
-    lv_data = eo_client->get_cdata( ).
-
-    CREATE OBJECT eo_branch_list
-      EXPORTING
-        iv_data = lv_data.
-
-  ENDMETHOD.                    "branch_list
-
-  METHOD receive_pack.
-
-    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
-          lv_cmd_pkt  TYPE string,
-          lv_line     TYPE string,
-          lv_tmp      TYPE xstring,
-          lv_xstring  TYPE xstring,
-          lv_string   TYPE string,
-          lv_cap_list TYPE string,
-          lv_buffer   TYPE string.
-    find_branch(
-      EXPORTING
-        iv_url         = iv_url
-        iv_service     = c_service-receive
-        iv_branch_name = iv_branch_name
-      IMPORTING
-        eo_client      = lo_client ).
-
-    lo_client->set_headers(
-      iv_url     = iv_url
-      iv_service = c_service-receive ).
-
-    lv_cap_list = 'report-status agent=' && lcl_http=>get_agent( ) ##NO_TEXT.
-
-    lv_line = iv_old &&
-              ` ` &&
-              iv_new &&
-              ` ` &&
-              iv_branch_name &&
-              zcl_abapgit_git_utils=>get_null( ) &&
-              ` ` &&
-              lv_cap_list &&
-              zif_abapgit_definitions=>gc_newline.          "#EC NOTEXT
-    lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
-
-    lv_buffer = lv_cmd_pkt && '0000'.
-    lv_tmp = zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ).
-
-    CONCATENATE lv_tmp iv_pack INTO lv_xstring IN BYTE MODE.
-
-    lv_xstring = lo_client->send_receive_close( lv_xstring ).
-
-    lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_xstring ).
-    IF NOT lv_string CP '*unpack ok*'.
-      zcx_abapgit_exception=>raise( 'unpack not ok' ).
-    ELSEIF lv_string CP '*pre-receive hook declined*'.
-      zcx_abapgit_exception=>raise( 'pre-receive hook declined' ).
-    ELSEIF lv_string CP '*funny refname*'.
-      zcx_abapgit_exception=>raise( 'funny refname' ).
-    ELSEIF lv_string CP '*failed to update ref*'.
-      zcx_abapgit_exception=>raise( 'failed to update ref' ).
-    ENDIF.
-
-  ENDMETHOD.                    "receive_pack
-
-  METHOD parse.
-
-    CONSTANTS: lc_band1 TYPE x VALUE '01'.
-
-    DATA: lv_len      TYPE i,
-          lv_contents TYPE xstring,
-          lv_pack     TYPE xstring.
-    WHILE xstrlen( cv_data ) >= 4.
-      lv_len = zcl_abapgit_git_utils=>length_utf8_hex( cv_data ).
-
-      IF lv_len > xstrlen( cv_data ).
-        zcx_abapgit_exception=>raise( 'parse, string length too large' ).
-      ENDIF.
-
-      lv_contents = cv_data(lv_len).
-      IF lv_len = 0.
-        cv_data = cv_data+4.
-        CONTINUE.
-      ELSE.
-        cv_data = cv_data+lv_len.
-      ENDIF.
-
-      lv_contents = lv_contents+4.
-
-      IF xstrlen( lv_contents ) > 1 AND lv_contents(1) = lc_band1.
-        CONCATENATE lv_pack lv_contents+1 INTO lv_pack IN BYTE MODE.
-      ENDIF.
-
-    ENDWHILE.
-
-    ev_pack = lv_pack.
-
-  ENDMETHOD.                    "parse
-
-  METHOD upload_pack.
-
-    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
-          lv_buffer   TYPE string,
-          lv_xstring  TYPE xstring,
-          lv_line     TYPE string,
-          lv_pack     TYPE xstring,
-          lt_branches TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
-          lv_capa     TYPE string.
-
-    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
-    CLEAR et_objects.
-
-    find_branch(
-      EXPORTING
-        iv_url         = io_repo->get_url( )
-        iv_service     = c_service-upload
-        iv_branch_name = io_repo->get_branch_name( )
-      IMPORTING
-        eo_client      = lo_client
-        ev_branch      = ev_branch ).
-
-    IF it_branches IS INITIAL.
-      APPEND INITIAL LINE TO lt_branches ASSIGNING <ls_branch>.
-      <ls_branch>-sha1 = ev_branch.
-    ELSE.
-      lt_branches = it_branches.
-    ENDIF.
-
-    lo_client->set_headers( iv_url     = io_repo->get_url( )
-                            iv_service = c_service-upload ).
-
-    LOOP AT lt_branches FROM 1 ASSIGNING <ls_branch>.
-      IF sy-tabix = 1.
-        lv_capa = 'side-band-64k no-progress multi_ack agent='
-          && lcl_http=>get_agent( ) ##NO_TEXT.
-        lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && ` ` && lv_capa && zif_abapgit_definitions=>gc_newline. "#EC NOTEXT
-      ELSE.
-        lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && zif_abapgit_definitions=>gc_newline.           "#EC NOTEXT
-      ENDIF.
-      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
-    ENDLOOP.
-
-    IF iv_deepen = abap_true.
-      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
-        && zif_abapgit_definitions=>gc_newline ).           "#EC NOTEXT
-    ENDIF.
-
-    lv_buffer = lv_buffer
-             && '0000'
-             && '0009done' && zif_abapgit_definitions=>gc_newline.
-
-    lv_xstring = lo_client->send_receive_close(
-      zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ) ).
-
-    parse( IMPORTING ev_pack = lv_pack
-           CHANGING cv_data = lv_xstring ).
-
-    IF lv_pack IS INITIAL.
-      zcx_abapgit_exception=>raise( 'empty pack' ).
-    ENDIF.
-
-    et_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
-
-  ENDMETHOD.                    "upload_pack
-
-ENDCLASS.                    "lcl_transport IMPLEMENTATION
 
 CLASS ltcl_git_porcelain DEFINITION DEFERRED.
 
@@ -36654,7 +36610,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
       iv_type = zif_abapgit_definitions=>gc_type-commit
       iv_data = lv_commit ).
 
-    lcl_git_transport=>receive_pack(
+    zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = io_stage->get_branch_sha1( )
       iv_new         = rv_branch
@@ -36680,7 +36636,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
     lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
-    lcl_git_transport=>receive_pack(
+    zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = is_branch-sha1
       iv_new         = c_zero
@@ -36697,7 +36653,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
     lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
-    lcl_git_transport=>receive_pack(
+    zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = is_tag-sha1
       iv_new         = c_zero
@@ -36719,7 +36675,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
     lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
-    lcl_git_transport=>receive_pack(
+    zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = c_zero
       iv_new         = iv_from
@@ -36741,7 +36697,7 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
     lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
-    lcl_git_transport=>receive_pack(
+    zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = c_zero
       iv_new         = iv_from
@@ -36774,9 +36730,13 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
       <ls_branch>-name = io_stage->get_branch_name( ).
       <ls_branch>-sha1 = io_stage->get_branch_sha1( ).
 
-      lcl_git_transport=>upload_pack( EXPORTING io_repo     = io_repo
-                                                it_branches = lt_branches
-                                      IMPORTING et_objects  = lt_objects ).
+      zcl_abapgit_git_transport=>upload_pack(
+        EXPORTING
+          iv_url         = io_repo->get_url( )
+          iv_branch_name = io_repo->get_branch_name( )
+          it_branches    = lt_branches
+        IMPORTING
+          et_objects     = lt_objects ).
     ENDIF.
 
     lt_expanded = full_tree( it_objects = lt_objects
@@ -36897,9 +36857,13 @@ CLASS lcl_git_porcelain IMPLEMENTATION.
     CLEAR et_objects.
     CLEAR ev_branch.
 
-    lcl_git_transport=>upload_pack( EXPORTING io_repo = io_repo
-                                    IMPORTING et_objects = et_objects
-                                              ev_branch = ev_branch ).
+    zcl_abapgit_git_transport=>upload_pack(
+      EXPORTING
+        iv_url         = io_repo->get_url( )
+        iv_branch_name = io_repo->get_branch_name( )
+      IMPORTING
+        et_objects     = et_objects
+        ev_branch      = ev_branch ).
 
     READ TABLE et_objects INTO ls_object WITH KEY sha1 = ev_branch type = zif_abapgit_definitions=>gc_type-commit.
     IF sy-subrc <> 0.
@@ -38506,7 +38470,7 @@ CLASS lcl_popups IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_sel>    LIKE LINE OF lt_selection,
                    <ls_branch> LIKE LINE OF lt_branches.
-    lo_branches    = lcl_git_transport=>branches( iv_url ).
+    lo_branches    = zcl_abapgit_git_transport=>branches( iv_url ).
     lt_branches    = lo_branches->get_branches_only( ).
     lv_head_suffix = | ({ zcl_abapgit_git_branch_list=>c_head_name })|.
     lv_head_symref = lo_branches->get_head_symref( ).
@@ -38612,7 +38576,7 @@ CLASS lcl_popups IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
                    <ls_tag> LIKE LINE OF lt_tags.
 
-    lo_branches = lcl_git_transport=>branches( iv_url ).
+    lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
     lt_tags     = lo_branches->get_tags_only( ).
 
     IF lines( lt_tags ) = 0.
@@ -40416,14 +40380,6 @@ CLASS lcl_objects IMPLEMENTATION.
 
 ENDCLASS.                    "lcl_objects IMPLEMENTATION
 ****************************************************
-* abapmerge - ZABAPGIT_SKIP_OBJECTS
-****************************************************
-*&---------------------------------------------------------------------*
-*& Include zabapgit_skip_objects
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
-****************************************************
 * abapmerge - ZABAPGIT_REPO_IMPL
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -40526,7 +40482,7 @@ CLASS lcl_repo_online IMPLEMENTATION.
 
     ENDTRY.
 
-    mo_branches = lcl_git_transport=>branches( get_url( ) ).
+    mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
     actualize_head_branch( ).
 
     mv_initialized = abap_true.
@@ -40575,7 +40531,7 @@ CLASS lcl_repo_online IMPLEMENTATION.
 
   METHOD get_branches.
     IF mo_branches IS NOT BOUND.
-      mo_branches = lcl_git_transport=>branches( get_url( ) ).
+      mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
     ENDIF.
     ro_branches = mo_branches.
   ENDMETHOD.                    "get_branches
@@ -43034,15 +42990,6 @@ CLASS lcl_services_bkg IMPLEMENTATION.
 
 ENDCLASS. "lcl_services_background
 ****************************************************
-* abapmerge - ZABAPGIT_GUI_ASSET_MANAGER
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_GUI_ASSET_MANAGER
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
-
-****************************************************
 * abapmerge - ZABAPGIT_GUI_PAGES
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -43357,15 +43304,6 @@ CLASS lcl_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD. "render_news
 
 ENDCLASS. "lcl_gui_chunk_lib
-
-****************************************************
-* abapmerge - ZABAPGIT_PAGE
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_PAGE
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
 * Utils and helpers
 ****************************************************
 * abapmerge - ZABAPGIT_REPO_BROWSER_UTIL
@@ -44861,7 +44799,7 @@ CLASS lcl_merge IMPLEMENTATION.
     DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
           lt_upload      TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt.
 
-    lo_branch_list  = lcl_git_transport=>branches( gs_merge-repo->get_url( ) ).
+    lo_branch_list  = zcl_abapgit_git_transport=>branches( gs_merge-repo->get_url( ) ).
     gs_merge-source = lo_branch_list->find_by_name(
       zcl_abapgit_git_branch_list=>complete_heads_branch_name( iv_source ) ).
     gs_merge-target = lo_branch_list->find_by_name(
@@ -44870,10 +44808,14 @@ CLASS lcl_merge IMPLEMENTATION.
     APPEND gs_merge-source TO lt_upload.
     APPEND gs_merge-target TO lt_upload.
 
-    lcl_git_transport=>upload_pack( EXPORTING io_repo     = gs_merge-repo
-                                              iv_deepen   = abap_false
-                                              it_branches = lt_upload
-                                    IMPORTING et_objects  = gt_objects ).
+    zcl_abapgit_git_transport=>upload_pack(
+      EXPORTING
+        iv_url         = gs_merge-repo->get_url( )
+        iv_branch_name = gs_merge-repo->get_branch_name( )
+        iv_deepen      = abap_false
+        it_branches    = lt_upload
+      IMPORTING
+        et_objects     = gt_objects ).
 
   ENDMETHOD.
 
@@ -45465,15 +45407,19 @@ CLASS lcl_branch_overview IMPLEMENTATION.
 
     "TODO refactor
 
-    lo_branch_list = lcl_git_transport=>branches( io_repo->get_url( ) ).
+    lo_branch_list = zcl_abapgit_git_transport=>branches( io_repo->get_url( ) ).
 
     gt_branches = lo_branch_list->get_branches_only( ).
     gt_tags = lo_branch_list->get_tags_only( ).
 
-    lcl_git_transport=>upload_pack( EXPORTING io_repo     = io_repo
-                                              iv_deepen   = abap_false
-                                              it_branches = gt_branches
-                                    IMPORTING et_objects  = rt_objects ).
+    zcl_abapgit_git_transport=>upload_pack(
+      EXPORTING
+        iv_url         = io_repo->get_url( )
+        iv_branch_name = io_repo->get_branch_name( )
+        iv_deepen      = abap_false
+        it_branches    = gt_branches
+      IMPORTING
+        et_objects     = rt_objects ).
 
     DELETE rt_objects WHERE type = zif_abapgit_definitions=>gc_type-blob.
 
@@ -51436,15 +51382,6 @@ ENDCLASS.
 *      exp = ls_expected_delete_key ).
 *  ENDMETHOD.
 *ENDCLASS.
-
-****************************************************
-* abapmerge - ZABAPGIT_UNIT_TEST_TRANSPORT
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_UNIT_TEST_TRANSPORT
-*&---------------------------------------------------------------------*
-
-* todo, include to be deleted
 ****************************************************
 * abapmerge - ZABAPGIT_MIGRATIONS
 ****************************************************
@@ -51771,5 +51708,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T12:49:40.440Z
+* abapmerge - 2018-02-11T13:10:11.046Z
 ****************************************************
