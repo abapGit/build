@@ -109,10 +109,13 @@ CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
+CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
@@ -5184,6 +5187,38 @@ CLASS zcl_abapgit_folder_logic DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING ii_client TYPE REF TO if_http_client,
+      close,
+      set_digest
+        IMPORTING io_digest TYPE REF TO zcl_abapgit_http_digest,
+      send_receive_close
+        IMPORTING
+                  iv_data        TYPE xstring
+        RETURNING
+                  VALUE(rv_data) TYPE xstring
+        RAISING   zcx_abapgit_exception,
+      get_cdata
+        RETURNING VALUE(rv_value) TYPE string,
+      check_http_200
+        RAISING zcx_abapgit_exception,
+      send_receive
+        RAISING zcx_abapgit_exception,
+      set_headers
+        IMPORTING iv_url     TYPE string
+                  iv_service TYPE string
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA: mi_client TYPE REF TO if_http_client,
+          mo_digest TYPE REF TO zcl_abapgit_http_digest.
+
+ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -5300,6 +5335,25 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
              commitmsg_body_size      TYPE i,
            END OF ty_s_settings.
     DATA: ms_settings TYPE ty_s_settings.
+
+ENDCLASS.
+CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      skip_sadl_generated_objects
+        IMPORTING
+          it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
+          io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
+        RETURNING
+          VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
+  PRIVATE SECTION.
+    METHODS:
+      has_sadl_superclass
+        IMPORTING
+          is_class         TYPE zif_abapgit_definitions=>ty_tadir
+        RETURNING
+          VALUE(rv_return) TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_stage DEFINITION
@@ -5422,6 +5476,26 @@ CLASS zcl_abapgit_syntax_check DEFINITION
       RETURNING
         VALUE(rt_list) TYPE scit_alvlist .
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_transport_objects DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !it_transport_objects TYPE scts_tadir .
+    METHODS to_stage
+      IMPORTING
+        !io_stage           TYPE REF TO zcl_abapgit_stage
+        !is_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+    DATA mt_transport_objects TYPE scts_tadir.
+
 ENDCLASS.
 CLASS zcl_abapgit_zlib DEFINITION
   CREATE PUBLIC .
@@ -6046,6 +6120,61 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
   ENDMETHOD.                    "read_pair
 ENDCLASS.
+CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
+  METHOD constructor.
+    mt_transport_objects = it_transport_objects.
+  ENDMETHOD.
+  METHOD to_stage.
+    DATA: ls_transport_object TYPE tadir,
+          ls_local_file       TYPE zif_abapgit_definitions=>ty_file_item,
+          ls_object_status    TYPE zif_abapgit_definitions=>ty_result.
+
+    LOOP AT mt_transport_objects INTO ls_transport_object.
+      LOOP AT it_object_statuses INTO ls_object_status
+          WHERE obj_name = ls_transport_object-obj_name
+          AND obj_type = ls_transport_object-object
+          AND NOT lstate IS INITIAL.
+
+        CASE ls_object_status-lstate.
+          WHEN zif_abapgit_definitions=>gc_state-added OR zif_abapgit_definitions=>gc_state-modified.
+            IF ls_transport_object-delflag = abap_true.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+              } should be added/modified, but has deletion flag in transport| ).
+            ENDIF.
+
+            READ TABLE is_stage_objects-local
+                  INTO ls_local_file
+              WITH KEY item-obj_name = ls_transport_object-obj_name
+                       item-obj_type = ls_transport_object-object
+                       file-filename = ls_object_status-filename.
+            IF sy-subrc <> 0.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+              } not found in the local repository files| ).
+            ENDIF.
+
+            io_stage->add(
+              iv_path     = ls_local_file-file-path
+              iv_filename = ls_local_file-file-filename
+              iv_data     = ls_local_file-file-data ).
+          WHEN zif_abapgit_definitions=>gc_state-deleted.
+            IF ls_transport_object-delflag = abap_false.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+              } should be removed, but has NO deletion flag in transport| ).
+            ENDIF.
+            io_stage->rm(
+              iv_path     = ls_object_status-path
+              iv_filename = ls_object_status-filename ).
+          WHEN OTHERS.
+            ASSERT 0 = 1. "Unexpected state
+        ENDCASE.
+      ENDLOOP.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+        } not found in the local repository files| ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   METHOD create_inspection.
 
@@ -6255,6 +6384,46 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
             iv_filename = iv_filename
             iv_method   = c_method-rm ).
   ENDMETHOD.        "rm
+ENDCLASS.
+CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
+  METHOD has_sadl_superclass.
+    DATA: lo_oo_functions TYPE REF TO zif_abapgit_oo_object_fnc,
+          lv_class_name   TYPE seoclsname,
+          lv_superclass   TYPE seoclsname.
+
+    lo_oo_functions = zcl_abapgit_oo_factory=>make( is_class-object ).
+    lv_class_name = is_class-obj_name.
+    lv_superclass = lo_oo_functions->read_superclass( lv_class_name ).
+    IF lv_superclass = 'CL_SADL_GTK_EXPOSURE_MPC'.
+      rv_return = abap_true.
+    ENDIF.
+  ENDMETHOD.
+  METHOD skip_sadl_generated_objects.
+    DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
+          ls_tadir           LIKE LINE OF rt_tadir,
+          lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    rt_tadir = it_tadir.
+    LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
+      LOOP AT rt_tadir INTO ls_tadir_class
+       WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
+
+        IF has_sadl_superclass( ls_tadir_class ) = abap_true.
+          APPEND ls_tadir_class TO lt_lines_to_delete.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
+    LOOP AT lt_lines_to_delete INTO ls_tadir_class.
+      DELETE TABLE rt_tadir FROM ls_tadir_class.
+      IF io_log IS BOUND.
+        io_log->add(
+          iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
+          iv_type = 'W' ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
@@ -6559,6 +6728,120 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
+  METHOD check_http_200.
+
+    DATA: lv_code TYPE i,
+          lv_text TYPE string.
+    mi_client->response->get_status(
+      IMPORTING
+        code   = lv_code ).
+    CASE lv_code.
+      WHEN 200.
+        RETURN.
+      WHEN 302.
+        zcx_abapgit_exception=>raise( 'HTTP redirect, check URL' ).
+      WHEN 401.
+        zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
+      WHEN 403.
+        zcx_abapgit_exception=>raise( 'HTTP 403, forbidden' ).
+      WHEN 404.
+        zcx_abapgit_exception=>raise( 'HTTP 404, not found' ).
+      WHEN 415.
+        zcx_abapgit_exception=>raise( 'HTTP 415, unsupported media type' ).
+      WHEN OTHERS.
+        lv_text = mi_client->response->get_cdata( ).
+        zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
+    ENDCASE.
+
+  ENDMETHOD.                                                "http_200
+  METHOD close.
+    mi_client->close( ).
+  ENDMETHOD.
+  METHOD constructor.
+    mi_client = ii_client.
+  ENDMETHOD.
+  METHOD get_cdata.
+    rv_value = mi_client->response->get_cdata( ).
+  ENDMETHOD.
+  METHOD send_receive.
+
+    DATA: lv_text    TYPE string,
+          lv_code    TYPE i,
+          lv_message TYPE string.
+
+    mi_client->send( ).
+    mi_client->receive(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        http_processing_failed     = 3
+        OTHERS                     = 4 ).
+
+    IF sy-subrc <> 0.
+      " in case of HTTP_COMMUNICATION_FAILURE
+      " make sure:
+      " a) SSL is setup properly in STRUST
+      " b) no firewalls
+      " check trace file in transaction SMICM
+
+      mi_client->get_last_error(
+        IMPORTING
+          code    = lv_code
+          message = lv_message ).
+
+      lv_text = |HTTP error { lv_code } occured: { lv_message }|.
+
+      zcx_abapgit_exception=>raise( lv_text ).
+    ENDIF.
+
+  ENDMETHOD.  "send_receive
+  METHOD send_receive_close.
+
+* do not use set_cdata as it modifies the Content-Type header field
+    mi_client->request->set_data( iv_data ).
+    send_receive( ).
+    check_http_200( ).
+    rv_data = mi_client->response->get_data( ).
+    mi_client->close( ).
+
+  ENDMETHOD.
+  METHOD set_digest.
+    mo_digest = io_digest.
+  ENDMETHOD.
+  METHOD set_headers.
+
+    DATA: lv_value TYPE string.
+    mi_client->request->set_header_field(
+        name  = '~request_method'
+        value = 'POST' ).
+
+    lv_value = zcl_abapgit_url=>path_name( iv_url ) &&
+      '/git-' &&
+      iv_service &&
+      '-pack'.
+    mi_client->request->set_header_field(
+        name  = '~request_uri'
+        value = lv_value ).
+
+    lv_value = 'application/x-git-'
+                  && iv_service && '-pack-request'.         "#EC NOTEXT
+    mi_client->request->set_header_field(
+        name  = 'Content-Type'
+        value = lv_value ).                                 "#EC NOTEXT
+
+    lv_value = 'application/x-git-'
+                  && iv_service && '-pack-result'.          "#EC NOTEXT
+    mi_client->request->set_header_field(
+        name  = 'Accept'
+        value = lv_value ).                                 "#EC NOTEXT
+
+    IF mo_digest IS BOUND.
+      mo_digest->run( mi_client ).
+    ENDIF.
+
+  ENDMETHOD.                    "set_headers
 ENDCLASS.
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   METHOD package_to_path.
@@ -15295,10 +15578,21 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_where_used.
 
-    DATA: lv_class   LIKE LINE OF gt_classes,
-          lo_cross   TYPE REF TO cl_wb_crossreference,
-          lv_include TYPE programm.
+    DATA: lv_class    LIKE LINE OF gt_classes,
+          lo_cross    TYPE REF TO cl_wb_crossreference,
+          lv_include  TYPE programm,
+          lo_progress TYPE REF TO zcl_abapgit_progress.
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( gt_classes ).
+
     LOOP AT gt_classes INTO lv_class.
+      IF sy-tabix MOD 20 = 0.
+        lo_progress->show(
+          iv_current = sy-tabix
+          iv_text    = 'Updating where-used lists' ).
+      ENDIF.
+
       lv_include = cl_oo_classname_service=>get_classpool_name( lv_class ).
 
       CREATE OBJECT lo_cross
@@ -35526,163 +35820,6 @@ CLASS lcl_proxy_auth IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_http_client DEFINITION FINAL.
-
-  PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING ii_client TYPE REF TO if_http_client,
-      close,
-      set_digest
-        IMPORTING io_digest TYPE REF TO zcl_abapgit_http_digest,
-      send_receive_close
-        IMPORTING
-                  iv_data        TYPE xstring
-        RETURNING
-                  VALUE(rv_data) TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      get_cdata
-        RETURNING VALUE(rv_value) TYPE string,
-      check_http_200
-        RAISING zcx_abapgit_exception,
-      send_receive
-        RAISING zcx_abapgit_exception,
-      set_headers
-        IMPORTING iv_url     TYPE string
-                  iv_service TYPE string
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    DATA: mi_client TYPE REF TO if_http_client,
-          mo_digest TYPE REF TO zcl_abapgit_http_digest.
-
-ENDCLASS.
-
-CLASS lcl_http_client IMPLEMENTATION.
-
-  METHOD constructor.
-    mi_client = ii_client.
-  ENDMETHOD.
-
-  METHOD set_digest.
-    mo_digest = io_digest.
-  ENDMETHOD.
-
-  METHOD send_receive_close.
-
-* do not use set_cdata as it modifies the Content-Type header field
-    mi_client->request->set_data( iv_data ).
-    send_receive( ).
-    check_http_200( ).
-    rv_data = mi_client->response->get_data( ).
-    mi_client->close( ).
-
-  ENDMETHOD.
-
-  METHOD get_cdata.
-    rv_value = mi_client->response->get_cdata( ).
-  ENDMETHOD.
-
-  METHOD close.
-    mi_client->close( ).
-  ENDMETHOD.
-
-  METHOD set_headers.
-
-    DATA: lv_value TYPE string.
-    mi_client->request->set_header_field(
-        name  = '~request_method'
-        value = 'POST' ).
-
-    lv_value = zcl_abapgit_url=>path_name( iv_url ) &&
-      '/git-' &&
-      iv_service &&
-      '-pack'.
-    mi_client->request->set_header_field(
-        name  = '~request_uri'
-        value = lv_value ).
-
-    lv_value = 'application/x-git-'
-                  && iv_service && '-pack-request'.         "#EC NOTEXT
-    mi_client->request->set_header_field(
-        name  = 'Content-Type'
-        value = lv_value ).                                 "#EC NOTEXT
-
-    lv_value = 'application/x-git-'
-                  && iv_service && '-pack-result'.          "#EC NOTEXT
-    mi_client->request->set_header_field(
-        name  = 'Accept'
-        value = lv_value ).                                 "#EC NOTEXT
-
-    IF mo_digest IS BOUND.
-      mo_digest->run( mi_client ).
-    ENDIF.
-
-  ENDMETHOD.                    "set_headers
-
-  METHOD send_receive.
-
-    DATA: lv_text    TYPE string,
-          lv_code    TYPE i,
-          lv_message TYPE string.
-
-    mi_client->send( ).
-    mi_client->receive(
-      EXCEPTIONS
-        http_communication_failure = 1
-        http_invalid_state         = 2
-        http_processing_failed     = 3
-        OTHERS                     = 4 ).
-
-    IF sy-subrc <> 0.
-      " in case of HTTP_COMMUNICATION_FAILURE
-      " make sure:
-      " a) SSL is setup properly in STRUST
-      " b) no firewalls
-      " check trace file in transaction SMICM
-
-      mi_client->get_last_error(
-        IMPORTING
-          code    = lv_code
-          message = lv_message ).
-
-      lv_text = |HTTP error { lv_code } occured: { lv_message }|.
-
-      zcx_abapgit_exception=>raise( lv_text ).
-    ENDIF.
-
-  ENDMETHOD.  "send_receive
-
-  METHOD check_http_200.
-
-    DATA: lv_code TYPE i,
-          lv_text TYPE string.
-    mi_client->response->get_status(
-      IMPORTING
-        code   = lv_code ).
-    CASE lv_code.
-      WHEN 200.
-        RETURN.
-      WHEN 302.
-        zcx_abapgit_exception=>raise( 'HTTP redirect, check URL' ).
-      WHEN 401.
-        zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
-      WHEN 403.
-        zcx_abapgit_exception=>raise( 'HTTP 403, forbidden' ).
-      WHEN 404.
-        zcx_abapgit_exception=>raise( 'HTTP 404, not found' ).
-      WHEN 415.
-        zcx_abapgit_exception=>raise( 'HTTP 415, unsupported media type' ).
-      WHEN OTHERS.
-        lv_text = mi_client->response->get_cdata( ).
-        zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
-    ENDCASE.
-
-  ENDMETHOD.                                                "http_200
-
-ENDCLASS.
-
 CLASS lcl_http DEFINITION FINAL.
 
   PUBLIC SECTION.
@@ -35696,7 +35833,7 @@ CLASS lcl_http DEFINITION FINAL.
       create_by_url
         IMPORTING iv_url           TYPE string
                   iv_service       TYPE string
-        RETURNING VALUE(ro_client) TYPE REF TO lcl_http_client
+        RETURNING VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
         RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
@@ -35710,7 +35847,7 @@ CLASS lcl_http DEFINITION FINAL.
         RETURNING VALUE(rv_bool) TYPE abap_bool,
       acquire_login_details
         IMPORTING ii_client        TYPE REF TO if_http_client
-                  io_client        TYPE REF TO lcl_http_client
+                  io_client        TYPE REF TO zcl_abapgit_http_client
                   iv_url           TYPE string
         RETURNING VALUE(rv_scheme) TYPE string
         RAISING   zcx_abapgit_exception.
@@ -35961,7 +36098,7 @@ CLASS lcl_git_transport DEFINITION FINAL.
     CLASS-METHODS branch_list
       IMPORTING iv_url         TYPE string
                 iv_service     TYPE string
-      EXPORTING eo_client      TYPE REF TO lcl_http_client
+      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
                 eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING   zcx_abapgit_exception.
 
@@ -35969,7 +36106,7 @@ CLASS lcl_git_transport DEFINITION FINAL.
       IMPORTING iv_url         TYPE string
                 iv_service     TYPE string
                 iv_branch_name TYPE string
-      EXPORTING eo_client      TYPE REF TO lcl_http_client
+      EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
                 ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
       RAISING   zcx_abapgit_exception.
 
@@ -36007,7 +36144,7 @@ CLASS lcl_git_transport IMPLEMENTATION.
 
   METHOD branches.
 
-    DATA: lo_client TYPE REF TO lcl_http_client.
+    DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
     lcl_git_transport=>branch_list(
       EXPORTING
         iv_url         = iv_url
@@ -36037,7 +36174,7 @@ CLASS lcl_git_transport IMPLEMENTATION.
 
   METHOD receive_pack.
 
-    DATA: lo_client   TYPE REF TO lcl_http_client,
+    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
           lv_cmd_pkt  TYPE string,
           lv_line     TYPE string,
           lv_tmp      TYPE xstring,
@@ -36126,7 +36263,7 @@ CLASS lcl_git_transport IMPLEMENTATION.
 
   METHOD upload_pack.
 
-    DATA: lo_client   TYPE REF TO lcl_http_client,
+    DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
           lv_buffer   TYPE string,
           lv_xstring  TYPE xstring,
           lv_line     TYPE string,
@@ -36802,84 +36939,6 @@ ENDCLASS.                    "lcl_porcelain IMPLEMENTATION
 *&  Include           ZABAPGIT_OBJECTS
 *&---------------------------------------------------------------------*
 
-*"Null Object Pattern
-*CLASS lcl_comparison_null DEFINITION FINAL.
-*  PUBLIC SECTION.
-*    INTERFACES zif_abapgit_comparison_result.
-*ENDCLASS.
-*
-*CLASS lcl_comparison_null IMPLEMENTATION.
-*
-*  METHOD zif_abapgit_comparison_result~is_result_complete_halt.
-*    rv_response = abap_false.
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_comparison_result~show_confirmation_dialog.
-*    RETURN.
-*  ENDMETHOD.
-*
-*ENDCLASS.
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_super DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-*CLASS lcl_objects_super DEFINITION ABSTRACT.
-*
-*  PUBLIC SECTION.
-*
-*    METHODS:
-*      constructor
-*        IMPORTING
-*          is_item     TYPE zif_abapgit_definitions=>ty_item
-*          iv_language TYPE spras.
-*
-*    CLASS-METHODS:
-*      jump_adt
-*        IMPORTING i_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
-*                  i_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type
-*        RAISING   zcx_abapgit_exception.
-*
-*    CONSTANTS: c_user_unknown TYPE xubname VALUE 'UNKNOWN'.
-*
-*  PROTECTED SECTION.
-*
-*    DATA: ms_item     TYPE zif_abapgit_definitions=>ty_item,
-*          mv_language TYPE spras.
-*
-*    METHODS:
-*      check_timestamp
-*        IMPORTING
-*          iv_timestamp      TYPE timestamp
-*          iv_date           TYPE datum
-*          iv_time           TYPE uzeit
-*        RETURNING
-*          VALUE(rv_changed) TYPE abap_bool,
-*      get_metadata
-*        RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
-*      corr_insert
-*        IMPORTING iv_package TYPE devclass
-*        RAISING   zcx_abapgit_exception,
-*      tadir_insert
-*        IMPORTING iv_package TYPE devclass
-*        RAISING   zcx_abapgit_exception,
-*      jump_se11
-*        IMPORTING iv_radio TYPE string
-*                  iv_field TYPE string
-*        RAISING   zcx_abapgit_exception.
-*
-*  PRIVATE SECTION.
-*
-*    CLASS-METHODS:
-*      is_adt_jump_possible
-*        IMPORTING io_object                     TYPE REF TO cl_wb_object
-*                  io_adt                        TYPE REF TO object
-*        RETURNING VALUE(r_is_adt_jump_possible) TYPE abap_bool
-*        RAISING   zcx_abapgit_exception.
-*
-*ENDCLASS.                    "lcl_objects_super DEFINITION
-
 **********************************************************************
 * Enable plugins
 
@@ -37069,1471 +37128,6 @@ ENDCLASS.                    "lcl_objects_bridge IMPLEMENTATION
 
 **********************************************************************
 
-*CLASS lcl_objects_program DEFINITION INHERITING FROM lcl_objects_super.
-*
-*  PUBLIC SECTION.
-*    TYPES: BEGIN OF ty_progdir,
-*             name    TYPE progdir-name,
-*             state   TYPE progdir-state,
-*             sqlx    TYPE progdir-sqlx,
-*             edtx    TYPE progdir-edtx,
-*             varcl   TYPE progdir-varcl,
-*             dbapl   TYPE progdir-dbapl,
-*             dbna    TYPE progdir-dbna,
-*             clas    TYPE progdir-clas,
-*             type    TYPE progdir-type,
-*             occurs  TYPE progdir-occurs,
-*             subc    TYPE progdir-subc,
-*             appl    TYPE progdir-appl,
-*             secu    TYPE progdir-secu,
-*             cnam    TYPE progdir-cnam,
-*             cdat    TYPE progdir-cdat,
-*             unam    TYPE progdir-unam,
-*             udat    TYPE progdir-udat,
-*             vern    TYPE progdir-vern,
-*             levl    TYPE progdir-levl,
-*             rstat   TYPE progdir-rstat,
-*             rmand   TYPE progdir-rmand,
-*             rload   TYPE progdir-rload,
-*             fixpt   TYPE progdir-fixpt,
-*             sset    TYPE progdir-sset,
-*             sdate   TYPE progdir-sdate,
-*             stime   TYPE progdir-stime,
-*             idate   TYPE progdir-idate,
-*             itime   TYPE progdir-itime,
-*             ldbname TYPE progdir-ldbname,
-*             uccheck TYPE progdir-uccheck,
-*           END OF ty_progdir.
-*
-*    METHODS serialize_program
-*      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_output OPTIONAL
-*                is_item    TYPE zif_abapgit_definitions=>ty_item
-*                io_files   TYPE REF TO zcl_abapgit_objects_files
-*                iv_program TYPE programm OPTIONAL
-*                iv_extra   TYPE clike OPTIONAL
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS read_progdir
-*      IMPORTING iv_program        TYPE programm
-*      RETURNING VALUE(rs_progdir) TYPE ty_progdir.
-*
-*    METHODS deserialize_program
-*      IMPORTING is_progdir TYPE ty_progdir
-*                it_source  TYPE abaptxt255_tab
-*                it_tpool   TYPE textpool_table
-*                iv_package TYPE devclass
-*      RAISING   zcx_abapgit_exception.
-*
-*  PROTECTED SECTION.
-*
-*    TYPES: ty_spaces_tt TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
-*
-*    TYPES: BEGIN OF ty_dynpro,
-*             header     TYPE rpy_dyhead,
-*             containers TYPE dycatt_tab,
-*             fields     TYPE dyfatc_tab,
-*             flow_logic TYPE swydyflow,
-*             spaces     TYPE ty_spaces_tt,
-*           END OF ty_dynpro.
-*
-*    TYPES: ty_dynpro_tt TYPE STANDARD TABLE OF ty_dynpro WITH DEFAULT KEY.
-*
-*    TYPES: BEGIN OF ty_cua,
-*             adm TYPE rsmpe_adm,
-*             sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
-*             fun TYPE STANDARD TABLE OF rsmpe_funt WITH DEFAULT KEY,
-*             men TYPE STANDARD TABLE OF rsmpe_men WITH DEFAULT KEY,
-*             mtx TYPE STANDARD TABLE OF rsmpe_mnlt WITH DEFAULT KEY,
-*             act TYPE STANDARD TABLE OF rsmpe_act WITH DEFAULT KEY,
-*             but TYPE STANDARD TABLE OF rsmpe_but WITH DEFAULT KEY,
-*             pfk TYPE STANDARD TABLE OF rsmpe_pfk WITH DEFAULT KEY,
-*             set TYPE STANDARD TABLE OF rsmpe_staf WITH DEFAULT KEY,
-*             doc TYPE STANDARD TABLE OF rsmpe_atrt WITH DEFAULT KEY,
-*             tit TYPE STANDARD TABLE OF rsmpe_titt WITH DEFAULT KEY,
-*             biv TYPE STANDARD TABLE OF rsmpe_buts WITH DEFAULT KEY,
-*           END OF ty_cua.
-*
-*    METHODS serialize_dynpros
-*      IMPORTING iv_program_name  TYPE programm
-*      RETURNING VALUE(rt_dynpro) TYPE ty_dynpro_tt
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS serialize_cua
-*      IMPORTING iv_program_name TYPE programm
-*      RETURNING VALUE(rs_cua)   TYPE ty_cua
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS deserialize_dynpros
-*      IMPORTING it_dynpros TYPE ty_dynpro_tt
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS deserialize_textpool
-*      IMPORTING iv_program    TYPE programm
-*                it_tpool      TYPE textpool_table
-*                iv_language   TYPE langu OPTIONAL
-*                iv_is_include TYPE abap_bool DEFAULT abap_false
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS deserialize_cua
-*      IMPORTING iv_program_name TYPE programm
-*                is_cua          TYPE ty_cua
-*      RAISING   zcx_abapgit_exception.
-*
-*    METHODS check_prog_changed_since
-*      IMPORTING iv_program        TYPE programm
-*                iv_timestamp      TYPE timestamp
-*                iv_skip_gui       TYPE abap_bool DEFAULT abap_false
-*      RETURNING VALUE(rv_changed) TYPE abap_bool.
-*
-*    CLASS-METHODS:
-*      add_tpool
-*        IMPORTING it_tpool        TYPE textpool_table
-*        RETURNING VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt,
-*      read_tpool
-*        IMPORTING it_tpool        TYPE zif_abapgit_definitions=>ty_tpool_tt
-*        RETURNING VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt.
-*
-*  PRIVATE SECTION.
-*    METHODS:
-*      condense_flow
-*        EXPORTING et_spaces TYPE ty_spaces_tt
-*        CHANGING  ct_flow   TYPE swydyflow,
-*      uncondense_flow
-*        IMPORTING it_flow        TYPE swydyflow
-*                  it_spaces      TYPE ty_spaces_tt
-*        RETURNING VALUE(rt_flow) TYPE swydyflow.
-*
-*
-*ENDCLASS.                    "lcl_objects_program DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_program IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-*CLASS lcl_objects_program IMPLEMENTATION.
-*
-*  METHOD condense_flow.
-*
-*    DATA: lv_spaces LIKE LINE OF et_spaces.
-*
-*    FIELD-SYMBOLS: <ls_flow> LIKE LINE OF ct_flow.
-*
-*
-*    CLEAR et_spaces.
-*
-*    LOOP AT ct_flow ASSIGNING <ls_flow>.
-*      lv_spaces = 0.
-*
-*      WHILE NOT <ls_flow>-line IS INITIAL AND <ls_flow>-line(1) = space.
-*        lv_spaces = lv_spaces + 1.
-*        <ls_flow>-line = <ls_flow>-line+1.
-*      ENDWHILE.
-*
-*      APPEND lv_spaces TO et_spaces.
-*    ENDLOOP.
-*
-*  ENDMETHOD.
-*
-*  METHOD uncondense_flow.
-*
-*    DATA: lv_spaces LIKE LINE OF it_spaces.
-*
-*    FIELD-SYMBOLS: <ls_flow>   LIKE LINE OF it_flow,
-*                   <ls_output> LIKE LINE OF rt_flow.
-*
-*
-*    LOOP AT it_flow ASSIGNING <ls_flow>.
-*      APPEND INITIAL LINE TO rt_flow ASSIGNING <ls_output>.
-*      <ls_output>-line = <ls_flow>-line.
-*
-*      READ TABLE it_spaces INDEX sy-tabix INTO lv_spaces.
-*      IF sy-subrc = 0.
-*        SHIFT <ls_output>-line RIGHT BY lv_spaces PLACES IN CHARACTER MODE.
-*      ENDIF.
-*    ENDLOOP.
-*
-*  ENDMETHOD.
-*
-*  METHOD serialize_program.
-*
-*    DATA: ls_progdir      TYPE ty_progdir,
-*          lv_program_name TYPE programm,
-*          lt_dynpros      TYPE ty_dynpro_tt,
-*          ls_cua          TYPE ty_cua,
-*          lt_source       TYPE TABLE OF abaptxt255,
-*          lt_tpool        TYPE textpool_table,
-*          ls_tpool        LIKE LINE OF lt_tpool,
-*          lo_xml          TYPE REF TO zcl_abapgit_xml_output.
-*
-*    IF iv_program IS INITIAL.
-*      lv_program_name = is_item-obj_name.
-*    ELSE.
-*      lv_program_name = iv_program.
-*    ENDIF.
-*
-*    zcl_abapgit_language=>set_current_language( mv_language ).
-*
-*    CALL FUNCTION 'RPY_PROGRAM_READ'
-*      EXPORTING
-*        program_name     = lv_program_name
-*        with_lowercase   = abap_true
-*      TABLES
-*        source_extended  = lt_source
-*        textelements     = lt_tpool
-*      EXCEPTIONS
-*        cancelled        = 1
-*        not_found        = 2
-*        permission_error = 3
-*        OTHERS           = 4.
-*
-*    IF sy-subrc = 2.
-*      zcl_abapgit_language=>restore_login_language( ).
-*      RETURN.
-*    ELSEIF sy-subrc <> 0.
-*      zcl_abapgit_language=>restore_login_language( ).
-*      zcx_abapgit_exception=>raise( 'Error reading program' ).
-*    ENDIF.
-*
-*    zcl_abapgit_language=>restore_login_language( ).
-*
-*    ls_progdir = read_progdir( lv_program_name ).
-*
-*    IF io_xml IS BOUND.
-*      lo_xml = io_xml.
-*    ELSE.
-*      CREATE OBJECT lo_xml.
-*    ENDIF.
-*
-*    lo_xml->add( iv_name = 'PROGDIR'
-*                 ig_data = ls_progdir ).
-*    IF ls_progdir-subc = '1' OR ls_progdir-subc = 'M'.
-*      lt_dynpros = serialize_dynpros( lv_program_name ).
-*      lo_xml->add( iv_name = 'DYNPROS'
-*                   ig_data = lt_dynpros ).
-*
-*      ls_cua = serialize_cua( lv_program_name ).
-*      IF NOT ls_cua IS INITIAL.
-*        lo_xml->add( iv_name = 'CUA'
-*                     ig_data = ls_cua ).
-*      ENDIF.
-*    ENDIF.
-*
-*    READ TABLE lt_tpool WITH KEY id = 'R' INTO ls_tpool.
-*    IF sy-subrc = 0 AND ls_tpool-key = '' AND ls_tpool-length = 0.
-*      DELETE lt_tpool INDEX sy-tabix.
-*    ENDIF.
-*
-*    lo_xml->add( iv_name = 'TPOOL'
-*                 ig_data = add_tpool( lt_tpool ) ).
-*
-*    IF NOT io_xml IS BOUND.
-*      io_files->add_xml( iv_extra = iv_extra
-*                         io_xml   = lo_xml ).
-*    ENDIF.
-*
-*    io_files->add_abap( iv_extra = iv_extra
-*                        it_abap  = lt_source ).
-*
-*  ENDMETHOD.                    "serialize_program
-*
-*  METHOD deserialize_program.
-*
-*    DATA: lv_exists      TYPE sap_bool,
-*          lv_progname    TYPE reposrc-progname,
-*          ls_tpool       LIKE LINE OF it_tpool,
-*          lv_title       TYPE rglif-title,
-*          ls_progdir_new TYPE progdir.
-*
-*    FIELD-SYMBOLS: <lg_any> TYPE any.
-*
-*
-*    CALL FUNCTION 'RS_CORR_INSERT'
-*      EXPORTING
-*        object              = is_progdir-name
-*        object_class        = 'ABAP'
-*        devclass            = iv_package
-*        master_language     = mv_language
-*        mode                = 'INSERT'
-*      EXCEPTIONS
-*        cancelled           = 1
-*        permission_failure  = 2
-*        unknown_objectclass = 3
-*        OTHERS              = 4.
-*    IF sy-subrc = 1.
-*      zcx_abapgit_exception=>raise( 'Cancelled' ).
-*    ELSEIF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
-*    ENDIF.
-*
-*    READ TABLE it_tpool INTO ls_tpool WITH KEY id = 'R'.  "#EC CI_SUBRC
-*    IF sy-subrc = 0.
-** there is a bug in RPY_PROGRAM_UPDATE, the header line of TTAB is not
-** cleared, so the title length might be inherited from a different program.
-*      ASSIGN ('(SAPLSIFP)TTAB') TO <lg_any>.
-*      IF sy-subrc = 0.
-*        CLEAR <lg_any>.
-*      ENDIF.
-*
-*      lv_title = ls_tpool-entry.
-*    ENDIF.
-*
-*    SELECT SINGLE progname FROM reposrc INTO lv_progname
-*      WHERE progname = is_progdir-name
-*      AND r3state = 'A'.
-*    IF sy-subrc = 0.
-*      lv_exists = abap_true.
-*    ELSE.
-*      lv_exists = abap_false.
-*    ENDIF.
-*
-*    IF lv_exists = abap_true.
-*      zcl_abapgit_language=>set_current_language( mv_language ).
-*
-*      CALL FUNCTION 'RPY_PROGRAM_UPDATE'
-*        EXPORTING
-*          program_name     = is_progdir-name
-*          title_string     = lv_title
-*          save_inactive    = 'I'
-*        TABLES
-*          source_extended  = it_source
-*        EXCEPTIONS
-*          cancelled        = 1
-*          permission_error = 2
-*          not_found        = 3
-*          OTHERS           = 4.
-*
-*      IF sy-subrc <> 0.
-*        zcl_abapgit_language=>restore_login_language( ).
-*
-*        IF sy-msgid = 'EU' AND sy-msgno = '510'.
-*          zcx_abapgit_exception=>raise( 'User is currently editing program' ).
-*        ELSE.
-*          zcx_abapgit_exception=>raise( 'PROG, error updating' ).
-*        ENDIF.
-*      ENDIF.
-*
-*      zcl_abapgit_language=>restore_login_language( ).
-*    ELSE.
-** function module RPY_PROGRAM_INSERT cannot handle function group includes
-*
-*      IF strlen( is_progdir-name ) > 30.
-*        " special treatment for extensions
-*        " if the program name exceeds 30 characters it is not a usual
-*        " ABAP program but might be some extension, which requires the internal
-*        " addition EXTENSION TYPE, see
-*        " http://help.sap.com/abapdocu_751/en/abapinsert_report_internal.htm#!ABAP_ADDITION_1@1@
-*        " This e.g. occurs in case of transportable Code Inspector variants (ending with ===VC)
-*        INSERT REPORT is_progdir-name
-*         FROM it_source
-*         STATE 'I'
-*         EXTENSION TYPE is_progdir-name+30.
-*        IF sy-subrc <> 0.
-*          zcx_abapgit_exception=>raise( 'error from INSERT REPORT .. EXTENSION TYPE' ).
-*        ENDIF.
-*      ELSE.
-*        INSERT REPORT is_progdir-name
-*          FROM it_source
-*          STATE 'I'
-*          PROGRAM TYPE is_progdir-subc.
-*        IF sy-subrc <> 0.
-*          zcx_abapgit_exception=>raise( 'error from INSERT REPORT' ).
-*        ENDIF.
-*      ENDIF.
-*    ENDIF.
-*
-*    IF NOT it_tpool[] IS INITIAL.
-*      INSERT TEXTPOOL is_progdir-name
-*        FROM it_tpool
-*        LANGUAGE mv_language
-*        STATE 'I'.
-*      IF sy-subrc <> 0.
-*        zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
-*      ENDIF.
-*    ENDIF.
-*
-*    CALL FUNCTION 'READ_PROGDIR'
-*      EXPORTING
-*        i_progname = is_progdir-name
-*        i_state    = 'I'
-*      IMPORTING
-*        e_progdir  = ls_progdir_new
-*      EXCEPTIONS
-*        not_exists = 1
-*        OTHERS     = 2.
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'not found in PROGDIR' ).
-*    ENDIF.
-*
-** todo, package?
-*
-*    ls_progdir_new-ldbname = is_progdir-ldbname.
-*    ls_progdir_new-dbna    = is_progdir-dbna.
-*    ls_progdir_new-dbapl   = is_progdir-dbapl.
-*    ls_progdir_new-rload   = is_progdir-rload.
-*    ls_progdir_new-fixpt   = is_progdir-fixpt.
-*    ls_progdir_new-varcl   = is_progdir-varcl.
-*    ls_progdir_new-appl    = is_progdir-appl.
-*    ls_progdir_new-rstat   = is_progdir-rstat.
-*
-*    CALL FUNCTION 'UPDATE_PROGDIR'
-*      EXPORTING
-*        i_progdir    = ls_progdir_new
-*        i_progname   = ls_progdir_new-name
-*        i_state      = ls_progdir_new-state
-*      EXCEPTIONS
-*        not_executed = 1
-*        OTHERS       = 2.
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'PROG, error inserting' ).
-*    ENDIF.
-*
-*    SELECT SINGLE * FROM progdir INTO ls_progdir_new
-*      WHERE name = ls_progdir_new-name
-*      AND state = ls_progdir_new-state.
-*    IF sy-subrc = 0 AND is_progdir-varcl = space AND ls_progdir_new-varcl = abap_true.
-** function module UPDATE_PROGDIR does not update VARCL
-*      UPDATE progdir SET varcl = is_progdir-varcl
-*        WHERE name = ls_progdir_new-name
-*        AND state = ls_progdir_new-state.                 "#EC CI_SUBRC
-*    ENDIF.
-*
-*    zcl_abapgit_objects_activation=>add(
-*      iv_type = 'REPS'
-*      iv_name = is_progdir-name ).
-*
-*  ENDMETHOD.                    "deserialize_program
-*
-*  METHOD read_progdir.
-*
-*    DATA: ls_sapdir TYPE progdir.
-*
-*
-*    CALL FUNCTION 'READ_PROGDIR'
-*      EXPORTING
-*        i_progname = iv_program
-*        i_state    = 'A'
-*      IMPORTING
-*        e_progdir  = ls_sapdir.
-*    MOVE-CORRESPONDING ls_sapdir TO rs_progdir.
-*
-*    CLEAR: rs_progdir-edtx,
-*           rs_progdir-cnam,
-*           rs_progdir-cdat,
-*           rs_progdir-unam,
-*           rs_progdir-udat,
-*           rs_progdir-levl,
-*           rs_progdir-vern,
-*           rs_progdir-rmand,
-*           rs_progdir-sdate,
-*           rs_progdir-stime,
-*           rs_progdir-idate,
-*           rs_progdir-itime.
-*
-*  ENDMETHOD.                    "read_progdir
-*
-*  METHOD serialize_cua.
-*
-*    CALL FUNCTION 'RS_CUA_INTERNAL_FETCH'
-*      EXPORTING
-*        program         = iv_program_name
-*        language        = mv_language
-*        state           = 'A'
-*      IMPORTING
-*        adm             = rs_cua-adm
-*      TABLES
-*        sta             = rs_cua-sta
-*        fun             = rs_cua-fun
-*        men             = rs_cua-men
-*        mtx             = rs_cua-mtx
-*        act             = rs_cua-act
-*        but             = rs_cua-but
-*        pfk             = rs_cua-pfk
-*        set             = rs_cua-set
-*        doc             = rs_cua-doc
-*        tit             = rs_cua-tit
-*        biv             = rs_cua-biv
-*      EXCEPTIONS
-*        not_found       = 1
-*        unknown_version = 2
-*        OTHERS          = 3.
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_FETCH' ).
-*    ENDIF.
-*
-*  ENDMETHOD.                    "serialize_cua
-*
-*  METHOD serialize_dynpros.
-*
-*    DATA: ls_header               TYPE rpy_dyhead,
-*          lt_containers           TYPE dycatt_tab,
-*          lt_fields_to_containers TYPE dyfatc_tab,
-*          lt_flow_logic           TYPE swydyflow,
-*          lt_d020s                TYPE TABLE OF d020s.
-*
-*    FIELD-SYMBOLS: <ls_d020s>       LIKE LINE OF lt_d020s,
-*                   <lv_outputstyle> TYPE scrpostyle,
-*                   <ls_field>       LIKE LINE OF lt_fields_to_containers,
-*                   <ls_dynpro>      LIKE LINE OF rt_dynpro.
-*
-*
-*    CALL FUNCTION 'RS_SCREEN_LIST'
-*      EXPORTING
-*        dynnr     = ''
-*        progname  = iv_program_name
-*      TABLES
-*        dynpros   = lt_d020s
-*      EXCEPTIONS
-*        not_found = 1
-*        OTHERS    = 2.
-*    IF sy-subrc = 2.
-*      zcx_abapgit_exception=>raise( 'error from screen_list' ).
-*    ENDIF.
-*
-** loop dynpros and skip generated selection screens
-*    LOOP AT lt_d020s ASSIGNING <ls_d020s> WHERE type <> 'S'.
-*
-*      CALL FUNCTION 'RPY_DYNPRO_READ'
-*        EXPORTING
-*          progname             = iv_program_name
-*          dynnr                = <ls_d020s>-dnum
-*        IMPORTING
-*          header               = ls_header
-*        TABLES
-*          containers           = lt_containers
-*          fields_to_containers = lt_fields_to_containers
-*          flow_logic           = lt_flow_logic
-*        EXCEPTIONS
-*          cancelled            = 1
-*          not_found            = 2
-*          permission_error     = 3
-*          OTHERS               = 4.
-*      IF sy-subrc <> 0.
-*        zcx_abapgit_exception=>raise( 'Error while reading dynpro' ).
-*      ENDIF.
-*
-*      LOOP AT lt_fields_to_containers ASSIGNING <ls_field>.
-** output style is a NUMC field, the XML conversion will fail if it contains invalid value
-** field does not exist in all versions
-*        ASSIGN COMPONENT 'OUTPUTSTYLE' OF STRUCTURE <ls_field> TO <lv_outputstyle>.
-*        IF sy-subrc = 0 AND <lv_outputstyle> = '  '.
-*          CLEAR <lv_outputstyle>.
-*        ENDIF.
-*      ENDLOOP.
-*
-*      APPEND INITIAL LINE TO rt_dynpro ASSIGNING <ls_dynpro>.
-*      <ls_dynpro>-header     = ls_header.
-*      <ls_dynpro>-containers = lt_containers.
-*      <ls_dynpro>-fields     = lt_fields_to_containers.
-*
-*      condense_flow( IMPORTING et_spaces = <ls_dynpro>-spaces
-*                     CHANGING ct_flow = lt_flow_logic ).
-*      <ls_dynpro>-flow_logic = lt_flow_logic.
-*
-*    ENDLOOP.
-*
-*  ENDMETHOD.                    "serialize_dynpros
-*
-*
-*  METHOD deserialize_dynpros.
-*
-*    DATA: lv_name   TYPE dwinactiv-obj_name,
-*          ls_dynpro LIKE LINE OF it_dynpros.
-*
-*
-** ls_dynpro is changed by the function module, a field-symbol will cause
-** the program to dump since it_dynpros cannot be changed
-*    LOOP AT it_dynpros INTO ls_dynpro.
-*
-*      ls_dynpro-flow_logic = uncondense_flow(
-*        it_flow = ls_dynpro-flow_logic
-*        it_spaces = ls_dynpro-spaces ).
-*
-*      CALL FUNCTION 'RPY_DYNPRO_INSERT'
-*        EXPORTING
-*          header                 = ls_dynpro-header
-*          suppress_exist_checks  = abap_true
-*        TABLES
-*          containers             = ls_dynpro-containers
-*          fields_to_containers   = ls_dynpro-fields
-*          flow_logic             = ls_dynpro-flow_logic
-*        EXCEPTIONS
-*          cancelled              = 1
-*          already_exists         = 2
-*          program_not_exists     = 3
-*          not_executed           = 4
-*          missing_required_field = 5
-*          illegal_field_value    = 6
-*          field_not_allowed      = 7
-*          not_generated          = 8
-*          illegal_field_position = 9
-*          OTHERS                 = 10.
-*      IF sy-subrc <> 2 AND sy-subrc <> 0.
-*        zcx_abapgit_exception=>raise( 'error from RPY_DYNPRO_INSERT' ).
-*      ENDIF.
-** todo, RPY_DYNPRO_UPDATE?
-*
-*      CONCATENATE ls_dynpro-header-program ls_dynpro-header-screen
-*        INTO lv_name RESPECTING BLANKS.
-*      ASSERT NOT lv_name IS INITIAL.
-*
-*      zcl_abapgit_objects_activation=>add(
-*        iv_type = 'DYNP'
-*        iv_name = lv_name ).
-*
-*    ENDLOOP.
-*
-*  ENDMETHOD.                    "deserialize_dynpros
-*
-*  METHOD add_tpool.
-*
-*    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
-*                   <ls_tpool_out> LIKE LINE OF rt_tpool.
-*
-*
-*    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
-*      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
-*      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
-*      IF <ls_tpool_out>-id = 'S'.
-*        <ls_tpool_out>-split = <ls_tpool_out>-entry.
-*        <ls_tpool_out>-entry = <ls_tpool_out>-entry+8.
-*      ENDIF.
-*    ENDLOOP.
-*
-*  ENDMETHOD.                    "add_tpool
-*
-*  METHOD read_tpool.
-*
-*    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
-*                   <ls_tpool_out> LIKE LINE OF rt_tpool.
-*
-*
-*    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
-*      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
-*      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
-*      IF <ls_tpool_out>-id = 'S'.
-*        CONCATENATE <ls_tpool_in>-split <ls_tpool_in>-entry
-*          INTO <ls_tpool_out>-entry
-*          RESPECTING BLANKS.
-*      ENDIF.
-*    ENDLOOP.
-*
-*  ENDMETHOD.                    "read_tpool
-*
-*  METHOD deserialize_textpool.
-*
-*    DATA lv_language TYPE langu.
-*    DATA lv_state    TYPE c.
-*    DATA lv_delete   TYPE abap_bool.
-*
-*    IF iv_language IS INITIAL.
-*      lv_language = mv_language.
-*    ELSE.
-*      lv_language = iv_language.
-*    ENDIF.
-*
-*    IF lv_language = mv_language.
-*      lv_state = 'I'. "Textpool in master language needs to be activated
-*    ELSE.
-*      lv_state = 'A'. "Translations are always active
-*    ENDIF.
-*
-*    IF it_tpool IS INITIAL.
-*      IF iv_is_include = abap_false OR lv_state = 'A'.
-*        DELETE TEXTPOOL iv_program "Remove initial description from textpool if
-*          LANGUAGE iv_program      "original program does not have a textpool
-*          STATE lv_state.
-*
-*        lv_delete = abap_true.
-*      ELSE.
-*        INSERT TEXTPOOL iv_program "In case of includes: Deletion of textpool in
-*          FROM it_tpool            "master language cannot be activated because
-*          LANGUAGE lv_language     "this woul activate the deletion of the textpool
-*          STATE lv_state.          "of the mail program -> insert empty textpool
-*      ENDIF.
-*    ELSE.
-*      IF lines( it_tpool ) = 1 AND lv_language = mv_language.
-*        READ TABLE it_tpool WITH KEY id = 'R' TRANSPORTING NO FIELDS.
-*        IF sy-subrc = 0.
-*          RETURN. "No action because description in master language is already there
-*        ENDIF.
-*      ENDIF.
-*
-*      INSERT TEXTPOOL iv_program
-*        FROM it_tpool
-*        LANGUAGE lv_language
-*        STATE lv_state.
-*      IF sy-subrc <> 0.
-*        zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
-*      ENDIF.
-*    ENDIF.
-*
-*    IF lv_state = 'I'. "Textpool in master language needs to be activated
-*      zcl_abapgit_objects_activation=>add(
-*        iv_type   = 'REPT'
-*        iv_name   = iv_program
-*        iv_delete = lv_delete ).
-*    ENDIF.
-*  ENDMETHOD.                    "deserialize_textpool
-*
-*  METHOD deserialize_cua.
-*
-*    DATA: ls_tr_key TYPE trkey.
-*
-*
-*    IF lines( is_cua-sta ) = 0
-*        AND lines( is_cua-fun ) = 0
-*        AND lines( is_cua-men ) = 0
-*        AND lines( is_cua-mtx ) = 0
-*        AND lines( is_cua-act ) = 0
-*        AND lines( is_cua-but ) = 0
-*        AND lines( is_cua-pfk ) = 0
-*        AND lines( is_cua-set ) = 0
-*        AND lines( is_cua-doc ) = 0
-*        AND lines( is_cua-tit ) = 0
-*        AND lines( is_cua-biv ) = 0.
-*      RETURN.
-*    ENDIF.
-*
-*    SELECT SINGLE devclass INTO ls_tr_key-devclass
-*      FROM tadir
-*      WHERE pgmid = 'R3TR'
-*      AND object = ms_item-obj_type
-*      AND obj_name = ms_item-obj_name.                  "#EC CI_GENBUFF
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'not found in tadir' ).
-*    ENDIF.
-*
-*    ls_tr_key-obj_type = ms_item-obj_type.
-*    ls_tr_key-obj_name = ms_item-obj_name.
-*    ls_tr_key-sub_type = 'CUAD'.
-*    ls_tr_key-sub_name = iv_program_name.
-*
-*    sy-tcode = 'SE41' ##write_ok. " evil hack, workaround to handle fixes in note 2159455
-*    CALL FUNCTION 'RS_CUA_INTERNAL_WRITE'
-*      EXPORTING
-*        program   = iv_program_name
-*        language  = mv_language
-*        tr_key    = ls_tr_key
-*        adm       = is_cua-adm
-*        state     = 'I'
-*      TABLES
-*        sta       = is_cua-sta
-*        fun       = is_cua-fun
-*        men       = is_cua-men
-*        mtx       = is_cua-mtx
-*        act       = is_cua-act
-*        but       = is_cua-but
-*        pfk       = is_cua-pfk
-*        set       = is_cua-set
-*        doc       = is_cua-doc
-*        tit       = is_cua-tit
-*        biv       = is_cua-biv
-*      EXCEPTIONS
-*        not_found = 1
-*        OTHERS    = 2.
-*    IF sy-subrc <> 0.
-** if moving code from SAPlink, see https://github.com/larshp/abapGit/issues/562
-*      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_WRITE' ).
-*    ENDIF.
-*
-*    zcl_abapgit_objects_activation=>add(
-*      iv_type = 'CUAD'
-*      iv_name = iv_program_name ).
-*
-*  ENDMETHOD.                    "deserialize_cua
-*
-*  METHOD check_prog_changed_since.
-*
-*    DATA: lv_date    TYPE dats,
-*          lv_time    TYPE tims,
-*          lt_screens TYPE STANDARD TABLE OF d020s,
-*          lt_eudb    TYPE STANDARD TABLE OF eudb.
-*
-*    FIELD-SYMBOLS: <ls_screen> LIKE LINE OF lt_screens,
-*                   <ls_eudb>   LIKE LINE OF lt_eudb.
-*
-*    SELECT SINGLE udat utime FROM reposrc " Program
-*      INTO (lv_date, lv_time)
-*      WHERE progname = iv_program
-*      AND   r3state = 'A'.
-*
-*    rv_changed = check_timestamp(
-*      iv_timestamp = iv_timestamp
-*      iv_date      = lv_date
-*      iv_time      = lv_time ).
-*    IF rv_changed = abap_true.
-*      RETURN.
-*    ENDIF.
-*
-*    SELECT SINGLE udat utime FROM repotext " Program text pool
-*      INTO (lv_date, lv_time)
-*      WHERE progname = iv_program
-*      AND   r3state = 'A'.
-*
-*    IF sy-subrc = 0. " Text not found ? Assuming no changes, see #404
-*      rv_changed = check_timestamp(
-*        iv_timestamp = iv_timestamp
-*        iv_date      = lv_date
-*        iv_time      = lv_time ).
-*      IF rv_changed = abap_true.
-*        RETURN.
-*      ENDIF.
-*    ENDIF.
-*
-*    IF iv_skip_gui = abap_true.
-*      RETURN.
-*    ENDIF.
-*
-*    SELECT dgen tgen FROM d020s           " Screens
-*      INTO CORRESPONDING FIELDS OF TABLE lt_screens
-*      WHERE prog = iv_program
-*      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-*
-*    LOOP AT lt_screens ASSIGNING <ls_screen>.
-*      rv_changed = check_timestamp(
-*        iv_timestamp = iv_timestamp
-*        iv_date      = <ls_screen>-dgen
-*        iv_time      = <ls_screen>-tgen ).
-*      IF rv_changed = abap_true.
-*        RETURN.
-*      ENDIF.
-*    ENDLOOP.
-*
-*    SELECT vdatum vzeit FROM eudb         " GUI
-*      INTO CORRESPONDING FIELDS OF TABLE lt_eudb
-*      WHERE relid = 'CU'
-*      AND   name  = iv_program
-*      AND   srtf2 = 0
-*      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-*
-*    LOOP AT lt_eudb ASSIGNING <ls_eudb>.
-*      rv_changed = check_timestamp(
-*        iv_timestamp = iv_timestamp
-*        iv_date      = <ls_eudb>-vdatum
-*        iv_time      = <ls_eudb>-vzeit ).
-*      IF rv_changed = abap_true.
-*        RETURN.
-*      ENDIF.
-*    ENDLOOP.
-*
-*  ENDMETHOD.  "check_prog_changed_since
-*
-*ENDCLASS.                    "lcl_objects_program IMPLEMENTATION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_super IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-*CLASS lcl_objects_super IMPLEMENTATION.
-*
-*  METHOD constructor.
-*    ms_item = is_item.
-*    ASSERT NOT ms_item IS INITIAL.
-*    mv_language = iv_language.
-*    ASSERT NOT mv_language IS INITIAL.
-*  ENDMETHOD.                    "constructor
-*
-*  METHOD jump_se11.
-*
-*    DATA: lt_bdcdata TYPE TABLE OF bdcdata.
-*
-*    FIELD-SYMBOLS: <ls_bdcdata> LIKE LINE OF lt_bdcdata.
-*
-*
-*    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-*    <ls_bdcdata>-program  = 'SAPLSD_ENTRY'.
-*    <ls_bdcdata>-dynpro   = '1000'.
-*    <ls_bdcdata>-dynbegin = abap_true.
-*
-*    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-*    <ls_bdcdata>-fnam = 'BDC_OKCODE'.
-*    <ls_bdcdata>-fval = '=WB_DISPLAY'.
-*
-*    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-*    <ls_bdcdata>-fnam = iv_radio.
-*    <ls_bdcdata>-fval = abap_true.
-*
-*    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-*    <ls_bdcdata>-fnam = iv_field.
-*    <ls_bdcdata>-fval = ms_item-obj_name.
-*
-*    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-*      STARTING NEW TASK 'GIT'
-*      EXPORTING
-*        tcode                 = 'SE11'
-*        mode_val              = 'E'
-*      TABLES
-*        using_tab             = lt_bdcdata
-*      EXCEPTIONS
-*        system_failure        = 1
-*        communication_failure = 2
-*        resource_failure      = 3
-*        OTHERS                = 4
-*        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
-*
-*  ENDMETHOD.                                                "jump_se11
-*
-*  METHOD jump_adt.
-*
-*    DATA: adt_link          TYPE string,
-*          obj_type          TYPE trobjtype,
-*          obj_name          TYPE trobj_name,
-*          li_object         TYPE REF TO cl_wb_object,
-*          li_adt            TYPE REF TO object,
-*          li_adt_uri_mapper TYPE REF TO object,
-*          li_adt_objref     TYPE REF TO object ##needed.
-*
-*    FIELD-SYMBOLS: <uri> TYPE string.
-*
-*    obj_name = i_obj_name.
-*    obj_type = i_obj_type.
-*
-*    TRY.
-*        cl_wb_object=>create_from_transport_key( EXPORTING  p_object = obj_type p_obj_name = obj_name
-*                                                 RECEIVING  p_wb_object = li_object
-*                                                 EXCEPTIONS OTHERS   = 1 ).
-*        IF sy-subrc <> 0.
-*          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*        ENDIF.
-*
-*        CALL METHOD ('CL_ADT_TOOLS_CORE_FACTORY')=>('GET_INSTANCE')
-*          RECEIVING
-*            result = li_adt.
-*
-*        IF is_adt_jump_possible( io_object = li_object
-*                                 io_adt    = li_adt ) = abap_false.
-*          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*        ENDIF.
-*
-*        CALL METHOD li_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER')
-*          RECEIVING
-*            result = li_adt_uri_mapper.
-*
-*        CALL METHOD li_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_WB_OBJECT_TO_OBJREF')
-*          EXPORTING
-*            wb_object = li_object
-*          RECEIVING
-*            result    = li_adt_objref.
-*
-*        ASSIGN ('li_adt_objref->ref_data-uri') TO <uri>.
-*        ASSERT sy-subrc = 0.
-*
-*        CONCATENATE 'adt://' sy-sysid <uri> INTO adt_link.
-*
-*        cl_gui_frontend_services=>execute( EXPORTING  document = adt_link
-*                                           EXCEPTIONS OTHERS   = 1 ).
-*
-*        IF sy-subrc <> 0.
-*          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*        ENDIF.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*    ENDTRY.
-*
-*  ENDMETHOD.
-*
-*  METHOD check_timestamp.
-*
-*    DATA: lv_ts TYPE timestamp.
-*
-*    IF sy-subrc = 0 AND iv_date IS NOT INITIAL AND iv_time IS NOT INITIAL.
-*      cl_abap_tstmp=>systemtstmp_syst2utc(
-*        EXPORTING syst_date = iv_date
-*                  syst_time = iv_time
-*        IMPORTING utc_tstmp = lv_ts ).
-*      IF lv_ts < iv_timestamp.
-*        rv_changed = abap_false. " Unchanged
-*      ELSE.
-*        rv_changed = abap_true.
-*      ENDIF.
-*    ELSE. " Not found? => changed
-*      rv_changed = abap_true.
-*    ENDIF.
-*
-*  ENDMETHOD.
-*
-*  METHOD get_metadata.
-*    rs_metadata-class =
-*      cl_abap_classdescr=>describe_by_object_ref( me )->get_relative_name( ).
-*    rs_metadata-version = 'v1.0.0' ##no_text.
-*  ENDMETHOD.                    "get_metadata
-*
-*  METHOD tadir_insert.
-*
-*    CALL FUNCTION 'TR_TADIR_INTERFACE'
-*      EXPORTING
-*        wi_test_modus       = abap_false
-*        wi_tadir_pgmid      = 'R3TR'
-*        wi_tadir_object     = ms_item-obj_type
-*        wi_tadir_obj_name   = ms_item-obj_name
-*        wi_tadir_author     = sy-uname
-*        wi_tadir_devclass   = iv_package
-*        wi_tadir_masterlang = mv_language
-*        iv_delflag          = abap_false
-*      EXCEPTIONS
-*        OTHERS              = 1.
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'error from TR_TADIR_INTERFACE' ).
-*    ENDIF.
-*
-*  ENDMETHOD.
-*
-*  METHOD corr_insert.
-*
-*    DATA: ls_object TYPE ddenqs.
-*
-*
-*    ls_object-objtype = ms_item-obj_type.
-*    ls_object-objname = ms_item-obj_name.
-*
-*    CALL FUNCTION 'RS_CORR_INSERT'
-*      EXPORTING
-*        object              = ls_object
-*        object_class        = 'DICT'
-*        devclass            = iv_package
-*        master_language     = mv_language
-*        mode                = 'INSERT'
-*      EXCEPTIONS
-*        cancelled           = 1
-*        permission_failure  = 2
-*        unknown_objectclass = 3
-*        OTHERS              = 4.
-*    IF sy-subrc = 1.
-*      zcx_abapgit_exception=>raise( 'Cancelled' ).
-*    ELSEIF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
-*    ENDIF.
-*
-*  ENDMETHOD.                    "corr_insert
-*
-*
-*  METHOD is_adt_jump_possible.
-*
-*    DATA: li_wb_request         TYPE REF TO cl_wb_request,
-*          li_adt_uri_mapper_vit TYPE REF TO object,
-*          is_vit_wb_request     TYPE abap_bool.
-*
-*    cl_wb_request=>create_from_object_ref(
-*      EXPORTING
-*        p_wb_object       = io_object
-*      RECEIVING
-*        p_wb_request      = li_wb_request
-*      EXCEPTIONS
-*        illegal_operation = 1
-*        cancelled         = 2
-*        OTHERS            = 3 ).
-*
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*    ENDIF.
-*
-*    TRY.
-*        CALL METHOD io_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER_VIT')
-*          RECEIVING
-*            result = li_adt_uri_mapper_vit.
-*
-*        CALL METHOD li_adt_uri_mapper_vit->('IF_ADT_URI_MAPPER_VIT~IS_VIT_WB_REQUEST')
-*          EXPORTING
-*            wb_request = li_wb_request
-*          RECEIVING
-*            result     = is_vit_wb_request.
-*
-*        IF is_vit_wb_request = abap_true.
-*          r_is_adt_jump_possible = abap_false.
-*        ELSE.
-*          r_is_adt_jump_possible = abap_true.
-*        ENDIF.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-*    ENDTRY.
-*
-*  ENDMETHOD.
-*
-*ENDCLASS.                    "lcl_objects_super IMPLEMENTATION
-
-*CLASS lcl_objects_saxx_super DEFINITION ABSTRACT
-*                                INHERITING FROM lcl_objects_super.
-** common class for SAPC and SAMC objects
-*
-*  PUBLIC SECTION.
-*    INTERFACES:
-*      zif_abapgit_object.
-*
-*  PROTECTED SECTION.
-*    METHODS:
-*      get_persistence_class_name ABSTRACT
-*        RETURNING
-*          VALUE(r_persistence_class_name) TYPE seoclsname,
-*
-*      get_data_class_name ABSTRACT
-*        RETURNING
-*          VALUE(r_data_class_name) TYPE seoclsname,
-*
-*      get_data_structure_name ABSTRACT
-*        RETURNING
-*          VALUE(r_data_structure_name) TYPE string.
-*
-*  PRIVATE SECTION.
-*    DATA: mo_persistence          TYPE REF TO if_wb_object_persist,
-*          mo_appl_obj_data        TYPE REF TO if_wb_object_data_model,
-*          mv_data_structure_name  TYPE string,
-*          mv_appl_obj_cls_name    TYPE seoclsname,
-*          mv_persistence_cls_name TYPE seoclsname.
-*
-*    METHODS:
-*      create_channel_objects
-*        RAISING
-*          zcx_abapgit_exception,
-*
-*      get_data
-*        EXPORTING
-*          p_data TYPE any
-*        RAISING
-*          zcx_abapgit_exception,
-*
-*      lock
-*        RAISING
-*          zcx_abapgit_exception,
-*
-*      unlock
-*        RAISING
-*          zcx_abapgit_exception,
-*
-*      get_names.
-*
-*ENDCLASS.
-*
-*CLASS lcl_objects_saxx_super IMPLEMENTATION.
-*
-*  METHOD zif_abapgit_object~has_changed_since.
-*    rv_changed = abap_true.
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~changed_by.
-*
-*    DATA: lr_data TYPE REF TO data.
-*
-*    FIELD-SYMBOLS: <lg_data>       TYPE any,
-*                   <lg_header>     TYPE any,
-*                   <lg_changed_by> TYPE any.
-*
-*    create_channel_objects( ).
-*
-*    TRY.
-*        CREATE DATA lr_data TYPE (mv_data_structure_name).
-*        ASSIGN lr_data->* TO <lg_data>.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( |{ ms_item-obj_name } not supported| ).
-*    ENDTRY.
-*
-*    get_data(
-*      IMPORTING
-*        p_data = <lg_data> ).
-*
-*    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <lg_data> TO <lg_header>.
-*    ASSERT sy-subrc = 0.
-*    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_changed_by>.
-*    ASSERT sy-subrc = 0.
-*
-*    IF <lg_changed_by> IS NOT INITIAL.
-*      rv_user = <lg_changed_by>.
-*    ELSE.
-*      rv_user = c_user_unknown.
-*    ENDIF.
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~get_metadata.
-*    rs_metadata = get_metadata( ).
-*    rs_metadata-delete_tadir = abap_true.
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~exists.
-*
-*    DATA: object_key TYPE seu_objkey.
-*
-*    create_channel_objects( ).
-*
-*    object_key = ms_item-obj_name.
-*
-*    TRY.
-*        mo_persistence->get( p_object_key           = object_key
-*                             p_version              = 'A'
-*                             p_existence_check_only = abap_true  ).
-*
-*      CATCH cx_swb_object_does_not_exist cx_swb_exception.
-*        rv_bool = abap_false.
-*        RETURN.
-*    ENDTRY.
-*
-*    rv_bool = abap_true.
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~serialize.
-*
-*    DATA: lr_data             TYPE REF TO data.
-*
-*    FIELD-SYMBOLS: <ls_data>   TYPE any,
-*                   <ls_header> TYPE any,
-*                   <field>     TYPE any.
-*
-*    create_channel_objects( ).
-*
-*    TRY.
-*        CREATE DATA lr_data TYPE (mv_data_structure_name).
-*        ASSIGN lr_data->* TO <ls_data>.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-*    ENDTRY.
-*
-*    get_data(
-*      IMPORTING
-*        p_data = <ls_data> ).
-*
-*    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <ls_data> TO <ls_header>.
-*    ASSERT sy-subrc = 0.
-*
-*    ASSIGN COMPONENT 'CHANGED_ON' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CHANGED_AT' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CHANGED_CLNT' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CREATED_ON' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CREATED_BY' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CREATED_AT' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    ASSIGN COMPONENT 'CREATED_CLNT' OF STRUCTURE <ls_header> TO <field>.
-*    ASSERT sy-subrc = 0.
-*    CLEAR <field>.
-*
-*    io_xml->add( iv_name = ms_item-obj_type
-*                 ig_data = <ls_data> ).
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~deserialize.
-*
-*    DATA: lr_data TYPE REF TO data.
-*
-*    FIELD-SYMBOLS: <ls_data> TYPE any.
-*
-*    create_channel_objects( ).
-*
-*    TRY.
-*        CREATE DATA lr_data TYPE (mv_data_structure_name).
-*        ASSIGN lr_data->* TO <ls_data>.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-*    ENDTRY.
-*
-*    io_xml->read(
-*      EXPORTING
-*        iv_name = ms_item-obj_type
-*      CHANGING
-*        cg_data = <ls_data> ).
-*
-*    IF zif_abapgit_object~exists( ) = abap_true.
-*      zif_abapgit_object~delete( ).
-*    ENDIF.
-*
-*    TRY.
-*        lock( ).
-*
-*        CALL FUNCTION 'RS_CORR_INSERT'
-*          EXPORTING
-*            object              = ms_item-obj_name
-*            object_class        = ms_item-obj_type
-*            mode                = 'I'
-*            global_lock         = abap_true
-*            devclass            = iv_package
-*            master_language     = mv_language
-*          EXCEPTIONS
-*            cancelled           = 1
-*            permission_failure  = 2
-*            unknown_objectclass = 3
-*            OTHERS              = 4.
-*
-*        IF sy-subrc <> 0.
-*          zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
-*        ENDIF.
-*
-*        mo_appl_obj_data->set_data( <ls_data> ).
-*
-*        mo_persistence->save( mo_appl_obj_data ).
-*
-*        unlock( ).
-*
-*      CATCH cx_swb_exception.
-*        zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
-*    ENDTRY.
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~delete.
-*
-*    DATA: object_key TYPE seu_objkey.
-*
-*    create_channel_objects( ).
-*
-*    object_key = ms_item-obj_name.
-*
-*    TRY.
-*        lock( ).
-*
-*        mo_persistence->delete( object_key ).
-*
-*        unlock( ).
-*
-*      CATCH cx_swb_exception.
-*        zcx_abapgit_exception=>raise( |Error occured while deleting { ms_item-obj_type }| ).
-*    ENDTRY.
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~jump.
-*
-*    CALL FUNCTION 'RS_TOOL_ACCESS'
-*      EXPORTING
-*        operation   = 'SHOW'
-*        object_name = ms_item-obj_name
-*        object_type = ms_item-obj_type.
-*
-*  ENDMETHOD.
-*
-*  METHOD zif_abapgit_object~compare_to_remote_version.
-*    CREATE OBJECT ro_comparison_result TYPE lcl_comparison_null.
-*  ENDMETHOD.
-*
-*  METHOD create_channel_objects.
-*
-*    get_names( ).
-*
-*    TRY.
-*        IF mo_appl_obj_data IS NOT BOUND.
-*          CREATE OBJECT mo_appl_obj_data TYPE (mv_appl_obj_cls_name).
-*        ENDIF.
-*
-*        IF mo_persistence IS NOT BOUND.
-*          CREATE OBJECT mo_persistence TYPE (mv_persistence_cls_name).
-*        ENDIF.
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-*    ENDTRY.
-*
-*  ENDMETHOD.
-*
-*  METHOD get_data.
-*
-*    DATA: object_key TYPE seu_objkey.
-*
-*    object_key = ms_item-obj_name.
-*
-*    TRY.
-*        mo_persistence->get(
-*          EXPORTING
-*            p_object_key  = object_key
-*            p_version     = 'A'
-*          CHANGING
-*            p_object_data = mo_appl_obj_data ).
-*
-*      CATCH cx_root.
-*        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-*    ENDTRY.
-*
-*    mo_appl_obj_data->get_data(
-*      IMPORTING
-*        p_data = p_data ).
-*
-*  ENDMETHOD.
-*
-*  METHOD lock.
-*
-*    DATA: objname    TYPE trobj_name,
-*          object_key TYPE seu_objkey,
-*          objtype    TYPE trobjtype.
-*
-*    objname    = ms_item-obj_name.
-*    object_key = ms_item-obj_name.
-*    objtype    = ms_item-obj_type.
-*
-*    mo_persistence->lock(
-*      EXPORTING
-*        p_objname_tr   = objname
-*        p_object_key   = object_key
-*        p_objtype_tr   = objtype
-*      EXCEPTIONS
-*        foreign_lock   = 1
-*        error_occurred = 2
-*        OTHERS         = 3 ).
-*
-*    IF sy-subrc <> 0.
-*      zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } | && objname ).
-*    ENDIF.
-*
-*  ENDMETHOD.                    "lock
-*
-*  METHOD unlock.
-*
-*    DATA: objname    TYPE trobj_name,
-*          object_key TYPE seu_objkey,
-*          objtype    TYPE trobjtype.
-*
-*    objname    = ms_item-obj_name.
-*    object_key = ms_item-obj_name.
-*    objtype    = ms_item-obj_type.
-*
-*    mo_persistence->unlock( p_objname_tr = objname
-*                            p_object_key = object_key
-*                            p_objtype_tr = objtype ).
-*
-*  ENDMETHOD.                    "unlock
-*
-*  METHOD get_names.
-*
-*    IF mv_data_structure_name IS INITIAL.
-*      mv_data_structure_name  = get_data_structure_name( ).
-*    ENDIF.
-*
-*    IF mv_appl_obj_cls_name IS INITIAL.
-*      mv_appl_obj_cls_name    = get_data_class_name( ).
-*    ENDIF.
-*
-*    IF mv_persistence_cls_name IS INITIAL.
-*      mv_persistence_cls_name = get_persistence_class_name( ).
-*    ENDIF.
-*
-*  ENDMETHOD.
-*
-*ENDCLASS.
-
 *----------------------------------------------------------------------*
 *       CLASS lcl_object DEFINITION
 *----------------------------------------------------------------------*
@@ -38665,23 +37259,6 @@ ENDCLASS.                    "lcl_object DEFINITION
 *----------------------------------------------------------------------*
 *
 *----------------------------------------------------------------------*
-CLASS lcl_skip_objects DEFINITION.
-  PUBLIC SECTION.
-    METHODS:
-      skip_sadl_generated_objects
-        IMPORTING
-          it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-          io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING
-          VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
-  PRIVATE SECTION.
-    METHODS:
-      has_sadl_superclass
-        IMPORTING
-          is_class         TYPE zif_abapgit_definitions=>ty_tadir
-        RETURNING
-          VALUE(rv_return) TYPE abap_bool.
-ENDCLASS.
 
 CLASS lcl_tadir DEFINITION FINAL.
 
@@ -38817,7 +37394,7 @@ CLASS lcl_tadir IMPLEMENTATION.
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lt_tdevc        TYPE STANDARD TABLE OF tdevc,
           lv_path         TYPE string,
-          lo_skip_objects TYPE REF TO lcl_skip_objects,
+          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
           lt_excludes     TYPE RANGE OF trobjtype,
           ls_exclude      LIKE LINE OF lt_excludes.
 
@@ -41726,47 +40303,7 @@ ENDCLASS.                    "lcl_objects IMPLEMENTATION
 *& Include zabapgit_skip_objects
 *&---------------------------------------------------------------------*
 
-CLASS lcl_skip_objects IMPLEMENTATION.
-  METHOD skip_sadl_generated_objects.
-    DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
-          ls_tadir           LIKE LINE OF rt_tadir,
-          lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-    rt_tadir = it_tadir.
-    LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
-      LOOP AT rt_tadir INTO ls_tadir_class
-       WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
-
-        IF has_sadl_superclass( ls_tadir_class ) = abap_true.
-          APPEND ls_tadir_class TO lt_lines_to_delete.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
-    LOOP AT lt_lines_to_delete INTO ls_tadir_class.
-      DELETE TABLE rt_tadir FROM ls_tadir_class.
-      IF io_log IS BOUND.
-        io_log->add(
-          iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
-          iv_type = 'W' ).
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-
-  METHOD has_sadl_superclass.
-    DATA: lo_oo_functions TYPE REF TO zif_abapgit_oo_object_fnc,
-          lv_class_name   TYPE seoclsname,
-          lv_superclass   TYPE seoclsname.
-
-    lo_oo_functions = zcl_abapgit_oo_factory=>make( is_class-object ).
-    lv_class_name = is_class-obj_name.
-    lv_superclass = lo_oo_functions->read_superclass( lv_class_name ).
-    IF lv_superclass = 'CL_SADL_GTK_EXPOSURE_MPC'.
-      rv_return = abap_true.
-    ENDIF.
-  ENDMETHOD.
-ENDCLASS.
+* todo, include to be deleted
 ****************************************************
 * abapmerge - ZABAPGIT_REPO_IMPL
 ****************************************************
@@ -43272,81 +41809,6 @@ CLASS lcl_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS lcl_transport_objects DEFINITION.
-  "Under test at ltcl_transport_objects
-  PUBLIC SECTION.
-    METHODS constructor
-      IMPORTING
-        it_transport_objects TYPE scts_tadir.
-    METHODS to_stage
-      IMPORTING
-        io_stage           TYPE REF TO zcl_abapgit_stage
-        is_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files
-        it_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING
-        zcx_abapgit_exception.
-  PRIVATE SECTION.
-    DATA mt_transport_objects TYPE scts_tadir.
-ENDCLASS.
-
-CLASS lcl_transport_objects IMPLEMENTATION.
-  METHOD constructor.
-    mt_transport_objects = it_transport_objects.
-  ENDMETHOD.
-
-  METHOD to_stage.
-    DATA: ls_transport_object TYPE tadir,
-          ls_local_file       TYPE zif_abapgit_definitions=>ty_file_item,
-          ls_object_status    TYPE zif_abapgit_definitions=>ty_result.
-
-    LOOP AT mt_transport_objects INTO ls_transport_object.
-      LOOP AT it_object_statuses INTO ls_object_status
-          WHERE obj_name = ls_transport_object-obj_name
-          AND obj_type = ls_transport_object-object
-          AND NOT lstate IS INITIAL.
-
-        CASE ls_object_status-lstate.
-          WHEN zif_abapgit_definitions=>gc_state-added OR zif_abapgit_definitions=>gc_state-modified.
-            IF ls_transport_object-delflag = abap_true.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } should be added/modified, but has deletion flag in transport| ).
-            ENDIF.
-
-            READ TABLE is_stage_objects-local
-                  INTO ls_local_file
-              WITH KEY item-obj_name = ls_transport_object-obj_name
-                       item-obj_type = ls_transport_object-object
-                       file-filename = ls_object_status-filename.
-            IF sy-subrc <> 0.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } not found in the local repository files| ).
-            ENDIF.
-
-            io_stage->add(
-              iv_path     = ls_local_file-file-path
-              iv_filename = ls_local_file-file-filename
-              iv_data     = ls_local_file-file-data ).
-          WHEN zif_abapgit_definitions=>gc_state-deleted.
-            IF ls_transport_object-delflag = abap_false.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } should be removed, but has NO deletion flag in transport| ).
-            ENDIF.
-            io_stage->rm(
-              iv_path     = ls_object_status-path
-              iv_filename = ls_object_status-filename ).
-          WHEN OTHERS.
-            ASSERT 0 = 1. "Unexpected state
-        ENDCASE.
-      ENDLOOP.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-        } not found in the local repository files| ).
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-
-ENDCLASS.
-
 CLASS lcl_transport_2_branch DEFINITION.
   PUBLIC SECTION.
     METHODS:
@@ -43437,7 +41899,7 @@ CLASS lcl_transport_2_branch IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD stage_transport_objects.
-    DATA lo_transport_objects TYPE REF TO lcl_transport_objects.
+    DATA lo_transport_objects TYPE REF TO zcl_abapgit_transport_objects.
     CREATE OBJECT lo_transport_objects
       EXPORTING
         it_transport_objects = it_transport_objects.
@@ -50689,78 +49151,6 @@ CLASS ltcl_git_porcelain IMPLEMENTATION.
 ENDCLASS.
 
 *----------------------------------------------------------------------*
-*       CLASS ltcl_url DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS ltcl_url DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
-
-  PRIVATE SECTION.
-
-    METHODS:
-      repo_host FOR TESTING RAISING zcx_abapgit_exception,
-      repo_name1 FOR TESTING RAISING zcx_abapgit_exception,
-      repo_name2 FOR TESTING RAISING zcx_abapgit_exception,
-      repo_error FOR TESTING.
-
-ENDCLASS.                    "ltcl_url DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS ltcl_url IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS ltcl_url IMPLEMENTATION.
-
-  METHOD repo_error.
-
-    TRY.
-        zcl_abapgit_url=>host( 'not a real url' ).          "#EC NOTEXT
-        cl_abap_unit_assert=>fail( ).
-      CATCH zcx_abapgit_exception.                      "#EC NO_HANDLER
-    ENDTRY.
-
-  ENDMETHOD.                    "repo_error
-
-  METHOD repo_host.
-
-    DATA: lv_host TYPE string.
-
-    lv_host = zcl_abapgit_url=>host( 'https://github.com/larshp/Foobar.git' ).
-
-    cl_abap_unit_assert=>assert_equals(
-        exp = 'https://github.com'
-        act = lv_host ).
-
-  ENDMETHOD.                    "repo_url
-
-  METHOD repo_name1.
-
-    DATA: lv_name TYPE string.
-
-    lv_name = zcl_abapgit_url=>name( 'https://github.com/larshp/Foobar.git' ).
-
-    cl_abap_unit_assert=>assert_equals(
-        exp = 'Foobar'
-        act = lv_name ).
-
-  ENDMETHOD.
-
-  METHOD repo_name2.
-
-    DATA: lv_name TYPE string.
-
-    lv_name = zcl_abapgit_url=>name( 'https://git.hanatrial.ondemand.com/p12345trial/yay' ).
-
-    cl_abap_unit_assert=>assert_equals(
-        exp = 'yay'
-        act = lv_name ).
-
-  ENDMETHOD.
-
-ENDCLASS.                    "ltcl_url IMPLEMENTATION
-
-*----------------------------------------------------------------------*
 *       CLASS ltcl_object_types DEFINITION
 *----------------------------------------------------------------------*
 *
@@ -50830,148 +49220,6 @@ CLASS ltcl_object_types IMPLEMENTATION.
   ENDMETHOD.                    "not_exist
 
 ENDCLASS.                    "ltcl_object_types IMPLEMENTATION
-
-CLASS ltcl_git_pack_decode_commit DEFINITION FOR TESTING
-    RISK LEVEL HARMLESS DURATION SHORT FINAL.
-
-  PUBLIC SECTION.
-    METHODS:
-      decode1 FOR TESTING
-        RAISING zcx_abapgit_exception,
-      decode2 FOR TESTING
-        RAISING zcx_abapgit_exception,
-      decode3 FOR TESTING
-        RAISING zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    DATA: ms_raw TYPE zcl_abapgit_git_pack=>ty_commit,
-          mv_str TYPE string.
-
-    METHODS:
-      setup,
-      decode
-        RAISING zcx_abapgit_exception,
-      add
-        IMPORTING iv_string TYPE string.
-
-ENDCLASS.
-
-CLASS ltcl_git_pack_decode_commit IMPLEMENTATION.
-
-  METHOD setup.
-    CLEAR ms_raw.
-    CLEAR mv_str.
-  ENDMETHOD.
-
-  METHOD add.
-
-    CONCATENATE mv_str iv_string zif_abapgit_definitions=>gc_newline INTO mv_str.
-
-  ENDMETHOD.
-
-  METHOD decode.
-
-    DATA: lv_xstr TYPE xstring.
-    lv_xstr = zcl_abapgit_convert=>string_to_xstring_utf8( mv_str ).
-
-    ms_raw = zcl_abapgit_git_pack=>decode_commit( lv_xstr ).
-
-  ENDMETHOD.
-
-  METHOD decode1.
-
-    add( 'tree tree' ).
-    add( 'parent parent1' ).
-    add( 'parent parent2' ).
-    add( 'author author' ).
-    add( 'committer committer' ).
-    add( '' ).
-    add( 'comment' ).
-
-    decode( ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-tree
-      exp = 'tree' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-author
-      exp = 'author' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-committer
-      exp = 'committer' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-parent
-      exp = 'parent1' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-parent2
-      exp = 'parent2' ).
-
-    cl_abap_unit_assert=>assert_char_cp(
-      act = ms_raw-body
-      exp = 'comment+' ).
-
-  ENDMETHOD.
-
-  METHOD decode2.
-
-    add( 'tree tree' ).
-    add( 'author author' ).
-    add( 'committer committer' ).
-    add( '' ).
-    add( 'comment' ).
-
-    decode( ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-tree
-      exp = 'tree' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-author
-      exp = 'author' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-committer
-      exp = 'committer' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-parent
-      exp = '' ).
-
-    cl_abap_unit_assert=>assert_char_cp(
-      act = ms_raw-body
-      exp = 'comment+' ).
-
-  ENDMETHOD.
-
-  METHOD decode3.
-
-    add( 'tree tree' ).
-    add( 'parent parent1' ).
-    add( 'author author' ).
-    add( 'committer committer' ).
-    add( '' ).
-    add( 'comment' ).
-
-    decode( ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-tree
-      exp = 'tree' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-author
-      exp = 'author' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-committer
-      exp = 'committer' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ms_raw-parent
-      exp = 'parent1' ).
-
-    cl_abap_unit_assert=>assert_char_cp(
-      act = ms_raw-body
-      exp = 'comment+' ).
-
-  ENDMETHOD.
-
-ENDCLASS.
 
 *----------------------------------------------------------------------*
 *       CLASS ltcl_serialize DEFINITION
@@ -53082,365 +51330,8 @@ ENDCLASS.
 *&---------------------------------------------------------------------*
 *&  Include           ZABAPGIT_UNIT_TEST_TRANSPORT
 *&---------------------------------------------------------------------*
-CLASS ltcl_transport_objects DEFINITION FOR TESTING.
-  PRIVATE SECTION.
-    METHODS:
-      add_new_to_local_files         FOR TESTING RAISING cx_static_check,
-      modified_to_new_local_files    FOR TESTING RAISING cx_static_check,
-      transport_not_in_repository    FOR TESTING RAISING cx_static_check,
-      object_not_in_local_files      FOR TESTING RAISING cx_static_check,
-      cant_be_added_with_del_flag    FOR TESTING RAISING cx_static_check,
-      cant_be_modified_with_del_flag FOR TESTING RAISING cx_static_check,
-      deleted_to_removed_files       FOR TESTING RAISING cx_static_check,
-      shouldnt_remove_no_delflag FOR TESTING RAISING cx_static_check,
-      should_add_all_local_files FOR TESTING RAISING cx_static_check,
-      should_delete_all_related  FOR TESTING RAISING cx_static_check,
-      setup,
-      given_the_transport_object
-        IMPORTING iv_obj_name TYPE string
-                  iv_obj_type TYPE string
-                  iv_delflag  TYPE abap_bool OPTIONAL,
-      given_the_object_status
-        IMPORTING
-          iv_obj_name TYPE string OPTIONAL
-          iv_obj_type TYPE string OPTIONAL
-          iv_filename TYPE string OPTIONAL
-          iv_path     TYPE string OPTIONAL
-          iv_lstate   TYPE char1,
-      given_the_local_file
-        IMPORTING iv_obj_name          TYPE string
-                  iv_obj_type          TYPE string
-                  iv_filename          TYPE string
-                  iv_path              TYPE string
-                  iv_data              TYPE string
-        RETURNING VALUE(rs_local_file) TYPE zif_abapgit_definitions=>ty_file_item,
-      when_staging
-        RAISING zcx_abapgit_exception,
-      then_file_should_be_added
-        IMPORTING
-          is_local_file TYPE zif_abapgit_definitions=>ty_file_item,
-      then_it_should_raise_exception
-        IMPORTING
-          with_text TYPE string,
-      then_it_should_remove_at_stage
-        IMPORTING
-          iv_filename TYPE string
-          iv_path     TYPE string.
 
-    DATA: mo_transport_objects TYPE REF TO lcl_transport_objects,
-          mt_transport_objects TYPE scts_tadir,
-          mt_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt,
-          ms_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files,
-          mo_stage             TYPE REF TO zcl_abapgit_stage.
-
-ENDCLASS.
-
-CLASS ltcl_transport_objects IMPLEMENTATION.
-  METHOD setup.
-    CREATE OBJECT mo_stage
-      EXPORTING
-        iv_branch_name = 'A_branch_name'
-        iv_branch_sha1 = 'Branch_SH1'.
-  ENDMETHOD.
-  METHOD add_new_to_local_files.
-    DATA ls_local_file TYPE zif_abapgit_definitions=>ty_file_item.
-
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS' ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-added ).
-
-    ls_local_file = given_the_local_file(
-      iv_obj_name = 'CL_FOO'
-      iv_obj_type = 'CLAS'
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/path'
-      iv_data     = 'data' ).
-
-    when_staging( ).
-
-    then_file_should_be_added( ls_local_file ).
-  ENDMETHOD.
-  METHOD modified_to_new_local_files.
-    DATA ls_local_file TYPE zif_abapgit_definitions=>ty_file_item.
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS' ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-modified ).
-
-    ls_local_file = given_the_local_file(
-      iv_obj_name = 'CL_FOO'
-      iv_obj_type = 'CLAS'
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/path'
-      iv_data     = 'data' ).
-
-    when_staging( ).
-
-    then_file_should_be_added( ls_local_file ).
-  ENDMETHOD.
-  METHOD should_add_all_local_files.
-    "Not only .abap, but also .xml and other includes
-    DATA ls_abap_local_file TYPE zif_abapgit_definitions=>ty_file_item.
-    DATA ls_xml_local_file  TYPE zif_abapgit_definitions=>ty_file_item.
-
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS' ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-modified ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.xml'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-modified ).
-
-    ls_abap_local_file = given_the_local_file(
-      iv_obj_name = 'CL_FOO'
-      iv_obj_type = 'CLAS'
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/path'
-      iv_data     = 'data' ).
-
-    ls_xml_local_file = given_the_local_file(
-      iv_obj_name = 'CL_FOO'
-      iv_obj_type = 'CLAS'
-      iv_filename = 'CL_FOO.xml'
-      iv_path     = '/path'
-      iv_data     = 'data' ).
-
-    when_staging( ).
-
-    then_file_should_be_added( ls_abap_local_file ).
-    then_file_should_be_added( ls_xml_local_file ).
-  ENDMETHOD.
-  METHOD transport_not_in_repository.
-    given_the_transport_object(
-      iv_obj_name   = 'CL_A_CLASS_NOT_IN_REPO'
-      iv_obj_type   = 'CLAS' ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-added ).
-
-    then_it_should_raise_exception(
-      with_text = 'Object CL_A_CLASS_NOT_IN_REPO not found in the local repository files' ).
-  ENDMETHOD.
-
-  METHOD object_not_in_local_files.
-
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS' ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-added ).
-
-    given_the_local_file(
-      iv_obj_name = 'CL_ANOTHER_LOCAL_FILE'
-      iv_obj_type = 'CLAS'
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/path'
-      iv_data     = 'data' ).
-
-    then_it_should_raise_exception(
-      with_text = 'Object CL_FOO not found in the local repository files' ).
-  ENDMETHOD.
-
-  METHOD cant_be_added_with_del_flag.
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_delflag    = abap_true ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-added ).
-
-    then_it_should_raise_exception(
-      with_text = 'Object CL_FOO should be added/modified, but has deletion flag in transport' ).
-  ENDMETHOD.
-
-  METHOD cant_be_modified_with_del_flag.
-    given_the_transport_object(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_delflag    = abap_true ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-modified ).
-
-    then_it_should_raise_exception(
-      with_text = 'Object CL_FOO should be added/modified, but has deletion flag in transport' ).
-  ENDMETHOD.
-  METHOD deleted_to_removed_files.
-    given_the_transport_object(
-     iv_obj_name   = 'CL_FOO'
-     iv_obj_type   = 'CLAS'
-     iv_delflag    = abap_true ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_path       = '/a_path'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-deleted ).
-
-    when_staging( ).
-
-    then_it_should_remove_at_stage(
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/a_path' ).
-  ENDMETHOD.
-
-  METHOD should_delete_all_related.
-    "i.e. Should also delete the XMLs related to the transport objects
-    given_the_transport_object(
-     iv_obj_name   = 'CL_FOO'
-     iv_obj_type   = 'CLAS'
-     iv_delflag    = abap_true ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_path       = '/a_path'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-deleted ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.xml'
-      iv_path       = '/a_path'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-deleted ).
-
-    when_staging( ).
-
-    then_it_should_remove_at_stage(
-      iv_filename = 'CL_FOO.abap'
-      iv_path     = '/a_path' ).
-
-    then_it_should_remove_at_stage(
-      iv_filename = 'CL_FOO.xml'
-      iv_path     = '/a_path' ).
-  ENDMETHOD.
-
-  METHOD shouldnt_remove_no_delflag.
-    given_the_transport_object(
-       iv_obj_name   = 'CL_FOO'
-       iv_obj_type   = 'CLAS'
-       iv_delflag    = abap_false ).
-
-    given_the_object_status(
-      iv_obj_name   = 'CL_FOO'
-      iv_obj_type   = 'CLAS'
-      iv_filename   = 'CL_FOO.abap'
-      iv_path       = '/a_path'
-      iv_lstate     = zif_abapgit_definitions=>gc_state-deleted ).
-
-    then_it_should_raise_exception(
-         with_text = 'Object CL_FOO should be removed, but has NO deletion flag in transport' ).
-  ENDMETHOD.
-
-  METHOD given_the_transport_object.
-    DATA ls_transport_object TYPE tadir.
-    ls_transport_object-obj_name = iv_obj_name.
-    ls_transport_object-object   = iv_obj_type.
-    ls_transport_object-delflag  = iv_delflag.
-    APPEND ls_transport_object TO mt_transport_objects.
-  ENDMETHOD.
-
-  METHOD given_the_object_status.
-    DATA ls_object_status TYPE zif_abapgit_definitions=>ty_result.
-    ls_object_status-obj_name = iv_obj_name.
-    ls_object_status-obj_type = iv_obj_type.
-    ls_object_status-filename = iv_filename.
-    ls_object_status-path     = iv_path.
-    ls_object_status-lstate   = iv_lstate.
-    APPEND ls_object_status  TO mt_object_statuses.
-  ENDMETHOD.
-
-  METHOD given_the_local_file.
-    rs_local_file-item-obj_name = iv_obj_name.
-    rs_local_file-item-obj_type = iv_obj_type.
-    rs_local_file-file-filename = iv_filename.
-    rs_local_file-file-path     = iv_path.
-    rs_local_file-file-data     = iv_data.
-    APPEND rs_local_file TO ms_stage_objects-local.
-  ENDMETHOD.
-
-  METHOD when_staging.
-    CREATE OBJECT mo_transport_objects
-      EXPORTING
-        it_transport_objects = mt_transport_objects.
-    mo_transport_objects->to_stage(
-      io_stage           = mo_stage
-      is_stage_objects   = ms_stage_objects
-      it_object_statuses = mt_object_statuses ).
-  ENDMETHOD.
-
-  METHOD then_file_should_be_added.
-    DATA: lt_staged_objects TYPE zcl_abapgit_stage=>ty_stage_tt.
-    lt_staged_objects = mo_stage->get_all( ).
-
-    READ TABLE lt_staged_objects TRANSPORTING NO FIELDS
-    WITH KEY file-filename = is_local_file-file-filename
-            file-path      = is_local_file-file-path
-            file-data      = is_local_file-file-data
-            method         = zcl_abapgit_stage=>c_method-add.
-    IF sy-subrc <> 0.
-      cl_abap_unit_assert=>fail( |Object { is_local_file-file-filename } not added to stage| ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD then_it_should_raise_exception.
-    DATA: lo_exception TYPE REF TO zcx_abapgit_exception.
-    TRY.
-        when_staging( ).
-        cl_abap_unit_assert=>fail( 'Should have raised exception').
-      CATCH zcx_abapgit_exception INTO lo_exception.
-        cl_abap_unit_assert=>assert_equals(
-          act = lo_exception->text
-          exp = with_text ).
-    ENDTRY.
-  ENDMETHOD.
-
-  METHOD then_it_should_remove_at_stage.
-
-    DATA: lt_staged_objects TYPE zcl_abapgit_stage=>ty_stage_tt.
-
-    lt_staged_objects = mo_stage->get_all( ).
-
-    READ TABLE lt_staged_objects TRANSPORTING NO FIELDS
-    WITH KEY file-filename  = iv_filename
-             file-path      = iv_path.
-    IF sy-subrc <> 0.
-      cl_abap_unit_assert=>fail( |Object { iv_filename } not removed in stage| ).
-    ENDIF.
-  ENDMETHOD.
-
-ENDCLASS.
+* todo, include to be deleted
 ****************************************************
 * abapmerge - ZABAPGIT_MIGRATIONS
 ****************************************************
@@ -53751,5 +51642,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T08:17:17.494Z
+* abapmerge - 2018-02-11T09:09:40.419Z
 ****************************************************
