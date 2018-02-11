@@ -138,6 +138,7 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html DEFINITION DEFERRED.
@@ -4498,6 +4499,21 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         RETURNING
           VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
+ENDCLASS.
+CLASS zcl_abapgit_password_dialog DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS popup
+      IMPORTING
+        !iv_repo_url TYPE string
+      CHANGING
+        !cv_user     TYPE string
+        !cv_pass     TYPE string .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -8889,6 +8905,16 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     ENDDO.
 
   ENDMETHOD.                    "x_to_bitbyte
+ENDCLASS.
+CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
+  METHOD popup.
+
+    PERFORM password_popup
+      IN PROGRAM (sy-cprog)
+      USING iv_repo_url
+      CHANGING cv_user cv_pass.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
@@ -33852,6 +33878,10 @@ SELECTION-SCREEN END OF SCREEN 1002.
 *-----------------------------------------------------------------------
 CLASS lcl_password_dialog DEFINITION FINAL.
 
+**************
+* This class will remain local in the report
+**************
+
   PUBLIC SECTION.
     CONSTANTS dynnr TYPE char4 VALUE '1002'.
 
@@ -35790,7 +35820,7 @@ CLASS lcl_proxy_auth IMPLEMENTATION.
 
   METHOD enter.
 
-    lcl_password_dialog=>popup(
+    zcl_abapgit_password_dialog=>popup(
       EXPORTING
         iv_repo_url = 'Proxy Authentication'
       CHANGING
@@ -35986,7 +36016,7 @@ CLASS lcl_http IMPLEMENTATION.
     lv_default_user = zcl_abapgit_persistence_user=>get_instance( )->get_repo_login( iv_url ).
     lv_user         = lv_default_user.
 
-    lcl_password_dialog=>popup(
+    zcl_abapgit_password_dialog=>popup(
       EXPORTING
         iv_repo_url     = iv_url
       CHANGING
@@ -51596,6 +51626,22 @@ FORM exit RAISING zcx_abapgit_exception.
       ENDIF.
   ENDCASE.
 ENDFORM.
+
+FORM password_popup
+      USING
+        iv_repo_url TYPE string
+      CHANGING
+        cv_user     TYPE string
+        cv_pass     TYPE string.
+
+  lcl_password_dialog=>popup(
+    EXPORTING
+      iv_repo_url     = iv_repo_url
+    CHANGING
+      cv_user         = cv_user
+      cv_pass         = cv_pass ).
+
+ENDFORM.
 **********************************************************************
 INITIALIZATION.
   lcl_password_dialog=>on_screen_init( ).
@@ -51620,5 +51666,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T11:14:10.343Z
+* abapmerge - 2018-02-11T12:11:28.820Z
 ****************************************************
