@@ -250,6 +250,7 @@ CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
 CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
+CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
@@ -1152,6 +1153,35 @@ CLASS zcl_abapgit_http_digest DEFINITION
       parse
         IMPORTING
           ii_client TYPE REF TO if_http_client.
+
+ENDCLASS.
+CLASS zcl_abapgit_proxy_config DEFINITION FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor,
+
+      get_proxy_url
+        IMPORTING
+          iv_repo_url         TYPE csequence OPTIONAL
+        RETURNING
+          VALUE(rv_proxy_url) TYPE string,
+
+      get_proxy_port
+        IMPORTING
+          iv_repo_url    TYPE csequence OPTIONAL
+        RETURNING
+          VALUE(rv_port) TYPE string,
+
+      get_proxy_authentication
+        IMPORTING
+          iv_repo_url    TYPE csequence OPTIONAL
+        RETURNING
+          VALUE(rv_auth) TYPE abap_bool.
+
+  PRIVATE SECTION.
+    DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
+          mi_exit     TYPE REF TO zif_abapgit_exit.
 
 ENDCLASS.
 CLASS zcl_abapgit_comparison_null DEFINITION FINAL CREATE PUBLIC.
@@ -32753,6 +32783,48 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
+  METHOD constructor.
+
+    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    mi_exit = zcl_abapgit_exit=>get_instance( ).
+
+  ENDMETHOD.
+  METHOD get_proxy_authentication.
+
+    rv_auth = mo_settings->get_proxy_authentication( ).
+
+    mi_exit->change_proxy_authentication(
+      EXPORTING
+        iv_repo_url            = iv_repo_url
+      CHANGING
+        c_proxy_authentication = rv_auth ).
+
+  ENDMETHOD.
+  METHOD get_proxy_port.
+
+    rv_port = mo_settings->get_proxy_port( ).
+
+    mi_exit->change_proxy_port(
+      EXPORTING
+        iv_repo_url  = iv_repo_url
+      CHANGING
+        c_proxy_port = rv_port ).
+
+  ENDMETHOD.
+  METHOD get_proxy_url.
+
+    rv_proxy_url = mo_settings->get_proxy_url( ).
+
+    mi_exit->change_proxy_url(
+      EXPORTING
+        iv_repo_url = iv_repo_url
+      CHANGING
+        c_proxy_url = rv_proxy_url ).
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
   METHOD constructor.
 
@@ -33894,7 +33966,6 @@ ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 
 CLASS lcl_gui DEFINITION DEFERRED.
 CLASS lcl_repo_srv DEFINITION DEFERRED.
-CLASS lcl_proxy_config DEFINITION DEFERRED.
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_app DEFINITION
@@ -33909,13 +33980,9 @@ CLASS lcl_app DEFINITION FINAL.
     CLASS-METHODS repo_srv
       RETURNING VALUE(ro_repo_srv) TYPE REF TO lcl_repo_srv.
 
-    CLASS-METHODS proxy
-      RETURNING VALUE(ro_proxy) TYPE REF TO lcl_proxy_config.
-
   PRIVATE SECTION.
     CLASS-DATA: go_gui          TYPE REF TO lcl_gui,
-                go_repo_srv     TYPE REF TO lcl_repo_srv,
-                go_proxy        TYPE REF TO lcl_proxy_config.
+                go_repo_srv     TYPE REF TO lcl_repo_srv.
 
 ENDCLASS.   "lcl_app
 
@@ -33993,83 +34060,7 @@ INCLUDE zabapgit_user_exit IF FOUND.
 *& Include zabapgit_proxy
 *&---------------------------------------------------------------------*
 
-CLASS lcl_proxy_config DEFINITION CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    METHODS:
-      constructor,
-
-      get_proxy_url
-        IMPORTING
-          iv_repo_url         TYPE csequence OPTIONAL
-        RETURNING
-          VALUE(rv_proxy_url) TYPE string,
-
-      get_proxy_port
-        IMPORTING
-          iv_repo_url    TYPE csequence OPTIONAL
-        RETURNING
-          VALUE(rv_port) TYPE string,
-
-      get_proxy_authentication
-        IMPORTING
-          iv_repo_url    TYPE csequence OPTIONAL
-        RETURNING
-          VALUE(rv_auth) TYPE abap_bool.
-
-  PRIVATE SECTION.
-    DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
-          mi_exit     TYPE REF TO zif_abapgit_exit.
-
-ENDCLASS.
-
-CLASS lcl_proxy_config IMPLEMENTATION.
-
-  METHOD constructor.
-
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-    mi_exit = zcl_abapgit_exit=>get_instance( ).
-
-  ENDMETHOD.
-
-  METHOD get_proxy_url.
-
-    rv_proxy_url = mo_settings->get_proxy_url( ).
-
-    mi_exit->change_proxy_url(
-      EXPORTING
-        iv_repo_url = iv_repo_url
-      CHANGING
-        c_proxy_url = rv_proxy_url ).
-
-  ENDMETHOD.
-
-  METHOD get_proxy_port.
-
-    rv_port = mo_settings->get_proxy_port( ).
-
-    mi_exit->change_proxy_port(
-      EXPORTING
-        iv_repo_url  = iv_repo_url
-      CHANGING
-        c_proxy_port = rv_port ).
-
-  ENDMETHOD.
-
-  METHOD get_proxy_authentication.
-
-    rv_auth = mo_settings->get_proxy_authentication( ).
-
-    mi_exit->change_proxy_authentication(
-      EXPORTING
-        iv_repo_url            = iv_repo_url
-      CHANGING
-        c_proxy_authentication = rv_auth ).
-
-  ENDMETHOD.
-
-ENDCLASS.
+* todo, include to be deleted
 ****************************************************
 * abapmerge - ZABAPGIT_REPO
 ****************************************************
@@ -35410,9 +35401,8 @@ CLASS lcl_2fa_github_auth IMPLEMENTATION.
   METHOD is_2fa_required.
 
     DATA: li_client TYPE REF TO if_http_client,
-          lo_proxy  TYPE REF TO lcl_proxy_config.
-
-    lo_proxy = lcl_app=>proxy( ).
+          lo_proxy  TYPE REF TO zcl_abapgit_proxy_config.
+    CREATE OBJECT lo_proxy.
 
     cl_http_client=>create_by_url(
       EXPORTING
@@ -35862,10 +35852,9 @@ CLASS lcl_http IMPLEMENTATION.
     DATA: lv_uri                 TYPE string,
           lv_scheme              TYPE string,
           li_client              TYPE REF TO if_http_client,
-          lo_proxy_configuration TYPE REF TO lcl_proxy_config,
+          lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config,
           lv_text                TYPE string.
-
-    lo_proxy_configuration = lcl_app=>proxy( ).
+    CREATE OBJECT lo_proxy_configuration.
 
     cl_http_client=>create_by_url(
       EXPORTING
@@ -48825,13 +48814,6 @@ CLASS lcl_app IMPLEMENTATION.
 
   ENDMETHOD.      "repo_srv
 
-  METHOD proxy.
-    IF go_proxy IS NOT BOUND.
-      CREATE OBJECT go_proxy.
-    ENDIF.
-    ro_proxy = go_proxy.
-  ENDMETHOD.
-
 ENDCLASS.   "lcl_app
 
 ****************************************************
@@ -51637,5 +51619,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T10:12:45.365Z
+* abapmerge - 2018-02-11T10:29:53.512Z
 ****************************************************
