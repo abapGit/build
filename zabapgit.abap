@@ -30,164 +30,6 @@ SELECTION-SCREEN BEGIN OF SCREEN 1001.
 * dummy for triggering screen on Java SAP GUI
 SELECTION-SCREEN END OF SCREEN 1001.
 
-CLASS zcx_abapgit_not_found DEFINITION
-  INHERITING FROM cx_static_check
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-CLASS zcx_abapgit_not_found IMPLEMENTATION.
-ENDCLASS.
-CLASS zcx_abapgit_exception DEFINITION
-  INHERITING FROM cx_static_check
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    DATA text TYPE string .
-
-    METHODS constructor
-      IMPORTING
-        !textid   LIKE textid OPTIONAL
-        !previous LIKE previous OPTIONAL
-        !text     TYPE string OPTIONAL.
-
-    CLASS-METHODS raise
-      IMPORTING
-        !iv_text TYPE clike
-      RAISING
-        zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcx_abapgit_exception IMPLEMENTATION.
-
-  METHOD constructor ##ADT_SUPPRESS_GENERATION.
-
-    CALL METHOD super->constructor
-      EXPORTING
-        textid   = textid
-        previous = previous.
-
-    me->text = text .
-
-  ENDMETHOD.
-
-  METHOD raise.
-
-    RAISE EXCEPTION TYPE zcx_abapgit_exception
-      EXPORTING
-        text = iv_text.
-
-  ENDMETHOD.
-
-ENDCLASS.
-CLASS zcx_abapgit_cancel DEFINITION
-  INHERITING FROM cx_static_check
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-CLASS zcx_abapgit_cancel IMPLEMENTATION.
-ENDCLASS.
-CLASS zcx_abapgit_2fa_unsupported DEFINITION
-  inheriting from ZCX_ABAPGIT_2FA_ERROR
-  final
-  create public .
-
-public section.
-
-  methods CONSTRUCTOR
-    importing
-      !TEXTID like TEXTID optional
-      !PREVIOUS like PREVIOUS optional
-      !MV_TEXT type STRING optional .
-protected section.
-
-  methods GET_DEFAULT_TEXT
-    redefinition .
-private section.
-ENDCLASS.
-CLASS ZCX_ABAPGIT_2FA_UNSUPPORTED IMPLEMENTATION.
-  method CONSTRUCTOR.
-CALL METHOD SUPER->CONSTRUCTOR
-EXPORTING
-TEXTID = TEXTID
-PREVIOUS = PREVIOUS
-MV_TEXT = MV_TEXT
-.
-  endmethod.
-  METHOD get_default_text.
-    rv_text = 'The service is not supported for two factor authentication.' ##NO_TEXT.
-  ENDMETHOD.
-ENDCLASS.
-CLASS zcx_abapgit_2fa_illegal_state DEFINITION
-  inheriting from ZCX_ABAPGIT_2FA_ERROR
-  final
-  create public .
-
-public section.
-
-  methods CONSTRUCTOR
-    importing
-      !TEXTID like TEXTID optional
-      !PREVIOUS like PREVIOUS optional
-      !MV_TEXT type STRING optional .
-protected section.
-
-  methods GET_DEFAULT_TEXT
-    redefinition .
-private section.
-ENDCLASS.
-CLASS ZCX_ABAPGIT_2FA_ILLEGAL_STATE IMPLEMENTATION.
-  method CONSTRUCTOR.
-CALL METHOD SUPER->CONSTRUCTOR
-EXPORTING
-TEXTID = TEXTID
-PREVIOUS = PREVIOUS
-MV_TEXT = MV_TEXT
-.
-  endmethod.
-  METHOD get_default_text.
-    rv_text = 'Illegal state.' ##NO_TEXT.
-  ENDMETHOD.
-ENDCLASS.
-CLASS zcx_abapgit_2fa_gen_failed DEFINITION
-  inheriting from ZCX_ABAPGIT_2FA_ERROR
-  final
-  create public .
-
-public section.
-
-  methods CONSTRUCTOR
-    importing
-      !TEXTID like TEXTID optional
-      !PREVIOUS like PREVIOUS optional
-      !MV_TEXT type STRING optional .
-protected section.
-
-  methods GET_DEFAULT_TEXT
-    redefinition .
-private section.
-ENDCLASS.
-CLASS ZCX_ABAPGIT_2FA_GEN_FAILED IMPLEMENTATION.
-  method CONSTRUCTOR.
-CALL METHOD SUPER->CONSTRUCTOR
-EXPORTING
-TEXTID = TEXTID
-PREVIOUS = PREVIOUS
-MV_TEXT = MV_TEXT
-.
-  endmethod.
-  METHOD get_default_text.
-    rv_text = 'Two factor access token generation failed.' ##NO_TEXT.
-  ENDMETHOD.
-ENDCLASS.
 CLASS zcx_abapgit_2fa_error DEFINITION
   inheriting from CX_STATIC_CHECK
   create public .
@@ -237,7 +79,7 @@ me->MV_TEXT = MV_TEXT .
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcx_abapgit_2fa_del_failed DEFINITION
+CLASS zcx_abapgit_2fa_auth_failed DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
   create public .
@@ -255,7 +97,7 @@ protected section.
     redefinition .
 private section.
 ENDCLASS.
-CLASS ZCX_ABAPGIT_2FA_DEL_FAILED IMPLEMENTATION.
+CLASS ZCX_ABAPGIT_2FA_AUTH_FAILED IMPLEMENTATION.
   method CONSTRUCTOR.
 CALL METHOD SUPER->CONSTRUCTOR
 EXPORTING
@@ -265,7 +107,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Deleting previous access tokens failed.' ##NO_TEXT.
+    rv_text = 'Authentication failed using 2FA.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcx_abapgit_2fa_comm_error DEFINITION
@@ -299,7 +141,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Communication error.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcx_abapgit_2fa_auth_failed DEFINITION
+CLASS zcx_abapgit_2fa_del_failed DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
   create public .
@@ -317,7 +159,7 @@ protected section.
     redefinition .
 private section.
 ENDCLASS.
-CLASS ZCX_ABAPGIT_2FA_AUTH_FAILED IMPLEMENTATION.
+CLASS ZCX_ABAPGIT_2FA_DEL_FAILED IMPLEMENTATION.
   method CONSTRUCTOR.
 CALL METHOD SUPER->CONSTRUCTOR
 EXPORTING
@@ -327,8 +169,166 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Authentication failed using 2FA.' ##NO_TEXT.
+    rv_text = 'Deleting previous access tokens failed.' ##NO_TEXT.
   ENDMETHOD.
+ENDCLASS.
+CLASS zcx_abapgit_2fa_gen_failed DEFINITION
+  inheriting from ZCX_ABAPGIT_2FA_ERROR
+  final
+  create public .
+
+public section.
+
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like TEXTID optional
+      !PREVIOUS like PREVIOUS optional
+      !MV_TEXT type STRING optional .
+protected section.
+
+  methods GET_DEFAULT_TEXT
+    redefinition .
+private section.
+ENDCLASS.
+CLASS ZCX_ABAPGIT_2FA_GEN_FAILED IMPLEMENTATION.
+  method CONSTRUCTOR.
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+TEXTID = TEXTID
+PREVIOUS = PREVIOUS
+MV_TEXT = MV_TEXT
+.
+  endmethod.
+  METHOD get_default_text.
+    rv_text = 'Two factor access token generation failed.' ##NO_TEXT.
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcx_abapgit_2fa_illegal_state DEFINITION
+  inheriting from ZCX_ABAPGIT_2FA_ERROR
+  final
+  create public .
+
+public section.
+
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like TEXTID optional
+      !PREVIOUS like PREVIOUS optional
+      !MV_TEXT type STRING optional .
+protected section.
+
+  methods GET_DEFAULT_TEXT
+    redefinition .
+private section.
+ENDCLASS.
+CLASS ZCX_ABAPGIT_2FA_ILLEGAL_STATE IMPLEMENTATION.
+  method CONSTRUCTOR.
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+TEXTID = TEXTID
+PREVIOUS = PREVIOUS
+MV_TEXT = MV_TEXT
+.
+  endmethod.
+  METHOD get_default_text.
+    rv_text = 'Illegal state.' ##NO_TEXT.
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcx_abapgit_2fa_unsupported DEFINITION
+  inheriting from ZCX_ABAPGIT_2FA_ERROR
+  final
+  create public .
+
+public section.
+
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like TEXTID optional
+      !PREVIOUS like PREVIOUS optional
+      !MV_TEXT type STRING optional .
+protected section.
+
+  methods GET_DEFAULT_TEXT
+    redefinition .
+private section.
+ENDCLASS.
+CLASS ZCX_ABAPGIT_2FA_UNSUPPORTED IMPLEMENTATION.
+  method CONSTRUCTOR.
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+TEXTID = TEXTID
+PREVIOUS = PREVIOUS
+MV_TEXT = MV_TEXT
+.
+  endmethod.
+  METHOD get_default_text.
+    rv_text = 'The service is not supported for two factor authentication.' ##NO_TEXT.
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcx_abapgit_cancel DEFINITION
+  INHERITING FROM cx_static_check
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcx_abapgit_cancel IMPLEMENTATION.
+ENDCLASS.
+CLASS zcx_abapgit_exception DEFINITION
+  INHERITING FROM cx_static_check
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    DATA text TYPE string .
+
+    METHODS constructor
+      IMPORTING
+        !textid   LIKE textid OPTIONAL
+        !previous LIKE previous OPTIONAL
+        !text     TYPE string OPTIONAL.
+
+    CLASS-METHODS raise
+      IMPORTING
+        !iv_text TYPE clike
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcx_abapgit_exception IMPLEMENTATION.
+
+  METHOD constructor ##ADT_SUPPRESS_GENERATION.
+
+    CALL METHOD super->constructor
+      EXPORTING
+        textid   = textid
+        previous = previous.
+
+    me->text = text .
+
+  ENDMETHOD.
+
+  METHOD raise.
+
+    RAISE EXCEPTION TYPE zcx_abapgit_exception
+      EXPORTING
+        text = iv_text.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcx_abapgit_not_found DEFINITION
+  INHERITING FROM cx_static_check
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
@@ -51708,5 +51708,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-11T13:10:11.046Z
+* abapmerge - 2018-02-12T16:42:41.595Z
 ****************************************************
