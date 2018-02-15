@@ -351,6 +351,7 @@ CLASS zcl_abapgit_syntax_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
@@ -5879,6 +5880,15 @@ CLASS zcl_abapgit_sap_package DEFINITION CREATE PUBLIC.
     DATA: mv_package TYPE devclass.
 
 ENDCLASS.
+CLASS zcl_abapgit_services_bkg DEFINITION FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS update_task
+      IMPORTING is_bg_task TYPE zcl_abapgit_persist_background=>ty_background
+      RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -7143,6 +7153,25 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
 
     lr_input->read( EXPORTING iv_name = zcl_abapgit_persistence_db=>c_type_settings
                     CHANGING  cg_data = ms_settings ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_SERVICES_BKG IMPLEMENTATION.
+  METHOD update_task.
+
+    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_background.
+
+    CREATE OBJECT lo_persistence.
+
+    IF is_bg_task-method = zcl_abapgit_persist_background=>c_method-nothing.
+      lo_persistence->delete( is_bg_task-key ).
+    ELSE.
+      lo_persistence->modify( is_bg_task ).
+    ENDIF.
+
+    MESSAGE 'Saved' TYPE 'S' ##NO_TEXT.
+
+    COMMIT WORK.
 
   ENDMETHOD.
 ENDCLASS.
@@ -42935,45 +42964,6 @@ CLASS lcl_services_db IMPLEMENTATION.
   ENDMETHOD.  "update
 
 ENDCLASS. "lcl_services_db
-
-****************************************************
-* abapmerge - ZABAPGIT_SERVICES_BACKGROUND
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_SERVICES_BACKGROUND
-*&---------------------------------------------------------------------*
-
-CLASS lcl_services_bkg DEFINITION FINAL.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS update_task
-      IMPORTING is_bg_task TYPE zcl_abapgit_persist_background=>ty_background
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS. "lcl_services_background
-
-CLASS lcl_services_bkg IMPLEMENTATION.
-
-  METHOD update_task.
-
-    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_background.
-
-    CREATE OBJECT lo_persistence.
-
-    IF is_bg_task-method = zcl_abapgit_persist_background=>c_method-nothing.
-      lo_persistence->delete( is_bg_task-key ).
-    ELSE.
-      lo_persistence->modify( is_bg_task ).
-    ENDIF.
-
-    MESSAGE 'Saved' TYPE 'S' ##NO_TEXT.
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "update_task
-
-ENDCLASS. "lcl_services_background
 ****************************************************
 * abapmerge - ZABAPGIT_GUI_PAGES
 ****************************************************
@@ -45094,7 +45084,7 @@ CLASS lcl_gui_page_bkg IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-bg_update.
         ls_bg_task     = zcl_abapgit_html_action_utils=>decode_bg_update( iv_getdata ).
         ls_bg_task-key = mv_key.
-        lcl_services_bkg=>update_task( ls_bg_task ).
+        zcl_abapgit_services_bkg=>update_task( ls_bg_task ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
     ENDCASE.
 
@@ -51674,5 +51664,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-15T12:44:23.581Z
+* abapmerge - 2018-02-15T12:53:13.130Z
 ****************************************************
