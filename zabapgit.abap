@@ -735,7 +735,7 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_transport_to_branch .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE 'v1.57.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE 'v1.58.0' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -50511,5 +50511,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-15T14:51:57.939Z
+* abapmerge - 2018-02-15T14:54:38.045Z
 ****************************************************
