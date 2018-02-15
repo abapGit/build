@@ -347,14 +347,23 @@ CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_check DEFINITION DEFERRED.
+CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
@@ -375,6 +384,7 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
@@ -498,6 +508,7 @@ CLASS zcl_abapgit_2fa_auth_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 INTERFACE zif_abapgit_sap_package.
@@ -1390,6 +1401,128 @@ CLASS zcl_abapgit_git_pack DEFINITION
         !cv_decompressed TYPE xstring
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_git_porcelain DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_expanded,
+        path  TYPE string,
+        name  TYPE string,
+        sha1  TYPE zif_abapgit_definitions=>ty_sha1,
+        chmod TYPE zif_abapgit_definitions=>ty_chmod,
+      END OF ty_expanded .
+    TYPES:
+      ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
+
+    CLASS-METHODS pull
+      IMPORTING
+        !io_repo    TYPE REF TO zcl_abapgit_repo_online
+      EXPORTING
+        !et_files   TYPE zif_abapgit_definitions=>ty_files_tt
+        !et_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+        !ev_branch  TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS push
+      IMPORTING
+        !io_repo          TYPE REF TO zcl_abapgit_repo_online
+        !is_comment       TYPE zif_abapgit_definitions=>ty_comment
+        !io_stage         TYPE REF TO zcl_abapgit_stage
+      EXPORTING
+        !ev_branch        TYPE zif_abapgit_definitions=>ty_sha1
+        !et_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS create_branch
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo_online
+        !iv_name TYPE string
+        !iv_from TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS create_tag
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo_online
+        !iv_name TYPE string
+        !iv_from TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS delete_branch
+      IMPORTING
+        !io_repo   TYPE REF TO zcl_abapgit_repo_online
+        !is_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS delete_tag
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo_online
+        !is_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS full_tree
+      IMPORTING
+        !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
+        !iv_branch         TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING
+        VALUE(rt_expanded) TYPE ty_expanded_tt
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+
+    TYPES: BEGIN OF ty_tree,
+             path TYPE string,
+             data TYPE xstring,
+             sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+           END OF ty_tree.
+
+    TYPES: ty_trees_tt TYPE STANDARD TABLE OF ty_tree WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_folder,
+             path  TYPE string,
+             count TYPE i,
+             sha1  TYPE zif_abapgit_definitions=>ty_sha1,
+           END OF ty_folder.
+
+    TYPES: ty_folders_tt TYPE STANDARD TABLE OF ty_folder WITH DEFAULT KEY.
+
+    CONSTANTS: c_zero TYPE zif_abapgit_definitions=>ty_sha1 VALUE '0000000000000000000000000000000000000000'.
+
+    CLASS-METHODS build_trees
+      IMPORTING it_expanded     TYPE ty_expanded_tt
+      RETURNING VALUE(rt_trees) TYPE ty_trees_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS find_folders
+      IMPORTING it_expanded       TYPE ty_expanded_tt
+      RETURNING VALUE(rt_folders) TYPE ty_folders_tt.
+
+    CLASS-METHODS walk
+      IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+                iv_sha1    TYPE zif_abapgit_definitions=>ty_sha1
+                iv_path    TYPE string
+      CHANGING  ct_files   TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS walk_tree
+      IMPORTING it_objects         TYPE zif_abapgit_definitions=>ty_objects_tt
+                iv_tree            TYPE zif_abapgit_definitions=>ty_sha1
+                iv_base            TYPE string
+      RETURNING VALUE(rt_expanded) TYPE ty_expanded_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS receive_pack
+      IMPORTING is_comment       TYPE zif_abapgit_definitions=>ty_comment
+                io_repo          TYPE REF TO zcl_abapgit_repo_online
+                it_trees         TYPE ty_trees_tt
+                it_blobs         TYPE zif_abapgit_definitions=>ty_files_tt
+                io_stage         TYPE REF TO zcl_abapgit_stage
+      RETURNING VALUE(rv_branch) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING   zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_git_transport DEFINITION
   FINAL
@@ -5067,6 +5200,153 @@ CLASS zcl_abapgit_password_dialog DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_popups DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_popup,
+             url         TYPE string,
+             package     TYPE devclass,
+             branch_name TYPE string,
+             cancel      TYPE abap_bool,
+           END OF ty_popup.
+
+    CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
+
+    CLASS-METHODS:
+      popup_package_export
+        EXPORTING ev_package      TYPE devclass
+                  ev_folder_logic TYPE string
+        RAISING   zcx_abapgit_exception,
+      popup_object
+        RETURNING VALUE(rs_tadir) TYPE tadir
+        RAISING   zcx_abapgit_exception,
+      create_branch_popup
+        EXPORTING ev_name   TYPE string
+                  ev_cancel TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
+      create_tag_popup
+        IMPORTING iv_sha1   TYPE zif_abapgit_definitions=>ty_sha1
+        EXPORTING ev_name   TYPE string
+                  ev_sha1   TYPE zif_abapgit_definitions=>ty_sha1
+                  ev_cancel TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
+      run_page_class_popup
+        EXPORTING ev_name   TYPE string
+                  ev_cancel TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
+      repo_new_offline
+        RETURNING VALUE(rs_popup) TYPE ty_popup
+        RAISING   zcx_abapgit_exception,
+      branch_list_popup
+        IMPORTING iv_url             TYPE string
+                  iv_default_branch  TYPE string OPTIONAL
+                  iv_show_new_option TYPE abap_bool OPTIONAL
+        RETURNING VALUE(rs_branch)   TYPE zcl_abapgit_git_branch_list=>ty_git_branch
+        RAISING   zcx_abapgit_exception,
+      tag_list_popup
+        IMPORTING iv_url         TYPE string
+                  iv_select_mode TYPE abap_bool DEFAULT abap_true
+        RETURNING VALUE(rs_tag)  TYPE zcl_abapgit_git_branch_list=>ty_git_branch
+        RAISING   zcx_abapgit_exception,
+      repo_popup
+        IMPORTING iv_url            TYPE string
+                  iv_package        TYPE devclass  OPTIONAL
+                  iv_branch         TYPE string    DEFAULT 'refs/heads/master'
+                  iv_freeze_package TYPE abap_bool OPTIONAL
+                  iv_freeze_url     TYPE abap_bool OPTIONAL
+                  iv_title          TYPE clike     DEFAULT 'Clone repository ...'
+        RETURNING VALUE(rs_popup)   TYPE ty_popup
+        RAISING   zcx_abapgit_exception ##NO_TEXT,
+      popup_to_confirm
+        IMPORTING
+                  titlebar              TYPE clike
+                  text_question         TYPE clike
+                  text_button_1         TYPE clike     DEFAULT 'Yes'
+                  icon_button_1         TYPE icon-name DEFAULT space
+                  text_button_2         TYPE clike     DEFAULT 'No'
+                  icon_button_2         TYPE icon-name DEFAULT space
+                  default_button        TYPE char1 DEFAULT '1'
+                  display_cancel_button TYPE char1 DEFAULT abap_true
+        RETURNING VALUE(rv_answer)      TYPE char1
+        RAISING   zcx_abapgit_exception,
+      popup_to_inform
+        IMPORTING
+                  titlebar     TYPE clike
+                  text_message TYPE clike
+        RAISING   zcx_abapgit_exception,
+      popup_to_create_package
+        EXPORTING es_package_data TYPE scompkdtln
+                  ev_create       TYPE boolean
+        RAISING   zcx_abapgit_exception,
+      popup_to_create_transp_branch
+        IMPORTING it_transport_headers       TYPE trwbo_request_headers
+        RETURNING VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
+        RAISING   zcx_abapgit_exception
+                  zcx_abapgit_cancel,
+      popup_to_select_transports
+        RETURNING VALUE(rt_trkorr) TYPE trwbo_request_headers,
+      popup_to_select_from_list
+        IMPORTING it_list               TYPE STANDARD TABLE
+                  i_header_text         TYPE csequence
+                  i_select_column_text  TYPE csequence
+                  it_columns_to_display TYPE stringtab
+        EXPORTING VALUE(et_list)        TYPE STANDARD TABLE
+        RAISING   zcx_abapgit_exception,
+      branch_popup_callback
+        IMPORTING iv_code       TYPE clike
+        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+                  cs_error      TYPE svale
+                  cv_show_popup TYPE char01
+        RAISING   zcx_abapgit_exception,
+      package_popup_callback
+        IMPORTING iv_code       TYPE clike
+        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+                  cs_error      TYPE svale
+                  cv_show_popup TYPE char01
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    TYPES: ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
+
+    CONSTANTS: co_fieldname_selected TYPE lvc_fname VALUE `SELECTED`.
+
+    CLASS-DATA:
+      mo_select_list_popup TYPE REF TO cl_salv_table,
+      mr_table             TYPE REF TO data,
+      mo_table_descr       TYPE REF TO cl_abap_tabledescr.
+
+    CLASS-METHODS:
+      add_field
+        IMPORTING iv_tabname    TYPE sval-tabname
+                  iv_fieldname  TYPE sval-fieldname
+                  iv_fieldtext  TYPE sval-fieldtext
+                  iv_value      TYPE clike DEFAULT ''
+                  iv_field_attr TYPE sval-field_attr DEFAULT ''
+                  iv_obligatory TYPE spo_obl OPTIONAL
+        CHANGING  ct_fields     TYPE ty_sval_tt,
+
+      create_new_table
+        IMPORTING it_list TYPE STANDARD TABLE,
+
+      get_selected_rows
+        EXPORTING et_list TYPE INDEX TABLE,
+
+      on_select_list_link_click FOR EVENT link_click OF cl_salv_events_table
+        IMPORTING row
+                    column,
+
+      on_select_list_function_click FOR EVENT added_function OF cl_salv_events_table
+        IMPORTING e_salv_function,
+
+      extract_field_values
+        IMPORTING it_fields  TYPE ty_sval_tt
+        EXPORTING ev_url     TYPE abaptxt255-line
+                  ev_package TYPE tdevc-devclass
+                  ev_branch  TYPE textl-line.
+
+ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
 
@@ -5791,6 +6071,61 @@ CLASS zcl_abapgit_exit DEFINITION
     INTERFACES: zif_abapgit_exit.
 
 ENDCLASS.
+CLASS zcl_abapgit_file_status DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS status
+      IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo
+                io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+
+    CLASS-METHODS:
+      calculate_status
+        IMPORTING iv_devclass       TYPE devclass
+                  io_dot            TYPE REF TO zcl_abapgit_dot_abapgit
+                  it_local          TYPE zif_abapgit_definitions=>ty_files_item_tt
+                  it_remote         TYPE zif_abapgit_definitions=>ty_files_tt
+                  it_cur_state      TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+        RAISING   zcx_abapgit_exception,
+      run_checks
+        IMPORTING io_log     TYPE REF TO zcl_abapgit_log
+                  it_results TYPE zif_abapgit_definitions=>ty_results_tt
+                  io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
+                  iv_top     TYPE devclass
+        RAISING   zcx_abapgit_exception,
+      build_existing
+        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
+                  is_remote        TYPE zif_abapgit_definitions=>ty_file
+                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
+      build_new_local
+        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
+      build_new_remote
+        IMPORTING iv_devclass      TYPE devclass
+                  io_dot           TYPE REF TO zcl_abapgit_dot_abapgit
+                  is_remote        TYPE zif_abapgit_definitions=>ty_file
+                  it_items         TYPE zif_abapgit_definitions=>ty_items_ts
+                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result
+        RAISING   zcx_abapgit_exception,
+      identify_object
+        IMPORTING iv_filename TYPE string
+                  iv_path     TYPE string
+                  iv_devclass TYPE devclass
+                  io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
+        EXPORTING es_item     TYPE zif_abapgit_definitions=>ty_item
+                  ev_is_xml   TYPE abap_bool
+        RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_folder_logic DEFINITION
   CREATE PUBLIC .
 
@@ -5847,6 +6182,409 @@ CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
     DATA: mi_client TYPE REF TO if_http_client,
           mo_digest TYPE REF TO zcl_abapgit_http_digest.
 
+ENDCLASS.
+CLASS zcl_abapgit_objects DEFINITION CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    TYPES: ty_types_tt TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_deserialization,
+             obj     TYPE REF TO zif_abapgit_object,
+             xml     TYPE REF TO zcl_abapgit_xml_input,
+             package TYPE devclass,
+             item    TYPE zif_abapgit_definitions=>ty_item,
+           END OF ty_deserialization.
+
+    TYPES: ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY.
+
+    CLASS-METHODS serialize
+      IMPORTING is_item         TYPE zif_abapgit_definitions=>ty_item
+                iv_language     TYPE spras
+                io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS deserialize
+      IMPORTING io_repo                  TYPE REF TO zcl_abapgit_repo
+      RETURNING VALUE(rt_accessed_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS delete
+      IMPORTING it_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS jump
+      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS changed_by
+      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
+      RETURNING VALUE(rv_user) TYPE xubname
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS has_changed_since
+      IMPORTING is_item           TYPE zif_abapgit_definitions=>ty_item
+                iv_timestamp      TYPE timestamp
+      RETURNING VALUE(rv_changed) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS is_supported
+      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
+                iv_native_only TYPE abap_bool DEFAULT abap_false
+      RETURNING VALUE(rv_bool) TYPE abap_bool.
+
+    CLASS-METHODS exists
+      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
+      RETURNING VALUE(rv_bool) TYPE abap_bool.
+
+    CLASS-METHODS supported_list
+      RETURNING VALUE(rt_types) TYPE ty_types_tt.
+
+  PRIVATE SECTION.
+
+    CLASS-METHODS check_duplicates
+      IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS create_object
+      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
+                iv_language    TYPE spras
+                is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+                iv_native_only TYPE abap_bool DEFAULT abap_false
+      RETURNING VALUE(ri_obj)  TYPE REF TO zif_abapgit_object
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS
+      prioritize_deser
+        IMPORTING it_results        TYPE zif_abapgit_definitions=>ty_results_tt
+        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
+
+    CLASS-METHODS class_name
+      IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_item
+      RETURNING VALUE(rv_class_name) TYPE string.
+
+    CLASS-METHODS warning_overwrite
+      CHANGING ct_results TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING  zcx_abapgit_exception.
+
+    CLASS-METHODS warning_package
+      IMPORTING is_item          TYPE zif_abapgit_definitions=>ty_item
+                iv_package       TYPE devclass
+      RETURNING VALUE(rv_cancel) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS update_package_tree
+      IMPORTING iv_package TYPE devclass.
+
+    CLASS-METHODS delete_obj
+      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS compare_remote_to_local
+      IMPORTING
+        io_object TYPE REF TO zif_abapgit_object
+        it_remote TYPE zif_abapgit_definitions=>ty_files_tt
+        is_result TYPE zif_abapgit_definitions=>ty_result
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS deserialize_objects
+      IMPORTING it_objects TYPE ty_deserialization_tt
+                iv_ddic    TYPE abap_bool DEFAULT abap_false
+                iv_descr   TYPE string
+      CHANGING  ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM zcl_abapgit_objects_super.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS class_constructor.
+
+    METHODS constructor
+      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING   cx_sy_create_object_error.
+
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+  PRIVATE SECTION.
+    DATA: mo_plugin TYPE REF TO object.
+
+    TYPES: BEGIN OF ty_s_objtype_map,
+             obj_typ      TYPE trobjtype,
+             plugin_class TYPE seoclsname,
+           END OF ty_s_objtype_map,
+           ty_t_objtype_map TYPE SORTED TABLE OF ty_s_objtype_map WITH UNIQUE KEY obj_typ.
+
+    CLASS-DATA gt_objtype_map TYPE ty_t_objtype_map.
+
+ENDCLASS.
+CLASS zcl_abapgit_repo DEFINITION
+  ABSTRACT
+  CREATE PUBLIC
+  FRIENDS ZCL_ABAPGIT_repo_srv .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !is_data TYPE zcl_abapgit_persistence_repo=>ty_repo .
+    METHODS get_key
+      RETURNING
+        VALUE(rv_key) TYPE zif_abapgit_persistence=>ty_value .
+    METHODS get_name
+      RETURNING
+        VALUE(rv_name) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_files_local
+      IMPORTING
+        !io_log         TYPE REF TO zcl_abapgit_log OPTIONAL
+        !it_filter      TYPE scts_tadir OPTIONAL
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_local_checksums
+      RETURNING
+        VALUE(rt_checksums) TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt .
+    METHODS get_local_checksums_per_file
+      RETURNING
+        VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+    METHODS get_files_remote
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_package
+      RETURNING
+        VALUE(rv_package) TYPE zcl_abapgit_persistence_repo=>ty_repo-package .
+    METHODS get_master_language
+      RETURNING
+        VALUE(rv_language) TYPE spras .
+    METHODS is_write_protected
+      RETURNING
+        VALUE(rv_yes) TYPE sap_bool .
+    METHODS ignore_subpackages
+      RETURNING
+        VALUE(rv_yes) TYPE sap_bool .
+    METHODS delete
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_dot_abapgit
+      RETURNING
+        VALUE(ro_dot_abapgit) TYPE REF TO zcl_abapgit_dot_abapgit .
+    METHODS set_dot_abapgit
+      IMPORTING
+        !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh
+      IMPORTING
+        !iv_drop_cache TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local .
+    METHODS update_local_checksums
+      IMPORTING
+        !it_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS rebuild_local_checksums
+      RAISING
+        zcx_abapgit_exception .
+    METHODS find_remote_dot_abapgit
+      RETURNING
+        VALUE(ro_dot) TYPE REF TO zcl_abapgit_dot_abapgit
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_offline
+      RETURNING
+        VALUE(rv_offline) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_files_remote
+      IMPORTING
+        !it_files TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+    DATA: mt_local              TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          mt_remote             TYPE zif_abapgit_definitions=>ty_files_tt,
+          mv_do_local_refresh   TYPE abap_bool,
+          mv_last_serialization TYPE timestamp,
+          ms_data               TYPE zcl_abapgit_persistence_repo=>ty_repo.
+
+    METHODS:
+      set
+        IMPORTING iv_sha1        TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+                  it_checksums   TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt OPTIONAL
+                  iv_url         TYPE zcl_abapgit_persistence_repo=>ty_repo-url OPTIONAL
+                  iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name OPTIONAL
+                  iv_head_branch TYPE zcl_abapgit_persistence_repo=>ty_repo-head_branch OPTIONAL
+                  iv_offline     TYPE zcl_abapgit_persistence_repo=>ty_repo-offline OPTIONAL
+                  is_dot_abapgit TYPE zcl_abapgit_persistence_repo=>ty_repo-dot_abapgit OPTIONAL
+        RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_repo_offline DEFINITION
+  INHERITING FROM zcl_abapgit_repo
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_repo_online DEFINITION INHERITING FROM zcl_abapgit_repo FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      refresh REDEFINITION,
+      constructor
+        IMPORTING is_data TYPE zcl_abapgit_persistence_repo=>ty_repo
+        RAISING   zcx_abapgit_exception,
+      get_url
+        RETURNING VALUE(rv_url) TYPE zcl_abapgit_persistence_repo=>ty_repo-url,
+      get_branch_name
+        RETURNING VALUE(rv_name) TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name,
+      get_head_branch_name
+        RETURNING VALUE(rv_name) TYPE zcl_abapgit_persistence_repo=>ty_repo-head_branch,
+      get_branches
+        RETURNING VALUE(ro_branches) TYPE REF TO zcl_abapgit_git_branch_list
+        RAISING   zcx_abapgit_exception,
+      set_url
+        IMPORTING iv_url TYPE zcl_abapgit_persistence_repo=>ty_repo-url
+        RAISING   zcx_abapgit_exception,
+      set_branch_name
+        IMPORTING iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name
+        RAISING   zcx_abapgit_exception,
+      set_new_remote
+        IMPORTING iv_url         TYPE zcl_abapgit_persistence_repo=>ty_repo-url
+                  iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name
+        RAISING   zcx_abapgit_exception,
+      get_sha1_local
+        RETURNING VALUE(rv_sha1) TYPE zcl_abapgit_persistence_repo=>ty_repo-sha1,
+      get_sha1_remote
+        RETURNING VALUE(rv_sha1) TYPE zcl_abapgit_persistence_repo=>ty_repo-sha1
+        RAISING   zcx_abapgit_exception,
+      get_files_remote REDEFINITION,
+      get_objects
+        RETURNING VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+        RAISING   zcx_abapgit_exception,
+      deserialize REDEFINITION,
+      status
+        IMPORTING io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
+        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+        RAISING   zcx_abapgit_exception,
+      reset_status,
+      set_objects
+        IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+        RAISING   zcx_abapgit_exception,
+      initialize
+        RAISING zcx_abapgit_exception,
+      rebuild_local_checksums REDEFINITION,
+      push
+        IMPORTING is_comment TYPE zif_abapgit_definitions=>ty_comment
+                  io_stage   TYPE REF TO zcl_abapgit_stage
+        RAISING   zcx_abapgit_exception,
+      get_unnecessary_local_objs
+        RETURNING VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA:
+      mt_objects     TYPE zif_abapgit_definitions=>ty_objects_tt,
+      mv_branch      TYPE zif_abapgit_definitions=>ty_sha1,
+      mv_initialized TYPE abap_bool,
+      mo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
+      mt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
+
+    METHODS:
+      handle_stage_ignore
+        IMPORTING io_stage TYPE REF TO zcl_abapgit_stage
+        RAISING   zcx_abapgit_exception,
+      actualize_head_branch
+        RAISING zcx_abapgit_exception,
+      delete_initial_online_repo
+        IMPORTING iv_commit TYPE flag
+        RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_repo_srv DEFINITION FINAL CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS: get_instance
+      RETURNING VALUE(rv_srv) TYPE REF TO zcl_abapgit_repo_srv.
+
+    TYPES: ty_repo_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY.
+
+    METHODS list
+      RETURNING VALUE(rt_list) TYPE ty_repo_tt
+      RAISING   zcx_abapgit_exception.
+
+    METHODS refresh
+      RAISING zcx_abapgit_exception.
+
+    METHODS new_online
+      IMPORTING iv_url         TYPE string
+                iv_branch_name TYPE string
+                iv_package     TYPE devclass
+      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_online
+      RAISING   zcx_abapgit_exception.
+
+    METHODS new_offline
+      IMPORTING iv_url         TYPE string
+                iv_package     TYPE devclass
+      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_offline
+      RAISING   zcx_abapgit_exception.
+
+    METHODS delete
+      IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING   zcx_abapgit_exception.
+
+    METHODS get
+      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_value
+      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo
+      RAISING   zcx_abapgit_exception.
+
+    METHODS is_repo_installed
+      IMPORTING iv_url              TYPE string
+                iv_target_package   TYPE devclass OPTIONAL
+      RETURNING VALUE(rv_installed) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    METHODS switch_repo_type
+      IMPORTING iv_key     TYPE zif_abapgit_persistence=>ty_value
+                iv_offline TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    METHODS validate_package
+      IMPORTING iv_package TYPE devclass
+      RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+
+    CLASS-DATA: go_ref TYPE REF TO zcl_abapgit_repo_srv.
+
+    METHODS constructor.
+
+    DATA: mv_init        TYPE abap_bool VALUE abap_false,
+          mo_persistence TYPE REF TO zcl_abapgit_persistence_repo,
+          mt_list        TYPE ty_repo_tt.
+
+    METHODS is_sap_object_allowed
+      RETURNING
+        VALUE(rv_allowed) TYPE abap_bool.
+
+    METHODS add
+      IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PUBLIC.
 
@@ -6074,6 +6812,30 @@ CLASS zcl_abapgit_stage DEFINITION
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
+CLASS zcl_abapgit_stage_logic DEFINITION
+  final
+  create public .
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      get
+        IMPORTING io_repo         TYPE REF TO zcl_abapgit_repo_online
+        RETURNING VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
+        RAISING   zcx_abapgit_exception,
+      count
+        IMPORTING io_repo         TYPE REF TO zcl_abapgit_repo_online
+        RETURNING VALUE(rv_count) TYPE i
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      remove_ignored
+        IMPORTING io_repo  TYPE REF TO zcl_abapgit_repo_online
+        CHANGING  cs_files TYPE zif_abapgit_definitions=>ty_stage_files,
+      remove_identical
+        CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
+
+ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
   CREATE PUBLIC .
 
@@ -6114,6 +6876,46 @@ CLASS zcl_abapgit_syntax_check DEFINITION
       RETURNING
         VALUE(rt_list) TYPE scit_alvlist .
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_tadir DEFINITION final create public.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      read
+        IMPORTING iv_package            TYPE tadir-devclass
+                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
+        RAISING   zcx_abapgit_exception,
+      read_single
+        IMPORTING iv_pgmid        TYPE tadir-pgmid DEFAULT 'R3TR'
+                  iv_object       TYPE tadir-object
+                  iv_obj_name     TYPE tadir-obj_name
+        RETURNING VALUE(rs_tadir) TYPE tadir
+        RAISING   zcx_abapgit_exception,
+      get_object_package
+        IMPORTING iv_pgmid           TYPE tadir-pgmid DEFAULT 'R3TR'
+                  iv_object          TYPE tadir-object
+                  iv_obj_name        TYPE tadir-obj_name
+        RETURNING VALUE(rv_devclass) TYPE tadir-devclass
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      check_exists
+        IMPORTING it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
+        RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+        RAISING   zcx_abapgit_exception,
+      build
+        IMPORTING iv_package            TYPE tadir-devclass
+                  iv_top                TYPE tadir-devclass
+                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
+                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
+        RAISING   zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_transport_objects DEFINITION
   FINAL
@@ -6813,6 +7615,164 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+  METHOD build.
+
+    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tdevc        TYPE STANDARD TABLE OF tdevc,
+          lv_path         TYPE string,
+          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
+          lt_excludes     TYPE RANGE OF trobjtype,
+          ls_exclude      LIKE LINE OF lt_excludes.
+
+    FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
+                   <ls_tadir> LIKE LINE OF rt_tadir.
+
+    ls_exclude-sign = 'I'.
+    ls_exclude-option = 'EQ'.
+
+    ls_exclude-low = 'SOTR'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'SFB1'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'SFB2'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'STOB'. " auto generated by core data services
+    APPEND ls_exclude TO lt_excludes.
+
+    SELECT * FROM tadir
+      INTO CORRESPONDING FIELDS OF TABLE rt_tadir
+      WHERE devclass = iv_package
+      AND pgmid = 'R3TR'
+      AND object NOT IN lt_excludes
+      AND delflag = abap_false
+      ORDER BY PRIMARY KEY.               "#EC CI_GENBUFF "#EC CI_SUBRC
+
+    CREATE OBJECT lo_skip_objects.
+    rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
+      it_tadir = rt_tadir
+      io_log   = io_log ).
+
+    " Local packages are not in TADIR, only in TDEVC, act as if they were
+    IF iv_package CP '$*'. " OR iv_package CP 'T*' ).
+      APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
+      <ls_tadir>-pgmid    = 'R3TR'.
+      <ls_tadir>-object   = 'DEVC'.
+      <ls_tadir>-obj_name = iv_package.
+      <ls_tadir>-devclass = iv_package.
+    ENDIF.
+
+    IF NOT io_dot IS INITIAL.
+      lv_path = zcl_abapgit_folder_logic=>package_to_path(
+        iv_top     = iv_top
+        io_dot     = io_dot
+        iv_package = iv_package ).
+    ENDIF.
+
+    LOOP AT rt_tadir ASSIGNING <ls_tadir>.
+      <ls_tadir>-path = lv_path.
+
+      CASE <ls_tadir>-object.
+        WHEN 'SICF'.
+* replace the internal GUID with a hash of the path
+          <ls_tadir>-obj_name+15 = zcl_abapgit_object_sicf=>read_sicf_url( <ls_tadir>-obj_name ).
+      ENDCASE.
+    ENDLOOP.
+
+* look for subpackages
+    IF iv_ignore_subpackages = abap_false.
+      SELECT * FROM tdevc INTO TABLE lt_tdevc
+        WHERE parentcl = iv_package
+        ORDER BY PRIMARY KEY.             "#EC CI_SUBRC "#EC CI_GENBUFF
+    ENDIF.
+
+    LOOP AT lt_tdevc ASSIGNING <ls_tdevc>.
+      lt_tadir = build( iv_package = <ls_tdevc>-devclass
+                        iv_top     = iv_top
+                        io_dot     = io_dot
+                        io_log     = io_log ).
+      APPEND LINES OF lt_tadir TO rt_tadir.
+    ENDLOOP.
+
+  ENDMETHOD.                    "build
+  METHOD check_exists.
+
+    DATA: lv_exists   TYPE abap_bool,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( it_tadir ).
+
+* rows from database table TADIR are not removed for
+* transportable objects until the transport is released
+    LOOP AT it_tadir ASSIGNING <ls_tadir>.
+      IF sy-tabix MOD 200 = 0.
+        lo_progress->show(
+          iv_current = sy-tabix
+          iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
+      ENDIF.
+
+      ls_item-obj_type = <ls_tadir>-object.
+      ls_item-obj_name = <ls_tadir>-obj_name.
+      ls_item-devclass = <ls_tadir>-devclass.
+
+      IF zcl_abapgit_objects=>is_supported( ls_item ) = abap_true.
+        lv_exists = zcl_abapgit_objects=>exists( ls_item ).
+        IF lv_exists = abap_true.
+          APPEND <ls_tadir> TO rt_tadir.
+        ENDIF.
+      ELSE.
+        APPEND <ls_tadir> TO rt_tadir.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.                    "check_exists
+  METHOD get_object_package.
+
+    DATA ls_tadir TYPE tadir.
+
+    ls_tadir = read_single( iv_pgmid    = iv_pgmid
+                            iv_object   = iv_object
+                            iv_obj_name = iv_obj_name ).
+
+    IF ls_tadir-delflag = 'X'.
+      RETURN. "Mark for deletion -> return nothing
+    ENDIF.
+
+    rv_devclass = ls_tadir-devclass.
+
+  ENDMETHOD.  "get_object_package.
+  METHOD read.
+
+* start recursion
+* hmm, some problems here, should TADIR also build path?
+    rt_tadir = build( iv_package            = iv_package
+                      iv_top                = iv_package
+                      io_dot                = io_dot
+                      iv_ignore_subpackages = iv_ignore_subpackages
+                      io_log                = io_log ).
+
+    rt_tadir = check_exists( rt_tadir ).
+
+  ENDMETHOD.                    "read
+  METHOD read_single.
+
+    IF iv_object = 'SICF'.
+      rs_tadir = zcl_abapgit_object_sicf=>read_tadir_sicf(
+        iv_pgmid    = iv_pgmid
+        iv_obj_name = iv_obj_name ).
+    ELSE.
+      SELECT SINGLE * FROM tadir INTO rs_tadir
+        WHERE pgmid = iv_pgmid
+        AND object = iv_object
+        AND obj_name = iv_obj_name.                       "#EC CI_SUBRC
+    ENDIF.
+
+  ENDMETHOD.                    "read_single
+ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   METHOD create_inspection.
 
@@ -6928,6 +7888,71 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
     io_inspection->plain_list(
       IMPORTING
         p_list = rt_list ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
+  METHOD count.
+
+    DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
+
+    ls_files = get( io_repo ).
+
+    rv_count = lines( ls_files-remote ) + lines( ls_files-local ).
+
+  ENDMETHOD.
+  METHOD get.
+
+    rs_files-local  = io_repo->get_files_local( ).
+    rs_files-remote = io_repo->get_files_remote( ).
+    remove_identical( CHANGING cs_files = rs_files ).
+    remove_ignored( EXPORTING io_repo  = io_repo
+                    CHANGING  cs_files = rs_files ).
+
+  ENDMETHOD.
+  METHOD remove_identical.
+
+    DATA: lv_index  TYPE i,
+          ls_remote LIKE LINE OF cs_files-remote.
+
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF cs_files-local.
+
+    SORT cs_files-remote BY path filename.
+
+    LOOP AT cs_files-local ASSIGNING <ls_local>.
+      lv_index = sy-tabix.
+
+      READ TABLE cs_files-remote INTO ls_remote
+        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+        BINARY SEARCH.
+      IF sy-subrc = 0.
+        DELETE cs_files-remote INDEX sy-tabix.
+        IF ls_remote-sha1 = <ls_local>-file-sha1.
+          DELETE cs_files-local INDEX lv_index.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD remove_ignored.
+
+    DATA: lv_index TYPE i.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote.
+    LOOP AT cs_files-remote ASSIGNING <ls_remote>.
+      lv_index = sy-tabix.
+
+      IF io_repo->get_dot_abapgit( )->is_ignored(
+          iv_path     = <ls_remote>-path
+          iv_filename = <ls_remote>-filename ) = abap_true.
+        DELETE cs_files-remote INDEX lv_index.
+      ELSEIF <ls_remote>-path     = zif_abapgit_definitions=>gc_root_dir
+         AND <ls_remote>-filename = zif_abapgit_definitions=>gc_dot_abapgit.
+        " Remove .abapgit from remotes - it cannot be removed or ignored
+        DELETE cs_files-remote INDEX lv_index.
+      ENDIF.
+
+    ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
@@ -7386,6 +8411,1705 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
+  METHOD add.
+
+    DATA: lo_repo LIKE LINE OF mt_list.
+    LOOP AT mt_list INTO lo_repo.
+      IF lo_repo->get_key( ) = io_repo->get_key( ).
+        IF lo_repo = io_repo.
+          RETURN.
+        ENDIF.
+        zcx_abapgit_exception=>raise( 'identical keys' ).
+      ENDIF.
+    ENDLOOP.
+
+    APPEND io_repo TO mt_list.
+
+  ENDMETHOD.                    "add
+  METHOD constructor.
+    CREATE OBJECT mo_persistence.
+  ENDMETHOD.                    "class_constructor
+  METHOD delete.
+
+    io_repo->delete( ).
+
+    DELETE TABLE mt_list FROM io_repo.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.                    "delete
+  METHOD get.
+
+    FIELD-SYMBOLS: <lo_list> LIKE LINE OF mt_list.
+    IF mv_init = abap_false.
+      refresh( ).
+    ENDIF.
+
+    LOOP AT mt_list ASSIGNING <lo_list>.
+      IF <lo_list>->get_key( ) = iv_key.
+        ro_repo = <lo_list>.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    zcx_abapgit_exception=>raise( 'repo not found, get' ).
+
+  ENDMETHOD.                    "get
+  METHOD get_instance.
+    IF go_ref IS INITIAL.
+      CREATE OBJECT go_ref.
+    ENDIF.
+    rv_srv = go_ref.
+  ENDMETHOD.
+  METHOD is_repo_installed.
+
+    DATA: lt_repo        TYPE zcl_abapgit_repo_srv=>ty_repo_tt,
+          lo_repo        TYPE REF TO zcl_abapgit_repo,
+          lv_url         TYPE string,
+          lv_package     TYPE devclass,
+          lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
+          lv_err         TYPE string.
+
+    lt_repo = list( ).
+
+    LOOP AT lt_repo INTO lo_repo.
+      CHECK lo_repo->is_offline( ) = abap_false.
+      lo_repo_online ?= lo_repo.
+
+      lv_url     = lo_repo_online->get_url( ).
+      lv_package = lo_repo_online->get_package( ).
+      CHECK to_upper( lv_url ) = to_upper( iv_url ).
+
+      " Validate bindings
+      "TODO refactor: move this message out of this method
+      IF iv_target_package IS NOT INITIAL AND iv_target_package <> lv_package.
+        lv_err = |Installation to package { lv_package } detected. |
+              && |Cancelling installation|.
+        zcx_abapgit_exception=>raise( lv_err ).
+      ENDIF.
+
+      rv_installed = abap_true.
+      EXIT.
+    ENDLOOP.
+
+  ENDMETHOD. "is_repo_installed
+  METHOD is_sap_object_allowed.
+
+    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
+    IF rv_allowed = abap_true.
+      RETURN.
+    ENDIF.
+
+    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
+
+  ENDMETHOD.
+  METHOD list.
+
+    IF mv_init = abap_false.
+      refresh( ).
+    ENDIF.
+
+    rt_list = mt_list.
+
+  ENDMETHOD.                    "list
+  METHOD new_offline.
+
+    DATA: ls_repo TYPE zcl_abapgit_persistence_repo=>ty_repo,
+          lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
+    validate_package( iv_package ).
+
+    lv_key = mo_persistence->add(
+      iv_url         = iv_url
+      iv_branch_name = ''
+      iv_package     = iv_package
+      iv_offline     = abap_true
+      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
+
+    TRY.
+        ls_repo = mo_persistence->read( lv_key ).
+      CATCH zcx_abapgit_not_found.
+        zcx_abapgit_exception=>raise( 'new_offline not found' ).
+    ENDTRY.
+
+    CREATE OBJECT ro_repo
+      EXPORTING
+        is_data = ls_repo.
+
+    add( ro_repo ).
+
+  ENDMETHOD.                    "new_offline
+  METHOD new_online.
+
+    DATA: ls_repo TYPE zcl_abapgit_persistence_repo=>ty_repo,
+          lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
+    validate_package( iv_package ).
+
+    lv_key = mo_persistence->add(
+      iv_url         = iv_url
+      iv_branch_name = iv_branch_name
+      iv_package     = iv_package
+      iv_offline     = abap_false
+      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
+    TRY.
+        ls_repo = mo_persistence->read( lv_key ).
+      CATCH zcx_abapgit_not_found.
+        zcx_abapgit_exception=>raise( 'new_online not found' ).
+    ENDTRY.
+
+    CREATE OBJECT ro_repo
+      EXPORTING
+        is_data = ls_repo.
+
+    add( ro_repo ).
+
+  ENDMETHOD.                    "new_online
+  METHOD refresh.
+
+    DATA: lt_list    TYPE zcl_abapgit_persistence_repo=>tt_repo,
+          lo_online  TYPE REF TO zcl_abapgit_repo_online,
+          lo_offline TYPE REF TO zcl_abapgit_repo_offline.
+
+    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+    CLEAR mt_list.
+
+    lt_list = mo_persistence->list( ).
+    LOOP AT lt_list ASSIGNING <ls_list>.
+      IF <ls_list>-offline = abap_false.
+        CREATE OBJECT lo_online
+          EXPORTING
+            is_data = <ls_list>.
+        APPEND lo_online TO mt_list.
+      ELSE.
+        CREATE OBJECT lo_offline
+          EXPORTING
+            is_data = <ls_list>.
+        APPEND lo_offline TO mt_list.
+      ENDIF.
+    ENDLOOP.
+
+    mv_init = abap_true.
+
+  ENDMETHOD.                    "refresh
+  METHOD switch_repo_type.
+
+    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
+
+    FIELD-SYMBOLS <repo> LIKE LINE OF mt_list.
+
+    lo_repo = get( iv_key ).
+    READ TABLE mt_list ASSIGNING <repo> FROM lo_repo.
+    ASSERT sy-subrc IS INITIAL.
+    ASSERT iv_offline <> lo_repo->ms_data-offline.
+
+    IF iv_offline = abap_true. " On-line -> OFFline
+      lo_repo->set(
+        iv_url         = zcl_abapgit_url=>name( lo_repo->ms_data-url )
+        iv_branch_name = ''
+        iv_sha1        = ''
+        iv_head_branch = ''
+        iv_offline     = abap_true ).
+      CREATE OBJECT <repo> TYPE zcl_abapgit_repo_offline
+        EXPORTING
+          is_data = lo_repo->ms_data.
+    ELSE. " OFFline -> On-line
+      lo_repo->set( iv_offline = abap_false ).
+      CREATE OBJECT <repo> TYPE zcl_abapgit_repo_online
+        EXPORTING
+          is_data = lo_repo->ms_data.
+    ENDIF.
+
+  ENDMETHOD.  "switch_repo_type
+  METHOD validate_package.
+
+    DATA: ls_devclass TYPE tdevc,
+          lt_repos    TYPE zcl_abapgit_persistence_repo=>tt_repo.
+
+    IF iv_package IS INITIAL.
+      zcx_abapgit_exception=>raise( 'add, package empty' ).
+    ENDIF.
+
+    IF iv_package = '$TMP'.
+      zcx_abapgit_exception=>raise( 'not possible to use $TMP, create new (local) package' ).
+    ENDIF.
+
+    SELECT SINGLE *
+           FROM tdevc
+           INTO ls_devclass
+           WHERE devclass = iv_package.                 "#EC CI_GENBUFF
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Package { iv_package } not found| ).
+    ENDIF.
+
+    IF is_sap_object_allowed( ) = abap_false AND ls_devclass-as4user = 'SAP'.
+      zcx_abapgit_exception=>raise( |Package { iv_package } not allowed| ).
+    ENDIF.
+
+    " make sure its not already in use for a different repository
+    lt_repos = mo_persistence->list( ).
+    READ TABLE lt_repos WITH KEY package = iv_package TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise( |Package { iv_package } already in use| ).
+    ENDIF.
+
+  ENDMETHOD.                    "validate_package
+ENDCLASS.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+  METHOD actualize_head_branch.
+    DATA lv_branch_name TYPE string.
+    lv_branch_name = mo_branches->get_head( )-name.
+
+    IF lv_branch_name <> ms_data-head_branch.
+      set( iv_head_branch = lv_branch_name ).
+    ENDIF.
+
+  ENDMETHOD.                    "actualize_head_branch
+  METHOD constructor.
+
+    super->constructor( is_data ).
+
+    mv_initialized = abap_false.
+
+  ENDMETHOD.                    "constructor
+  METHOD delete_initial_online_repo.
+
+    IF me->is_offline( ) = abap_false AND me->get_sha1_local( ) IS INITIAL.
+
+      zcl_abapgit_repo_srv=>get_instance( )->delete( me ).
+
+      IF iv_commit = abap_true.
+        COMMIT WORK.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.  " delete_initial_online_repo
+  METHOD deserialize.
+
+    IF ms_data-write_protect = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    initialize( ).
+
+    super->deserialize( ).
+
+    set( iv_sha1 = mv_branch ).
+
+    reset_status( ).
+
+    COMMIT WORK AND WAIT.
+
+  ENDMETHOD.                    "deserialize
+  METHOD get_branches.
+    IF mo_branches IS NOT BOUND.
+      mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
+    ENDIF.
+    ro_branches = mo_branches.
+  ENDMETHOD.                    "get_branches
+  METHOD get_branch_name.
+    rv_name = ms_data-branch_name.
+  ENDMETHOD.                    "get_branch_name
+  METHOD get_files_remote.
+    initialize( ).
+
+    rt_files = mt_remote.
+  ENDMETHOD.                    "get_files
+  METHOD get_head_branch_name.
+    rv_name = ms_data-head_branch.
+  ENDMETHOD.                    "get_head_branch_name
+  METHOD get_objects.
+    initialize( ).
+
+    rt_objects = mt_objects.
+  ENDMETHOD.                    "get_objects
+  METHOD get_sha1_local.
+    rv_sha1 = ms_data-sha1.
+  ENDMETHOD.                    "get_sha1_local
+  METHOD get_sha1_remote.
+    initialize( ).
+
+    rv_sha1 = mv_branch.
+  ENDMETHOD.                    "get_sha1_remote
+  METHOD get_unnecessary_local_objs.
+
+    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tadir_unique TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_tadir
+                               WITH UNIQUE KEY pgmid object obj_name,
+          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_status       TYPE zif_abapgit_definitions=>ty_results_tt,
+          lv_package      TYPE zcl_abapgit_persistence_repo=>ty_repo-package.
+
+    FIELD-SYMBOLS: <status> TYPE zif_abapgit_definitions=>ty_result,
+                   <tadir>  TYPE zif_abapgit_definitions=>ty_tadir.
+
+    " delete objects which are added locally but are not in remote repo
+    lt_local  = me->get_files_local( ).
+    lt_remote = me->get_files_remote( ).
+    lt_status = me->status( ).
+
+    lv_package = me->get_package( ).
+    lt_tadir = zcl_abapgit_tadir=>read( lv_package ).
+    SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
+
+    LOOP AT lt_status ASSIGNING <status>
+                      WHERE lstate = zif_abapgit_definitions=>gc_state-added.
+
+      READ TABLE lt_tadir ASSIGNING <tadir>
+                          WITH KEY pgmid    = 'R3TR'
+                                   object   = <status>-obj_type
+                                   obj_name = <status>-obj_name
+                                   devclass = <status>-package
+                          BINARY SEARCH.
+      IF sy-subrc <> 0.
+* skip objects that does not exist locally
+        CONTINUE.
+      ENDIF.
+
+      INSERT <tadir> INTO TABLE lt_tadir_unique.
+
+    ENDLOOP.
+
+    rt_unnecessary_local_objects = lt_tadir_unique.
+
+  ENDMETHOD.
+  METHOD get_url.
+    rv_url = ms_data-url.
+  ENDMETHOD.                    "get_url
+  METHOD handle_stage_ignore.
+
+    DATA: lv_add         TYPE abap_bool,
+          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
+          lt_stage       TYPE zcl_abapgit_stage=>ty_stage_tt.
+
+    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF lt_stage.
+    lo_dot_abapgit = get_dot_abapgit( ).
+    lt_stage = io_stage->get_all( ).
+    LOOP AT lt_stage ASSIGNING <ls_stage> WHERE method = zcl_abapgit_stage=>c_method-ignore.
+
+      lo_dot_abapgit->add_ignore(
+        iv_path     = <ls_stage>-file-path
+        iv_filename = <ls_stage>-file-filename ).
+
+      " remove it from the staging object, as the action is handled here
+      io_stage->reset( iv_path     = <ls_stage>-file-path
+                       iv_filename = <ls_stage>-file-filename ).
+
+      lv_add = abap_true.
+
+    ENDLOOP.
+
+    IF lv_add = abap_true.
+      io_stage->add(
+        iv_path     = zif_abapgit_definitions=>gc_root_dir
+        iv_filename = zif_abapgit_definitions=>gc_dot_abapgit
+        iv_data     = lo_dot_abapgit->serialize( ) ).
+
+      set_dot_abapgit( lo_dot_abapgit ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD initialize.
+    IF mv_initialized = abap_false.
+      refresh( ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD push.
+
+    DATA: lv_branch        TYPE zif_abapgit_definitions=>ty_sha1,
+          lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+          lv_text          TYPE string.
+
+    IF ms_data-branch_name CP 'refs/tags*'.
+      lv_text = |You're working on a tag. Currently it's not |
+             && |possible to push on tags. Consider creating a branch instead|.
+      zcx_abapgit_exception=>raise( lv_text ).
+    ENDIF.
+
+    handle_stage_ignore( io_stage ).
+
+    zcl_abapgit_git_porcelain=>push( EXPORTING is_comment       = is_comment
+                                       io_repo          = me
+                                       io_stage         = io_stage
+                             IMPORTING ev_branch        = lv_branch
+                                       et_updated_files = lt_updated_files ).
+
+    IF io_stage->get_branch_sha1( ) = get_sha1_local( ).
+* pushing to the branch currently represented by this repository object
+      mv_branch = lv_branch.
+      set( iv_sha1 = lv_branch ).
+    ELSE.
+      refresh( ).
+    ENDIF.
+
+    update_local_checksums( lt_updated_files ).
+
+    IF zcl_abapgit_stage_logic=>count( me ) = 0.
+      set( iv_sha1 = lv_branch ).
+    ENDIF.
+
+  ENDMETHOD.                    "push
+  METHOD rebuild_local_checksums. "REMOTE
+
+    DATA: lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          ls_last_item    TYPE zif_abapgit_definitions=>ty_item,
+          lv_branch_equal TYPE abap_bool,
+          lt_checksums    TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt.
+
+    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
+                   <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
+                   <ls_remote>   LIKE LINE OF lt_remote,
+                   <ls_local>    LIKE LINE OF lt_local.
+
+    lt_remote       = get_files_remote( ).
+    lt_local        = get_files_local( ).
+    lv_branch_equal = boolc( get_sha1_remote( ) = get_sha1_local( ) ).
+
+    DELETE lt_local " Remove non-code related files except .abapgit
+      WHERE item IS INITIAL
+      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
+      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
+
+    SORT lt_local BY item.
+    SORT lt_remote BY path filename.
+
+    LOOP AT lt_local ASSIGNING <ls_local>.
+      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
+        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
+        <ls_checksum>-item = <ls_local>-item.
+        ls_last_item       = <ls_local>-item.
+      ENDIF.
+
+      READ TABLE lt_remote ASSIGNING <ls_remote>
+        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+        BINARY SEARCH.
+      CHECK sy-subrc = 0.  " Ignore new ones
+
+      APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_file_sig>.
+      MOVE-CORRESPONDING <ls_local>-file TO <ls_file_sig>.
+
+      " If hashes are equal -> local sha1 is OK
+      " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
+      "      Else (branches equal) -> assume changes were local, state - remote sha1
+      IF <ls_local>-file-sha1 <> <ls_remote>-sha1 AND lv_branch_equal = abap_true.
+        <ls_file_sig>-sha1 = <ls_remote>-sha1.
+      ENDIF.
+    ENDLOOP.
+
+    set( it_checksums = lt_checksums ).
+    reset_status( ).
+
+  ENDMETHOD.  " rebuild_local_checksums.
+  METHOD refresh.
+
+    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
+          lx_exception TYPE REF TO zcx_abapgit_exception.
+
+    super->refresh( iv_drop_cache ).
+    reset_status( ).
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 1.
+
+    lo_progress->show( iv_current = 1
+                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
+
+    TRY.
+        zcl_abapgit_git_porcelain=>pull(
+          EXPORTING
+            io_repo    = me
+          IMPORTING
+            et_files   = mt_remote
+            et_objects = mt_objects
+            ev_branch  = mv_branch ).
+
+      CATCH zcx_abapgit_exception INTO lx_exception.
+
+        delete_initial_online_repo( abap_true ).
+
+        RAISE EXCEPTION lx_exception.
+
+    ENDTRY.
+
+    mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
+    actualize_head_branch( ).
+
+    mv_initialized = abap_true.
+
+  ENDMETHOD.                    "refresh
+  METHOD reset_status.
+    CLEAR mt_status.
+  ENDMETHOD.  " reset_status.
+  METHOD set_branch_name.
+
+    IF ms_data-write_protect = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    mv_initialized = abap_false.
+    set( iv_branch_name = iv_branch_name ).
+
+  ENDMETHOD.
+  METHOD set_new_remote.
+
+    IF ms_data-write_protect = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot change remote. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    mv_initialized = abap_false.
+    set( iv_url         = iv_url
+         iv_branch_name = iv_branch_name
+         iv_head_branch = ''
+         iv_sha1        = '' ).
+
+  ENDMETHOD.  "set_new_remote
+  METHOD set_objects.
+    mt_objects = it_objects.
+  ENDMETHOD.
+  METHOD set_url.
+
+    IF ms_data-write_protect = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot change URL. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    mv_initialized = abap_false.
+    set( iv_url = iv_url ).
+
+  ENDMETHOD.
+  METHOD status.
+
+    initialize( ).
+
+    IF lines( mt_status ) = 0.
+      mt_status = zcl_abapgit_file_status=>status( io_repo = me
+                                                   io_log  = io_log ).
+    ENDIF.
+    rt_results = mt_status.
+
+  ENDMETHOD.                    "status
+ENDCLASS.
+CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+  METHOD constructor.
+
+    ASSERT NOT is_data-key IS INITIAL.
+
+    ms_data = is_data.
+
+  ENDMETHOD.                    "constructor
+  METHOD delete.
+
+    DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
+    CREATE OBJECT lo_persistence.
+
+    lo_persistence->delete( ms_data-key ).
+
+  ENDMETHOD.                    "delete
+  METHOD deserialize.
+
+    DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+          lt_requirements  TYPE STANDARD TABLE OF zif_abapgit_dot_abapgit=>ty_requirement,
+          lx_error         TYPE REF TO zcx_abapgit_exception.
+
+    find_remote_dot_abapgit( ).
+
+    IF get_dot_abapgit( )->get_master_language( ) <> sy-langu.
+      zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
+    ENDIF.
+
+    lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
+    IF lt_requirements IS NOT INITIAL.
+      zcl_abapgit_requirement_helper=>check_requirements( it_requirements = lt_requirements
+                                                          iv_show_popup   = abap_true ).
+    ENDIF.
+
+    TRY.
+        lt_updated_files = zcl_abapgit_objects=>deserialize( me ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+
+        " ensure to reset default transport request task
+        zcl_abapgit_default_task=>get_instance( )->reset( ).
+        zcx_abapgit_exception=>raise( lx_error->text ).
+
+    ENDTRY.
+
+    APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
+
+    CLEAR: mt_local, mv_last_serialization.
+
+    update_local_checksums( lt_updated_files ).
+
+  ENDMETHOD.
+  METHOD find_remote_dot_abapgit.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
+    READ TABLE mt_remote ASSIGNING <ls_remote>
+      WITH KEY path = zif_abapgit_definitions=>gc_root_dir
+      filename = zif_abapgit_definitions=>gc_dot_abapgit.
+    IF sy-subrc = 0.
+      ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
+      set_dot_abapgit( ro_dot ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_dot_abapgit.
+    CREATE OBJECT ro_dot_abapgit
+      EXPORTING
+        is_data = ms_data-dot_abapgit.
+  ENDMETHOD.
+  METHOD get_files_local.
+
+    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lt_files    TYPE zif_abapgit_definitions=>ty_files_tt,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lt_cache    TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
+                   WITH NON-UNIQUE KEY item.
+
+    DATA: lt_filter       TYPE SORTED TABLE OF tadir
+                          WITH NON-UNIQUE KEY object obj_name,
+          lv_filter_exist TYPE abap_bool.
+
+    FIELD-SYMBOLS: <ls_file>   LIKE LINE OF lt_files,
+                   <ls_return> LIKE LINE OF rt_files,
+                   <ls_cache>  LIKE LINE OF lt_cache,
+                   <ls_tadir>  LIKE LINE OF lt_tadir.
+    " Serialization happened before and no refresh request
+    IF mv_last_serialization IS NOT INITIAL AND mv_do_local_refresh = abap_false.
+      rt_files = mt_local.
+      RETURN.
+    ENDIF.
+
+    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+    <ls_return>-file-path     = zif_abapgit_definitions=>gc_root_dir.
+    <ls_return>-file-filename = zif_abapgit_definitions=>gc_dot_abapgit.
+    <ls_return>-file-data     = get_dot_abapgit( )->serialize( ).
+    <ls_return>-file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+                                                        iv_data = <ls_return>-file-data ).
+
+    lt_cache = mt_local.
+    lt_tadir = zcl_abapgit_tadir=>read(
+      iv_package            = get_package( )
+      iv_ignore_subpackages = ignore_subpackages( )
+      io_dot                = get_dot_abapgit( )
+      io_log                = io_log ).
+
+    lt_filter = it_filter.
+    lv_filter_exist = boolc( lines( lt_filter ) > 0 ).
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_tadir ).
+
+    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+      IF lv_filter_exist = abap_true.
+        READ TABLE lt_filter TRANSPORTING NO FIELDS WITH KEY object = <ls_tadir>-object
+                                                             obj_name = <ls_tadir>-obj_name
+                                                    BINARY SEARCH.
+        IF sy-subrc <> 0.
+          CONTINUE.
+        ENDIF.
+      ENDIF.
+
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Serialize { <ls_tadir>-obj_name }| ) ##NO_TEXT.
+
+      ls_item-obj_type = <ls_tadir>-object.
+      ls_item-obj_name = <ls_tadir>-obj_name.
+      ls_item-devclass = <ls_tadir>-devclass.
+
+      IF mv_last_serialization IS NOT INITIAL. " Try to fetch from cache
+        READ TABLE lt_cache TRANSPORTING NO FIELDS
+          WITH KEY item = ls_item. " type+name+package key
+        " There is something in cache and the object is unchanged
+        IF sy-subrc = 0
+            AND abap_false = zcl_abapgit_objects=>has_changed_since(
+            is_item      = ls_item
+            iv_timestamp = mv_last_serialization ).
+          LOOP AT lt_cache ASSIGNING <ls_cache> WHERE item = ls_item.
+            APPEND <ls_cache> TO rt_files.
+          ENDLOOP.
+
+          CONTINUE.
+        ENDIF.
+      ENDIF.
+
+      lt_files = zcl_abapgit_objects=>serialize(
+        is_item     = ls_item
+        iv_language = get_master_language( )
+        io_log      = io_log ).
+      LOOP AT lt_files ASSIGNING <ls_file>.
+        <ls_file>-path = <ls_tadir>-path.
+        <ls_file>-sha1 = zcl_abapgit_hash=>sha1(
+          iv_type = zif_abapgit_definitions=>gc_type-blob
+          iv_data = <ls_file>-data ).
+
+        APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+        <ls_return>-file = <ls_file>.
+        <ls_return>-item = ls_item.
+      ENDLOOP.
+    ENDLOOP.
+
+    GET TIME STAMP FIELD mv_last_serialization.
+    mt_local            = rt_files.
+    mv_do_local_refresh = abap_false. " Fulfill refresh
+
+  ENDMETHOD.
+  METHOD get_files_remote.
+    rt_files = mt_remote.
+  ENDMETHOD.
+  METHOD get_key.
+    rv_key = ms_data-key.
+  ENDMETHOD.                    "get_key
+  METHOD get_local_checksums.
+    rt_checksums = ms_data-local_checksums.
+  ENDMETHOD.
+  METHOD get_local_checksums_per_file.
+
+    FIELD-SYMBOLS <object> LIKE LINE OF ms_data-local_checksums.
+
+    LOOP AT ms_data-local_checksums ASSIGNING <object>.
+      APPEND LINES OF <object>-files TO rt_checksums.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_master_language.
+    rv_language = ms_data-dot_abapgit-master_language.
+  ENDMETHOD.
+  METHOD get_name.
+
+    IF ms_data-offline = abap_true.
+      rv_name = ms_data-url.
+    ELSE.
+      rv_name = zcl_abapgit_url=>name( ms_data-url ).
+      rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
+    ENDIF.
+
+  ENDMETHOD.                    "get_name
+  METHOD get_package.
+    rv_package = ms_data-package.
+  ENDMETHOD.                    "get_package
+  METHOD ignore_subpackages.
+    rv_yes = ms_data-ignore_subpackages.
+  ENDMETHOD.
+  METHOD is_offline.
+    rv_offline = ms_data-offline.
+  ENDMETHOD.
+  METHOD is_write_protected.
+    rv_yes = ms_data-write_protect.
+  ENDMETHOD.                    "is_write_protected
+  METHOD rebuild_local_checksums. "LOCAL (BASE)
+
+    DATA: lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          ls_last_item TYPE zif_abapgit_definitions=>ty_item,
+          lt_checksums TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt.
+
+    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
+                   <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
+                   <ls_local>    LIKE LINE OF lt_local.
+    lt_local = get_files_local( ).
+
+    DELETE lt_local " Remove non-code related files except .abapgit
+      WHERE item IS INITIAL
+      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
+      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
+
+    SORT lt_local BY item.
+
+    LOOP AT lt_local ASSIGNING <ls_local>.
+      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
+        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
+        <ls_checksum>-item = <ls_local>-item.
+        ls_last_item       = <ls_local>-item.
+      ENDIF.
+
+      APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_file_sig>.
+      MOVE-CORRESPONDING <ls_local>-file TO <ls_file_sig>.
+
+    ENDLOOP.
+
+    set( it_checksums = lt_checksums ).
+
+  ENDMETHOD.  " rebuild_local_checksums.
+  METHOD refresh.
+
+    mv_do_local_refresh = abap_true.
+
+    IF iv_drop_cache = abap_true.
+      CLEAR: mv_last_serialization, mt_local.
+    ENDIF.
+
+  ENDMETHOD.                    "refresh
+  METHOD refresh_local. " For testing purposes, maybe removed later
+    mv_do_local_refresh = abap_true.
+  ENDMETHOD.  "refresh_local
+  METHOD set.
+
+    DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
+    ASSERT iv_sha1 IS SUPPLIED
+      OR it_checksums IS SUPPLIED
+      OR iv_url IS SUPPLIED
+      OR iv_branch_name IS SUPPLIED
+      OR iv_head_branch IS SUPPLIED
+      OR iv_offline IS SUPPLIED
+      OR is_dot_abapgit IS SUPPLIED.
+
+    CREATE OBJECT lo_persistence.
+
+    IF iv_sha1 IS SUPPLIED.
+      lo_persistence->update_sha1(
+        iv_key         = ms_data-key
+        iv_branch_sha1 = iv_sha1 ).
+      ms_data-sha1 = iv_sha1.
+    ENDIF.
+
+    IF it_checksums IS SUPPLIED.
+      lo_persistence->update_local_checksums(
+        iv_key       = ms_data-key
+        it_checksums = it_checksums ).
+      ms_data-local_checksums = it_checksums.
+    ENDIF.
+
+    IF iv_url IS SUPPLIED.
+      lo_persistence->update_url(
+        iv_key = ms_data-key
+        iv_url = iv_url ).
+      ms_data-url = iv_url.
+    ENDIF.
+
+    IF iv_branch_name IS SUPPLIED.
+      lo_persistence->update_branch_name(
+        iv_key         = ms_data-key
+        iv_branch_name = iv_branch_name ).
+      ms_data-branch_name = iv_branch_name.
+    ENDIF.
+
+    IF iv_head_branch IS SUPPLIED.
+      lo_persistence->update_head_branch(
+        iv_key         = ms_data-key
+        iv_head_branch = iv_head_branch ).
+      ms_data-head_branch = iv_head_branch.
+    ENDIF.
+
+    IF iv_offline IS SUPPLIED.
+      lo_persistence->update_offline(
+        iv_key     = ms_data-key
+        iv_offline = iv_offline ).
+      ms_data-offline = iv_offline.
+    ENDIF.
+
+    IF is_dot_abapgit IS SUPPLIED.
+      lo_persistence->update_dot_abapgit(
+        iv_key         = ms_data-key
+        is_dot_abapgit = is_dot_abapgit ).
+      ms_data-dot_abapgit = is_dot_abapgit.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD set_dot_abapgit.
+    set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
+  ENDMETHOD.
+  METHOD set_files_remote.
+
+    mt_remote = it_files.
+
+  ENDMETHOD.
+  METHOD update_local_checksums.
+
+    " ASSUMTION: SHA1 in param is actual and correct.
+    " Push fills it from local files before pushing, deserialize from remote
+    " If this is not true that there is an error somewhere but not here
+
+    DATA: lt_checksums TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt,
+          lt_files_idx TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+          lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          lv_chks_row  TYPE i,
+          lv_file_row  TYPE i.
+
+    FIELD-SYMBOLS: <ls_checksum>  LIKE LINE OF lt_checksums,
+                   <ls_file>      LIKE LINE OF <ls_checksum>-files,
+                   <ls_local>     LIKE LINE OF lt_local,
+                   <ls_new_state> LIKE LINE OF it_files.
+
+    lt_checksums = get_local_checksums( ).
+    lt_files_idx = it_files.
+    SORT lt_files_idx BY path filename. " Sort for binary search
+
+    " Loop through current chacksum state, update sha1 for common files
+    LOOP AT lt_checksums ASSIGNING <ls_checksum>.
+      lv_chks_row = sy-tabix.
+
+      LOOP AT <ls_checksum>-files ASSIGNING <ls_file>.
+        lv_file_row = sy-tabix.
+
+        READ TABLE lt_files_idx ASSIGNING <ls_new_state>
+          WITH KEY path = <ls_file>-path filename = <ls_file>-filename
+          BINARY SEARCH.
+        CHECK sy-subrc = 0. " Missing in param table, skip
+
+        IF <ls_new_state>-sha1 IS INITIAL. " Empty input sha1 is a deletion marker
+          DELETE <ls_checksum>-files INDEX lv_file_row.
+        ELSE.
+          <ls_file>-sha1 = <ls_new_state>-sha1.  " Update sha1
+          CLEAR <ls_new_state>-sha1.             " Mark as processed
+        ENDIF.
+      ENDLOOP.
+
+      IF lines( <ls_checksum>-files ) = 0. " Remove empty objects
+        DELETE lt_checksums INDEX lv_chks_row.
+      ENDIF.
+    ENDLOOP.
+
+    DELETE lt_files_idx WHERE sha1 IS INITIAL. " Remove processed
+    IF lines( lt_files_idx ) > 0.
+      lt_local = get_files_local( ).
+      SORT lt_local BY file-path file-filename. " Sort for binary search
+    ENDIF.
+
+    " Add new files - not deleted and not marked as processed above
+    LOOP AT lt_files_idx ASSIGNING <ls_new_state>.
+
+      READ TABLE lt_local ASSIGNING <ls_local>
+        WITH KEY file-path = <ls_new_state>-path file-filename = <ls_new_state>-filename
+        BINARY SEARCH.
+      IF sy-subrc <> 0.
+* if the deserialization fails, the local file might not be there
+        CONTINUE.
+      ENDIF.
+
+      READ TABLE lt_checksums ASSIGNING <ls_checksum> " TODO Optimize
+        WITH KEY item = <ls_local>-item.
+      IF sy-subrc > 0.
+        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
+        <ls_checksum>-item = <ls_local>-item.
+      ENDIF.
+
+      APPEND <ls_new_state> TO <ls_checksum>-files.
+    ENDLOOP.
+
+    SORT lt_checksums BY item.
+    set( it_checksums = lt_checksums ).
+
+  ENDMETHOD.  " update_local_checksums
+ENDCLASS.
+CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
+  METHOD class_constructor.
+
+    DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
+    DATA lv_plugin_class    LIKE LINE OF lt_plugin_class.
+    DATA lo_plugin          TYPE REF TO object.
+    DATA lt_plugin_obj_type TYPE objtyptable.
+    DATA ls_objtype_map     LIKE LINE OF gt_objtype_map.
+    SELECT ext~clsname
+      FROM vseoextend AS ext
+      INTO TABLE lt_plugin_class
+      WHERE ext~refclsname LIKE 'ZCL_ABAPGITP_OBJECT%'
+      AND ext~version = '1'.                              "#EC CI_SUBRC
+
+    CLEAR gt_objtype_map.
+    LOOP AT lt_plugin_class INTO lv_plugin_class
+        WHERE table_line <> 'ZCL_ABAPGITP_OBJECT_BY_SOBJ'.
+* have the generic plugin only as fallback
+      TRY.
+          CREATE OBJECT lo_plugin TYPE (lv_plugin_class).
+        CATCH cx_sy_create_object_error.
+          CONTINUE. ">>>>>>>>>>>>>>
+      ENDTRY.
+
+      CALL METHOD lo_plugin->('GET_SUPPORTED_OBJ_TYPES')
+        IMPORTING
+          rt_obj_type = lt_plugin_obj_type.
+
+      ls_objtype_map-plugin_class = lv_plugin_class.
+      LOOP AT lt_plugin_obj_type INTO ls_objtype_map-obj_typ.
+        INSERT ls_objtype_map INTO TABLE gt_objtype_map.
+        IF sy-subrc <> 0.
+* No exception in class-contructor possible.
+* Anyway, a shortdump is more appropriate in this case
+          ASSERT 'There must not be' =
+            |multiple abapGit-Plugins for the same object type {
+            ls_objtype_map-obj_typ }|.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP. "at plugins
+
+* and the same for the generic plugin if exists
+* have the generic plugin only as fallback
+    LOOP AT lt_plugin_class INTO lv_plugin_class
+        WHERE table_line = 'ZCL_ABAPGITP_OBJECT_BY_SOBJ'.
+      CREATE OBJECT lo_plugin TYPE (lv_plugin_class).
+
+      CALL METHOD lo_plugin->('GET_SUPPORTED_OBJ_TYPES')
+        RECEIVING
+          rt_obj_type = lt_plugin_obj_type.
+
+      ls_objtype_map-plugin_class = lv_plugin_class.
+      LOOP AT lt_plugin_obj_type INTO ls_objtype_map-obj_typ.
+        INSERT ls_objtype_map INTO TABLE gt_objtype_map. "knowingly ignore the subrc
+      ENDLOOP.
+    ENDLOOP. "at plugins
+
+  ENDMETHOD.                    "class_constructor
+  METHOD constructor.
+
+    DATA ls_objtype_map LIKE LINE OF gt_objtype_map.
+
+    super->constructor( is_item = is_item
+                        iv_language = zif_abapgit_definitions=>gc_english ).
+
+*    determine the responsible plugin
+    READ TABLE gt_objtype_map INTO ls_objtype_map
+      WITH TABLE KEY obj_typ = is_item-obj_type.
+    IF sy-subrc = 0.
+      CREATE OBJECT mo_plugin TYPE (ls_objtype_map-plugin_class).
+
+      CALL METHOD mo_plugin->('SET_ITEM')
+        EXPORTING
+          iv_obj_type = is_item-obj_type
+          iv_obj_name = is_item-obj_name.
+    ELSE.
+      RAISE EXCEPTION TYPE cx_sy_create_object_error
+        EXPORTING
+          classname = 'LCL_OBJECTS_BRIDGE'.
+    ENDIF.
+  ENDMETHOD.                    "constructor
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = c_user_unknown. " todo
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+    DATA lx_plugin TYPE REF TO cx_static_check.
+
+    TRY.
+        CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~DELETE').
+      CATCH cx_static_check INTO lx_plugin.
+        zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.                    "lif_object~delete
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lx_plugin        TYPE REF TO cx_static_check.
+
+    TRY.
+        CALL METHOD mo_plugin->('WRAP_DESERIALIZE')
+          EXPORTING
+            iv_package = iv_package
+            io_xml     = io_xml.
+      CATCH cx_static_check INTO lx_plugin.
+        zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
+    ENDTRY.
+  ENDMETHOD.                    "lif_object~deserialize
+  METHOD zif_abapgit_object~exists.
+
+    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~EXISTS')
+      RECEIVING
+        rv_bool = rv_bool.
+
+  ENDMETHOD.                    "lif_object~exists
+  METHOD zif_abapgit_object~get_metadata.
+
+    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
+      RECEIVING
+        rs_metadata = rs_metadata.
+
+  ENDMETHOD.                    "lif_object~get_metadata
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.  "lif_object~has_changed_since
+  METHOD zif_abapgit_object~jump.
+
+    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~JUMP').
+
+  ENDMETHOD.                    "lif_object~jump
+  METHOD zif_abapgit_object~serialize.
+
+    CALL METHOD mo_plugin->('WRAP_SERIALIZE')
+      EXPORTING
+        io_xml = io_xml.
+
+  ENDMETHOD.                    "lif_object~serialize
+ENDCLASS.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+  METHOD changed_by.
+
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
+    IF is_item IS INITIAL.
+* eg. ".abapgit.xml" file
+      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    ELSE.
+      li_obj = create_object( is_item     = is_item
+                              iv_language = zif_abapgit_definitions=>gc_english ).
+      rv_user = li_obj->changed_by( ).
+    ENDIF.
+
+    ASSERT NOT rv_user IS INITIAL.
+
+* todo, fallback to looking at transports if rv_user = 'UNKNOWN'?
+
+  ENDMETHOD.
+  METHOD check_duplicates.
+
+    DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
+    lt_files[] = it_files[].
+    SORT lt_files BY path ASCENDING filename ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_files COMPARING path filename.
+    IF lines( lt_files ) <> lines( it_files ).
+      zcx_abapgit_exception=>raise( 'Duplicates' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD class_name.
+
+    CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name. "#EC NOTEXT
+
+  ENDMETHOD.                    "class_name
+  METHOD compare_remote_to_local.
+* this method is used for comparing local with remote objects
+* before pull, this is useful eg. when overwriting a TABL object.
+* only the main XML file is used for comparison
+
+    DATA: ls_remote_file       TYPE zif_abapgit_definitions=>ty_file,
+          lo_remote_version    TYPE REF TO zcl_abapgit_xml_input,
+          lv_count             TYPE i,
+          lo_comparison_result TYPE REF TO zif_abapgit_comparison_result.
+    FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
+
+    IF is_result-filename CS '.XML' AND lv_count = 2.
+      IF io_object->exists( ) = abap_false.
+        RETURN.
+      ENDIF.
+
+      READ TABLE it_remote WITH KEY filename = is_result-filename INTO ls_remote_file.
+
+      "if file does not exist in remote, we don't need to validate
+      IF sy-subrc = 0.
+        CREATE OBJECT lo_remote_version
+          EXPORTING
+            iv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data ).
+        lo_comparison_result = io_object->compare_to_remote_version( lo_remote_version ).
+        lo_comparison_result->show_confirmation_dialog( ).
+
+        IF lo_comparison_result->is_result_complete_halt( ) = abap_true.
+          zcx_abapgit_exception=>raise( 'Deserialization aborted by user' ).
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD create_object.
+
+    TYPES: BEGIN OF ty_obj_serializer_map,
+             item     LIKE is_item,
+             metadata LIKE is_metadata,
+           END OF ty_obj_serializer_map.
+
+    STATICS st_obj_serializer_map
+      TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item.
+
+    DATA: lv_message            TYPE string,
+          lv_class_name         TYPE string,
+          ls_obj_serializer_map LIKE LINE OF st_obj_serializer_map.
+    READ TABLE st_obj_serializer_map
+      INTO ls_obj_serializer_map WITH KEY item = is_item.
+    IF sy-subrc = 0.
+      lv_class_name = ls_obj_serializer_map-metadata-class.
+    ELSEIF is_metadata IS NOT INITIAL.
+*        Metadata is provided only on serialization
+*        Once this has been triggered, the same serializer shall be used
+*        for subsequent processes.
+*        Thus, buffer the metadata afterwards
+      ls_obj_serializer_map-item      = is_item.
+      ls_obj_serializer_map-metadata  = is_metadata.
+      INSERT ls_obj_serializer_map INTO TABLE st_obj_serializer_map.
+
+      lv_class_name = is_metadata-class.
+    ELSE.
+      lv_class_name = class_name( is_item ).
+    ENDIF.
+
+*    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true
+*        AND is_item-obj_type = 'CLAS'.
+*      lv_class_name = 'LCL_OBJECT_CLAS_NEW'.
+*    ENDIF.
+
+    REPLACE FIRST OCCURRENCE OF 'LCL' IN lv_class_name WITH 'ZCL_ABAPGIT'.
+
+    TRY.
+        CREATE OBJECT ri_obj TYPE (lv_class_name)
+          EXPORTING
+            is_item     = is_item
+            iv_language = iv_language.
+      CATCH cx_sy_create_object_error.
+        lv_message = |Object type { is_item-obj_type } not supported, serialize|. "#EC NOTEXT
+        IF iv_native_only = abap_false.
+          TRY. " 2nd step, try looking for plugins
+              CREATE OBJECT ri_obj TYPE zcl_abapgit_objects_bridge
+                EXPORTING
+                  is_item = is_item.
+            CATCH cx_sy_create_object_error.
+              zcx_abapgit_exception=>raise( lv_message ).
+          ENDTRY.
+        ELSE. " No native support? -> fail
+          zcx_abapgit_exception=>raise( lv_message ).
+        ENDIF.
+    ENDTRY.
+
+  ENDMETHOD.                    "create_object
+  METHOD delete.
+
+    DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lt_tadir    LIKE it_tadir.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
+
+    lt_tadir[] = it_tadir[].
+
+    zcl_abapgit_dependencies=>resolve( CHANGING ct_tadir = lt_tadir ).
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_tadir ).
+
+    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+      lo_progress->show( iv_current = sy-tabix
+                         iv_text    = |Delete { <ls_tadir>-obj_name }| ) ##NO_TEXT.
+
+      CLEAR ls_item.
+      ls_item-obj_type = <ls_tadir>-object.
+      ls_item-obj_name = <ls_tadir>-obj_name.
+      delete_obj( ls_item ).
+
+* make sure to save object deletions
+      COMMIT WORK.
+    ENDLOOP.
+
+  ENDMETHOD.                    "delete
+  METHOD delete_obj.
+
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
+    IF is_supported( is_item ) = abap_true.
+      li_obj = create_object( is_item     = is_item
+                              iv_language = zif_abapgit_definitions=>gc_english ).
+
+      li_obj->delete( ).
+
+      IF li_obj->get_metadata( )-delete_tadir = abap_true.
+        CALL FUNCTION 'TR_TADIR_INTERFACE'
+          EXPORTING
+            wi_delete_tadir_entry = abap_true
+            wi_tadir_pgmid        = 'R3TR'
+            wi_tadir_object       = is_item-obj_type
+            wi_tadir_obj_name     = is_item-obj_name
+            wi_test_modus         = abap_false.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.                    "delete
+  METHOD deserialize.
+
+    DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lv_cancel   TYPE abap_bool,
+          li_obj      TYPE REF TO zif_abapgit_object,
+          lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_package  TYPE devclass,
+          lo_files    TYPE REF TO zcl_abapgit_objects_files,
+          lo_xml      TYPE REF TO zcl_abapgit_xml_input,
+          lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
+          lt_ddic     TYPE TABLE OF ty_deserialization,
+          lt_rest     TYPE TABLE OF ty_deserialization,
+          lt_late     TYPE TABLE OF ty_deserialization,
+          lo_progress TYPE REF TO zcl_abapgit_progress,
+          lv_path     TYPE string.
+
+    FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
+                   <ls_deser>  LIKE LINE OF lt_late.
+
+    lv_package = io_repo->get_package( ).
+
+    zcl_abapgit_default_task=>get_instance( )->set( lv_package ).
+
+    zcl_abapgit_objects_activation=>clear( ).
+
+    lt_remote = io_repo->get_files_remote( ).
+
+    lt_results = zcl_abapgit_file_status=>status( io_repo ).
+    DELETE lt_results WHERE match = abap_true.     " Full match
+    SORT lt_results BY obj_type ASCENDING obj_name ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_results COMPARING obj_type obj_name.
+
+    lt_results = prioritize_deser( lt_results ).
+
+    warning_overwrite( CHANGING ct_results = lt_results ).
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( lt_results ).
+
+    LOOP AT lt_results ASSIGNING <ls_result> WHERE obj_type IS NOT INITIAL
+        AND NOT ( lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL ).
+      lo_progress->show( iv_current = sy-tabix
+                         iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
+
+      CLEAR ls_item.
+      ls_item-obj_type = <ls_result>-obj_type.
+      ls_item-obj_name = <ls_result>-obj_name.
+* handle namespaces
+      REPLACE ALL OCCURRENCES OF '#' IN ls_item-obj_name WITH '/'.
+
+      lv_package = zcl_abapgit_folder_logic=>path_to_package(
+        iv_top  = io_repo->get_package( )
+        io_dot  = io_repo->get_dot_abapgit( )
+        iv_path = <ls_result>-path ).
+
+      lv_cancel = warning_package( is_item    = ls_item
+                                   iv_package = lv_package ).
+      IF lv_cancel = abap_true.
+        zcx_abapgit_exception=>raise( 'cancelled' ).
+      ENDIF.
+
+      IF ls_item-obj_type = 'DEVC'.
+        " Packages have the same filename across different folders. The path needs to be supplied
+        " to find the correct file.
+        lv_path = <ls_result>-path.
+      ENDIF.
+
+      CREATE OBJECT lo_files
+        EXPORTING
+          is_item = ls_item
+          iv_path = lv_path.
+      lo_files->set_files( lt_remote ).
+
+* Analyze XML in order to instantiate the proper serializer
+      lo_xml = lo_files->read_xml( ).
+
+      li_obj = create_object( is_item     = ls_item
+                              iv_language = io_repo->get_master_language( )
+                              is_metadata = lo_xml->get_metadata( ) ).
+
+      compare_remote_to_local(
+        io_object = li_obj
+        it_remote = lt_remote
+        is_result = <ls_result> ).
+
+      li_obj->mo_files = lo_files.
+
+      IF li_obj->get_metadata( )-late_deser = abap_true.
+        APPEND INITIAL LINE TO lt_late ASSIGNING <ls_deser>.
+      ELSEIF li_obj->get_metadata( )-ddic = abap_true.
+        APPEND INITIAL LINE TO lt_ddic ASSIGNING <ls_deser>.
+      ELSE.
+        APPEND INITIAL LINE TO lt_rest ASSIGNING <ls_deser>.
+      ENDIF.
+      <ls_deser>-item    = ls_item.
+      <ls_deser>-obj     = li_obj.
+      <ls_deser>-xml     = lo_xml.
+      <ls_deser>-package = lv_package.
+
+      CLEAR: lv_path, lv_package.
+    ENDLOOP.
+
+    deserialize_objects( EXPORTING it_objects = lt_ddic
+                                   iv_ddic    = abap_true
+                                   iv_descr   = 'DDIC'
+                         CHANGING ct_files = rt_accessed_files ).
+
+    deserialize_objects( EXPORTING it_objects = lt_rest
+                                   iv_descr   = 'Objects'
+                         CHANGING ct_files = rt_accessed_files ).
+
+    deserialize_objects( EXPORTING it_objects = lt_late
+                                   iv_descr   = 'Late'
+                         CHANGING ct_files = rt_accessed_files ).
+
+    update_package_tree( io_repo->get_package( ) ).
+
+    SORT rt_accessed_files BY path ASCENDING filename ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM rt_accessed_files. " Just in case
+
+    zcl_abapgit_default_task=>get_instance( )->reset( ).
+
+  ENDMETHOD.                    "deserialize
+  METHOD deserialize_objects.
+
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+
+    FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
+    zcl_abapgit_objects_activation=>clear( ).
+
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = lines( it_objects ).
+
+    LOOP AT it_objects ASSIGNING <ls_obj>.
+      lo_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Deserialize { iv_descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
+
+      <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
+                                 io_xml     = <ls_obj>-xml ).
+      APPEND LINES OF <ls_obj>-obj->mo_files->get_accessed_files( ) TO ct_files.
+    ENDLOOP.
+
+    zcl_abapgit_objects_activation=>activate( iv_ddic ).
+
+  ENDMETHOD.
+  METHOD exists.
+
+    DATA: li_obj TYPE REF TO zif_abapgit_object.
+    TRY.
+        li_obj = create_object( is_item = is_item
+                                iv_language = zif_abapgit_definitions=>gc_english ).
+        rv_bool = li_obj->exists( ).
+      CATCH zcx_abapgit_exception.
+* ignore all errors and assume the object exists
+        rv_bool = abap_true.
+    ENDTRY.
+
+  ENDMETHOD.                    "exists
+  METHOD has_changed_since.
+    rv_changed = abap_true. " Assume changed
+
+    IF is_supported( is_item ) = abap_false.
+      RETURN. " Will requre serialize which will log the error
+    ENDIF.
+
+    rv_changed = create_object(
+      is_item     = is_item
+      iv_language = zif_abapgit_definitions=>gc_english )->has_changed_since( iv_timestamp ).
+
+  ENDMETHOD.  "has_changed_since
+  METHOD is_supported.
+
+    TRY.
+        create_object( is_item        = is_item
+                       iv_language    = zif_abapgit_definitions=>gc_english
+                       iv_native_only = iv_native_only ).
+        rv_bool = abap_true.
+      CATCH zcx_abapgit_exception.
+        rv_bool = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.                    "is_supported
+  METHOD jump.
+
+    DATA: li_obj              TYPE REF TO zif_abapgit_object,
+          lv_adt_jump_enabled TYPE abap_bool.
+
+    li_obj = create_object( is_item     = is_item
+                            iv_language = zif_abapgit_definitions=>gc_english ).
+
+    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+
+    IF lv_adt_jump_enabled = abap_true.
+      TRY.
+          zcl_abapgit_objects_super=>jump_adt(
+            i_obj_name = is_item-obj_name
+            i_obj_type = is_item-obj_type ).
+        CATCH zcx_abapgit_exception.
+          li_obj->jump( ).
+      ENDTRY.
+    ELSE.
+      li_obj->jump( ).
+    ENDIF.
+
+  ENDMETHOD.                    "jump
+  METHOD prioritize_deser.
+
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
+
+* XSLT has to be handled before CLAS/PROG
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'XSLT'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* PROG before internet services, as the services might use the screens
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PROG'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* ISAP has to be handled before ISRP
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'IASP'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* PINF has to be handled before DEVC for package interface usage
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PINF'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+    LOOP AT it_results ASSIGNING <ls_result>
+        WHERE obj_type <> 'IASP'
+        AND obj_type <> 'PROG'
+        AND obj_type <> 'XSLT'
+        AND obj_type <> 'PINF'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+  ENDMETHOD.                    "prioritize_deser
+  METHOD serialize.
+
+    DATA: li_obj   TYPE REF TO zif_abapgit_object,
+          lo_xml   TYPE REF TO zcl_abapgit_xml_output,
+          lo_files TYPE REF TO zcl_abapgit_objects_files.
+    IF is_supported( is_item ) = abap_false.
+      IF NOT io_log IS INITIAL.
+        io_log->add( iv_msg = |Object type ignored, not supported: { is_item-obj_type
+                       }-{ is_item-obj_name }|
+                     iv_type = 'E' ).
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    CREATE OBJECT lo_files
+      EXPORTING
+        is_item = is_item.
+
+    li_obj = create_object( is_item = is_item
+                            iv_language = iv_language ).
+    li_obj->mo_files = lo_files.
+    CREATE OBJECT lo_xml.
+    li_obj->serialize( lo_xml ).
+    lo_files->add_xml( io_xml      = lo_xml
+                       is_metadata = li_obj->get_metadata( ) ).
+
+    rt_files = lo_files->get_files( ).
+
+    check_duplicates( rt_files ).
+
+  ENDMETHOD.                    "serialize
+  METHOD supported_list.
+
+    DATA: lv_type  LIKE LINE OF rt_types,
+          lt_snode TYPE TABLE OF snode.
+
+    FIELD-SYMBOLS: <ls_snode> LIKE LINE OF lt_snode.
+    CALL FUNCTION 'WB_TREE_ACTUALIZE'
+      EXPORTING
+        tree_name              = 'PG_ZABAPGIT'
+        without_crossreference = abap_true
+        with_tcode_index       = abap_true
+      TABLES
+        p_tree                 = lt_snode.
+
+    DELETE lt_snode WHERE type <> 'OPL'
+      OR name NP 'LCL_OBJECT_++++'.
+
+    LOOP AT lt_snode ASSIGNING <ls_snode>.
+      lv_type = <ls_snode>-name+11.
+      APPEND lv_type TO rt_types.
+    ENDLOOP.
+
+  ENDMETHOD.                    "supported_list
+  METHOD update_package_tree.
+
+    DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+          lv_package  LIKE LINE OF lt_packages,
+          lv_tree     TYPE dirtree-tname.
+    lt_packages = zcl_abapgit_sap_package=>get( iv_package )->list_subpackages( ).
+    APPEND iv_package TO lt_packages.
+
+    LOOP AT lt_packages INTO lv_package.
+* update package tree for SE80
+      lv_tree = 'EU_' && lv_package.
+      CALL FUNCTION 'WB_TREE_ACTUALIZE'
+        EXPORTING
+          tree_name              = lv_tree
+          without_crossreference = abap_true
+          with_tcode_index       = abap_true.
+    ENDLOOP.
+
+  ENDMETHOD.                    "update_package_tree
+  METHOD warning_overwrite.
+
+    DATA: lt_results_overwrite   LIKE ct_results,
+          lt_confirmed_overwrite LIKE ct_results,
+          lt_columns             TYPE stringtab.
+
+    FIELD-SYMBOLS: <ls_result>  LIKE LINE OF ct_results.
+
+    LOOP AT ct_results ASSIGNING <ls_result>
+        WHERE NOT obj_type IS INITIAL.
+
+      IF <ls_result>-lstate IS NOT INITIAL
+          AND <ls_result>-lstate <> zif_abapgit_definitions=>gc_state-deleted
+          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>gc_state-added
+          AND <ls_result>-rstate IS INITIAL ).
+
+        "current object has been modified locally, add to table for popup
+        APPEND <ls_result> TO lt_results_overwrite.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF lines( lt_results_overwrite ) > 0.
+
+      INSERT `OBJ_TYPE` INTO TABLE lt_columns.
+      INSERT `OBJ_NAME` INTO TABLE lt_columns.
+
+      "all returned objects will be overwritten
+      zcl_abapgit_popups=>popup_to_select_from_list(
+        EXPORTING
+          it_list               = lt_results_overwrite
+          i_header_text         = |The following Objects have been modified locally.|
+                              && | Select the Objects which should be overwritten.|
+          i_select_column_text  = 'Overwrite?'
+          it_columns_to_display = lt_columns
+        IMPORTING
+          et_list               = lt_confirmed_overwrite ).
+
+      LOOP AT lt_results_overwrite ASSIGNING <ls_result>.
+        READ TABLE lt_confirmed_overwrite TRANSPORTING NO FIELDS
+             WITH KEY obj_type = <ls_result>-obj_type
+                      obj_name = <ls_result>-obj_name.
+        IF sy-subrc <> 0.
+          DELETE TABLE ct_results FROM <ls_result>.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD warning_package.
+
+    DATA: lv_question TYPE c LENGTH 200,
+          lv_answer   TYPE c,
+          ls_tadir    TYPE tadir.
+    ls_tadir = zcl_abapgit_tadir=>read_single(
+      iv_object   = is_item-obj_type
+      iv_obj_name = is_item-obj_name ).
+
+    IF NOT ls_tadir IS INITIAL AND ls_tadir-devclass <> iv_package.
+      CONCATENATE 'Overwrite object' is_item-obj_type is_item-obj_name
+        'from package' ls_tadir-devclass
+        INTO lv_question SEPARATED BY space.                "#EC NOTEXT
+
+      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+        titlebar              = 'Warning'
+        text_question         = lv_question
+        text_button_1         = 'Ok'
+        icon_button_1         = 'ICON_DELETE'
+        text_button_2         = 'Cancel'
+        icon_button_2         = 'ICON_CANCEL'
+        default_button        = '2'
+        display_cancel_button = abap_false ).               "#EC NOTEXT
+
+      IF lv_answer = '2'.
+        rv_cancel = abap_true.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.                    "check_warning
+ENDCLASS.
 CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
   METHOD check_http_200.
 
@@ -7609,6 +10333,339 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
     ENDWHILE.
 
   ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+  METHOD build_existing.
+
+    DATA: ls_file_sig LIKE LINE OF it_state.
+
+    " Item
+    rs_result-obj_type = is_local-item-obj_type.
+    rs_result-obj_name = is_local-item-obj_name.
+    rs_result-package  = is_local-item-devclass.
+
+    " File
+    rs_result-path     = is_local-file-path.
+    rs_result-filename = is_local-file-filename.
+
+    " Match against current state
+    READ TABLE it_state INTO ls_file_sig
+      WITH KEY path = is_local-file-path
+      filename = is_local-file-filename
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+      IF ls_file_sig-sha1 <> is_local-file-sha1.
+        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
+      ENDIF.
+      IF ls_file_sig-sha1 <> is_remote-sha1.
+        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+      ENDIF.
+      rs_result-match = boolc( rs_result-lstate IS INITIAL
+        AND rs_result-rstate IS INITIAL ).
+    ELSE.
+      " This is a strange situation. As both local and remote exist
+      " the state should also be present. Maybe this is a first run of the code.
+      " In this case just compare hashes directly and mark both changed
+      " the user will presumably decide what to do after checking the actual diff
+      rs_result-match = boolc( is_local-file-sha1 = is_remote-sha1 ).
+      IF rs_result-match = abap_false.
+        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
+        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.  "build_existing
+  METHOD build_new_local.
+
+    " Item
+    rs_result-obj_type = is_local-item-obj_type.
+    rs_result-obj_name = is_local-item-obj_name.
+    rs_result-package  = is_local-item-devclass.
+
+    " File
+    rs_result-path     = is_local-file-path.
+    rs_result-filename = is_local-file-filename.
+
+    " Match
+    rs_result-match    = abap_false.
+    rs_result-lstate   = zif_abapgit_definitions=>gc_state-added.
+
+  ENDMETHOD.  "build_new_local
+  METHOD build_new_remote.
+
+    DATA: ls_item     LIKE LINE OF it_items,
+          ls_file_sig LIKE LINE OF it_state.
+
+    " Common and default part
+    rs_result-path     = is_remote-path.
+    rs_result-filename = is_remote-filename.
+    rs_result-match    = abap_false.
+    rs_result-rstate   = zif_abapgit_definitions=>gc_state-added.
+
+    identify_object( EXPORTING iv_filename = is_remote-filename
+                               iv_path     = is_remote-path
+                               iv_devclass = iv_devclass
+                               io_dot      = io_dot
+                     IMPORTING es_item     = ls_item ).
+
+    " Check if in item index + get package
+    READ TABLE it_items INTO ls_item
+      WITH KEY obj_type = ls_item-obj_type obj_name = ls_item-obj_name
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+
+      " Completely new (xml, abap) and new file in an existing object
+      rs_result-obj_type = ls_item-obj_type.
+      rs_result-obj_name = ls_item-obj_name.
+      rs_result-package  = ls_item-devclass.
+
+      READ TABLE it_state INTO ls_file_sig
+        WITH KEY path = is_remote-path filename = is_remote-filename
+        BINARY SEARCH.
+
+      " Existing file but from another package
+      " was not added during local file proc as was not in tadir for repo package
+      IF sy-subrc = 0.
+        IF ls_file_sig-sha1 = is_remote-sha1.
+          rs_result-match = abap_true.
+          CLEAR rs_result-rstate.
+        ELSE.
+          rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+        ENDIF.
+
+        " Item is in state and in cache but with no package - it was deleted
+        " OR devclass is the same as repo package (see #532)
+        IF ls_item-devclass IS INITIAL OR ls_item-devclass = iv_devclass.
+          rs_result-match  = abap_false.
+          rs_result-lstate = zif_abapgit_definitions=>gc_state-deleted.
+        ENDIF.
+      ENDIF.
+
+    ELSE. " Completely unknown file, probably non-abapgit
+      ASSERT 1 = 1. " No action, just follow defaults
+    ENDIF.
+
+  ENDMETHOD.  "build_new_remote
+  METHOD calculate_status.
+
+    DATA: lt_remote    LIKE it_remote,
+          lt_items     TYPE zif_abapgit_definitions=>ty_items_tt,
+          ls_item      LIKE LINE OF lt_items,
+          lv_is_xml    TYPE abap_bool,
+          lt_items_idx TYPE zif_abapgit_definitions=>ty_items_ts,
+          lt_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
+                   <ls_result> LIKE LINE OF rt_results,
+                   <ls_local>  LIKE LINE OF it_local.
+    lt_state_idx = it_cur_state. " Force sort it
+    lt_remote    = it_remote.
+    SORT lt_remote BY path filename.
+
+    " Process local files and new local files
+    LOOP AT it_local ASSIGNING <ls_local>.
+      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
+      IF <ls_local>-item IS NOT INITIAL.
+        APPEND <ls_local>-item TO lt_items. " Collect for item index
+      ENDIF.
+
+      READ TABLE lt_remote ASSIGNING <ls_remote>
+        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+        BINARY SEARCH.
+      IF sy-subrc = 0.  " Exist local and remote
+        <ls_result> = build_existing(
+          is_local  = <ls_local>
+          is_remote = <ls_remote>
+          it_state  = lt_state_idx ).
+        ASSERT <ls_remote>-sha1 IS NOT INITIAL.
+        CLEAR <ls_remote>-sha1. " Mark as processed
+      ELSE.             " Only L exists
+        <ls_result> = build_new_local( is_local = <ls_local> ).
+      ENDIF.
+    ENDLOOP.
+
+    " Complete item index for unmarked remote files
+    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
+      identify_object( EXPORTING iv_filename = <ls_remote>-filename
+                                 iv_path     = <ls_remote>-path
+                                 io_dot      = io_dot
+                                 iv_devclass = iv_devclass
+                       IMPORTING es_item     = ls_item
+                                 ev_is_xml   = lv_is_xml ).
+
+      CHECK lv_is_xml = abap_true. " Skip all but obj definitions
+
+      ls_item-devclass = zcl_abapgit_tadir=>get_object_package(
+                           iv_object   = ls_item-obj_type
+                           iv_obj_name = ls_item-obj_name ).
+      APPEND ls_item TO lt_items.
+    ENDLOOP.
+
+    SORT lt_items. " Default key - type, name, pkg
+    DELETE ADJACENT DUPLICATES FROM lt_items.
+    lt_items_idx = lt_items. " Self protection + UNIQUE records assertion
+
+    " Process new remote files (marked above with empty SHA1)
+    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
+      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
+      <ls_result> = build_new_remote( iv_devclass = iv_devclass
+                                      io_dot      = io_dot
+                                      is_remote   = <ls_remote>
+                                      it_items    = lt_items_idx
+                                      it_state    = lt_state_idx ).
+    ENDLOOP.
+
+    SORT rt_results BY
+      obj_type ASCENDING
+      obj_name ASCENDING
+      filename ASCENDING.
+
+  ENDMETHOD.  "calculate_status.
+  METHOD identify_object.
+
+    DATA: lv_name TYPE tadir-obj_name,
+          lv_type TYPE string,
+          lv_ext  TYPE string.
+
+    " Guess object type and name
+    SPLIT to_upper( iv_filename ) AT '.' INTO lv_name lv_type lv_ext.
+
+    " Handle namespaces
+    REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
+    REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
+    REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
+
+    " Try to get a unique package name for DEVC by using the path
+    IF lv_type = 'DEVC'.
+      ASSERT lv_name = 'PACKAGE'.
+      lv_name = zcl_abapgit_folder_logic=>path_to_package(
+        iv_top                  = iv_devclass
+        io_dot                  = io_dot
+        iv_create_if_not_exists = abap_false
+        iv_path                 = iv_path ).
+    ENDIF.
+
+    CLEAR es_item.
+    es_item-obj_type = lv_type.
+    es_item-obj_name = lv_name.
+    ev_is_xml        = boolc( lv_ext = 'XML' AND strlen( lv_type ) = 4 ).
+
+  ENDMETHOD.  "identify_object.
+  METHOD run_checks.
+
+    DATA: lv_path     TYPE string,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          ls_file     TYPE zif_abapgit_definitions=>ty_file_signature,
+          lt_res_sort LIKE it_results,
+          lt_item_idx LIKE it_results.
+
+    FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
+                   <ls_res2> LIKE LINE OF it_results.
+    IF io_log IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Collect object indexe
+    lt_res_sort = it_results.
+    SORT lt_res_sort BY obj_type ASCENDING obj_name ASCENDING.
+
+    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL.
+      IF NOT ( <ls_res1>-obj_type = ls_item-obj_type
+          AND <ls_res1>-obj_name = ls_item-obj_name ).
+        APPEND INITIAL LINE TO lt_item_idx ASSIGNING <ls_res2>.
+        <ls_res2>-obj_type = <ls_res1>-obj_type.
+        <ls_res2>-obj_name = <ls_res1>-obj_name.
+        <ls_res2>-path     = <ls_res1>-path.
+        MOVE-CORRESPONDING <ls_res1> TO ls_item.
+      ENDIF.
+    ENDLOOP.
+
+    " Check files for one object is in the same folder
+
+    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL AND obj_type <> 'DEVC'.
+      READ TABLE lt_item_idx ASSIGNING <ls_res2>
+        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
+        BINARY SEARCH. " Sorted above
+
+      IF sy-subrc <> 0 OR <ls_res1>-path <> <ls_res2>-path. " All paths are same
+        io_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
+                       <ls_res1>-obj_name } are not placed in the same folder|
+                     iv_type = 'W'
+                     iv_rc    = '1' ) ##no_text.
+      ENDIF.
+    ENDLOOP.
+
+    " Check that objects are created in package corresponding to folder
+    LOOP AT it_results ASSIGNING <ls_res1>
+        WHERE NOT package IS INITIAL AND NOT path IS INITIAL.
+      lv_path = zcl_abapgit_folder_logic=>package_to_path(
+        iv_top     = iv_top
+        io_dot     = io_dot
+        iv_package = <ls_res1>-package ).
+      IF lv_path <> <ls_res1>-path.
+        io_log->add( iv_msg = |Package and path does not match for object, {
+                       <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+                     iv_type = 'W'
+                     iv_rc    = '2' ) ##no_text.
+      ENDIF.
+    ENDLOOP.
+
+    " Check for multiple files with same filename
+    SORT lt_res_sort BY filename ASCENDING.
+
+    LOOP AT lt_res_sort ASSIGNING <ls_res1> WHERE obj_type <> 'DEVC'.
+      IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
+        io_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
+                     iv_type = 'W'
+                     iv_rc   = '3' ) ##no_text.
+      ENDIF.
+
+      IF <ls_res1>-filename IS INITIAL.
+        io_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+                     iv_type = 'W'
+                     iv_rc   = '4' ) ##no_text.
+      ENDIF.
+
+      MOVE-CORRESPONDING <ls_res1> TO ls_file.
+    ENDLOOP.
+
+  ENDMETHOD.                    "check
+  METHOD status.
+
+    DATA: lv_index       LIKE sy-tabix,
+          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
+
+    FIELD-SYMBOLS <ls_result> LIKE LINE OF rt_results.
+    rt_results = calculate_status(
+      iv_devclass  = io_repo->get_package( )
+      io_dot       = io_repo->get_dot_abapgit( )
+      it_local     = io_repo->get_files_local( io_log = io_log )
+      it_remote    = io_repo->get_files_remote( )
+      it_cur_state = io_repo->get_local_checksums_per_file( ) ).
+
+    lo_dot_abapgit = io_repo->get_dot_abapgit( ).
+
+    " Remove ignored files, fix .abapgit
+    LOOP AT rt_results ASSIGNING <ls_result>.
+      lv_index = sy-tabix.
+
+      IF lo_dot_abapgit->is_ignored(
+          iv_path     = <ls_result>-path
+          iv_filename = <ls_result>-filename ) = abap_true.
+        DELETE rt_results INDEX lv_index.
+        CONTINUE.
+      ENDIF.
+    ENDLOOP.
+
+    run_checks(
+      io_log     = io_log
+      it_results = rt_results
+      io_dot     = lo_dot_abapgit
+      iv_top     = io_repo->get_package( ) ).
+
+  ENDMETHOD.  "status
 ENDCLASS.
 CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
@@ -9485,6 +12542,1157 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     ENDDO.
 
   ENDMETHOD.                    "x_to_bitbyte
+ENDCLASS.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+  METHOD add_field.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
+
+    APPEND INITIAL LINE TO ct_fields ASSIGNING <ls_field>.
+    <ls_field>-tabname    = iv_tabname.
+    <ls_field>-fieldname  = iv_fieldname.
+    <ls_field>-fieldtext  = iv_fieldtext.
+    <ls_field>-value      = iv_value.
+    <ls_field>-field_attr = iv_field_attr.
+    <ls_field>-field_obl  = iv_obligatory.
+
+  ENDMETHOD.
+  METHOD branch_list_popup.
+
+    DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
+          lt_branches    TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
+          lv_answer      TYPE c LENGTH 1,
+          lv_default     TYPE i,
+          lv_head_suffix TYPE string,
+          lv_head_symref TYPE string,
+          lt_selection   TYPE TABLE OF spopli.
+
+    FIELD-SYMBOLS: <ls_sel>    LIKE LINE OF lt_selection,
+                   <ls_branch> LIKE LINE OF lt_branches.
+    lo_branches    = zcl_abapgit_git_transport=>branches( iv_url ).
+    lt_branches    = lo_branches->get_branches_only( ).
+    lv_head_suffix = | ({ zcl_abapgit_git_branch_list=>c_head_name })|.
+    lv_head_symref = lo_branches->get_head_symref( ).
+
+    LOOP AT lt_branches ASSIGNING <ls_branch>.
+
+      CHECK <ls_branch>-name IS NOT INITIAL. " To ensure some below ifs
+
+      IF <ls_branch>-is_head = abap_true.
+
+        IF <ls_branch>-name = zcl_abapgit_git_branch_list=>c_head_name. " HEAD
+          IF <ls_branch>-name <> lv_head_symref AND lv_head_symref IS NOT INITIAL.
+            " HEAD but other HEAD symref exists - ignore
+            CONTINUE.
+          ELSE.
+            INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
+            <ls_sel>-varoption = <ls_branch>-name.
+          ENDIF.
+        ELSE.
+          INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
+          <ls_sel>-varoption = <ls_branch>-display_name && lv_head_suffix.
+        ENDIF.
+
+        IF lv_default > 0. " Shift down default if set
+          lv_default = lv_default + 1.
+        ENDIF.
+      ELSE.
+        APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
+        <ls_sel>-varoption = <ls_branch>-display_name.
+      ENDIF.
+
+      IF <ls_branch>-name = iv_default_branch.
+        IF <ls_branch>-is_head = abap_true.
+          lv_default = 1.
+        ELSE.
+          lv_default = sy-tabix.
+        ENDIF.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF iv_show_new_option = abap_true.
+      APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
+      <ls_sel>-varoption = c_new_branch_label.
+    ENDIF.
+
+    CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
+      EXPORTING
+        textline1          = 'Select branch'
+        titel              = 'Select branch'
+        start_col          = 30
+        start_row          = 5
+        cursorline         = lv_default
+      IMPORTING
+        answer             = lv_answer
+      TABLES
+        t_spopli           = lt_selection
+      EXCEPTIONS
+        not_enough_answers = 1
+        too_much_answers   = 2
+        too_much_marks     = 3
+        OTHERS             = 4.                             "#EC NOTEXT
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
+    ENDIF.
+
+    IF lv_answer = 'A'. " cancel
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
+    ASSERT sy-subrc = 0.
+
+    IF iv_show_new_option = abap_true AND <ls_sel>-varoption = c_new_branch_label.
+      rs_branch-name = c_new_branch_label.
+    ELSE.
+      REPLACE FIRST OCCURRENCE OF lv_head_suffix IN <ls_sel>-varoption WITH ''.
+      READ TABLE lt_branches WITH KEY display_name = <ls_sel>-varoption ASSIGNING <ls_branch>.
+      IF sy-subrc <> 0.
+* branch name longer than 65 characters
+        LOOP AT lt_branches ASSIGNING <ls_branch> WHERE display_name CS <ls_sel>-varoption.
+          EXIT. " current loop
+        ENDLOOP.
+      ENDIF.
+      ASSERT <ls_branch> IS ASSIGNED.
+      rs_branch = lo_branches->find_by_name( <ls_branch>-name ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD branch_popup_callback.
+
+    DATA: lv_url          TYPE string,
+          ls_package_data TYPE scompkdtln,
+          ls_branch       TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
+          lv_create       TYPE boolean.
+
+    FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
+                   <ls_fbranch>  LIKE LINE OF ct_fields,
+                   <ls_fpackage> LIKE LINE OF ct_fields.
+
+    CLEAR cs_error.
+
+    IF iv_code = 'COD1'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
+      IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
+        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.       "#EC NOTEXT
+        RETURN.
+      ENDIF.
+      lv_url = <ls_furl>-value.
+
+      ls_branch = zcl_abapgit_popups=>branch_list_popup( lv_url ).
+      IF ls_branch IS INITIAL.
+        RETURN.
+      ENDIF.
+
+      READ TABLE ct_fields ASSIGNING <ls_fbranch> WITH KEY tabname = 'TEXTL'.
+      ASSERT sy-subrc = 0.
+      <ls_fbranch>-value = ls_branch-name.
+
+    ELSEIF iv_code = 'COD2'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
+      ASSERT sy-subrc = 0.
+      ls_package_data-devclass = <ls_fpackage>-value.
+
+      zcl_abapgit_popups=>popup_to_create_package(
+        IMPORTING
+          es_package_data = ls_package_data
+          ev_create       = lv_create ).
+      IF lv_create = abap_false.
+        RETURN.
+      ENDIF.
+
+      zcl_abapgit_sap_package=>create( ls_package_data ).
+      COMMIT WORK.
+
+      <ls_fpackage>-value = ls_package_data-devclass.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD create_branch_popup.
+
+    DATA: lv_answer TYPE c LENGTH 1,
+          lt_fields TYPE TABLE OF sval.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+    CLEAR: ev_name, ev_cancel.
+
+    add_field( EXPORTING iv_tabname   = 'TEXTL'
+                         iv_fieldname = 'LINE'
+                         iv_fieldtext = 'Name'
+                         iv_value     = 'new-branch-name'
+               CHANGING ct_fields     = lt_fields ).
+
+    CALL FUNCTION 'POPUP_GET_VALUES'
+      EXPORTING
+        popup_title     = 'Create branch'
+      IMPORTING
+        returncode      = lv_answer
+      TABLES
+        fields          = lt_fields
+      EXCEPTIONS
+        error_in_fields = 1
+        OTHERS          = 2 ##NO_TEXT.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
+    ENDIF.
+
+    IF lv_answer = 'A'.
+      ev_cancel = abap_true.
+    ELSE.
+      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+      ev_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
+        zcl_abapgit_git_branch_list=>normalize_branch_name( <ls_field>-value ) ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD create_new_table.
+
+    " create and populate a table on the fly derived from
+    " it_data with a select column
+
+    DATA: lr_struct       TYPE REF TO data,
+          lt_components   TYPE cl_abap_structdescr=>component_table,
+          lo_struct_descr TYPE REF TO cl_abap_structdescr,
+          struct_descr    TYPE REF TO cl_abap_structdescr.
+
+    FIELD-SYMBOLS: <table>     TYPE STANDARD TABLE,
+                   <component> TYPE abap_componentdescr,
+                   <line>      TYPE data,
+                   <data>      TYPE any.
+
+    mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
+    lo_struct_descr ?= mo_table_descr->get_table_line_type( ).
+    lt_components = lo_struct_descr->get_components( ).
+
+    INSERT INITIAL LINE INTO lt_components ASSIGNING <component> INDEX 1.
+    ASSERT sy-subrc = 0.
+
+    <component>-name = co_fieldname_selected.
+    <component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
+
+    struct_descr = cl_abap_structdescr=>create( lt_components ).
+    mo_table_descr = cl_abap_tabledescr=>create( struct_descr ).
+
+    CREATE DATA mr_table TYPE HANDLE mo_table_descr.
+    ASSIGN mr_table->* TO <table>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_struct TYPE HANDLE struct_descr.
+    ASSIGN lr_struct->* TO <line>.
+    ASSERT sy-subrc = 0.
+
+    LOOP AT it_list ASSIGNING <data>.
+
+      CLEAR: <line>.
+      MOVE-CORRESPONDING <data> TO <line>.
+      INSERT <line> INTO TABLE <table>.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD create_tag_popup.
+
+    DATA: lv_answer          TYPE c LENGTH 1,
+          lt_fields          TYPE TABLE OF sval,
+          lv_exit_while_loop TYPE abap_bool.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+
+    CLEAR: ev_name, ev_cancel, ev_sha1.
+
+    add_field( EXPORTING iv_tabname    = 'TBDTPPT'
+                         iv_fieldname  = 'P_TEXT'
+                         iv_fieldtext  = 'SHA'
+                         iv_value      = iv_sha1
+                         iv_obligatory = abap_true
+               CHANGING ct_fields      = lt_fields ).
+
+    add_field( EXPORTING iv_tabname    = 'TEXTL'
+                         iv_fieldname  = 'LINE'
+                         iv_fieldtext  = 'Name'
+                         iv_obligatory = abap_true
+               CHANGING ct_fields      = lt_fields ).
+
+    WHILE lv_exit_while_loop = abap_false.
+
+      CALL FUNCTION 'POPUP_GET_VALUES'
+        EXPORTING
+          popup_title     = 'Create tag'
+        IMPORTING
+          returncode      = lv_answer
+        TABLES
+          fields          = lt_fields
+        EXCEPTIONS
+          error_in_fields = 1
+          OTHERS          = 2 ##NO_TEXT.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
+      ENDIF.
+
+      IF lv_answer = 'A'.
+        ev_cancel = abap_true.
+        RETURN.
+      ENDIF.
+
+      READ TABLE lt_fields WITH KEY fieldname = 'P_TEXT'
+                           ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+
+      ev_sha1 = <ls_field>-value.
+
+      READ TABLE lt_fields WITH KEY fieldname = 'LINE'
+                           ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+
+      IF condense( <ls_field>-value ) CS ` `.
+        CLEAR: lv_exit_while_loop.
+        MESSAGE 'Tag name cannot contain blank spaces' TYPE 'S' DISPLAY LIKE 'E'.
+        CONTINUE.
+      ENDIF.
+
+      ev_name = zcl_abapgit_tag=>add_tag_prefix( <ls_field>-value ).
+
+      lv_exit_while_loop = abap_true.
+
+    ENDWHILE.
+
+  ENDMETHOD.
+  METHOD extract_field_values.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_fields.
+
+    CLEAR: ev_url,
+           ev_package,
+           ev_branch.
+
+    READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_url = <ls_field>-value.
+
+    READ TABLE it_fields INDEX 2 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_package = <ls_field>-value.
+    TRANSLATE ev_package TO UPPER CASE.
+
+    READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_branch = <ls_field>-value.
+
+  ENDMETHOD.
+  METHOD get_selected_rows.
+
+    DATA: lv_condition TYPE string,
+          lr_exporting TYPE REF TO data.
+
+    FIELD-SYMBOLS: <ls_exporting> TYPE any,
+                   <table>        TYPE STANDARD TABLE,
+                   <ls_line>      TYPE any.
+
+    lv_condition = |{ co_fieldname_selected } = ABAP_TRUE|.
+
+    ASSIGN mr_table->* TO <table>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_exporting LIKE LINE OF et_list.
+    ASSIGN lr_exporting->* TO <ls_exporting>.
+
+    LOOP AT <table> ASSIGNING <ls_line>
+                    WHERE (lv_condition).
+
+      CLEAR: <ls_exporting>.
+      MOVE-CORRESPONDING <ls_line> TO <ls_exporting>.
+      APPEND <ls_exporting> TO et_list.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD on_select_list_function_click.
+
+    FIELD-SYMBOLS: <table>    TYPE STANDARD TABLE,
+                   <line>     TYPE any,
+                   <selected> TYPE flag.
+
+    ASSIGN mr_table->* TO <table>.
+    ASSERT sy-subrc = 0.
+
+    CASE e_salv_function.
+      WHEN 'O.K.'.
+        mo_select_list_popup->close_screen( ).
+
+      WHEN 'ABR'.
+        "Canceled: clear list to overwrite nothing
+        CLEAR <table>.
+        mo_select_list_popup->close_screen( ).
+
+      WHEN 'SALL'.
+
+        LOOP AT <table> ASSIGNING <line>.
+
+          ASSIGN COMPONENT co_fieldname_selected
+                 OF STRUCTURE <line>
+                 TO <selected>.
+          ASSERT sy-subrc = 0.
+
+          <selected> = abap_true.
+
+        ENDLOOP.
+
+        mo_select_list_popup->refresh( ).
+
+      WHEN 'DSEL'.
+
+        LOOP AT <table> ASSIGNING <line>.
+
+          ASSIGN COMPONENT co_fieldname_selected
+                 OF STRUCTURE <line>
+                 TO <selected>.
+          ASSERT sy-subrc = 0.
+
+          <selected> = abap_false.
+
+        ENDLOOP.
+
+        mo_select_list_popup->refresh( ).
+
+      WHEN OTHERS.
+        CLEAR <table>.
+        mo_select_list_popup->close_screen( ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD on_select_list_link_click.
+
+    DATA: lv_line  TYPE sytabix.
+
+    FIELD-SYMBOLS: <table>    TYPE STANDARD TABLE,
+                   <line>     TYPE any,
+                   <selected> TYPE flag.
+
+    ASSIGN mr_table->* TO <table>.
+    ASSERT sy-subrc = 0.
+
+    lv_line = row.
+
+    READ TABLE <table> ASSIGNING <line>
+                       INDEX lv_line.
+    IF sy-subrc = 0.
+
+      ASSIGN COMPONENT co_fieldname_selected
+             OF STRUCTURE <line>
+             TO <selected>.
+      ASSERT sy-subrc = 0.
+
+      IF <selected> = abap_true.
+        <selected> = abap_false.
+      ELSE.
+        <selected> = abap_true.
+      ENDIF.
+
+    ENDIF.
+
+    mo_select_list_popup->refresh( ).
+  ENDMETHOD.
+  METHOD package_popup_callback.
+
+    DATA: ls_package_data TYPE scompkdtln,
+          lv_create       TYPE boolean.
+
+    FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF ct_fields.
+
+    CLEAR cs_error.
+
+    IF iv_code = 'COD1'.
+      cv_show_popup = abap_true.
+
+      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
+      ASSERT sy-subrc = 0.
+      ls_package_data-devclass = <ls_fpackage>-value.
+
+      zcl_abapgit_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
+                                                     ev_create       = lv_create ).
+      IF lv_create = abap_false.
+        RETURN.
+      ENDIF.
+
+      zcl_abapgit_sap_package=>create( ls_package_data ).
+      COMMIT WORK.
+
+      <ls_fpackage>-value = ls_package_data-devclass.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD popup_object.
+
+    DATA: lv_returncode TYPE c,
+          lt_fields     TYPE TABLE OF sval.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+    add_field( EXPORTING iv_tabname   = 'TADIR'
+                         iv_fieldname = 'OBJECT'
+                         iv_fieldtext = 'Type'
+               CHANGING ct_fields     = lt_fields ).
+
+    add_field( EXPORTING iv_tabname   = 'TADIR'
+                         iv_fieldname = 'OBJ_NAME'
+                         iv_fieldtext = 'Name'
+               CHANGING ct_fields     = lt_fields ).
+
+    CALL FUNCTION 'POPUP_GET_VALUES'
+      EXPORTING
+        no_value_check  = abap_true
+        popup_title     = 'Object'             "#EC NOTEXT
+      IMPORTING
+        returncode      = lv_returncode
+      TABLES
+        fields          = lt_fields
+      EXCEPTIONS
+        error_in_fields = 1
+        OTHERS          = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
+    ENDIF.
+
+    IF lv_returncode = 'A'.
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    TRANSLATE <ls_field>-value TO UPPER CASE.
+    rs_tadir-object = <ls_field>-value.
+
+    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    TRANSLATE <ls_field>-value TO UPPER CASE.
+    rs_tadir-obj_name = <ls_field>-value.
+
+    rs_tadir = zcl_abapgit_tadir=>read_single(
+      iv_object   = rs_tadir-object
+      iv_obj_name = rs_tadir-obj_name ).
+
+  ENDMETHOD.
+  METHOD popup_package_export.
+
+    DATA: lv_returncode TYPE c,
+          lt_fields     TYPE TABLE OF sval.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+    add_field( EXPORTING iv_tabname   = 'TDEVC'
+                         iv_fieldname = 'DEVCLASS'
+                         iv_fieldtext = 'Package'
+               CHANGING ct_fields     = lt_fields ).
+
+    add_field( EXPORTING iv_tabname   = 'TDEVC'
+                         iv_fieldname = 'INTSYS'
+                         iv_fieldtext = 'Folder logic'
+                         iv_value     = 'PREFIX'
+               CHANGING ct_fields     = lt_fields ).
+
+    CALL FUNCTION 'POPUP_GET_VALUES'
+      EXPORTING
+        no_value_check  = abap_true
+        popup_title     = 'Export package'             "#EC NOTEXT
+      IMPORTING
+        returncode      = lv_returncode
+      TABLES
+        fields          = lt_fields
+      EXCEPTIONS
+        error_in_fields = 1
+        OTHERS          = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
+    ENDIF.
+
+    IF lv_returncode = 'A'.
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    TRANSLATE <ls_field>-value TO UPPER CASE.
+    ev_package = <ls_field>-value.
+
+    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    TRANSLATE <ls_field>-value TO UPPER CASE.
+    ev_folder_logic = <ls_field>-value.
+
+  ENDMETHOD.                    "popup_package_export
+  METHOD popup_to_confirm.
+
+    CALL FUNCTION 'POPUP_TO_CONFIRM'
+      EXPORTING
+        titlebar              = titlebar
+        text_question         = text_question
+        text_button_1         = text_button_1
+        icon_button_1         = icon_button_1
+        text_button_2         = text_button_2
+        icon_button_2         = icon_button_2
+        default_button        = default_button
+        display_cancel_button = display_cancel_button
+      IMPORTING
+        answer                = rv_answer
+      EXCEPTIONS
+        text_not_found        = 1
+        OTHERS                = 2.                        "#EC NOTEXT
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from POPUP_TO_CONFIRM' ).
+    ENDIF.
+
+  ENDMETHOD.  "popup_to_confirm
+  METHOD popup_to_create_package.
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = 'PB_POPUP_PACKAGE_CREATE'
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    IF sy-subrc = 1.
+* looks like the function module used does not exist on all
+* versions since 702, so show an error
+      zcx_abapgit_exception=>raise( 'Function module PB_POPUP_PACKAGE_CREATE does not exist' ).
+    ENDIF.
+
+    CALL FUNCTION 'PB_POPUP_PACKAGE_CREATE'
+      CHANGING
+        p_object_data    = es_package_data
+      EXCEPTIONS
+        action_cancelled = 1.
+    IF sy-subrc = 0.
+      ev_create = abap_true.
+    ELSE.
+      ev_create = abap_false.
+    ENDIF.
+  ENDMETHOD.  " popup_to_create_package
+  METHOD popup_to_create_transp_branch.
+    DATA: lv_returncode         TYPE c,
+          lt_fields             TYPE TABLE OF sval,
+          lv_transports_as_text TYPE string,
+          ls_transport_header   LIKE LINE OF it_transport_headers.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+
+    lv_transports_as_text = 'Transport(s)'.
+    LOOP AT it_transport_headers INTO ls_transport_header.
+      CONCATENATE lv_transports_as_text '_' ls_transport_header-trkorr INTO lv_transports_as_text.
+    ENDLOOP.
+
+    add_field( EXPORTING iv_tabname   = 'TEXTL'
+                         iv_fieldname = 'LINE'
+                         iv_fieldtext = 'Branch name'
+                         iv_value     = lv_transports_as_text
+               CHANGING ct_fields     = lt_fields ).
+
+    add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
+                         iv_fieldname = 'LINE'
+                         iv_fieldtext = 'Commit text'
+                         iv_value     = lv_transports_as_text
+               CHANGING ct_fields     = lt_fields ).
+
+    CALL FUNCTION 'POPUP_GET_VALUES'
+      EXPORTING
+        popup_title     = 'Transport to new Branch'
+      IMPORTING
+        returncode      = lv_returncode
+      TABLES
+        fields          = lt_fields
+      EXCEPTIONS
+        error_in_fields = 1
+        OTHERS          = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
+    ENDIF.
+
+    IF lv_returncode = 'A'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    rs_transport_branch-branch_name = <ls_field>-value.
+
+    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    rs_transport_branch-commit_text = <ls_field>-value.
+  ENDMETHOD.
+  METHOD popup_to_inform.
+
+    DATA: lv_line1 TYPE char70,
+          lv_line2 TYPE char70.
+
+    lv_line1 = text_message.
+    IF strlen( text_message ) > 70.
+      lv_line2 = text_message+70.
+    ENDIF.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = titlebar
+        txt1  = lv_line1
+        txt2  = lv_line2.
+
+  ENDMETHOD.  " popup_to_inform.
+  METHOD popup_to_select_from_list.
+
+    DATA:
+      lo_events       TYPE REF TO cl_salv_events_table,
+      lo_columns      TYPE REF TO cl_salv_columns_table,
+      lt_columns      TYPE salv_t_column_ref,
+      ls_column       TYPE salv_s_column_ref,
+      lo_column       TYPE REF TO cl_salv_column_list,
+      lo_table_header TYPE REF TO cl_salv_form_text.
+
+    FIELD-SYMBOLS: <table> TYPE STANDARD TABLE.
+
+    CLEAR: et_list.
+
+    create_new_table( it_list = it_list ).
+
+    ASSIGN mr_table->* TO <table>.
+    ASSERT sy-subrc = 0.
+
+    TRY.
+        cl_salv_table=>factory( IMPORTING r_salv_table = mo_select_list_popup
+                                CHANGING  t_table = <table> ).
+
+        mo_select_list_popup->set_screen_status( pfstatus = '102'
+                                                 report = 'SAPMSVIM' ).
+
+        mo_select_list_popup->set_screen_popup( start_column = 1
+                                                end_column   = 65
+                                                start_line   = 1
+                                                end_line     = 20 ).
+
+        lo_events = mo_select_list_popup->get_event( ).
+
+        SET HANDLER on_select_list_link_click FOR lo_events.
+        SET HANDLER on_select_list_function_click FOR lo_events.
+
+        CREATE OBJECT lo_table_header
+          EXPORTING
+            text = i_header_text.
+
+        mo_select_list_popup->set_top_of_list( lo_table_header ).
+
+        lo_columns = mo_select_list_popup->get_columns( ).
+        lo_columns->set_optimize( abap_true ).
+        lt_columns = lo_columns->get( ).
+
+        LOOP AT lt_columns INTO ls_column.
+
+          IF ls_column-columnname = co_fieldname_selected.
+            lo_column ?= ls_column-r_column.
+            lo_column->set_cell_type( if_salv_c_cell_type=>checkbox_hotspot ).
+            lo_column->set_output_length( 20 ).
+            lo_column->set_short_text( |{ i_select_column_text }| ).
+            lo_column->set_medium_text( |{ i_select_column_text }| ).
+            lo_column->set_long_text( |{ i_select_column_text }| ).
+            CONTINUE.
+          ENDIF.
+
+          READ TABLE it_columns_to_display TRANSPORTING NO FIELDS
+                                           WITH KEY table_line = ls_column-columnname.
+          IF sy-subrc <> 0.
+            ls_column-r_column->set_technical( abap_true ).
+          ENDIF.
+
+        ENDLOOP.
+
+        mo_select_list_popup->display( ).
+
+      CATCH cx_salv_msg.
+        zcx_abapgit_exception=>raise( 'Error from POPUP_SELECT_OBJ_OVERWRITE' ).
+    ENDTRY.
+
+    get_selected_rows(
+      IMPORTING
+        et_list = et_list ).
+
+    CLEAR: mo_select_list_popup,
+           mr_table,
+           mo_table_descr.
+
+  ENDMETHOD.
+  METHOD popup_to_select_transports.
+    DATA: lrs_trfunction TYPE trsel_trs_function,
+          lv_types       TYPE string,
+          ls_ranges      TYPE trsel_ts_ranges.
+
+    " Fill all request types
+    lv_types = 'KWTCOEMPDRSXQFG'.
+    lrs_trfunction-sign   = 'I'.
+    lrs_trfunction-option = 'EQ'.
+    WHILE lv_types <> space.
+      lrs_trfunction-low = lv_types(1).
+      APPEND lrs_trfunction TO ls_ranges-request_funcs.
+      SHIFT lv_types.
+    ENDWHILE.
+
+    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
+      EXPORTING
+        iv_username_pattern    = sy-uname
+        iv_via_selscreen       = 'X'
+        iv_complete_projects   = ''
+        "is_popup               = ''
+        iv_title               = 'abapGit: Transport Request Selection'
+      IMPORTING
+        et_requests            = rt_trkorr
+      CHANGING
+        cs_ranges              = ls_ranges
+      EXCEPTIONS
+        action_aborted_by_user = 1
+        OTHERS                 = 2.
+
+  ENDMETHOD.
+  METHOD repo_new_offline.
+
+    DATA: lv_returncode TYPE c,
+          lt_fields     TYPE TABLE OF sval,
+          lv_icon_ok    TYPE icon-name,
+          lv_button1    TYPE svalbutton-buttontext,
+          lv_icon1      TYPE icon-name,
+          lv_finished   TYPE abap_bool,
+          lx_error      TYPE REF TO zcx_abapgit_exception.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+    add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
+                         iv_fieldname = 'LINE'
+                         iv_fieldtext = 'Name'
+               CHANGING ct_fields     = lt_fields ).
+
+    add_field( EXPORTING iv_tabname   = 'TDEVC'
+                         iv_fieldname = 'DEVCLASS'
+                         iv_fieldtext = 'Package'
+               CHANGING ct_fields     = lt_fields ).
+
+    WHILE lv_finished = abap_false.
+
+      lv_icon_ok  = icon_okay.
+      lv_button1 = 'Create package' ##NO_TEXT.
+      lv_icon1   = icon_folder.
+
+      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
+        EXPORTING
+          popup_title       = 'New Offline Project'
+          programname       = sy-cprog
+          formname          = 'PACKAGE_POPUP'
+          ok_pushbuttontext = ''
+          icon_ok_push      = lv_icon_ok
+          first_pushbutton  = lv_button1
+          icon_button_1     = lv_icon1
+          second_pushbutton = ''
+          icon_button_2     = ''
+        IMPORTING
+          returncode        = lv_returncode
+        TABLES
+          fields            = lt_fields
+        EXCEPTIONS
+          error_in_fields   = 1
+          OTHERS            = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
+      ENDIF.
+
+      IF lv_returncode = 'A'.
+        rs_popup-cancel = abap_true.
+        RETURN.
+      ENDIF.
+
+      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+      rs_popup-url = <ls_field>-value.
+
+      READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+      TRANSLATE <ls_field>-value TO UPPER CASE.
+      rs_popup-package = <ls_field>-value.
+
+      lv_finished = abap_true.
+
+      TRY.
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
+
+        CATCH zcx_abapgit_exception INTO lx_error.
+          " in case of validation errors we display the popup again
+          MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
+          CLEAR lv_finished.
+      ENDTRY.
+
+    ENDWHILE.
+
+  ENDMETHOD.                    "repo_new_offline
+  METHOD repo_popup.
+
+    DATA: lv_returncode TYPE c,
+          lv_icon_ok    TYPE icon-name,
+          lv_icon_br    TYPE icon-name,
+          lt_fields     TYPE TABLE OF sval,
+          lv_uattr      TYPE spo_fattr,
+          lv_pattr      TYPE spo_fattr,
+          lv_button2    TYPE svalbutton-buttontext,
+          lv_icon2      TYPE icon-name,
+          lv_package    TYPE tdevc-devclass,
+          lv_url        TYPE abaptxt255-line,
+          lv_branch     TYPE textl-line,
+          lv_finished   TYPE abap_bool,
+          lx_error      TYPE REF TO zcx_abapgit_exception.
+
+    IF iv_freeze_url = abap_true.
+      lv_uattr = '05'.
+    ENDIF.
+
+    IF iv_freeze_package = abap_true.
+      lv_pattr = '05'.
+    ENDIF.
+
+    IF iv_package IS INITIAL. " Empty package -> can be created
+      lv_button2 = 'Create package' ##NO_TEXT.
+      lv_icon2   = icon_folder.
+    ENDIF.
+
+    lv_package = iv_package.
+    lv_url     = iv_url.
+    lv_branch  = iv_branch.
+
+    WHILE lv_finished = abap_false.
+
+      CLEAR: lt_fields.
+
+      add_field( EXPORTING iv_tabname    = 'ABAPTXT255'
+                           iv_fieldname  = 'LINE'
+                           iv_fieldtext  = 'Git clone URL'
+                           iv_value      = lv_url
+                           iv_field_attr = lv_uattr
+                 CHANGING ct_fields      = lt_fields ).
+
+      add_field( EXPORTING iv_tabname    = 'TDEVC'
+                           iv_fieldname  = 'DEVCLASS'
+                           iv_fieldtext  = 'Target package'
+                           iv_value      = lv_package
+                           iv_field_attr = lv_pattr
+                 CHANGING ct_fields      = lt_fields ).
+
+      add_field( EXPORTING iv_tabname    = 'TEXTL'
+                           iv_fieldname  = 'LINE'
+                           iv_fieldtext  = 'Branch'
+                           iv_value      = lv_branch
+                           iv_field_attr = '05'
+                 CHANGING ct_fields      = lt_fields ).
+
+      lv_icon_ok  = icon_okay.
+      lv_icon_br  = icon_workflow_fork.
+
+      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
+        EXPORTING
+          popup_title       = iv_title
+          programname       = sy-cprog
+          formname          = 'BRANCH_POPUP'
+          ok_pushbuttontext = 'OK'
+          icon_ok_push      = lv_icon_ok
+          first_pushbutton  = 'Select branch'
+          icon_button_1     = lv_icon_br
+          second_pushbutton = lv_button2
+          icon_button_2     = lv_icon2
+        IMPORTING
+          returncode        = lv_returncode
+        TABLES
+          fields            = lt_fields
+        EXCEPTIONS
+          error_in_fields   = 1
+          OTHERS            = 2.                              "#EC NOTEXT
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
+      ENDIF.
+
+      IF lv_returncode = 'A'.
+        rs_popup-cancel = abap_true.
+        RETURN.
+      ENDIF.
+
+      extract_field_values(
+        EXPORTING
+          it_fields  = lt_fields
+        IMPORTING
+          ev_url     = lv_url
+          ev_package = lv_package
+          ev_branch  = lv_branch ).
+
+      lv_finished = abap_true.
+
+      TRY.
+          zcl_abapgit_url=>name( |{ lv_url }| ).
+          IF iv_freeze_package = abap_false.
+            zcl_abapgit_repo_srv=>get_instance( )->validate_package( lv_package ).
+          ENDIF.
+        CATCH zcx_abapgit_exception INTO lx_error.
+          MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
+          " in case of validation errors we display the popup again
+          CLEAR: lv_finished.
+      ENDTRY.
+
+    ENDWHILE.
+
+    rs_popup-url         = lv_url.
+    rs_popup-package     = lv_package.
+    rs_popup-branch_name = lv_branch.
+
+  ENDMETHOD.
+  METHOD run_page_class_popup.
+
+    DATA: lv_answer TYPE c LENGTH 1,
+          lt_fields TYPE TABLE OF sval.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
+    CLEAR: ev_name, ev_cancel.
+
+    add_field( EXPORTING iv_tabname   = 'TEXTL'
+                         iv_fieldname = 'LINE'
+                         iv_fieldtext = 'Name'
+                         iv_value     = 'lcl_gui_page_'
+               CHANGING ct_fields     = lt_fields ).
+
+    CALL FUNCTION 'POPUP_GET_VALUES'
+      EXPORTING
+        popup_title     = 'Run page manually'
+      IMPORTING
+        returncode      = lv_answer
+      TABLES
+        fields          = lt_fields
+      EXCEPTIONS
+        error_in_fields = 1
+        OTHERS          = 2 ##NO_TEXT.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
+    ENDIF.
+
+    IF lv_answer = 'A'.
+      ev_cancel = abap_true.
+    ELSE.
+      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+      ev_name = to_upper( <ls_field>-value ).
+    ENDIF.
+
+  ENDMETHOD.  "run_page_class_popup
+  METHOD tag_list_popup.
+
+    DATA: lo_branches         TYPE REF TO zcl_abapgit_git_branch_list,
+          lt_tags             TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
+          lv_answer           TYPE c LENGTH 1,
+          lt_selection        TYPE TABLE OF spopli,
+          lv_name_with_prefix TYPE string,
+          lo_alv              TYPE REF TO cl_salv_table,
+          lo_table_header     TYPE REF TO cl_salv_form_text,
+          lo_columns          TYPE REF TO cl_salv_columns_table,
+          lx_alv              TYPE REF TO cx_salv_error.
+
+    FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
+                   <ls_tag> LIKE LINE OF lt_tags.
+
+    lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
+    lt_tags     = lo_branches->get_tags_only( ).
+
+    IF lines( lt_tags ) = 0.
+      zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
+    ENDIF.
+
+    IF iv_select_mode = abap_true.
+
+      LOOP AT lt_tags ASSIGNING <ls_tag>.
+
+        INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
+        <ls_sel>-varoption = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
+
+      ENDLOOP.
+
+      CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
+        EXPORTING
+          textline1          = 'Select tag'
+          titel              = 'Select tag'
+          start_col          = 30
+          start_row          = 5
+        IMPORTING
+          answer             = lv_answer
+        TABLES
+          t_spopli           = lt_selection
+        EXCEPTIONS
+          not_enough_answers = 1
+          too_much_answers   = 2
+          too_much_marks     = 3
+          OTHERS             = 4.                             "#EC NOTEXT
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
+      ENDIF.
+
+      IF lv_answer = 'A'. " cancel
+        RETURN.
+      ENDIF.
+
+      READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
+      ASSERT sy-subrc = 0.
+
+      lv_name_with_prefix = zcl_abapgit_tag=>add_tag_prefix( <ls_sel>-varoption ).
+
+      READ TABLE lt_tags ASSIGNING <ls_tag> WITH KEY name = lv_name_with_prefix.
+      ASSERT sy-subrc = 0.
+
+      rs_tag = <ls_tag>.
+
+    ELSE.
+
+      LOOP AT lt_tags ASSIGNING <ls_tag>.
+
+        <ls_tag>-name = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
+
+      ENDLOOP.
+
+      TRY.
+          cl_salv_table=>factory(
+            IMPORTING
+              r_salv_table   = lo_alv
+            CHANGING
+              t_table        = lt_tags ).
+
+          lo_columns = lo_alv->get_columns( ).
+
+          lo_columns->get_column( `TYPE` )->set_technical( ).
+          lo_columns->get_column( `IS_HEAD` )->set_technical( ).
+          lo_columns->get_column( `DISPLAY_NAME` )->set_technical( ).
+
+          lo_columns->get_column( `SHA1` )->set_output_length( 30 ).
+          lo_columns->get_column( `SHA1` )->set_medium_text( 'SHA' ).
+
+          lo_columns->get_column( `NAME` )->set_medium_text( 'Tag name' ).
+
+          lo_columns->set_optimize( ).
+
+          lo_alv->set_screen_popup( start_column = 5
+                                    end_column   = 70
+                                    start_line   = 5
+                                    end_line     = 25 ).
+
+          CREATE OBJECT lo_table_header
+            EXPORTING
+              text = `Tags`.
+
+          lo_alv->set_top_of_list( lo_table_header ).
+
+          lo_alv->display( ).
+
+        CATCH cx_salv_error INTO lx_alv.
+          zcx_abapgit_exception=>raise( lx_alv->get_text( ) ).
+      ENDTRY.
+
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -34483,6 +38691,479 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
 
   ENDMETHOD.                    "upload_pack
 ENDCLASS.
+CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
+  METHOD build_trees.
+
+    DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
+          ls_tree    LIKE LINE OF rt_trees,
+          lv_len     TYPE i,
+          lt_folders TYPE ty_folders_tt.
+
+    FIELD-SYMBOLS: <ls_folder> LIKE LINE OF lt_folders,
+                   <ls_node>   LIKE LINE OF lt_nodes,
+                   <ls_sub>    LIKE LINE OF lt_folders,
+                   <ls_exp>    LIKE LINE OF it_expanded.
+    lt_folders = find_folders( it_expanded ).
+
+* start with the deepest folders
+    SORT lt_folders BY count DESCENDING.
+
+    LOOP AT lt_folders ASSIGNING <ls_folder>.
+      CLEAR lt_nodes.
+
+* files
+      LOOP AT it_expanded ASSIGNING <ls_exp> WHERE path = <ls_folder>-path.
+        APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
+        <ls_node>-chmod = <ls_exp>-chmod.
+        <ls_node>-name  = <ls_exp>-name.
+        <ls_node>-sha1  = <ls_exp>-sha1.
+      ENDLOOP.
+
+* folders
+      LOOP AT lt_folders ASSIGNING <ls_sub> WHERE count = <ls_folder>-count + 1.
+        lv_len = strlen( <ls_folder>-path ).
+        IF strlen( <ls_sub>-path ) > lv_len AND <ls_sub>-path(lv_len) = <ls_folder>-path.
+          APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
+          <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-dir.
+
+* extract folder name, this can probably be done easier using regular expressions
+          <ls_node>-name = <ls_sub>-path+lv_len.
+          lv_len = strlen( <ls_node>-name ) - 1.
+          <ls_node>-name = <ls_node>-name(lv_len).
+
+          <ls_node>-sha1 = <ls_sub>-sha1.
+        ENDIF.
+      ENDLOOP.
+
+      CLEAR ls_tree.
+      ls_tree-path = <ls_folder>-path.
+      ls_tree-data = zcl_abapgit_git_pack=>encode_tree( lt_nodes ).
+      ls_tree-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-tree iv_data = ls_tree-data ).
+      APPEND ls_tree TO rt_trees.
+
+      <ls_folder>-sha1 = ls_tree-sha1.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD create_branch.
+
+    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack    TYPE xstring.
+
+    IF iv_name CS ` `.
+      zcx_abapgit_exception=>raise( 'Branch name cannot contain blank spaces' ).
+    ENDIF.
+
+* "client MUST send an empty packfile"
+* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = c_zero
+      iv_new         = iv_from
+      iv_branch_name = iv_name
+      iv_pack        = lv_pack ).
+
+  ENDMETHOD.
+  METHOD create_tag.
+
+    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack    TYPE xstring.
+
+    IF iv_name CS ` `.
+      zcx_abapgit_exception=>raise( 'Tag name cannot contain blank spaces' ).
+    ENDIF.
+
+* "client MUST send an empty packfile"
+* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = c_zero
+      iv_new         = iv_from
+      iv_branch_name = iv_name
+      iv_pack        = lv_pack ).
+
+  ENDMETHOD.
+  METHOD delete_branch.
+
+    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack    TYPE xstring.
+* "client MUST send an empty packfile"
+* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = is_branch-sha1
+      iv_new         = c_zero
+      iv_branch_name = is_branch-name
+      iv_pack        = lv_pack ).
+
+  ENDMETHOD.
+  METHOD delete_tag.
+
+    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack    TYPE xstring.
+* "client MUST send an empty packfile"
+* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = is_tag-sha1
+      iv_new         = c_zero
+      iv_branch_name = is_tag-name
+      iv_pack        = lv_pack ).
+
+  ENDMETHOD.
+  METHOD find_folders.
+
+    DATA: lt_paths TYPE TABLE OF string,
+          lv_split TYPE string,
+          lv_path  TYPE string.
+
+    FIELD-SYMBOLS: <ls_folder> LIKE LINE OF rt_folders,
+                   <ls_new>    LIKE LINE OF rt_folders,
+                   <ls_exp>    LIKE LINE OF it_expanded.
+    LOOP AT it_expanded ASSIGNING <ls_exp>.
+      READ TABLE rt_folders WITH KEY path = <ls_exp>-path TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO rt_folders ASSIGNING <ls_folder>.
+        <ls_folder>-path = <ls_exp>-path.
+      ENDIF.
+    ENDLOOP.
+
+* add empty folders
+    LOOP AT rt_folders ASSIGNING <ls_folder>.
+      SPLIT <ls_folder>-path AT '/' INTO TABLE lt_paths.
+
+      CLEAR lv_path.
+      LOOP AT lt_paths INTO lv_split.
+        CONCATENATE lv_path lv_split '/' INTO lv_path.
+        READ TABLE rt_folders WITH KEY path = lv_path TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0.
+          APPEND INITIAL LINE TO rt_folders ASSIGNING <ls_new>.
+          <ls_new>-path = lv_path.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    LOOP AT rt_folders ASSIGNING <ls_folder>.
+      FIND ALL OCCURRENCES OF '/' IN <ls_folder>-path MATCH COUNT <ls_folder>-count.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD full_tree.
+
+    DATA: ls_object LIKE LINE OF it_objects,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+    READ TABLE it_objects INTO ls_object WITH KEY sha1 = iv_branch type = zif_abapgit_definitions=>gc_type-commit.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'commit not found' ).
+    ENDIF.
+    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
+
+    rt_expanded = walk_tree( it_objects = it_objects
+                             iv_tree    = ls_commit-tree
+                             iv_base    = '/' ).
+
+  ENDMETHOD.                    "root_tree
+  METHOD pull.
+
+    DATA: ls_object LIKE LINE OF et_objects,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+    CLEAR et_files.
+    CLEAR et_objects.
+    CLEAR ev_branch.
+
+    zcl_abapgit_git_transport=>upload_pack(
+      EXPORTING
+        iv_url         = io_repo->get_url( )
+        iv_branch_name = io_repo->get_branch_name( )
+      IMPORTING
+        et_objects     = et_objects
+        ev_branch      = ev_branch ).
+
+    READ TABLE et_objects INTO ls_object WITH KEY sha1 = ev_branch type = zif_abapgit_definitions=>gc_type-commit.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Commit/branch not found' ).
+    ENDIF.
+    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
+
+    walk( EXPORTING it_objects = et_objects
+                    iv_sha1 = ls_commit-tree
+                    iv_path = '/'
+          CHANGING ct_files = et_files ).
+
+  ENDMETHOD.                    "pull
+  METHOD push.
+
+    DATA: lt_expanded TYPE ty_expanded_tt,
+          lt_blobs    TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_sha1     TYPE zif_abapgit_definitions=>ty_sha1,
+          lt_trees    TYPE ty_trees_tt,
+          lt_objects  TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lt_branches TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
+          lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
+
+    FIELD-SYMBOLS: <ls_stage>   LIKE LINE OF lt_stage,
+                   <ls_updated> LIKE LINE OF et_updated_files,
+                   <ls_branch>  LIKE LINE OF lt_branches,
+                   <ls_exp>     LIKE LINE OF lt_expanded.
+    CLEAR et_updated_files.
+
+    IF io_stage->get_branch_sha1( ) = io_repo->get_sha1_remote( ).
+* objects cached in io_repo can be used, if pushing to the branch configured in repo
+      lt_objects = io_repo->get_objects( ).
+    ELSE.
+      APPEND INITIAL LINE TO lt_branches ASSIGNING <ls_branch>.
+      <ls_branch>-name = io_stage->get_branch_name( ).
+      <ls_branch>-sha1 = io_stage->get_branch_sha1( ).
+
+      zcl_abapgit_git_transport=>upload_pack(
+        EXPORTING
+          iv_url         = io_repo->get_url( )
+          iv_branch_name = io_repo->get_branch_name( )
+          it_branches    = lt_branches
+        IMPORTING
+          et_objects     = lt_objects ).
+    ENDIF.
+
+    lt_expanded = full_tree( it_objects = lt_objects
+                             iv_branch  = io_stage->get_branch_sha1( ) ).
+
+    lt_stage = io_stage->get_all( ).
+    LOOP AT lt_stage ASSIGNING <ls_stage>.
+
+      " Save file ref to updated files table
+      APPEND INITIAL LINE TO et_updated_files ASSIGNING <ls_updated>.
+      MOVE-CORRESPONDING <ls_stage>-file TO <ls_updated>.
+
+      CASE <ls_stage>-method.
+        WHEN zcl_abapgit_stage=>c_method-add.
+
+          APPEND <ls_stage>-file TO lt_blobs.
+
+          READ TABLE lt_expanded ASSIGNING <ls_exp> WITH KEY
+            name = <ls_stage>-file-filename
+            path = <ls_stage>-file-path.
+          IF sy-subrc <> 0. " new files
+            APPEND INITIAL LINE TO lt_expanded ASSIGNING <ls_exp>.
+            <ls_exp>-name  = <ls_stage>-file-filename.
+            <ls_exp>-path  = <ls_stage>-file-path.
+            <ls_exp>-chmod = zif_abapgit_definitions=>gc_chmod-file.
+          ENDIF.
+
+          lv_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+                                            iv_data = <ls_stage>-file-data ).
+          IF <ls_exp>-sha1 <> lv_sha1.
+            <ls_exp>-sha1 = lv_sha1.
+          ENDIF.
+
+          <ls_updated>-sha1 = lv_sha1.   "New sha1
+
+        WHEN zcl_abapgit_stage=>c_method-rm.
+          DELETE lt_expanded
+            WHERE name = <ls_stage>-file-filename
+            AND   path = <ls_stage>-file-path.
+          ASSERT sy-subrc = 0.
+
+          CLEAR <ls_updated>-sha1.       " Mark as deleted
+
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( 'stage method not supported, todo' ).
+      ENDCASE.
+    ENDLOOP.
+
+    lt_trees = build_trees( lt_expanded ).
+
+    ev_branch = receive_pack( is_comment = is_comment
+                              io_repo    = io_repo
+                              it_trees   = lt_trees
+                              it_blobs   = lt_blobs
+                              io_stage   = io_stage ).
+
+  ENDMETHOD.                    "push
+  METHOD receive_pack.
+
+    DATA: lv_time    TYPE zcl_abapgit_time=>ty_unixtime,
+          lv_commit  TYPE xstring,
+          lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack    TYPE xstring,
+          lt_files   TYPE zif_abapgit_definitions=>ty_files_tt,
+          ls_object  LIKE LINE OF lt_objects,
+          ls_commit  TYPE zcl_abapgit_git_pack=>ty_commit.
+
+    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
+                   <ls_blob> LIKE LINE OF it_blobs.
+    lv_time = zcl_abapgit_time=>get( ).
+
+    READ TABLE it_trees ASSIGNING <ls_tree> WITH KEY path = '/'.
+    ASSERT sy-subrc = 0.
+
+* new commit
+    ls_commit-committer = |{ is_comment-committer-name
+      } <{ is_comment-committer-email }> { lv_time }|.
+    IF is_comment-author-name IS NOT INITIAL.
+      ls_commit-author = |{ is_comment-author-name
+        } <{ is_comment-author-email }> { lv_time }|.
+    ELSE.
+      ls_commit-author = ls_commit-committer.
+    ENDIF.
+
+    ls_commit-tree      = <ls_tree>-sha1.
+    ls_commit-parent    = io_stage->get_branch_sha1( ).
+    ls_commit-parent2   = io_stage->get_merge_source( ).
+    ls_commit-body      = is_comment-comment.
+    lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
+
+    CLEAR ls_object.
+    ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-commit iv_data = lv_commit ).
+    ls_object-type = zif_abapgit_definitions=>gc_type-commit.
+    ls_object-data = lv_commit.
+    APPEND ls_object TO lt_objects.
+
+    LOOP AT it_trees ASSIGNING <ls_tree>.
+      CLEAR ls_object.
+      ls_object-sha1 = <ls_tree>-sha1.
+
+      READ TABLE lt_objects WITH KEY type = zif_abapgit_definitions=>gc_type-tree sha1 = ls_object-sha1
+        TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+* two identical trees added at the same time, only add one to the pack
+        CONTINUE.
+      ENDIF.
+
+      ls_object-type = zif_abapgit_definitions=>gc_type-tree.
+      ls_object-data = <ls_tree>-data.
+      APPEND ls_object TO lt_objects.
+    ENDLOOP.
+
+    LOOP AT it_blobs ASSIGNING <ls_blob>.
+      CLEAR ls_object.
+      ls_object-sha1 = zcl_abapgit_hash=>sha1(
+        iv_type = zif_abapgit_definitions=>gc_type-blob
+        iv_data = <ls_blob>-data ).
+
+      READ TABLE lt_objects WITH KEY type = zif_abapgit_definitions=>gc_type-blob sha1 = ls_object-sha1
+        TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+* two identical files added at the same time, only add one blob to the pack
+        CONTINUE.
+      ENDIF.
+
+      ls_object-type = zif_abapgit_definitions=>gc_type-blob.
+      ASSERT NOT <ls_blob>-data IS INITIAL.
+      ls_object-data = <ls_blob>-data.
+      APPEND ls_object TO lt_objects.
+    ENDLOOP.
+
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    rv_branch = zcl_abapgit_hash=>sha1(
+      iv_type = zif_abapgit_definitions=>gc_type-commit
+      iv_data = lv_commit ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = io_stage->get_branch_sha1( )
+      iv_new         = rv_branch
+      iv_branch_name = io_stage->get_branch_name( )
+      iv_pack        = lv_pack ).
+
+* update objects in repo, we know what has been pushed
+    APPEND LINES OF io_repo->get_objects( ) TO lt_objects.
+    io_repo->set_objects( lt_objects ).
+    walk( EXPORTING it_objects = lt_objects
+                    iv_sha1 = ls_commit-tree
+                    iv_path = '/'
+          CHANGING ct_files = lt_files ).
+    io_repo->set_files_remote( lt_files ).
+
+  ENDMETHOD.                    "receive_pack
+  METHOD walk.
+
+    DATA: lv_path  TYPE string,
+          ls_file  LIKE LINE OF ct_files,
+          lt_nodes TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
+
+    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_objects,
+                   <ls_blob> LIKE LINE OF it_objects,
+                   <ls_node> LIKE LINE OF lt_nodes.
+    READ TABLE it_objects ASSIGNING <ls_tree> WITH KEY sha1 = iv_sha1 type = zif_abapgit_definitions=>gc_type-tree.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
+    ENDIF.
+
+    lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
+
+    LOOP AT lt_nodes ASSIGNING <ls_node>.
+      IF <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-file.
+        READ TABLE it_objects ASSIGNING <ls_blob>
+          WITH KEY sha1 = <ls_node>-sha1 type = zif_abapgit_definitions=>gc_type-blob.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
+        ENDIF.
+
+        CLEAR ls_file.
+        ls_file-path     = iv_path.
+        ls_file-filename = <ls_node>-name.
+        ls_file-data     = <ls_blob>-data.
+        ls_file-sha1     = <ls_blob>-sha1.
+        APPEND ls_file TO ct_files.
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>gc_chmod-dir.
+      CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
+      walk( EXPORTING it_objects = it_objects
+                      iv_sha1 = <ls_node>-sha1
+                      iv_path = lv_path
+            CHANGING ct_files = ct_files ).
+    ENDLOOP.
+
+  ENDMETHOD.                    "walk
+  METHOD walk_tree.
+
+    DATA: ls_object   LIKE LINE OF it_objects,
+          lt_expanded LIKE rt_expanded,
+          lt_nodes    TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
+
+    FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
+                   <ls_node> LIKE LINE OF lt_nodes.
+    READ TABLE it_objects INTO ls_object
+      WITH KEY sha1 = iv_tree
+      type = zif_abapgit_definitions=>gc_type-tree.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'tree not found' ).
+    ENDIF.
+    lt_nodes = zcl_abapgit_git_pack=>decode_tree( ls_object-data ).
+
+    LOOP AT lt_nodes ASSIGNING <ls_node>.
+      CASE <ls_node>-chmod.
+        WHEN zif_abapgit_definitions=>gc_chmod-file
+            OR zif_abapgit_definitions=>gc_chmod-executable.
+          APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
+          <ls_exp>-path  = iv_base.
+          <ls_exp>-name  = <ls_node>-name.
+          <ls_exp>-sha1  = <ls_node>-sha1.
+          <ls_exp>-chmod = <ls_node>-chmod.
+        WHEN zif_abapgit_definitions=>gc_chmod-dir.
+          lt_expanded = walk_tree(
+            it_objects = it_objects
+            iv_tree    = <ls_node>-sha1
+            iv_base    = iv_base && <ls_node>-name && '/' ).
+          APPEND LINES OF lt_expanded TO rt_expanded.
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( 'walk_tree: unknown chmod' ).
+      ENDCASE.
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
 
@@ -35513,261 +40194,6 @@ ENDCLASS.
 * place the include in a different package than ZABAPGIT
 INCLUDE zabapgit_user_exit IF FOUND.
 ****************************************************
-* abapmerge - ZABAPGIT_REPO
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_REPO
-*&---------------------------------------------------------------------*
-
-CLASS lcl_repo_srv DEFINITION DEFERRED.
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo DEFINITION
-*----------------------------------------------------------------------*
-CLASS lcl_repo DEFINITION ABSTRACT FRIENDS lcl_repo_srv.
-
-  PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING is_data TYPE zcl_abapgit_persistence_repo=>ty_repo,
-      get_key
-        RETURNING VALUE(rv_key) TYPE zif_abapgit_persistence=>ty_value,
-      get_name
-        RETURNING VALUE(rv_name) TYPE string
-        RAISING   zcx_abapgit_exception,
-      get_files_local
-        IMPORTING io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
-                  it_filter       TYPE scts_tadir OPTIONAL
-        RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
-        RAISING   zcx_abapgit_exception,
-      get_local_checksums
-        RETURNING VALUE(rt_checksums) TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt,
-      get_local_checksums_per_file
-        RETURNING VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-      get_files_remote
-        RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-        RAISING   zcx_abapgit_exception,
-      get_package
-        RETURNING VALUE(rv_package) TYPE zcl_abapgit_persistence_repo=>ty_repo-package,
-      get_master_language
-        RETURNING VALUE(rv_language) TYPE spras,
-      is_write_protected
-        RETURNING VALUE(rv_yes) TYPE sap_bool,
-      ignore_subpackages
-        RETURNING VALUE(rv_yes) TYPE sap_bool,
-      delete
-        RAISING zcx_abapgit_exception,
-      get_dot_abapgit
-        RETURNING VALUE(ro_dot_abapgit) TYPE REF TO zcl_abapgit_dot_abapgit,
-      set_dot_abapgit
-        IMPORTING io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit
-        RAISING   zcx_abapgit_exception,
-      deserialize
-        RAISING zcx_abapgit_exception,
-      refresh
-        IMPORTING iv_drop_cache TYPE abap_bool DEFAULT abap_false
-        RAISING   zcx_abapgit_exception,
-      refresh_local, " For testing purposes, maybe removed later
-      update_local_checksums
-        IMPORTING it_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-        RAISING   zcx_abapgit_exception,
-      rebuild_local_checksums
-        RAISING zcx_abapgit_exception,
-      find_remote_dot_abapgit
-        RETURNING VALUE(ro_dot) TYPE REF TO zcl_abapgit_dot_abapgit
-        RAISING   zcx_abapgit_exception,
-      is_offline
-        RETURNING VALUE(rv_offline) TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      set_files_remote
-        IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_tt
-        RAISING   zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-    DATA: mt_local              TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          mt_remote             TYPE zif_abapgit_definitions=>ty_files_tt,
-          mv_do_local_refresh   TYPE abap_bool,
-          mv_last_serialization TYPE timestamp,
-          ms_data               TYPE zcl_abapgit_persistence_repo=>ty_repo.
-
-    METHODS:
-      set
-        IMPORTING iv_sha1        TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
-                  it_checksums   TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt OPTIONAL
-                  iv_url         TYPE zcl_abapgit_persistence_repo=>ty_repo-url OPTIONAL
-                  iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name OPTIONAL
-                  iv_head_branch TYPE zcl_abapgit_persistence_repo=>ty_repo-head_branch OPTIONAL
-                  iv_offline     TYPE zcl_abapgit_persistence_repo=>ty_repo-offline OPTIONAL
-                  is_dot_abapgit TYPE zcl_abapgit_persistence_repo=>ty_repo-dot_abapgit OPTIONAL
-        RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_repo DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_online DEFINITION
-*----------------------------------------------------------------------*
-CLASS lcl_repo_online DEFINITION INHERITING FROM lcl_repo FINAL.
-
-  PUBLIC SECTION.
-    METHODS:
-      refresh REDEFINITION,
-      constructor
-        IMPORTING is_data TYPE zcl_abapgit_persistence_repo=>ty_repo
-        RAISING   zcx_abapgit_exception,
-      get_url
-        RETURNING VALUE(rv_url) TYPE zcl_abapgit_persistence_repo=>ty_repo-url,
-      get_branch_name
-        RETURNING VALUE(rv_name) TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name,
-      get_head_branch_name
-        RETURNING VALUE(rv_name) TYPE zcl_abapgit_persistence_repo=>ty_repo-head_branch,
-      get_branches
-        RETURNING VALUE(ro_branches) TYPE REF TO zcl_abapgit_git_branch_list
-        RAISING   zcx_abapgit_exception,
-      set_url
-        IMPORTING iv_url TYPE zcl_abapgit_persistence_repo=>ty_repo-url
-        RAISING   zcx_abapgit_exception,
-      set_branch_name
-        IMPORTING iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name
-        RAISING   zcx_abapgit_exception,
-      set_new_remote
-        IMPORTING iv_url         TYPE zcl_abapgit_persistence_repo=>ty_repo-url
-                  iv_branch_name TYPE zcl_abapgit_persistence_repo=>ty_repo-branch_name
-        RAISING   zcx_abapgit_exception,
-      get_sha1_local
-        RETURNING VALUE(rv_sha1) TYPE zcl_abapgit_persistence_repo=>ty_repo-sha1,
-      get_sha1_remote
-        RETURNING VALUE(rv_sha1) TYPE zcl_abapgit_persistence_repo=>ty_repo-sha1
-        RAISING   zcx_abapgit_exception,
-      get_files_remote REDEFINITION,
-      get_objects
-        RETURNING VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
-        RAISING   zcx_abapgit_exception,
-      deserialize REDEFINITION,
-      status
-        IMPORTING io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-        RAISING   zcx_abapgit_exception,
-      reset_status,
-      set_objects
-        IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        RAISING   zcx_abapgit_exception,
-      initialize
-        RAISING zcx_abapgit_exception,
-      rebuild_local_checksums REDEFINITION,
-      push
-        IMPORTING is_comment TYPE zif_abapgit_definitions=>ty_comment
-                  io_stage   TYPE REF TO zcl_abapgit_stage
-        RAISING   zcx_abapgit_exception,
-      get_unnecessary_local_objs
-        RETURNING VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    DATA:
-      mt_objects     TYPE zif_abapgit_definitions=>ty_objects_tt,
-      mv_branch      TYPE zif_abapgit_definitions=>ty_sha1,
-      mv_initialized TYPE abap_bool,
-      mo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
-      mt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
-
-    METHODS:
-      handle_stage_ignore
-        IMPORTING io_stage TYPE REF TO zcl_abapgit_stage
-        RAISING   zcx_abapgit_exception,
-      actualize_head_branch
-        RAISING zcx_abapgit_exception,
-      delete_initial_online_repo
-        IMPORTING iv_commit TYPE flag
-        RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_repo_online DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_offline DEFINITION
-*----------------------------------------------------------------------*
-CLASS lcl_repo_offline DEFINITION INHERITING FROM lcl_repo FINAL.
-
-  PUBLIC SECTION.
-
-ENDCLASS.                    "lcl_repo_offline DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_srv DEFINITION
-*----------------------------------------------------------------------*
-CLASS lcl_repo_srv DEFINITION FINAL CREATE PRIVATE.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS: get_instance
-      RETURNING VALUE(rv_srv) TYPE REF TO lcl_repo_srv.
-
-    TYPES: ty_repo_tt TYPE STANDARD TABLE OF REF TO lcl_repo WITH DEFAULT KEY.
-
-    METHODS list
-      RETURNING VALUE(rt_list) TYPE ty_repo_tt
-      RAISING   zcx_abapgit_exception.
-
-    METHODS refresh
-      RAISING zcx_abapgit_exception.
-
-    METHODS new_online
-      IMPORTING iv_url         TYPE string
-                iv_branch_name TYPE string
-                iv_package     TYPE devclass
-      RETURNING VALUE(ro_repo) TYPE REF TO lcl_repo_online
-      RAISING   zcx_abapgit_exception.
-
-    METHODS new_offline
-      IMPORTING iv_url         TYPE string
-                iv_package     TYPE devclass
-      RETURNING VALUE(ro_repo) TYPE REF TO lcl_repo_offline
-      RAISING   zcx_abapgit_exception.
-
-    METHODS delete
-      IMPORTING io_repo TYPE REF TO lcl_repo
-      RAISING   zcx_abapgit_exception.
-
-    METHODS get
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_value
-      RETURNING VALUE(ro_repo) TYPE REF TO lcl_repo
-      RAISING   zcx_abapgit_exception.
-
-    METHODS is_repo_installed
-      IMPORTING iv_url              TYPE string
-                iv_target_package   TYPE devclass OPTIONAL
-      RETURNING VALUE(rv_installed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
-    METHODS switch_repo_type
-      IMPORTING iv_key     TYPE zif_abapgit_persistence=>ty_value
-                iv_offline TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
-    METHODS validate_package
-      IMPORTING iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-
-    CLASS-DATA: go_ref TYPE REF TO lcl_repo_srv.
-
-    METHODS constructor.
-
-    DATA: mv_init        TYPE abap_bool VALUE abap_false,
-          mo_persistence TYPE REF TO zcl_abapgit_persistence_repo,
-          mt_list        TYPE ty_repo_tt.
-
-    METHODS is_sap_object_allowed
-      RETURNING
-        VALUE(rv_allowed) TYPE abap_bool.
-
-    METHODS add
-      IMPORTING io_repo TYPE REF TO lcl_repo
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_repo_srv DEFINITION
-
-****************************************************
 * abapmerge - ZABAPGIT_NEWS
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -35798,7 +40224,7 @@ CLASS lcl_news DEFINITION CREATE PRIVATE FRIENDS ltcl_news.
 
     CLASS-METHODS:
       create " TODO REFACTOR
-        IMPORTING io_repo            TYPE REF TO lcl_repo
+        IMPORTING io_repo            TYPE REF TO zcl_abapgit_repo
         RETURNING VALUE(ro_instance) TYPE REF TO lcl_news
         RAISING   zcx_abapgit_exception.
 
@@ -35866,10 +40292,9 @@ CLASS lcl_news IMPLEMENTATION.
     DATA: lt_remote      TYPE zif_abapgit_definitions=>ty_files_tt,
           lv_last_seen   TYPE string,
           lv_url         TYPE string,
-          lo_repo_online TYPE REF TO lcl_repo_online.
+          lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
 
     FIELD-SYMBOLS <file> LIKE LINE OF lt_remote.
-
     IF io_repo->is_offline( ) = abap_true.
       RETURN.
     ENDIF.
@@ -36304,3000 +40729,6 @@ CLASS ltcl_news IMPLEMENTATION.
 ENDCLASS.                    "ltcl_news IMPLEMENTATION
 
 ****************************************************
-* abapmerge - ZABAPGIT_STAGE_LOGIC
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_STAGE_LOGIC
-*&---------------------------------------------------------------------*
-
-"! Class is used to compare the files on remote local
-"! ie. list possible files to stage
-CLASS lcl_stage_logic DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    CLASS-METHODS:
-      get
-        IMPORTING io_repo         TYPE REF TO lcl_repo_online
-        RETURNING VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
-        RAISING   zcx_abapgit_exception,
-      count
-        IMPORTING io_repo         TYPE REF TO lcl_repo_online
-        RETURNING VALUE(rv_count) TYPE i
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      remove_ignored
-        IMPORTING io_repo  TYPE REF TO lcl_repo_online
-        CHANGING  cs_files TYPE zif_abapgit_definitions=>ty_stage_files,
-      remove_identical
-        CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
-
-ENDCLASS.
-
-CLASS lcl_stage_logic IMPLEMENTATION.
-
-  METHOD get.
-
-    rs_files-local  = io_repo->get_files_local( ).
-    rs_files-remote = io_repo->get_files_remote( ).
-    remove_identical( CHANGING cs_files = rs_files ).
-    remove_ignored( EXPORTING io_repo  = io_repo
-                    CHANGING  cs_files = rs_files ).
-
-  ENDMETHOD.
-
-  METHOD count.
-
-    DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
-
-    ls_files = get( io_repo ).
-
-    rv_count = lines( ls_files-remote ) + lines( ls_files-local ).
-
-  ENDMETHOD.
-
-  METHOD remove_ignored.
-
-    DATA: lv_index TYPE i.
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote.
-    LOOP AT cs_files-remote ASSIGNING <ls_remote>.
-      lv_index = sy-tabix.
-
-      IF io_repo->get_dot_abapgit( )->is_ignored(
-          iv_path     = <ls_remote>-path
-          iv_filename = <ls_remote>-filename ) = abap_true.
-        DELETE cs_files-remote INDEX lv_index.
-      ELSEIF <ls_remote>-path     = zif_abapgit_definitions=>gc_root_dir
-         AND <ls_remote>-filename = zif_abapgit_definitions=>gc_dot_abapgit.
-        " Remove .abapgit from remotes - it cannot be removed or ignored
-        DELETE cs_files-remote INDEX lv_index.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD remove_identical.
-
-    DATA: lv_index  TYPE i,
-          ls_remote LIKE LINE OF cs_files-remote.
-
-    FIELD-SYMBOLS: <ls_local> LIKE LINE OF cs_files-local.
-
-    SORT cs_files-remote BY path filename.
-
-    LOOP AT cs_files-local ASSIGNING <ls_local>.
-      lv_index = sy-tabix.
-
-      READ TABLE cs_files-remote INTO ls_remote
-        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-        BINARY SEARCH.
-      IF sy-subrc = 0.
-        DELETE cs_files-remote INDEX sy-tabix.
-        IF ls_remote-sha1 = <ls_local>-file-sha1.
-          DELETE cs_files-local INDEX lv_index.
-        ENDIF.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-****************************************************
-* abapmerge - ZABAPGIT_GIT
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_GIT
-*&---------------------------------------------------------------------*
-
-CLASS ltcl_git_porcelain DEFINITION DEFERRED.
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_porcelain DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_git_porcelain DEFINITION FINAL FRIENDS ltcl_git_porcelain.
-
-  PUBLIC SECTION.
-
-    TYPES: BEGIN OF ty_expanded,
-             path  TYPE string,
-             name  TYPE string,
-             sha1  TYPE zif_abapgit_definitions=>ty_sha1,
-             chmod TYPE zif_abapgit_definitions=>ty_chmod,
-           END OF ty_expanded.
-
-    TYPES: ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY.
-
-    CLASS-METHODS pull
-      IMPORTING io_repo    TYPE REF TO lcl_repo_online
-      EXPORTING et_files   TYPE zif_abapgit_definitions=>ty_files_tt
-                et_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-                ev_branch  TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS push
-      IMPORTING io_repo          TYPE REF TO lcl_repo_online
-                is_comment       TYPE zif_abapgit_definitions=>ty_comment
-                io_stage         TYPE REF TO zcl_abapgit_stage
-      EXPORTING ev_branch        TYPE zif_abapgit_definitions=>ty_sha1
-                et_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS create_branch
-      IMPORTING io_repo TYPE REF TO lcl_repo_online
-                iv_name TYPE string
-                iv_from TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS create_tag
-      IMPORTING io_repo TYPE REF TO lcl_repo_online
-                iv_name TYPE string
-                iv_from TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS delete_branch
-      IMPORTING io_repo   TYPE REF TO lcl_repo_online
-                is_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS delete_tag
-      IMPORTING io_repo TYPE REF TO lcl_repo_online
-                is_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS full_tree
-      IMPORTING it_objects         TYPE zif_abapgit_definitions=>ty_objects_tt
-                iv_branch          TYPE zif_abapgit_definitions=>ty_sha1
-      RETURNING VALUE(rt_expanded) TYPE ty_expanded_tt
-      RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-
-    TYPES: BEGIN OF ty_tree,
-             path TYPE string,
-             data TYPE xstring,
-             sha1 TYPE zif_abapgit_definitions=>ty_sha1,
-           END OF ty_tree.
-
-    TYPES: ty_trees_tt TYPE STANDARD TABLE OF ty_tree WITH DEFAULT KEY.
-
-    TYPES: BEGIN OF ty_folder,
-             path  TYPE string,
-             count TYPE i,
-             sha1  TYPE zif_abapgit_definitions=>ty_sha1,
-           END OF ty_folder.
-
-    TYPES: ty_folders_tt TYPE STANDARD TABLE OF ty_folder WITH DEFAULT KEY.
-
-    CONSTANTS: c_zero TYPE zif_abapgit_definitions=>ty_sha1 VALUE '0000000000000000000000000000000000000000'.
-
-    CLASS-METHODS build_trees
-      IMPORTING it_expanded     TYPE ty_expanded_tt
-      RETURNING VALUE(rt_trees) TYPE ty_trees_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS find_folders
-      IMPORTING it_expanded       TYPE ty_expanded_tt
-      RETURNING VALUE(rt_folders) TYPE ty_folders_tt.
-
-    CLASS-METHODS walk
-      IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-                iv_sha1    TYPE zif_abapgit_definitions=>ty_sha1
-                iv_path    TYPE string
-      CHANGING  ct_files   TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS walk_tree
-      IMPORTING it_objects         TYPE zif_abapgit_definitions=>ty_objects_tt
-                iv_tree            TYPE zif_abapgit_definitions=>ty_sha1
-                iv_base            TYPE string
-      RETURNING VALUE(rt_expanded) TYPE ty_expanded_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS receive_pack
-      IMPORTING is_comment       TYPE zif_abapgit_definitions=>ty_comment
-                io_repo          TYPE REF TO lcl_repo_online
-                it_trees         TYPE ty_trees_tt
-                it_blobs         TYPE zif_abapgit_definitions=>ty_files_tt
-                io_stage         TYPE REF TO zcl_abapgit_stage
-      RETURNING VALUE(rv_branch) TYPE zif_abapgit_definitions=>ty_sha1
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_porcelain DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_porcelain IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_git_porcelain IMPLEMENTATION.
-
-  METHOD receive_pack.
-
-    DATA: lv_time    TYPE zcl_abapgit_time=>ty_unixtime,
-          lv_commit  TYPE xstring,
-          lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring,
-          lt_files   TYPE zif_abapgit_definitions=>ty_files_tt,
-          ls_object  LIKE LINE OF lt_objects,
-          ls_commit  TYPE zcl_abapgit_git_pack=>ty_commit.
-
-    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
-                   <ls_blob> LIKE LINE OF it_blobs.
-    lv_time = zcl_abapgit_time=>get( ).
-
-    READ TABLE it_trees ASSIGNING <ls_tree> WITH KEY path = '/'.
-    ASSERT sy-subrc = 0.
-
-* new commit
-    ls_commit-committer = |{ is_comment-committer-name
-      } <{ is_comment-committer-email }> { lv_time }|.
-    IF is_comment-author-name IS NOT INITIAL.
-      ls_commit-author = |{ is_comment-author-name
-        } <{ is_comment-author-email }> { lv_time }|.
-    ELSE.
-      ls_commit-author = ls_commit-committer.
-    ENDIF.
-
-    ls_commit-tree      = <ls_tree>-sha1.
-    ls_commit-parent    = io_stage->get_branch_sha1( ).
-    ls_commit-parent2   = io_stage->get_merge_source( ).
-    ls_commit-body      = is_comment-comment.
-    lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
-
-    CLEAR ls_object.
-    ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-commit iv_data = lv_commit ).
-    ls_object-type = zif_abapgit_definitions=>gc_type-commit.
-    ls_object-data = lv_commit.
-    APPEND ls_object TO lt_objects.
-
-    LOOP AT it_trees ASSIGNING <ls_tree>.
-      CLEAR ls_object.
-      ls_object-sha1 = <ls_tree>-sha1.
-
-      READ TABLE lt_objects WITH KEY type = zif_abapgit_definitions=>gc_type-tree sha1 = ls_object-sha1
-        TRANSPORTING NO FIELDS.
-      IF sy-subrc = 0.
-* two identical trees added at the same time, only add one to the pack
-        CONTINUE.
-      ENDIF.
-
-      ls_object-type = zif_abapgit_definitions=>gc_type-tree.
-      ls_object-data = <ls_tree>-data.
-      APPEND ls_object TO lt_objects.
-    ENDLOOP.
-
-    LOOP AT it_blobs ASSIGNING <ls_blob>.
-      CLEAR ls_object.
-      ls_object-sha1 = zcl_abapgit_hash=>sha1(
-        iv_type = zif_abapgit_definitions=>gc_type-blob
-        iv_data = <ls_blob>-data ).
-
-      READ TABLE lt_objects WITH KEY type = zif_abapgit_definitions=>gc_type-blob sha1 = ls_object-sha1
-        TRANSPORTING NO FIELDS.
-      IF sy-subrc = 0.
-* two identical files added at the same time, only add one blob to the pack
-        CONTINUE.
-      ENDIF.
-
-      ls_object-type = zif_abapgit_definitions=>gc_type-blob.
-      ASSERT NOT <ls_blob>-data IS INITIAL.
-      ls_object-data = <ls_blob>-data.
-      APPEND ls_object TO lt_objects.
-    ENDLOOP.
-
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
-
-    rv_branch = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>gc_type-commit
-      iv_data = lv_commit ).
-
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = io_stage->get_branch_sha1( )
-      iv_new         = rv_branch
-      iv_branch_name = io_stage->get_branch_name( )
-      iv_pack        = lv_pack ).
-
-* update objects in repo, we know what has been pushed
-    APPEND LINES OF io_repo->get_objects( ) TO lt_objects.
-    io_repo->set_objects( lt_objects ).
-    walk( EXPORTING it_objects = lt_objects
-                    iv_sha1 = ls_commit-tree
-                    iv_path = '/'
-          CHANGING ct_files = lt_files ).
-    io_repo->set_files_remote( lt_files ).
-
-  ENDMETHOD.                    "receive_pack
-
-  METHOD delete_branch.
-
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
-
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = is_branch-sha1
-      iv_new         = c_zero
-      iv_branch_name = is_branch-name
-      iv_pack        = lv_pack ).
-
-  ENDMETHOD.
-
-  METHOD delete_tag.
-
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
-
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = is_tag-sha1
-      iv_new         = c_zero
-      iv_branch_name = is_tag-name
-      iv_pack        = lv_pack ).
-
-  ENDMETHOD.
-
-  METHOD create_branch.
-
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
-
-    IF iv_name CS ` `.
-      zcx_abapgit_exception=>raise( 'Branch name cannot contain blank spaces' ).
-    ENDIF.
-
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
-
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = c_zero
-      iv_new         = iv_from
-      iv_branch_name = iv_name
-      iv_pack        = lv_pack ).
-
-  ENDMETHOD.
-
-  METHOD create_tag.
-
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
-
-    IF iv_name CS ` `.
-      zcx_abapgit_exception=>raise( 'Tag name cannot contain blank spaces' ).
-    ENDIF.
-
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
-
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = c_zero
-      iv_new         = iv_from
-      iv_branch_name = iv_name
-      iv_pack        = lv_pack ).
-
-  ENDMETHOD.
-
-  METHOD push.
-
-    DATA: lt_expanded TYPE ty_expanded_tt,
-          lt_blobs    TYPE zif_abapgit_definitions=>ty_files_tt,
-          lv_sha1     TYPE zif_abapgit_definitions=>ty_sha1,
-          lt_trees    TYPE ty_trees_tt,
-          lt_objects  TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lt_branches TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
-          lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
-
-    FIELD-SYMBOLS: <ls_stage>   LIKE LINE OF lt_stage,
-                   <ls_updated> LIKE LINE OF et_updated_files,
-                   <ls_branch>  LIKE LINE OF lt_branches,
-                   <ls_exp>     LIKE LINE OF lt_expanded.
-    CLEAR et_updated_files.
-
-    IF io_stage->get_branch_sha1( ) = io_repo->get_sha1_remote( ).
-* objects cached in io_repo can be used, if pushing to the branch configured in repo
-      lt_objects = io_repo->get_objects( ).
-    ELSE.
-      APPEND INITIAL LINE TO lt_branches ASSIGNING <ls_branch>.
-      <ls_branch>-name = io_stage->get_branch_name( ).
-      <ls_branch>-sha1 = io_stage->get_branch_sha1( ).
-
-      zcl_abapgit_git_transport=>upload_pack(
-        EXPORTING
-          iv_url         = io_repo->get_url( )
-          iv_branch_name = io_repo->get_branch_name( )
-          it_branches    = lt_branches
-        IMPORTING
-          et_objects     = lt_objects ).
-    ENDIF.
-
-    lt_expanded = full_tree( it_objects = lt_objects
-                             iv_branch  = io_stage->get_branch_sha1( ) ).
-
-    lt_stage = io_stage->get_all( ).
-    LOOP AT lt_stage ASSIGNING <ls_stage>.
-
-      " Save file ref to updated files table
-      APPEND INITIAL LINE TO et_updated_files ASSIGNING <ls_updated>.
-      MOVE-CORRESPONDING <ls_stage>-file TO <ls_updated>.
-
-      CASE <ls_stage>-method.
-        WHEN zcl_abapgit_stage=>c_method-add.
-
-          APPEND <ls_stage>-file TO lt_blobs.
-
-          READ TABLE lt_expanded ASSIGNING <ls_exp> WITH KEY
-            name = <ls_stage>-file-filename
-            path = <ls_stage>-file-path.
-          IF sy-subrc <> 0. " new files
-            APPEND INITIAL LINE TO lt_expanded ASSIGNING <ls_exp>.
-            <ls_exp>-name  = <ls_stage>-file-filename.
-            <ls_exp>-path  = <ls_stage>-file-path.
-            <ls_exp>-chmod = zif_abapgit_definitions=>gc_chmod-file.
-          ENDIF.
-
-          lv_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
-                                            iv_data = <ls_stage>-file-data ).
-          IF <ls_exp>-sha1 <> lv_sha1.
-            <ls_exp>-sha1 = lv_sha1.
-          ENDIF.
-
-          <ls_updated>-sha1 = lv_sha1.   "New sha1
-
-        WHEN zcl_abapgit_stage=>c_method-rm.
-          DELETE lt_expanded
-            WHERE name = <ls_stage>-file-filename
-            AND   path = <ls_stage>-file-path.
-          ASSERT sy-subrc = 0.
-
-          CLEAR <ls_updated>-sha1.       " Mark as deleted
-
-        WHEN OTHERS.
-          zcx_abapgit_exception=>raise( 'stage method not supported, todo' ).
-      ENDCASE.
-    ENDLOOP.
-
-    lt_trees = build_trees( lt_expanded ).
-
-    ev_branch = receive_pack( is_comment = is_comment
-                              io_repo    = io_repo
-                              it_trees   = lt_trees
-                              it_blobs   = lt_blobs
-                              io_stage   = io_stage ).
-
-  ENDMETHOD.                    "push
-
-  METHOD walk_tree.
-
-    DATA: ls_object   LIKE LINE OF it_objects,
-          lt_expanded LIKE rt_expanded,
-          lt_nodes    TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
-
-    FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
-                   <ls_node> LIKE LINE OF lt_nodes.
-    READ TABLE it_objects INTO ls_object
-      WITH KEY sha1 = iv_tree
-      type = zif_abapgit_definitions=>gc_type-tree.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'tree not found' ).
-    ENDIF.
-    lt_nodes = zcl_abapgit_git_pack=>decode_tree( ls_object-data ).
-
-    LOOP AT lt_nodes ASSIGNING <ls_node>.
-      CASE <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>gc_chmod-file
-            OR zif_abapgit_definitions=>gc_chmod-executable.
-          APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
-          <ls_exp>-path  = iv_base.
-          <ls_exp>-name  = <ls_node>-name.
-          <ls_exp>-sha1  = <ls_node>-sha1.
-          <ls_exp>-chmod = <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>gc_chmod-dir.
-          lt_expanded = walk_tree(
-            it_objects = it_objects
-            iv_tree    = <ls_node>-sha1
-            iv_base    = iv_base && <ls_node>-name && '/' ).
-          APPEND LINES OF lt_expanded TO rt_expanded.
-        WHEN OTHERS.
-          zcx_abapgit_exception=>raise( 'walk_tree: unknown chmod' ).
-      ENDCASE.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD full_tree.
-
-    DATA: ls_object LIKE LINE OF it_objects,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    READ TABLE it_objects INTO ls_object WITH KEY sha1 = iv_branch type = zif_abapgit_definitions=>gc_type-commit.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'commit not found' ).
-    ENDIF.
-    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
-
-    rt_expanded = walk_tree( it_objects = it_objects
-                             iv_tree    = ls_commit-tree
-                             iv_base    = '/' ).
-
-  ENDMETHOD.                    "root_tree
-
-  METHOD pull.
-
-    DATA: ls_object LIKE LINE OF et_objects,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    CLEAR et_files.
-    CLEAR et_objects.
-    CLEAR ev_branch.
-
-    zcl_abapgit_git_transport=>upload_pack(
-      EXPORTING
-        iv_url         = io_repo->get_url( )
-        iv_branch_name = io_repo->get_branch_name( )
-      IMPORTING
-        et_objects     = et_objects
-        ev_branch      = ev_branch ).
-
-    READ TABLE et_objects INTO ls_object WITH KEY sha1 = ev_branch type = zif_abapgit_definitions=>gc_type-commit.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Commit/branch not found' ).
-    ENDIF.
-    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
-
-    walk( EXPORTING it_objects = et_objects
-                    iv_sha1 = ls_commit-tree
-                    iv_path = '/'
-          CHANGING ct_files = et_files ).
-
-  ENDMETHOD.                    "pull
-
-  METHOD find_folders.
-
-    DATA: lt_paths TYPE TABLE OF string,
-          lv_split TYPE string,
-          lv_path  TYPE string.
-
-    FIELD-SYMBOLS: <ls_folder> LIKE LINE OF rt_folders,
-                   <ls_new>    LIKE LINE OF rt_folders,
-                   <ls_exp>    LIKE LINE OF it_expanded.
-    LOOP AT it_expanded ASSIGNING <ls_exp>.
-      READ TABLE rt_folders WITH KEY path = <ls_exp>-path TRANSPORTING NO FIELDS.
-      IF sy-subrc <> 0.
-        APPEND INITIAL LINE TO rt_folders ASSIGNING <ls_folder>.
-        <ls_folder>-path = <ls_exp>-path.
-      ENDIF.
-    ENDLOOP.
-
-* add empty folders
-    LOOP AT rt_folders ASSIGNING <ls_folder>.
-      SPLIT <ls_folder>-path AT '/' INTO TABLE lt_paths.
-
-      CLEAR lv_path.
-      LOOP AT lt_paths INTO lv_split.
-        CONCATENATE lv_path lv_split '/' INTO lv_path.
-        READ TABLE rt_folders WITH KEY path = lv_path TRANSPORTING NO FIELDS.
-        IF sy-subrc <> 0.
-          APPEND INITIAL LINE TO rt_folders ASSIGNING <ls_new>.
-          <ls_new>-path = lv_path.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    LOOP AT rt_folders ASSIGNING <ls_folder>.
-      FIND ALL OCCURRENCES OF '/' IN <ls_folder>-path MATCH COUNT <ls_folder>-count.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD build_trees.
-
-    DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
-          ls_tree    LIKE LINE OF rt_trees,
-          lv_len     TYPE i,
-          lt_folders TYPE ty_folders_tt.
-
-    FIELD-SYMBOLS: <ls_folder> LIKE LINE OF lt_folders,
-                   <ls_node>   LIKE LINE OF lt_nodes,
-                   <ls_sub>    LIKE LINE OF lt_folders,
-                   <ls_exp>    LIKE LINE OF it_expanded.
-    lt_folders = find_folders( it_expanded ).
-
-* start with the deepest folders
-    SORT lt_folders BY count DESCENDING.
-
-    LOOP AT lt_folders ASSIGNING <ls_folder>.
-      CLEAR lt_nodes.
-
-* files
-      LOOP AT it_expanded ASSIGNING <ls_exp> WHERE path = <ls_folder>-path.
-        APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-        <ls_node>-chmod = <ls_exp>-chmod.
-        <ls_node>-name  = <ls_exp>-name.
-        <ls_node>-sha1  = <ls_exp>-sha1.
-      ENDLOOP.
-
-* folders
-      LOOP AT lt_folders ASSIGNING <ls_sub> WHERE count = <ls_folder>-count + 1.
-        lv_len = strlen( <ls_folder>-path ).
-        IF strlen( <ls_sub>-path ) > lv_len AND <ls_sub>-path(lv_len) = <ls_folder>-path.
-          APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-          <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-dir.
-
-* extract folder name, this can probably be done easier using regular expressions
-          <ls_node>-name = <ls_sub>-path+lv_len.
-          lv_len = strlen( <ls_node>-name ) - 1.
-          <ls_node>-name = <ls_node>-name(lv_len).
-
-          <ls_node>-sha1 = <ls_sub>-sha1.
-        ENDIF.
-      ENDLOOP.
-
-      CLEAR ls_tree.
-      ls_tree-path = <ls_folder>-path.
-      ls_tree-data = zcl_abapgit_git_pack=>encode_tree( lt_nodes ).
-      ls_tree-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-tree iv_data = ls_tree-data ).
-      APPEND ls_tree TO rt_trees.
-
-      <ls_folder>-sha1 = ls_tree-sha1.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD walk.
-
-    DATA: lv_path  TYPE string,
-          ls_file  LIKE LINE OF ct_files,
-          lt_nodes TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
-
-    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_objects,
-                   <ls_blob> LIKE LINE OF it_objects,
-                   <ls_node> LIKE LINE OF lt_nodes.
-    READ TABLE it_objects ASSIGNING <ls_tree> WITH KEY sha1 = iv_sha1 type = zif_abapgit_definitions=>gc_type-tree.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
-    ENDIF.
-
-    lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
-
-    LOOP AT lt_nodes ASSIGNING <ls_node>.
-      IF <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-file.
-        READ TABLE it_objects ASSIGNING <ls_blob>
-          WITH KEY sha1 = <ls_node>-sha1 type = zif_abapgit_definitions=>gc_type-blob.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
-        ENDIF.
-
-        CLEAR ls_file.
-        ls_file-path     = iv_path.
-        ls_file-filename = <ls_node>-name.
-        ls_file-data     = <ls_blob>-data.
-        ls_file-sha1     = <ls_blob>-sha1.
-        APPEND ls_file TO ct_files.
-      ENDIF.
-    ENDLOOP.
-
-    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>gc_chmod-dir.
-      CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
-      walk( EXPORTING it_objects = it_objects
-                      iv_sha1 = <ls_node>-sha1
-                      iv_path = lv_path
-            CHANGING ct_files = ct_files ).
-    ENDLOOP.
-
-  ENDMETHOD.                    "walk
-
-ENDCLASS.                    "lcl_porcelain IMPLEMENTATION
-
-****************************************************
-* abapmerge - ZABAPGIT_OBJECTS
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_OBJECTS
-*&---------------------------------------------------------------------*
-
-**********************************************************************
-* Enable plugins
-
-CLASS lcl_objects_bridge DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS class_constructor.
-
-    METHODS constructor
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   cx_sy_create_object_error.
-
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
-  PRIVATE SECTION.
-    DATA: mo_plugin TYPE REF TO object.
-
-    TYPES: BEGIN OF ty_s_objtype_map,
-             obj_typ      TYPE trobjtype,
-             plugin_class TYPE seoclsname,
-           END OF ty_s_objtype_map,
-           ty_t_objtype_map TYPE SORTED TABLE OF ty_s_objtype_map WITH UNIQUE KEY obj_typ.
-
-    CLASS-DATA gt_objtype_map TYPE ty_t_objtype_map.
-
-ENDCLASS.                    "lcl_objects_bridge DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects_bridge IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_objects_bridge IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
-
-  METHOD zif_abapgit_object~get_metadata.
-
-    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
-      RECEIVING
-        rs_metadata = rs_metadata.
-
-  ENDMETHOD.                    "lif_object~get_metadata
-
-  METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
-  ENDMETHOD.
-
-  METHOD constructor.
-
-    DATA ls_objtype_map LIKE LINE OF gt_objtype_map.
-
-    super->constructor( is_item = is_item
-                        iv_language = zif_abapgit_definitions=>gc_english ).
-
-*    determine the responsible plugin
-    READ TABLE gt_objtype_map INTO ls_objtype_map
-      WITH TABLE KEY obj_typ = is_item-obj_type.
-    IF sy-subrc = 0.
-      CREATE OBJECT mo_plugin TYPE (ls_objtype_map-plugin_class).
-
-      CALL METHOD mo_plugin->('SET_ITEM')
-        EXPORTING
-          iv_obj_type = is_item-obj_type
-          iv_obj_name = is_item-obj_name.
-    ELSE.
-      RAISE EXCEPTION TYPE cx_sy_create_object_error
-        EXPORTING
-          classname = 'LCL_OBJECTS_BRIDGE'.
-    ENDIF.
-  ENDMETHOD.                    "constructor
-
-  METHOD zif_abapgit_object~serialize.
-
-    CALL METHOD mo_plugin->('WRAP_SERIALIZE')
-      EXPORTING
-        io_xml = io_xml.
-
-  ENDMETHOD.                    "lif_object~serialize
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lx_plugin        TYPE REF TO cx_static_check.
-
-    TRY.
-        CALL METHOD mo_plugin->('WRAP_DESERIALIZE')
-          EXPORTING
-            iv_package = iv_package
-            io_xml     = io_xml.
-      CATCH cx_static_check INTO lx_plugin.
-        zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
-    ENDTRY.
-  ENDMETHOD.                    "lif_object~deserialize
-
-  METHOD zif_abapgit_object~delete.
-    DATA lx_plugin TYPE REF TO cx_static_check.
-
-    TRY.
-        CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~DELETE').
-      CATCH cx_static_check INTO lx_plugin.
-        zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.                    "lif_object~delete
-
-  METHOD zif_abapgit_object~exists.
-
-    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~EXISTS')
-      RECEIVING
-        rv_bool = rv_bool.
-
-  ENDMETHOD.                    "lif_object~exists
-
-  METHOD zif_abapgit_object~jump.
-
-    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~JUMP').
-
-  ENDMETHOD.                    "lif_object~jump
-
-  METHOD class_constructor.
-
-    DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
-    DATA lv_plugin_class    LIKE LINE OF lt_plugin_class.
-    DATA lo_plugin          TYPE REF TO object.
-    DATA lt_plugin_obj_type TYPE objtyptable.
-    DATA ls_objtype_map     LIKE LINE OF gt_objtype_map.
-    SELECT ext~clsname
-      FROM vseoextend AS ext
-      INTO TABLE lt_plugin_class
-      WHERE ext~refclsname LIKE 'ZCL_ABAPGITP_OBJECT%'
-      AND ext~version = '1'.                              "#EC CI_SUBRC
-
-    CLEAR gt_objtype_map.
-    LOOP AT lt_plugin_class INTO lv_plugin_class
-        WHERE table_line <> 'ZCL_ABAPGITP_OBJECT_BY_SOBJ'.
-* have the generic plugin only as fallback
-      TRY.
-          CREATE OBJECT lo_plugin TYPE (lv_plugin_class).
-        CATCH cx_sy_create_object_error.
-          CONTINUE. ">>>>>>>>>>>>>>
-      ENDTRY.
-
-      CALL METHOD lo_plugin->('GET_SUPPORTED_OBJ_TYPES')
-        IMPORTING
-          rt_obj_type = lt_plugin_obj_type.
-
-      ls_objtype_map-plugin_class = lv_plugin_class.
-      LOOP AT lt_plugin_obj_type INTO ls_objtype_map-obj_typ.
-        INSERT ls_objtype_map INTO TABLE gt_objtype_map.
-        IF sy-subrc <> 0.
-* No exception in class-contructor possible.
-* Anyway, a shortdump is more appropriate in this case
-          ASSERT 'There must not be' =
-            |multiple abapGit-Plugins for the same object type {
-            ls_objtype_map-obj_typ }|.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP. "at plugins
-
-* and the same for the generic plugin if exists
-* have the generic plugin only as fallback
-    LOOP AT lt_plugin_class INTO lv_plugin_class
-        WHERE table_line = 'ZCL_ABAPGITP_OBJECT_BY_SOBJ'.
-      CREATE OBJECT lo_plugin TYPE (lv_plugin_class).
-
-      CALL METHOD lo_plugin->('GET_SUPPORTED_OBJ_TYPES')
-        RECEIVING
-          rt_obj_type = lt_plugin_obj_type.
-
-      ls_objtype_map-plugin_class = lv_plugin_class.
-      LOOP AT lt_plugin_obj_type INTO ls_objtype_map-obj_typ.
-        INSERT ls_objtype_map INTO TABLE gt_objtype_map. "knowingly ignore the subrc
-      ENDLOOP.
-    ENDLOOP. "at plugins
-
-  ENDMETHOD.                    "class_constructor
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-
-ENDCLASS.                    "lcl_objects_bridge IMPLEMENTATION
-
-**********************************************************************
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_object DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_objects DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    TYPES: ty_types_tt TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY.
-
-    TYPES: BEGIN OF ty_deserialization,
-             obj     TYPE REF TO zif_abapgit_object,
-             xml     TYPE REF TO zcl_abapgit_xml_input,
-             package TYPE devclass,
-             item    TYPE zif_abapgit_definitions=>ty_item,
-           END OF ty_deserialization.
-
-    TYPES: ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY.
-
-    CLASS-METHODS serialize
-      IMPORTING is_item         TYPE zif_abapgit_definitions=>ty_item
-                iv_language     TYPE spras
-                io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
-      RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS deserialize
-      IMPORTING io_repo                  TYPE REF TO lcl_repo
-      RETURNING VALUE(rt_accessed_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS delete
-      IMPORTING it_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS jump
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS changed_by
-      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
-      RETURNING VALUE(rv_user) TYPE xubname
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS has_changed_since
-      IMPORTING is_item           TYPE zif_abapgit_definitions=>ty_item
-                iv_timestamp      TYPE timestamp
-      RETURNING VALUE(rv_changed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS is_supported
-      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
-                iv_native_only TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(rv_bool) TYPE abap_bool.
-
-    CLASS-METHODS exists
-      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
-      RETURNING VALUE(rv_bool) TYPE abap_bool.
-
-    CLASS-METHODS supported_list
-      RETURNING VALUE(rt_types) TYPE ty_types_tt.
-
-  PRIVATE SECTION.
-
-    CLASS-METHODS check_duplicates
-      IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS create_object
-      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
-                iv_language    TYPE spras
-                is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-                iv_native_only TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(ri_obj)  TYPE REF TO zif_abapgit_object
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS
-      prioritize_deser
-        IMPORTING it_results        TYPE zif_abapgit_definitions=>ty_results_tt
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
-
-    CLASS-METHODS class_name
-      IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_item
-      RETURNING VALUE(rv_class_name) TYPE string.
-
-    CLASS-METHODS warning_overwrite
-      CHANGING ct_results TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING  zcx_abapgit_exception.
-
-    CLASS-METHODS warning_package
-      IMPORTING is_item          TYPE zif_abapgit_definitions=>ty_item
-                iv_package       TYPE devclass
-      RETURNING VALUE(rv_cancel) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS update_package_tree
-      IMPORTING iv_package TYPE devclass.
-
-    CLASS-METHODS delete_obj
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS compare_remote_to_local
-      IMPORTING
-        io_object TYPE REF TO zif_abapgit_object
-        it_remote TYPE zif_abapgit_definitions=>ty_files_tt
-        is_result TYPE zif_abapgit_definitions=>ty_result
-      RAISING
-        zcx_abapgit_exception.
-
-    CLASS-METHODS deserialize_objects
-      IMPORTING it_objects TYPE ty_deserialization_tt
-                iv_ddic    TYPE abap_bool DEFAULT abap_false
-                iv_descr   TYPE string
-      CHANGING  ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_object DEFINITION
-
-****************************************************
-* abapmerge - ZABAPGIT_TADIR
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_TADIR
-*&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_tadir DEFINITION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-
-CLASS lcl_tadir DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    CLASS-METHODS:
-      read
-        IMPORTING iv_package            TYPE tadir-devclass
-                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
-                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception,
-      read_single
-        IMPORTING iv_pgmid        TYPE tadir-pgmid DEFAULT 'R3TR'
-                  iv_object       TYPE tadir-object
-                  iv_obj_name     TYPE tadir-obj_name
-        RETURNING VALUE(rs_tadir) TYPE tadir
-        RAISING   zcx_abapgit_exception,
-      get_object_package
-        IMPORTING iv_pgmid           TYPE tadir-pgmid DEFAULT 'R3TR'
-                  iv_object          TYPE tadir-object
-                  iv_obj_name        TYPE tadir-obj_name
-        RETURNING VALUE(rv_devclass) TYPE tadir-devclass
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      check_exists
-        IMPORTING it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception,
-      build
-        IMPORTING iv_package            TYPE tadir-devclass
-                  iv_top                TYPE tadir-devclass
-                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
-                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_tadir DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_tadir IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_tadir IMPLEMENTATION.
-
-  METHOD read_single.
-
-    IF iv_object = 'SICF'.
-      rs_tadir = zcl_abapgit_object_sicf=>read_tadir_sicf(
-        iv_pgmid    = iv_pgmid
-        iv_obj_name = iv_obj_name ).
-    ELSE.
-      SELECT SINGLE * FROM tadir INTO rs_tadir
-        WHERE pgmid = iv_pgmid
-        AND object = iv_object
-        AND obj_name = iv_obj_name.                       "#EC CI_SUBRC
-    ENDIF.
-
-  ENDMETHOD.                    "read_single
-
-  METHOD get_object_package.
-
-    DATA ls_tadir TYPE tadir.
-
-    ls_tadir = read_single( iv_pgmid    = iv_pgmid
-                            iv_object   = iv_object
-                            iv_obj_name = iv_obj_name ).
-
-    IF ls_tadir-delflag = 'X'.
-      RETURN. "Mark for deletion -> return nothing
-    ENDIF.
-
-    rv_devclass = ls_tadir-devclass.
-
-  ENDMETHOD.  "get_object_package.
-
-  METHOD check_exists.
-
-    DATA: lv_exists   TYPE abap_bool,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
-          ls_item     TYPE zif_abapgit_definitions=>ty_item.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( it_tadir ).
-
-* rows from database table TADIR are not removed for
-* transportable objects until the transport is released
-    LOOP AT it_tadir ASSIGNING <ls_tadir>.
-      IF sy-tabix MOD 200 = 0.
-        lo_progress->show(
-          iv_current = sy-tabix
-          iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
-      ENDIF.
-
-      ls_item-obj_type = <ls_tadir>-object.
-      ls_item-obj_name = <ls_tadir>-obj_name.
-      ls_item-devclass = <ls_tadir>-devclass.
-
-      IF lcl_objects=>is_supported( ls_item ) = abap_true.
-        lv_exists = lcl_objects=>exists( ls_item ).
-        IF lv_exists = abap_true.
-          APPEND <ls_tadir> TO rt_tadir.
-        ENDIF.
-      ELSE.
-        APPEND <ls_tadir> TO rt_tadir.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.                    "check_exists
-
-  METHOD read.
-
-* start recursion
-* hmm, some problems here, should TADIR also build path?
-    rt_tadir = build( iv_package            = iv_package
-                      iv_top                = iv_package
-                      io_dot                = io_dot
-                      iv_ignore_subpackages = iv_ignore_subpackages
-                      io_log                = io_log ).
-
-    rt_tadir = check_exists( rt_tadir ).
-
-  ENDMETHOD.                    "read
-
-  METHOD build.
-
-    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tdevc        TYPE STANDARD TABLE OF tdevc,
-          lv_path         TYPE string,
-          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
-          lt_excludes     TYPE RANGE OF trobjtype,
-          ls_exclude      LIKE LINE OF lt_excludes.
-
-    FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
-                   <ls_tadir> LIKE LINE OF rt_tadir.
-
-    ls_exclude-sign = 'I'.
-    ls_exclude-option = 'EQ'.
-
-    ls_exclude-low = 'SOTR'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB1'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB2'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'STOB'. " auto generated by core data services
-    APPEND ls_exclude TO lt_excludes.
-
-    SELECT * FROM tadir
-      INTO CORRESPONDING FIELDS OF TABLE rt_tadir
-      WHERE devclass = iv_package
-      AND pgmid = 'R3TR'
-      AND object NOT IN lt_excludes
-      AND delflag = abap_false
-      ORDER BY PRIMARY KEY.               "#EC CI_GENBUFF "#EC CI_SUBRC
-
-    CREATE OBJECT lo_skip_objects.
-    rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
-      it_tadir = rt_tadir
-      io_log   = io_log ).
-
-    " Local packages are not in TADIR, only in TDEVC, act as if they were
-    IF iv_package CP '$*'. " OR iv_package CP 'T*' ).
-      APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
-      <ls_tadir>-pgmid    = 'R3TR'.
-      <ls_tadir>-object   = 'DEVC'.
-      <ls_tadir>-obj_name = iv_package.
-      <ls_tadir>-devclass = iv_package.
-    ENDIF.
-
-    IF NOT io_dot IS INITIAL.
-      lv_path = zcl_abapgit_folder_logic=>package_to_path(
-        iv_top     = iv_top
-        io_dot     = io_dot
-        iv_package = iv_package ).
-    ENDIF.
-
-    LOOP AT rt_tadir ASSIGNING <ls_tadir>.
-      <ls_tadir>-path = lv_path.
-
-      CASE <ls_tadir>-object.
-        WHEN 'SICF'.
-* replace the internal GUID with a hash of the path
-          <ls_tadir>-obj_name+15 = zcl_abapgit_object_sicf=>read_sicf_url( <ls_tadir>-obj_name ).
-      ENDCASE.
-    ENDLOOP.
-
-* look for subpackages
-    IF iv_ignore_subpackages = abap_false.
-      SELECT * FROM tdevc INTO TABLE lt_tdevc
-        WHERE parentcl = iv_package
-        ORDER BY PRIMARY KEY.             "#EC CI_SUBRC "#EC CI_GENBUFF
-    ENDIF.
-
-    LOOP AT lt_tdevc ASSIGNING <ls_tdevc>.
-      lt_tadir = build( iv_package = <ls_tdevc>-devclass
-                        iv_top     = iv_top
-                        io_dot     = io_dot
-                        io_log     = io_log ).
-      APPEND LINES OF lt_tadir TO rt_tadir.
-    ENDLOOP.
-
-  ENDMETHOD.                    "build
-
-ENDCLASS.                    "lcl_tadir IMPLEMENTATION
-
-****************************************************
-* abapmerge - ZABAPGIT_FILE_STATUS
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_FILE_STATUS
-*&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_file_status DEFINITION
-*----------------------------------------------------------------------*
-CLASS ltcl_file_status DEFINITION DEFERRED.
-CLASS ltcl_file_status2 DEFINITION DEFERRED.
-
-CLASS lcl_file_status DEFINITION FINAL
-  FRIENDS ltcl_file_status ltcl_file_status2.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS status
-      IMPORTING io_repo           TYPE REF TO lcl_repo
-                io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
-      RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-
-    CLASS-METHODS:
-      calculate_status
-        IMPORTING iv_devclass       TYPE devclass
-                  io_dot            TYPE REF TO zcl_abapgit_dot_abapgit
-                  it_local          TYPE zif_abapgit_definitions=>ty_files_item_tt
-                  it_remote         TYPE zif_abapgit_definitions=>ty_files_tt
-                  it_cur_state      TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-        RAISING   zcx_abapgit_exception,
-      run_checks
-        IMPORTING io_log     TYPE REF TO zcl_abapgit_log
-                  it_results TYPE zif_abapgit_definitions=>ty_results_tt
-                  io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
-                  iv_top     TYPE devclass
-        RAISING   zcx_abapgit_exception,
-      build_existing
-        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
-                  is_remote        TYPE zif_abapgit_definitions=>ty_file
-                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
-      build_new_local
-        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
-      build_new_remote
-        IMPORTING iv_devclass      TYPE devclass
-                  io_dot           TYPE REF TO zcl_abapgit_dot_abapgit
-                  is_remote        TYPE zif_abapgit_definitions=>ty_file
-                  it_items         TYPE zif_abapgit_definitions=>ty_items_ts
-                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result
-        RAISING   zcx_abapgit_exception,
-      identify_object
-        IMPORTING iv_filename TYPE string
-                  iv_path     TYPE string
-                  iv_devclass TYPE devclass
-                  io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
-        EXPORTING es_item     TYPE zif_abapgit_definitions=>ty_item
-                  ev_is_xml   TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
-
-ENDCLASS.                    "lcl_file_status DEFINITION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_file_status IMPLEMENTATION
-*----------------------------------------------------------------------*
-CLASS lcl_file_status IMPLEMENTATION.
-
-  METHOD run_checks.
-
-    DATA: lv_path     TYPE string,
-          ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          ls_file     TYPE zif_abapgit_definitions=>ty_file_signature,
-          lt_res_sort LIKE it_results,
-          lt_item_idx LIKE it_results.
-
-    FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
-                   <ls_res2> LIKE LINE OF it_results.
-    IF io_log IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    " Collect object indexe
-    lt_res_sort = it_results.
-    SORT lt_res_sort BY obj_type ASCENDING obj_name ASCENDING.
-
-    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL.
-      IF NOT ( <ls_res1>-obj_type = ls_item-obj_type
-          AND <ls_res1>-obj_name = ls_item-obj_name ).
-        APPEND INITIAL LINE TO lt_item_idx ASSIGNING <ls_res2>.
-        <ls_res2>-obj_type = <ls_res1>-obj_type.
-        <ls_res2>-obj_name = <ls_res1>-obj_name.
-        <ls_res2>-path     = <ls_res1>-path.
-        MOVE-CORRESPONDING <ls_res1> TO ls_item.
-      ENDIF.
-    ENDLOOP.
-
-    " Check files for one object is in the same folder
-
-    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL AND obj_type <> 'DEVC'.
-      READ TABLE lt_item_idx ASSIGNING <ls_res2>
-        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
-        BINARY SEARCH. " Sorted above
-
-      IF sy-subrc <> 0 OR <ls_res1>-path <> <ls_res2>-path. " All paths are same
-        io_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
-                       <ls_res1>-obj_name } are not placed in the same folder|
-                     iv_type = 'W'
-                     iv_rc    = '1' ) ##no_text.
-      ENDIF.
-    ENDLOOP.
-
-    " Check that objects are created in package corresponding to folder
-    LOOP AT it_results ASSIGNING <ls_res1>
-        WHERE NOT package IS INITIAL AND NOT path IS INITIAL.
-      lv_path = zcl_abapgit_folder_logic=>package_to_path(
-        iv_top     = iv_top
-        io_dot     = io_dot
-        iv_package = <ls_res1>-package ).
-      IF lv_path <> <ls_res1>-path.
-        io_log->add( iv_msg = |Package and path does not match for object, {
-                       <ls_res1>-obj_type } { <ls_res1>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc    = '2' ) ##no_text.
-      ENDIF.
-    ENDLOOP.
-
-    " Check for multiple files with same filename
-    SORT lt_res_sort BY filename ASCENDING.
-
-    LOOP AT lt_res_sort ASSIGNING <ls_res1> WHERE obj_type <> 'DEVC'.
-      IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
-        io_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
-                     iv_type = 'W'
-                     iv_rc   = '3' ) ##no_text.
-      ENDIF.
-
-      IF <ls_res1>-filename IS INITIAL.
-        io_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '4' ) ##no_text.
-      ENDIF.
-
-      MOVE-CORRESPONDING <ls_res1> TO ls_file.
-    ENDLOOP.
-
-  ENDMETHOD.                    "check
-
-  METHOD status.
-
-    DATA: lv_index        LIKE sy-tabix,
-          lo_dot_abapgit  TYPE REF TO zcl_abapgit_dot_abapgit.
-
-    FIELD-SYMBOLS <ls_result> LIKE LINE OF rt_results.
-    rt_results = calculate_status(
-      iv_devclass  = io_repo->get_package( )
-      io_dot       = io_repo->get_dot_abapgit( )
-      it_local     = io_repo->get_files_local( io_log = io_log )
-      it_remote    = io_repo->get_files_remote( )
-      it_cur_state = io_repo->get_local_checksums_per_file( ) ).
-
-    lo_dot_abapgit = io_repo->get_dot_abapgit( ).
-
-    " Remove ignored files, fix .abapgit
-    LOOP AT rt_results ASSIGNING <ls_result>.
-      lv_index = sy-tabix.
-
-      IF lo_dot_abapgit->is_ignored(
-          iv_path     = <ls_result>-path
-          iv_filename = <ls_result>-filename ) = abap_true.
-        DELETE rt_results INDEX lv_index.
-        CONTINUE.
-      ENDIF.
-    ENDLOOP.
-
-    run_checks(
-      io_log     = io_log
-      it_results = rt_results
-      io_dot     = lo_dot_abapgit
-      iv_top     = io_repo->get_package( ) ).
-
-  ENDMETHOD.  "status
-
-  METHOD calculate_status.
-
-    DATA: lt_remote    LIKE it_remote,
-          lt_items     TYPE zif_abapgit_definitions=>ty_items_tt,
-          ls_item      LIKE LINE OF lt_items,
-          lv_is_xml    TYPE abap_bool,
-          lt_items_idx TYPE zif_abapgit_definitions=>ty_items_ts,
-          lt_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
-                   <ls_result> LIKE LINE OF rt_results,
-                   <ls_local>  LIKE LINE OF it_local.
-    lt_state_idx = it_cur_state. " Force sort it
-    lt_remote    = it_remote.
-    SORT lt_remote BY path filename.
-
-    " Process local files and new local files
-    LOOP AT it_local ASSIGNING <ls_local>.
-      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
-      IF <ls_local>-item IS NOT INITIAL.
-        APPEND <ls_local>-item TO lt_items. " Collect for item index
-      ENDIF.
-
-      READ TABLE lt_remote ASSIGNING <ls_remote>
-        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-        BINARY SEARCH.
-      IF sy-subrc = 0.  " Exist local and remote
-        <ls_result> = build_existing(
-          is_local  = <ls_local>
-          is_remote = <ls_remote>
-          it_state  = lt_state_idx ).
-        ASSERT <ls_remote>-sha1 IS NOT INITIAL.
-        CLEAR <ls_remote>-sha1. " Mark as processed
-      ELSE.             " Only L exists
-        <ls_result> = build_new_local( is_local = <ls_local> ).
-      ENDIF.
-    ENDLOOP.
-
-    " Complete item index for unmarked remote files
-    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
-      identify_object( EXPORTING iv_filename = <ls_remote>-filename
-                                 iv_path     = <ls_remote>-path
-                                 io_dot      = io_dot
-                                 iv_devclass = iv_devclass
-                       IMPORTING es_item     = ls_item
-                                 ev_is_xml   = lv_is_xml ).
-
-      CHECK lv_is_xml = abap_true. " Skip all but obj definitions
-
-      ls_item-devclass = lcl_tadir=>get_object_package(
-                           iv_object   = ls_item-obj_type
-                           iv_obj_name = ls_item-obj_name ).
-      APPEND ls_item TO lt_items.
-    ENDLOOP.
-
-    SORT lt_items. " Default key - type, name, pkg
-    DELETE ADJACENT DUPLICATES FROM lt_items.
-    lt_items_idx = lt_items. " Self protection + UNIQUE records assertion
-
-    " Process new remote files (marked above with empty SHA1)
-    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
-      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
-      <ls_result> = build_new_remote( iv_devclass = iv_devclass
-                                      io_dot      = io_dot
-                                      is_remote   = <ls_remote>
-                                      it_items    = lt_items_idx
-                                      it_state    = lt_state_idx ).
-    ENDLOOP.
-
-    SORT rt_results BY
-      obj_type ASCENDING
-      obj_name ASCENDING
-      filename ASCENDING.
-
-  ENDMETHOD.  "calculate_status.
-
-  METHOD identify_object.
-
-    DATA: lv_name TYPE tadir-obj_name,
-          lv_type TYPE string,
-          lv_ext  TYPE string.
-
-    " Guess object type and name
-    SPLIT to_upper( iv_filename ) AT '.' INTO lv_name lv_type lv_ext.
-
-    " Handle namespaces
-    REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
-    REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
-    REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
-
-    " Try to get a unique package name for DEVC by using the path
-    IF lv_type = 'DEVC'.
-      ASSERT lv_name = 'PACKAGE'.
-      lv_name = zcl_abapgit_folder_logic=>path_to_package(
-        iv_top                  = iv_devclass
-        io_dot                  = io_dot
-        iv_create_if_not_exists = abap_false
-        iv_path                 = iv_path ).
-    ENDIF.
-
-    CLEAR es_item.
-    es_item-obj_type = lv_type.
-    es_item-obj_name = lv_name.
-    ev_is_xml        = boolc( lv_ext = 'XML' AND strlen( lv_type ) = 4 ).
-
-  ENDMETHOD.  "identify_object.
-
-  METHOD build_existing.
-
-    DATA: ls_file_sig LIKE LINE OF it_state.
-
-    " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
-
-    " File
-    rs_result-path     = is_local-file-path.
-    rs_result-filename = is_local-file-filename.
-
-    " Match against current state
-    READ TABLE it_state INTO ls_file_sig
-      WITH KEY path = is_local-file-path
-      filename = is_local-file-filename
-      BINARY SEARCH.
-
-    IF sy-subrc = 0.
-      IF ls_file_sig-sha1 <> is_local-file-sha1.
-        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
-      ENDIF.
-      IF ls_file_sig-sha1 <> is_remote-sha1.
-        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
-      ENDIF.
-      rs_result-match = boolc( rs_result-lstate IS INITIAL
-        AND rs_result-rstate IS INITIAL ).
-    ELSE.
-      " This is a strange situation. As both local and remote exist
-      " the state should also be present. Maybe this is a first run of the code.
-      " In this case just compare hashes directly and mark both changed
-      " the user will presumably decide what to do after checking the actual diff
-      rs_result-match = boolc( is_local-file-sha1 = is_remote-sha1 ).
-      IF rs_result-match = abap_false.
-        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
-        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.  "build_existing
-
-  METHOD build_new_local.
-
-    " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
-
-    " File
-    rs_result-path     = is_local-file-path.
-    rs_result-filename = is_local-file-filename.
-
-    " Match
-    rs_result-match    = abap_false.
-    rs_result-lstate   = zif_abapgit_definitions=>gc_state-added.
-
-  ENDMETHOD.  "build_new_local
-
-  METHOD build_new_remote.
-
-    DATA: ls_item     LIKE LINE OF it_items,
-          ls_file_sig LIKE LINE OF it_state.
-
-    " Common and default part
-    rs_result-path     = is_remote-path.
-    rs_result-filename = is_remote-filename.
-    rs_result-match    = abap_false.
-    rs_result-rstate   = zif_abapgit_definitions=>gc_state-added.
-
-    identify_object( EXPORTING iv_filename = is_remote-filename
-                               iv_path     = is_remote-path
-                               iv_devclass = iv_devclass
-                               io_dot      = io_dot
-                     IMPORTING es_item     = ls_item ).
-
-    " Check if in item index + get package
-    READ TABLE it_items INTO ls_item
-      WITH KEY obj_type = ls_item-obj_type obj_name = ls_item-obj_name
-      BINARY SEARCH.
-
-    IF sy-subrc = 0.
-
-      " Completely new (xml, abap) and new file in an existing object
-      rs_result-obj_type = ls_item-obj_type.
-      rs_result-obj_name = ls_item-obj_name.
-      rs_result-package  = ls_item-devclass.
-
-      READ TABLE it_state INTO ls_file_sig
-        WITH KEY path = is_remote-path filename = is_remote-filename
-        BINARY SEARCH.
-
-      " Existing file but from another package
-      " was not added during local file proc as was not in tadir for repo package
-      IF sy-subrc = 0.
-        IF ls_file_sig-sha1 = is_remote-sha1.
-          rs_result-match = abap_true.
-          CLEAR rs_result-rstate.
-        ELSE.
-          rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
-        ENDIF.
-
-        " Item is in state and in cache but with no package - it was deleted
-        " OR devclass is the same as repo package (see #532)
-        IF ls_item-devclass IS INITIAL OR ls_item-devclass = iv_devclass.
-          rs_result-match  = abap_false.
-          rs_result-lstate = zif_abapgit_definitions=>gc_state-deleted.
-        ENDIF.
-      ENDIF.
-
-    ELSE. " Completely unknown file, probably non-abapgit
-      ASSERT 1 = 1. " No action, just follow defaults
-    ENDIF.
-
-  ENDMETHOD.  "build_new_remote
-
-ENDCLASS.                    "lcl_file_status IMPLEMENTATION
-
-****************************************************
-* abapmerge - ZABAPGIT_POPUPS
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_POPUPS
-*&---------------------------------------------------------------------*
-
-"! various popups, static methods, no class/object state
-CLASS lcl_popups DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    TYPES: BEGIN OF ty_popup,
-             url         TYPE string,
-             package     TYPE devclass,
-             branch_name TYPE string,
-             cancel      TYPE abap_bool,
-           END OF ty_popup.
-
-    CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
-
-    CLASS-METHODS:
-      popup_package_export
-        EXPORTING ev_package      TYPE devclass
-                  ev_folder_logic TYPE string
-        RAISING   zcx_abapgit_exception,
-      popup_object
-        RETURNING VALUE(rs_tadir) TYPE tadir
-        RAISING   zcx_abapgit_exception,
-      create_branch_popup
-        EXPORTING ev_name   TYPE string
-                  ev_cancel TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      create_tag_popup
-        IMPORTING iv_sha1   TYPE zif_abapgit_definitions=>ty_sha1
-        EXPORTING ev_name   TYPE string
-                  ev_sha1   TYPE zif_abapgit_definitions=>ty_sha1
-                  ev_cancel TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      run_page_class_popup
-        EXPORTING ev_name   TYPE string
-                  ev_cancel TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      repo_new_offline
-        RETURNING VALUE(rs_popup) TYPE ty_popup
-        RAISING   zcx_abapgit_exception,
-      branch_list_popup
-        IMPORTING iv_url             TYPE string
-                  iv_default_branch  TYPE string OPTIONAL
-                  iv_show_new_option TYPE abap_bool OPTIONAL
-        RETURNING VALUE(rs_branch)   TYPE zcl_abapgit_git_branch_list=>ty_git_branch
-        RAISING   zcx_abapgit_exception,
-      tag_list_popup
-        IMPORTING iv_url         TYPE string
-                  iv_select_mode TYPE abap_bool DEFAULT abap_true
-        RETURNING VALUE(rs_tag)  TYPE zcl_abapgit_git_branch_list=>ty_git_branch
-        RAISING   zcx_abapgit_exception,
-      repo_popup
-        IMPORTING iv_url            TYPE string
-                  iv_package        TYPE devclass  OPTIONAL
-                  iv_branch         TYPE string    DEFAULT 'refs/heads/master'
-                  iv_freeze_package TYPE abap_bool OPTIONAL
-                  iv_freeze_url     TYPE abap_bool OPTIONAL
-                  iv_title          TYPE clike     DEFAULT 'Clone repository ...'
-        RETURNING VALUE(rs_popup)   TYPE ty_popup
-        RAISING   zcx_abapgit_exception ##NO_TEXT,
-      popup_to_confirm
-        IMPORTING
-                  titlebar              TYPE clike
-                  text_question         TYPE clike
-                  text_button_1         TYPE clike     DEFAULT 'Yes'
-                  icon_button_1         TYPE icon-name DEFAULT space
-                  text_button_2         TYPE clike     DEFAULT 'No'
-                  icon_button_2         TYPE icon-name DEFAULT space
-                  default_button        TYPE char1 DEFAULT '1'
-                  display_cancel_button TYPE char1 DEFAULT abap_true
-        RETURNING VALUE(rv_answer)      TYPE char1
-        RAISING   zcx_abapgit_exception,
-      popup_to_inform
-        IMPORTING
-                  titlebar     TYPE clike
-                  text_message TYPE clike
-        RAISING   zcx_abapgit_exception,
-      popup_to_create_package
-        EXPORTING es_package_data TYPE scompkdtln
-                  ev_create       TYPE boolean
-        RAISING   zcx_abapgit_exception,
-      popup_to_create_transp_branch
-        IMPORTING it_transport_headers       TYPE trwbo_request_headers
-        RETURNING VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
-        RAISING   zcx_abapgit_exception
-                  zcx_abapgit_cancel,
-      popup_to_select_transports
-        RETURNING VALUE(rt_trkorr) TYPE trwbo_request_headers,
-      popup_to_select_from_list
-        IMPORTING it_list               TYPE STANDARD TABLE
-                  i_header_text         TYPE csequence
-                  i_select_column_text  TYPE csequence
-                  it_columns_to_display TYPE stringtab
-        EXPORTING VALUE(et_list)        TYPE STANDARD TABLE
-        RAISING   zcx_abapgit_exception,
-      branch_popup_callback
-        IMPORTING iv_code       TYPE clike
-        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-                  cs_error      TYPE svale
-                  cv_show_popup TYPE char01
-        RAISING   zcx_abapgit_exception,
-      package_popup_callback
-        IMPORTING iv_code       TYPE clike
-        CHANGING  ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-                  cs_error      TYPE svale
-                  cv_show_popup TYPE char01
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    TYPES: ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
-
-    CONSTANTS: co_fieldname_selected TYPE lvc_fname VALUE `SELECTED`.
-
-    CLASS-DATA:
-      mo_select_list_popup TYPE REF TO cl_salv_table,
-      mr_table             TYPE REF TO data,
-      mo_table_descr       TYPE REF TO cl_abap_tabledescr.
-
-    CLASS-METHODS:
-      add_field
-        IMPORTING iv_tabname    TYPE sval-tabname
-                  iv_fieldname  TYPE sval-fieldname
-                  iv_fieldtext  TYPE sval-fieldtext
-                  iv_value      TYPE clike DEFAULT ''
-                  iv_field_attr TYPE sval-field_attr DEFAULT ''
-                  iv_obligatory TYPE spo_obl OPTIONAL
-        CHANGING  ct_fields     TYPE ty_sval_tt,
-
-      create_new_table
-        IMPORTING it_list TYPE STANDARD TABLE,
-
-      get_selected_rows
-        EXPORTING et_list TYPE INDEX TABLE,
-
-      on_select_list_link_click FOR EVENT link_click OF cl_salv_events_table
-        IMPORTING row
-                    column,
-
-      on_select_list_function_click FOR EVENT added_function OF cl_salv_events_table
-        IMPORTING e_salv_function,
-
-      extract_field_values
-        IMPORTING it_fields  TYPE ty_sval_tt
-        EXPORTING ev_url     TYPE abaptxt255-line
-                  ev_package TYPE tdevc-devclass
-                  ev_branch  TYPE textl-line.
-
-ENDCLASS.
-
-CLASS lcl_popups IMPLEMENTATION.
-
-  METHOD add_field.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
-
-    APPEND INITIAL LINE TO ct_fields ASSIGNING <ls_field>.
-    <ls_field>-tabname    = iv_tabname.
-    <ls_field>-fieldname  = iv_fieldname.
-    <ls_field>-fieldtext  = iv_fieldtext.
-    <ls_field>-value      = iv_value.
-    <ls_field>-field_attr = iv_field_attr.
-    <ls_field>-field_obl  = iv_obligatory.
-
-  ENDMETHOD.
-
-  METHOD popup_object.
-
-    DATA: lv_returncode TYPE c,
-          lt_fields     TYPE TABLE OF sval.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    add_field( EXPORTING iv_tabname   = 'TADIR'
-                         iv_fieldname = 'OBJECT'
-                         iv_fieldtext = 'Type'
-               CHANGING ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TADIR'
-                         iv_fieldname = 'OBJ_NAME'
-                         iv_fieldtext = 'Name'
-               CHANGING ct_fields     = lt_fields ).
-
-    CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        no_value_check  = abap_true
-        popup_title     = 'Object'             "#EC NOTEXT
-      IMPORTING
-        returncode      = lv_returncode
-      TABLES
-        fields          = lt_fields
-      EXCEPTIONS
-        error_in_fields = 1
-        OTHERS          = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-    ENDIF.
-
-    IF lv_returncode = 'A'.
-      RETURN.
-    ENDIF.
-
-    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    TRANSLATE <ls_field>-value TO UPPER CASE.
-    rs_tadir-object = <ls_field>-value.
-
-    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    TRANSLATE <ls_field>-value TO UPPER CASE.
-    rs_tadir-obj_name = <ls_field>-value.
-
-    rs_tadir = lcl_tadir=>read_single( iv_object   = rs_tadir-object
-                                       iv_obj_name = rs_tadir-obj_name ).
-
-  ENDMETHOD.
-
-  METHOD popup_package_export.
-
-    DATA: lv_returncode TYPE c,
-          lt_fields     TYPE TABLE OF sval.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'DEVCLASS'
-                         iv_fieldtext = 'Package'
-               CHANGING ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'INTSYS'
-                         iv_fieldtext = 'Folder logic'
-                         iv_value     = 'PREFIX'
-               CHANGING ct_fields     = lt_fields ).
-
-    CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        no_value_check  = abap_true
-        popup_title     = 'Export package'             "#EC NOTEXT
-      IMPORTING
-        returncode      = lv_returncode
-      TABLES
-        fields          = lt_fields
-      EXCEPTIONS
-        error_in_fields = 1
-        OTHERS          = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-    ENDIF.
-
-    IF lv_returncode = 'A'.
-      RETURN.
-    ENDIF.
-
-    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    TRANSLATE <ls_field>-value TO UPPER CASE.
-    ev_package = <ls_field>-value.
-
-    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    TRANSLATE <ls_field>-value TO UPPER CASE.
-    ev_folder_logic = <ls_field>-value.
-
-  ENDMETHOD.                    "popup_package_export
-
-  METHOD create_branch_popup.
-
-    DATA: lv_answer TYPE c LENGTH 1,
-          lt_fields TYPE TABLE OF sval.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    CLEAR: ev_name, ev_cancel.
-
-    add_field( EXPORTING iv_tabname   = 'TEXTL'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Name'
-                         iv_value     = 'new-branch-name'
-               CHANGING ct_fields     = lt_fields ).
-
-    CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        popup_title     = 'Create branch'
-      IMPORTING
-        returncode      = lv_answer
-      TABLES
-        fields          = lt_fields
-      EXCEPTIONS
-        error_in_fields = 1
-        OTHERS          = 2 ##NO_TEXT.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
-    ENDIF.
-
-    IF lv_answer = 'A'.
-      ev_cancel = abap_true.
-    ELSE.
-      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      ev_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
-        zcl_abapgit_git_branch_list=>normalize_branch_name( <ls_field>-value ) ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD create_tag_popup.
-
-    DATA: lv_answer          TYPE c LENGTH 1,
-          lt_fields          TYPE TABLE OF sval,
-          lv_exit_while_loop TYPE abap_bool.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-
-    CLEAR: ev_name, ev_cancel, ev_sha1.
-
-    add_field( EXPORTING iv_tabname    = 'TBDTPPT'
-                         iv_fieldname  = 'P_TEXT'
-                         iv_fieldtext  = 'SHA'
-                         iv_value      = iv_sha1
-                         iv_obligatory = abap_true
-               CHANGING ct_fields      = lt_fields ).
-
-    add_field( EXPORTING iv_tabname    = 'TEXTL'
-                         iv_fieldname  = 'LINE'
-                         iv_fieldtext  = 'Name'
-                         iv_obligatory = abap_true
-               CHANGING ct_fields      = lt_fields ).
-
-    WHILE lv_exit_while_loop = abap_false.
-
-      CALL FUNCTION 'POPUP_GET_VALUES'
-        EXPORTING
-          popup_title     = 'Create tag'
-        IMPORTING
-          returncode      = lv_answer
-        TABLES
-          fields          = lt_fields
-        EXCEPTIONS
-          error_in_fields = 1
-          OTHERS          = 2 ##NO_TEXT.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_answer = 'A'.
-        ev_cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_fields WITH KEY fieldname = 'P_TEXT'
-                           ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-
-      ev_sha1 = <ls_field>-value.
-
-      READ TABLE lt_fields WITH KEY fieldname = 'LINE'
-                           ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-
-      IF condense( <ls_field>-value ) CS ` `.
-        CLEAR: lv_exit_while_loop.
-        MESSAGE 'Tag name cannot contain blank spaces' TYPE 'S' DISPLAY LIKE 'E'.
-        CONTINUE.
-      ENDIF.
-
-      ev_name = zcl_abapgit_tag=>add_tag_prefix( <ls_field>-value ).
-
-      lv_exit_while_loop = abap_true.
-
-    ENDWHILE.
-
-  ENDMETHOD.
-
-  METHOD run_page_class_popup.
-
-    DATA: lv_answer TYPE c LENGTH 1,
-          lt_fields TYPE TABLE OF sval.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    CLEAR: ev_name, ev_cancel.
-
-    add_field( EXPORTING iv_tabname   = 'TEXTL'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Name'
-                         iv_value     = 'lcl_gui_page_'
-               CHANGING ct_fields     = lt_fields ).
-
-    CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        popup_title     = 'Run page manually'
-      IMPORTING
-        returncode      = lv_answer
-      TABLES
-        fields          = lt_fields
-      EXCEPTIONS
-        error_in_fields = 1
-        OTHERS          = 2 ##NO_TEXT.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
-    ENDIF.
-
-    IF lv_answer = 'A'.
-      ev_cancel = abap_true.
-    ELSE.
-      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      ev_name = to_upper( <ls_field>-value ).
-    ENDIF.
-
-  ENDMETHOD.  "run_page_class_popup
-
-  METHOD repo_new_offline.
-
-    DATA: lv_returncode TYPE c,
-          lt_fields     TYPE TABLE OF sval,
-          lv_icon_ok    TYPE icon-name,
-          lv_button1    TYPE svalbutton-buttontext,
-          lv_icon1      TYPE icon-name,
-          lv_finished   TYPE abap_bool,
-          lx_error      TYPE REF TO zcx_abapgit_exception.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Name'
-               CHANGING ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'DEVCLASS'
-                         iv_fieldtext = 'Package'
-               CHANGING ct_fields     = lt_fields ).
-
-    WHILE lv_finished = abap_false.
-
-      lv_icon_ok  = icon_okay.
-      lv_button1 = 'Create package' ##NO_TEXT.
-      lv_icon1   = icon_folder.
-
-      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
-        EXPORTING
-          popup_title       = 'New Offline Project'
-          programname       = sy-repid
-          formname          = 'PACKAGE_POPUP'
-          ok_pushbuttontext = ''
-          icon_ok_push      = lv_icon_ok
-          first_pushbutton  = lv_button1
-          icon_button_1     = lv_icon1
-          second_pushbutton = ''
-          icon_button_2     = ''
-        IMPORTING
-          returncode        = lv_returncode
-        TABLES
-          fields            = lt_fields
-        EXCEPTIONS
-          error_in_fields   = 1
-          OTHERS            = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_returncode = 'A'.
-        rs_popup-cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      rs_popup-url = <ls_field>-value.
-
-      READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      TRANSLATE <ls_field>-value TO UPPER CASE.
-      rs_popup-package = <ls_field>-value.
-
-      lv_finished = abap_true.
-
-      TRY.
-          lcl_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
-
-        CATCH zcx_abapgit_exception INTO lx_error.
-          " in case of validation errors we display the popup again
-          MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
-          CLEAR lv_finished.
-      ENDTRY.
-
-    ENDWHILE.
-
-  ENDMETHOD.                    "repo_new_offline
-
-  METHOD branch_list_popup.
-
-    DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_branches    TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
-          lv_answer      TYPE c LENGTH 1,
-          lv_default     TYPE i,
-          lv_head_suffix TYPE string,
-          lv_head_symref TYPE string,
-          lt_selection   TYPE TABLE OF spopli.
-
-    FIELD-SYMBOLS: <ls_sel>    LIKE LINE OF lt_selection,
-                   <ls_branch> LIKE LINE OF lt_branches.
-    lo_branches    = zcl_abapgit_git_transport=>branches( iv_url ).
-    lt_branches    = lo_branches->get_branches_only( ).
-    lv_head_suffix = | ({ zcl_abapgit_git_branch_list=>c_head_name })|.
-    lv_head_symref = lo_branches->get_head_symref( ).
-
-    LOOP AT lt_branches ASSIGNING <ls_branch>.
-
-      CHECK <ls_branch>-name IS NOT INITIAL. " To ensure some below ifs
-
-      IF <ls_branch>-is_head = abap_true.
-
-        IF <ls_branch>-name = zcl_abapgit_git_branch_list=>c_head_name. " HEAD
-          IF <ls_branch>-name <> lv_head_symref AND lv_head_symref IS NOT INITIAL.
-            " HEAD but other HEAD symref exists - ignore
-            CONTINUE.
-          ELSE.
-            INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
-            <ls_sel>-varoption = <ls_branch>-name.
-          ENDIF.
-        ELSE.
-          INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
-          <ls_sel>-varoption = <ls_branch>-display_name && lv_head_suffix.
-        ENDIF.
-
-        IF lv_default > 0. " Shift down default if set
-          lv_default = lv_default + 1.
-        ENDIF.
-      ELSE.
-        APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
-        <ls_sel>-varoption = <ls_branch>-display_name.
-      ENDIF.
-
-      IF <ls_branch>-name = iv_default_branch.
-        IF <ls_branch>-is_head = abap_true.
-          lv_default = 1.
-        ELSE.
-          lv_default = sy-tabix.
-        ENDIF.
-      ENDIF.
-
-    ENDLOOP.
-
-    IF iv_show_new_option = abap_true.
-      APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
-      <ls_sel>-varoption = c_new_branch_label.
-    ENDIF.
-
-    CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
-      EXPORTING
-        textline1          = 'Select branch'
-        titel              = 'Select branch'
-        start_col          = 30
-        start_row          = 5
-        cursorline         = lv_default
-      IMPORTING
-        answer             = lv_answer
-      TABLES
-        t_spopli           = lt_selection
-      EXCEPTIONS
-        not_enough_answers = 1
-        too_much_answers   = 2
-        too_much_marks     = 3
-        OTHERS             = 4.                             "#EC NOTEXT
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
-    ENDIF.
-
-    IF lv_answer = 'A'. " cancel
-      RETURN.
-    ENDIF.
-
-    READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
-    ASSERT sy-subrc = 0.
-
-    IF iv_show_new_option = abap_true AND <ls_sel>-varoption = c_new_branch_label.
-      rs_branch-name = c_new_branch_label.
-    ELSE.
-      REPLACE FIRST OCCURRENCE OF lv_head_suffix IN <ls_sel>-varoption WITH ''.
-      READ TABLE lt_branches WITH KEY display_name = <ls_sel>-varoption ASSIGNING <ls_branch>.
-      IF sy-subrc <> 0.
-* branch name longer than 65 characters
-        LOOP AT lt_branches ASSIGNING <ls_branch> WHERE display_name CS <ls_sel>-varoption.
-          EXIT. " current loop
-        ENDLOOP.
-      ENDIF.
-      ASSERT <ls_branch> IS ASSIGNED.
-      rs_branch = lo_branches->find_by_name( <ls_branch>-name ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD tag_list_popup.
-
-    DATA: lo_branches         TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_tags             TYPE zcl_abapgit_git_branch_list=>ty_git_branch_list_tt,
-          lv_answer           TYPE c LENGTH 1,
-          lt_selection        TYPE TABLE OF spopli,
-          lv_name_with_prefix TYPE string,
-          lo_alv              TYPE REF TO cl_salv_table,
-          lo_table_header     TYPE REF TO cl_salv_form_text,
-          lo_columns          TYPE REF TO cl_salv_columns_table,
-          lx_alv              TYPE REF TO cx_salv_error.
-
-    FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
-                   <ls_tag> LIKE LINE OF lt_tags.
-
-    lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
-    lt_tags     = lo_branches->get_tags_only( ).
-
-    IF lines( lt_tags ) = 0.
-      zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
-    ENDIF.
-
-    IF iv_select_mode = abap_true.
-
-      LOOP AT lt_tags ASSIGNING <ls_tag>.
-
-        INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
-        <ls_sel>-varoption = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
-
-      ENDLOOP.
-
-      CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
-        EXPORTING
-          textline1          = 'Select tag'
-          titel              = 'Select tag'
-          start_col          = 30
-          start_row          = 5
-        IMPORTING
-          answer             = lv_answer
-        TABLES
-          t_spopli           = lt_selection
-        EXCEPTIONS
-          not_enough_answers = 1
-          too_much_answers   = 2
-          too_much_marks     = 3
-          OTHERS             = 4.                             "#EC NOTEXT
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
-      ENDIF.
-
-      IF lv_answer = 'A'. " cancel
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
-      ASSERT sy-subrc = 0.
-
-      lv_name_with_prefix = zcl_abapgit_tag=>add_tag_prefix( <ls_sel>-varoption ).
-
-      READ TABLE lt_tags ASSIGNING <ls_tag> WITH KEY name = lv_name_with_prefix.
-      ASSERT sy-subrc = 0.
-
-      rs_tag = <ls_tag>.
-
-    ELSE.
-
-      LOOP AT lt_tags ASSIGNING <ls_tag>.
-
-        <ls_tag>-name = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
-
-      ENDLOOP.
-
-      TRY.
-          cl_salv_table=>factory(
-            IMPORTING
-              r_salv_table   = lo_alv
-            CHANGING
-              t_table        = lt_tags ).
-
-          lo_columns = lo_alv->get_columns( ).
-
-          lo_columns->get_column( `TYPE` )->set_technical( ).
-          lo_columns->get_column( `IS_HEAD` )->set_technical( ).
-          lo_columns->get_column( `DISPLAY_NAME` )->set_technical( ).
-
-          lo_columns->get_column( `SHA1` )->set_output_length( 30 ).
-          lo_columns->get_column( `SHA1` )->set_medium_text( 'SHA' ).
-
-          lo_columns->get_column( `NAME` )->set_medium_text( 'Tag name' ).
-
-          lo_columns->set_optimize( ).
-
-          lo_alv->set_screen_popup( start_column = 5
-                                    end_column   = 70
-                                    start_line   = 5
-                                    end_line     = 25 ).
-
-          CREATE OBJECT lo_table_header
-            EXPORTING
-              text = `Tags`.
-
-          lo_alv->set_top_of_list( lo_table_header ).
-
-          lo_alv->display( ).
-
-        CATCH cx_salv_error INTO lx_alv.
-          zcx_abapgit_exception=>raise( lx_alv->get_text( ) ).
-      ENDTRY.
-
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD repo_popup.
-
-    DATA: lv_returncode TYPE c,
-          lv_icon_ok    TYPE icon-name,
-          lv_icon_br    TYPE icon-name,
-          lt_fields     TYPE TABLE OF sval,
-          lv_uattr      TYPE spo_fattr,
-          lv_pattr      TYPE spo_fattr,
-          lv_button2    TYPE svalbutton-buttontext,
-          lv_icon2      TYPE icon-name,
-          lv_package    TYPE tdevc-devclass,
-          lv_url        TYPE abaptxt255-line,
-          lv_branch     TYPE textl-line,
-          lv_finished   TYPE abap_bool,
-          lx_error      TYPE REF TO zcx_abapgit_exception.
-
-    IF iv_freeze_url = abap_true.
-      lv_uattr = '05'.
-    ENDIF.
-
-    IF iv_freeze_package = abap_true.
-      lv_pattr = '05'.
-    ENDIF.
-
-    IF iv_package IS INITIAL. " Empty package -> can be created
-      lv_button2 = 'Create package' ##NO_TEXT.
-      lv_icon2   = icon_folder.
-    ENDIF.
-
-    lv_package = iv_package.
-    lv_url     = iv_url.
-    lv_branch  = iv_branch.
-
-    WHILE lv_finished = abap_false.
-
-      CLEAR: lt_fields.
-
-      add_field( EXPORTING iv_tabname    = 'ABAPTXT255'
-                           iv_fieldname  = 'LINE'
-                           iv_fieldtext  = 'Git clone URL'
-                           iv_value      = lv_url
-                           iv_field_attr = lv_uattr
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TDEVC'
-                           iv_fieldname  = 'DEVCLASS'
-                           iv_fieldtext  = 'Target package'
-                           iv_value      = lv_package
-                           iv_field_attr = lv_pattr
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TEXTL'
-                           iv_fieldname  = 'LINE'
-                           iv_fieldtext  = 'Branch'
-                           iv_value      = lv_branch
-                           iv_field_attr = '05'
-                 CHANGING ct_fields      = lt_fields ).
-
-      lv_icon_ok  = icon_okay.
-      lv_icon_br  = icon_workflow_fork.
-
-      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
-        EXPORTING
-          popup_title       = iv_title
-          programname       = sy-repid
-          formname          = 'BRANCH_POPUP'
-          ok_pushbuttontext = 'OK'
-          icon_ok_push      = lv_icon_ok
-          first_pushbutton  = 'Select branch'
-          icon_button_1     = lv_icon_br
-          second_pushbutton = lv_button2
-          icon_button_2     = lv_icon2
-        IMPORTING
-          returncode        = lv_returncode
-        TABLES
-          fields            = lt_fields
-        EXCEPTIONS
-          error_in_fields   = 1
-          OTHERS            = 2.                              "#EC NOTEXT
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_returncode = 'A'.
-        rs_popup-cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      extract_field_values(
-        EXPORTING
-          it_fields  = lt_fields
-        IMPORTING
-          ev_url     = lv_url
-          ev_package = lv_package
-          ev_branch  = lv_branch ).
-
-      lv_finished = abap_true.
-
-      TRY.
-          zcl_abapgit_url=>name( |{ lv_url }| ).
-          IF iv_freeze_package = abap_false.
-            lcl_repo_srv=>get_instance( )->validate_package( lv_package ).
-          ENDIF.
-        CATCH zcx_abapgit_exception INTO lx_error.
-          MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
-          " in case of validation errors we display the popup again
-          CLEAR: lv_finished.
-      ENDTRY.
-
-    ENDWHILE.
-
-    rs_popup-url         = lv_url.
-    rs_popup-package     = lv_package.
-    rs_popup-branch_name = lv_branch.
-
-  ENDMETHOD.
-
-  METHOD popup_to_confirm.
-
-    CALL FUNCTION 'POPUP_TO_CONFIRM'
-      EXPORTING
-        titlebar              = titlebar
-        text_question         = text_question
-        text_button_1         = text_button_1
-        icon_button_1         = icon_button_1
-        text_button_2         = text_button_2
-        icon_button_2         = icon_button_2
-        default_button        = default_button
-        display_cancel_button = display_cancel_button
-      IMPORTING
-        answer                = rv_answer
-      EXCEPTIONS
-        text_not_found        = 1
-        OTHERS                = 2.                        "#EC NOTEXT
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from POPUP_TO_CONFIRM' ).
-    ENDIF.
-
-  ENDMETHOD.  "popup_to_confirm
-
-  METHOD popup_to_inform.
-
-    DATA: lv_line1 TYPE char70,
-          lv_line2 TYPE char70.
-
-    lv_line1 = text_message.
-    IF strlen( text_message ) > 70.
-      lv_line2 = text_message+70.
-    ENDIF.
-
-    CALL FUNCTION 'POPUP_TO_INFORM'
-      EXPORTING
-        titel = titlebar
-        txt1  = lv_line1
-        txt2  = lv_line2.
-
-  ENDMETHOD.  " popup_to_inform.
-
-  METHOD popup_to_create_package.
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'PB_POPUP_PACKAGE_CREATE'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc = 1.
-* looks like the function module used does not exist on all
-* versions since 702, so show an error
-      zcx_abapgit_exception=>raise( 'Function module PB_POPUP_PACKAGE_CREATE does not exist' ).
-    ENDIF.
-
-    CALL FUNCTION 'PB_POPUP_PACKAGE_CREATE'
-      CHANGING
-        p_object_data    = es_package_data
-      EXCEPTIONS
-        action_cancelled = 1.
-    IF sy-subrc = 0.
-      ev_create = abap_true.
-    ELSE.
-      ev_create = abap_false.
-    ENDIF.
-  ENDMETHOD.  " popup_to_create_package
-
-  METHOD popup_to_select_transports.
-    DATA: lrs_trfunction TYPE trsel_trs_function,
-          lv_types       TYPE string,
-          ls_ranges      TYPE trsel_ts_ranges.
-
-    " Fill all request types
-    lv_types = 'KWTCOEMPDRSXQFG'.
-    lrs_trfunction-sign   = 'I'.
-    lrs_trfunction-option = 'EQ'.
-    WHILE lv_types <> space.
-      lrs_trfunction-low = lv_types(1).
-      APPEND lrs_trfunction TO ls_ranges-request_funcs.
-      SHIFT lv_types.
-    ENDWHILE.
-
-    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
-      EXPORTING
-        iv_username_pattern    = sy-uname
-        iv_via_selscreen       = 'X'
-        iv_complete_projects   = ''
-        "is_popup               = ''
-        iv_title               = 'abapGit: Transport Request Selection'
-      IMPORTING
-        et_requests            = rt_trkorr
-      CHANGING
-        cs_ranges              = ls_ranges
-      EXCEPTIONS
-        action_aborted_by_user = 1
-        OTHERS                 = 2.
-
-  ENDMETHOD.
-
-  METHOD popup_to_create_transp_branch.
-    DATA: lv_returncode         TYPE c,
-          lt_fields             TYPE TABLE OF sval,
-          lv_transports_as_text TYPE string,
-          ls_transport_header   LIKE LINE OF it_transport_headers.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-
-    lv_transports_as_text = 'Transport(s)'.
-    LOOP AT it_transport_headers INTO ls_transport_header.
-      CONCATENATE lv_transports_as_text '_' ls_transport_header-trkorr INTO lv_transports_as_text.
-    ENDLOOP.
-
-    add_field( EXPORTING iv_tabname   = 'TEXTL'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Branch name'
-                         iv_value     = lv_transports_as_text
-               CHANGING ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Commit text'
-                         iv_value     = lv_transports_as_text
-               CHANGING ct_fields     = lt_fields ).
-
-    CALL FUNCTION 'POPUP_GET_VALUES'
-      EXPORTING
-        popup_title     = 'Transport to new Branch'
-      IMPORTING
-        returncode      = lv_returncode
-      TABLES
-        fields          = lt_fields
-      EXCEPTIONS
-        error_in_fields = 1
-        OTHERS          = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-    ENDIF.
-
-    IF lv_returncode = 'A'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    rs_transport_branch-branch_name = <ls_field>-value.
-
-    READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    rs_transport_branch-commit_text = <ls_field>-value.
-  ENDMETHOD.
-
-  METHOD popup_to_select_from_list.
-
-    DATA:
-      lo_events       TYPE REF TO cl_salv_events_table,
-      lo_columns      TYPE REF TO cl_salv_columns_table,
-      lt_columns      TYPE salv_t_column_ref,
-      ls_column       TYPE salv_s_column_ref,
-      lo_column       TYPE REF TO cl_salv_column_list,
-      lo_table_header TYPE REF TO cl_salv_form_text.
-
-    FIELD-SYMBOLS: <table> TYPE STANDARD TABLE.
-
-    CLEAR: et_list.
-
-    create_new_table( it_list = it_list ).
-
-    ASSIGN mr_table->* TO <table>.
-    ASSERT sy-subrc = 0.
-
-    TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = mo_select_list_popup
-                                CHANGING  t_table = <table> ).
-
-        mo_select_list_popup->set_screen_status( pfstatus = '102'
-                                                 report = 'SAPMSVIM' ).
-
-        mo_select_list_popup->set_screen_popup( start_column = 1
-                                                end_column   = 65
-                                                start_line   = 1
-                                                end_line     = 20 ).
-
-        lo_events = mo_select_list_popup->get_event( ).
-
-        SET HANDLER on_select_list_link_click FOR lo_events.
-        SET HANDLER on_select_list_function_click FOR lo_events.
-
-        CREATE OBJECT lo_table_header
-          EXPORTING
-            text = i_header_text.
-
-        mo_select_list_popup->set_top_of_list( lo_table_header ).
-
-        lo_columns = mo_select_list_popup->get_columns( ).
-        lo_columns->set_optimize( abap_true ).
-        lt_columns = lo_columns->get( ).
-
-        LOOP AT lt_columns INTO ls_column.
-
-          IF ls_column-columnname = co_fieldname_selected.
-            lo_column ?= ls_column-r_column.
-            lo_column->set_cell_type( if_salv_c_cell_type=>checkbox_hotspot ).
-            lo_column->set_output_length( 20 ).
-            lo_column->set_short_text( |{ i_select_column_text }| ).
-            lo_column->set_medium_text( |{ i_select_column_text }| ).
-            lo_column->set_long_text( |{ i_select_column_text }| ).
-            CONTINUE.
-          ENDIF.
-
-          READ TABLE it_columns_to_display TRANSPORTING NO FIELDS
-                                           WITH KEY table_line = ls_column-columnname.
-          IF sy-subrc <> 0.
-            ls_column-r_column->set_technical( abap_true ).
-          ENDIF.
-
-        ENDLOOP.
-
-        mo_select_list_popup->display( ).
-
-      CATCH cx_salv_msg.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_SELECT_OBJ_OVERWRITE' ).
-    ENDTRY.
-
-    get_selected_rows(
-      IMPORTING
-        et_list = et_list ).
-
-    CLEAR: mo_select_list_popup,
-           mr_table,
-           mo_table_descr.
-
-  ENDMETHOD.
-
-  METHOD create_new_table.
-
-    " create and populate a table on the fly derived from
-    " it_data with a select column
-
-    DATA: lr_struct       TYPE REF TO data,
-          lt_components   TYPE cl_abap_structdescr=>component_table,
-          lo_struct_descr TYPE REF TO cl_abap_structdescr,
-          struct_descr    TYPE REF TO cl_abap_structdescr.
-
-    FIELD-SYMBOLS: <table>     TYPE STANDARD TABLE,
-                   <component> TYPE abap_componentdescr,
-                   <line>      TYPE data,
-                   <data>      TYPE any.
-
-    mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
-    lo_struct_descr ?= mo_table_descr->get_table_line_type( ).
-    lt_components = lo_struct_descr->get_components( ).
-
-    INSERT INITIAL LINE INTO lt_components ASSIGNING <component> INDEX 1.
-    ASSERT sy-subrc = 0.
-
-    <component>-name = co_fieldname_selected.
-    <component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
-
-    struct_descr = cl_abap_structdescr=>create( lt_components ).
-    mo_table_descr = cl_abap_tabledescr=>create( struct_descr ).
-
-    CREATE DATA mr_table TYPE HANDLE mo_table_descr.
-    ASSIGN mr_table->* TO <table>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_struct TYPE HANDLE struct_descr.
-    ASSIGN lr_struct->* TO <line>.
-    ASSERT sy-subrc = 0.
-
-    LOOP AT it_list ASSIGNING <data>.
-
-      CLEAR: <line>.
-      MOVE-CORRESPONDING <data> TO <line>.
-      INSERT <line> INTO TABLE <table>.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD on_select_list_function_click.
-
-    FIELD-SYMBOLS: <table>    TYPE STANDARD TABLE,
-                   <line>     TYPE any,
-                   <selected> TYPE flag.
-
-    ASSIGN mr_table->* TO <table>.
-    ASSERT sy-subrc = 0.
-
-    CASE e_salv_function.
-      WHEN 'O.K.'.
-        mo_select_list_popup->close_screen( ).
-
-      WHEN 'ABR'.
-        "Canceled: clear list to overwrite nothing
-        CLEAR <table>.
-        mo_select_list_popup->close_screen( ).
-
-      WHEN 'SALL'.
-
-        LOOP AT <table> ASSIGNING <line>.
-
-          ASSIGN COMPONENT co_fieldname_selected
-                 OF STRUCTURE <line>
-                 TO <selected>.
-          ASSERT sy-subrc = 0.
-
-          <selected> = abap_true.
-
-        ENDLOOP.
-
-        mo_select_list_popup->refresh( ).
-
-      WHEN 'DSEL'.
-
-        LOOP AT <table> ASSIGNING <line>.
-
-          ASSIGN COMPONENT co_fieldname_selected
-                 OF STRUCTURE <line>
-                 TO <selected>.
-          ASSERT sy-subrc = 0.
-
-          <selected> = abap_false.
-
-        ENDLOOP.
-
-        mo_select_list_popup->refresh( ).
-
-      WHEN OTHERS.
-        CLEAR <table>.
-        mo_select_list_popup->close_screen( ).
-    ENDCASE.
-
-  ENDMETHOD.
-
-  METHOD on_select_list_link_click.
-
-    DATA: lv_line  TYPE sytabix.
-
-    FIELD-SYMBOLS: <table>    TYPE STANDARD TABLE,
-                   <line>     TYPE any,
-                   <selected> TYPE flag.
-
-    ASSIGN mr_table->* TO <table>.
-    ASSERT sy-subrc = 0.
-
-    lv_line = row.
-
-    READ TABLE <table> ASSIGNING <line>
-                       INDEX lv_line.
-    IF sy-subrc = 0.
-
-      ASSIGN COMPONENT co_fieldname_selected
-             OF STRUCTURE <line>
-             TO <selected>.
-      ASSERT sy-subrc = 0.
-
-      IF <selected> = abap_true.
-        <selected> = abap_false.
-      ELSE.
-        <selected> = abap_true.
-      ENDIF.
-
-    ENDIF.
-
-    mo_select_list_popup->refresh( ).
-  ENDMETHOD.
-  METHOD get_selected_rows.
-
-    DATA: lv_condition TYPE string,
-          lr_exporting TYPE REF TO data.
-
-    FIELD-SYMBOLS: <ls_exporting> TYPE any,
-                   <table>        TYPE STANDARD TABLE,
-                   <ls_line>      TYPE any.
-
-    lv_condition = |{ co_fieldname_selected } = ABAP_TRUE|.
-
-    ASSIGN mr_table->* TO <table>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_exporting LIKE LINE OF et_list.
-    ASSIGN lr_exporting->* TO <ls_exporting>.
-
-    LOOP AT <table> ASSIGNING <ls_line>
-                    WHERE (lv_condition).
-
-      CLEAR: <ls_exporting>.
-      MOVE-CORRESPONDING <ls_line> TO <ls_exporting>.
-      APPEND <ls_exporting> TO et_list.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD extract_field_values.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_fields.
-
-    CLEAR: ev_url,
-           ev_package,
-           ev_branch.
-
-    READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_url = <ls_field>-value.
-
-    READ TABLE it_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_package = <ls_field>-value.
-    TRANSLATE ev_package TO UPPER CASE.
-
-    READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_branch = <ls_field>-value.
-
-  ENDMETHOD.
-
-  METHOD branch_popup_callback.
-
-    DATA: lv_url          TYPE string,
-          ls_package_data TYPE scompkdtln,
-          ls_branch       TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
-          lv_create       TYPE boolean.
-
-    FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
-                   <ls_fbranch>  LIKE LINE OF ct_fields,
-                   <ls_fpackage> LIKE LINE OF ct_fields.
-
-    CLEAR cs_error.
-
-    IF iv_code = 'COD1'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
-      IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
-        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.       "#EC NOTEXT
-        RETURN.
-      ENDIF.
-      lv_url = <ls_furl>-value.
-
-      ls_branch = lcl_popups=>branch_list_popup( lv_url ).
-      IF ls_branch IS INITIAL.
-        RETURN.
-      ENDIF.
-
-      READ TABLE ct_fields ASSIGNING <ls_fbranch> WITH KEY tabname = 'TEXTL'.
-      ASSERT sy-subrc = 0.
-      <ls_fbranch>-value = ls_branch-name.
-
-    ELSEIF iv_code = 'COD2'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-      ASSERT sy-subrc = 0.
-      ls_package_data-devclass = <ls_fpackage>-value.
-
-      lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                                     ev_create       = lv_create ).
-      IF lv_create = abap_false.
-        RETURN.
-      ENDIF.
-
-      zcl_abapgit_sap_package=>create( ls_package_data ).
-      COMMIT WORK.
-
-      <ls_fpackage>-value = ls_package_data-devclass.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD package_popup_callback.
-
-    DATA: ls_package_data TYPE scompkdtln,
-          lv_create       TYPE boolean.
-
-    FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF ct_fields.
-
-    CLEAR cs_error.
-
-    IF iv_code = 'COD1'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-      ASSERT sy-subrc = 0.
-      ls_package_data-devclass = <ls_fpackage>-value.
-
-      lcl_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                                     ev_create       = lv_create ).
-      IF lv_create = abap_false.
-        RETURN.
-      ENDIF.
-
-      zcl_abapgit_sap_package=>create( ls_package_data ).
-      COMMIT WORK.
-
-      <ls_fpackage>-value = ls_package_data-devclass.
-    ENDIF.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-****************************************************
 * abapmerge - ZABAPGIT_ZIP
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -39317,7 +40748,7 @@ CLASS lcl_zip DEFINITION FINAL.
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS export
-      IMPORTING io_repo   TYPE REF TO lcl_repo
+      IMPORTING io_repo   TYPE REF TO zcl_abapgit_repo
                 it_filter TYPE scts_tadir OPTIONAL
       RAISING   zcx_abapgit_exception.
 
@@ -39663,8 +41094,8 @@ CLASS lcl_zip IMPLEMENTATION.
 
   METHOD import.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_offline.
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_files_remote( unzip_file( file_upload( ) ) ).
     lo_repo->deserialize( ).
 
@@ -39672,12 +41103,12 @@ CLASS lcl_zip IMPLEMENTATION.
 
   METHOD export_package.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_offline,
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline,
           ls_data TYPE zcl_abapgit_persistence_repo=>ty_repo.
     ls_data-key = 'DUMMY'.
     ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
 
-    lcl_popups=>popup_package_export(
+    zcl_abapgit_popups=>popup_package_export(
       IMPORTING
         ev_package      = ls_data-package
         ev_folder_logic = ls_data-dot_abapgit-folder_logic ).
@@ -39706,7 +41137,7 @@ CLASS lcl_zip IMPLEMENTATION.
     STATICS: lv_prev TYPE string.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF lt_files.
-    ls_tadir = lcl_popups=>popup_object( ).
+    ls_tadir = zcl_abapgit_popups=>popup_object( ).
     IF ls_tadir IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -39714,7 +41145,7 @@ CLASS lcl_zip IMPLEMENTATION.
     ls_item-obj_type = ls_tadir-object.
     ls_item-obj_name = ls_tadir-obj_name.
 
-    lt_files = lcl_objects=>serialize(
+    lt_files = zcl_abapgit_objects=>serialize(
       is_item     = ls_item
       iv_language = sy-langu ).
 
@@ -39783,1687 +41214,6 @@ CLASS lcl_zip IMPLEMENTATION.
   ENDMETHOD.  "export_package
 
 ENDCLASS.                    "lcl_zip IMPLEMENTATION
-
-****************************************************
-* abapmerge - ZABAPGIT_OBJECTS_IMPL
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_OBJECT
-*&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_objects IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_objects IMPLEMENTATION.
-
-  METHOD warning_overwrite.
-
-    DATA: lt_results_overwrite   LIKE ct_results,
-          lt_confirmed_overwrite LIKE ct_results,
-          lt_columns             TYPE stringtab.
-
-    FIELD-SYMBOLS: <ls_result>  LIKE LINE OF ct_results.
-
-    LOOP AT ct_results ASSIGNING <ls_result>
-        WHERE NOT obj_type IS INITIAL.
-
-      IF <ls_result>-lstate IS NOT INITIAL
-          AND <ls_result>-lstate <> zif_abapgit_definitions=>gc_state-deleted
-          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>gc_state-added
-          AND <ls_result>-rstate IS INITIAL ).
-
-        "current object has been modified locally, add to table for popup
-        APPEND <ls_result> TO lt_results_overwrite.
-      ENDIF.
-
-    ENDLOOP.
-
-    IF lines( lt_results_overwrite ) > 0.
-
-      INSERT `OBJ_TYPE` INTO TABLE lt_columns.
-      INSERT `OBJ_NAME` INTO TABLE lt_columns.
-
-      "all returned objects will be overwritten
-      lcl_popups=>popup_to_select_from_list(
-        EXPORTING
-          it_list               = lt_results_overwrite
-          i_header_text         = |The following Objects have been modified locally.|
-                              && | Select the Objects which should be overwritten.|
-          i_select_column_text  = 'Overwrite?'
-          it_columns_to_display = lt_columns
-        IMPORTING
-          et_list               = lt_confirmed_overwrite ).
-
-      LOOP AT lt_results_overwrite ASSIGNING <ls_result>.
-        READ TABLE lt_confirmed_overwrite TRANSPORTING NO FIELDS
-             WITH KEY obj_type = <ls_result>-obj_type
-                      obj_name = <ls_result>-obj_name.
-        IF sy-subrc <> 0.
-          DELETE TABLE ct_results FROM <ls_result>.
-        ENDIF.
-      ENDLOOP.
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD warning_package.
-
-    DATA: lv_question TYPE c LENGTH 200,
-          lv_answer   TYPE c,
-          ls_tadir    TYPE tadir.
-    ls_tadir = lcl_tadir=>read_single( iv_object   = is_item-obj_type
-                                       iv_obj_name = is_item-obj_name ).
-    IF NOT ls_tadir IS INITIAL AND ls_tadir-devclass <> iv_package.
-      CONCATENATE 'Overwrite object' is_item-obj_type is_item-obj_name
-        'from package' ls_tadir-devclass
-        INTO lv_question SEPARATED BY space.                "#EC NOTEXT
-
-      lv_answer = lcl_popups=>popup_to_confirm(
-        titlebar              = 'Warning'
-        text_question         = lv_question
-        text_button_1         = 'Ok'
-        icon_button_1         = 'ICON_DELETE'
-        text_button_2         = 'Cancel'
-        icon_button_2         = 'ICON_CANCEL'
-        default_button        = '2'
-        display_cancel_button = abap_false ).               "#EC NOTEXT
-
-      IF lv_answer = '2'.
-        rv_cancel = abap_true.
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.                    "check_warning
-
-  METHOD update_package_tree.
-
-    DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-          lv_package  LIKE LINE OF lt_packages,
-          lv_tree     TYPE dirtree-tname.
-    lt_packages = zcl_abapgit_sap_package=>get( iv_package )->list_subpackages( ).
-    APPEND iv_package TO lt_packages.
-
-    LOOP AT lt_packages INTO lv_package.
-* update package tree for SE80
-      lv_tree = 'EU_' && lv_package.
-      CALL FUNCTION 'WB_TREE_ACTUALIZE'
-        EXPORTING
-          tree_name              = lv_tree
-          without_crossreference = abap_true
-          with_tcode_index       = abap_true.
-    ENDLOOP.
-
-  ENDMETHOD.                    "update_package_tree
-
-  METHOD create_object.
-
-    TYPES: BEGIN OF ty_obj_serializer_map,
-             item     LIKE is_item,
-             metadata LIKE is_metadata,
-           END OF ty_obj_serializer_map.
-
-    STATICS st_obj_serializer_map
-      TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item.
-
-    DATA: lv_message            TYPE string,
-          lv_class_name         TYPE string,
-          ls_obj_serializer_map LIKE LINE OF st_obj_serializer_map.
-    READ TABLE st_obj_serializer_map
-      INTO ls_obj_serializer_map WITH KEY item = is_item.
-    IF sy-subrc = 0.
-      lv_class_name = ls_obj_serializer_map-metadata-class.
-    ELSEIF is_metadata IS NOT INITIAL.
-*        Metadata is provided only on serialization
-*        Once this has been triggered, the same serializer shall be used
-*        for subsequent processes.
-*        Thus, buffer the metadata afterwards
-      ls_obj_serializer_map-item      = is_item.
-      ls_obj_serializer_map-metadata  = is_metadata.
-      INSERT ls_obj_serializer_map INTO TABLE st_obj_serializer_map.
-
-      lv_class_name = is_metadata-class.
-    ELSE.
-      lv_class_name = class_name( is_item ).
-    ENDIF.
-
-*    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true
-*        AND is_item-obj_type = 'CLAS'.
-*      lv_class_name = 'LCL_OBJECT_CLAS_NEW'.
-*    ENDIF.
-
-    REPLACE FIRST OCCURRENCE OF 'LCL' IN lv_class_name WITH 'ZCL_ABAPGIT'.
-
-    TRY.
-        CREATE OBJECT ri_obj TYPE (lv_class_name)
-          EXPORTING
-            is_item     = is_item
-            iv_language = iv_language.
-      CATCH cx_sy_create_object_error.
-        lv_message = |Object type { is_item-obj_type } not supported, serialize|. "#EC NOTEXT
-        IF iv_native_only = abap_false.
-          TRY. " 2nd step, try looking for plugins
-              CREATE OBJECT ri_obj TYPE lcl_objects_bridge
-                EXPORTING
-                  is_item = is_item.
-            CATCH cx_sy_create_object_error.
-              zcx_abapgit_exception=>raise( lv_message ).
-          ENDTRY.
-        ELSE. " No native support? -> fail
-          zcx_abapgit_exception=>raise( lv_message ).
-        ENDIF.
-    ENDTRY.
-
-  ENDMETHOD.                    "create_object
-
-  METHOD has_changed_since.
-    rv_changed = abap_true. " Assume changed
-
-    IF is_supported( is_item ) = abap_false.
-      RETURN. " Will requre serialize which will log the error
-    ENDIF.
-
-    rv_changed = create_object(
-      is_item     = is_item
-      iv_language = zif_abapgit_definitions=>gc_english )->has_changed_since( iv_timestamp ).
-
-  ENDMETHOD.  "has_changed_since
-
-  METHOD is_supported.
-
-    TRY.
-        create_object( is_item        = is_item
-                       iv_language    = zif_abapgit_definitions=>gc_english
-                       iv_native_only = iv_native_only ).
-        rv_bool = abap_true.
-      CATCH zcx_abapgit_exception.
-        rv_bool = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.                    "is_supported
-
-  METHOD supported_list.
-
-    DATA: lv_type  LIKE LINE OF rt_types,
-          lt_snode TYPE TABLE OF snode.
-
-    FIELD-SYMBOLS: <ls_snode> LIKE LINE OF lt_snode.
-    CALL FUNCTION 'WB_TREE_ACTUALIZE'
-      EXPORTING
-        tree_name              = 'PG_ZABAPGIT'
-        without_crossreference = abap_true
-        with_tcode_index       = abap_true
-      TABLES
-        p_tree                 = lt_snode.
-
-    DELETE lt_snode WHERE type <> 'OPL'
-      OR name NP 'LCL_OBJECT_++++'.
-
-    LOOP AT lt_snode ASSIGNING <ls_snode>.
-      lv_type = <ls_snode>-name+11.
-      APPEND lv_type TO rt_types.
-    ENDLOOP.
-
-  ENDMETHOD.                    "supported_list
-
-  METHOD exists.
-
-    DATA: li_obj TYPE REF TO zif_abapgit_object.
-    TRY.
-        li_obj = create_object( is_item = is_item
-                                iv_language = zif_abapgit_definitions=>gc_english ).
-        rv_bool = li_obj->exists( ).
-      CATCH zcx_abapgit_exception.
-* ignore all errors and assume the object exists
-        rv_bool = abap_true.
-    ENDTRY.
-
-  ENDMETHOD.                    "exists
-
-  METHOD class_name.
-
-    CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name. "#EC NOTEXT
-
-  ENDMETHOD.                    "class_name
-
-  METHOD jump.
-
-    DATA: li_obj              TYPE REF TO zif_abapgit_object,
-          lv_adt_jump_enabled TYPE abap_bool.
-
-    li_obj = create_object( is_item     = is_item
-                            iv_language = zif_abapgit_definitions=>gc_english ).
-
-    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
-
-    IF lv_adt_jump_enabled = abap_true.
-      TRY.
-          zcl_abapgit_objects_super=>jump_adt(
-            i_obj_name = is_item-obj_name
-            i_obj_type = is_item-obj_type ).
-        CATCH zcx_abapgit_exception.
-          li_obj->jump( ).
-      ENDTRY.
-    ELSE.
-      li_obj->jump( ).
-    ENDIF.
-
-  ENDMETHOD.                    "jump
-
-  METHOD changed_by.
-
-    DATA: li_obj TYPE REF TO zif_abapgit_object.
-    IF is_item IS INITIAL.
-* eg. ".abapgit.xml" file
-      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
-    ELSE.
-      li_obj = create_object( is_item     = is_item
-                              iv_language = zif_abapgit_definitions=>gc_english ).
-      rv_user = li_obj->changed_by( ).
-    ENDIF.
-
-    ASSERT NOT rv_user IS INITIAL.
-
-* todo, fallback to looking at transports if rv_user = 'UNKNOWN'?
-
-  ENDMETHOD.
-
-  METHOD delete.
-
-    DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
-          lt_tadir    LIKE it_tadir.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-
-    lt_tadir[] = it_tadir[].
-
-    zcl_abapgit_dependencies=>resolve( CHANGING ct_tadir = lt_tadir ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( lt_tadir ).
-
-    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-      lo_progress->show( iv_current = sy-tabix
-                         iv_text    = |Delete { <ls_tadir>-obj_name }| ) ##NO_TEXT.
-
-      CLEAR ls_item.
-      ls_item-obj_type = <ls_tadir>-object.
-      ls_item-obj_name = <ls_tadir>-obj_name.
-      delete_obj( ls_item ).
-
-* make sure to save object deletions
-      COMMIT WORK.
-    ENDLOOP.
-
-  ENDMETHOD.                    "delete
-
-  METHOD delete_obj.
-
-    DATA: li_obj TYPE REF TO zif_abapgit_object.
-    IF is_supported( is_item ) = abap_true.
-      li_obj = create_object( is_item     = is_item
-                              iv_language = zif_abapgit_definitions=>gc_english ).
-
-      li_obj->delete( ).
-
-      IF li_obj->get_metadata( )-delete_tadir = abap_true.
-        CALL FUNCTION 'TR_TADIR_INTERFACE'
-          EXPORTING
-            wi_delete_tadir_entry = abap_true
-            wi_tadir_pgmid        = 'R3TR'
-            wi_tadir_object       = is_item-obj_type
-            wi_tadir_obj_name     = is_item-obj_name
-            wi_test_modus         = abap_false.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.                    "delete
-
-  METHOD serialize.
-
-    DATA: li_obj   TYPE REF TO zif_abapgit_object,
-          lo_xml   TYPE REF TO zcl_abapgit_xml_output,
-          lo_files TYPE REF TO zcl_abapgit_objects_files.
-    IF is_supported( is_item ) = abap_false.
-      IF NOT io_log IS INITIAL.
-        io_log->add( iv_msg = |Object type ignored, not supported: { is_item-obj_type
-                       }-{ is_item-obj_name }|
-                     iv_type = 'E' ).
-      ENDIF.
-      RETURN.
-    ENDIF.
-
-    CREATE OBJECT lo_files
-      EXPORTING
-        is_item = is_item.
-
-    li_obj = create_object( is_item = is_item
-                            iv_language = iv_language ).
-    li_obj->mo_files = lo_files.
-    CREATE OBJECT lo_xml.
-    li_obj->serialize( lo_xml ).
-    lo_files->add_xml( io_xml      = lo_xml
-                       is_metadata = li_obj->get_metadata( ) ).
-
-    rt_files = lo_files->get_files( ).
-
-    check_duplicates( rt_files ).
-
-  ENDMETHOD.                    "serialize
-
-  METHOD check_duplicates.
-
-    DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
-    lt_files[] = it_files[].
-    SORT lt_files BY path ASCENDING filename ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM lt_files COMPARING path filename.
-    IF lines( lt_files ) <> lines( it_files ).
-      zcx_abapgit_exception=>raise( 'Duplicates' ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD prioritize_deser.
-
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
-
-* XSLT has to be handled before CLAS/PROG
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'XSLT'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* PROG before internet services, as the services might use the screens
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PROG'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* ISAP has to be handled before ISRP
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'IASP'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* PINF has to be handled before DEVC for package interface usage
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PINF'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-    LOOP AT it_results ASSIGNING <ls_result>
-        WHERE obj_type <> 'IASP'
-        AND obj_type <> 'PROG'
-        AND obj_type <> 'XSLT'
-        AND obj_type <> 'PINF'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-  ENDMETHOD.                    "prioritize_deser
-
-  METHOD deserialize.
-
-    DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          lv_cancel   TYPE abap_bool,
-          li_obj      TYPE REF TO zif_abapgit_object,
-          lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
-          lv_package  TYPE devclass,
-          lo_files    TYPE REF TO zcl_abapgit_objects_files,
-          lo_xml      TYPE REF TO zcl_abapgit_xml_input,
-          lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
-          lt_ddic     TYPE TABLE OF ty_deserialization,
-          lt_rest     TYPE TABLE OF ty_deserialization,
-          lt_late     TYPE TABLE OF ty_deserialization,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
-          lv_path     TYPE string.
-
-    FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
-                   <ls_deser>  LIKE LINE OF lt_late.
-
-    lv_package = io_repo->get_package( ).
-
-    zcl_abapgit_default_task=>get_instance( )->set( lv_package ).
-
-    zcl_abapgit_objects_activation=>clear( ).
-
-    lt_remote = io_repo->get_files_remote( ).
-
-    lt_results = lcl_file_status=>status( io_repo ).
-    DELETE lt_results WHERE match = abap_true.     " Full match
-    SORT lt_results BY obj_type ASCENDING obj_name ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM lt_results COMPARING obj_type obj_name.
-
-    lt_results = prioritize_deser( lt_results ).
-
-    warning_overwrite( CHANGING ct_results = lt_results ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( lt_results ).
-
-    LOOP AT lt_results ASSIGNING <ls_result> WHERE obj_type IS NOT INITIAL
-        AND NOT ( lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL ).
-      lo_progress->show( iv_current = sy-tabix
-                         iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
-
-      CLEAR ls_item.
-      ls_item-obj_type = <ls_result>-obj_type.
-      ls_item-obj_name = <ls_result>-obj_name.
-* handle namespaces
-      REPLACE ALL OCCURRENCES OF '#' IN ls_item-obj_name WITH '/'.
-
-      lv_package = zcl_abapgit_folder_logic=>path_to_package(
-        iv_top  = io_repo->get_package( )
-        io_dot  = io_repo->get_dot_abapgit( )
-        iv_path = <ls_result>-path ).
-
-      lv_cancel = warning_package( is_item    = ls_item
-                                   iv_package = lv_package ).
-      IF lv_cancel = abap_true.
-        zcx_abapgit_exception=>raise( 'cancelled' ).
-      ENDIF.
-
-      IF ls_item-obj_type = 'DEVC'.
-        " Packages have the same filename across different folders. The path needs to be supplied
-        " to find the correct file.
-        lv_path = <ls_result>-path.
-      ENDIF.
-
-      CREATE OBJECT lo_files
-        EXPORTING
-          is_item = ls_item
-          iv_path = lv_path.
-      lo_files->set_files( lt_remote ).
-
-* Analyze XML in order to instantiate the proper serializer
-      lo_xml = lo_files->read_xml( ).
-
-      li_obj = create_object( is_item     = ls_item
-                              iv_language = io_repo->get_master_language( )
-                              is_metadata = lo_xml->get_metadata( ) ).
-
-      compare_remote_to_local(
-        io_object = li_obj
-        it_remote = lt_remote
-        is_result = <ls_result> ).
-
-      li_obj->mo_files = lo_files.
-
-      IF li_obj->get_metadata( )-late_deser = abap_true.
-        APPEND INITIAL LINE TO lt_late ASSIGNING <ls_deser>.
-      ELSEIF li_obj->get_metadata( )-ddic = abap_true.
-        APPEND INITIAL LINE TO lt_ddic ASSIGNING <ls_deser>.
-      ELSE.
-        APPEND INITIAL LINE TO lt_rest ASSIGNING <ls_deser>.
-      ENDIF.
-      <ls_deser>-item    = ls_item.
-      <ls_deser>-obj     = li_obj.
-      <ls_deser>-xml     = lo_xml.
-      <ls_deser>-package = lv_package.
-
-      CLEAR: lv_path, lv_package.
-    ENDLOOP.
-
-    deserialize_objects( EXPORTING it_objects = lt_ddic
-                                   iv_ddic    = abap_true
-                                   iv_descr   = 'DDIC'
-                         CHANGING ct_files = rt_accessed_files ).
-
-    deserialize_objects( EXPORTING it_objects = lt_rest
-                                   iv_descr   = 'Objects'
-                         CHANGING ct_files = rt_accessed_files ).
-
-    deserialize_objects( EXPORTING it_objects = lt_late
-                                   iv_descr   = 'Late'
-                         CHANGING ct_files = rt_accessed_files ).
-
-    update_package_tree( io_repo->get_package( ) ).
-
-    SORT rt_accessed_files BY path ASCENDING filename ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM rt_accessed_files. " Just in case
-
-    zcl_abapgit_default_task=>get_instance( )->reset( ).
-
-  ENDMETHOD.                    "deserialize
-
-  METHOD deserialize_objects.
-
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
-
-    FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
-    zcl_abapgit_objects_activation=>clear( ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( it_objects ).
-
-    LOOP AT it_objects ASSIGNING <ls_obj>.
-      lo_progress->show(
-        iv_current = sy-tabix
-        iv_text    = |Deserialize { iv_descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
-
-      <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
-                                 io_xml     = <ls_obj>-xml ).
-      APPEND LINES OF <ls_obj>-obj->mo_files->get_accessed_files( ) TO ct_files.
-    ENDLOOP.
-
-    zcl_abapgit_objects_activation=>activate( iv_ddic ).
-
-  ENDMETHOD.
-
-  METHOD compare_remote_to_local.
-* this method is used for comparing local with remote objects
-* before pull, this is useful eg. when overwriting a TABL object.
-* only the main XML file is used for comparison
-
-    DATA: ls_remote_file       TYPE zif_abapgit_definitions=>ty_file,
-          lo_remote_version    TYPE REF TO zcl_abapgit_xml_input,
-          lv_count             TYPE i,
-          lo_comparison_result TYPE REF TO zif_abapgit_comparison_result.
-    FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
-
-    IF is_result-filename CS '.XML' AND lv_count = 2.
-      IF io_object->exists( ) = abap_false.
-        RETURN.
-      ENDIF.
-
-      READ TABLE it_remote WITH KEY filename = is_result-filename INTO ls_remote_file.
-
-      "if file does not exist in remote, we don't need to validate
-      IF sy-subrc = 0.
-        CREATE OBJECT lo_remote_version
-          EXPORTING
-            iv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data ).
-        lo_comparison_result = io_object->compare_to_remote_version( lo_remote_version ).
-        lo_comparison_result->show_confirmation_dialog( ).
-
-        IF lo_comparison_result->is_result_complete_halt( ) = abap_true.
-          zcx_abapgit_exception=>raise( 'Deserialization aborted by user' ).
-        ENDIF.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-
-ENDCLASS.                    "lcl_objects IMPLEMENTATION
-****************************************************
-* abapmerge - ZABAPGIT_REPO_IMPL
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_REPO_IMPL
-*&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_offline IMPLEMENTATION
-*----------------------------------------------------------------------*
-CLASS lcl_repo_offline IMPLEMENTATION.
-
-ENDCLASS.                    "lcl_repo_offline IMPLEMENTATION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_online IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_repo_online IMPLEMENTATION.
-
-  METHOD constructor.
-
-    super->constructor( is_data ).
-
-    mv_initialized = abap_false.
-
-  ENDMETHOD.                    "constructor
-
-  METHOD initialize.
-    IF mv_initialized = abap_false.
-      refresh( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD status.
-
-    initialize( ).
-
-    IF lines( mt_status ) = 0.
-      mt_status = lcl_file_status=>status( io_repo = me
-                                           io_log  = io_log ).
-    ENDIF.
-    rt_results = mt_status.
-
-  ENDMETHOD.                    "status
-
-  METHOD deserialize.
-
-    IF ms_data-write_protect = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    initialize( ).
-
-    super->deserialize( ).
-
-    set( iv_sha1 = mv_branch ).
-
-    reset_status( ).
-
-    COMMIT WORK AND WAIT.
-
-  ENDMETHOD.                    "deserialize
-
-  METHOD reset_status.
-    CLEAR mt_status.
-  ENDMETHOD.  " reset_status.
-
-  METHOD set_objects.
-    mt_objects = it_objects.
-  ENDMETHOD.
-
-  METHOD refresh.
-
-    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
-          lx_exception TYPE REF TO zcx_abapgit_exception.
-
-    super->refresh( iv_drop_cache ).
-    reset_status( ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 1.
-
-    lo_progress->show( iv_current = 1
-                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
-
-    TRY.
-
-        lcl_git_porcelain=>pull( EXPORTING io_repo    = me
-                                 IMPORTING et_files   = mt_remote
-                                           et_objects = mt_objects
-                                           ev_branch  = mv_branch ).
-
-      CATCH zcx_abapgit_exception INTO lx_exception.
-
-        delete_initial_online_repo( abap_true ).
-
-        RAISE EXCEPTION lx_exception.
-
-    ENDTRY.
-
-    mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
-    actualize_head_branch( ).
-
-    mv_initialized = abap_true.
-
-  ENDMETHOD.                    "refresh
-
-  METHOD actualize_head_branch.
-    DATA lv_branch_name TYPE string.
-    lv_branch_name = mo_branches->get_head( )-name.
-
-    IF lv_branch_name <> ms_data-head_branch.
-      set( iv_head_branch = lv_branch_name ).
-    ENDIF.
-
-  ENDMETHOD.                    "actualize_head_branch
-
-  METHOD get_sha1_remote.
-    initialize( ).
-
-    rv_sha1 = mv_branch.
-  ENDMETHOD.                    "get_sha1_remote
-
-  METHOD get_files_remote.
-    initialize( ).
-
-    rt_files = mt_remote.
-  ENDMETHOD.                    "get_files
-
-  METHOD get_objects.
-    initialize( ).
-
-    rt_objects = mt_objects.
-  ENDMETHOD.                    "get_objects
-
-  METHOD get_url.
-    rv_url = ms_data-url.
-  ENDMETHOD.                    "get_url
-
-  METHOD get_branch_name.
-    rv_name = ms_data-branch_name.
-  ENDMETHOD.                    "get_branch_name
-
-  METHOD get_head_branch_name.
-    rv_name = ms_data-head_branch.
-  ENDMETHOD.                    "get_head_branch_name
-
-  METHOD get_branches.
-    IF mo_branches IS NOT BOUND.
-      mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
-    ENDIF.
-    ro_branches = mo_branches.
-  ENDMETHOD.                    "get_branches
-
-  METHOD set_url.
-
-    IF ms_data-write_protect = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot change URL. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    mv_initialized = abap_false.
-    set( iv_url = iv_url ).
-
-  ENDMETHOD.
-
-  METHOD set_branch_name.
-
-    IF ms_data-write_protect = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    mv_initialized = abap_false.
-    set( iv_branch_name = iv_branch_name ).
-
-  ENDMETHOD.
-
-  METHOD set_new_remote.
-
-    IF ms_data-write_protect = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot change remote. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    mv_initialized = abap_false.
-    set( iv_url         = iv_url
-         iv_branch_name = iv_branch_name
-         iv_head_branch = ''
-         iv_sha1        = '' ).
-
-  ENDMETHOD.  "set_new_remote
-
-  METHOD get_sha1_local.
-    rv_sha1 = ms_data-sha1.
-  ENDMETHOD.                    "get_sha1_local
-
-  METHOD push.
-
-    DATA: lv_branch        TYPE zif_abapgit_definitions=>ty_sha1,
-          lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lv_text          TYPE string.
-
-    IF ms_data-branch_name CP 'refs/tags*'.
-      lv_text = |You're working on a tag. Currently it's not |
-             && |possible to push on tags. Consider creating a branch instead|.
-      zcx_abapgit_exception=>raise( lv_text ).
-    ENDIF.
-
-    handle_stage_ignore( io_stage ).
-
-    lcl_git_porcelain=>push( EXPORTING is_comment       = is_comment
-                                       io_repo          = me
-                                       io_stage         = io_stage
-                             IMPORTING ev_branch        = lv_branch
-                                       et_updated_files = lt_updated_files ).
-
-    IF io_stage->get_branch_sha1( ) = get_sha1_local( ).
-* pushing to the branch currently represented by this repository object
-      mv_branch = lv_branch.
-      set( iv_sha1 = lv_branch ).
-    ELSE.
-      refresh( ).
-    ENDIF.
-
-    update_local_checksums( lt_updated_files ).
-
-    IF lcl_stage_logic=>count( me ) = 0.
-      set( iv_sha1 = lv_branch ).
-    ENDIF.
-
-  ENDMETHOD.                    "push
-
-  METHOD handle_stage_ignore.
-
-    DATA: lv_add         TYPE abap_bool,
-          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
-          lt_stage       TYPE zcl_abapgit_stage=>ty_stage_tt.
-
-    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF lt_stage.
-    lo_dot_abapgit = get_dot_abapgit( ).
-    lt_stage = io_stage->get_all( ).
-    LOOP AT lt_stage ASSIGNING <ls_stage> WHERE method = zcl_abapgit_stage=>c_method-ignore.
-
-      lo_dot_abapgit->add_ignore(
-        iv_path     = <ls_stage>-file-path
-        iv_filename = <ls_stage>-file-filename ).
-
-      " remove it from the staging object, as the action is handled here
-      io_stage->reset( iv_path     = <ls_stage>-file-path
-                       iv_filename = <ls_stage>-file-filename ).
-
-      lv_add = abap_true.
-
-    ENDLOOP.
-
-    IF lv_add = abap_true.
-      io_stage->add(
-        iv_path     = zif_abapgit_definitions=>gc_root_dir
-        iv_filename = zif_abapgit_definitions=>gc_dot_abapgit
-        iv_data     = lo_dot_abapgit->serialize( ) ).
-
-      set_dot_abapgit( lo_dot_abapgit ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD rebuild_local_checksums. "REMOTE
-
-    DATA: lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          ls_last_item    TYPE zif_abapgit_definitions=>ty_item,
-          lv_branch_equal TYPE abap_bool,
-          lt_checksums    TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt.
-
-    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
-                   <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
-                   <ls_remote>   LIKE LINE OF lt_remote,
-                   <ls_local>    LIKE LINE OF lt_local.
-
-    lt_remote       = get_files_remote( ).
-    lt_local        = get_files_local( ).
-    lv_branch_equal = boolc( get_sha1_remote( ) = get_sha1_local( ) ).
-
-    DELETE lt_local " Remove non-code related files except .abapgit
-      WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
-      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
-
-    SORT lt_local BY item.
-    SORT lt_remote BY path filename.
-
-    LOOP AT lt_local ASSIGNING <ls_local>.
-      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
-        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
-        <ls_checksum>-item = <ls_local>-item.
-        ls_last_item       = <ls_local>-item.
-      ENDIF.
-
-      READ TABLE lt_remote ASSIGNING <ls_remote>
-        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-        BINARY SEARCH.
-      CHECK sy-subrc = 0.  " Ignore new ones
-
-      APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_file_sig>.
-      MOVE-CORRESPONDING <ls_local>-file TO <ls_file_sig>.
-
-      " If hashes are equal -> local sha1 is OK
-      " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
-      "      Else (branches equal) -> assume changes were local, state - remote sha1
-      IF <ls_local>-file-sha1 <> <ls_remote>-sha1 AND lv_branch_equal = abap_true.
-        <ls_file_sig>-sha1 = <ls_remote>-sha1.
-      ENDIF.
-    ENDLOOP.
-
-    set( it_checksums = lt_checksums ).
-    reset_status( ).
-
-  ENDMETHOD.  " rebuild_local_checksums.
-
-  METHOD delete_initial_online_repo.
-
-    IF me->is_offline( ) = abap_false AND me->get_sha1_local( ) IS INITIAL.
-
-      lcl_repo_srv=>get_instance( )->delete( me ).
-
-      IF iv_commit = abap_true.
-        COMMIT WORK.
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.  " delete_initial_online_repo
-
-  METHOD get_unnecessary_local_objs.
-
-    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tadir_unique TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_tadir
-                               WITH UNIQUE KEY pgmid object obj_name,
-          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_status       TYPE zif_abapgit_definitions=>ty_results_tt,
-          lv_package      TYPE zcl_abapgit_persistence_repo=>ty_repo-package.
-
-    FIELD-SYMBOLS: <status> TYPE zif_abapgit_definitions=>ty_result,
-                   <tadir>  TYPE zif_abapgit_definitions=>ty_tadir.
-
-    " delete objects which are added locally but are not in remote repo
-    lt_local  = me->get_files_local( ).
-    lt_remote = me->get_files_remote( ).
-    lt_status = me->status( ).
-
-    lv_package = me->get_package( ).
-    lt_tadir = lcl_tadir=>read( lv_package ).
-    SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
-
-    LOOP AT lt_status ASSIGNING <status>
-                      WHERE lstate = zif_abapgit_definitions=>gc_state-added.
-
-      READ TABLE lt_tadir ASSIGNING <tadir>
-                          WITH KEY pgmid    = 'R3TR'
-                                   object   = <status>-obj_type
-                                   obj_name = <status>-obj_name
-                                   devclass = <status>-package
-                          BINARY SEARCH.
-      IF sy-subrc <> 0.
-* skip objects that does not exist locally
-        CONTINUE.
-      ENDIF.
-
-      INSERT <tadir> INTO TABLE lt_tadir_unique.
-
-    ENDLOOP.
-
-    rt_unnecessary_local_objects = lt_tadir_unique.
-
-  ENDMETHOD.
-
-ENDCLASS.                    "lcl_repo_online IMPLEMENTATION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_repo IMPLEMENTATION.
-
-  METHOD constructor.
-
-    ASSERT NOT is_data-key IS INITIAL.
-
-    ms_data = is_data.
-
-  ENDMETHOD.                    "constructor
-
-  METHOD find_remote_dot_abapgit.
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
-    READ TABLE mt_remote ASSIGNING <ls_remote>
-      WITH KEY path = zif_abapgit_definitions=>gc_root_dir
-      filename = zif_abapgit_definitions=>gc_dot_abapgit.
-    IF sy-subrc = 0.
-      ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
-      set_dot_abapgit( ro_dot ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD get_files_remote.
-    rt_files = mt_remote.
-  ENDMETHOD.
-
-  METHOD set.
-
-    DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
-    ASSERT iv_sha1 IS SUPPLIED
-      OR it_checksums IS SUPPLIED
-      OR iv_url IS SUPPLIED
-      OR iv_branch_name IS SUPPLIED
-      OR iv_head_branch IS SUPPLIED
-      OR iv_offline IS SUPPLIED
-      OR is_dot_abapgit IS SUPPLIED.
-
-    CREATE OBJECT lo_persistence.
-
-    IF iv_sha1 IS SUPPLIED.
-      lo_persistence->update_sha1(
-        iv_key         = ms_data-key
-        iv_branch_sha1 = iv_sha1 ).
-      ms_data-sha1 = iv_sha1.
-    ENDIF.
-
-    IF it_checksums IS SUPPLIED.
-      lo_persistence->update_local_checksums(
-        iv_key       = ms_data-key
-        it_checksums = it_checksums ).
-      ms_data-local_checksums = it_checksums.
-    ENDIF.
-
-    IF iv_url IS SUPPLIED.
-      lo_persistence->update_url(
-        iv_key = ms_data-key
-        iv_url = iv_url ).
-      ms_data-url = iv_url.
-    ENDIF.
-
-    IF iv_branch_name IS SUPPLIED.
-      lo_persistence->update_branch_name(
-        iv_key         = ms_data-key
-        iv_branch_name = iv_branch_name ).
-      ms_data-branch_name = iv_branch_name.
-    ENDIF.
-
-    IF iv_head_branch IS SUPPLIED.
-      lo_persistence->update_head_branch(
-        iv_key         = ms_data-key
-        iv_head_branch = iv_head_branch ).
-      ms_data-head_branch = iv_head_branch.
-    ENDIF.
-
-    IF iv_offline IS SUPPLIED.
-      lo_persistence->update_offline(
-        iv_key     = ms_data-key
-        iv_offline = iv_offline ).
-      ms_data-offline = iv_offline.
-    ENDIF.
-
-    IF is_dot_abapgit IS SUPPLIED.
-      lo_persistence->update_dot_abapgit(
-        iv_key         = ms_data-key
-        is_dot_abapgit = is_dot_abapgit ).
-      ms_data-dot_abapgit = is_dot_abapgit.
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD update_local_checksums.
-
-    " ASSUMTION: SHA1 in param is actual and correct.
-    " Push fills it from local files before pushing, deserialize from remote
-    " If this is not true that there is an error somewhere but not here
-
-    DATA: lt_checksums TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt,
-          lt_files_idx TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lv_chks_row  TYPE i,
-          lv_file_row  TYPE i.
-
-    FIELD-SYMBOLS: <ls_checksum>  LIKE LINE OF lt_checksums,
-                   <ls_file>      LIKE LINE OF <ls_checksum>-files,
-                   <ls_local>     LIKE LINE OF lt_local,
-                   <ls_new_state> LIKE LINE OF it_files.
-
-    lt_checksums = get_local_checksums( ).
-    lt_files_idx = it_files.
-    SORT lt_files_idx BY path filename. " Sort for binary search
-
-    " Loop through current chacksum state, update sha1 for common files
-    LOOP AT lt_checksums ASSIGNING <ls_checksum>.
-      lv_chks_row = sy-tabix.
-
-      LOOP AT <ls_checksum>-files ASSIGNING <ls_file>.
-        lv_file_row = sy-tabix.
-
-        READ TABLE lt_files_idx ASSIGNING <ls_new_state>
-          WITH KEY path = <ls_file>-path filename = <ls_file>-filename
-          BINARY SEARCH.
-        CHECK sy-subrc = 0. " Missing in param table, skip
-
-        IF <ls_new_state>-sha1 IS INITIAL. " Empty input sha1 is a deletion marker
-          DELETE <ls_checksum>-files INDEX lv_file_row.
-        ELSE.
-          <ls_file>-sha1 = <ls_new_state>-sha1.  " Update sha1
-          CLEAR <ls_new_state>-sha1.             " Mark as processed
-        ENDIF.
-      ENDLOOP.
-
-      IF lines( <ls_checksum>-files ) = 0. " Remove empty objects
-        DELETE lt_checksums INDEX lv_chks_row.
-      ENDIF.
-    ENDLOOP.
-
-    DELETE lt_files_idx WHERE sha1 IS INITIAL. " Remove processed
-    IF lines( lt_files_idx ) > 0.
-      lt_local = get_files_local( ).
-      SORT lt_local BY file-path file-filename. " Sort for binary search
-    ENDIF.
-
-    " Add new files - not deleted and not marked as processed above
-    LOOP AT lt_files_idx ASSIGNING <ls_new_state>.
-
-      READ TABLE lt_local ASSIGNING <ls_local>
-        WITH KEY file-path = <ls_new_state>-path file-filename = <ls_new_state>-filename
-        BINARY SEARCH.
-      IF sy-subrc <> 0.
-* if the deserialization fails, the local file might not be there
-        CONTINUE.
-      ENDIF.
-
-      READ TABLE lt_checksums ASSIGNING <ls_checksum> " TODO Optimize
-        WITH KEY item = <ls_local>-item.
-      IF sy-subrc > 0.
-        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
-        <ls_checksum>-item = <ls_local>-item.
-      ENDIF.
-
-      APPEND <ls_new_state> TO <ls_checksum>-files.
-    ENDLOOP.
-
-    SORT lt_checksums BY item.
-    set( it_checksums = lt_checksums ).
-
-  ENDMETHOD.  " update_local_checksums
-
-  METHOD deserialize.
-
-    DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_requirements  TYPE STANDARD TABLE OF zif_abapgit_dot_abapgit=>ty_requirement,
-          lx_error         TYPE REF TO zcx_abapgit_exception.
-
-    find_remote_dot_abapgit( ).
-
-    IF get_dot_abapgit( )->get_master_language( ) <> sy-langu.
-      zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
-    ENDIF.
-
-    lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
-    IF lt_requirements IS NOT INITIAL.
-      zcl_abapgit_requirement_helper=>check_requirements( it_requirements = lt_requirements
-                                                          iv_show_popup   = abap_true ).
-    ENDIF.
-
-    TRY.
-        lt_updated_files = lcl_objects=>deserialize( me ).
-
-      CATCH zcx_abapgit_exception INTO lx_error.
-
-        " ensure to reset default transport request task
-        zcl_abapgit_default_task=>get_instance( )->reset( ).
-        zcx_abapgit_exception=>raise( lx_error->text ).
-
-    ENDTRY.
-
-    APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
-
-    CLEAR: mt_local, mv_last_serialization.
-
-    update_local_checksums( lt_updated_files ).
-
-  ENDMETHOD.
-
-  METHOD get_local_checksums.
-    rt_checksums = ms_data-local_checksums.
-  ENDMETHOD.
-
-  METHOD get_local_checksums_per_file.
-
-    FIELD-SYMBOLS <object> LIKE LINE OF ms_data-local_checksums.
-
-    LOOP AT ms_data-local_checksums ASSIGNING <object>.
-      APPEND LINES OF <object>-files TO rt_checksums.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD get_files_local.
-
-    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          lt_files    TYPE zif_abapgit_definitions=>ty_files_tt,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
-          lt_cache    TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
-                   WITH NON-UNIQUE KEY item.
-
-    DATA: lt_filter       TYPE SORTED TABLE OF tadir
-                          WITH NON-UNIQUE KEY object obj_name,
-          lv_filter_exist TYPE abap_bool.
-
-    FIELD-SYMBOLS: <ls_file>   LIKE LINE OF lt_files,
-                   <ls_return> LIKE LINE OF rt_files,
-                   <ls_cache>  LIKE LINE OF lt_cache,
-                   <ls_tadir>  LIKE LINE OF lt_tadir.
-    " Serialization happened before and no refresh request
-    IF mv_last_serialization IS NOT INITIAL AND mv_do_local_refresh = abap_false.
-      rt_files = mt_local.
-      RETURN.
-    ENDIF.
-
-    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file-path     = zif_abapgit_definitions=>gc_root_dir.
-    <ls_return>-file-filename = zif_abapgit_definitions=>gc_dot_abapgit.
-    <ls_return>-file-data     = get_dot_abapgit( )->serialize( ).
-    <ls_return>-file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
-                                                        iv_data = <ls_return>-file-data ).
-
-    lt_cache = mt_local.
-    lt_tadir = lcl_tadir=>read(
-      iv_package            = get_package( )
-      iv_ignore_subpackages = ignore_subpackages( )
-      io_dot                = get_dot_abapgit( )
-      io_log                = io_log ).
-
-    lt_filter = it_filter.
-    lv_filter_exist = boolc( lines( lt_filter ) > 0 ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( lt_tadir ).
-
-    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-      IF lv_filter_exist = abap_true.
-        READ TABLE lt_filter TRANSPORTING NO FIELDS WITH KEY object = <ls_tadir>-object
-                                                             obj_name = <ls_tadir>-obj_name
-                                                    BINARY SEARCH.
-        IF sy-subrc <> 0.
-          CONTINUE.
-        ENDIF.
-      ENDIF.
-
-      lo_progress->show(
-        iv_current = sy-tabix
-        iv_text    = |Serialize { <ls_tadir>-obj_name }| ) ##NO_TEXT.
-
-      ls_item-obj_type = <ls_tadir>-object.
-      ls_item-obj_name = <ls_tadir>-obj_name.
-      ls_item-devclass = <ls_tadir>-devclass.
-
-      IF mv_last_serialization IS NOT INITIAL. " Try to fetch from cache
-        READ TABLE lt_cache TRANSPORTING NO FIELDS
-          WITH KEY item = ls_item. " type+name+package key
-        " There is something in cache and the object is unchanged
-        IF sy-subrc = 0
-            AND abap_false = lcl_objects=>has_changed_since(
-            is_item      = ls_item
-            iv_timestamp = mv_last_serialization ).
-          LOOP AT lt_cache ASSIGNING <ls_cache> WHERE item = ls_item.
-            APPEND <ls_cache> TO rt_files.
-          ENDLOOP.
-
-          CONTINUE.
-        ENDIF.
-      ENDIF.
-
-      lt_files = lcl_objects=>serialize(
-        is_item     = ls_item
-        iv_language = get_master_language( )
-        io_log      = io_log ).
-      LOOP AT lt_files ASSIGNING <ls_file>.
-        <ls_file>-path = <ls_tadir>-path.
-        <ls_file>-sha1 = zcl_abapgit_hash=>sha1(
-          iv_type = zif_abapgit_definitions=>gc_type-blob
-          iv_data = <ls_file>-data ).
-
-        APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-        <ls_return>-file = <ls_file>.
-        <ls_return>-item = ls_item.
-      ENDLOOP.
-    ENDLOOP.
-
-    GET TIME STAMP FIELD mv_last_serialization.
-    mt_local            = rt_files.
-    mv_do_local_refresh = abap_false. " Fulfill refresh
-
-  ENDMETHOD.
-
-  METHOD get_dot_abapgit.
-    CREATE OBJECT ro_dot_abapgit
-      EXPORTING
-        is_data = ms_data-dot_abapgit.
-  ENDMETHOD.
-
-  METHOD set_dot_abapgit.
-    set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
-  ENDMETHOD.
-
-  METHOD delete.
-
-    DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
-    CREATE OBJECT lo_persistence.
-
-    lo_persistence->delete( ms_data-key ).
-
-  ENDMETHOD.                    "delete
-
-  METHOD is_offline.
-    rv_offline = ms_data-offline.
-  ENDMETHOD.
-
-  METHOD set_files_remote.
-
-    mt_remote = it_files.
-
-  ENDMETHOD.
-
-  METHOD refresh.
-
-    mv_do_local_refresh = abap_true.
-
-    IF iv_drop_cache = abap_true.
-      CLEAR: mv_last_serialization, mt_local.
-    ENDIF.
-
-  ENDMETHOD.                    "refresh
-
-  METHOD refresh_local. " For testing purposes, maybe removed later
-    mv_do_local_refresh = abap_true.
-  ENDMETHOD.  "refresh_local
-
-  METHOD get_package.
-    rv_package = ms_data-package.
-  ENDMETHOD.                    "get_package
-
-  METHOD get_master_language.
-    rv_language = ms_data-dot_abapgit-master_language.
-  ENDMETHOD.
-
-  METHOD get_key.
-    rv_key = ms_data-key.
-  ENDMETHOD.                    "get_key
-
-  METHOD get_name.
-
-    IF ms_data-offline = abap_true.
-      rv_name = ms_data-url.
-    ELSE.
-      rv_name = zcl_abapgit_url=>name( ms_data-url ).
-      rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
-    ENDIF.
-
-  ENDMETHOD.                    "get_name
-
-  METHOD is_write_protected.
-    rv_yes = ms_data-write_protect.
-  ENDMETHOD.                    "is_write_protected
-
-  METHOD ignore_subpackages.
-    rv_yes = ms_data-ignore_subpackages.
-  ENDMETHOD.
-
-  METHOD rebuild_local_checksums. "LOCAL (BASE)
-
-    DATA: lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          ls_last_item TYPE zif_abapgit_definitions=>ty_item,
-          lt_checksums TYPE zcl_abapgit_persistence_repo=>ty_local_checksum_tt.
-
-    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
-                   <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
-                   <ls_local>    LIKE LINE OF lt_local.
-    lt_local = get_files_local( ).
-
-    DELETE lt_local " Remove non-code related files except .abapgit
-      WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
-      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
-
-    SORT lt_local BY item.
-
-    LOOP AT lt_local ASSIGNING <ls_local>.
-      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
-        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
-        <ls_checksum>-item = <ls_local>-item.
-        ls_last_item       = <ls_local>-item.
-      ENDIF.
-
-      APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_file_sig>.
-      MOVE-CORRESPONDING <ls_local>-file TO <ls_file_sig>.
-
-    ENDLOOP.
-
-    set( it_checksums = lt_checksums ).
-
-  ENDMETHOD.  " rebuild_local_checksums.
-
-ENDCLASS.                    "lcl_repo IMPLEMENTATION
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_repo_srv IMPLEMENTATION
-*----------------------------------------------------------------------*
-*
-*----------------------------------------------------------------------*
-CLASS lcl_repo_srv IMPLEMENTATION.
-
-  METHOD get_instance.
-    IF go_ref IS INITIAL.
-      CREATE OBJECT go_ref.
-    ENDIF.
-    rv_srv = go_ref.
-  ENDMETHOD.
-
-  METHOD constructor.
-    CREATE OBJECT mo_persistence.
-  ENDMETHOD.                    "class_constructor
-
-  METHOD list.
-
-    IF mv_init = abap_false.
-      refresh( ).
-    ENDIF.
-
-    rt_list = mt_list.
-
-  ENDMETHOD.                    "list
-
-  METHOD get.
-
-    FIELD-SYMBOLS: <lo_list> LIKE LINE OF mt_list.
-    IF mv_init = abap_false.
-      refresh( ).
-    ENDIF.
-
-    LOOP AT mt_list ASSIGNING <lo_list>.
-      IF <lo_list>->get_key( ) = iv_key.
-        ro_repo = <lo_list>.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-    zcx_abapgit_exception=>raise( 'repo not found, get' ).
-
-  ENDMETHOD.                    "get
-
-  METHOD refresh.
-
-    DATA: lt_list    TYPE zcl_abapgit_persistence_repo=>tt_repo,
-          lo_online  TYPE REF TO lcl_repo_online,
-          lo_offline TYPE REF TO lcl_repo_offline.
-
-    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
-    CLEAR mt_list.
-
-    lt_list = mo_persistence->list( ).
-    LOOP AT lt_list ASSIGNING <ls_list>.
-      IF <ls_list>-offline = abap_false.
-        CREATE OBJECT lo_online
-          EXPORTING
-            is_data = <ls_list>.
-        APPEND lo_online TO mt_list.
-      ELSE.
-        CREATE OBJECT lo_offline
-          EXPORTING
-            is_data = <ls_list>.
-        APPEND lo_offline TO mt_list.
-      ENDIF.
-    ENDLOOP.
-
-    mv_init = abap_true.
-
-  ENDMETHOD.                    "refresh
-
-  METHOD new_online.
-
-    DATA: ls_repo TYPE zcl_abapgit_persistence_repo=>ty_repo,
-          lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
-    validate_package( iv_package ).
-
-    lv_key = mo_persistence->add(
-      iv_url         = iv_url
-      iv_branch_name = iv_branch_name
-      iv_package     = iv_package
-      iv_offline     = abap_false
-      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
-    TRY.
-        ls_repo = mo_persistence->read( lv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'new_online not found' ).
-    ENDTRY.
-
-    CREATE OBJECT ro_repo
-      EXPORTING
-        is_data = ls_repo.
-
-    add( ro_repo ).
-
-  ENDMETHOD.                    "new_online
-
-  METHOD new_offline.
-
-    DATA: ls_repo TYPE zcl_abapgit_persistence_repo=>ty_repo,
-          lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
-    validate_package( iv_package ).
-
-    lv_key = mo_persistence->add(
-      iv_url         = iv_url
-      iv_branch_name = ''
-      iv_package     = iv_package
-      iv_offline     = abap_true
-      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
-
-    TRY.
-        ls_repo = mo_persistence->read( lv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'new_offline not found' ).
-    ENDTRY.
-
-    CREATE OBJECT ro_repo
-      EXPORTING
-        is_data = ls_repo.
-
-    add( ro_repo ).
-
-  ENDMETHOD.                    "new_offline
-
-  METHOD add.
-
-    DATA: lo_repo LIKE LINE OF mt_list.
-    LOOP AT mt_list INTO lo_repo.
-      IF lo_repo->get_key( ) = io_repo->get_key( ).
-        IF lo_repo = io_repo.
-          RETURN.
-        ENDIF.
-        zcx_abapgit_exception=>raise( 'identical keys' ).
-      ENDIF.
-    ENDLOOP.
-
-    APPEND io_repo TO mt_list.
-
-  ENDMETHOD.                    "add
-
-  METHOD validate_package.
-
-    DATA: ls_devclass TYPE tdevc,
-          lt_repos    TYPE zcl_abapgit_persistence_repo=>tt_repo.
-
-    IF iv_package IS INITIAL.
-      zcx_abapgit_exception=>raise( 'add, package empty' ).
-    ENDIF.
-
-    IF iv_package = '$TMP'.
-      zcx_abapgit_exception=>raise( 'not possible to use $TMP, create new (local) package' ).
-    ENDIF.
-
-    SELECT SINGLE *
-           FROM tdevc
-           INTO ls_devclass
-           WHERE devclass = iv_package.                 "#EC CI_GENBUFF
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Package { iv_package } not found| ).
-    ENDIF.
-
-    IF is_sap_object_allowed( ) = abap_false AND ls_devclass-as4user = 'SAP'.
-      zcx_abapgit_exception=>raise( |Package { iv_package } not allowed| ).
-    ENDIF.
-
-    " make sure its not already in use for a different repository
-    lt_repos = mo_persistence->list( ).
-    READ TABLE lt_repos WITH KEY package = iv_package TRANSPORTING NO FIELDS.
-    IF sy-subrc = 0.
-      zcx_abapgit_exception=>raise( |Package { iv_package } already in use| ).
-    ENDIF.
-
-  ENDMETHOD.                    "validate_package
-
-  METHOD delete.
-
-    io_repo->delete( ).
-
-    DELETE TABLE mt_list FROM io_repo.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.                    "delete
-
-  METHOD is_repo_installed.
-
-    DATA: lt_repo        TYPE lcl_repo_srv=>ty_repo_tt,
-          lo_repo        TYPE REF TO lcl_repo,
-          lv_url         TYPE string,
-          lv_package     TYPE devclass,
-          lo_repo_online TYPE REF TO lcl_repo_online,
-          lv_err         TYPE string.
-
-    lt_repo = list( ).
-
-    LOOP AT lt_repo INTO lo_repo.
-      CHECK lo_repo->is_offline( ) = abap_false.
-      lo_repo_online ?= lo_repo.
-
-      lv_url     = lo_repo_online->get_url( ).
-      lv_package = lo_repo_online->get_package( ).
-      CHECK to_upper( lv_url ) = to_upper( iv_url ).
-
-      " Validate bindings
-      "TODO refactor: move this message out of this method
-      IF iv_target_package IS NOT INITIAL AND iv_target_package <> lv_package.
-        lv_err = |Installation to package { lv_package } detected. |
-              && |Cancelling installation|.
-        zcx_abapgit_exception=>raise( lv_err ).
-      ENDIF.
-
-      rv_installed = abap_true.
-      EXIT.
-    ENDLOOP.
-
-  ENDMETHOD. "is_repo_installed
-
-  METHOD switch_repo_type.
-
-    DATA lo_repo TYPE REF TO lcl_repo.
-
-    FIELD-SYMBOLS <repo> LIKE LINE OF mt_list.
-
-    lo_repo = get( iv_key ).
-    READ TABLE mt_list ASSIGNING <repo> FROM lo_repo.
-    ASSERT sy-subrc IS INITIAL.
-    ASSERT iv_offline <> lo_repo->ms_data-offline.
-
-    IF iv_offline = abap_true. " On-line -> OFFline
-      lo_repo->set(
-        iv_url         = zcl_abapgit_url=>name( lo_repo->ms_data-url )
-        iv_branch_name = ''
-        iv_sha1        = ''
-        iv_head_branch = ''
-        iv_offline     = abap_true ).
-      CREATE OBJECT <repo> TYPE lcl_repo_offline
-        EXPORTING
-          is_data = lo_repo->ms_data.
-    ELSE. " OFFline -> On-line
-      lo_repo->set( iv_offline = abap_false ).
-      CREATE OBJECT <repo> TYPE lcl_repo_online
-        EXPORTING
-          is_data = lo_repo->ms_data.
-    ENDIF.
-
-  ENDMETHOD.  "switch_repo_type
-
-  METHOD is_sap_object_allowed.
-
-    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
-    IF rv_allowed = abap_true.
-      RETURN.
-    ENDIF.
-
-    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
-
-  ENDMETHOD.
-
-ENDCLASS.                    "lcl_repo_srv IMPLEMENTATION
-
 ****************************************************
 * abapmerge - ZABAPGIT_BACKGROUND
 ****************************************************
@@ -41484,15 +41234,15 @@ CLASS lcl_background DEFINITION FINAL.
         IMPORTING is_files          TYPE zif_abapgit_definitions=>ty_stage_files
         RETURNING VALUE(rv_comment) TYPE string,
       push
-        IMPORTING io_repo     TYPE REF TO lcl_repo_online
+        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
                   is_settings TYPE zcl_abapgit_persist_background=>ty_background
         RAISING   zcx_abapgit_exception,
       push_fixed
-        IMPORTING io_repo     TYPE REF TO lcl_repo_online
+        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
                   is_settings TYPE zcl_abapgit_persist_background=>ty_background
         RAISING   zcx_abapgit_exception,
       push_auto
-        IMPORTING io_repo TYPE REF TO lcl_repo_online
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
@@ -41501,7 +41251,7 @@ CLASS lcl_background IMPLEMENTATION.
 
   METHOD push.
 
-    IF lines( lcl_stage_logic=>get( io_repo )-local ) = 0.
+    IF lines( zcl_abapgit_stage_logic=>get( io_repo )-local ) = 0.
       WRITE: / 'nothing to stage' ##NO_TEXT.
       RETURN.
     ENDIF.
@@ -41525,7 +41275,7 @@ CLASS lcl_background IMPLEMENTATION.
           lo_stage   TYPE REF TO zcl_abapgit_stage.
 
     FIELD-SYMBOLS: <ls_local> LIKE LINE OF ls_files-local.
-    ls_files = lcl_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
     ASSERT lines( ls_files-local ) > 0.
 
     CREATE OBJECT lo_stage
@@ -41595,10 +41345,10 @@ CLASS lcl_background IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_changed> LIKE LINE OF lt_changed,
                    <ls_remote>  LIKE LINE OF ls_files-remote,
                    <ls_local>   LIKE LINE OF ls_files-local.
-    ls_files = lcl_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
 
     LOOP AT ls_files-local ASSIGNING <ls_local>.
-      lv_changed_by = lcl_objects=>changed_by( <ls_local>-item ).
+      lv_changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
       APPEND lv_changed_by TO lt_users.
       APPEND INITIAL LINE TO lt_changed ASSIGNING <ls_changed>.
       <ls_changed>-changed_by = lv_changed_by.
@@ -41669,7 +41419,7 @@ CLASS lcl_background IMPLEMENTATION.
     CONSTANTS: c_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
 
     DATA: lo_per       TYPE REF TO zcl_abapgit_persist_background,
-          lo_repo      TYPE REF TO lcl_repo_online,
+          lo_repo      TYPE REF TO zcl_abapgit_repo_online,
           lt_list      TYPE zcl_abapgit_persist_background=>tt_background,
           lv_repo_name TYPE string.
 
@@ -41694,7 +41444,7 @@ CLASS lcl_background IMPLEMENTATION.
     WRITE: / 'Background mode' ##NO_TEXT.
 
     LOOP AT lt_list ASSIGNING <ls_list>.
-      lo_repo ?= lcl_repo_srv=>get_instance( )->get( <ls_list>-key ).
+      lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( <ls_list>-key ).
       lv_repo_name = lo_repo->get_name( ).
       WRITE: / <ls_list>-method, lv_repo_name.
 
@@ -41760,13 +41510,14 @@ ENDCLASS.
 CLASS lcl_transport IMPLEMENTATION.
 
   METHOD zip.
+
     DATA: lt_requests TYPE trwbo_requests,
           lt_tadir    TYPE scts_tadir,
           lv_package  TYPE devclass,
           ls_data     TYPE zcl_abapgit_persistence_repo=>ty_repo,
-          lo_repo     TYPE REF TO lcl_repo_offline,
+          lo_repo     TYPE REF TO zcl_abapgit_repo_offline,
           lt_trkorr   TYPE trwbo_request_headers.
-    lt_trkorr = lcl_popups=>popup_to_select_transports( ).
+    lt_trkorr = zcl_abapgit_popups=>popup_to_select_transports( ).
     IF lines( lt_trkorr ) = 0.
       RETURN.
     ENDIF.
@@ -41885,7 +41636,7 @@ CLASS lcl_transport IMPLEMENTATION.
           lv_obj_name = <ls_object>-obj_name.
         ENDIF.
 
-        ls_tadir = lcl_tadir=>read_single(
+        ls_tadir = zcl_abapgit_tadir=>read_single(
           iv_object   = lv_object
           iv_obj_name = lv_obj_name ).
 
@@ -41903,7 +41654,7 @@ CLASS lcl_transport_2_branch DEFINITION.
   PUBLIC SECTION.
     METHODS:
       create
-        IMPORTING io_repository          TYPE REF TO lcl_repo_online
+        IMPORTING io_repository          TYPE REF TO zcl_abapgit_repo_online
                   is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
                   it_transport_objects   TYPE scts_tadir
         RAISING   zcx_abapgit_exception.
@@ -41911,7 +41662,7 @@ CLASS lcl_transport_2_branch DEFINITION.
 
     METHODS create_new_branch
       IMPORTING
-        io_repository  TYPE REF TO lcl_repo_online
+        io_repository  TYPE REF TO zcl_abapgit_repo_online
         iv_branch_name TYPE string
       RAISING
         zcx_abapgit_exception.
@@ -41952,7 +41703,7 @@ CLASS lcl_transport_2_branch IMPLEMENTATION.
         iv_branch_name = lv_branch_name
         iv_branch_sha1 = io_repository->get_sha1_remote( ).
 
-    ls_stage_objects = lcl_stage_logic=>get( io_repository ).
+    ls_stage_objects = zcl_abapgit_stage_logic=>get( io_repository ).
 
     lt_object_statuses = io_repository->status( ).
 
@@ -41971,7 +41722,7 @@ CLASS lcl_transport_2_branch IMPLEMENTATION.
   METHOD create_new_branch.
     ASSERT iv_branch_name CP 'refs/heads/+*'.
     TRY.
-        lcl_git_porcelain=>create_branch(
+        zcl_abapgit_git_porcelain=>create_branch(
           io_repo = io_repository
           iv_name = iv_branch_name
           iv_from = io_repository->get_sha1_local( ) ).
@@ -42064,7 +41815,7 @@ CLASS lcl_services_git DEFINITION FINAL.
       RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
 
     CLASS-METHODS commit
-      IMPORTING io_repo   TYPE REF TO lcl_repo_online
+      IMPORTING io_repo   TYPE REF TO zcl_abapgit_repo_online
                 is_commit TYPE ty_commit_fields
                 io_stage  TYPE REF TO zcl_abapgit_stage
       RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
@@ -42075,19 +41826,19 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD reset.
 
-    DATA: lo_repo                   TYPE REF TO lcl_repo_online,
+    DATA: lo_repo                   TYPE REF TO zcl_abapgit_repo_online,
           lv_answer                 TYPE c LENGTH 1,
           lt_unnecessary_local_objs TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lt_selected               LIKE lt_unnecessary_local_objs,
           lt_columns                TYPE stringtab.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
     ENDIF.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = 'Reset local objects?'
       text_button_1         = 'Ok'
@@ -42108,7 +41859,7 @@ CLASS lcl_services_git IMPLEMENTATION.
       INSERT `OBJECT` INTO TABLE lt_columns.
       INSERT `OBJ_NAME` INTO TABLE lt_columns.
 
-      lcl_popups=>popup_to_select_from_list(
+      zcl_abapgit_popups=>popup_to_select_from_list(
         EXPORTING
           it_list              = lt_unnecessary_local_objs
           i_header_text        = |Which unnecessary objects should be deleted?|
@@ -42118,9 +41869,7 @@ CLASS lcl_services_git IMPLEMENTATION.
           et_list              = lt_selected ).
 
       IF lines( lt_selected ) > 0.
-
-        lcl_objects=>delete( lt_selected ).
-
+        zcl_abapgit_objects=>delete( lt_selected ).
       ENDIF.
 
     ENDIF.
@@ -42133,10 +41882,10 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     DATA: lv_name   TYPE string,
           lv_cancel TYPE abap_bool,
-          lo_repo   TYPE REF TO lcl_repo_online.
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    lcl_popups=>create_branch_popup(
+    zcl_abapgit_popups=>create_branch_popup(
       IMPORTING
         ev_name   = lv_name
         ev_cancel = lv_cancel ).
@@ -42146,7 +41895,7 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     ASSERT lv_name CP 'refs/heads/+*'.
 
-    lcl_git_porcelain=>create_branch(
+    zcl_abapgit_git_porcelain=>create_branch(
       io_repo = lo_repo
       iv_name = lv_name
       iv_from = lo_repo->get_sha1_local( ) ).
@@ -42160,9 +41909,9 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD pull.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_online.
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot pull. Local code is write-protected by repo config' ).
@@ -42177,11 +41926,11 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD switch_branch.
 
-    DATA: lo_repo   TYPE REF TO lcl_repo_online,
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch.
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_branch = lcl_popups=>branch_list_popup(
+    ls_branch = zcl_abapgit_popups=>branch_list_popup(
       iv_url             = lo_repo->get_url( )
       iv_default_branch  = lo_repo->get_branch_name( )
       iv_show_new_option = abap_true ).
@@ -42189,7 +41938,7 @@ CLASS lcl_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    IF ls_branch-name = lcl_popups=>c_new_branch_label.
+    IF ls_branch-name = zcl_abapgit_popups=>c_new_branch_label.
       create_branch( iv_key ).
       RETURN.
     ENDIF.
@@ -42204,11 +41953,11 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD delete_branch.
 
-    DATA: lo_repo   TYPE REF TO lcl_repo_online,
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch.
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_branch = lcl_popups=>branch_list_popup( lo_repo->get_url( ) ).
+    ls_branch = zcl_abapgit_popups=>branch_list_popup( lo_repo->get_url( ) ).
     IF ls_branch IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -42219,7 +41968,7 @@ CLASS lcl_services_git IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Switch branch before deleting current' ).
     ENDIF.
 
-    lcl_git_porcelain=>delete_branch(
+    zcl_abapgit_git_porcelain=>delete_branch(
       io_repo   = lo_repo
       is_branch = ls_branch ).
 
@@ -42241,12 +41990,12 @@ CLASS lcl_services_git IMPLEMENTATION.
           lv_cancel TYPE abap_bool,
           lx_error  TYPE REF TO zcx_abapgit_exception,
           lv_text   TYPE string,
-          lo_repo   TYPE REF TO lcl_repo_online,
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    lcl_popups=>create_tag_popup(
+    zcl_abapgit_popups=>create_tag_popup(
       EXPORTING
         iv_sha1   = lo_repo->get_sha1_local( )
       IMPORTING
@@ -42261,7 +42010,7 @@ CLASS lcl_services_git IMPLEMENTATION.
     ASSERT lv_name CP 'refs/tags/+*'.
 
     TRY.
-        lcl_git_porcelain=>create_tag( io_repo = lo_repo
+        zcl_abapgit_git_porcelain=>create_tag( io_repo = lo_repo
                                        iv_name = lv_name
                                        iv_from = lv_sha1 ).
 
@@ -42277,18 +42026,18 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD delete_tag.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_online,
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
           ls_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
           lv_text TYPE string.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = lcl_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_git_porcelain=>delete_tag(
+    zcl_abapgit_git_porcelain=>delete_tag(
       io_repo = lo_repo
       is_tag  = ls_tag ).
 
@@ -42300,13 +42049,13 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD switch_tag.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_online,
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
           ls_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
           lv_text TYPE string.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = lcl_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -42321,11 +42070,11 @@ CLASS lcl_services_git IMPLEMENTATION.
 
   METHOD tag_overview.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_online.
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    lcl_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
+    zcl_abapgit_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
                                 iv_select_mode = abap_false ).
 
   ENDMETHOD.
@@ -42433,14 +42182,14 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD clone.
 
-    DATA: lo_repo  TYPE REF TO lcl_repo_online,
-          ls_popup TYPE lcl_popups=>ty_popup.
-    ls_popup = lcl_popups=>repo_popup( iv_url ).
+    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo_online,
+          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
+    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo = lcl_repo_srv=>get_instance( )->new_online(
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
       iv_url         = ls_popup-url
       iv_branch_name = ls_popup-branch_name
       iv_package     = ls_popup-package ).
@@ -42460,22 +42209,22 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD refresh.
 
-    lcl_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
+    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
 
   ENDMETHOD.  "refresh
 
   METHOD remove.
 
     DATA: lv_answer   TYPE c LENGTH 1,
-          lo_repo     TYPE REF TO lcl_repo,
+          lo_repo     TYPE REF TO zcl_abapgit_repo,
           lv_package  TYPE devclass,
           lv_question TYPE c LENGTH 200.
-    lo_repo     = lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lv_package  = lo_repo->get_package( ).
     lv_question = |This will remove the repository reference to the package { lv_package }|
                && '. All objects will safely remain in the system.'.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Remove'
       text_question         = lv_question
       text_button_1         = 'Remove'
@@ -42489,7 +42238,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
+    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
@@ -42499,24 +42248,24 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
     DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_answer   TYPE c LENGTH 1,
-          lo_repo     TYPE REF TO lcl_repo,
+          lo_repo     TYPE REF TO zcl_abapgit_repo,
           lv_package  TYPE devclass,
           lv_question TYPE c LENGTH 100.
-    lo_repo = lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
     ENDIF.
 
     lv_package = lo_repo->get_package( ).
-    lt_tadir   = lcl_tadir=>read( lv_package ).
+    lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
 
     IF lines( lt_tadir ) > 0.
 
       lv_question = |This will DELETE all objects in package { lv_package }|
                  && | ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
 
-      lv_answer = lcl_popups=>popup_to_confirm(
+      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
         titlebar              = 'Uninstall'
         text_question         = lv_question
         text_button_1         = 'Delete'
@@ -42530,11 +42279,11 @@ CLASS lcl_services_repo IMPLEMENTATION.
         RAISE EXCEPTION TYPE zcx_abapgit_cancel.
       ENDIF.
 
-      lcl_objects=>delete( lt_tadir ).
+      zcl_abapgit_objects=>delete( lt_tadir ).
 
     ENDIF.
 
-    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
+    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
@@ -42542,15 +42291,15 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD new_offline.
 
-    DATA: lo_repo  TYPE REF TO lcl_repo,
-          ls_popup TYPE lcl_popups=>ty_popup.
+    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo,
+          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
 
-    ls_popup  = lcl_popups=>repo_new_offline( ).
+    ls_popup  = zcl_abapgit_popups=>repo_new_offline( ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo = lcl_repo_srv=>get_instance( )->new_offline(
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
       iv_url     = ls_popup-url
       iv_package = ls_popup-package ).
 
@@ -42565,7 +42314,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
     DATA: lv_answer TYPE c LENGTH 1.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Make repository OFF-line'
       text_question         = 'This will detach the repo from remote and make it OFF-line'
       text_button_1         = 'Make OFF-line'
@@ -42579,28 +42328,28 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
+    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
 
     COMMIT WORK.
 
   ENDMETHOD.  "remote_detach
   METHOD remote_attach.
 
-    DATA: ls_popup TYPE lcl_popups=>ty_popup,
-          lo_repo  TYPE REF TO lcl_repo_online.
+    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
 
-    ls_popup = lcl_popups=>repo_popup(
+    ls_popup = zcl_abapgit_popups=>repo_popup(
       iv_title          = 'Attach repo to remote ...'
       iv_url            = ''
-      iv_package        = lcl_repo_srv=>get_instance( )->get( iv_key )->get_package( )
+      iv_package        = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_package( )
       iv_freeze_package = abap_true ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_false ).
+    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_false ).
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_url( ls_popup-url ).
     lo_repo->set_branch_name( ls_popup-branch_name ).
 
@@ -42610,12 +42359,12 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD remote_change.
 
-    DATA: ls_popup TYPE lcl_popups=>ty_popup,
-          lo_repo  TYPE REF TO lcl_repo_online.
+    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_popup = lcl_popups=>repo_popup(
+    ls_popup = zcl_abapgit_popups=>repo_popup(
       iv_title          = 'Change repo remote ...'
       iv_url            = lo_repo->get_url( )
       iv_package        = lo_repo->get_package( )
@@ -42624,7 +42373,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_new_remote( iv_url         = ls_popup-url
                              iv_branch_name = ls_popup-branch_name ).
 
@@ -42636,8 +42385,8 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
     DATA: lv_answer   TYPE c,
           lv_question TYPE string,
-          lo_repo     TYPE REF TO lcl_repo.
-    lo_repo = lcl_repo_srv=>get_instance( )->get( iv_key ).
+          lo_repo     TYPE REF TO zcl_abapgit_repo.
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     lv_question =  'This will rebuild and overwrite local repo checksums.'.
 
@@ -42650,7 +42399,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
                 && ' Please make sure you don''t have ones like that.'.
     ENDIF.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = lv_question
       text_button_1         = 'OK'
@@ -42688,21 +42437,21 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD transport_to_branch.
     DATA:
-      lo_repository          TYPE REF TO lcl_repo_online,
+      lo_repository          TYPE REF TO zcl_abapgit_repo_online,
       lo_transport_to_branch TYPE REF TO lcl_transport_2_branch,
       lt_transport_headers   TYPE trwbo_request_headers,
       lt_transport_objects   TYPE scts_tadir,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
 
-    lo_repository ?= lcl_repo_srv=>get_instance( )->get( iv_repository_key ).
+    lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
 
-    lt_transport_headers = lcl_popups=>popup_to_select_transports( ).
+    lt_transport_headers = zcl_abapgit_popups=>popup_to_select_transports( ).
     lt_transport_objects = lcl_transport=>to_tadir( lt_transport_headers ).
     IF lt_transport_objects IS INITIAL.
       zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
     ENDIF.
 
-    ls_transport_to_branch = lcl_popups=>popup_to_create_transp_branch(
+    ls_transport_to_branch = zcl_abapgit_popups=>popup_to_create_transp_branch(
       lt_transport_headers ).
 
     CREATE OBJECT lo_transport_to_branch.
@@ -42797,7 +42546,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
 
     IF is_installed( ) = abap_true.
       lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
-      lcl_popups=>popup_to_inform(
+      zcl_abapgit_popups=>popup_to_inform(
         titlebar              = lc_title
         text_message          = lv_text ).
       RETURN.
@@ -42819,7 +42568,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
 
     IF is_installed_pi( ) = abap_true.
       lv_text = 'Seems like abapGit plugins package is already installed. No changes to be done'.
-      lcl_popups=>popup_to_inform(
+      zcl_abapgit_popups=>popup_to_inform(
         titlebar              = lc_title
         text_message          = lv_text ).
       RETURN.
@@ -42837,10 +42586,9 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
 
   METHOD do_install.
 
-    DATA lo_repo            TYPE REF TO lcl_repo_online.
-    DATA lv_answer          TYPE c LENGTH 1.
-
-    lv_answer = lcl_popups=>popup_to_confirm(
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          lv_answer TYPE c LENGTH 1.
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = iv_title
       text_question         = iv_text
       text_button_1         = 'Continue'
@@ -42852,13 +42600,13 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF abap_false = lcl_repo_srv=>get_instance( )->is_repo_installed(
+    IF abap_false = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed(
         iv_url              = iv_url
         iv_target_package   = iv_package ).
 
       zcl_abapgit_sap_package=>create_local( iv_package ).
 
-      lo_repo = lcl_repo_srv=>get_instance( )->new_online(
+      lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
         iv_url         = iv_url
         iv_branch_name = 'refs/heads/master'
         iv_package     = iv_package ) ##NO_TEXT.
@@ -42876,7 +42624,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
   METHOD is_installed.
 
     TRY.
-        rv_installed = lcl_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
+        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
         " TODO, alternative checks for presence in the system
       CATCH zcx_abapgit_exception.
         " cannot be installed anyway in this case, e.g. no connection
@@ -42888,7 +42636,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
   METHOD is_installed_pi.
 
     TRY.
-        rv_installed = lcl_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
+        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
         " TODO, alternative checks for presence in the system
       CATCH zcx_abapgit_exception.
         " cannot be installed anyway in this case, e.g. no connection
@@ -42928,7 +42676,7 @@ CLASS lcl_services_db IMPLEMENTATION.
     ASSERT is_key-type IS NOT INITIAL.
     ASSERT is_key-value IS NOT INITIAL.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = 'Delete?'
       text_button_1         = 'Ok'
@@ -42991,7 +42739,7 @@ CLASS lcl_gui_chunk_lib DEFINITION FINAL.
         RETURNING VALUE(ro_html)      TYPE REF TO zcl_abapgit_html.
 
     CLASS-METHODS render_repo_top
-      IMPORTING io_repo               TYPE REF TO lcl_repo
+      IMPORTING io_repo               TYPE REF TO zcl_abapgit_repo
                 iv_show_package       TYPE abap_bool DEFAULT abap_true
                 iv_show_branch        TYPE abap_bool DEFAULT abap_true
                 iv_interactive_branch TYPE abap_bool DEFAULT abap_false
@@ -43007,7 +42755,7 @@ CLASS lcl_gui_chunk_lib DEFINITION FINAL.
 
     CLASS-METHODS render_branch_span
       IMPORTING iv_branch             TYPE string
-                io_repo               TYPE REF TO lcl_repo_online
+                io_repo               TYPE REF TO zcl_abapgit_repo_online
                 iv_interactive        TYPE abap_bool
       RETURNING VALUE(ro_html)        TYPE REF TO zcl_abapgit_html
       RAISING   zcx_abapgit_exception.
@@ -43028,7 +42776,7 @@ CLASS lcl_gui_chunk_lib IMPLEMENTATION.
 
   METHOD render_repo_top.
 
-    DATA: lo_repo_online TYPE REF TO lcl_repo_online,
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
           lo_pback       TYPE REF TO zcl_abapgit_persist_background,
           lv_hint        TYPE string,
           lv_icon        TYPE string.
@@ -43313,7 +43061,7 @@ CLASS lcl_repo_content_list DEFINITION FINAL.
     TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
     METHODS constructor
-      IMPORTING io_repo TYPE REF TO lcl_repo.
+      IMPORTING io_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS list
       IMPORTING iv_path              TYPE string
@@ -43326,7 +43074,7 @@ CLASS lcl_repo_content_list DEFINITION FINAL.
       RETURNING VALUE(ro_log) TYPE REF TO zcl_abapgit_log.
 
   PRIVATE SECTION.
-    DATA: mo_repo TYPE REF TO lcl_repo,
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo,
           mo_log  TYPE REF TO zcl_abapgit_log.
 
     METHODS build_repo_items_offline
@@ -43456,7 +43204,7 @@ CLASS lcl_repo_content_list IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_repo_item> LIKE LINE OF rt_repo_items,
                    <ls_tadir>     LIKE LINE OF lt_tadir.
-    lt_tadir = lcl_tadir=>read(
+    lt_tadir = zcl_abapgit_tadir=>read(
       iv_package = mo_repo->get_package( )
       io_dot     = mo_repo->get_dot_abapgit( ) ).
 
@@ -43472,7 +43220,7 @@ CLASS lcl_repo_content_list IMPLEMENTATION.
 
   METHOD build_repo_items_online.
 
-    DATA: lo_repo_online TYPE REF TO lcl_repo_online,
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
           ls_file        TYPE zif_abapgit_definitions=>ty_repo_file,
           lt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
 
@@ -43549,7 +43297,7 @@ CLASS lcl_gui_view_repo DEFINITION FINAL.
 
   PRIVATE SECTION.
 
-    DATA: mo_repo         TYPE REF TO lcl_repo,
+    DATA: mo_repo         TYPE REF TO zcl_abapgit_repo,
           mv_cur_dir      TYPE string,
           mv_hide_files   TYPE abap_bool,
           mv_max_lines    TYPE i,
@@ -43611,7 +43359,7 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
 
     super->constructor( ).
 
-    mo_repo         = lcl_repo_srv=>get_instance( )->get( iv_key ).
+    mo_repo         = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     mv_cur_dir      = '/'. " Root
     mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->get_hide_files( ).
     mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->get_changes_only( ).
@@ -43664,7 +43412,7 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
     " Reinit, for the case of type change
-    mo_repo = lcl_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
+    mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
     CREATE OBJECT ro_html.
 
@@ -44231,7 +43979,7 @@ CLASS lcl_gui_page_commit DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
 
     METHODS:
       constructor
-        IMPORTING io_repo  TYPE REF TO lcl_repo_online
+        IMPORTING io_repo  TYPE REF TO zcl_abapgit_repo_online
                   io_stage TYPE REF TO zcl_abapgit_stage
         RAISING   zcx_abapgit_exception,
       zif_abapgit_gui_page~on_event REDEFINITION.
@@ -44242,7 +43990,7 @@ CLASS lcl_gui_page_commit DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
       scripts        REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: mo_repo  TYPE REF TO lcl_repo_online,
+    DATA: mo_repo  TYPE REF TO zcl_abapgit_repo_online,
           mo_stage TYPE REF TO zcl_abapgit_stage.
 
     METHODS:
@@ -44498,21 +44246,21 @@ CLASS lcl_merge DEFINITION FINAL.
            END OF ty_ancestor.
 
     TYPES: BEGIN OF ty_merge,
-             repo     TYPE REF TO lcl_repo_online,
+             repo     TYPE REF TO zcl_abapgit_repo_online,
              source   TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
              target   TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
              common   TYPE ty_ancestor,
-             stree    TYPE lcl_git_porcelain=>ty_expanded_tt,
-             ttree    TYPE lcl_git_porcelain=>ty_expanded_tt,
-             ctree    TYPE lcl_git_porcelain=>ty_expanded_tt,
-             result   TYPE lcl_git_porcelain=>ty_expanded_tt,
+             stree    TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
+             ttree    TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
+             ctree    TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
+             result   TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
              stage    TYPE REF TO zcl_abapgit_stage,
              conflict TYPE string,
            END OF ty_merge.
 
     CLASS-METHODS:
       run
-        IMPORTING io_repo         TYPE REF TO lcl_repo_online
+        IMPORTING io_repo         TYPE REF TO zcl_abapgit_repo_online
                   iv_source       TYPE string
                   iv_target       TYPE string
         RETURNING VALUE(rs_merge) TYPE ty_merge
@@ -44526,7 +44274,7 @@ CLASS lcl_merge DEFINITION FINAL.
 
     CLASS-METHODS:
       all_files
-        RETURNING VALUE(rt_files) TYPE lcl_git_porcelain=>ty_expanded_tt,
+        RETURNING VALUE(rt_files) TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
       calculate_result
         RAISING zcx_abapgit_exception,
       find_ancestors
@@ -44568,13 +44316,13 @@ CLASS lcl_merge IMPLEMENTATION.
     gs_merge-common = find_first_common( it_list1 = lt_asource
                                          it_list2 = lt_atarget ).
 
-    gs_merge-stree = lcl_git_porcelain=>full_tree(
+    gs_merge-stree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = gt_objects
       iv_branch  = gs_merge-source-sha1 ).
-    gs_merge-ttree = lcl_git_porcelain=>full_tree(
+    gs_merge-ttree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = gt_objects
       iv_branch  = gs_merge-target-sha1 ).
-    gs_merge-ctree = lcl_git_porcelain=>full_tree(
+    gs_merge-ctree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = gt_objects
       iv_branch  = gs_merge-common-commit ).
 
@@ -44607,7 +44355,7 @@ CLASS lcl_merge IMPLEMENTATION.
                            iv_data     = <ls_object>-data ).
     END-OF-DEFINITION.
 
-    DATA: lt_files        TYPE lcl_git_porcelain=>ty_expanded_tt,
+    DATA: lt_files        TYPE zcl_abapgit_git_porcelain=>ty_expanded_tt,
           lv_found_source TYPE abap_bool,
           lv_found_target TYPE abap_bool,
           lv_found_common TYPE abap_bool.
@@ -44803,7 +44551,7 @@ CLASS lcl_gui_page_merge DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
       constructor
-        IMPORTING io_repo   TYPE REF TO lcl_repo_online
+        IMPORTING io_repo   TYPE REF TO zcl_abapgit_repo_online
                   iv_source TYPE string
                   iv_target TYPE string
         RAISING   zcx_abapgit_exception,
@@ -44813,7 +44561,7 @@ CLASS lcl_gui_page_merge DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
     METHODS render_content REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: mo_repo  TYPE REF TO lcl_repo_online,
+    DATA: mo_repo  TYPE REF TO zcl_abapgit_repo_online,
           ms_merge TYPE lcl_merge=>ty_merge.
 
     CONSTANTS: BEGIN OF c_actions,
@@ -45092,7 +44840,7 @@ CLASS lcl_gui_page_bkg IMPLEMENTATION.
 
   METHOD render_data.
 
-    DATA: lo_repo    TYPE REF TO lcl_repo_online,
+    DATA: lo_repo    TYPE REF TO zcl_abapgit_repo_online,
           lo_per     TYPE REF TO zcl_abapgit_persist_background,
           lt_per     TYPE zcl_abapgit_persist_background=>tt_background,
           ls_per     LIKE LINE OF lt_per,
@@ -45108,7 +44856,7 @@ CLASS lcl_gui_page_bkg IMPLEMENTATION.
     CREATE OBJECT lo_per.
     lt_per = lo_per->list( ).
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( mv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_key ).
 
     READ TABLE lt_per INTO ls_per WITH KEY key = lo_repo->get_key( ).
     IF sy-subrc <> 0.
@@ -45241,7 +44989,7 @@ CLASS lcl_branch_overview DEFINITION FINAL.
     TYPES: ty_commit_tt TYPE STANDARD TABLE OF ty_commit WITH DEFAULT KEY.
 
     CLASS-METHODS: run
-      IMPORTING io_repo           TYPE REF TO lcl_repo_online
+      IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo_online
       RETURNING VALUE(rt_commits) TYPE ty_commit_tt
       RAISING   zcx_abapgit_exception.
 
@@ -45266,7 +45014,7 @@ CLASS lcl_branch_overview DEFINITION FINAL.
       fixes
         RAISING zcx_abapgit_exception,
       get_git_objects
-        IMPORTING io_repo           TYPE REF TO lcl_repo_online
+        IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo_online
         RETURNING VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
         RAISING   zcx_abapgit_exception,
       determine_tags
@@ -45545,7 +45293,7 @@ CLASS lcl_gui_page_boverview DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_pa
   PUBLIC SECTION.
     METHODS:
       constructor
-        IMPORTING io_repo TYPE REF TO lcl_repo_online
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
         RAISING   zcx_abapgit_exception,
       zif_abapgit_gui_page~on_event REDEFINITION.
 
@@ -45553,7 +45301,7 @@ CLASS lcl_gui_page_boverview DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_pa
     METHODS render_content REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: mo_repo     TYPE REF TO lcl_repo_online,
+    DATA: mo_repo     TYPE REF TO zcl_abapgit_repo_online,
           mv_compress TYPE abap_bool VALUE abap_false,
           mt_commits  TYPE lcl_branch_overview=>ty_commit_tt.
 
@@ -46099,7 +45847,7 @@ CLASS lcl_gui_page_db IMPLEMENTATION.
           RETURN.
         ENDIF.
         rv_text = |Method: { is_data-data_str+lv_match-offset(lv_match-length) }, |
-               && |Repository: { lcl_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
+               && |Repository: { zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
 
       WHEN 'USER'.
         rv_text = '-'. " No additional explanation for user
@@ -46216,7 +45964,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
     DATA: lt_remote TYPE zif_abapgit_definitions=>ty_files_tt,
           lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lt_status TYPE zif_abapgit_definitions=>ty_results_tt,
-          lo_repo   TYPE REF TO lcl_repo_online,
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           lv_ts     TYPE timestamp.
 
     FIELD-SYMBOLS: <ls_status> LIKE LINE OF lt_status.
@@ -46231,7 +45979,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
     ASSERT is_file IS INITIAL OR is_object IS INITIAL. " just one passed
 
-    lo_repo  ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo  ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lt_remote = lo_repo->get_files_remote( ).
     lt_local  = lo_repo->get_files_local( ).
     lt_status = lo_repo->status( ).
@@ -46318,7 +46066,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
     " Changed by
     IF <ls_local>-item-obj_type IS NOT INITIAL.
-      <ls_diff>-changed_by = to_lower( lcl_objects=>changed_by( <ls_local>-item ) ).
+      <ls_diff>-changed_by = to_lower( zcl_abapgit_objects=>changed_by( <ls_local>-item ) ).
     ENDIF.
 
     " Extension
@@ -46831,13 +46579,13 @@ CLASS lcl_gui_page_main DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
       retrieve_active_repo
         RAISING zcx_abapgit_exception,
       render_toc
-        IMPORTING it_repo_list   TYPE lcl_repo_srv=>ty_repo_tt
+        IMPORTING it_repo_list   TYPE zcl_abapgit_repo_srv=>ty_repo_tt
         RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
         RAISING   zcx_abapgit_exception,
       build_main_menu
         RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar,
       render_repo
-        IMPORTING io_repo        TYPE REF TO lcl_repo
+        IMPORTING io_repo        TYPE REF TO zcl_abapgit_repo
         RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
         RAISING   zcx_abapgit_exception.
 
@@ -46875,7 +46623,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
       WHEN c_actions-show.              " Change displayed repo
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
         TRY.
-            lcl_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
+            zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
@@ -46892,7 +46640,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     DATA: ls_tadir TYPE tadir,
           lv_user  TYPE xubname,
           ls_item  TYPE zif_abapgit_definitions=>ty_item.
-    ls_tadir = lcl_popups=>popup_object( ).
+    ls_tadir = zcl_abapgit_popups=>popup_object( ).
     IF ls_tadir IS INITIAL.
       RETURN.
     ENDIF.
@@ -46900,7 +46648,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     ls_item-obj_type = ls_tadir-object.
     ls_item-obj_name = ls_tadir-obj_name.
 
-    lv_user = lcl_objects=>changed_by( ls_item ).
+    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
 
     MESSAGE lv_user TYPE 'S'.
 
@@ -46908,7 +46656,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
 
   METHOD render_content.
 
-    DATA: lt_repos    TYPE lcl_repo_srv=>ty_repo_tt,
+    DATA: lt_repos    TYPE zcl_abapgit_repo_srv=>ty_repo_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
           lo_tutorial TYPE REF TO lcl_gui_view_tutorial,
           lo_repo     LIKE LINE OF lt_repos.
@@ -46918,7 +46666,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     TRY.
-        lt_repos = lcl_repo_srv=>get_instance( )->list( ).
+        lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
       CATCH zcx_abapgit_exception INTO lx_error.
         ro_html->add( lcl_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
         RETURN.
@@ -46930,7 +46678,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
       CREATE OBJECT lo_tutorial.
       ro_html->add( lo_tutorial->render( ) ).
     ELSE.
-      lo_repo = lcl_repo_srv=>get_instance( )->get( mv_show ).
+      lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mv_show ).
       ro_html->add( render_repo( lo_repo ) ).
     ENDIF.
 
@@ -46941,7 +46689,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     DATA: lv_show_old LIKE mv_show.
 
     TRY.
-        lcl_repo_srv=>get_instance( )->list( ).
+        zcl_abapgit_repo_srv=>get_instance( )->list( ).
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
@@ -46951,7 +46699,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
 
     IF mv_show IS NOT INITIAL.
       TRY. " verify the key exists
-          lcl_repo_srv=>get_instance( )->get( mv_show ).
+          zcl_abapgit_repo_srv=>get_instance( )->get( mv_show ).
         CATCH zcx_abapgit_exception.
           CLEAR mv_show.
           zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( mv_show ).
@@ -47132,7 +46880,7 @@ CLASS lcl_gui_page_stage DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
     METHODS:
       constructor
         IMPORTING
-                  io_repo TYPE REF TO lcl_repo_online
+                  io_repo TYPE REF TO zcl_abapgit_repo_online
                   iv_seed TYPE string OPTIONAL
         RAISING   zcx_abapgit_exception,
       zif_abapgit_gui_page~on_event REDEFINITION.
@@ -47143,7 +46891,7 @@ CLASS lcl_gui_page_stage DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
       scripts        REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: mo_repo  TYPE REF TO lcl_repo_online,
+    DATA: mo_repo  TYPE REF TO zcl_abapgit_repo_online,
           ms_files TYPE zif_abapgit_definitions=>ty_stage_files,
           mv_seed  TYPE string. " Unique page id to bind JS sessionStorage
 
@@ -47184,7 +46932,7 @@ CLASS lcl_gui_page_stage IMPLEMENTATION.
 
     ms_control-page_title = 'STAGE'.
     mo_repo               = io_repo.
-    ms_files              = lcl_stage_logic=>get( mo_repo ).
+    ms_files              = zcl_abapgit_stage_logic=>get( mo_repo ).
     mv_seed               = iv_seed.
 
     IF mv_seed IS INITIAL. " Generate based on time unless obtained from diff page
@@ -47469,7 +47217,7 @@ CLASS lcl_gui_page_stage IMPLEMENTATION.
         lt_files_local = mo_repo->get_files_local( ).
         READ TABLE lt_files_local INTO ls_local_file WITH KEY file = is_file.
         IF sy-subrc = 0.
-          rv_user = lcl_objects=>changed_by( ls_local_file-item ).
+          rv_user = zcl_abapgit_objects=>changed_by( ls_local_file-item ).
         ENDIF.
       CATCH zcx_abapgit_exception.
         CLEAR rv_user. "Should not raise errors if user last changed by was not found
@@ -47564,7 +47312,7 @@ CLASS lcl_gui_page_debuginfo IMPLEMENTATION.
 
     LOOP AT lt_objects ASSIGNING <object> WHERE pgmid = 'R3TR'.
       ls_item-obj_type = <object>-object.
-      IF lcl_objects=>is_supported( is_item = ls_item iv_native_only = abap_true ) = abap_true.
+      IF zcl_abapgit_objects=>is_supported( is_item = ls_item iv_native_only = abap_true ) = abap_true.
         IF lv_list IS INITIAL.
           lv_list = ls_item-obj_type.
         ELSE.
@@ -47934,7 +47682,7 @@ CLASS lcl_gui_page_repo_sett DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_pa
   PUBLIC SECTION.
     METHODS:
       constructor
-        IMPORTING io_repo TYPE REF TO lcl_repo,
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo,
       zif_abapgit_gui_page~on_event REDEFINITION.
 
   PROTECTED SECTION.
@@ -47943,7 +47691,7 @@ CLASS lcl_gui_page_repo_sett DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_pa
         save_settings TYPE string VALUE 'save_settings',
       END OF c_action.
 
-    DATA: mo_repo TYPE REF TO lcl_repo.
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS:
       render_content REDEFINITION,
@@ -48065,10 +47813,10 @@ CLASS lcl_gui_page_syntax DEFINITION FINAL INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
       constructor
-        IMPORTING io_repo TYPE REF TO lcl_repo.
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo.
 
   PROTECTED SECTION.
-    DATA: mo_repo TYPE REF TO lcl_repo.
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS:
       render_content REDEFINITION.
@@ -48226,7 +47974,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
           EXPORTING iv_string   = iv_getdata
           IMPORTING ev_obj_type = ls_item-obj_type
                     ev_obj_name = ls_item-obj_name ).
-        lcl_objects=>jump( ls_item ).
+        zcl_abapgit_objects=>jump( ls_item ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>gc_action-jump_pkg.                      " Open SE80
         lcl_services_repo=>open_se80( |{ iv_getdata }| ).
@@ -48277,7 +48025,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-repo_syntax_check.
         CREATE OBJECT ei_page TYPE lcl_gui_page_syntax
           EXPORTING
-            io_repo = lcl_repo_srv=>get_instance( )->get( lv_key ).
+            io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
       WHEN zif_abapgit_definitions=>gc_action-repo_purge.                      " Repo remove & purge all objects
         lcl_services_repo=>purge( lv_key ).
@@ -48300,7 +48048,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-repo_settings.
         CREATE OBJECT ei_page TYPE lcl_gui_page_repo_sett
           EXPORTING
-            io_repo = lcl_repo_srv=>get_instance( )->get( lv_key ).
+            io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
 
         " ZIP services actions
@@ -48308,7 +48056,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
         lcl_zip=>import( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-zip_export.                      " Export repo as ZIP
-        lcl_zip=>export( lcl_repo_srv=>get_instance( )->get( lv_key ) ).
+        lcl_zip=>export( zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ) ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>gc_action-zip_package.                     " Export package as ZIP
         lcl_zip=>export_package( ).
@@ -48409,12 +48157,12 @@ CLASS lcl_gui_router IMPLEMENTATION.
 
   METHOD get_page_branch_overview.
 
-    DATA: lo_repo TYPE REF TO lcl_repo_online,
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
           lo_page TYPE REF TO lcl_gui_page_boverview,
           lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
     lv_key = iv_getdata.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( lv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
     CREATE OBJECT lo_page
       EXPORTING
@@ -48451,7 +48199,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
 
   METHOD get_page_stage.
 
-    DATA: lo_repo       TYPE REF TO lcl_repo_online,
+    DATA: lo_repo       TYPE REF TO zcl_abapgit_repo_online,
           lv_key        TYPE zcl_abapgit_persistence_repo=>ty_repo-key,
           lv_seed       TYPE string,
           lo_stage_page TYPE REF TO lcl_gui_page_stage.
@@ -48466,7 +48214,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
                   ev_seed    = lv_seed ).
     ENDIF.
 
-    lo_repo ?= lcl_repo_srv=>get_instance( )->get( lv_key ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
     " force refresh on stage, to make sure the latest local and remote files are used
     lo_repo->refresh( ).
@@ -48492,7 +48240,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
     DATA: lv_class_name TYPE string,
           lv_cancel     TYPE abap_bool.
 
-    lcl_popups=>run_page_class_popup( IMPORTING ev_name   = lv_class_name
+    zcl_abapgit_popups=>run_page_class_popup( IMPORTING ev_name   = lv_class_name
                                                 ev_cancel = lv_cancel ).
     IF lv_cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -48861,44 +48609,9 @@ ENDCLASS.                     "lcl_gui IMPLEMENTATION
 *&  Include           ZABAPGIT_UNIT_TEST
 *&---------------------------------------------------------------------*
 
-DEFINE _append_local.
-  APPEND INITIAL LINE TO lt_local ASSIGNING <local>.
-  <local>-item-obj_type = &1.
-  <local>-item-obj_name = &2.
-  <local>-item-devclass = '$Z$'.
-  <local>-file-path     = '/'.
-  <local>-file-filename = &3.
-  <local>-file-sha1     = &4.
-END-OF-DEFINITION.
-
-DEFINE _append_remote.
-  APPEND INITIAL LINE TO lt_remote ASSIGNING <remote>.
-  <remote>-path     = '/'.
-  <remote>-filename = &1.
-  <remote>-sha1     = &2.
-END-OF-DEFINITION.
-
-DEFINE _append_state.
-  APPEND INITIAL LINE TO lt_state ASSIGNING <state>.
-  <state>-path     = '/'.
-  <state>-filename = &1.
-  <state>-sha1     = &2.
-END-OF-DEFINITION.
-
-DEFINE _append_result.
-  APPEND INITIAL LINE TO lt_results ASSIGNING <result>.
-  <result>-obj_type = &1.
-  <result>-obj_name = &2.
-  <result>-match    = &3.
-  <result>-lstate   = &4.
-  <result>-rstate   = &5.
-  <result>-package  = &6.
-  <result>-path     = &7.
-  <result>-filename = &8.
-END-OF-DEFINITION.
-
 * todo, should the tests be in the same include as the classes
 * they are testing?
+
 CLASS ltcl_critical_tests DEFINITION FINAL FOR TESTING.
   PUBLIC SECTION.
     CLASS-METHODS:
@@ -48959,27 +48672,27 @@ CLASS ltcl_dangerous IMPLEMENTATION.
 
   METHOD run.
 
-    DATA: lo_repo    TYPE REF TO lcl_repo_online,
+    DATA: lo_repo    TYPE REF TO zcl_abapgit_repo_online,
           lt_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_msg     TYPE string,
           lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
-          lt_types   TYPE lcl_objects=>ty_types_tt.
+          lt_types   TYPE zcl_abapgit_objects=>ty_types_tt.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF lt_results,
                    <ls_tadir>  LIKE LINE OF lt_tadir,
                    <lv_type>   LIKE LINE OF lt_types.
     zcl_abapgit_sap_package=>create_local( c_package ).
 
-    lt_types = lcl_objects=>supported_list( ).
+    lt_types = zcl_abapgit_objects=>supported_list( ).
 
-    lo_repo = lcl_repo_srv=>get_instance( )->new_online(
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
       iv_url         = 'https://github.com/larshp/abapGit-Unit-Test.git'
       iv_branch_name = 'refs/heads/master'
       iv_package     = c_package ).
     lo_repo->status( ).
     lo_repo->deserialize( ).
 
-    lt_tadir = lcl_tadir=>read( c_package ).
+    lt_tadir = zcl_abapgit_tadir=>read( c_package ).
     LOOP AT lt_types ASSIGNING <lv_type>.
       READ TABLE lt_tadir WITH KEY object = <lv_type> TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
@@ -48999,8 +48712,8 @@ CLASS ltcl_dangerous IMPLEMENTATION.
           quit = if_aunit_constants=>no ).
     ENDLOOP.
 
-    lcl_objects=>delete( lt_tadir ).
-    lt_tadir = lcl_tadir=>read( c_package ).
+    zcl_abapgit_objects=>delete( lt_tadir ).
+    lt_tadir = zcl_abapgit_tadir=>read( c_package ).
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       lv_msg = |Not deleted properly { <ls_tadir>-object } { <ls_tadir>-obj_name }|.
       cl_abap_unit_assert=>fail(
@@ -49008,162 +48721,13 @@ CLASS ltcl_dangerous IMPLEMENTATION.
           quit = if_aunit_constants=>no ).
     ENDLOOP.
 
-    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
+    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
   ENDMETHOD.                    "run
 
 ENDCLASS.                    "ltcl_dangerous IMPLEMENTATION
-
-CLASS ltcl_git_porcelain DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
-
-  PRIVATE SECTION.
-    METHODS:
-      setup,
-      append
-        IMPORTING iv_path TYPE string
-                  iv_name TYPE string,
-      single_file FOR TESTING
-        RAISING zcx_abapgit_exception,
-      two_files_same_path FOR TESTING
-        RAISING zcx_abapgit_exception,
-      root_empty FOR TESTING
-        RAISING zcx_abapgit_exception,
-      namespaces FOR TESTING
-        RAISING zcx_abapgit_exception,
-      more_sub FOR TESTING
-        RAISING zcx_abapgit_exception,
-      sub FOR TESTING
-        RAISING zcx_abapgit_exception.
-
-    DATA: mt_expanded TYPE lcl_git_porcelain=>ty_expanded_tt,
-          mt_trees    TYPE lcl_git_porcelain=>ty_trees_tt.
-
-ENDCLASS.
-
-CLASS ltcl_git_porcelain IMPLEMENTATION.
-
-  METHOD setup.
-    CLEAR mt_expanded.
-    CLEAR mt_trees.
-  ENDMETHOD.
-
-  METHOD append.
-
-    FIELD-SYMBOLS: <ls_expanded> LIKE LINE OF mt_expanded.
-    APPEND INITIAL LINE TO mt_expanded ASSIGNING <ls_expanded>.
-    <ls_expanded>-path  = iv_path.
-    <ls_expanded>-name  = iv_name.
-    <ls_expanded>-sha1  = 'a'.
-    <ls_expanded>-chmod = zif_abapgit_definitions=>gc_chmod-file.
-
-  ENDMETHOD.
-
-  METHOD single_file.
-
-    append( iv_path = '/'
-            iv_name = 'foobar.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 1 ).
-
-  ENDMETHOD.
-
-  METHOD two_files_same_path.
-
-    append( iv_path = '/'
-            iv_name = 'foo.txt' ).
-
-    append( iv_path = '/'
-            iv_name = 'bar.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 1 ).
-
-  ENDMETHOD.
-
-  METHOD sub.
-
-    append( iv_path = '/'
-            iv_name = 'foo.txt' ).
-
-    append( iv_path = '/sub/'
-            iv_name = 'bar.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 2 ).
-
-  ENDMETHOD.
-
-  METHOD more_sub.
-
-    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF mt_trees.
-
-    append( iv_path = '/src/foo_a/foo_a1/'
-            iv_name = 'a1.txt' ).
-
-    append( iv_path = '/src/foo_a/foo_a2/'
-            iv_name = 'a2.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 5 ).
-
-    LOOP AT mt_trees ASSIGNING <ls_tree>.
-      cl_abap_unit_assert=>assert_not_initial( <ls_tree>-data ).
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD namespaces.
-
-    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF mt_trees.
-
-    append( iv_path = '/src/#foo#a/#foo#a1/'
-            iv_name = 'a1.txt' ).
-
-    append( iv_path = '/src/#foo#a/#foo#a2/'
-            iv_name = 'a2.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 5 ).
-
-    LOOP AT mt_trees ASSIGNING <ls_tree>.
-      cl_abap_unit_assert=>assert_not_initial( <ls_tree>-data ).
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD root_empty.
-
-    append( iv_path = '/sub/'
-            iv_name = 'bar.txt' ).
-
-    mt_trees = lcl_git_porcelain=>build_trees( mt_expanded ).
-
-* so 2 total trees are expected: '/' and '/sub/'
-    cl_abap_unit_assert=>assert_equals(
-      act = lines( mt_trees )
-      exp = 2 ).
-
-  ENDMETHOD.
-
-ENDCLASS.
 
 *----------------------------------------------------------------------*
 *       CLASS ltcl_object_types DEFINITION
@@ -49190,16 +48754,16 @@ CLASS ltcl_object_types IMPLEMENTATION.
 
     DATA: ls_item      TYPE zif_abapgit_definitions=>ty_item,
           lv_supported TYPE abap_bool,
-          lt_types     TYPE lcl_objects=>ty_types_tt.
+          lt_types     TYPE zcl_abapgit_objects=>ty_types_tt.
 
     FIELD-SYMBOLS: <lv_type> LIKE LINE OF lt_types.
-    lt_types = lcl_objects=>supported_list( ).
+    lt_types = zcl_abapgit_objects=>supported_list( ).
 
     LOOP AT lt_types ASSIGNING <lv_type>.
 
       CLEAR ls_item.
       ls_item-obj_type = <lv_type>.
-      lv_supported = lcl_objects=>is_supported( ls_item ).
+      lv_supported = zcl_abapgit_objects=>is_supported( ls_item ).
 
       cl_abap_unit_assert=>assert_equals(
           act  = lv_supported
@@ -49214,16 +48778,16 @@ CLASS ltcl_object_types IMPLEMENTATION.
 
     DATA: ls_item   TYPE zif_abapgit_definitions=>ty_item,
           lv_exists TYPE abap_bool,
-          lt_types  TYPE lcl_objects=>ty_types_tt.
+          lt_types  TYPE zcl_abapgit_objects=>ty_types_tt.
 
     FIELD-SYMBOLS: <lv_type> LIKE LINE OF lt_types.
-    lt_types = lcl_objects=>supported_list( ).
+    lt_types = zcl_abapgit_objects=>supported_list( ).
 
     LOOP AT lt_types ASSIGNING <lv_type>.
       CLEAR ls_item.
       ls_item-obj_name = 'ZABAPGIT_FOOBAR'.
       ls_item-obj_type = <lv_type>.
-      lv_exists = lcl_objects=>exists( ls_item ).
+      lv_exists = zcl_abapgit_objects=>exists( ls_item ).
 
       cl_abap_unit_assert=>assert_equals(
           act  = lv_exists
@@ -49406,7 +48970,7 @@ CLASS ltcl_serialize IMPLEMENTATION.
 
     DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
 
-    lt_files = lcl_objects=>serialize( is_item     = is_item
+    lt_files = zcl_abapgit_objects=>serialize( is_item     = is_item
                                        iv_language = zif_abapgit_definitions=>gc_english ).
 
     cl_abap_unit_assert=>assert_not_initial( lt_files ).
@@ -49414,232 +48978,6 @@ CLASS ltcl_serialize IMPLEMENTATION.
   ENDMETHOD.                    "check
 
 ENDCLASS.                    "ltcl_serialize IMPLEMENTATION
-
-CLASS ltcl_file_status DEFINITION FOR TESTING RISK LEVEL HARMLESS
-  DURATION SHORT FINAL
-  INHERITING FROM cl_aunit_assert.
-
-  PUBLIC SECTION.
-    METHODS calculate_status FOR TESTING
-      RAISING zcx_abapgit_exception.
-
-ENDCLASS.   "ltcl_file_status
-
-CLASS ltcl_file_status IMPLEMENTATION.
-
-  METHOD calculate_status.
-
-    DATA: lt_local       TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lt_remote      TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_state       TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_results     TYPE zif_abapgit_definitions=>ty_results_tt,
-          lt_results_exp TYPE zif_abapgit_definitions=>ty_results_tt,
-          lo_dot         TYPE REF TO zcl_abapgit_dot_abapgit.
-
-    FIELD-SYMBOLS: <local>  LIKE LINE OF lt_local,
-                   <remote> LIKE LINE OF lt_remote,
-                   <result> LIKE LINE OF lt_results,
-                   <state>  LIKE LINE OF lt_state.
-
-    "STATE         FILE                              SHA1
-    _append_state '$$zclass1.clas.xml'              'C1_F1'.
-    " class1 testclasses is new locally, abap is new remotely
-    " class2 is completely new remotely
-    _append_state '$$zdoma1.doma.xml'               'D1'.
-    _append_state '$$zdoma2.doma.xml'               'D2'.
-    _append_state '$$zdoma3.doma.xml'               'D3'.
-    " doma4 is new locally
-    " doma5 is new remotely
-    _append_state '$$zdoma6.doma.xml'               'D6'.
-    " doma7 is not in state - emulate brocken cache
-    " doma8 is not in state - emulate brocken cache
-    _append_state '$$zdoma9.doma.xml'               'D9'.
-    _append_state 'num01.doma.xml'                  'NUM01'. " another from different package
-    _append_state 'xfeld.doma.xml'                  'XFELD'. " from different package
-
-    "LOCAL         TYPE   NAME        FILE                              SHA1
-    _append_local 'CLAS' '$$ZCLASS1' '$$zclass1.clas.testclasses.abap' 'C1_F3'.
-    _append_local 'CLAS' '$$ZCLASS1' '$$zclass1.clas.xml'              'C1_F1'.
-    _append_local 'DOMA' '$$ZDOMA1'  '$$zdoma1.doma.xml'               'D1'.
-    _append_local 'DOMA' '$$ZDOMA2'  '$$zdoma2.doma.xml'               'D2_CHANGED_L'.
-    _append_local 'DOMA' '$$ZDOMA3'  '$$zdoma3.doma.xml'               'D3'.
-    _append_local 'DOMA' '$$ZDOMA4'  '$$zdoma4.doma.xml'               'D4'.
-    _append_local 'DOMA' '$$ZDOMA6'  '$$zdoma6.doma.xml'               'D6_CHANGED_L'.
-    _append_local 'DOMA' '$$ZDOMA7'  '$$zdoma7.doma.xml'               'D7'.
-    _append_local 'DOMA' '$$ZDOMA8'  '$$zdoma8.doma.xml'               'D8'.
-    " dome9 was deleted from local system. Can be found by existing state
-
-    "REMOTE         FILE                  SHA1
-    _append_remote 'textfile.txt'        'T1'.
-    _append_remote '$$zclass1.clas.abap' 'C1_F2'. " Must be before xml for tougher test
-    _append_remote '$$zclass1.clas.xml'  'C1_F1'.
-    _append_remote '$$zclass2.clas.abap' 'C1_F2'. " Must be before xml for tougher test
-    _append_remote '$$zclass2.clas.xml'  'C1_F1'.
-    _append_remote '$$zdoma1.doma.xml'   'D1'.
-    _append_remote '$$zdoma2.doma.xml'   'D2'.
-    _append_remote '$$zdoma3.doma.xml'   'D3_CHANGED_R'.
-    _append_remote '$$zdoma5.doma.xml'   'D5'.
-    _append_remote '$$zdoma6.doma.xml'   'D6_CHANGED_R'.
-    _append_remote '$$zdoma7.doma.xml'   'D7'.
-    _append_remote '$$zdoma8.doma.xml'   'D8_CHANGED_R'.  " This one is changed
-    _append_remote '$$zdoma9.doma.xml'   'D9'.            " This one is deleted locally
-    _append_remote 'xfeld.doma.xml'      'XFELD'.         " Object from different package
-    _append_remote 'num01.doma.xml'      'NUM01_CHANGED'. " Changed object from different package
-
-    "EXP RESULT    TYPE   NAME        MATCH LST   RST  PKG    PATH FILE
-    _append_result ''     ''          ' '   ' '   'A'  ''     '/'  'textfile.txt'.
-    _append_result 'CLAS' '$$ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'  '$$zclass1.clas.abap'.
-    _append_result 'CLAS' '$$ZCLASS1' ' '   'A'   ' '  '$Z$'  '/'  '$$zclass1.clas.testclasses.abap'.
-    _append_result 'CLAS' '$$ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/'  '$$zclass1.clas.xml'.
-    _append_result 'CLAS' '$$ZCLASS2' ' '   ' '   'A'  ''     '/'  '$$zclass2.clas.abap'.
-    _append_result 'CLAS' '$$ZCLASS2' ' '   ' '   'A'  ''     '/'  '$$zclass2.clas.xml'.
-    _append_result 'DOMA' '$$ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/'  '$$zdoma1.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA2'  ' '   'M'   ' '  '$Z$'  '/'  '$$zdoma2.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA3'  ' '   ' '   'M'  '$Z$'  '/'  '$$zdoma3.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA4'  ' '   'A'   ' '  '$Z$'  '/'  '$$zdoma4.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA5'  ' '   ' '   'A'  ''     '/'  '$$zdoma5.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA6'  ' '   'M'   'M'  '$Z$'  '/'  '$$zdoma6.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA7'  'X'   ' '   ' '  '$Z$'  '/'  '$$zdoma7.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA8'  ' '   'M'   'M'  '$Z$'  '/'  '$$zdoma8.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA9'  ' '   'D'   ' '  ''     '/'  '$$zdoma9.doma.xml'.
-    _append_result 'DOMA' 'NUM01'     ' '   ' '   'M'  'SUTI' '/'  'num01.doma.xml'.
-    _append_result 'DOMA' 'XFELD'     'X'   ' '   ' '  'SUTI' '/'  'xfeld.doma.xml'.
-    lt_results_exp = lt_results.
-
-    lo_dot = zcl_abapgit_dot_abapgit=>build_default( ).
-*    lo_dot->set_starting_folder( 'SRC' ).
-*    lo_dot->set_folder_logic( lcl_dot_abapgit=>c_folder_logic-prefix ).
-
-    lt_results = lcl_file_status=>calculate_status(
-      iv_devclass        = '$Z$'
-      io_dot             = lo_dot
-      it_local           = lt_local
-      it_remote          = lt_remote
-      it_cur_state       = lt_state ).
-
-    assert_equals( act = lt_results exp = lt_results_exp ).
-
-  ENDMETHOD.  "calculate_status
-
-ENDCLASS.   "ltcl_file_status
-
-CLASS ltcl_file_status2 DEFINITION FOR TESTING RISK LEVEL HARMLESS
-  DURATION SHORT FINAL
-  INHERITING FROM cl_aunit_assert.
-
-  PUBLIC SECTION.
-    METHODS check FOR TESTING RAISING zcx_abapgit_exception.
-
-ENDCLASS.   "ltcl_sap_package
-
-CLASS ltcl_file_status2 IMPLEMENTATION.
-
-  METHOD check.
-
-    DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
-          lo_log     TYPE REF TO zcl_abapgit_log.
-
-    FIELD-SYMBOLS: <result> LIKE LINE OF lt_results.
-
-*** 0 Positive
-
-    CLEAR lt_results.
-    CREATE OBJECT lo_log.
-    "EXP RESULT    TYPE   NAME      MATCH LST   RST  PKG    PATH FILE
-    _append_result 'CLAS' 'ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'  'zclass1.clas.abap'.
-    _append_result 'CLAS' 'ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/'  'zclass1.clas.xml'.
-    _append_result 'DOMA' 'ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/'  'zdoma1.doma.xml'.
-    _append_result 'DOMA' 'ZDOMA2'  ' '   'M'   ' '  '$Z$'  '/'  'zdoma2.doma.xml'.
-
-    lcl_file_status=>run_checks( io_log     = lo_log
-                                 it_results = lt_results
-                                 io_dot     = zcl_abapgit_dot_abapgit=>build_default( )
-                                 iv_top     = '$Z$' ).
-
-    assert_equals( act = lo_log->count( ) exp = 0 ).
-
-*** 1 Negative, different path for same object
-
-    CLEAR lt_results.
-    CREATE OBJECT lo_log.
-
-    "EXP RESULT    TYPE   NAME      MATCH LST   RST  PKG    PATH   FILE
-    _append_result 'CLAS' 'ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'    'zclass1.clas.abap'.
-    _append_result 'CLAS' 'ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/sub' 'zclass1.clas.xml'.
-    _append_result 'DOMA' 'ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/'    'zdoma1.doma.xml'.
-    _append_result 'DOMA' 'ZDOMA2'  ' '   'M'   ' '  '$Z$'  '/'    'zdoma2.doma.xml'.
-
-    lcl_file_status=>run_checks( io_log     = lo_log
-                                 it_results = lt_results
-                                 io_dot     = zcl_abapgit_dot_abapgit=>build_default( )
-                                 iv_top     = '$Z$' ).
-
-    " This one is not pure - incorrect path also triggers path vs package check
-    assert_equals( act = lo_log->count( ) exp = 2 ).
-    assert_equals( act = lo_log->has_rc( '1' ) exp = abap_true ).
-
-*** 2 Negative, incorrect path vs package
-
-    CLEAR lt_results.
-    CREATE OBJECT lo_log.
-
-    "EXP RESULT    TYPE   NAME      MATCH LST   RST  PKG    PATH   FILE
-    _append_result 'CLAS' '$$ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'    '$$zclass1.clas.abap'.
-    _append_result 'CLAS' '$$ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/'    '$$zclass1.clas.xml'.
-    _append_result 'DOMA' '$$ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/sub' '$$zdoma1.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA2'  ' '   'M'   ' '  '$Z$'  '/'    '$$zdoma2.doma.xml'.
-
-    lcl_file_status=>run_checks( io_log     = lo_log
-                                 it_results = lt_results
-                                 io_dot     = zcl_abapgit_dot_abapgit=>build_default( )
-                                 iv_top     = '$Z$' ).
-
-    assert_equals( act = lo_log->count( ) exp = 1 ).
-    assert_equals( act = lo_log->has_rc( '2' ) exp = abap_true ).
-
-*** 3 Negative, similar filenames
-
-    CLEAR lt_results.
-    CREATE OBJECT lo_log.
-
-    "EXP RESULT    TYPE   NAME      MATCH LST   RST  PKG    PATH   FILE
-    _append_result 'CLAS' '$$ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'    '$$zclass1.clas.abap'.
-    _append_result 'CLAS' '$$ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/'    '$$zclass1.clas.xml'.
-    _append_result 'DOMA' '$$ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/'    '$$zdoma1.doma.xml'.
-    _append_result 'DOMA' '$$ZDOMA2'  ' '   'M'   ' '  '$Z$'  '/'    '$$zdoma1.doma.xml'.
-
-    lcl_file_status=>run_checks( io_log     = lo_log
-                                 it_results = lt_results
-                                 io_dot     = zcl_abapgit_dot_abapgit=>build_default( )
-                                 iv_top     = '$Z$' ).
-
-    assert_equals( act = lo_log->count( ) exp = 1 ).
-    assert_equals( act = lo_log->has_rc( '3' ) exp = abap_true ).
-
-*** 4 Negative, empty filenames
-
-    CLEAR lt_results.
-    CREATE OBJECT lo_log.
-
-    "EXP RESULT    TYPE   NAME      MATCH LST   RST  PKG    PATH   FILE
-    _append_result 'CLAS' '$$ZCLASS1' ' '   ' '   'A'  '$Z$'  '/'    '$$zclass1.clas.abap'.
-    _append_result 'CLAS' '$$ZCLASS1' 'X'   ' '   ' '  '$Z$'  '/'    '$$zclass1.clas.xml'.
-    _append_result 'DOMA' '$$ZDOMA1'  'X'   ' '   ' '  '$Z$'  '/'    ''.
-
-    lcl_file_status=>run_checks( io_log     = lo_log
-                                 it_results = lt_results
-                                 io_dot     = zcl_abapgit_dot_abapgit=>build_default( )
-                                 iv_top     = '$Z$' ).
-
-    assert_equals( act = lo_log->count( )
-                   exp = 1 ).
-
-    assert_equals( act = lo_log->has_rc( '4' )
-                   exp = abap_true ).
-
-  ENDMETHOD.  " check.
-
-ENDCLASS. "ltcl_sap_package
 
 CLASS ltcl_persistence_settings DEFINITION FINAL FOR TESTING
   DURATION SHORT
@@ -51376,14 +50714,14 @@ CLASS lcl_migrations IMPLEMENTATION.
 
   METHOD local_dot_abapgit.
 
-    DATA: lt_repos       TYPE lcl_repo_srv=>ty_repo_tt,
+    DATA: lt_repos       TYPE zcl_abapgit_repo_srv=>ty_repo_tt,
           lv_msg         TYPE string,
           lv_shown       TYPE abap_bool,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
           lx_exception   TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <lo_repo> LIKE LINE OF lt_repos.
-    lt_repos = lcl_repo_srv=>get_instance( )->list( ).
+    lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
 
     LOOP AT lt_repos ASSIGNING <lo_repo>.
       lo_dot_abapgit = <lo_repo>->get_dot_abapgit( ).
@@ -51431,16 +50769,16 @@ CLASS lcl_migrations IMPLEMENTATION.
 
   METHOD rebuild_local_checksums_161112.
 
-    DATA: lt_repos     TYPE lcl_repo_srv=>ty_repo_tt,
+    DATA: lt_repos     TYPE zcl_abapgit_repo_srv=>ty_repo_tt,
           lv_repo_list TYPE string,
           lv_question  TYPE string,
           lv_answer    TYPE c,
           lv_index     TYPE i,
-          lo_repo      TYPE REF TO lcl_repo_online.
+          lo_repo      TYPE REF TO zcl_abapgit_repo_online.
 
     FIELD-SYMBOLS: <repo> LIKE LINE OF lt_repos.
 
-    lt_repos = lcl_repo_srv=>get_instance( )->list( ).
+    lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
 
     LOOP AT lt_repos ASSIGNING <repo>.
       lv_index = sy-tabix.
@@ -51475,7 +50813,7 @@ CLASS lcl_migrations IMPLEMENTATION.
                && ' by "Advances/Update local checksums" command.'
                && | Repos affected: { lv_repo_list }|.
 
-    lv_answer = lcl_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = lv_question
       text_button_1         = 'OK'
@@ -51565,7 +50903,7 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
   DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
   TRY.
-      lcl_popups=>branch_popup_callback(
+      zcl_abapgit_popups=>branch_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -51589,7 +50927,7 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
   DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
   TRY.
-      lcl_popups=>package_popup_callback(
+      zcl_abapgit_popups=>package_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -51664,5 +51002,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-15T12:53:13.130Z
+* abapmerge - 2018-02-15T14:12:52.554Z
 ****************************************************
