@@ -35418,35 +35418,6 @@ CLASS lcl_password_dialog IMPLEMENTATION.
 
 ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 ****************************************************
-* abapmerge - ZABAPGIT_APP
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_APP
-*&---------------------------------------------------------------------*
-
-CLASS lcl_gui DEFINITION DEFERRED.
-CLASS lcl_repo_srv DEFINITION DEFERRED.
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_app DEFINITION
-*----------------------------------------------------------------------*
-CLASS lcl_app DEFINITION FINAL.
-  PUBLIC SECTION.
-
-    CLASS-METHODS gui
-      RETURNING VALUE(ro_gui) TYPE REF TO lcl_gui
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS repo_srv
-      RETURNING VALUE(ro_repo_srv) TYPE REF TO lcl_repo_srv.
-
-  PRIVATE SECTION.
-    CLASS-DATA: go_gui          TYPE REF TO lcl_gui,
-                go_repo_srv     TYPE REF TO lcl_repo_srv.
-
-ENDCLASS.   "lcl_app
-
-****************************************************
 * abapmerge - ZABAPGIT_AUTHORIZATIONS
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -35518,6 +35489,8 @@ INCLUDE zabapgit_user_exit IF FOUND.
 *&---------------------------------------------------------------------*
 *&  Include           ZABAPGIT_REPO
 *&---------------------------------------------------------------------*
+
+CLASS lcl_repo_srv DEFINITION DEFERRED.
 
 *----------------------------------------------------------------------*
 *       CLASS lcl_repo DEFINITION
@@ -35692,9 +35665,12 @@ ENDCLASS.                    "lcl_repo_offline DEFINITION
 *----------------------------------------------------------------------*
 *       CLASS lcl_repo_srv DEFINITION
 *----------------------------------------------------------------------*
-CLASS lcl_repo_srv DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
+CLASS lcl_repo_srv DEFINITION FINAL CREATE PRIVATE.
 
   PUBLIC SECTION.
+
+    CLASS-METHODS: get_instance
+      RETURNING VALUE(rv_srv) TYPE REF TO lcl_repo_srv.
 
     TYPES: ty_repo_tt TYPE STANDARD TABLE OF REF TO lcl_repo WITH DEFAULT KEY.
 
@@ -35743,6 +35719,8 @@ CLASS lcl_repo_srv DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
       RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
+
+    CLASS-DATA: go_ref TYPE REF TO lcl_repo_srv.
 
     METHODS constructor.
 
@@ -38446,7 +38424,7 @@ CLASS lcl_popups IMPLEMENTATION.
       lv_finished = abap_true.
 
       TRY.
-          lcl_app=>repo_srv( )->validate_package( rs_popup-package ).
+          lcl_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
 
         CATCH zcx_abapgit_exception INTO lx_error.
           " in case of validation errors we display the popup again
@@ -38776,7 +38754,7 @@ CLASS lcl_popups IMPLEMENTATION.
       TRY.
           zcl_abapgit_url=>name( |{ lv_url }| ).
           IF iv_freeze_package = abap_false.
-            lcl_app=>repo_srv( )->validate_package( lv_package ).
+            lcl_repo_srv=>get_instance( )->validate_package( lv_package ).
           ENDIF.
         CATCH zcx_abapgit_exception INTO lx_error.
           MESSAGE lx_error->text TYPE 'S' DISPLAY LIKE 'E'.
@@ -39657,7 +39635,7 @@ CLASS lcl_zip IMPLEMENTATION.
   METHOD import.
 
     DATA: lo_repo TYPE REF TO lcl_repo_offline.
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_files_remote( unzip_file( file_upload( ) ) ).
     lo_repo->deserialize( ).
 
@@ -40703,7 +40681,7 @@ CLASS lcl_repo_online IMPLEMENTATION.
 
     IF me->is_offline( ) = abap_false AND me->get_sha1_local( ) IS INITIAL.
 
-      lcl_app=>repo_srv( )->delete( me ).
+      lcl_repo_srv=>get_instance( )->delete( me ).
 
       IF iv_commit = abap_true.
         COMMIT WORK.
@@ -41201,6 +41179,13 @@ ENDCLASS.                    "lcl_repo IMPLEMENTATION
 *----------------------------------------------------------------------*
 CLASS lcl_repo_srv IMPLEMENTATION.
 
+  METHOD get_instance.
+    IF go_ref IS INITIAL.
+      CREATE OBJECT go_ref.
+    ENDIF.
+    rv_srv = go_ref.
+  ENDMETHOD.
+
   METHOD constructor.
     CREATE OBJECT mo_persistence.
   ENDMETHOD.                    "class_constructor
@@ -41680,7 +41665,7 @@ CLASS lcl_background IMPLEMENTATION.
     WRITE: / 'Background mode' ##NO_TEXT.
 
     LOOP AT lt_list ASSIGNING <ls_list>.
-      lo_repo ?= lcl_app=>repo_srv( )->get( <ls_list>-key ).
+      lo_repo ?= lcl_repo_srv=>get_instance( )->get( <ls_list>-key ).
       lv_repo_name = lo_repo->get_name( ).
       WRITE: / <ls_list>-method, lv_repo_name.
 
@@ -42067,7 +42052,7 @@ CLASS lcl_services_git IMPLEMENTATION.
           lt_selected               LIKE lt_unnecessary_local_objs,
           lt_columns                TYPE stringtab.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
@@ -42120,7 +42105,7 @@ CLASS lcl_services_git IMPLEMENTATION.
     DATA: lv_name   TYPE string,
           lv_cancel TYPE abap_bool,
           lo_repo   TYPE REF TO lcl_repo_online.
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     lcl_popups=>create_branch_popup(
       IMPORTING
@@ -42148,7 +42133,7 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     DATA: lo_repo TYPE REF TO lcl_repo_online.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot pull. Local code is write-protected by repo config' ).
@@ -42165,7 +42150,7 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     DATA: lo_repo   TYPE REF TO lcl_repo_online,
           ls_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch.
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_branch = lcl_popups=>branch_list_popup(
       iv_url             = lo_repo->get_url( )
@@ -42192,7 +42177,7 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     DATA: lo_repo   TYPE REF TO lcl_repo_online,
           ls_branch TYPE zcl_abapgit_git_branch_list=>ty_git_branch.
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_branch = lcl_popups=>branch_list_popup( lo_repo->get_url( ) ).
     IF ls_branch IS INITIAL.
@@ -42230,7 +42215,7 @@ CLASS lcl_services_git IMPLEMENTATION.
           lo_repo   TYPE REF TO lcl_repo_online,
           lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     lcl_popups=>create_tag_popup(
       EXPORTING
@@ -42267,7 +42252,7 @@ CLASS lcl_services_git IMPLEMENTATION.
           ls_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
           lv_text TYPE string.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_tag = lcl_popups=>tag_list_popup( lo_repo->get_url( ) ).
     IF ls_tag IS INITIAL.
@@ -42290,7 +42275,7 @@ CLASS lcl_services_git IMPLEMENTATION.
           ls_tag  TYPE zcl_abapgit_git_branch_list=>ty_git_branch,
           lv_text TYPE string.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_tag = lcl_popups=>tag_list_popup( lo_repo->get_url( ) ).
     IF ls_tag IS INITIAL.
@@ -42309,7 +42294,7 @@ CLASS lcl_services_git IMPLEMENTATION.
 
     DATA: lo_repo TYPE REF TO lcl_repo_online.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     lcl_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
                                 iv_select_mode = abap_false ).
@@ -42426,7 +42411,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo = lcl_app=>repo_srv( )->new_online(
+    lo_repo = lcl_repo_srv=>get_instance( )->new_online(
       iv_url         = ls_popup-url
       iv_branch_name = ls_popup-branch_name
       iv_package     = ls_popup-package ).
@@ -42446,7 +42431,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
   METHOD refresh.
 
-    lcl_app=>repo_srv( )->get( iv_key )->refresh( ).
+    lcl_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
 
   ENDMETHOD.  "refresh
 
@@ -42456,7 +42441,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
           lo_repo     TYPE REF TO lcl_repo,
           lv_package  TYPE devclass,
           lv_question TYPE c LENGTH 200.
-    lo_repo     = lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo     = lcl_repo_srv=>get_instance( )->get( iv_key ).
     lv_package  = lo_repo->get_package( ).
     lv_question = |This will remove the repository reference to the package { lv_package }|
                && '. All objects will safely remain in the system.'.
@@ -42475,7 +42460,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_app=>repo_srv( )->delete( lo_repo ).
+    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
@@ -42488,7 +42473,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
           lo_repo     TYPE REF TO lcl_repo,
           lv_package  TYPE devclass,
           lv_question TYPE c LENGTH 100.
-    lo_repo = lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo = lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     IF lo_repo->is_write_protected( ) = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
@@ -42520,7 +42505,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
 
     ENDIF.
 
-    lcl_app=>repo_srv( )->delete( lo_repo ).
+    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
@@ -42536,7 +42521,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo = lcl_app=>repo_srv( )->new_offline(
+    lo_repo = lcl_repo_srv=>get_instance( )->new_offline(
       iv_url     = ls_popup-url
       iv_package = ls_popup-package ).
 
@@ -42565,7 +42550,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_app=>repo_srv( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
+    lcl_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
 
     COMMIT WORK.
 
@@ -42578,15 +42563,15 @@ CLASS lcl_services_repo IMPLEMENTATION.
     ls_popup = lcl_popups=>repo_popup(
       iv_title          = 'Attach repo to remote ...'
       iv_url            = ''
-      iv_package        = lcl_app=>repo_srv( )->get( iv_key )->get_package( )
+      iv_package        = lcl_repo_srv=>get_instance( )->get( iv_key )->get_package( )
       iv_freeze_package = abap_true ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lcl_app=>repo_srv( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_false ).
+    lcl_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_false ).
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_url( ls_popup-url ).
     lo_repo->set_branch_name( ls_popup-branch_name ).
 
@@ -42599,7 +42584,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
     DATA: ls_popup TYPE lcl_popups=>ty_popup,
           lo_repo  TYPE REF TO lcl_repo_online.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_popup = lcl_popups=>repo_popup(
       iv_title          = 'Change repo remote ...'
@@ -42610,7 +42595,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_new_remote( iv_url         = ls_popup-url
                              iv_branch_name = ls_popup-branch_name ).
 
@@ -42623,7 +42608,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
     DATA: lv_answer   TYPE c,
           lv_question TYPE string,
           lo_repo     TYPE REF TO lcl_repo.
-    lo_repo = lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo = lcl_repo_srv=>get_instance( )->get( iv_key ).
 
     lv_question =  'This will rebuild and overwrite local repo checksums.'.
 
@@ -42680,7 +42665,7 @@ CLASS lcl_services_repo IMPLEMENTATION.
       lt_transport_objects   TYPE scts_tadir,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
 
-    lo_repository ?= lcl_app=>repo_srv( )->get( iv_repository_key ).
+    lo_repository ?= lcl_repo_srv=>get_instance( )->get( iv_repository_key ).
 
     lt_transport_headers = lcl_popups=>popup_to_select_transports( ).
     lt_transport_objects = lcl_transport=>to_tadir( lt_transport_headers ).
@@ -42838,13 +42823,13 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF abap_false = lcl_app=>repo_srv( )->is_repo_installed(
+    IF abap_false = lcl_repo_srv=>get_instance( )->is_repo_installed(
         iv_url              = iv_url
         iv_target_package   = iv_package ).
 
       zcl_abapgit_sap_package=>create_local( iv_package ).
 
-      lo_repo = lcl_app=>repo_srv( )->new_online(
+      lo_repo = lcl_repo_srv=>get_instance( )->new_online(
         iv_url         = iv_url
         iv_branch_name = 'refs/heads/master'
         iv_package     = iv_package ) ##NO_TEXT.
@@ -42862,7 +42847,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
   METHOD is_installed.
 
     TRY.
-        rv_installed = lcl_app=>repo_srv( )->is_repo_installed( c_abapgit_url ).
+        rv_installed = lcl_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
         " TODO, alternative checks for presence in the system
       CATCH zcx_abapgit_exception.
         " cannot be installed anyway in this case, e.g. no connection
@@ -42874,7 +42859,7 @@ CLASS lcl_services_abapgit IMPLEMENTATION.
   METHOD is_installed_pi.
 
     TRY.
-        rv_installed = lcl_app=>repo_srv( )->is_repo_installed( c_plugins_url ).
+        rv_installed = lcl_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
         " TODO, alternative checks for presence in the system
       CATCH zcx_abapgit_exception.
         " cannot be installed anyway in this case, e.g. no connection
@@ -43636,7 +43621,7 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
 
     super->constructor( ).
 
-    mo_repo         = lcl_app=>repo_srv( )->get( iv_key ).
+    mo_repo         = lcl_repo_srv=>get_instance( )->get( iv_key ).
     mv_cur_dir      = '/'. " Root
     mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->get_hide_files( ).
     mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->get_changes_only( ).
@@ -43689,7 +43674,7 @@ CLASS lcl_gui_view_repo IMPLEMENTATION.
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
     " Reinit, for the case of type change
-    mo_repo = lcl_app=>repo_srv( )->get( mo_repo->get_key( ) ).
+    mo_repo = lcl_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
     CREATE OBJECT ro_html.
 
@@ -45133,7 +45118,7 @@ CLASS lcl_gui_page_bkg IMPLEMENTATION.
     CREATE OBJECT lo_per.
     lt_per = lo_per->list( ).
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( mv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( mv_key ).
 
     READ TABLE lt_per INTO ls_per WITH KEY key = lo_repo->get_key( ).
     IF sy-subrc <> 0.
@@ -46124,7 +46109,7 @@ CLASS lcl_gui_page_db IMPLEMENTATION.
           RETURN.
         ENDIF.
         rv_text = |Method: { is_data-data_str+lv_match-offset(lv_match-length) }, |
-               && |Repository: { lcl_app=>repo_srv( )->get( is_data-value )->get_name( ) }|.
+               && |Repository: { lcl_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
 
       WHEN 'USER'.
         rv_text = '-'. " No additional explanation for user
@@ -46256,7 +46241,7 @@ CLASS lcl_gui_page_diff IMPLEMENTATION.
 
     ASSERT is_file IS INITIAL OR is_object IS INITIAL. " just one passed
 
-    lo_repo  ?= lcl_app=>repo_srv( )->get( iv_key ).
+    lo_repo  ?= lcl_repo_srv=>get_instance( )->get( iv_key ).
     lt_remote = lo_repo->get_files_remote( ).
     lt_local  = lo_repo->get_files_local( ).
     lt_status = lo_repo->status( ).
@@ -46900,7 +46885,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
       WHEN c_actions-show.              " Change displayed repo
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
         TRY.
-            lcl_app=>repo_srv( )->get( lv_key )->refresh( ).
+            lcl_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
@@ -46943,7 +46928,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     TRY.
-        lt_repos = lcl_app=>repo_srv( )->list( ).
+        lt_repos = lcl_repo_srv=>get_instance( )->list( ).
       CATCH zcx_abapgit_exception INTO lx_error.
         ro_html->add( lcl_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
         RETURN.
@@ -46955,7 +46940,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
       CREATE OBJECT lo_tutorial.
       ro_html->add( lo_tutorial->render( ) ).
     ELSE.
-      lo_repo = lcl_app=>repo_srv( )->get( mv_show ).
+      lo_repo = lcl_repo_srv=>get_instance( )->get( mv_show ).
       ro_html->add( render_repo( lo_repo ) ).
     ENDIF.
 
@@ -46966,7 +46951,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
     DATA: lv_show_old LIKE mv_show.
 
     TRY.
-        lcl_app=>repo_srv( )->list( ).
+        lcl_repo_srv=>get_instance( )->list( ).
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
@@ -46976,7 +46961,7 @@ CLASS lcl_gui_page_main IMPLEMENTATION.
 
     IF mv_show IS NOT INITIAL.
       TRY. " verify the key exists
-          lcl_app=>repo_srv( )->get( mv_show ).
+          lcl_repo_srv=>get_instance( )->get( mv_show ).
         CATCH zcx_abapgit_exception.
           CLEAR mv_show.
           zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( mv_show ).
@@ -48302,7 +48287,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-repo_syntax_check.
         CREATE OBJECT ei_page TYPE lcl_gui_page_syntax
           EXPORTING
-            io_repo = lcl_app=>repo_srv( )->get( lv_key ).
+            io_repo = lcl_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
       WHEN zif_abapgit_definitions=>gc_action-repo_purge.                      " Repo remove & purge all objects
         lcl_services_repo=>purge( lv_key ).
@@ -48325,7 +48310,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-repo_settings.
         CREATE OBJECT ei_page TYPE lcl_gui_page_repo_sett
           EXPORTING
-            io_repo = lcl_app=>repo_srv( )->get( lv_key ).
+            io_repo = lcl_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
 
         " ZIP services actions
@@ -48333,7 +48318,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
         lcl_zip=>import( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-zip_export.                      " Export repo as ZIP
-        lcl_zip=>export( lcl_app=>repo_srv( )->get( lv_key ) ).
+        lcl_zip=>export( lcl_repo_srv=>get_instance( )->get( lv_key ) ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>gc_action-zip_package.                     " Export package as ZIP
         lcl_zip=>export_package( ).
@@ -48439,7 +48424,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
           lv_key  TYPE zcl_abapgit_persistence_repo=>ty_repo-key.
     lv_key = iv_getdata.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( lv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( lv_key ).
 
     CREATE OBJECT lo_page
       EXPORTING
@@ -48491,7 +48476,7 @@ CLASS lcl_gui_router IMPLEMENTATION.
                   ev_seed    = lv_seed ).
     ENDIF.
 
-    lo_repo ?= lcl_app=>repo_srv( )->get( lv_key ).
+    lo_repo ?= lcl_repo_srv=>get_instance( )->get( lv_key ).
 
     " force refresh on stage, to make sure the latest local and remote files are used
     lo_repo->refresh( ).
@@ -48543,9 +48528,13 @@ ENDCLASS.           " lcl_gui_router
 *----------------------------------------------------------------------*
 *       CLASS lcl_gui DEFINITION
 *----------------------------------------------------------------------*
-CLASS lcl_gui DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
+CLASS lcl_gui DEFINITION FINAL CREATE PRIVATE.
 
   PUBLIC SECTION.
+
+    CLASS-METHODS: get_instance
+      RETURNING VALUE(ro_gui) TYPE REF TO lcl_gui
+      RAISING   zcx_abapgit_exception.
 
     METHODS go_home
       RAISING zcx_abapgit_exception.
@@ -48559,6 +48548,8 @@ CLASS lcl_gui DEFINITION FINAL CREATE PRIVATE FRIENDS lcl_app.
       IMPORTING action frame getdata postdata query_table.  "#EC NEEDED
 
   PRIVATE SECTION.
+
+    CLASS-DATA: go_gui TYPE REF TO lcl_gui.
 
     TYPES: BEGIN OF ty_page_stack,
              page     TYPE REF TO zif_abapgit_gui_page,
@@ -48614,6 +48605,13 @@ ENDCLASS.                    "lcl_gui DEFINITION
 *       CLASS lcl_gui IMPLEMENTATION
 *----------------------------------------------------------------------*
 CLASS lcl_gui IMPLEMENTATION.
+
+  METHOD get_instance.
+    IF go_gui IS INITIAL.
+      CREATE OBJECT go_gui.
+    ENDIF.
+    ro_gui = go_gui.
+  ENDMETHOD.
 
   METHOD constructor.
 
@@ -48867,38 +48865,6 @@ CLASS lcl_gui IMPLEMENTATION.
 
 ENDCLASS.                     "lcl_gui IMPLEMENTATION
 ****************************************************
-* abapmerge - ZABAPGIT_APP_IMPL
-****************************************************
-*&---------------------------------------------------------------------*
-*&  Include           ZABAPGIT_APP_IMPL
-*&---------------------------------------------------------------------*
-
-*----------------------------------------------------------------------*
-*       CLASS lcl_app IMPLEMENTATION
-*----------------------------------------------------------------------*
-CLASS lcl_app IMPLEMENTATION.
-
-  METHOD gui.
-
-    IF go_gui IS NOT BOUND.
-      CREATE OBJECT go_gui.
-    ENDIF.
-    ro_gui = go_gui.
-
-  ENDMETHOD.      "gui
-
-  METHOD repo_srv.
-
-    IF go_repo_srv IS NOT BOUND.
-      CREATE OBJECT go_repo_srv.
-    ENDIF.
-    ro_repo_srv = go_repo_srv.
-
-  ENDMETHOD.      "repo_srv
-
-ENDCLASS.   "lcl_app
-
-****************************************************
 * abapmerge - ZABAPGIT_UNIT_TEST
 ****************************************************
 *&---------------------------------------------------------------------*
@@ -49016,7 +48982,7 @@ CLASS ltcl_dangerous IMPLEMENTATION.
 
     lt_types = lcl_objects=>supported_list( ).
 
-    lo_repo = lcl_app=>repo_srv( )->new_online(
+    lo_repo = lcl_repo_srv=>get_instance( )->new_online(
       iv_url         = 'https://github.com/larshp/abapGit-Unit-Test.git'
       iv_branch_name = 'refs/heads/master'
       iv_package     = c_package ).
@@ -49052,7 +49018,7 @@ CLASS ltcl_dangerous IMPLEMENTATION.
           quit = if_aunit_constants=>no ).
     ENDLOOP.
 
-    lcl_app=>repo_srv( )->delete( lo_repo ).
+    lcl_repo_srv=>get_instance( )->delete( lo_repo ).
 
     COMMIT WORK.
 
@@ -51427,7 +51393,7 @@ CLASS lcl_migrations IMPLEMENTATION.
           lx_exception   TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <lo_repo> LIKE LINE OF lt_repos.
-    lt_repos = lcl_app=>repo_srv( )->list( ).
+    lt_repos = lcl_repo_srv=>get_instance( )->list( ).
 
     LOOP AT lt_repos ASSIGNING <lo_repo>.
       lo_dot_abapgit = <lo_repo>->get_dot_abapgit( ).
@@ -51484,7 +51450,7 @@ CLASS lcl_migrations IMPLEMENTATION.
 
     FIELD-SYMBOLS: <repo> LIKE LINE OF lt_repos.
 
-    lt_repos = lcl_app=>repo_srv( )->list( ).
+    lt_repos = lcl_repo_srv=>get_instance( )->list( ).
 
     LOOP AT lt_repos ASSIGNING <repo>.
       lv_index = sy-tabix.
@@ -51579,7 +51545,7 @@ FORM open_gui RAISING zcx_abapgit_exception.
   IF sy-batch = abap_true.
     lcl_background=>run( ).
   ELSE.
-    lcl_app=>gui( )->go_home( ).
+    lcl_gui=>get_instance( )->go_home( ).
     CALL SELECTION-SCREEN 1001. " trigger screen
   ENDIF.
 
@@ -51663,7 +51629,7 @@ ENDFORM.
 FORM exit RAISING zcx_abapgit_exception.
   CASE sy-ucomm.
     WHEN 'CBAC'.  "Back
-      IF lcl_app=>gui( )->back( ) IS INITIAL.
+      IF lcl_gui=>get_instance( )->back( ) IS INITIAL.
         LEAVE TO SCREEN 1001.
       ENDIF.
   ENDCASE.
@@ -51708,5 +51674,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-14T14:45:39.286Z
+* abapmerge - 2018-02-15T12:44:23.581Z
 ****************************************************
