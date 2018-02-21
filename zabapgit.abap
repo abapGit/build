@@ -26463,7 +26463,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
           RECEIVING
             result    = lo_adt_objref.
 
-        ASSIGN ('li_adt_objref->ref_data-uri') TO <lv_uri>.
+        ASSIGN ('LO_ADT_OBJREF->REF_DATA-URI') TO <lv_uri>.
         ASSERT sy-subrc = 0.
 
         CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
@@ -49331,5 +49331,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-21T07:49:13.609Z
+* abapmerge - 2018-02-21T17:10:50.884Z
 ****************************************************
