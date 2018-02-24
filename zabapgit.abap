@@ -4431,6 +4431,7 @@ CLASS zcl_abapgit_persist_background DEFINITION
     CONSTANTS: BEGIN OF c_amethod,
                  fixed TYPE string VALUE 'fixed' ##NO_TEXT,
                  auto  TYPE string VALUE 'auto' ##NO_TEXT,
+                 user  TYPE string VALUE 'user' ##NO_TEXT,
                END OF c_amethod.
 
     TYPES: BEGIN OF ty_xml,
@@ -6836,8 +6837,13 @@ CLASS zcl_abapgit_background DEFINITION CREATE PUBLIC.
                   is_settings TYPE zcl_abapgit_persist_background=>ty_background
         RAISING   zcx_abapgit_exception,
       push_auto
-        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
-        RAISING   zcx_abapgit_exception.
+        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
+                  is_settings TYPE zcl_abapgit_persist_background=>ty_background
+        RAISING   zcx_abapgit_exception,
+      determine_user_details
+        IMPORTING iv_method      TYPE string
+                  iv_changed_by  TYPE xubname
+        RETURNING VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user.
 
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PUBLIC.
@@ -14722,6 +14728,47 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD determine_user_details.
+
+    DATA: lt_return  TYPE TABLE OF bapiret2,
+          ls_address TYPE bapiaddr3,
+          lt_smtp    TYPE TABLE OF bapiadsmtp,
+          ls_smtp    TYPE bapiadsmtp.
+
+*   IF the method is to use real user values, call the BAPI
+    IF iv_method = zcl_abapgit_persist_background=>c_amethod-user.
+
+      CALL FUNCTION 'BAPI_USER_GET_DETAIL'
+        EXPORTING
+          username = iv_changed_by
+        IMPORTING
+          address  = ls_address
+        TABLES
+          return   = lt_return
+          addsmtp  = lt_smtp.
+
+*     Choose the first email from SU01
+      SORT lt_smtp BY consnumber ASCENDING.
+
+      LOOP AT lt_smtp INTO ls_smtp.
+        rs_user-email = ls_smtp-e_mail.
+        EXIT.
+      ENDLOOP.
+
+*     Attempt to use the full name from SU01
+      rs_user-name = ls_address-fullname.
+    ENDIF.
+
+*   If no email, fall back to localhost/default email
+    IF rs_user-email IS INITIAL.
+      rs_user-email = |{ iv_changed_by }@localhost|.
+    ENDIF.
+
+*   If no full name maintained, just use changed by user name
+    IF rs_user-name IS INITIAL.
+      rs_user-name  = iv_changed_by.
+    ENDIF.
+  ENDMETHOD.
   METHOD push.
 
     IF lines( zcl_abapgit_stage_logic=>get( io_repo )-local ) = 0.
@@ -14733,8 +14780,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
       WHEN zcl_abapgit_persist_background=>c_amethod-fixed.
         push_fixed( io_repo     = io_repo
                     is_settings = is_settings ).
-      WHEN zcl_abapgit_persist_background=>c_amethod-auto.
-        push_auto( io_repo ).
+      WHEN zcl_abapgit_persist_background=>c_amethod-auto
+        OR zcl_abapgit_persist_background=>c_amethod-user.
+        push_auto( io_repo     = io_repo
+                   is_settings = is_settings ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'unknown push method' ).
     ENDCASE.
@@ -14774,9 +14823,11 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_users.
 
     LOOP AT lt_users INTO lv_changed_by.
-      CLEAR ls_comment.
-      ls_comment-committer-name  = lv_changed_by.
-      ls_comment-committer-email = |{ ls_comment-committer-name }@localhost|.
+      CLEAR: ls_comment.
+
+*     Fill user details
+      ls_comment-committer = determine_user_details( iv_method     = is_settings-amethod
+                                                     iv_changed_by = lv_changed_by ).
 
       CREATE OBJECT lo_stage
         EXPORTING
@@ -21297,7 +21348,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
           lv_push    TYPE string,
           lv_pull    TYPE string,
           lv_afixed  TYPE string,
-          lv_aauto   TYPE string.
+          lv_aauto   TYPE string,
+          lv_auser   TYPE string.
     CREATE OBJECT ro_html.
 
     ro_html->add( '<div id="toc">' ).
@@ -21329,6 +21381,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     ENDCASE.
 
     CASE ls_per-amethod.
+      WHEN zcl_abapgit_persist_background=>c_amethod-user.
+        lv_auser = ' checked' ##NO_TEXT.
       WHEN zcl_abapgit_persist_background=>c_amethod-auto.
         lv_aauto = ' checked' ##NO_TEXT.
       WHEN OTHERS.
@@ -21370,6 +21424,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
       lv_afixed && '>Fixed<br>' ) ##NO_TEXT.
     ro_html->add( '<input type="radio" name="amethod" value="auto"' &&
       lv_aauto && '>Automatic<br>' ) ##NO_TEXT.
+    ro_html->add( '<input type="radio" name="amethod" value="user"' &&
+      lv_auser && '>Automatic using SU01 user details<br>' ) ##NO_TEXT.
     ro_html->add( '<br>' ).
 
     ro_html->add( '<table>' ).
@@ -49317,5 +49373,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-24T09:04:04.131Z
+* abapmerge - 2018-02-24T09:07:10.302Z
 ****************************************************
