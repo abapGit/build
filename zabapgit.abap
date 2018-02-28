@@ -42283,7 +42283,6 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD read.
@@ -42408,6 +42407,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
         version = c_version
       TABLES
         line    = ls_data-lines.
+
+    tadir_insert( iv_package ).
 
   ENDMETHOD.                    "deserialize
 
@@ -49379,5 +49380,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-28T12:17:07.148Z
+* abapmerge - 2018-02-28T12:20:04.350Z
 ****************************************************
