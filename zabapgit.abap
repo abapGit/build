@@ -1304,67 +1304,77 @@ ENDINTERFACE.
 "! used to avoid having multiple http sessions between <em>authenticate</em> and
 "! <em>delete_access_tokens</em>.
 "! </p>
-INTERFACE zif_abapgit_2fa_authenticator.
-
-  METHODS:
-    "! Generate an access token
-    "! @parameter iv_url | Repository url
-    "! @parameter iv_username | Username
-    "! @parameter iv_password | Password
-    "! @parameter iv_2fa_token | Two factor token
-    "! @parameter rv_access_token | Generated access token
-    "! @raising lcx_2fa_auth_failed | Authentication failed
-    "! @raising lcx_2fa_token_gen_failed | Token generation failed
-    authenticate IMPORTING iv_url                 TYPE string
-                           iv_username            TYPE string
-                           iv_password            TYPE string
-                           iv_2fa_token           TYPE string
-                 RETURNING VALUE(rv_access_token) TYPE string
-                 RAISING   zcx_abapgit_2fa_auth_failed
-                           zcx_abapgit_2fa_gen_failed
-                           zcx_abapgit_2fa_comm_error,
-    "! Check if this authenticator instance supports the give repository url
-    "! @parameter iv_url | Repository url
-    "! @parameter rv_supported | Is supported
-    supports_url IMPORTING iv_url              TYPE string
-                 RETURNING VALUE(rv_supported) TYPE abap_bool,
-    "! Get a unique identifier for the service that hosts the repository
-    "! @parameter iv_url | Repository url
-    "! @parameter rv_id | Service id
-    "! @raising lcx_2fa_unsupported | Url is not supported
-    get_service_id_from_url IMPORTING iv_url       TYPE string
-                            RETURNING VALUE(rv_id) TYPE string
-                            RAISING   zcx_abapgit_2fa_unsupported,
-    "! Check if two factor authentication is required
-    "! @parameter iv_url | Repository url
-    "! @parameter iv_username | Username
-    "! @parameter iv_password | Password
-    "! @parameter rv_required | 2FA is required
-    is_2fa_required IMPORTING iv_url             TYPE string
-                              iv_username        TYPE string
-                              iv_password        TYPE string
-                    RETURNING VALUE(rv_required) TYPE abap_bool
-                    RAISING   zcx_abapgit_2fa_comm_error,
-    "! Delete all previously created access tokens for abapGit
-    "! @parameter iv_url | Repository url
-    "! @parameter iv_username | Username
-    "! @parameter iv_password | Password
-    "! @parameter iv_2fa_token | Two factor token
-    "! @raising lcx_2fa_token_del_failed | Token deletion failed
-    "! @raising lcx_2fa_auth_failed | Authentication failed
-    delete_access_tokens IMPORTING iv_url       TYPE string
-                                   iv_username  TYPE string
-                                   iv_password  TYPE string
-                                   iv_2fa_token TYPE string
-                         RAISING   zcx_abapgit_2fa_del_failed
-                                   zcx_abapgit_2fa_comm_error
-                                   zcx_abapgit_2fa_auth_failed,
-    "! Begin an authenticator session that uses internal caching for authorizations
-    "! @raising lcx_2fa_illegal_state | Session already started
-    begin RAISING zcx_abapgit_2fa_illegal_state,
-    "! End an authenticator session and clear internal caches
-    "! @raising lcx_2fa_illegal_state | Session not running
-    end RAISING zcx_abapgit_2fa_illegal_state.
+INTERFACE zif_abapgit_2fa_authenticator
+  .
+  "! Generate an access token
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter iv_2fa_token | Two factor token
+  "! @parameter rv_access_token | Generated access token
+  "! @raising lcx_2fa_auth_failed | Authentication failed
+  "! @raising lcx_2fa_token_gen_failed | Token generation failed
+  METHODS authenticate
+    IMPORTING
+      !iv_url                TYPE string
+      !iv_username           TYPE string
+      !iv_password           TYPE string
+      !iv_2fa_token          TYPE string
+    RETURNING
+      VALUE(rv_access_token) TYPE string
+    RAISING
+      zcx_abapgit_2fa_auth_failed
+      zcx_abapgit_2fa_gen_failed
+      zcx_abapgit_2fa_comm_error .
+  "! Check if this authenticator instance supports the give repository url
+  "! @parameter iv_url | Repository url
+  "! @parameter rv_supported | Is supported
+  METHODS supports_url
+    IMPORTING
+      !iv_url             TYPE string
+    RETURNING
+      VALUE(rv_supported) TYPE abap_bool .
+  "! Check if two factor authentication is required
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter rv_required | 2FA is required
+  METHODS is_2fa_required
+    IMPORTING
+      !iv_url            TYPE string
+      !iv_username       TYPE string
+      !iv_password       TYPE string
+    RETURNING
+      VALUE(rv_required) TYPE abap_bool
+    RAISING
+      zcx_abapgit_2fa_comm_error .
+  "! Delete all previously created access tokens for abapGit
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter iv_2fa_token | Two factor token
+  "! @raising lcx_2fa_token_del_failed | Token deletion failed
+  "! @raising lcx_2fa_auth_failed | Authentication failed
+  METHODS delete_access_tokens
+    IMPORTING
+      !iv_url       TYPE string
+      !iv_username  TYPE string
+      !iv_password  TYPE string
+      !iv_2fa_token TYPE string
+    RAISING
+      zcx_abapgit_2fa_del_failed
+      zcx_abapgit_2fa_comm_error
+      zcx_abapgit_2fa_auth_failed .
+  "! Begin an authenticator session that uses internal caching for authorizations
+  "! @raising lcx_2fa_illegal_state | Session already started
+  METHODS begin
+    RAISING
+      zcx_abapgit_2fa_illegal_state .
+  "! End an authenticator session and clear internal caches
+  "! @raising lcx_2fa_illegal_state | Session not running
+  METHODS end
+    RAISING
+      zcx_abapgit_2fa_illegal_state .
 ENDINTERFACE.
 
 CLASS zcl_abapgit_git_branch_list DEFINITION
@@ -1841,7 +1851,6 @@ CLASS zcl_abapgit_2fa_auth_base DEFINITION
     ALIASES:
       authenticate FOR zif_abapgit_2fa_authenticator~authenticate,
       supports_url FOR zif_abapgit_2fa_authenticator~supports_url,
-      get_service_id_from_url FOR zif_abapgit_2fa_authenticator~get_service_id_from_url,
       is_2fa_required FOR zif_abapgit_2fa_authenticator~is_2fa_required,
       delete_access_tokens FOR zif_abapgit_2fa_authenticator~delete_access_tokens,
       begin FOR zif_abapgit_2fa_authenticator~begin,
@@ -1879,7 +1888,7 @@ CLASS zcl_abapgit_2fa_auth_registry DEFINITION
       "! @parameter ro_authenticator | Found authenticator instance
       "! @raising lcx_2fa_unsupported | No authenticator found that supports the service
       get_authenticator_for_url IMPORTING iv_url                  TYPE string
-                                RETURNING VALUE(ro_authenticator) TYPE REF TO zif_abapgit_2fa_authenticator
+                                RETURNING VALUE(ri_authenticator) TYPE REF TO zif_abapgit_2fa_authenticator
                                 RAISING   zcx_abapgit_2fa_unsupported,
       "! Check if there is a two factor authenticator available for the url
       "! @parameter iv_url | Url of the repository / service
@@ -1914,21 +1923,27 @@ CLASS zcl_abapgit_2fa_auth_registry DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_2fa_github_auth DEFINITION
   INHERITING FROM zcl_abapgit_2fa_auth_base
-  FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor,
-      get_service_id_from_url REDEFINITION,
-      authenticate REDEFINITION,
-      is_2fa_required REDEFINITION,
-      delete_access_tokens REDEFINITION,
-      end REDEFINITION.
+
+    METHODS constructor
+      IMPORTING
+        !iv_override TYPE string OPTIONAL .
+
+    METHODS zif_abapgit_2fa_authenticator~authenticate
+        REDEFINITION .
+    METHODS zif_abapgit_2fa_authenticator~delete_access_tokens
+        REDEFINITION .
+    METHODS zif_abapgit_2fa_authenticator~end
+        REDEFINITION .
+    METHODS zif_abapgit_2fa_authenticator~is_2fa_required
+        REDEFINITION .
   PROTECTED SECTION.
+
+    DATA mv_github_api_url TYPE string VALUE `https://api.github.com/` ##NO_TEXT.
   PRIVATE SECTION.
 
-    CONSTANTS c_github_api_url TYPE string VALUE `https://api.github.com/` ##NO_TEXT.
     CONSTANTS c_otp_header_name TYPE string VALUE `X-Github-OTP` ##NO_TEXT.
     CONSTANTS c_restendpoint_authorizations TYPE string VALUE `/authorizations` ##NO_TEXT.
     DATA mi_authenticated_session TYPE REF TO if_http_client .
@@ -45216,7 +45231,17 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   METHOD constructor.
-    super->constructor( '^https?://(www\.)?github.com.*$' ).
+
+    DATA: lv_match TYPE string.
+
+    IF iv_override IS SUPPLIED.
+      lv_match = iv_override.
+    ELSE.
+      lv_match = '^https?://(www\.)?github.com.*$'.
+    ENDIF.
+
+    super->constructor( lv_match ).
+
   ENDMETHOD.
   METHOD get_authenticated_client.
     DATA: lv_http_code             TYPE i,
@@ -45235,7 +45260,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
 
     cl_http_client=>create_by_url(
       EXPORTING
-        url                = c_github_api_url
+        url                = mv_github_api_url
         ssl_id             = 'ANONYM'
         proxy_host         = lo_settings->get_proxy_url( )
         proxy_service      = lo_settings->get_proxy_port( )
@@ -45344,7 +45369,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
                                   value = c_restendpoint_authorizations ).
     ii_request->set_method( if_http_request=>co_request_method_post ).
   ENDMETHOD.
-  METHOD authenticate.
+  METHOD zif_abapgit_2fa_authenticator~authenticate.
     DATA: li_http_client           TYPE REF TO if_http_client,
           lv_http_code             TYPE i,
           lv_http_code_description TYPE string.
@@ -45389,7 +45414,8 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     " GitHub might need some time until the new token is ready to use, give it a second
     CALL FUNCTION 'RZL_SLEEP'.
   ENDMETHOD.
-  METHOD delete_access_tokens.
+  METHOD zif_abapgit_2fa_authenticator~delete_access_tokens.
+
     DATA: li_http_client           TYPE REF TO if_http_client,
           lv_http_code             TYPE i,
           lv_http_code_description TYPE string,
@@ -45448,14 +45474,11 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
-  METHOD end.
+  METHOD zif_abapgit_2fa_authenticator~end.
     super->end( ).
     FREE mi_authenticated_session.
   ENDMETHOD.
-  METHOD get_service_id_from_url.
-    rv_id = 'github'.
-  ENDMETHOD.
-  METHOD is_2fa_required.
+  METHOD zif_abapgit_2fa_authenticator~is_2fa_required.
 
     DATA: li_client TYPE REF TO if_http_client,
           lo_proxy  TYPE REF TO zcl_abapgit_proxy_config.
@@ -45463,7 +45486,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
 
     cl_http_client=>create_by_url(
       EXPORTING
-        url                = c_github_api_url
+        url                = mv_github_api_url
         ssl_id             = 'ANONYM'
         proxy_host         = lo_proxy->get_proxy_url( )
         proxy_service      = lo_proxy->get_proxy_port(  )
@@ -45508,24 +45531,31 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
   METHOD class_constructor.
-    DEFINE _register.
-      CREATE OBJECT li_authenticator TYPE &1.
-      INSERT li_authenticator INTO TABLE gt_registered_authenticators.
-    END-OF-DEFINITION.
 
-    DATA: li_authenticator TYPE REF TO zif_abapgit_2fa_authenticator.
+    DATA: lt_sub           TYPE seo_relkeys,
+          ls_sub           LIKE LINE OF lt_sub,
+          li_authenticator TYPE REF TO zif_abapgit_2fa_authenticator,
+          lo_class         TYPE REF TO cl_oo_class.
+    TRY.
+        lo_class ?= cl_oo_class=>get_instance( 'ZCL_ABAPGIT_2FA_AUTH_BASE' ).
+        lt_sub = lo_class->get_subclasses( ).
+        LOOP AT lt_sub INTO ls_sub.
+          CREATE OBJECT li_authenticator TYPE (ls_sub-clsname).
+          INSERT li_authenticator INTO TABLE gt_registered_authenticators.
+        ENDLOOP.
+      CATCH cx_class_not_existent.
+* class in local report
+        CREATE OBJECT li_authenticator TYPE zcl_abapgit_2fa_github_auth.
+        INSERT li_authenticator INTO TABLE gt_registered_authenticators.
+    ENDTRY.
 
-    " If there are new authenticators these need to be added here manually.
-    " I do not think there is an equivalent to SEO_INTERFACE_IMPLEM_GET_ALL for local classes
-    " without invoking the compiler directly.
-    _register: zcl_abapgit_2fa_github_auth.
   ENDMETHOD.
   METHOD get_authenticator_for_url.
     FIELD-SYMBOLS: <li_authenticator> LIKE LINE OF gt_registered_authenticators.
 
     LOOP AT gt_registered_authenticators ASSIGNING <li_authenticator>.
       IF <li_authenticator>->supports_url( iv_url ) = abap_true.
-        ro_authenticator = <li_authenticator>.
+        ri_authenticator = <li_authenticator>.
         RETURN.
       ENDIF.
     ENDLOOP.
@@ -45662,9 +45692,6 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
     ENDIF.
 
     mv_session_running = abap_false.
-  ENDMETHOD.
-  METHOD get_service_id_from_url.
-    rv_id = 'UNKNOWN SERVICE'. " Please overwrite in subclasses
   ENDMETHOD.
   METHOD is_2fa_required.
     rv_required = abap_false.
@@ -49380,5 +49407,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-02-28T12:20:04.350Z
+* abapmerge - 2018-03-05T04:42:48.211Z
 ****************************************************
