@@ -12140,7 +12140,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -12549,11 +12549,17 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
+* ENHS has to be handled before ENHO
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHS'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
     LOOP AT it_results ASSIGNING <ls_result>
         WHERE obj_type <> 'IASP'
         AND obj_type <> 'PROG'
         AND obj_type <> 'XSLT'
-        AND obj_type <> 'PINF'.
+        AND obj_type <> 'PINF'
+        AND obj_type <> 'ENHS'.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
@@ -40824,7 +40830,8 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
           lv_package         TYPE devclass,
           ls_original_object TYPE enh_hook_admin,
           lt_spaces          TYPE ty_spaces_tt,
-          lt_enhancements    TYPE enh_hook_impl_it.
+          lt_enhancements    TYPE enh_hook_impl_it,
+          lx_enh_root        TYPE REF TO cx_enh_root.
 
     FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
     io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
@@ -40873,10 +40880,10 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
               spot             = <ls_enhancement>-spotname
               parent_full_name = <ls_enhancement>-parent_full_name ).
         ENDLOOP.
-        lo_hook_impl->if_enh_object~save( ).
+        lo_hook_impl->if_enh_object~save( run_dark = abap_true ).
         lo_hook_impl->if_enh_object~unlock( ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'error deserializing ENHO hook' ).
+      CATCH cx_enh_root INTO lx_enh_root.
+        zcx_abapgit_exception=>raise( lx_enh_root->get_text( ) ).
     ENDTRY.
 
   ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
@@ -49407,5 +49414,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-07T04:07:01.443Z
+* abapmerge - 2018-03-10T12:26:47.400Z
 ****************************************************
