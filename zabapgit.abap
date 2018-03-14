@@ -975,7 +975,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE 'v1.60.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE 'v1.60.1' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -23698,7 +23698,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
       CATCH zcx_abapgit_exception INTO lx_exception.
         ROLLBACK WORK.
-        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
+        MESSAGE lx_exception->get_text( ) TYPE 'S' DISPLAY LIKE 'E'.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
     ENDTRY.
@@ -49511,5 +49511,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-14T15:39:37.686Z
+* abapmerge - 2018-03-14T16:52:35.104Z
 ****************************************************
