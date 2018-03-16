@@ -9949,6 +9949,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
       INTO CORRESPONDING FIELDS OF TABLE lt_objs
       FOR ALL ENTRIES IN lt_packages
       WHERE devclass = lt_packages-devclass
+      AND delflag = abap_false
       AND pgmid = 'R3TR'.                               "#EC CI_GENBUFF
 
     ro_set = cl_ci_objectset=>save_from_list( lt_objs ).
@@ -49511,5 +49512,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-14T16:58:01.064Z
+* abapmerge - 2018-03-16T15:07:12.262Z
 ****************************************************
