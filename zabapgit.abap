@@ -37947,21 +37947,13 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_intf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
       iv_language = iv_language ).
     mo_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( iv_object_type = ms_item-obj_type ).
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~deserialize.
-    deserialize_abap( io_xml     = io_xml
-                      iv_package = iv_package ).
-
-    deserialize_docu( io_xml ).
-  ENDMETHOD.
-
   METHOD deserialize_abap.
     DATA: ls_vseointerf   TYPE vseointerf,
           lt_source       TYPE seop_source_string,
@@ -37991,7 +37983,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     mo_object_oriented_object_fct->add_to_activation_list( is_item = ms_item ).
   ENDMETHOD.
-
   METHOD deserialize_docu.
 
     DATA: lt_lines  TYPE tlinetab,
@@ -38011,48 +38002,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       iv_object_name = lv_object
       iv_language    = mv_language ).
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    DATA:
-      lv_program  TYPE program,
-      lt_includes TYPE seoincl_t.
-
-    lt_includes = mo_object_oriented_object_fct->get_includes( ms_item-obj_name ).
-    READ TABLE lt_includes INDEX 1 INTO lv_program.
-    "lv_program = cl_oo_classname_service=>get_interfacepool_name( lv_clsname ).
-    rv_changed = check_prog_changed_since(
-      iv_program   = lv_program
-      iv_timestamp = iv_timestamp
-      iv_skip_gui  = abap_true ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lt_source        TYPE seop_source_string,
-          ls_interface_key TYPE seoclskey.
-
-    ls_interface_key-clsname = ms_item-obj_name.
-
-    IF zif_abapgit_object~exists( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        version = seoc_version_active
-        force   = seox_true.
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        version = seoc_version_inactive
-        force   = seox_true.
-
-    lt_source = mo_object_oriented_object_fct->serialize_abap( ls_interface_key ).
-
-    mo_files->add_abap( lt_source ).
-
-    serialize_xml( io_xml ).
-  ENDMETHOD.
-
   METHOD serialize_xml.
     DATA:
       lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
@@ -38061,13 +38010,15 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       lt_lines        TYPE tlinetab.
     ls_clskey-clsname = ms_item-obj_name.
 
-    ls_vseointerf = mo_object_oriented_object_fct->get_interface_properties( is_interface_key = ls_clskey ).
+    ls_vseointerf = mo_object_oriented_object_fct->get_interface_properties( ls_clskey ).
 
     CLEAR: ls_vseointerf-uuid,
            ls_vseointerf-author,
            ls_vseointerf-createdon,
            ls_vseointerf-changedby,
            ls_vseointerf-changedon,
+           ls_vseointerf-chgdanyby,
+           ls_vseointerf-chgdanyon,
            ls_vseointerf-r3release.
 
     io_xml->add( iv_name = 'VSEOINTERF'
@@ -38087,7 +38038,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
                    ig_data = lt_descriptions ).
     ENDIF.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
     TYPES: BEGIN OF ty_includes,
              programm TYPE programm,
@@ -38120,18 +38070,21 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       rv_user = ls_reposrc-unam.
     ENDIF.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
     DATA: ls_clskey TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
 
     mo_object_oriented_object_fct->delete( ls_clskey ).
   ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+    deserialize_abap( io_xml     = io_xml
+                      iv_package = iv_package ).
 
+    deserialize_docu( io_xml ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: ls_class_key TYPE seoclskey,
@@ -38152,11 +38105,22 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    DATA:
+      lv_program  TYPE program,
+      lt_includes TYPE seoincl_t.
 
+    lt_includes = mo_object_oriented_object_fct->get_includes( ms_item-obj_name ).
+    READ TABLE lt_includes INDEX 1 INTO lv_program.
+    "lv_program = cl_oo_classname_service=>get_interfacepool_name( lv_clsname ).
+    rv_changed = check_prog_changed_since(
+      iv_program   = lv_program
+      iv_timestamp = iv_timestamp
+      iv_skip_gui  = abap_true ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -38165,7 +38129,32 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
         object_type   = 'INTF'
         in_new_window = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
 
+    DATA: lt_source        TYPE seop_source_string,
+          ls_interface_key TYPE seoclskey.
+
+    ls_interface_key-clsname = ms_item-obj_name.
+
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        version = seoc_version_active
+        force   = seox_true.
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        version = seoc_version_inactive
+        force   = seox_true.
+
+    lt_source = mo_object_oriented_object_fct->serialize_abap( ls_interface_key ).
+
+    mo_files->add_abap( lt_source ).
+
+    serialize_xml( io_xml ).
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
@@ -49499,5 +49488,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-17T12:40:27.130Z
+* abapmerge - 2018-03-17T12:40:59.486Z
 ****************************************************
