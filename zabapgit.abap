@@ -42727,7 +42727,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_devc IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -42920,6 +42920,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
     " Swap out repository package name with the local installation package name
     ls_package_data-devclass = mv_local_devclass.
+    ls_package_data-pdevclass = li_package->transport_layer.
 
     " Parent package is not changed. Assume the folder logic already created the package and set
     " the hierarchy before.
@@ -49512,5 +49513,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-17T07:07:25.434Z
+* abapmerge - 2018-03-17T07:21:00.292Z
 ****************************************************
