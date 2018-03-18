@@ -670,7 +670,10 @@ INTERFACE zif_abapgit_exit.
       CHANGING  c_proxy_port TYPE string,
     change_proxy_authentication
       IMPORTING iv_repo_url            TYPE csequence
-      CHANGING  c_proxy_authentication TYPE abap_bool.
+      CHANGING  c_proxy_authentication TYPE abap_bool,
+    http_client
+      IMPORTING
+        ii_client TYPE REF TO if_http_client.
 
 ENDINTERFACE.
 
@@ -7200,6 +7203,9 @@ CLASS zcl_abapgit_exit DEFINITION
 
     INTERFACES: zif_abapgit_exit.
 
+  PRIVATE SECTION.
+
+    CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -13944,31 +13950,75 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
-    TRY.
-        CREATE OBJECT ri_exit TYPE ('ZCL_ABAPGIT_USER_EXIT').
-      CATCH cx_sy_create_object_error.
-        CREATE OBJECT ri_exit TYPE zcl_abapgit_exit.
-    ENDTRY.
+    IF gi_exit IS INITIAL.
+      TRY.
+          CREATE OBJECT gi_exit TYPE ('ZCL_ABAPGIT_USER_EXIT').
+        CATCH cx_sy_create_object_error.
+      ENDTRY.
+    ENDIF.
+
+    CREATE OBJECT ri_exit TYPE zcl_abapgit_exit.
 
   ENDMETHOD.
   METHOD zif_abapgit_exit~allow_sap_objects.
-    rv_allowed = abap_false.
+
+    TRY.
+        rv_allowed = gi_exit->allow_sap_objects( ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_exit~change_local_host.
-* default behavior
-    RETURN.
+
+    TRY.
+        gi_exit->change_local_host( CHANGING ct_hosts = ct_hosts ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_exit~change_proxy_authentication.
-* default behavior change nothing
-    RETURN.
+
+    TRY.
+        gi_exit->change_proxy_authentication(
+          EXPORTING
+            iv_repo_url            = iv_repo_url
+          CHANGING
+            c_proxy_authentication = c_proxy_authentication ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_exit~change_proxy_port.
-* default behavior change nothing
-    RETURN.
+
+    TRY.
+        gi_exit->change_proxy_port(
+          EXPORTING
+            iv_repo_url  = iv_repo_url
+          CHANGING
+            c_proxy_port = c_proxy_port ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_exit~change_proxy_url.
-* default behavior change nothing
-    RETURN.
+
+    TRY.
+        gi_exit->change_proxy_url(
+          EXPORTING
+            iv_repo_url = iv_repo_url
+          CHANGING
+            c_proxy_url = c_proxy_url ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~http_client.
+
+    TRY.
+        gi_exit->http_client( ii_client ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
@@ -45257,6 +45307,8 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
     zcl_abapgit_login_manager=>load( iv_uri    = iv_url
                                      ii_client = li_client ).
 
+    zcl_abapgit_exit=>get_instance( )->http_client( li_client ).
+
     ro_client->send_receive( ).
     IF check_auth_requested( li_client ) = abap_true.
       lv_scheme = acquire_login_details( ii_client = li_client
@@ -49488,5 +49540,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-18T10:11:53.267Z
+* abapmerge - 2018-03-18T14:23:37.956Z
 ****************************************************
