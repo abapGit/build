@@ -12734,7 +12734,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     DATA: lt_results_overwrite   LIKE ct_results,
           lt_confirmed_overwrite LIKE ct_results,
-          lt_columns             TYPE stringtab.
+          lt_columns             TYPE stringtab,
+          lv_column              LIKE LINE OF lt_columns.
 
     FIELD-SYMBOLS: <ls_result>  LIKE LINE OF ct_results.
 
@@ -12754,8 +12755,10 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     IF lines( lt_results_overwrite ) > 0.
 
-      INSERT `OBJ_TYPE` INTO TABLE lt_columns.
-      INSERT `OBJ_NAME` INTO TABLE lt_columns.
+      lv_column = `OBJ_TYPE`.
+      INSERT lv_column INTO TABLE lt_columns.
+      lv_column = `OBJ_NAME`.
+      INSERT lv_column INTO TABLE lt_columns.
 
       "all returned objects will be overwritten
       zcl_abapgit_popups=>popup_to_select_from_list(
@@ -13015,13 +13018,14 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
   ENDMETHOD.                    "convert_version_to_numeric
 ENDCLASS.
-CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
+CLASS zcl_abapgit_migrations IMPLEMENTATION.
   METHOD local_dot_abapgit.
 
     DATA: lt_repos       TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
-          lv_msg         TYPE string,
           lv_shown       TYPE abap_bool,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
+          lv_txt1        TYPE string,
+          lv_txt2        TYPE string,
           lx_exception   TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <lo_repo> LIKE LINE OF lt_repos.
@@ -13048,12 +13052,13 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
           TRY.
               <lo_repo>->refresh( ).
             CATCH zcx_abapgit_exception INTO lx_exception.
-              lv_msg = |Please do not use the "{ <lo_repo>->get_name( ) }" repository until migrated|.
+              lv_txt1 = lx_exception->get_text( ).
+              lv_txt2 = |Please do not use the "{ <lo_repo>->get_name( ) }" repository until migrated|.
               CALL FUNCTION 'POPUP_TO_INFORM'
                 EXPORTING
                   titel = 'Migration has failed'
-                  txt1  = lx_exception->get_text( )
-                  txt2  = lv_msg
+                  txt1  = lv_txt1
+                  txt2  = lv_txt2
                   txt3  = 'You will be prompted to migrate the repository every time you run abapGit.'
                   txt4  = 'You can safely remove the repository in its ''Advanced -> Remove'' menu.'.
               CONTINUE.
@@ -49540,5 +49545,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-18T14:28:34.504Z
+* abapmerge - 2018-03-19T16:21:22.083Z
 ****************************************************
