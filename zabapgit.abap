@@ -47740,6 +47740,9 @@ CLASS lcl_password_dialog DEFINITION FINAL.
 
   PRIVATE SECTION.
     CLASS-DATA gv_confirm TYPE abap_bool.
+    CLASS-METHODS enrich_title_by_hostname
+      IMPORTING
+        iv_repo_url TYPE string.
 
 ENDCLASS. "lcl_password_dialog DEFINITION
 
@@ -47751,6 +47754,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     p_url      = iv_repo_url.
     p_user     = cv_user.
     gv_confirm = abap_false.
+    enrich_title_by_hostname( iv_repo_url ).
 
     CALL SELECTION-SCREEN c_dynnr STARTING AT 5 5 ENDING AT 60 8.
 
@@ -47826,6 +47830,17 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.  "on_screen_event
+  METHOD enrich_title_by_hostname.
+
+    DATA lv_host TYPE string.
+
+    FIND REGEX 'https?://([^/^:]*)' IN iv_repo_url SUBMATCHES lv_host.
+    IF lv_host IS NOT INITIAL AND lv_host NE space.
+      CLEAR: s_title.
+      CONCATENATE 'Login:' lv_host INTO s_title IN CHARACTER MODE SEPARATED BY space.
+    ENDIF.
+
+  ENDMETHOD.
 
 ENDCLASS. " lcl_password_dialog IMPLEMENTATION
 * create class ZCL_ABAPGIT_AUTH_EXIT implementing ZIF_ABAPGIT_AUTH in following include,
@@ -49545,5 +49560,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-20T06:53:22.954Z
+* abapmerge - 2018-03-22T11:43:13.455Z
 ****************************************************
