@@ -6000,7 +6000,6 @@ CLASS zcl_abapgit_html DEFINITION
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
-    METHODS reset .
     METHODS add
       IMPORTING
         !iv_chunk TYPE any .
@@ -18170,9 +18169,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY zif_abapgit_definitions=>gc_newline.
 
   ENDMETHOD.                    "render
-  METHOD reset.
-    CLEAR me->mt_buffer.
-  ENDMETHOD.                    "reset
   METHOD study_line.
 
     DATA: lv_line TYPE string,
@@ -38992,8 +38988,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           lv_area      TYPE rs38l-area,
           lv_group     TYPE rs38l-area,
           lv_namespace TYPE rs38l-namespace,
-          lt_source    TYPE TABLE OF abaptxt255,
-          lv_dummy     TYPE string.
+          lt_source    TYPE TABLE OF abaptxt255.
 
     FIELD-SYMBOLS: <ls_func> LIKE LINE OF it_functions.
 
@@ -42929,6 +42924,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     " Unfortunately deleted objects that are still contained in an unreleased transport request
     " also count towards the contained objects counter.
     " -> Package deletion is currently not supported by abapGit
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
     DATA: li_package      TYPE REF TO if_package,
@@ -46114,8 +46110,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD switch_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch,
-          lv_text TYPE string.
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
@@ -49560,5 +49555,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-22T11:43:13.455Z
+* abapmerge - 2018-03-23T09:46:55.141Z
 ****************************************************
