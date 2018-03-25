@@ -46297,7 +46297,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       iv_url     = iv_url
       iv_service = c_service-receive ).
 
-    lv_cap_list = 'report-status agent=' && zcl_abapgit_http=>get_agent( ) ##NO_TEXT.
+    lv_cap_list = 'report-status' ##NO_TEXT.
 
     lv_line = iv_old &&
               ` ` &&
@@ -46363,8 +46363,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
 
     LOOP AT lt_branches FROM 1 ASSIGNING <ls_branch>.
       IF sy-tabix = 1.
-        lv_capa = 'side-band-64k no-progress multi_ack agent='
-          && zcl_abapgit_http=>get_agent( ) ##NO_TEXT.
+        lv_capa = 'side-band-64k no-progress multi_ack' ##NO_TEXT.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
           && ` ` && lv_capa && zif_abapgit_definitions=>gc_newline. "#EC NOTEXT
       ELSE.
@@ -49555,5 +49554,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-23T12:09:35.919Z
+* abapmerge - 2018-03-25T06:30:08.008Z
 ****************************************************
