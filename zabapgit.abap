@@ -1085,6 +1085,7 @@ INTERFACE zif_abapgit_definitions.
       inactive TYPE r3state VALUE 'I',
     END OF gc_version .
   CONSTANTS gc_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_auth.
@@ -1140,19 +1141,25 @@ INTERFACE zif_abapgit_persistence.
            files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
          END OF ty_local_checksum.
 
+  TYPES:
+    BEGIN OF ty_local_settings,
+      ignore_subpackages TYPE abap_bool,
+      write_protected    TYPE abap_bool,
+      only_local_objects TYPE abap_bool,
+    END OF ty_local_settings.
+
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_repo_xml,
-           url                TYPE string,
-           branch_name        TYPE string,
-           sha1               TYPE zif_abapgit_definitions=>ty_sha1,
-           package            TYPE devclass,
-           offline            TYPE sap_bool,
-           local_checksums    TYPE ty_local_checksum_tt,
-           dot_abapgit        TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
-           head_branch        TYPE string,   " HEAD symref of the repo, master branch
-           write_protect      TYPE sap_bool, " Deny destructive ops: pull, switch branch ...
-           ignore_subpackages TYPE sap_bool,
+           url             TYPE string,
+           branch_name     TYPE string,
+           sha1            TYPE zif_abapgit_definitions=>ty_sha1,
+           package         TYPE devclass,
+           offline         TYPE sap_bool,
+           local_checksums TYPE ty_local_checksum_tt,
+           dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
+           head_branch     TYPE string,   " HEAD symref of the repo, master branch
+           local_settings  TYPE ty_local_settings,
          END OF ty_repo_xml.
 
   TYPES: BEGIN OF ty_repo,
@@ -4712,86 +4719,113 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS constructor.
 
+    METHODS constructor .
     METHODS list
-      RETURNING VALUE(rt_repos) TYPE zif_abapgit_persistence=>tt_repo
-      RAISING   zcx_abapgit_exception.
-
+      RETURNING
+        VALUE(rt_repos) TYPE zif_abapgit_persistence=>tt_repo
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_sha1
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-                iv_branch_sha1 TYPE zif_abapgit_persistence=>ty_repo_xml-sha1
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_branch_sha1 TYPE zif_abapgit_persistence=>ty_repo_xml-sha1
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_local_checksums
-      IMPORTING iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
-                it_checksums TYPE zif_abapgit_persistence=>ty_repo_xml-local_checksums
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
+        !it_checksums TYPE zif_abapgit_persistence=>ty_repo_xml-local_checksums
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_url
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-                iv_url TYPE zif_abapgit_persistence=>ty_repo_xml-url
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_url TYPE zif_abapgit_persistence=>ty_repo_xml-url
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_branch_name
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-                iv_branch_name TYPE zif_abapgit_persistence=>ty_repo_xml-branch_name
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo_xml-branch_name
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_head_branch
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-                iv_head_branch TYPE zif_abapgit_persistence=>ty_repo_xml-head_branch
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_head_branch TYPE zif_abapgit_persistence=>ty_repo_xml-head_branch
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_offline
-      IMPORTING iv_key     TYPE zif_abapgit_persistence=>ty_repo-key
-                iv_offline TYPE zif_abapgit_persistence=>ty_repo_xml-offline
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key     TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_offline TYPE zif_abapgit_persistence=>ty_repo_xml-offline
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_dot_abapgit
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-                is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
+      RAISING
+        zcx_abapgit_exception .
     METHODS add
-      IMPORTING iv_url         TYPE string
-                iv_branch_name TYPE string
-                iv_branch      TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
-                iv_package     TYPE devclass
-                iv_offline     TYPE sap_bool DEFAULT abap_false
-                is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
-      RETURNING VALUE(rv_key)  TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_url         TYPE string
+        !iv_branch_name TYPE string
+        !iv_branch      TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+        !iv_package     TYPE devclass
+        !iv_offline     TYPE sap_bool DEFAULT abap_false
+        !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
+      RETURNING
+        VALUE(rv_key)   TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
     METHODS delete
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
     METHODS read
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-      RETURNING VALUE(rs_repo) TYPE zif_abapgit_persistence=>ty_repo
-      RAISING   zcx_abapgit_exception
-                zcx_abapgit_not_found.
-
+      IMPORTING
+        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
+      RETURNING
+        VALUE(rs_repo) TYPE zif_abapgit_persistence=>ty_repo
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found .
     METHODS lock
-      IMPORTING iv_mode TYPE enqmode
-                iv_key  TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !iv_mode TYPE enqmode
+        !iv_key  TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
+    METHODS update_local_settings
+      IMPORTING
+        !iv_key      TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_settings TYPE zif_abapgit_persistence=>ty_repo_xml-local_settings
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
-    DATA: mo_db TYPE REF TO zcl_abapgit_persistence_db.
+
+    DATA mo_db TYPE REF TO zcl_abapgit_persistence_db .
 
     METHODS from_xml
-      IMPORTING iv_repo_xml_string TYPE string
-      RETURNING VALUE(rs_repo)     TYPE zif_abapgit_persistence=>ty_repo_xml
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_repo_xml_string TYPE string
+      RETURNING
+        VALUE(rs_repo)      TYPE zif_abapgit_persistence=>ty_repo_xml
+      RAISING
+        zcx_abapgit_exception .
     METHODS to_xml
-      IMPORTING is_repo                   TYPE zif_abapgit_persistence=>ty_repo
-      RETURNING VALUE(rv_repo_xml_string) TYPE string.
-
+      IMPORTING
+        !is_repo                  TYPE zif_abapgit_persistence=>ty_repo
+      RETURNING
+        VALUE(rv_repo_xml_string) TYPE string .
     METHODS get_next_id
-      RETURNING VALUE(rv_next_repo_id) TYPE zif_abapgit_persistence=>ty_content-value
-      RAISING   zcx_abapgit_exception.
+      RETURNING
+        VALUE(rv_next_repo_id) TYPE zif_abapgit_persistence=>ty_content-value
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_persistence_user DEFINITION
   CREATE PRIVATE .
@@ -5724,21 +5758,43 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION FINAL
       zif_abapgit_gui_page~on_event REDEFINITION.
 
   PROTECTED SECTION.
+
     CONSTANTS:
       BEGIN OF c_action,
         save_settings TYPE string VALUE 'save_settings',
-      END OF c_action.
+      END OF c_action .
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo .
 
-    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
+    METHODS render_dot_abapgit
+      IMPORTING
+        !io_html TYPE REF TO zcl_abapgit_html .
+    METHODS render_local_settings
+      IMPORTING
+        !io_html TYPE REF TO zcl_abapgit_html .
+    METHODS save
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS save_dot_abap
+      IMPORTING
+        !it_post_fields TYPE tihttpnvp
+      RAISING
+        zcx_abapgit_exception .
+    METHODS save_local_settings
+      IMPORTING
+        !it_post_fields TYPE tihttpnvp
+      RAISING
+        zcx_abapgit_exception .
+    METHODS parse_post
+      IMPORTING
+        !it_postdata          TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(rt_post_fields) TYPE tihttpnvp .
 
-    METHODS:
-      render_content REDEFINITION,
-      parse_post
-        IMPORTING
-          it_postdata           TYPE cnht_post_data_tab
-        RETURNING
-          VALUE(rt_post_fields) TYPE tihttpnvp.
-
+    METHODS render_content
+        REDEFINITION .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_settings DEFINITION
   FINAL
@@ -7362,11 +7418,13 @@ CLASS zcl_abapgit_migrations DEFINITION
       RAISING zcx_abapgit_exception.
 
   PRIVATE SECTION.
-    CLASS-METHODS rebuild_local_checksums_161112
-      RAISING zcx_abapgit_exception.
-    CLASS-METHODS local_dot_abapgit
-      RAISING zcx_abapgit_exception.
 
+    CLASS-METHODS rebuild_local_checksums_161112
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS local_dot_abapgit
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_news DEFINITION
   FINAL
@@ -7601,6 +7659,7 @@ ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
   CREATE PUBLIC
+
   FRIENDS ZCL_ABAPGIT_repo_srv .
 
   PUBLIC SECTION.
@@ -7638,15 +7697,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_package
       RETURNING
         VALUE(rv_package) TYPE zif_abapgit_persistence=>ty_repo-package .
-    METHODS get_master_language
-      RETURNING
-        VALUE(rv_language) TYPE spras .
-    METHODS is_write_protected
-      RETURNING
-        VALUE(rv_yes) TYPE sap_bool .
-    METHODS ignore_subpackages
-      RETURNING
-        VALUE(rv_yes) TYPE sap_bool .
     METHODS delete
       RAISING
         zcx_abapgit_exception .
@@ -7690,23 +7740,35 @@ CLASS zcl_abapgit_repo DEFINITION
         !it_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS get_local_settings
+      RETURNING
+        VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
+    METHODS set_local_settings
+      IMPORTING
+        !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
-    DATA: mt_local              TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          mt_remote             TYPE zif_abapgit_definitions=>ty_files_tt,
-          mv_do_local_refresh   TYPE abap_bool,
-          mv_last_serialization TYPE timestamp,
-          ms_data               TYPE zif_abapgit_persistence=>ty_repo.
 
-    METHODS:
-      set
-        IMPORTING iv_sha1        TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
-                  it_checksums   TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
-                  iv_url         TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
-                  iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
-                  iv_head_branch TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
-                  iv_offline     TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
-                  is_dot_abapgit TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
-        RAISING   zcx_abapgit_exception.
+    DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
+    DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
+    DATA mv_do_local_refresh TYPE abap_bool .
+    DATA mv_last_serialization TYPE timestamp .
+    DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
+
+    METHODS set
+      IMPORTING
+        !iv_sha1           TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+        !it_checksums      TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
+        !iv_url            TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
+        !iv_branch_name    TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
+        !iv_head_branch    TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
+        !iv_offline        TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
+        !is_dot_abapgit    TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -8292,45 +8354,62 @@ CLASS zcl_abapgit_syntax_check DEFINITION
         VALUE(rt_list) TYPE scit_alvlist .
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_tadir DEFINITION final create public.
+CLASS zcl_abapgit_tadir DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      read
-        IMPORTING iv_package            TYPE tadir-devclass
-                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
-                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception,
-      read_single
-        IMPORTING iv_pgmid        TYPE tadir-pgmid DEFAULT 'R3TR'
-                  iv_object       TYPE tadir-object
-                  iv_obj_name     TYPE tadir-obj_name
-        RETURNING VALUE(rs_tadir) TYPE tadir
-        RAISING   zcx_abapgit_exception,
-      get_object_package
-        IMPORTING iv_pgmid           TYPE tadir-pgmid DEFAULT 'R3TR'
-                  iv_object          TYPE tadir-object
-                  iv_obj_name        TYPE tadir-obj_name
-        RETURNING VALUE(rv_devclass) TYPE tadir-devclass
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS read
+      IMPORTING
+        !iv_package            TYPE tadir-devclass
+        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+        !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
+        !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+        !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING
+        VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS read_single
+      IMPORTING
+        !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
+        !iv_object      TYPE tadir-object
+        !iv_obj_name    TYPE tadir-obj_name
+      RETURNING
+        VALUE(rs_tadir) TYPE tadir
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_object_package
+      IMPORTING
+        !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
+        !iv_object         TYPE tadir-object
+        !iv_obj_name       TYPE tadir-obj_name
+      RETURNING
+        VALUE(rv_devclass) TYPE tadir-devclass
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
-    CLASS-METHODS:
-      check_exists
-        IMPORTING it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception,
-      build
-        IMPORTING iv_package            TYPE tadir-devclass
-                  iv_top                TYPE tadir-devclass
-                  io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
-                  iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-                  io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS check_exists
+      IMPORTING
+        !it_tadir       TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS build
+      IMPORTING
+        !iv_package            TYPE tadir-devclass
+        !iv_top                TYPE tadir-devclass
+        !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+        !iv_only_local_objects TYPE abap_bool
+        !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING
+        VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_transport DEFINITION FINAL CREATE PUBLIC.
 
@@ -9755,11 +9834,12 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
           lv_path         TYPE string,
           lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
           lt_excludes     TYPE RANGE OF trobjtype,
+          lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
+          ls_srcsystem    LIKE LINE OF lt_srcsystem,
           ls_exclude      LIKE LINE OF lt_excludes.
 
     FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
                    <ls_tadir> LIKE LINE OF rt_tadir.
-
     ls_exclude-sign = 'I'.
     ls_exclude-option = 'EQ'.
 
@@ -9772,12 +9852,20 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     ls_exclude-low = 'STOB'. " auto generated by core data services
     APPEND ls_exclude TO lt_excludes.
 
+    IF iv_only_local_objects = abap_true.
+      ls_srcsystem-sign   = 'I'.
+      ls_srcsystem-option = 'EQ'.
+      ls_srcsystem-low    = sy-sysid.
+      APPEND ls_srcsystem TO lt_srcsystem.
+    ENDIF.
+
     SELECT * FROM tadir
       INTO CORRESPONDING FIELDS OF TABLE rt_tadir
       WHERE devclass = iv_package
       AND pgmid = 'R3TR'
       AND object NOT IN lt_excludes
       AND delflag = abap_false
+      AND srcsystem IN lt_srcsystem
       ORDER BY PRIMARY KEY.               "#EC CI_GENBUFF "#EC CI_SUBRC
 
     CREATE OBJECT lo_skip_objects.
@@ -9819,10 +9907,11 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     ENDIF.
 
     LOOP AT lt_tdevc ASSIGNING <ls_tdevc>.
-      lt_tadir = build( iv_package = <ls_tdevc>-devclass
-                        iv_top     = iv_top
-                        io_dot     = io_dot
-                        io_log     = io_log ).
+      lt_tadir = build( iv_package            = <ls_tdevc>-devclass
+                        iv_only_local_objects = iv_only_local_objects
+                        iv_top                = iv_top
+                        io_dot                = io_dot
+                        io_log                = io_log ).
       APPEND LINES OF lt_tadir TO rt_tadir.
     ENDLOOP.
 
@@ -9885,6 +9974,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
                       iv_top                = iv_package
                       io_dot                = io_dot
                       iv_ignore_subpackages = iv_ignore_subpackages
+                      iv_only_local_objects = iv_only_local_objects
                       io_log                = io_log ).
 
     rt_tadir = check_exists( rt_tadir ).
@@ -10383,7 +10473,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
           lv_question TYPE c LENGTH 100.
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    IF lo_repo->is_write_protected( ) = abap_true.
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -11217,7 +11307,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.  " delete_initial_online_repo
   METHOD deserialize.
 
-    IF ms_data-write_protect = abap_true.
+    IF ms_data-local_settings-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -11475,7 +11565,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.  " reset_status.
   METHOD set_branch_name.
 
-    IF ms_data-write_protect = abap_true.
+    IF ms_data-local_settings-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -11485,7 +11575,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_new_remote.
 
-    IF ms_data-write_protect = abap_true.
+    IF ms_data-local_settings-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot change remote. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -11501,7 +11591,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_url.
 
-    IF ms_data-write_protect = abap_true.
+    IF ms_data-local_settings-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot change URL. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -11789,7 +11879,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     lt_cache = mt_local.
     lt_tadir = zcl_abapgit_tadir=>read(
       iv_package            = get_package( )
-      iv_ignore_subpackages = ignore_subpackages( )
+      iv_ignore_subpackages = get_local_settings( )-ignore_subpackages
+      iv_only_local_objects = get_local_settings( )-only_local_objects
       io_dot                = get_dot_abapgit( )
       io_log                = io_log ).
 
@@ -11836,7 +11927,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
       lt_files = zcl_abapgit_objects=>serialize(
         is_item     = ls_item
-        iv_language = get_master_language( )
+        iv_language = get_dot_abapgit( )->get_master_language( )
         io_log      = io_log ).
       LOOP AT lt_files ASSIGNING <ls_file>.
         <ls_file>-path = <ls_tadir>-path.
@@ -11873,8 +11964,10 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD get_master_language.
-    rv_language = ms_data-dot_abapgit-master_language.
+  METHOD get_local_settings.
+
+    rs_settings = ms_data-local_settings.
+
   ENDMETHOD.
   METHOD get_name.
 
@@ -11889,15 +11982,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD get_package.
     rv_package = ms_data-package.
   ENDMETHOD.                    "get_package
-  METHOD ignore_subpackages.
-    rv_yes = ms_data-ignore_subpackages.
-  ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
   ENDMETHOD.
-  METHOD is_write_protected.
-    rv_yes = ms_data-write_protect.
-  ENDMETHOD.                    "is_write_protected
   METHOD rebuild_local_checksums. "LOCAL (BASE)
 
     DATA: lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
@@ -11945,6 +12032,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.  "refresh_local
   METHOD set.
 
+* TODO: refactor
+
     DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
     ASSERT iv_sha1 IS SUPPLIED
       OR it_checksums IS SUPPLIED
@@ -11952,7 +12041,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       OR iv_branch_name IS SUPPLIED
       OR iv_head_branch IS SUPPLIED
       OR iv_offline IS SUPPLIED
-      OR is_dot_abapgit IS SUPPLIED.
+      OR is_dot_abapgit IS SUPPLIED
+      OR is_local_settings IS SUPPLIED.
 
     CREATE OBJECT lo_persistence.
 
@@ -12005,6 +12095,13 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       ms_data-dot_abapgit = is_dot_abapgit.
     ENDIF.
 
+    IF is_local_settings IS SUPPLIED.
+      lo_persistence->update_local_settings(
+        iv_key      = ms_data-key
+        is_settings = is_local_settings ).
+      ms_data-local_settings = is_local_settings.
+    ENDIF.
+
   ENDMETHOD.
   METHOD set_dot_abapgit.
     set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
@@ -12012,6 +12109,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD set_files_remote.
 
     mt_remote = it_files.
+
+  ENDMETHOD.
+  METHOD set_local_settings.
+
+    set( is_local_settings = is_settings ).
 
   ENDMETHOD.
   METHOD update_local_checksums.
@@ -12232,7 +12334,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -12487,7 +12589,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       lo_xml = lo_files->read_xml( ).
 
       li_obj = create_object( is_item     = ls_item
-                              iv_language = io_repo->get_master_language( )
+                              iv_language = io_repo->get_dot_abapgit( )->get_master_language( )
                               is_metadata = lo_xml->get_metadata( ) ).
 
       compare_remote_to_local(
@@ -13017,7 +13119,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
   ENDMETHOD.                    "convert_version_to_numeric
 ENDCLASS.
-CLASS zcl_abapgit_migrations IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   METHOD local_dot_abapgit.
 
     DATA: lt_repos       TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
@@ -18353,7 +18455,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
     lv_key = mo_repo->get_key( ).
 
-    IF mo_repo->is_write_protected( ) = abap_true.
+    IF mo_repo->get_local_settings( )-write_protected = abap_true.
       lv_wp_opt   = zif_abapgit_definitions=>gc_html_opt-crossout.
       lv_pull_opt = zif_abapgit_definitions=>gc_html_opt-crossout.
     ELSE.
@@ -18413,7 +18515,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remove }?{ lv_key }| ).
 
     CLEAR lv_crossout.
-    IF mo_repo->is_write_protected( ) = abap_true
+    IF mo_repo->get_local_settings( )-write_protected = abap_true
         OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
       lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
     ENDIF.
@@ -19701,11 +19803,26 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
+    CREATE OBJECT ro_html.
+    ro_html->add( '<div class="settings_container">' ).
+    ro_html->add( '<form id="settings_form" method="post" action="sapevent:' &&
+      c_action-save_settings && '">' ).
+
+    render_dot_abapgit( ro_html ).
+    render_local_settings( ro_html ).
+
+    ro_html->add( '<br><input type="submit" value="Save" class="submit">' ).
+    ro_html->add( '</form>' ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD render_dot_abapgit.
+
     DATA: ls_dot          TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
           lv_selected     TYPE string,
           lt_folder_logic TYPE stringtab.
-    FIELD-SYMBOLS: <lv_folder_logic> TYPE LINE OF stringtab.
 
+    FIELD-SYMBOLS: <lv_folder_logic> TYPE LINE OF stringtab.
     ls_dot = mo_repo->get_dot_abapgit( )->get_data( ).
 
     INSERT zif_abapgit_dot_abapgit=>c_folder_logic-full
@@ -19714,13 +19831,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     INSERT zif_abapgit_dot_abapgit=>c_folder_logic-prefix
            INTO TABLE lt_folder_logic.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( '<div class="settings_container">' ).
-    ro_html->add( '<form id="settings_form" method="post" action="sapevent:' &&
-      c_action-save_settings && '">' ).
-
-    ro_html->add( '<br>' ).
-    ro_html->add( 'Folder logic: <select name="folder_logic">' ).
+    io_html->add( '<h2>.abapgit.xml</h2>' ).
+    io_html->add( 'Folder logic: <select name="folder_logic">' ).
 
     LOOP AT lt_folder_logic ASSIGNING <lv_folder_logic>.
 
@@ -19730,45 +19842,110 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
         CLEAR: lv_selected.
       ENDIF.
 
-      ro_html->add( |<option value="{ <lv_folder_logic> }" |
+      io_html->add( |<option value="{ <lv_folder_logic> }" |
                  && |{ lv_selected }>|
                  && |{ <lv_folder_logic> }</option>| ).
 
     ENDLOOP.
 
-    ro_html->add( '</select>' ).
-    ro_html->add( '<br>' ).
+    io_html->add( '</select>' ).
+    io_html->add( '<br>' ).
 
-    ro_html->add( 'Starting folder: <input name="starting_folder" type="text" size="10" value="' &&
+    io_html->add( 'Starting folder: <input name="starting_folder" type="text" size="10" value="' &&
       ls_dot-starting_folder && '">' ).
-    ro_html->add( '<br>' ).
-    ro_html->add( '<input type="submit" value="Save" class="submit">' ).
-    ro_html->add( '</form>' ).
-    ro_html->add( '</div>' ).
+    io_html->add( '<br>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
+  METHOD render_local_settings.
+
+    DATA: lv_checked  TYPE string,
+          ls_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings.
+    ls_settings = mo_repo->get_local_settings( ).
+
+    io_html->add( '<h2>Local settings</h2>' ).
+
+    CLEAR lv_checked.
+    IF ls_settings-write_protected = abap_true.
+      lv_checked = | checked|.
+    ENDIF.
+    io_html->add( |Write protected <input name="write_protected" type="checkbox"{ lv_checked }><br>| ).
+
+    CLEAR lv_checked.
+    IF ls_settings-ignore_subpackages = abap_true.
+      lv_checked = | checked|.
+    ENDIF.
+    io_html->add( |Ignore subpackages <input name="ignore_subpackages" type="checkbox"{ lv_checked }><br>| ).
+
+    CLEAR lv_checked.
+    IF ls_settings-only_local_objects = abap_true.
+      lv_checked = | checked|.
+    ENDIF.
+    io_html->add( |Only local objects <input name="only_local_objects" type="checkbox"{ lv_checked }><br>| ).
+
+  ENDMETHOD.
+  METHOD save.
+
+    DATA: lt_post_fields TYPE tihttpnvp.
+    lt_post_fields = parse_post( it_postdata ).
+
+    save_dot_abap( lt_post_fields ).
+    save_local_settings( lt_post_fields ).
+
+    mo_repo->refresh( ).
+
+  ENDMETHOD.
+  METHOD save_dot_abap.
+
+    DATA: lo_dot        TYPE REF TO zcl_abapgit_dot_abapgit,
+          ls_post_field LIKE LINE OF it_post_fields.
+    lo_dot = mo_repo->get_dot_abapgit( ).
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'folder_logic'.
+    ASSERT sy-subrc = 0.
+    lo_dot->set_folder_logic( ls_post_field-value ).
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'starting_folder'.
+    ASSERT sy-subrc = 0.
+    lo_dot->set_starting_folder( ls_post_field-value ).
+
+    mo_repo->set_dot_abapgit( lo_dot ).
+
+  ENDMETHOD.
+  METHOD save_local_settings.
+
+    DATA: ls_settings   TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          ls_post_field LIKE LINE OF it_post_fields.
+    ls_settings = mo_repo->get_local_settings( ).
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'write_protected' value = 'on'.
+    IF sy-subrc = 0.
+      ls_settings-write_protected = abap_true.
+    ELSE.
+      ls_settings-write_protected = abap_false.
+    ENDIF.
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'ignore_subpackages' value = 'on'.
+    IF sy-subrc = 0.
+      ls_settings-ignore_subpackages = abap_true.
+    ELSE.
+      ls_settings-ignore_subpackages = abap_false.
+    ENDIF.
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'only_local_objects' value = 'on'.
+    IF sy-subrc = 0.
+      ls_settings-only_local_objects = abap_true.
+    ELSE.
+      ls_settings-only_local_objects = abap_false.
+    ENDIF.
+
+    mo_repo->set_local_settings( ls_settings ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
-    DATA: lt_post_fields TYPE tihttpnvp,
-          lo_dot         TYPE REF TO zcl_abapgit_dot_abapgit,
-          ls_post_field  LIKE LINE OF lt_post_fields.
     CASE iv_action.
       WHEN c_action-save_settings.
-        lt_post_fields = parse_post( it_postdata ).
-
-        lo_dot = mo_repo->get_dot_abapgit( ).
-
-        READ TABLE lt_post_fields INTO ls_post_field WITH KEY name = 'folder_logic'.
-        ASSERT sy-subrc = 0.
-        lo_dot->set_folder_logic( ls_post_field-value ).
-
-        READ TABLE lt_post_fields INTO ls_post_field WITH KEY name = 'starting_folder'.
-        ASSERT sy-subrc = 0.
-        lo_dot->set_starting_folder( ls_post_field-value ).
-
-        mo_repo->set_dot_abapgit( lo_dot ).
-        mo_repo->refresh( ).
-
+        save( it_postdata ).
         ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
     ENDCASE.
 
@@ -21959,7 +22136,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ENDIF.
 
     " Write protect
-    IF io_repo->is_write_protected( ) = abap_true.
+    IF io_repo->get_local_settings( )-write_protected = abap_true.
       ro_html->add_icon( iv_name = 'lock/darkgrey' iv_hint = 'Locked from pulls' ).
     ENDIF.
 
@@ -24630,6 +24807,16 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       SOURCE XML lv_xml
       RESULT repo = rs_repo ##NO_TEXT.
 
+* automatic migration of old fields
+    FIND FIRST OCCURRENCE OF '</HEAD_BRANCH><WRITE_PROTECT>X</WRITE_PROTECT>' IN lv_xml.
+    IF sy-subrc = 0.
+      rs_repo-local_settings-write_protected = abap_true.
+    ENDIF.
+    FIND FIRST OCCURRENCE OF '<IGNORE_SUBPACKAGES>X</IGNORE_SUBPACKAGES></REPO>' IN lv_xml.
+    IF sy-subrc = 0.
+      rs_repo-local_settings-ignore_subpackages = abap_true.
+    ENDIF.
+
     IF rs_repo IS INITIAL.
       zcx_abapgit_exception=>raise( 'Inconsistent repo metadata' ).
     ENDIF.
@@ -24778,6 +24965,27 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ENDTRY.
 
     ls_repo-local_checksums = it_checksums.
+    ls_content-data_str = to_xml( ls_repo ).
+
+    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+                   iv_value = iv_key
+                   iv_data  = ls_content-data_str ).
+
+  ENDMETHOD.
+  METHOD update_local_settings.
+
+    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
+          ls_content LIKE LINE OF lt_content,
+          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
+    ASSERT NOT iv_key IS INITIAL.
+
+    TRY.
+        ls_repo = read( iv_key ).
+      CATCH zcx_abapgit_not_found.
+        zcx_abapgit_exception=>raise( 'key not found' ).
+    ENDTRY.
+
+    ls_repo-local_settings = is_settings.
     ls_content-data_str = to_xml( ls_repo ).
 
     mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
@@ -46018,7 +46226,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    IF lo_repo->is_write_protected( ) = abap_true.
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot pull. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -46038,7 +46246,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    IF lo_repo->is_write_protected( ) = abap_true.
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
     ENDIF.
 
@@ -49554,5 +49762,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-25T06:31:34.084Z
+* abapmerge - 2018-03-26T10:24:17.036Z
 ****************************************************
