@@ -8606,20 +8606,26 @@ CLASS zcl_abapgit_zlib DEFINITION
         IMPORTING is_pair TYPE ty_pair.
 
 ENDCLASS.
-CLASS zcl_abapgit_zlib_convert DEFINITION CREATE PUBLIC.
+CLASS zcl_abapgit_zlib_convert DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      hex_to_bits
-        IMPORTING iv_hex         TYPE xsequence
-        RETURNING VALUE(rv_bits) TYPE string,
-      bits_to_int
-        IMPORTING iv_bits       TYPE clike
-        RETURNING VALUE(rv_int) TYPE i,
-      int_to_hex
-        IMPORTING iv_int        TYPE i
-        RETURNING VALUE(rv_hex) TYPE xstring.
 
+    CLASS-METHODS hex_to_bits
+      IMPORTING
+        !iv_hex        TYPE xsequence
+      RETURNING
+        VALUE(rv_bits) TYPE string .
+    CLASS-METHODS bits_to_int
+      IMPORTING
+        !iv_bits      TYPE clike
+      RETURNING
+        VALUE(rv_int) TYPE i .
+    CLASS-METHODS int_to_hex
+      IMPORTING
+        !iv_int       TYPE i
+      RETURNING
+        VALUE(rv_hex) TYPE xstring .
 ENDCLASS.
 CLASS zcl_abapgit_zlib_huffman DEFINITION
   CREATE PUBLIC .
@@ -8649,18 +8655,23 @@ CLASS zcl_abapgit_zlib_stream DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING iv_data TYPE xstring,
-      take_bits
-        IMPORTING iv_length      TYPE i
-        RETURNING VALUE(rv_bits) TYPE string,
-      take_int
-        IMPORTING iv_length     TYPE i
-        RETURNING VALUE(rv_int) TYPE i,
-      remaining
-        RETURNING VALUE(rv_length) TYPE i.
 
+    METHODS constructor
+      IMPORTING
+        !iv_data TYPE xstring .
+    METHODS take_bits
+      IMPORTING
+        !iv_length     TYPE i
+      RETURNING
+        VALUE(rv_bits) TYPE string .
+    METHODS take_int
+      IMPORTING
+        !iv_length    TYPE i
+      RETURNING
+        VALUE(rv_int) TYPE i .
+    METHODS remaining
+      RETURNING
+        VALUE(rv_length) TYPE i .
   PRIVATE SECTION.
     DATA: mv_compressed TYPE xstring,
           mv_bits       TYPE string.
@@ -49660,5 +49671,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-26T11:55:09.141Z
+* abapmerge - 2018-03-26T11:56:23.994Z
 ****************************************************
