@@ -964,7 +964,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE 'v1.61.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE 'v1.62.0' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -1093,7 +1093,9 @@ INTERFACE zif_abapgit_auth.
   TYPES: ty_authorization TYPE string.
 
   CONSTANTS: BEGIN OF gc_authorization,
-               uninstall TYPE ty_authorization VALUE 'UNINSTALL',
+               uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
+               transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
+               update_local_checksum TYPE ty_authorization VALUE 'UPDATE_LOCAL_CHECKSUM',
              END OF gc_authorization.
 
   METHODS:
@@ -10476,6 +10478,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     IF lo_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
     ENDIF.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
 
     lv_package = lo_repo->get_package( ).
     lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
@@ -10518,6 +10523,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     DATA: lv_answer   TYPE c,
           lv_question TYPE string,
           lo_repo     TYPE REF TO zcl_abapgit_repo.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     lv_question =  'This will rebuild and overwrite local repo checksums.'.
@@ -10659,6 +10668,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       lt_transport_headers   TYPE trwbo_request_headers,
       lt_transport_objects   TYPE scts_tadir,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
 
     lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
 
@@ -18499,8 +18511,15 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                            iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remote_detach }?{ lv_key }| ).
       lo_tb_advanced->add( iv_txt = 'Force stage'
                            iv_act = |{ zif_abapgit_definitions=>gc_action-go_stage }?{ lv_key }| ).
+
+      CLEAR lv_crossout.
+      IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
+        lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
+      ENDIF.
       lo_tb_advanced->add( iv_txt = 'Transport to Branch'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_transport_to_branch }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_transport_to_branch }?{ lv_key }|
+                           iv_opt = lv_crossout ).
+
     ELSE.
       lo_tb_advanced->add( iv_txt = 'Make on-line'
                            iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remote_attach }?{ lv_key }| ).
@@ -18509,8 +18528,15 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_syntax_check }?{ lv_key }| ).
     lo_tb_advanced->add( iv_txt = 'Repo settings'
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_settings }?{ lv_key }| ).
+
+    CLEAR lv_crossout.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
+      lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
+    ENDIF.
     lo_tb_advanced->add( iv_txt = 'Update local checksums'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_refresh_checksums }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_refresh_checksums }?{ lv_key }|
+                         iv_opt = lv_crossout ).
+
     lo_tb_advanced->add( iv_txt = 'Remove'
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remove }?{ lv_key }| ).
 
@@ -49762,5 +49788,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-26T10:24:17.036Z
+* abapmerge - 2018-03-26T10:27:28.830Z
 ****************************************************
