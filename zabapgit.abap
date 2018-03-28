@@ -6780,41 +6780,34 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         required_release  TYPE saprelease,
         required_patch    TYPE sappatchlv,
       END OF ty_requirement_status .
-
     TYPES:
       ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
 
-    CLASS-METHODS:
-      check_requirements
-        IMPORTING
-          !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-          !iv_show_popup   TYPE abap_bool DEFAULT abap_true
-        RAISING
-          zcx_abapgit_exception,
-
-      get_requirement_met_status
-        IMPORTING
-          !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-        RETURNING
-          VALUE(rt_status) TYPE ty_requirement_status_tt
-        RAISING
-          zcx_abapgit_exception .
-
+    CLASS-METHODS check_requirements
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+        !iv_show_popup   TYPE abap_bool DEFAULT abap_true
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_requirement_met_status
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+      RETURNING
+        VALUE(rt_status) TYPE ty_requirement_status_tt
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 
-    CLASS-METHODS:
-      show_requirement_popup
-        IMPORTING
-          !it_requirements TYPE ty_requirement_status_tt
-        RAISING
-          zcx_abapgit_exception,
-
-      version_greater_or_equal
-        IMPORTING
-          !is_status     TYPE ty_requirement_status
-        RETURNING
-          VALUE(rv_true) TYPE abap_bool .
-
+    CLASS-METHODS show_requirement_popup
+      IMPORTING
+        !it_requirements TYPE ty_requirement_status_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS version_greater_or_equal
+      IMPORTING
+        !is_status     TYPE ty_requirement_status
+      RETURNING
+        VALUE(rv_true) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_state DEFINITION
   CREATE PUBLIC .
@@ -7463,9 +7456,9 @@ CLASS zcl_abapgit_news DEFINITION
     TYPES:
       tt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
 
-    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT. " Number of versions to display if no updates
+    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.   " Number of versions to display if no updates
 
-    CLASS-METHODS create " TODO REFACTOR
+    CLASS-METHODS create   " TODO REFACTOR
       IMPORTING
         !io_repo           TYPE REF TO zcl_abapgit_repo
       RETURNING
@@ -7475,9 +7468,6 @@ CLASS zcl_abapgit_news DEFINITION
     METHODS get_log
       RETURNING
         VALUE(rt_log) TYPE tt_log .
-    METHODS latest_version
-      RETURNING
-        VALUE(rv_version) TYPE string .
     METHODS has_news
       RETURNING
         VALUE(rv_boolean) TYPE abap_bool .
@@ -7491,37 +7481,48 @@ CLASS zcl_abapgit_news DEFINITION
       RETURNING
         VALUE(rv_boolean) TYPE abap_bool .
   PRIVATE SECTION.
-    DATA: mt_log              TYPE tt_log,
-          mv_current_version  TYPE string,
-          mv_lastseen_version TYPE string,
-          mv_latest_version   TYPE string.
 
-    METHODS:
-      constructor
-        IMPORTING iv_rawdata          TYPE xstring
-                  iv_lastseen_version TYPE string
-                  iv_current_version  TYPE string.
+    DATA mt_log TYPE tt_log .
+    DATA mv_current_version TYPE string .
+    DATA mv_lastseen_version TYPE string .
+    DATA mv_latest_version TYPE string .
 
-    CLASS-METHODS:
-      version_to_numeric
-        IMPORTING iv_version        TYPE string
-        RETURNING VALUE(rv_version) TYPE i,
-      normalize_version
-        IMPORTING iv_version        TYPE string
-        RETURNING VALUE(rv_version) TYPE string,
-      compare_versions
-        IMPORTING iv_a             TYPE string
-                  iv_b             TYPE string
-        RETURNING VALUE(rv_result) TYPE i,
-      parse_line
-        IMPORTING iv_line            TYPE string
-                  iv_current_version TYPE string
-        RETURNING VALUE(rs_log)      TYPE ty_log,
-      parse
-        IMPORTING it_lines           TYPE string_table
-                  iv_current_version TYPE string
-        RETURNING VALUE(rt_log)      TYPE tt_log.
-
+    METHODS latest_version
+      RETURNING
+        VALUE(rv_version) TYPE string .
+    METHODS constructor
+      IMPORTING
+        !iv_rawdata          TYPE xstring
+        !iv_lastseen_version TYPE string
+        !iv_current_version  TYPE string .
+    CLASS-METHODS version_to_numeric
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE i .
+    CLASS-METHODS normalize_version
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE string .
+    CLASS-METHODS compare_versions
+      IMPORTING
+        !iv_a            TYPE string
+        !iv_b            TYPE string
+      RETURNING
+        VALUE(rv_result) TYPE i .
+    CLASS-METHODS parse_line
+      IMPORTING
+        !iv_line            TYPE string
+        !iv_current_version TYPE string
+      RETURNING
+        VALUE(rs_log)       TYPE ty_log .
+    CLASS-METHODS parse
+      IMPORTING
+        !it_lines           TYPE string_table
+        !iv_current_version TYPE string
+      RETURNING
+        VALUE(rt_log)       TYPE tt_log .
 ENDCLASS.
 CLASS zcl_abapgit_objects DEFINITION
   CREATE PUBLIC .
@@ -7844,61 +7845,92 @@ CLASS zcl_abapgit_repo_offline DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_repo_online DEFINITION INHERITING FROM zcl_abapgit_repo FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_repo_online DEFINITION
+  INHERITING FROM zcl_abapgit_repo
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      refresh REDEFINITION,
-      constructor
-        IMPORTING is_data TYPE zif_abapgit_persistence=>ty_repo
-        RAISING   zcx_abapgit_exception,
-      get_url
-        RETURNING VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url,
-      get_branch_name
-        RETURNING VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-branch_name,
-      get_head_branch_name
-        RETURNING VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-head_branch,
-      get_branches
-        RETURNING VALUE(ro_branches) TYPE REF TO zcl_abapgit_git_branch_list
-        RAISING   zcx_abapgit_exception,
-      set_url
-        IMPORTING iv_url TYPE zif_abapgit_persistence=>ty_repo-url
-        RAISING   zcx_abapgit_exception,
-      set_branch_name
-        IMPORTING iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
-        RAISING   zcx_abapgit_exception,
-      set_new_remote
-        IMPORTING iv_url         TYPE zif_abapgit_persistence=>ty_repo-url
-                  iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
-        RAISING   zcx_abapgit_exception,
-      get_sha1_local
-        RETURNING VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1,
-      get_sha1_remote
-        RETURNING VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1
-        RAISING   zcx_abapgit_exception,
-      get_files_remote REDEFINITION,
-      get_objects
-        RETURNING VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
-        RAISING   zcx_abapgit_exception,
-      deserialize REDEFINITION,
-      status
-        IMPORTING io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-        RAISING   zcx_abapgit_exception,
-      reset_status,
-      set_objects
-        IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        RAISING   zcx_abapgit_exception,
-      initialize
-        RAISING zcx_abapgit_exception,
-      rebuild_local_checksums REDEFINITION,
-      push
-        IMPORTING is_comment TYPE zif_abapgit_definitions=>ty_comment
-                  io_stage   TYPE REF TO zcl_abapgit_stage
-        RAISING   zcx_abapgit_exception,
-      get_unnecessary_local_objs
-        RETURNING VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
-        RAISING   zcx_abapgit_exception.
+
+    METHODS constructor
+      IMPORTING
+        !is_data TYPE zif_abapgit_persistence=>ty_repo
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_url
+      RETURNING
+        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url .
+    METHODS get_branch_name
+      RETURNING
+        VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-branch_name .
+    METHODS get_head_branch_name
+      RETURNING
+        VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-head_branch .
+    METHODS set_url
+      IMPORTING
+        !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_branch_name
+      IMPORTING
+        !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_new_remote
+      IMPORTING
+        !iv_url         TYPE zif_abapgit_persistence=>ty_repo-url
+        !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_sha1_local
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1 .
+    METHODS get_sha1_remote
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_objects
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS status
+      IMPORTING
+        !io_log           TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset_status .
+    METHODS set_objects
+      IMPORTING
+        !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS initialize
+      RAISING
+        zcx_abapgit_exception .
+    METHODS push
+      IMPORTING
+        !is_comment TYPE zif_abapgit_definitions=>ty_comment
+        !io_stage   TYPE REF TO zcl_abapgit_stage
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_unnecessary_local_objs
+      RETURNING
+        VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS deserialize
+        REDEFINITION .
+    METHODS get_files_remote
+        REDEFINITION .
+    METHODS rebuild_local_checksums
+        REDEFINITION .
+    METHODS refresh
+        REDEFINITION .
   PRIVATE SECTION.
     DATA:
       mt_objects     TYPE zif_abapgit_definitions=>ty_objects_tt,
@@ -7918,73 +7950,87 @@ CLASS zcl_abapgit_repo_online DEFINITION INHERITING FROM zcl_abapgit_repo FINAL 
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_repo_srv DEFINITION FINAL CREATE PRIVATE.
+CLASS zcl_abapgit_repo_srv DEFINITION
+  FINAL
+  CREATE PRIVATE .
 
   PUBLIC SECTION.
 
-    CLASS-METHODS: get_instance
-      RETURNING VALUE(rv_srv) TYPE REF TO zcl_abapgit_repo_srv.
-
+    CLASS-METHODS get_instance
+      RETURNING
+        VALUE(rv_srv) TYPE REF TO zcl_abapgit_repo_srv .
     METHODS list
-      RETURNING VALUE(rt_list) TYPE zif_abapgit_definitions=>ty_repo_ref_tt
-      RAISING   zcx_abapgit_exception.
-
-    METHODS refresh
-      RAISING zcx_abapgit_exception.
-
+      RETURNING
+        VALUE(rt_list) TYPE zif_abapgit_definitions=>ty_repo_ref_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS new_online
-      IMPORTING iv_url         TYPE string
-                iv_branch_name TYPE string
-                iv_package     TYPE devclass
-      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_online
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_url         TYPE string
+        !iv_branch_name TYPE string
+        !iv_package     TYPE devclass
+      RETURNING
+        VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_online
+      RAISING
+        zcx_abapgit_exception .
     METHODS new_offline
-      IMPORTING iv_url         TYPE string
-                iv_package     TYPE devclass
-      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_offline
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_url        TYPE string
+        !iv_package    TYPE devclass
+      RETURNING
+        VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_offline
+      RAISING
+        zcx_abapgit_exception .
     METHODS delete
-      IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
     METHODS get
-      IMPORTING iv_key         TYPE zif_abapgit_persistence=>ty_value
-      RETURNING VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key        TYPE zif_abapgit_persistence=>ty_value
+      RETURNING
+        VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_repo_installed
-      IMPORTING iv_url              TYPE string
-                iv_target_package   TYPE devclass OPTIONAL
-      RETURNING VALUE(rv_installed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_url             TYPE string
+        !iv_target_package  TYPE devclass OPTIONAL
+      RETURNING
+        VALUE(rv_installed) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS switch_repo_type
-      IMPORTING iv_key     TYPE zif_abapgit_persistence=>ty_value
-                iv_offline TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key     TYPE zif_abapgit_persistence=>ty_value
+        !iv_offline TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS validate_package
-      IMPORTING iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 
-    CLASS-DATA: go_ref TYPE REF TO zcl_abapgit_repo_srv.
+    CLASS-DATA go_ref TYPE REF TO zcl_abapgit_repo_srv .
+    DATA mv_init TYPE abap_bool VALUE abap_false ##NO_TEXT.
+    DATA mo_persistence TYPE REF TO zcl_abapgit_persistence_repo .
+    DATA mt_list TYPE zif_abapgit_definitions=>ty_repo_ref_tt .
 
-    METHODS constructor.
-
-    DATA: mv_init        TYPE abap_bool VALUE abap_false,
-          mo_persistence TYPE REF TO zcl_abapgit_persistence_repo,
-          mt_list        TYPE zif_abapgit_definitions=>ty_repo_ref_tt.
-
+    METHODS refresh
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor .
     METHODS is_sap_object_allowed
       RETURNING
-        VALUE(rv_allowed) TYPE abap_bool.
-
+        VALUE(rv_allowed) TYPE abap_bool .
     METHODS add
-      IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PUBLIC.
 
@@ -8233,67 +8279,78 @@ CLASS zcl_abapgit_stage DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: ty_method TYPE c LENGTH 1.
 
-    CONSTANTS: BEGIN OF c_method,
-                 add    TYPE ty_method VALUE 'A',
-                 rm     TYPE ty_method VALUE 'R',
-                 ignore TYPE ty_method VALUE 'I',
-                 skip   TYPE ty_method VALUE '?',
-               END OF c_method.
+    TYPES:
+      ty_method TYPE c LENGTH 1 .
+    TYPES:
+      BEGIN OF ty_stage,
+        file   TYPE zif_abapgit_definitions=>ty_file,
+        method TYPE ty_method,
+      END OF ty_stage .
+    TYPES:
+      ty_stage_tt TYPE SORTED TABLE OF ty_stage
+        WITH UNIQUE KEY file-path file-filename .
 
-    TYPES: BEGIN OF ty_stage,
-             file   TYPE zif_abapgit_definitions=>ty_file,
-             method TYPE ty_method,
-           END OF ty_stage.
-
-    TYPES: ty_stage_tt TYPE SORTED TABLE OF ty_stage
-      WITH UNIQUE KEY file-path file-filename.
+    CONSTANTS:
+      BEGIN OF c_method,
+        add    TYPE ty_method VALUE 'A',
+        rm     TYPE ty_method VALUE 'R',
+        ignore TYPE ty_method VALUE 'I',
+        skip   TYPE ty_method VALUE '?',
+      END OF c_method .
 
     CLASS-METHODS method_description
-      IMPORTING iv_method             TYPE ty_method
-      RETURNING VALUE(rv_description) TYPE string
-      RAISING   zcx_abapgit_exception.
-
-    METHODS:
-      constructor
-        IMPORTING iv_branch_name  TYPE string
-                  iv_branch_sha1  TYPE zif_abapgit_definitions=>ty_sha1
-                  iv_merge_source TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL,
-      get_branch_name
-        RETURNING VALUE(rv_branch) TYPE string,
-      get_branch_sha1
-        RETURNING VALUE(rv_branch) TYPE zif_abapgit_definitions=>ty_sha1,
-      add
-        IMPORTING iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-                  iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
-                  iv_data     TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      reset
-        IMPORTING iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-                  iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
-        RAISING   zcx_abapgit_exception,
-      reset_all
-        RAISING zcx_abapgit_exception,
-      rm
-        IMPORTING iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-                  iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
-        RAISING   zcx_abapgit_exception,
-      ignore
-        IMPORTING iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-                  iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
-        RAISING   zcx_abapgit_exception,
-      lookup
-        IMPORTING iv_path          TYPE zif_abapgit_definitions=>ty_file-path
-                  iv_filename      TYPE zif_abapgit_definitions=>ty_file-filename
-        RETURNING VALUE(rv_method) TYPE ty_method,
-      get_merge_source
-        RETURNING VALUE(rv_source) TYPE zif_abapgit_definitions=>ty_sha1,
-      count
-        RETURNING VALUE(rv_count) TYPE i,
-      get_all
-        RETURNING VALUE(rt_stage) TYPE ty_stage_tt.
-
+      IMPORTING
+        !iv_method            TYPE ty_method
+      RETURNING
+        VALUE(rv_description) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !iv_branch_name  TYPE string
+        !iv_branch_sha1  TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_merge_source TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL .
+    METHODS get_branch_name
+      RETURNING
+        VALUE(rv_branch) TYPE string .
+    METHODS get_branch_sha1
+      RETURNING
+        VALUE(rv_branch) TYPE zif_abapgit_definitions=>ty_sha1 .
+    METHODS add
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_data     TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+      RAISING
+        zcx_abapgit_exception .
+    METHODS rm
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+      RAISING
+        zcx_abapgit_exception .
+    METHODS ignore
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_merge_source
+      RETURNING
+        VALUE(rv_source) TYPE zif_abapgit_definitions=>ty_sha1 .
+    METHODS count
+      RETURNING
+        VALUE(rv_count) TYPE i .
+    METHODS get_all
+      RETURNING
+        VALUE(rt_stage) TYPE ty_stage_tt .
   PRIVATE SECTION.
     DATA: mt_stage        TYPE ty_stage_tt,
           mv_branch_name  TYPE string,
@@ -10263,17 +10320,6 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
             iv_filename = iv_filename
             iv_method   = c_method-ignore ).
   ENDMETHOD.        "ignore
-  METHOD lookup.
-
-    DATA ls_stage LIKE LINE OF mt_stage.
-    READ TABLE mt_stage INTO ls_stage
-      WITH KEY file-path     = iv_path
-               file-filename = iv_filename.
-    IF sy-subrc = 0.
-      rv_method = ls_stage-method.
-    ENDIF.
-
-  ENDMETHOD.        "lookup
   METHOD method_description.
 
     CASE iv_method.
@@ -10293,9 +10339,6 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
                     AND   file-filename = iv_filename.
     ASSERT sy-subrc = 0.
   ENDMETHOD.        "reset
-  METHOD reset_all.
-    CLEAR mt_stage.
-  ENDMETHOD.  "reset_all
   METHOD rm.
     append( iv_path     = iv_path
             iv_filename = iv_filename
@@ -11363,12 +11406,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.                    "deserialize
-  METHOD get_branches.
-    IF mo_branches IS NOT BOUND.
-      mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
-    ENDIF.
-    ro_branches = mo_branches.
-  ENDMETHOD.                    "get_branches
   METHOD get_branch_name.
     rv_name = ms_data-branch_name.
   ENDMETHOD.                    "get_branch_name
@@ -15671,7 +15708,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   METHOD check_requirements.
 
     DATA: lt_met_status TYPE ty_requirement_status_tt,
@@ -17893,8 +17930,6 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     get_field( EXPORTING name = 'XMLDATA' it = lt_fields CHANGING cv = rs_content-data_str ).
     IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
       rs_content-data_str = rs_content-data_str+1.
-*    ELSE.
-*      CLEAR rs_content-data_str.
     ENDIF.
 
   ENDMETHOD.                    "dbcontent_decode
@@ -19056,9 +19091,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     DATA: lv_url  TYPE string,
           lv_key  TYPE zif_abapgit_persistence=>ty_repo-key,
-          ls_db   TYPE zif_abapgit_persistence=>ty_content,
           ls_item TYPE zif_abapgit_definitions=>ty_item.
-
     lv_key = iv_getdata. " TODO refactor
     lv_url = iv_getdata. " TODO refactor
 
@@ -30672,8 +30705,121 @@ CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
 
+    SELECT SINGLE as4user FROM dd25l INTO rv_user
+      WHERE viewname = ms_item-obj_name
+      AND as4local = 'A'
+      AND as4vers = '0000'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lv_objname TYPE rsedd0-ddobjname.
+    lv_objname = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_DD_DELETE_OBJ'
+      EXPORTING
+        no_ask               = abap_true
+        objname              = lv_objname
+        objtype              = 'V'
+      EXCEPTIONS
+        not_executed         = 1
+        object_not_found     = 2
+        object_not_specified = 3
+        permission_failure   = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, VIEW' ).
+    ENDIF.
+
+  ENDMETHOD.                    "delete
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lv_name  TYPE ddobjname,
+          ls_dd25v TYPE dd25v,
+          ls_dd09l TYPE dd09l,
+          lt_dd26v TYPE TABLE OF dd26v,
+          lt_dd27p TYPE TABLE OF dd27p,
+          lt_dd28j TYPE TABLE OF dd28j,
+          lt_dd28v TYPE TABLE OF dd28v.
+    io_xml->read( EXPORTING iv_name = 'DD25V'
+                  CHANGING cg_data = ls_dd25v ).
+    io_xml->read( EXPORTING iv_name = 'DD09L'
+                  CHANGING cg_data = ls_dd09l ).
+    io_xml->read( EXPORTING iv_name = 'DD26V_TABLE'
+                  CHANGING cg_data = lt_dd26v ).
+    io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
+                  CHANGING cg_data = lt_dd27p ).
+    io_xml->read( EXPORTING iv_name = 'DD28J_TABLE'
+                  CHANGING cg_data = lt_dd28j ).
+    io_xml->read( EXPORTING iv_name = 'DD28V_TABLE'
+                  CHANGING cg_data = lt_dd28v ).
+
+    corr_insert( iv_package ).
+
+    lv_name = ms_item-obj_name. " type conversion
+
+    CALL FUNCTION 'DDIF_VIEW_PUT'
+      EXPORTING
+        name              = lv_name
+        dd25v_wa          = ls_dd25v
+        dd09l_wa          = ls_dd09l
+      TABLES
+        dd26v_tab         = lt_dd26v
+        dd27p_tab         = lt_dd27p
+        dd28j_tab         = lt_dd28j
+        dd28v_tab         = lt_dd28v
+      EXCEPTIONS
+        view_not_found    = 1
+        name_inconsistent = 2
+        view_inconsistent = 3
+        put_failure       = 4
+        put_refused       = 5
+        OTHERS            = 6.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_PUT' ).
+    ENDIF.
+
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
+
+  ENDMETHOD.                    "deserialize
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_viewname TYPE dd25l-viewname,
+          lv_ddl_view TYPE abap_bool.
+    SELECT SINGLE viewname FROM dd25l INTO lv_viewname
+      WHERE viewname = ms_item-obj_name
+      AND as4local = 'A'
+      AND as4vers = '0000'.
+    rv_bool = boolc( sy-subrc = 0 ).
+
+    IF rv_bool = abap_true.
+      TRY.
+          CALL METHOD ('CL_DD_DDL_UTILITIES')=>('CHECK_FOR_DDL_VIEW')
+            EXPORTING
+              objname     = lv_viewname
+            RECEIVING
+              is_ddl_view = lv_ddl_view.
+
+          IF lv_ddl_view = abap_true.
+            rv_bool = abap_false.
+          ENDIF.
+        CATCH cx_root ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.                    "zif_abapgit_object~exists
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-ddic = abap_true.
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
@@ -30703,84 +30849,14 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
       iv_timestamp = iv_timestamp
       iv_date      = lv_date
       iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
-
-  METHOD zif_abapgit_object~changed_by.
-
-    SELECT SINGLE as4user FROM dd25l INTO rv_user
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
-    IF sy-subrc <> 0.
-      rv_user = c_user_unknown.
-    ENDIF.
-
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_viewname TYPE dd25l-viewname,
-          lv_ddl_view TYPE abap_bool.
-    SELECT SINGLE viewname FROM dd25l INTO lv_viewname
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
-    rv_bool = boolc( sy-subrc = 0 ).
-
-    IF rv_bool = abap_true.
-      TRY.
-          CALL METHOD ('CL_DD_DDL_UTILITIES')=>('CHECK_FOR_DDL_VIEW')
-            EXPORTING
-              objname     = lv_viewname
-            RECEIVING
-              is_ddl_view = lv_ddl_view.
-
-          IF lv_ddl_view = abap_true.
-            rv_bool = abap_false.
-          ENDIF.
-        CATCH cx_root ##NO_HANDLER.
-      ENDTRY.
-    ENDIF.
-
-  ENDMETHOD.                    "zif_abapgit_object~exists
-
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-VIMA'
                iv_field = 'RSRD1-VIMA_VAL' ).
 
   ENDMETHOD.                    "jump
-
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'V'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, VIEW' ).
-    ENDIF.
-
-  ENDMETHOD.                    "delete
-
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -30863,63 +30939,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
                  iv_name = 'DD28V_TABLE' ).
 
   ENDMETHOD.                    "serialize
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lv_name  TYPE ddobjname,
-          ls_dd25v TYPE dd25v,
-          ls_dd09l TYPE dd09l,
-          lt_dd26v TYPE TABLE OF dd26v,
-          lt_dd27p TYPE TABLE OF dd27p,
-          lt_dd28j TYPE TABLE OF dd28j,
-          lt_dd28v TYPE TABLE OF dd28v.
-    io_xml->read( EXPORTING iv_name = 'DD25V'
-                  CHANGING cg_data = ls_dd25v ).
-    io_xml->read( EXPORTING iv_name = 'DD09L'
-                  CHANGING cg_data = ls_dd09l ).
-    io_xml->read( EXPORTING iv_name = 'DD26V_TABLE'
-                  CHANGING cg_data = lt_dd26v ).
-    io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
-                  CHANGING cg_data = lt_dd27p ).
-    io_xml->read( EXPORTING iv_name = 'DD28J_TABLE'
-                  CHANGING cg_data = lt_dd28j ).
-    io_xml->read( EXPORTING iv_name = 'DD28V_TABLE'
-                  CHANGING cg_data = lt_dd28v ).
-
-    corr_insert( iv_package ).
-
-    lv_name = ms_item-obj_name. " type conversion
-
-    CALL FUNCTION 'DDIF_VIEW_PUT'
-      EXPORTING
-        name              = lv_name
-        dd25v_wa          = ls_dd25v
-        dd09l_wa          = ls_dd09l
-      TABLES
-        dd26v_tab         = lt_dd26v
-        dd27p_tab         = lt_dd27p
-        dd28j_tab         = lt_dd28j
-        dd28v_tab         = lt_dd28v
-      EXCEPTIONS
-        view_not_found    = 1
-        name_inconsistent = 2
-        view_inconsistent = 3
-        put_failure       = 4
-        put_refused       = 5
-        OTHERS            = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_PUT' ).
-    ENDIF.
-
-    zcl_abapgit_objects_activation=>add_item( ms_item ).
-
-  ENDMETHOD.                    "deserialize
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
-
-ENDCLASS.                    "zcl_abapgit_object_view IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -33519,8 +33539,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
         i_style_active_flag = 'A'
       EXCEPTIONS
         OTHERS              = 0.
-    IF sy-subrc <> 0.
-    ENDIF.
 
     SET PARAMETER ID 'EUK' FIELD iv_package.
     ASSIGN ('(SAPLSTXBS)MASTER_LANGUAGE') TO <lv_spras>.
@@ -47946,8 +47964,8 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     DATA lv_host TYPE string.
 
     FIND REGEX 'https?://([^/^:]*)' IN iv_repo_url SUBMATCHES lv_host.
-    IF lv_host IS NOT INITIAL AND lv_host NE space.
-      CLEAR: s_title.
+    IF lv_host IS NOT INITIAL AND lv_host <> space.
+      CLEAR s_title.
       CONCATENATE 'Login:' lv_host INTO s_title IN CHARACTER MODE SEPARATED BY space.
     ENDIF.
 
@@ -49671,5 +49689,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-26T11:56:23.994Z
+* abapmerge - 2018-03-28T06:09:46.299Z
 ****************************************************
