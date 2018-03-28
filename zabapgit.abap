@@ -31735,6 +31735,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         CLEAR cs_rsstcd-s_ind_vari.
         lv_off = 1.
       ENDIF.
+      IF cs_tstcp-param CA ' '.
+      ENDIF.
       sy-fdpos = sy-fdpos - lv_off.
       IF sy-fdpos > 0.
         cs_rsstcd-call_tcode = cs_tstcp-param+lv_off(sy-fdpos).
@@ -31748,6 +31750,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         cs_rsstcd-st_skip_1 = c_true.
       ELSE.
         CLEAR cs_rsstcd-st_skip_1.
+      ENDIF.
+      IF cs_tstcp-param CA ' '.
       ENDIF.
       lv_param_beg = sy-fdpos + 1.
       sy-fdpos = sy-fdpos - 2.
@@ -49689,5 +49693,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-28T06:09:46.299Z
+* abapmerge - 2018-03-28T06:10:03.159Z
 ****************************************************
