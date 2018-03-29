@@ -443,9 +443,6 @@ CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_bkg DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
@@ -483,6 +480,9 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
@@ -626,7 +626,6 @@ CLASS zcl_abapgit_2fa_github_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_registry DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
@@ -784,6 +783,20 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_file_item .
   TYPES:
     ty_files_item_tt TYPE STANDARD TABLE OF ty_file_item WITH DEFAULT KEY .
+
+  TYPES: ty_yes_no TYPE c LENGTH 1.
+
+  TYPES: BEGIN OF ty_overwrite.
+      INCLUDE TYPE ty_item.
+  TYPES: decision TYPE ty_yes_no,
+         END OF ty_overwrite.
+
+  TYPES: ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_deserialize_checks,
+           overwrite TYPE ty_overwrite_tt,
+         END OF ty_deserialize_checks.
+
   TYPES:
     BEGIN OF ty_metadata,
       class        TYPE string,
@@ -1859,62 +1872,6 @@ CLASS zcl_abapgit_git_utils DEFINITION
       RETURNING VALUE(rv_len) TYPE i
       RAISING   zcx_abapgit_exception.
 
-ENDCLASS.
-CLASS zcl_abapgit_services_git DEFINITION FINAL CREATE PUBLIC.
-
-  PUBLIC SECTION.
-
-    TYPES: BEGIN OF ty_commit_fields,
-             repo_key        TYPE zif_abapgit_persistence=>ty_repo-key,
-             committer_name  TYPE string,
-             committer_email TYPE string,
-             author_name     TYPE string,
-             author_email    TYPE string,
-             comment         TYPE string,
-             body            TYPE string,
-           END OF ty_commit_fields.
-
-    CLASS-METHODS pull
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS reset
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS create_branch
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS switch_branch
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS delete_branch
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS create_tag
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS delete_tag
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS switch_tag
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS tag_overview
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS commit
-      IMPORTING io_repo   TYPE REF TO zcl_abapgit_repo_online
-                is_commit TYPE ty_commit_fields
-                io_stage  TYPE REF TO zcl_abapgit_stage
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
 ENDCLASS.
 CLASS zcl_abapgit_tag DEFINITION
   CREATE PUBLIC .
@@ -5356,26 +5313,38 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
   FINAL
-  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+
+    METHODS constructor
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key .
+
+    METHODS zif_abapgit_gui_page~on_event
+        REDEFINITION .
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
 
   PRIVATE SECTION.
-    DATA:
-      mv_key TYPE zif_abapgit_persistence=>ty_repo-key.
 
-    METHODS:
-      build_menu
-        RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar,
-      render_data
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-        RAISING   zcx_abapgit_exception.
+    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key .
+
+    METHODS build_menu
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
+    CLASS-METHODS update_task
+      IMPORTING
+        !is_bg_task TYPE zcl_abapgit_persist_background=>ty_background
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_data
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -6501,6 +6470,215 @@ CLASS zcl_abapgit_popups DEFINITION
         !ev_package TYPE tdevc-devclass
         !ev_branch  TYPE textl-line .
 ENDCLASS.
+CLASS zcl_abapgit_services_abapgit DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CONSTANTS c_abapgit_homepage TYPE string VALUE 'http://www.abapgit.org' ##NO_TEXT.
+    CONSTANTS c_abapgit_wikipage TYPE string VALUE 'http://docs.abapgit.org' ##NO_TEXT.
+    CONSTANTS c_package_abapgit TYPE devclass VALUE '$ABAPGIT' ##NO_TEXT.
+    CONSTANTS c_package_plugins TYPE devclass VALUE '$ABAPGIT_PLUGINS' ##NO_TEXT.
+    CONSTANTS c_abapgit_url TYPE string VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT.
+    CONSTANTS c_plugins_url TYPE string VALUE 'https://github.com/larshp/abapGit-plugins.git' ##NO_TEXT.
+
+    CLASS-METHODS open_abapgit_homepage
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS open_abapgit_wikipage
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS install_abapgit
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS install_abapgit_pi
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS is_installed
+      RETURNING
+        VALUE(rv_installed) TYPE abap_bool .
+    CLASS-METHODS is_installed_pi
+      RETURNING
+        VALUE(rv_installed) TYPE abap_bool .
+  PRIVATE SECTION.
+
+    CLASS-METHODS do_install
+      IMPORTING iv_title   TYPE c
+                iv_text    TYPE c
+                iv_url     TYPE string
+                iv_package TYPE devclass
+      RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_services_git DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_commit_fields,
+        repo_key        TYPE zif_abapgit_persistence=>ty_repo-key,
+        committer_name  TYPE string,
+        committer_email TYPE string,
+        author_name     TYPE string,
+        author_email    TYPE string,
+        comment         TYPE string,
+        body            TYPE string,
+      END OF ty_commit_fields .
+
+    CLASS-METHODS pull
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS reset
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS create_branch
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS switch_branch
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS delete_branch
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS create_tag
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS delete_tag
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS switch_tag
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS tag_overview
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS commit
+      IMPORTING
+        !io_repo   TYPE REF TO zcl_abapgit_repo_online
+        !is_commit TYPE ty_commit_fields
+        !io_stage  TYPE REF TO zcl_abapgit_stage
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+ENDCLASS.
+CLASS zcl_abapgit_services_repo DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS clone
+      IMPORTING
+        !iv_url TYPE string
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS refresh
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS remove
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS purge
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS new_offline
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS remote_attach
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS remote_detach
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS remote_change
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS refresh_local_checksums
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS toggle_favorite
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS open_se80
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS transport_to_branch
+      IMPORTING
+        !iv_repository_key TYPE zif_abapgit_persistence=>ty_value
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+    CLASS-METHODS gui_deserialize
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+
+    CLASS-METHODS popup_overwrite
+      CHANGING
+        !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
 
@@ -6841,23 +7019,28 @@ CLASS zcl_abapgit_url DEFINITION
 
   PUBLIC SECTION.
 
+    CLASS-METHODS validate
+      IMPORTING
+        !iv_url TYPE string
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS host
       IMPORTING
-        !iv_repo       TYPE string
+        !iv_url        TYPE string
       RETURNING
         VALUE(rv_host) TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS name
       IMPORTING
-        !iv_repo       TYPE string
+        !iv_url        TYPE string
       RETURNING
         VALUE(rv_name) TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS path_name
       IMPORTING
-        !iv_repo            TYPE string
+        !iv_url             TYPE string
       RETURNING
         VALUE(rv_path_name) TYPE string
       RAISING
@@ -6866,7 +7049,7 @@ CLASS zcl_abapgit_url DEFINITION
 
     CLASS-METHODS regex
       IMPORTING
-        !iv_repo TYPE string
+        !iv_url  TYPE string
       EXPORTING
         !ev_host TYPE string
         !ev_path TYPE string
@@ -7553,8 +7736,16 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS deserialize
       IMPORTING
         !io_repo                 TYPE REF TO zcl_abapgit_repo
+        !is_checks               TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RETURNING
         VALUE(rt_accessed_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS deserialize_checks
+      IMPORTING
+        !io_repo         TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS delete
@@ -7598,59 +7789,84 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rt_types) TYPE ty_types_tt .
   PRIVATE SECTION.
 
+    CLASS-METHODS files_to_deserialize
+      IMPORTING
+        !io_repo          TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS check_duplicates
-      IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !it_files TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS create_object
-      IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_item
-                iv_language    TYPE spras
-                is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-                iv_native_only TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(ri_obj)  TYPE REF TO zif_abapgit_object
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS
-      prioritize_deser
-        IMPORTING it_results        TYPE zif_abapgit_definitions=>ty_results_tt
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
-
+      IMPORTING
+        !is_item        TYPE zif_abapgit_definitions=>ty_item
+        !iv_language    TYPE spras
+        !is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+        !iv_native_only TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_obj)   TYPE REF TO zif_abapgit_object
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS prioritize_deser
+      IMPORTING
+        !it_results       TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt .
     CLASS-METHODS class_name
-      IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_item
-      RETURNING VALUE(rv_class_name) TYPE string.
-
-    CLASS-METHODS warning_overwrite
-      CHANGING ct_results TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING  zcx_abapgit_exception.
-
+      IMPORTING
+        !is_item             TYPE zif_abapgit_definitions=>ty_item
+      RETURNING
+        VALUE(rv_class_name) TYPE string .
+    CLASS-METHODS warning_overwrite_adjust
+      IMPORTING
+        !it_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
+      CHANGING
+        !ct_results   TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS warning_overwrite_find
+      IMPORTING
+        !it_results         TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS warning_package
-      IMPORTING is_item          TYPE zif_abapgit_definitions=>ty_item
-                iv_package       TYPE devclass
-      RETURNING VALUE(rv_cancel) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
+        !iv_package      TYPE devclass
+      RETURNING
+        VALUE(rv_cancel) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS update_package_tree
-      IMPORTING iv_package TYPE devclass.
-
+      IMPORTING
+        !iv_package TYPE devclass .
     CLASS-METHODS delete_obj
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS compare_remote_to_local
       IMPORTING
-        io_object TYPE REF TO zif_abapgit_object
-        it_remote TYPE zif_abapgit_definitions=>ty_files_tt
-        is_result TYPE zif_abapgit_definitions=>ty_result
+        !io_object TYPE REF TO zif_abapgit_object
+        !it_remote TYPE zif_abapgit_definitions=>ty_files_tt
+        !is_result TYPE zif_abapgit_definitions=>ty_result
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
-      IMPORTING it_objects TYPE ty_deserialization_tt
-                iv_ddic    TYPE abap_bool DEFAULT abap_false
-                iv_descr   TYPE string
-      CHANGING  ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !it_objects TYPE ty_deserialization_tt
+        !iv_ddic    TYPE abap_bool DEFAULT abap_false
+        !iv_descr   TYPE string
+      CHANGING
+        !ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM zcl_abapgit_objects_super.
 
@@ -7685,6 +7901,11 @@ CLASS zcl_abapgit_repo DEFINITION
 
   PUBLIC SECTION.
 
+    METHODS deserialize_checks
+      RETURNING
+        VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      RAISING
+        zcx_abapgit_exception .
     METHODS constructor
       IMPORTING
         !is_data TYPE zif_abapgit_persistence=>ty_repo .
@@ -7730,6 +7951,8 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize
+      IMPORTING
+        VALUE(is_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_exception .
     METHODS refresh
@@ -8063,112 +8286,6 @@ CLASS zcl_abapgit_sap_package DEFINITION CREATE PUBLIC.
   PRIVATE SECTION.
     DATA: mv_package TYPE devclass.
 
-ENDCLASS.
-CLASS zcl_abapgit_services_abapgit DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CONSTANTS c_abapgit_homepage TYPE string
-      VALUE 'http://www.abapgit.org' ##NO_TEXT.
-    CONSTANTS c_abapgit_wikipage TYPE string
-      VALUE 'http://docs.abapgit.org'.
-    CONSTANTS c_package_abapgit  TYPE devclass
-      VALUE '$ABAPGIT'.
-    CONSTANTS c_package_plugins  TYPE devclass
-      VALUE '$ABAPGIT_PLUGINS'.
-    CONSTANTS c_abapgit_url      TYPE string
-      VALUE 'https://github.com/larshp/abapGit.git'.
-    CONSTANTS c_plugins_url      TYPE string
-      VALUE 'https://github.com/larshp/abapGit-plugins.git'.
-
-    CLASS-METHODS open_abapgit_homepage
-      RAISING zcx_abapgit_exception.
-
-    CLASS-METHODS open_abapgit_wikipage
-      RAISING zcx_abapgit_exception.
-
-    CLASS-METHODS install_abapgit
-      RAISING zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS install_abapgit_pi
-      RAISING zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS is_installed
-      RETURNING VALUE(rv_installed) TYPE abap_bool.
-
-    CLASS-METHODS is_installed_pi
-      RETURNING VALUE(rv_installed) TYPE abap_bool.
-
-  PRIVATE SECTION.
-
-    CLASS-METHODS do_install
-      IMPORTING iv_title   TYPE c
-                iv_text    TYPE c
-                iv_url     TYPE string
-                iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcl_abapgit_services_bkg DEFINITION FINAL CREATE PUBLIC.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS update_task
-      IMPORTING is_bg_task TYPE zcl_abapgit_persist_background=>ty_background
-      RAISING   zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcl_abapgit_services_repo DEFINITION FINAL CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    CLASS-METHODS clone
-      IMPORTING iv_url TYPE string
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS refresh
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS remove
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS purge
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS new_offline
-      RAISING zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS remote_attach
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS remote_detach
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS remote_change
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS refresh_local_checksums
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-    CLASS-METHODS toggle_favorite
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS open_se80
-      IMPORTING iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS transport_to_branch
-      IMPORTING iv_repository_key TYPE zif_abapgit_persistence=>ty_value
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
 ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
@@ -9560,7 +9677,8 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_files_remote( unzip_file( file_upload( ) ) ).
-    lo_repo->deserialize( ).
+
+    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
   ENDMETHOD.                    "import
   METHOD normalize_path.
@@ -10480,431 +10598,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
-  METHOD clone.
-
-    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo_online,
-          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
-    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-      iv_url         = ls_popup-url
-      iv_branch_name = ls_popup-branch_name
-      iv_package     = ls_popup-package ).
-
-    toggle_favorite( lo_repo->get_key( ) ).
-
-    lo_repo->initialize( ).
-    lo_repo->find_remote_dot_abapgit( ).
-    lo_repo->status( ). " check for errors
-    lo_repo->deserialize( ).
-
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "clone
-  METHOD new_offline.
-
-    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo,
-          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
-
-    ls_popup  = zcl_abapgit_popups=>repo_new_offline( ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-      iv_url     = ls_popup-url
-      iv_package = ls_popup-package ).
-
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
-    toggle_favorite( lo_repo->get_key( ) ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "new_offline
-  METHOD open_se80.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation       = 'SHOW'
-        in_new_window   = abap_true
-        object_name     = iv_package
-        object_type     = 'DEVC'
-        with_objectlist = abap_true.
-
-  ENDMETHOD.  " open_se80.
-  METHOD purge.
-
-    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lv_answer   TYPE c LENGTH 1,
-          lo_repo     TYPE REF TO zcl_abapgit_repo,
-          lv_package  TYPE devclass,
-          lv_question TYPE c LENGTH 100.
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
-    ENDIF.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
-      zcx_abapgit_exception=>raise( 'Not authorized' ).
-    ENDIF.
-
-    lv_package = lo_repo->get_package( ).
-    lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
-
-    IF lines( lt_tadir ) > 0.
-
-      lv_question = |This will DELETE all objects in package { lv_package }|
-                 && | ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
-
-      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-        titlebar              = 'Uninstall'
-        text_question         = lv_question
-        text_button_1         = 'Delete'
-        icon_button_1         = 'ICON_DELETE'
-        text_button_2         = 'Cancel'
-        icon_button_2         = 'ICON_CANCEL'
-        default_button        = '2'
-        display_cancel_button = abap_false ).               "#EC NOTEXT
-
-      IF lv_answer = '2'.
-        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-      ENDIF.
-
-      zcl_abapgit_objects=>delete( lt_tadir ).
-
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "purge
-  METHOD refresh.
-
-    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
-
-  ENDMETHOD.  "refresh
-  METHOD refresh_local_checksums.
-
-    DATA: lv_answer   TYPE c,
-          lv_question TYPE string,
-          lo_repo     TYPE REF TO zcl_abapgit_repo.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
-      zcx_abapgit_exception=>raise( 'Not authorized' ).
-    ENDIF.
-
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    lv_question =  'This will rebuild and overwrite local repo checksums.'.
-
-    IF lo_repo->is_offline( ) = abap_false.
-      lv_question = lv_question
-                && ' The logic: if local and remote file differs then:'
-                && ' if remote branch is ahead then assume changes are remote,'
-                && ' else (branches are equal) assume changes are local.'
-                && ' This will lead to incorrect state for files changed on both sides.'
-                && ' Please make sure you don''t have ones like that.'.
-    ENDIF.
-
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-      titlebar              = 'Warning'
-      text_question         = lv_question
-      text_button_1         = 'OK'
-      icon_button_1         = 'ICON_DELETE'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
-
-    IF lv_answer = '2'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo->rebuild_local_checksums( ).
-
-  ENDMETHOD.  "refresh_local_checksums
-  METHOD remote_attach.
-
-    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
-          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
-
-    ls_popup = zcl_abapgit_popups=>repo_popup(
-      iv_title          = 'Attach repo to remote ...'
-      iv_url            = ''
-      iv_package        = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_package( )
-      iv_freeze_package = abap_true ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_false ).
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_url( ls_popup-url ).
-    lo_repo->set_branch_name( ls_popup-branch_name ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "remote_attach
-  METHOD remote_change.
-
-    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
-          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_popup = zcl_abapgit_popups=>repo_popup(
-      iv_title          = 'Change repo remote ...'
-      iv_url            = lo_repo->get_url( )
-      iv_package        = lo_repo->get_package( )
-      iv_freeze_package = abap_true ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_new_remote( iv_url         = ls_popup-url
-                             iv_branch_name = ls_popup-branch_name ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "remote_change
-  METHOD remote_detach.
-
-    DATA: lv_answer TYPE c LENGTH 1.
-
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-      titlebar              = 'Make repository OFF-line'
-      text_question         = 'This will detach the repo from remote and make it OFF-line'
-      text_button_1         = 'Make OFF-line'
-      icon_button_1         = 'ICON_WF_UNLINK'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
-
-    IF lv_answer = '2'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "remote_detach
-  METHOD remove.
-
-    DATA: lv_answer   TYPE c LENGTH 1,
-          lo_repo     TYPE REF TO zcl_abapgit_repo,
-          lv_package  TYPE devclass,
-          lv_question TYPE c LENGTH 200.
-    lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lv_package  = lo_repo->get_package( ).
-    lv_question = |This will remove the repository reference to the package { lv_package }|
-               && '. All objects will safely remain in the system.'.
-
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-      titlebar              = 'Remove'
-      text_question         = lv_question
-      text_button_1         = 'Remove'
-      icon_button_1         = 'ICON_WF_UNLINK'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
-
-    IF lv_answer = '2'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "remove
-  METHOD toggle_favorite.
-
-    zcl_abapgit_persistence_user=>get_instance( )->toggle_favorite( iv_key ).
-
-  ENDMETHOD.  " toggle_favorite.
-  METHOD transport_to_branch.
-    DATA:
-      lo_repository          TYPE REF TO zcl_abapgit_repo_online,
-      lo_transport_to_branch TYPE REF TO zcl_abapgit_transport_2_branch,
-      lt_transport_headers   TYPE trwbo_request_headers,
-      lt_transport_objects   TYPE scts_tadir,
-      ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
-      zcx_abapgit_exception=>raise( 'Not authorized' ).
-    ENDIF.
-
-    lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
-
-    lt_transport_headers = zcl_abapgit_popups=>popup_to_select_transports( ).
-    lt_transport_objects = zcl_abapgit_transport=>to_tadir( lt_transport_headers ).
-    IF lt_transport_objects IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
-    ENDIF.
-
-    ls_transport_to_branch = zcl_abapgit_popups=>popup_to_create_transp_branch(
-      lt_transport_headers ).
-
-    CREATE OBJECT lo_transport_to_branch.
-    lo_transport_to_branch->create(
-      io_repository          = lo_repository
-      is_transport_to_branch = ls_transport_to_branch
-      it_transport_objects   = lt_transport_objects ).
-  ENDMETHOD.
-ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_BKG IMPLEMENTATION.
-  METHOD update_task.
-
-    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_background.
-
-    CREATE OBJECT lo_persistence.
-
-    IF is_bg_task-method = zcl_abapgit_persist_background=>c_method-nothing.
-      lo_persistence->delete( is_bg_task-key ).
-    ELSE.
-      lo_persistence->modify( is_bg_task ).
-    ENDIF.
-
-    MESSAGE 'Saved' TYPE 'S' ##NO_TEXT.
-
-    COMMIT WORK.
-
-  ENDMETHOD.
-ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
-  METHOD do_install.
-
-    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          lv_answer TYPE c LENGTH 1.
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-      titlebar              = iv_title
-      text_question         = iv_text
-      text_button_1         = 'Continue'
-      text_button_2         = 'Cancel'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
-
-    IF lv_answer <> '1'.
-      RETURN.
-    ENDIF.
-
-    IF abap_false = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed(
-        iv_url              = iv_url
-        iv_target_package   = iv_package ).
-
-      zcl_abapgit_sap_package=>create_local( iv_package ).
-
-      lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-        iv_url         = iv_url
-        iv_branch_name = 'refs/heads/master'
-        iv_package     = iv_package ) ##NO_TEXT.
-
-      lo_repo->initialize( ).
-      lo_repo->find_remote_dot_abapgit( ).
-      lo_repo->status( ). " check for errors
-      lo_repo->deserialize( ).
-      zcl_abapgit_services_repo=>toggle_favorite( lo_repo->get_key( ) ).
-    ENDIF.
-
-    COMMIT WORK.
-
-  ENDMETHOD.  " do_install.
-  METHOD install_abapgit.
-
-    CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit'.
-    DATA lv_text       TYPE c LENGTH 100.
-
-    IF is_installed( ) = abap_true.
-      lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
-      zcl_abapgit_popups=>popup_to_inform(
-        titlebar              = lc_title
-        text_message          = lv_text ).
-      RETURN.
-    ENDIF.
-
-    lv_text = |Confirm to install current version of abapGit to package { c_package_abapgit }|.
-
-    do_install( iv_title   = lc_title
-                iv_text    = lv_text
-                iv_url     = c_abapgit_url
-                iv_package = c_package_abapgit ).
-
-  ENDMETHOD.  "install_abapgit
-  METHOD install_abapgit_pi.
-
-    CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit plugins'.
-    DATA lv_text       TYPE c LENGTH 100.
-
-    IF is_installed_pi( ) = abap_true.
-      lv_text = 'Seems like abapGit plugins package is already installed. No changes to be done'.
-      zcl_abapgit_popups=>popup_to_inform(
-        titlebar              = lc_title
-        text_message          = lv_text ).
-      RETURN.
-    ENDIF.
-
-    lv_text = |Confirm to install current version abapGit plugins to package {
-               c_package_plugins }|.
-
-    do_install( iv_title   = lc_title
-                iv_text    = lv_text
-                iv_url     = c_plugins_url
-                iv_package = c_package_plugins ).
-
-  ENDMETHOD.  "install_abapgit_pi
-  METHOD is_installed.
-
-    TRY.
-        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
-        " TODO, alternative checks for presence in the system
-      CATCH zcx_abapgit_exception.
-        " cannot be installed anyway in this case, e.g. no connection
-        rv_installed = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.                    "is_installed
-  METHOD is_installed_pi.
-
-    TRY.
-        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
-        " TODO, alternative checks for presence in the system
-      CATCH zcx_abapgit_exception.
-        " cannot be installed anyway in this case, e.g. no connection
-        rv_installed = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.                    "is_installed_pi
-  METHOD open_abapgit_homepage.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_homepage
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
-  ENDMETHOD.  "open_abapgit_homepage
-  METHOD open_abapgit_wikipage.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_wikipage
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
-  ENDMETHOD.  "open_abapgit_wikipage
-ENDCLASS.
 CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
@@ -11247,7 +10940,12 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     DATA: ls_repo TYPE zif_abapgit_persistence=>ty_repo,
           lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
+    ASSERT NOT iv_url IS INITIAL
+      AND NOT iv_branch_name IS INITIAL
+      AND NOT iv_package IS INITIAL.
+
     validate_package( iv_package ).
+    zcl_abapgit_url=>validate( |{ iv_url }| ).
 
     lv_key = mo_persistence->add(
       iv_url         = iv_url
@@ -11326,9 +11024,8 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.  "switch_repo_type
   METHOD validate_package.
 
-    DATA: ls_devclass TYPE tdevc,
-          lt_repos    TYPE zif_abapgit_persistence=>tt_repo.
-
+    DATA: lv_as4user TYPE tdevc-as4user,
+          lt_repos   TYPE zif_abapgit_persistence=>tt_repo.
     IF iv_package IS INITIAL.
       zcx_abapgit_exception=>raise( 'add, package empty' ).
     ENDIF.
@@ -11337,16 +11034,14 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'not possible to use $TMP, create new (local) package' ).
     ENDIF.
 
-    SELECT SINGLE *
-           FROM tdevc
-           INTO ls_devclass
-           WHERE devclass = iv_package.                 "#EC CI_GENBUFF
-
+    SELECT SINGLE as4user FROM tdevc
+      INTO lv_as4user
+      WHERE devclass = iv_package.                      "#EC CI_GENBUFF
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Package { iv_package } not found| ).
     ENDIF.
 
-    IF is_sap_object_allowed( ) = abap_false AND ls_devclass-as4user = 'SAP'.
+    IF is_sap_object_allowed( ) = abap_false AND lv_as4user = 'SAP'.
       zcx_abapgit_exception=>raise( |Package { iv_package } not allowed| ).
     ENDIF.
 
@@ -11391,13 +11086,9 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.  " delete_initial_online_repo
   METHOD deserialize.
 
-    IF ms_data-local_settings-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
-    ENDIF.
-
     initialize( ).
 
-    super->deserialize( ).
+    super->deserialize( is_checks ).
 
     set( iv_sha1 = mv_branch ).
 
@@ -11876,12 +11567,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
           lt_requirements  TYPE STANDARD TABLE OF zif_abapgit_dot_abapgit=>ty_requirement,
           lx_error         TYPE REF TO zcx_abapgit_exception.
-
-    find_remote_dot_abapgit( ).
-
-    IF get_dot_abapgit( )->get_master_language( ) <> sy-langu.
-      zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
-    ENDIF.
+    deserialize_checks( ).
 
     lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
     IF lt_requirements IS NOT INITIAL.
@@ -11890,14 +11576,13 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDIF.
 
     TRY.
-        lt_updated_files = zcl_abapgit_objects=>deserialize( me ).
-
+        lt_updated_files = zcl_abapgit_objects=>deserialize(
+          io_repo   = me
+          is_checks = is_checks ).
       CATCH zcx_abapgit_exception INTO lx_error.
-
-        " ensure to reset default transport request task
+* ensure to reset default transport request task
         zcl_abapgit_default_task=>get_instance( )->reset( ).
         RAISE EXCEPTION lx_error.
-
     ENDTRY.
 
     APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
@@ -11905,6 +11590,21 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     CLEAR: mt_local, mv_last_serialization.
 
     update_local_checksums( lt_updated_files ).
+
+  ENDMETHOD.
+  METHOD deserialize_checks.
+
+    find_remote_dot_abapgit( ).
+
+    IF get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
+    ELSEIF get_dot_abapgit( )->get_master_language( ) <> sy-langu.
+      zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
+    ENDIF.
+
+* todo
+
+    rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -12607,23 +12307,18 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
                    <ls_deser>  LIKE LINE OF lt_late.
-
     lv_package = io_repo->get_package( ).
 
     zcl_abapgit_default_task=>get_instance( )->set( lv_package ).
-
     zcl_abapgit_objects_activation=>clear( ).
 
     lt_remote = io_repo->get_files_remote( ).
 
-    lt_results = zcl_abapgit_file_status=>status( io_repo ).
-    DELETE lt_results WHERE match = abap_true.     " Full match
-    SORT lt_results BY obj_type ASCENDING obj_name ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM lt_results COMPARING obj_type obj_name.
+    lt_results = files_to_deserialize( io_repo ).
 
-    lt_results = prioritize_deser( lt_results ).
-
-    warning_overwrite( CHANGING ct_results = lt_results ).
+    warning_overwrite_adjust(
+      EXPORTING it_overwrite = is_checks-overwrite
+      CHANGING ct_results = lt_results ).
 
     CREATE OBJECT lo_progress
       EXPORTING
@@ -12713,6 +12408,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     zcl_abapgit_default_task=>get_instance( )->reset( ).
 
   ENDMETHOD.                    "deserialize
+  METHOD deserialize_checks.
+
+    DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt.
+    lt_results = files_to_deserialize( io_repo ).
+
+    rs_checks-overwrite = warning_overwrite_find( lt_results ).
+
+  ENDMETHOD.
   METHOD deserialize_objects.
 
     DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
@@ -12750,6 +12453,16 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.                    "exists
+  METHOD files_to_deserialize.
+
+    rt_results = zcl_abapgit_file_status=>status( io_repo ).
+    DELETE rt_results WHERE match = abap_true.     " Full match
+    SORT rt_results BY obj_type ASCENDING obj_name ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
+
+    rt_results = prioritize_deser( rt_results ).
+
+  ENDMETHOD.
   METHOD has_changed_since.
     rv_changed = abap_true. " Assume changed
 
@@ -12909,56 +12622,52 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.                    "update_package_tree
-  METHOD warning_overwrite.
+  METHOD warning_overwrite_adjust.
 
-    DATA: lt_results_overwrite   LIKE ct_results,
-          lt_confirmed_overwrite LIKE ct_results,
-          lt_columns             TYPE stringtab,
-          lv_column              LIKE LINE OF lt_columns.
+    DATA: lt_overwrite LIKE it_overwrite,
+          ls_overwrite LIKE LINE OF lt_overwrite.
 
-    FIELD-SYMBOLS: <ls_result>  LIKE LINE OF ct_results.
+    FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF lt_overwrite.
+* make sure to get the current status, as something might have changed in the meanwhile
+    lt_overwrite = warning_overwrite_find( ct_results ).
 
-    LOOP AT ct_results ASSIGNING <ls_result>
-        WHERE NOT obj_type IS INITIAL.
+    LOOP AT lt_overwrite ASSIGNING <ls_overwrite>.
+      READ TABLE it_overwrite INTO ls_overwrite WITH KEY
+        obj_type = <ls_overwrite>-obj_type
+        obj_name = <ls_overwrite>-obj_name.
+      IF sy-subrc <> 0 OR ls_overwrite-decision IS INITIAL.
+        zcx_abapgit_exception=>raise( |Overwrite { <ls_overwrite>-obj_type } {
+          <ls_overwrite>-obj_name } undecided| ).
+      ENDIF.
 
-      IF <ls_result>-lstate IS NOT INITIAL
-          AND <ls_result>-lstate <> zif_abapgit_definitions=>gc_state-deleted
-          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>gc_state-added
-          AND <ls_result>-rstate IS INITIAL ).
-
-        "current object has been modified locally, add to table for popup
-        APPEND <ls_result> TO lt_results_overwrite.
+      IF ls_overwrite-decision = 'N'.
+        DELETE ct_results WHERE
+          obj_type = <ls_overwrite>-obj_type AND
+          obj_name = <ls_overwrite>-obj_name.
+        ASSERT sy-subrc = 0.
       ENDIF.
 
     ENDLOOP.
 
-    IF lines( lt_results_overwrite ) > 0.
+  ENDMETHOD.
+  METHOD warning_overwrite_find.
 
-      lv_column = `OBJ_TYPE`.
-      INSERT lv_column INTO TABLE lt_columns.
-      lv_column = `OBJ_NAME`.
-      INSERT lv_column INTO TABLE lt_columns.
+    DATA: ls_overwrite LIKE LINE OF rt_overwrite.
 
-      "all returned objects will be overwritten
-      zcl_abapgit_popups=>popup_to_select_from_list(
-        EXPORTING
-          it_list               = lt_results_overwrite
-          i_header_text         = |The following Objects have been modified locally.|
-                              && | Select the Objects which should be overwritten.|
-          i_select_column_text  = 'Overwrite?'
-          it_columns_to_display = lt_columns
-        IMPORTING
-          et_list               = lt_confirmed_overwrite ).
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
 
-      LOOP AT lt_results_overwrite ASSIGNING <ls_result>.
-        READ TABLE lt_confirmed_overwrite TRANSPORTING NO FIELDS
-             WITH KEY obj_type = <ls_result>-obj_type
-                      obj_name = <ls_result>-obj_name.
-        IF sy-subrc <> 0.
-          DELETE TABLE ct_results FROM <ls_result>.
-        ENDIF.
-      ENDLOOP.
-    ENDIF.
+    LOOP AT it_results ASSIGNING <ls_result>
+        WHERE NOT obj_type IS INITIAL.
+      IF <ls_result>-lstate IS NOT INITIAL
+          AND <ls_result>-lstate <> zif_abapgit_definitions=>gc_state-deleted
+          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>gc_state-added
+          AND <ls_result>-rstate IS INITIAL ).
+* current object has been modified locally, add to table
+        CLEAR ls_overwrite.
+        MOVE-CORRESPONDING <ls_result> TO ls_overwrite.
+        APPEND ls_overwrite TO rt_overwrite.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD warning_package.
@@ -15265,6 +14974,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
     DATA: lo_per       TYPE REF TO zcl_abapgit_persist_background,
           lo_repo      TYPE REF TO zcl_abapgit_repo_online,
           lt_list      TYPE zcl_abapgit_persist_background=>tt_background,
+          ls_checks    TYPE zif_abapgit_definitions=>ty_deserialize_checks,
           lv_repo_name TYPE string.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
@@ -15299,7 +15009,8 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
 
       CASE <ls_list>-method.
         WHEN zcl_abapgit_persist_background=>c_method-pull.
-          lo_repo->deserialize( ).
+* todo, set defaults in ls_checks
+          lo_repo->deserialize( ls_checks ).
         WHEN zcl_abapgit_persist_background=>c_method-push.
           push( io_repo     = lo_repo
                 is_settings = <ls_list> ).
@@ -15623,13 +15334,13 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   METHOD host.
 
-    regex( EXPORTING iv_repo = iv_repo
+    regex( EXPORTING iv_url = iv_url
            IMPORTING ev_host = rv_host ).
 
   ENDMETHOD.
   METHOD name.
 
-    regex( EXPORTING iv_repo = iv_repo
+    regex( EXPORTING iv_url = iv_url
            IMPORTING ev_name = rv_name ).
 
   ENDMETHOD.
@@ -15637,17 +15348,22 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
     DATA: lv_host TYPE string ##NEEDED.
 
-    FIND REGEX '(.*://[^/]*)(.*)' IN iv_repo
+    FIND REGEX '(.*://[^/]*)(.*)' IN iv_url
       SUBMATCHES lv_host rv_path_name.
 
   ENDMETHOD.
   METHOD regex.
 
-    FIND REGEX '(.*://[^/]*)(.*/)([^\.]*)[\.git]?' IN iv_repo
+    FIND REGEX '(.*://[^/]*)(.*/)([^\.]*)[\.git]?' IN iv_url
       SUBMATCHES ev_host ev_path ev_name.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Malformed URL' ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD validate.
+
+    regex( iv_url ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -16579,6 +16295,752 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     ENDDO.
 
   ENDMETHOD.                    "x_to_bitbyte
+ENDCLASS.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+  METHOD clone.
+
+    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo_online,
+          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
+    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
+    IF ls_popup-cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
+      iv_url         = ls_popup-url
+      iv_branch_name = ls_popup-branch_name
+      iv_package     = ls_popup-package ).
+
+    toggle_favorite( lo_repo->get_key( ) ).
+
+    lo_repo->initialize( ).
+    lo_repo->find_remote_dot_abapgit( ).
+    lo_repo->status( ). " check for errors
+
+    gui_deserialize( lo_repo ).
+
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
+
+    COMMIT WORK.
+
+  ENDMETHOD.  "clone
+  METHOD gui_deserialize.
+
+    DATA: ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
+
+    ls_checks = io_repo->deserialize_checks( ).
+
+    popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
+
+    io_repo->deserialize( ls_checks ).
+
+  ENDMETHOD.
+  METHOD new_offline.
+
+    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo,
+          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
+
+    ls_popup  = zcl_abapgit_popups=>repo_new_offline( ).
+    IF ls_popup-cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
+      iv_url     = ls_popup-url
+      iv_package = ls_popup-package ).
+
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
+    toggle_favorite( lo_repo->get_key( ) ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.  "new_offline
+  METHOD open_se80.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation       = 'SHOW'
+        in_new_window   = abap_true
+        object_name     = iv_package
+        object_type     = 'DEVC'
+        with_objectlist = abap_true.
+
+  ENDMETHOD.  " open_se80.
+  METHOD popup_overwrite.
+
+    DATA: lt_columns  TYPE stringtab,
+          lt_selected LIKE ct_overwrite,
+          lv_column   LIKE LINE OF lt_columns.
+
+    FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ct_overwrite.
+    IF lines( ct_overwrite ) = 0.
+      RETURN.
+    ENDIF.
+
+    lv_column = 'OBJ_TYPE'.
+    INSERT lv_column INTO TABLE lt_columns.
+    lv_column = 'OBJ_NAME'.
+    INSERT lv_column INTO TABLE lt_columns.
+
+    zcl_abapgit_popups=>popup_to_select_from_list(
+      EXPORTING
+        it_list               = ct_overwrite
+        i_header_text         = |The following Objects have been modified locally.|
+                            && | Select the Objects which should be overwritten.|
+        i_select_column_text  = 'Overwrite?'
+        it_columns_to_display = lt_columns
+      IMPORTING
+        et_list               = lt_selected ).
+* todo, it should be possible for the user to click cancel in the popup
+
+    LOOP AT ct_overwrite ASSIGNING <ls_overwrite>.
+      READ TABLE lt_selected WITH KEY
+        obj_type = <ls_overwrite>-obj_type
+        obj_name = <ls_overwrite>-obj_name
+        TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+        <ls_overwrite>-decision = 'Y'.
+      ELSE.
+        <ls_overwrite>-decision = 'N'.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD purge.
+
+    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lv_answer   TYPE c LENGTH 1,
+          lo_repo     TYPE REF TO zcl_abapgit_repo,
+          lv_package  TYPE devclass,
+          lv_question TYPE c LENGTH 100.
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
+    ENDIF.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
+    lv_package = lo_repo->get_package( ).
+    lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
+
+    IF lines( lt_tadir ) > 0.
+
+      lv_question = |This will DELETE all objects in package { lv_package
+        } ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
+
+      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+        titlebar              = 'Uninstall'
+        text_question         = lv_question
+        text_button_1         = 'Delete'
+        icon_button_1         = 'ICON_DELETE'
+        text_button_2         = 'Cancel'
+        icon_button_2         = 'ICON_CANCEL'
+        default_button        = '2'
+        display_cancel_button = abap_false ).               "#EC NOTEXT
+
+      IF lv_answer = '2'.
+        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+      ENDIF.
+
+      zcl_abapgit_objects=>delete( lt_tadir ).
+
+    ENDIF.
+
+    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.  "purge
+  METHOD refresh.
+
+    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
+
+  ENDMETHOD.  "refresh
+  METHOD refresh_local_checksums.
+
+    DATA: lv_answer   TYPE c,
+          lv_question TYPE string,
+          lo_repo     TYPE REF TO zcl_abapgit_repo.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    lv_question =  'This will rebuild and overwrite local repo checksums.'.
+
+    IF lo_repo->is_offline( ) = abap_false.
+      lv_question = lv_question
+                && ' The logic: if local and remote file differs then:'
+                && ' if remote branch is ahead then assume changes are remote,'
+                && ' else (branches are equal) assume changes are local.'
+                && ' This will lead to incorrect state for files changed on both sides.'
+                && ' Please make sure you don''t have ones like that.'.
+    ENDIF.
+
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      titlebar              = 'Warning'
+      text_question         = lv_question
+      text_button_1         = 'OK'
+      icon_button_1         = 'ICON_DELETE'
+      text_button_2         = 'Cancel'
+      icon_button_2         = 'ICON_CANCEL'
+      default_button        = '2'
+      display_cancel_button = abap_false ).                 "#EC NOTEXT
+
+    IF lv_answer = '2'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo->rebuild_local_checksums( ).
+
+  ENDMETHOD.  "refresh_local_checksums
+  METHOD remote_attach.
+
+    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
+
+    ls_popup = zcl_abapgit_popups=>repo_popup(
+      iv_title          = 'Attach repo to remote ...'
+      iv_url            = ''
+      iv_package        = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_package( )
+      iv_freeze_package = abap_true ).
+    IF ls_popup-cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type(
+      iv_key = iv_key
+      iv_offline = abap_false ).
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo->set_url( ls_popup-url ).
+    lo_repo->set_branch_name( ls_popup-branch_name ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.  "remote_attach
+  METHOD remote_change.
+
+    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    ls_popup = zcl_abapgit_popups=>repo_popup(
+      iv_title          = 'Change repo remote ...'
+      iv_url            = lo_repo->get_url( )
+      iv_package        = lo_repo->get_package( )
+      iv_freeze_package = abap_true ).
+    IF ls_popup-cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo->set_new_remote( iv_url         = ls_popup-url
+                             iv_branch_name = ls_popup-branch_name ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.
+  METHOD remote_detach.
+
+    DATA: lv_answer TYPE c LENGTH 1.
+
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      titlebar              = 'Make repository OFF-line'
+      text_question         = 'This will detach the repo from remote and make it OFF-line'
+      text_button_1         = 'Make OFF-line'
+      icon_button_1         = 'ICON_WF_UNLINK'
+      text_button_2         = 'Cancel'
+      icon_button_2         = 'ICON_CANCEL'
+      default_button        = '2'
+      display_cancel_button = abap_false ).                 "#EC NOTEXT
+
+    IF lv_answer = '2'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.
+  METHOD remove.
+
+    DATA: lv_answer   TYPE c LENGTH 1,
+          lo_repo     TYPE REF TO zcl_abapgit_repo,
+          lv_package  TYPE devclass,
+          lv_question TYPE c LENGTH 200.
+    lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lv_package  = lo_repo->get_package( ).
+    lv_question = |This will remove the repository reference to the package { lv_package
+      }. All objects will safely remain in the system.|.
+
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      titlebar              = 'Remove'
+      text_question         = lv_question
+      text_button_1         = 'Remove'
+      icon_button_1         = 'ICON_WF_UNLINK'
+      text_button_2         = 'Cancel'
+      icon_button_2         = 'ICON_CANCEL'
+      default_button        = '2'
+      display_cancel_button = abap_false ).                 "#EC NOTEXT
+
+    IF lv_answer = '2'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.
+  METHOD toggle_favorite.
+
+    zcl_abapgit_persistence_user=>get_instance( )->toggle_favorite( iv_key ).
+
+  ENDMETHOD.
+  METHOD transport_to_branch.
+
+    DATA:
+      lo_repository          TYPE REF TO zcl_abapgit_repo_online,
+      lo_transport_to_branch TYPE REF TO zcl_abapgit_transport_2_branch,
+      lt_transport_headers   TYPE trwbo_request_headers,
+      lt_transport_objects   TYPE scts_tadir,
+      ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
+    lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
+
+    lt_transport_headers = zcl_abapgit_popups=>popup_to_select_transports( ).
+    lt_transport_objects = zcl_abapgit_transport=>to_tadir( lt_transport_headers ).
+    IF lt_transport_objects IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
+    ENDIF.
+
+    ls_transport_to_branch = zcl_abapgit_popups=>popup_to_create_transp_branch(
+      lt_transport_headers ).
+
+    CREATE OBJECT lo_transport_to_branch.
+    lo_transport_to_branch->create(
+      io_repository          = lo_repository
+      is_transport_to_branch = ls_transport_to_branch
+      it_transport_objects   = lt_transport_objects ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
+  METHOD commit.
+
+    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
+          lo_user    TYPE REF TO zcl_abapgit_persistence_user.
+
+    lo_user = zcl_abapgit_persistence_user=>get_instance( ).
+    lo_user->set_repo_git_user_name( iv_url      = io_repo->get_url( )
+                                     iv_username = is_commit-committer_name ).
+    lo_user->set_repo_git_user_email( iv_url     = io_repo->get_url( )
+                                      iv_email   = is_commit-committer_email ).
+
+    IF is_commit-committer_name IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Commit: Committer name empty' ).
+    ELSEIF is_commit-committer_email IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Commit: Committer email empty' ).
+    ELSEIF is_commit-author_email IS NOT INITIAL AND is_commit-author_name IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Commit: Author email empty' ). " Opposite should be OK ?
+    ELSEIF is_commit-comment IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Commit: empty comment' ).
+    ENDIF.
+
+    ls_comment-committer-name  = is_commit-committer_name.
+    ls_comment-committer-email = is_commit-committer_email.
+    ls_comment-author-name     = is_commit-author_name.
+    ls_comment-author-email    = is_commit-author_email.
+    ls_comment-comment         = is_commit-comment.
+
+    IF NOT is_commit-body IS INITIAL.
+      CONCATENATE ls_comment-comment '' is_commit-body
+        INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>gc_newline.
+    ENDIF.
+
+    io_repo->push( is_comment = ls_comment
+                   io_stage   = io_stage ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.  "commit
+  METHOD create_branch.
+
+    DATA: lv_name   TYPE string,
+          lv_cancel TYPE abap_bool,
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    zcl_abapgit_popups=>create_branch_popup(
+      IMPORTING
+        ev_name   = lv_name
+        ev_cancel = lv_cancel ).
+    IF lv_cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    ASSERT lv_name CP 'refs/heads/+*'.
+
+    zcl_abapgit_git_porcelain=>create_branch(
+      io_repo = lo_repo
+      iv_name = lv_name
+      iv_from = lo_repo->get_sha1_local( ) ).
+
+    " automatically switch to new branch
+    lo_repo->set_branch_name( lv_name ).
+
+    MESSAGE 'Switched to new branch' TYPE 'S' ##NO_TEXT.
+
+  ENDMETHOD.
+  METHOD create_tag.
+
+    " Here we create a 'lightweight' tag. Which means that
+    " the tag only contains the commit checksum but no meta data
+    "
+    " Later we probably want to add also 'annotated' tags.
+    " Which include more detailed information besides the commit. Like message, date and the tagger
+    "
+    " https://git-scm.com/book/en/v2/Git-Basics-Tagging
+
+    DATA: lv_name   TYPE string,
+          lv_cancel TYPE abap_bool,
+          lx_error  TYPE REF TO zcx_abapgit_exception,
+          lv_text   TYPE string,
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    zcl_abapgit_popups=>create_tag_popup(
+      EXPORTING
+        iv_sha1   = lo_repo->get_sha1_local( )
+      IMPORTING
+        ev_name   = lv_name
+        ev_sha1   = lv_sha1
+        ev_cancel = lv_cancel ).
+
+    IF lv_cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    ASSERT lv_name CP 'refs/tags/+*'.
+
+    TRY.
+        zcl_abapgit_git_porcelain=>create_tag( io_repo = lo_repo
+                                       iv_name = lv_name
+                                       iv_from = lv_sha1 ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( |Cannot create tag { lv_name }. Error: '{ lx_error->get_text( ) }'| ).
+    ENDTRY.
+
+    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( lv_name ) } created| ##NO_TEXT.
+
+    MESSAGE lv_text TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD delete_branch.
+
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    ls_branch = zcl_abapgit_popups=>branch_list_popup( lo_repo->get_url( ) ).
+    IF ls_branch IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    IF ls_branch-name = 'HEAD'.
+      zcx_abapgit_exception=>raise( 'Cannot delete HEAD' ).
+    ELSEIF ls_branch-name = lo_repo->get_branch_name( ).
+      zcx_abapgit_exception=>raise( 'Switch branch before deleting current' ).
+    ENDIF.
+
+    zcl_abapgit_git_porcelain=>delete_branch(
+      io_repo   = lo_repo
+      is_branch = ls_branch ).
+
+    MESSAGE 'Branch deleted' TYPE 'S'.
+
+  ENDMETHOD.  "delete_branch
+  METHOD delete_tag.
+
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch,
+          lv_text TYPE string.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    IF ls_tag IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    zcl_abapgit_git_porcelain=>delete_tag(
+      io_repo = lo_repo
+      is_tag  = ls_tag ).
+
+    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
+
+    MESSAGE lv_text TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD pull.
+
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    lo_repo->refresh( ).
+
+    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.                    "pull
+  METHOD reset.
+
+    DATA: lo_repo                   TYPE REF TO zcl_abapgit_repo_online,
+          lv_answer                 TYPE c LENGTH 1,
+          lt_unnecessary_local_objs TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_selected               LIKE lt_unnecessary_local_objs,
+          lt_columns                TYPE stringtab.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      titlebar              = 'Warning'
+      text_question         = 'Reset local objects?'
+      text_button_1         = 'Ok'
+      icon_button_1         = 'ICON_OKAY'
+      text_button_2         = 'Cancel'
+      icon_button_2         = 'ICON_CANCEL'
+      default_button        = '2'
+      display_cancel_button = abap_false ).                 "#EC NOTEXT
+
+    IF lv_answer = '2'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lt_unnecessary_local_objs = lo_repo->get_unnecessary_local_objs( ).
+
+    IF lines( lt_unnecessary_local_objs ) > 0.
+
+      INSERT `OBJECT` INTO TABLE lt_columns.
+      INSERT `OBJ_NAME` INTO TABLE lt_columns.
+
+      zcl_abapgit_popups=>popup_to_select_from_list(
+        EXPORTING
+          it_list              = lt_unnecessary_local_objs
+          i_header_text        = |Which unnecessary objects should be deleted?|
+          i_select_column_text = 'Delete?'
+          it_columns_to_display = lt_columns
+        IMPORTING
+          et_list              = lt_selected ).
+
+      IF lines( lt_selected ) > 0.
+        zcl_abapgit_objects=>delete( lt_selected ).
+      ENDIF.
+
+    ENDIF.
+
+    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+
+  ENDMETHOD.
+  METHOD switch_branch.
+
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    ls_branch = zcl_abapgit_popups=>branch_list_popup(
+      iv_url             = lo_repo->get_url( )
+      iv_default_branch  = lo_repo->get_branch_name( )
+      iv_show_new_option = abap_true ).
+    IF ls_branch IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    IF ls_branch-name = zcl_abapgit_popups=>c_new_branch_label.
+      create_branch( iv_key ).
+      RETURN.
+    ENDIF.
+
+    lo_repo->set_branch_name( ls_branch-name ).
+
+    COMMIT WORK.
+
+    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+
+  ENDMETHOD.
+  METHOD switch_tag.
+
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    IF ls_tag IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_repo->set_branch_name( ls_tag-name ).
+
+    COMMIT WORK.
+
+    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+
+  ENDMETHOD.
+  METHOD tag_overview.
+
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    zcl_abapgit_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
+                                iv_select_mode = abap_false ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
+  METHOD do_install.
+
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          lv_answer TYPE c LENGTH 1.
+    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      titlebar              = iv_title
+      text_question         = iv_text
+      text_button_1         = 'Continue'
+      text_button_2         = 'Cancel'
+      default_button        = '2'
+      display_cancel_button = abap_false ).                 "#EC NOTEXT
+
+    IF lv_answer <> '1'.
+      RETURN.
+    ENDIF.
+
+    IF abap_false = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed(
+        iv_url              = iv_url
+        iv_target_package   = iv_package ).
+
+      zcl_abapgit_sap_package=>create_local( iv_package ).
+
+      lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
+        iv_url         = iv_url
+        iv_branch_name = 'refs/heads/master'
+        iv_package     = iv_package ) ##NO_TEXT.
+
+      lo_repo->initialize( ).
+      lo_repo->find_remote_dot_abapgit( ).
+      lo_repo->status( ). " check for errors
+
+      zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+
+      zcl_abapgit_services_repo=>toggle_favorite( lo_repo->get_key( ) ).
+    ENDIF.
+
+    COMMIT WORK.
+
+  ENDMETHOD.  " do_install.
+  METHOD install_abapgit.
+
+    CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit'.
+    DATA lv_text       TYPE c LENGTH 100.
+
+    IF is_installed( ) = abap_true.
+      lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
+      zcl_abapgit_popups=>popup_to_inform(
+        titlebar              = lc_title
+        text_message          = lv_text ).
+      RETURN.
+    ENDIF.
+
+    lv_text = |Confirm to install current version of abapGit to package { c_package_abapgit }|.
+
+    do_install( iv_title   = lc_title
+                iv_text    = lv_text
+                iv_url     = c_abapgit_url
+                iv_package = c_package_abapgit ).
+
+  ENDMETHOD.  "install_abapgit
+  METHOD install_abapgit_pi.
+
+    CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit plugins'.
+    DATA lv_text       TYPE c LENGTH 100.
+
+    IF is_installed_pi( ) = abap_true.
+      lv_text = 'Seems like abapGit plugins package is already installed. No changes to be done'.
+      zcl_abapgit_popups=>popup_to_inform(
+        titlebar              = lc_title
+        text_message          = lv_text ).
+      RETURN.
+    ENDIF.
+
+    lv_text = |Confirm to install current version abapGit plugins to package {
+               c_package_plugins }|.
+
+    do_install( iv_title   = lc_title
+                iv_text    = lv_text
+                iv_url     = c_plugins_url
+                iv_package = c_package_plugins ).
+
+  ENDMETHOD.  "install_abapgit_pi
+  METHOD is_installed.
+
+    TRY.
+        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
+        " TODO, alternative checks for presence in the system
+      CATCH zcx_abapgit_exception.
+        " cannot be installed anyway in this case, e.g. no connection
+        rv_installed = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.                    "is_installed
+  METHOD is_installed_pi.
+
+    TRY.
+        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
+        " TODO, alternative checks for presence in the system
+      CATCH zcx_abapgit_exception.
+        " cannot be installed anyway in this case, e.g. no connection
+        rv_installed = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.                    "is_installed_pi
+  METHOD open_abapgit_homepage.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING document = c_abapgit_homepage
+      EXCEPTIONS OTHERS = 1 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
+    ENDIF.
+
+  ENDMETHOD.  "open_abapgit_homepage
+  METHOD open_abapgit_wikipage.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING document = c_abapgit_wikipage
+      EXCEPTIONS OTHERS = 1 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
+    ENDIF.
+
+  ENDMETHOD.  "open_abapgit_wikipage
 ENDCLASS.
 CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
@@ -17560,14 +18022,14 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       lv_finished = abap_true.
 
       TRY.
-          zcl_abapgit_url=>name( |{ lv_url }| ).
+          zcl_abapgit_url=>validate( |{ lv_url }| ).
           IF iv_freeze_package = abap_false.
             zcl_abapgit_repo_srv=>get_instance( )->validate_package( lv_package ).
           ENDIF.
         CATCH zcx_abapgit_exception INTO lx_error.
           MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
           " in case of validation errors we display the popup again
-          CLEAR: lv_finished.
+          CLEAR lv_finished.
       ENDTRY.
 
     ENDWHILE.
@@ -21937,6 +22399,23 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD update_task.
+
+    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_background.
+
+    CREATE OBJECT lo_persistence.
+
+    IF is_bg_task-method = zcl_abapgit_persist_background=>c_method-nothing.
+      lo_persistence->delete( is_bg_task-key ).
+    ELSE.
+      lo_persistence->modify( is_bg_task ).
+    ENDIF.
+
+    MESSAGE 'Saved' TYPE 'S' ##NO_TEXT.
+
+    COMMIT WORK.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA ls_bg_task TYPE zcl_abapgit_persist_background=>ty_background.
@@ -21945,7 +22424,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-bg_update.
         ls_bg_task     = zcl_abapgit_html_action_utils=>decode_bg_update( iv_getdata ).
         ls_bg_task-key = mv_key.
-        zcl_abapgit_services_bkg=>update_task( ls_bg_task ).
+        update_task( ls_bg_task ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
     ENDCASE.
 
@@ -45991,291 +46470,6 @@ CLASS zcl_abapgit_tag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
-  METHOD commit.
-
-    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
-          lo_user    TYPE REF TO zcl_abapgit_persistence_user.
-
-    lo_user = zcl_abapgit_persistence_user=>get_instance( ).
-    lo_user->set_repo_git_user_name( iv_url      = io_repo->get_url( )
-                                     iv_username = is_commit-committer_name ).
-    lo_user->set_repo_git_user_email( iv_url     = io_repo->get_url( )
-                                      iv_email   = is_commit-committer_email ).
-
-    IF is_commit-committer_name IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Commit: Committer name empty' ).
-    ELSEIF is_commit-committer_email IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Commit: Committer email empty' ).
-    ELSEIF is_commit-author_email IS NOT INITIAL AND is_commit-author_name IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Commit: Author email empty' ). " Opposite should be OK ?
-    ELSEIF is_commit-comment IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Commit: empty comment' ).
-    ENDIF.
-
-    ls_comment-committer-name  = is_commit-committer_name.
-    ls_comment-committer-email = is_commit-committer_email.
-    ls_comment-author-name     = is_commit-author_name.
-    ls_comment-author-email    = is_commit-author_email.
-    ls_comment-comment         = is_commit-comment.
-
-    IF NOT is_commit-body IS INITIAL.
-      CONCATENATE ls_comment-comment '' is_commit-body
-        INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>gc_newline.
-    ENDIF.
-
-    io_repo->push( is_comment = ls_comment
-                   io_stage   = io_stage ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "commit
-  METHOD create_branch.
-
-    DATA: lv_name   TYPE string,
-          lv_cancel TYPE abap_bool,
-          lo_repo   TYPE REF TO zcl_abapgit_repo_online.
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    zcl_abapgit_popups=>create_branch_popup(
-      IMPORTING
-        ev_name   = lv_name
-        ev_cancel = lv_cancel ).
-    IF lv_cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    ASSERT lv_name CP 'refs/heads/+*'.
-
-    zcl_abapgit_git_porcelain=>create_branch(
-      io_repo = lo_repo
-      iv_name = lv_name
-      iv_from = lo_repo->get_sha1_local( ) ).
-
-    " automatically switch to new branch
-    lo_repo->set_branch_name( lv_name ).
-
-    MESSAGE 'Switched to new branch' TYPE 'S' ##NO_TEXT.
-
-  ENDMETHOD.
-  METHOD create_tag.
-
-    " Here we create a 'lightweight' tag. Which means that
-    " the tag only contains the commit checksum but no meta data
-    "
-    " Later we probably want to add also 'annotated' tags.
-    " Which include more detailed information besides the commit. Like message, date and the tagger
-    "
-    " https://git-scm.com/book/en/v2/Git-Basics-Tagging
-
-    DATA: lv_name   TYPE string,
-          lv_cancel TYPE abap_bool,
-          lx_error  TYPE REF TO zcx_abapgit_exception,
-          lv_text   TYPE string,
-          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    zcl_abapgit_popups=>create_tag_popup(
-      EXPORTING
-        iv_sha1   = lo_repo->get_sha1_local( )
-      IMPORTING
-        ev_name   = lv_name
-        ev_sha1   = lv_sha1
-        ev_cancel = lv_cancel ).
-
-    IF lv_cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    ASSERT lv_name CP 'refs/tags/+*'.
-
-    TRY.
-        zcl_abapgit_git_porcelain=>create_tag( io_repo = lo_repo
-                                       iv_name = lv_name
-                                       iv_from = lv_sha1 ).
-
-      CATCH zcx_abapgit_exception INTO lx_error.
-        zcx_abapgit_exception=>raise( |Cannot create tag { lv_name }. Error: '{ lx_error->get_text( ) }'| ).
-    ENDTRY.
-
-    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( lv_name ) } created| ##NO_TEXT.
-
-    MESSAGE lv_text TYPE 'S'.
-
-  ENDMETHOD.
-  METHOD delete_branch.
-
-    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_branch = zcl_abapgit_popups=>branch_list_popup( lo_repo->get_url( ) ).
-    IF ls_branch IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    IF ls_branch-name = 'HEAD'.
-      zcx_abapgit_exception=>raise( 'Cannot delete HEAD' ).
-    ELSEIF ls_branch-name = lo_repo->get_branch_name( ).
-      zcx_abapgit_exception=>raise( 'Switch branch before deleting current' ).
-    ENDIF.
-
-    zcl_abapgit_git_porcelain=>delete_branch(
-      io_repo   = lo_repo
-      is_branch = ls_branch ).
-
-    MESSAGE 'Branch deleted' TYPE 'S'.
-
-  ENDMETHOD.  "delete_branch
-  METHOD delete_tag.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch,
-          lv_text TYPE string.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
-    IF ls_tag IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_git_porcelain=>delete_tag(
-      io_repo = lo_repo
-      is_tag  = ls_tag ).
-
-    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
-
-    MESSAGE lv_text TYPE 'S'.
-
-  ENDMETHOD.
-  METHOD pull.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot pull. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    lo_repo->refresh( ).
-    lo_repo->deserialize( ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.                    "pull
-  METHOD reset.
-
-    DATA: lo_repo                   TYPE REF TO zcl_abapgit_repo_online,
-          lv_answer                 TYPE c LENGTH 1,
-          lt_unnecessary_local_objs TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_selected               LIKE lt_unnecessary_local_objs,
-          lt_columns                TYPE stringtab.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-      titlebar              = 'Warning'
-      text_question         = 'Reset local objects?'
-      text_button_1         = 'Ok'
-      icon_button_1         = 'ICON_OKAY'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
-
-    IF lv_answer = '2'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lt_unnecessary_local_objs = lo_repo->get_unnecessary_local_objs( ).
-
-    IF lines( lt_unnecessary_local_objs ) > 0.
-
-      INSERT `OBJECT` INTO TABLE lt_columns.
-      INSERT `OBJ_NAME` INTO TABLE lt_columns.
-
-      zcl_abapgit_popups=>popup_to_select_from_list(
-        EXPORTING
-          it_list              = lt_unnecessary_local_objs
-          i_header_text        = |Which unnecessary objects should be deleted?|
-          i_select_column_text = 'Delete?'
-          it_columns_to_display = lt_columns
-        IMPORTING
-          et_list              = lt_selected ).
-
-      IF lines( lt_selected ) > 0.
-        zcl_abapgit_objects=>delete( lt_selected ).
-      ENDIF.
-
-    ENDIF.
-
-    lo_repo->deserialize( ).
-
-  ENDMETHOD.
-  METHOD switch_branch.
-
-    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_branch = zcl_abapgit_popups=>branch_list_popup(
-      iv_url             = lo_repo->get_url( )
-      iv_default_branch  = lo_repo->get_branch_name( )
-      iv_show_new_option = abap_true ).
-    IF ls_branch IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    IF ls_branch-name = zcl_abapgit_popups=>c_new_branch_label.
-      create_branch( iv_key ).
-      RETURN.
-    ENDIF.
-
-    lo_repo->set_branch_name( ls_branch-name ).
-
-    COMMIT WORK.
-
-    lo_repo->deserialize( ).
-
-  ENDMETHOD.  "switch_branch
-  METHOD switch_tag.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
-    IF ls_tag IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo->set_branch_name( ls_tag-name ).
-
-    COMMIT WORK.
-
-    lo_repo->deserialize( ).
-
-  ENDMETHOD.
-  METHOD tag_overview.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    zcl_abapgit_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
-                                iv_select_mode = abap_false ).
-
-  ENDMETHOD.
-ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
@@ -49693,5 +49887,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-29T07:09:53.415Z
+* abapmerge - 2018-03-29T12:32:49.005Z
 ****************************************************
