@@ -6941,7 +6941,7 @@ CLASS zcl_abapgit_xml_input DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_xml_output DEFINITION
   INHERITING FROM zcl_abapgit_xml
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -49693,5 +49693,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-28T06:10:03.159Z
+* abapmerge - 2018-03-29T07:09:53.415Z
 ****************************************************
