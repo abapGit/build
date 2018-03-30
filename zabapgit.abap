@@ -8257,6 +8257,11 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
+    METHODS purge
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 
     CLASS-DATA go_ref TYPE REF TO zcl_abapgit_repo_srv .
@@ -10988,6 +10993,22 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     add( ro_repo ).
 
   ENDMETHOD.                    "new_online
+  METHOD purge.
+
+    DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    IF io_repo->get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
+    ELSEIF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
+    lt_tadir = zcl_abapgit_tadir=>read( io_repo->get_package( ) ).
+
+    zcl_abapgit_objects=>delete( lt_tadir ).
+
+    delete( io_repo ).
+
+  ENDMETHOD.
   METHOD refresh.
 
     DATA: lt_list    TYPE zif_abapgit_persistence=>tt_repo,
@@ -16527,13 +16548,6 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
           lv_question TYPE c LENGTH 100.
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
-    ENDIF.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
-      zcx_abapgit_exception=>raise( 'Not authorized' ).
-    ENDIF.
-
     lv_package = lo_repo->get_package( ).
     lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
 
@@ -16556,15 +16570,13 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         RAISE EXCEPTION TYPE zcx_abapgit_cancel.
       ENDIF.
 
-      zcl_abapgit_objects=>delete( lt_tadir ).
-
     ENDIF.
 
-    zcl_abapgit_repo_srv=>get_instance( )->delete( lo_repo ).
+    zcl_abapgit_repo_srv=>get_instance( )->purge( lo_repo ).
 
     COMMIT WORK.
 
-  ENDMETHOD.  "purge
+  ENDMETHOD.
   METHOD refresh.
 
     zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
@@ -25797,7 +25809,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD list_by_type.
     SELECT * FROM (c_tabname)
       INTO TABLE rt_content
-      WHERE type = iv_type.                               "#EC CI_SUBRC
+      WHERE type = iv_type
+      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
   ENDMETHOD.
   METHOD lock.
 
@@ -28816,12 +28829,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_old.
 
+    DATA: lv_popup TYPE abap_bool.
+
     IF gt_objects IS NOT INITIAL.
+
+      CALL FUNCTION 'GUI_IS_AVAILABLE'
+        IMPORTING
+          return = lv_popup.
 
       CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
         EXPORTING
           activate_ddic_objects  = iv_ddic
-          with_popup             = abap_true
+          with_popup             = lv_popup
         TABLES
           objects                = gt_objects
         EXCEPTIONS
@@ -49999,5 +50018,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-30T05:00:54.607Z
+* abapmerge - 2018-03-30T10:30:07.097Z
 ****************************************************
