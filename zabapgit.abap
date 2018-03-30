@@ -794,7 +794,8 @@ INTERFACE zif_abapgit_definitions.
   TYPES: ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_deserialize_checks,
-           overwrite TYPE ty_overwrite_tt,
+           overwrite       TYPE ty_overwrite_tt,
+           warning_package TYPE ty_overwrite_tt,
          END OF ty_deserialize_checks.
 
   TYPES:
@@ -6678,6 +6679,12 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS popup_package_overwrite
+      CHANGING
+        !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -7828,6 +7835,14 @@ CLASS zcl_abapgit_objects DEFINITION
         !ct_results   TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS checks_adjust
+      IMPORTING
+        !io_repo    TYPE REF TO zcl_abapgit_repo
+        !is_checks  TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      CHANGING
+        !ct_results TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS warning_overwrite_find
       IMPORTING
         !it_results         TYPE zif_abapgit_definitions=>ty_results_tt
@@ -7835,12 +7850,20 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS warning_package
+    CLASS-METHODS warning_package_adjust
       IMPORTING
-        !is_item         TYPE zif_abapgit_definitions=>ty_item
-        !iv_package      TYPE devclass
+        !io_repo      TYPE REF TO zcl_abapgit_repo
+        !it_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
+      CHANGING
+        !ct_results   TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS warning_package_find
+      IMPORTING
+        !it_results         TYPE zif_abapgit_definitions=>ty_results_tt
+        !io_repo            TYPE REF TO zcl_abapgit_repo
       RETURNING
-        VALUE(rv_cancel) TYPE abap_bool
+        VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS update_package_tree
@@ -7960,7 +7983,6 @@ CLASS zcl_abapgit_repo DEFINITION
         !iv_drop_cache TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
-    METHODS refresh_local .
     METHODS update_local_checksums
       IMPORTING
         !it_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
@@ -11602,9 +11624,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
     ENDIF.
 
-* todo
-
     rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
+
+* todo
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -11805,9 +11827,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "refresh
-  METHOD refresh_local. " For testing purposes, maybe removed later
-    mv_do_local_refresh = abap_true.
-  ENDMETHOD.  "refresh_local
   METHOD set.
 
 * TODO: refactor
@@ -12130,6 +12149,20 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 * todo, fallback to looking at transports if rv_user = 'UNKNOWN'?
 
   ENDMETHOD.
+  METHOD checks_adjust.
+
+    warning_overwrite_adjust(
+      EXPORTING it_overwrite = is_checks-overwrite
+      CHANGING ct_results = ct_results ).
+
+    warning_package_adjust(
+      EXPORTING
+        io_repo = io_repo
+        it_overwrite = is_checks-warning_package
+      CHANGING
+        ct_results = ct_results ).
+
+  ENDMETHOD.
   METHOD check_duplicates.
 
     DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
@@ -12316,35 +12349,29 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     lt_results = files_to_deserialize( io_repo ).
 
-    warning_overwrite_adjust(
-      EXPORTING it_overwrite = is_checks-overwrite
-      CHANGING ct_results = lt_results ).
+    checks_adjust(
+      EXPORTING
+        io_repo    = io_repo
+        is_checks  = is_checks
+      CHANGING
+        ct_results = lt_results ).
 
     CREATE OBJECT lo_progress
       EXPORTING
         iv_total = lines( lt_results ).
 
-    LOOP AT lt_results ASSIGNING <ls_result> WHERE obj_type IS NOT INITIAL
-        AND NOT ( lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL ).
+    LOOP AT lt_results ASSIGNING <ls_result>.
       lo_progress->show( iv_current = sy-tabix
                          iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
 
       CLEAR ls_item.
       ls_item-obj_type = <ls_result>-obj_type.
       ls_item-obj_name = <ls_result>-obj_name.
-* handle namespaces
-      REPLACE ALL OCCURRENCES OF '#' IN ls_item-obj_name WITH '/'.
 
       lv_package = zcl_abapgit_folder_logic=>path_to_package(
         iv_top  = io_repo->get_package( )
         io_dot  = io_repo->get_dot_abapgit( )
         iv_path = <ls_result>-path ).
-
-      lv_cancel = warning_package( is_item    = ls_item
-                                   iv_package = lv_package ).
-      IF lv_cancel = abap_true.
-        zcx_abapgit_exception=>raise( 'cancelled' ).
-      ENDIF.
 
       IF ls_item-obj_type = 'DEVC'.
         " Packages have the same filename across different folders. The path needs to be supplied
@@ -12415,6 +12442,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     rs_checks-overwrite = warning_overwrite_find( lt_results ).
 
+    rs_checks-warning_package = warning_package_find(
+      io_repo    = io_repo
+      it_results = lt_results ).
+
   ENDMETHOD.
   METHOD deserialize_objects.
 
@@ -12455,12 +12486,21 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.                    "exists
   METHOD files_to_deserialize.
 
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
     rt_results = zcl_abapgit_file_status=>status( io_repo ).
     DELETE rt_results WHERE match = abap_true.     " Full match
     SORT rt_results BY obj_type ASCENDING obj_name ASCENDING.
     DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
 
+    DELETE rt_results WHERE obj_type IS INITIAL.
+    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL.
+
     rt_results = prioritize_deser( rt_results ).
+
+    LOOP AT rt_results ASSIGNING <ls_result>.
+* handle namespaces
+      REPLACE ALL OCCURRENCES OF '#' IN <ls_result>-obj_name WITH '/'.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD has_changed_since.
@@ -12670,37 +12710,66 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD warning_package.
+  METHOD warning_package_adjust.
 
-    DATA: lv_question TYPE c LENGTH 200,
-          lv_answer   TYPE c,
-          ls_tadir    TYPE tadir.
-    ls_tadir = zcl_abapgit_tadir=>read_single(
-      iv_object   = is_item-obj_type
-      iv_obj_name = is_item-obj_name ).
+    DATA: lt_overwrite LIKE it_overwrite,
+          ls_overwrite LIKE LINE OF lt_overwrite.
 
-    IF NOT ls_tadir IS INITIAL AND ls_tadir-devclass <> iv_package.
-      CONCATENATE 'Overwrite object' is_item-obj_type is_item-obj_name
-        'from package' ls_tadir-devclass
-        INTO lv_question SEPARATED BY space.                "#EC NOTEXT
+    FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF lt_overwrite.
+* make sure to get the current status, as something might have changed in the meanwhile
+    lt_overwrite = warning_package_find(
+      it_results   = ct_results
+      io_repo      = io_repo ).
 
-      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
-        titlebar              = 'Warning'
-        text_question         = lv_question
-        text_button_1         = 'Ok'
-        icon_button_1         = 'ICON_DELETE'
-        text_button_2         = 'Cancel'
-        icon_button_2         = 'ICON_CANCEL'
-        default_button        = '2'
-        display_cancel_button = abap_false ).               "#EC NOTEXT
-
-      IF lv_answer = '2'.
-        rv_cancel = abap_true.
+    LOOP AT lt_overwrite ASSIGNING <ls_overwrite>.
+      READ TABLE it_overwrite INTO ls_overwrite WITH KEY
+        obj_type = <ls_overwrite>-obj_type
+        obj_name = <ls_overwrite>-obj_name.
+      IF sy-subrc <> 0 OR ls_overwrite-decision IS INITIAL.
+        zcx_abapgit_exception=>raise( |Overwrite odd package { <ls_overwrite>-obj_type } {
+          <ls_overwrite>-obj_name } undecided| ).
       ENDIF.
 
-    ENDIF.
+      IF ls_overwrite-decision = 'N'.
+        DELETE ct_results WHERE
+          obj_type = <ls_overwrite>-obj_type AND
+          obj_name = <ls_overwrite>-obj_name.
+        ASSERT sy-subrc = 0.
+      ENDIF.
 
-  ENDMETHOD.                    "check_warning
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD warning_package_find.
+
+    DATA: lv_package   TYPE devclass,
+          ls_overwrite LIKE LINE OF rt_overwrite,
+          ls_tadir     TYPE tadir.
+
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
+    LOOP AT it_results ASSIGNING <ls_result>.
+
+      lv_package = zcl_abapgit_folder_logic=>path_to_package(
+        iv_top  = io_repo->get_package( )
+        io_dot  = io_repo->get_dot_abapgit( )
+        iv_path = <ls_result>-path ).
+
+      ls_tadir = zcl_abapgit_tadir=>read_single(
+        iv_object   = <ls_result>-obj_type
+        iv_obj_name = <ls_result>-obj_name ).
+
+      IF NOT ls_tadir IS INITIAL AND ls_tadir-devclass <> lv_package.
+* overwriting object from different package than expected
+        CLEAR ls_overwrite.
+        ls_overwrite-obj_type = <ls_result>-obj_type.
+        ls_overwrite-obj_name = <ls_result>-obj_name.
+        ls_overwrite-devclass = ls_tadir-devclass.
+        APPEND ls_overwrite TO rt_overwrite.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
@@ -16328,10 +16397,18 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     DATA: ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
 
+* find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
-    popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
+* and let the user decide what to do
+    TRY.
+        popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
+        popup_package_overwrite( CHANGING ct_overwrite = ls_checks-warning_package ).
+      CATCH zcx_abapgit_cancel.
+        RETURN.
+    ENDTRY.
 
+* and pass decisions to deserialize
     io_repo->deserialize( ls_checks ).
 
   ENDMETHOD.
@@ -16403,6 +16480,41 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       ELSE.
         <ls_overwrite>-decision = 'N'.
       ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD popup_package_overwrite.
+
+    DATA: lv_question TYPE c LENGTH 200,
+          lv_answer   TYPE c.
+
+    FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ct_overwrite.
+    IF lines( ct_overwrite ) = 0.
+      RETURN.
+    ENDIF.
+
+    LOOP AT ct_overwrite ASSIGNING <ls_overwrite>.
+      CONCATENATE 'Overwrite object' <ls_overwrite>-obj_type <ls_overwrite>-obj_name
+        'from package' <ls_overwrite>-devclass
+        INTO lv_question SEPARATED BY space.                "#EC NOTEXT
+
+      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+        titlebar              = 'Warning'
+        text_question         = lv_question
+        text_button_1         = 'Ok'
+        icon_button_1         = 'ICON_DELETE'
+        text_button_2         = 'Cancel'
+        icon_button_2         = 'ICON_CANCEL'
+        default_button        = '2'
+        display_cancel_button = abap_false ).               "#EC NOTEXT
+
+      IF lv_answer = '2'.
+        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+      ENDIF.
+
+* todo, let the user decide yes/no/cancel
+      <ls_overwrite>-decision = 'Y'.
+
     ENDLOOP.
 
   ENDMETHOD.
@@ -49887,5 +49999,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-03-29T12:32:49.005Z
+* abapmerge - 2018-03-30T05:00:54.607Z
 ****************************************************
