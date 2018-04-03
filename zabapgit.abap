@@ -42533,7 +42533,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "zcl_abapgit_object_enho IMPLEMENTATION
-CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_ECTD IMPLEMENTATION.
   METHOD clear_attributes.
 
     DATA: lo_element TYPE REF TO if_ixml_element.
@@ -42610,7 +42610,8 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
 
     lv_xml = cl_ixml_80_20=>render_to_xstring( li_document ).
 
-    lo_upload->set_stream_for_upload( lv_xml ).
+*    lo_upload->set_stream_for_upload( lv_xml ).
+    zcx_abapgit_exception=>raise( 'ECTD temporarily disabled' ).
 
     ls_object-d_obj_name  = mv_object_name.
     ls_object-s_obj_type  = ms_item-obj_type.
@@ -50610,5 +50611,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-03T14:29:49.987Z
+* abapmerge - 2018-04-03T14:39:26.389Z
 ****************************************************
