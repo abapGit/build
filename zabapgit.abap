@@ -794,9 +794,15 @@ INTERFACE zif_abapgit_definitions.
 
   TYPES: ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY.
 
+  TYPES: BEGIN OF ty_requirements,
+           met      TYPE ty_yes_no,
+           decision TYPE ty_yes_no,
+         END OF ty_requirements.
+
   TYPES: BEGIN OF ty_deserialize_checks,
            overwrite       TYPE ty_overwrite_tt,
            warning_package TYPE ty_overwrite_tt,
+           requirements    TYPE ty_requirements,
          END OF ty_deserialize_checks.
 
   TYPES:
@@ -7114,17 +7120,16 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
     TYPES:
       ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
 
-    CLASS-METHODS check_requirements
+    CLASS-METHODS requirements_popup
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-        !iv_show_popup   TYPE abap_bool DEFAULT abap_true
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS get_requirement_met_status
+    CLASS-METHODS is_requirements_met
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
       RETURNING
-        VALUE(rt_status) TYPE ty_requirement_status_tt
+        VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -7132,6 +7137,13 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
     CLASS-METHODS show_requirement_popup
       IMPORTING
         !it_requirements TYPE ty_requirement_status_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_requirement_met_status
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+      RETURNING
+        VALUE(rt_status) TYPE ty_requirement_status_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS version_greater_or_equal
@@ -11756,16 +11768,12 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD deserialize.
 
     DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_requirements  TYPE STANDARD TABLE OF zif_abapgit_dot_abapgit=>ty_requirement,
           lx_error         TYPE REF TO zcx_abapgit_exception.
     deserialize_checks( ).
 
-    lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
-    IF lt_requirements IS NOT INITIAL.
-      zcl_abapgit_requirement_helper=>check_requirements( it_requirements = lt_requirements
-                                                          iv_show_popup   = abap_true ).
+    IF is_checks-requirements-met = 'N' AND is_checks-requirements-decision IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Requirements not met and undecided ').
     ENDIF.
-
     TRY.
         lt_updated_files = zcl_abapgit_objects=>deserialize(
           io_repo   = me
@@ -11785,6 +11793,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_checks.
 
+    DATA: lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
     find_remote_dot_abapgit( ).
 
     IF get_local_settings( )-write_protected = abap_true.
@@ -11795,7 +11804,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
 
-* todo
+    lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
+    rs_checks-requirements-met = zcl_abapgit_requirement_helper=>is_requirements_met(
+      lt_requirements ).
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -12791,27 +12802,30 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.                    "serialize
   METHOD supported_list.
 
-    DATA: lv_type  LIKE LINE OF rt_types,
-          lt_snode TYPE TABLE OF snode.
+    DATA: lt_objects   TYPE STANDARD TABLE OF ko100,
+          lv_supported TYPE abap_bool,
+          ls_item      TYPE zif_abapgit_definitions=>ty_item.
 
-    FIELD-SYMBOLS: <ls_snode> LIKE LINE OF lt_snode.
-    CALL FUNCTION 'WB_TREE_ACTUALIZE'
-      EXPORTING
-        tree_name              = 'PG_ZABAPGIT'
-        without_crossreference = abap_true
-        with_tcode_index       = abap_true
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_objects.
+    CALL FUNCTION 'TR_OBJECT_TABLE'
       TABLES
-        p_tree                 = lt_snode.
+        wt_object_text = lt_objects
+      EXCEPTIONS
+        OTHERS         = 1 ##FM_SUBRC_OK.
 
-    DELETE lt_snode WHERE type <> 'OPL'
-      OR name NP 'LCL_OBJECT_++++'.
+    LOOP AT lt_objects ASSIGNING <ls_object> WHERE pgmid = 'R3TR'.
+      ls_item-obj_type = <ls_object>-object.
 
-    LOOP AT lt_snode ASSIGNING <ls_snode>.
-      lv_type = <ls_snode>-name+11.
-      APPEND lv_type TO rt_types.
+      lv_supported = zcl_abapgit_objects=>is_supported(
+        is_item        = ls_item
+        iv_native_only = abap_true ).
+
+      IF lv_supported = abap_true.
+        APPEND <ls_object>-object TO rt_types.
+      ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "supported_list
+  ENDMETHOD.
   METHOD update_package_tree.
 
     DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
@@ -15663,34 +15677,8 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
-  METHOD check_requirements.
-
-    DATA: lt_met_status TYPE ty_requirement_status_tt,
-          lv_answer     TYPE c LENGTH 1.
-
-    lt_met_status = get_requirement_met_status( it_requirements ).
-
-    IF iv_show_popup = abap_true.
-      show_requirement_popup( lt_met_status ).
-    ENDIF.
-
-    LOOP AT lt_met_status TRANSPORTING NO FIELDS WHERE met = abap_false.
-      EXIT.
-    ENDLOOP.
-
-    IF sy-subrc = 0.
-      CALL FUNCTION 'POPUP_TO_CONFIRM'
-        EXPORTING
-          text_question = 'The project has unmet requirements. Do you want to continue?'
-        IMPORTING
-          answer        = lv_answer.
-      IF lv_answer <> '1'.
-        zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_requirement_met_status.
+
     DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
 
     FIELD-SYMBOLS: <ls_requirement>    TYPE zif_abapgit_dot_abapgit=>ty_requirement,
@@ -15728,6 +15716,37 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
       UNASSIGN <ls_installed_comp>.
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_requirements_met.
+
+    DATA: lt_met_status TYPE ty_requirement_status_tt.
+    lt_met_status = get_requirement_met_status( it_requirements ).
+
+    READ TABLE lt_met_status TRANSPORTING NO FIELDS WITH KEY met = abap_false.
+    IF sy-subrc = 0.
+      rv_status = 'N'.
+    ELSE.
+      rv_status = 'Y'.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD requirements_popup.
+
+    DATA: lt_met_status TYPE ty_requirement_status_tt,
+          lv_answer     TYPE c LENGTH 1.
+    lt_met_status = get_requirement_met_status( it_requirements ).
+
+    show_requirement_popup( lt_met_status ).
+
+    CALL FUNCTION 'POPUP_TO_CONFIRM'
+      EXPORTING
+        text_question = 'The project has unmet requirements. Do you want to continue?'
+      IMPORTING
+        answer        = lv_answer.
+    IF lv_answer <> '1'.
+      zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD show_requirement_popup.
@@ -15817,9 +15836,9 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
     " Versions are comparable by number, compare release and if necessary patch level
     IF is_status-installed_release > is_status-required_release
-       OR ( is_status-installed_release = is_status-required_release
-            AND ( is_status-required_patch IS INITIAL OR
-                  is_status-installed_patch >= is_status-required_patch ) ).
+        OR ( is_status-installed_release = is_status-required_release
+        AND ( is_status-required_patch IS INITIAL OR
+        is_status-installed_patch >= is_status-required_patch ) ).
 
       rv_true = abap_true.
     ENDIF.
@@ -16564,8 +16583,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.  "clone
   METHOD gui_deserialize.
 
-    DATA: ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
-
+    DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
+          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
 * find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
@@ -16573,6 +16592,13 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     TRY.
         popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
         popup_package_overwrite( CHANGING ct_overwrite = ls_checks-warning_package ).
+
+        IF ls_checks-requirements-met = 'N'.
+          lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
+          zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
+          ls_checks-requirements-decision = 'Y'.
+        ENDIF.
+
       CATCH zcx_abapgit_cancel.
         RETURN.
     ENDTRY.
@@ -21767,32 +21793,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   ENDMETHOD. "render_debug_info
   METHOD render_supported_object_types.
 
-    DATA: lt_objects TYPE STANDARD TABLE OF ko100,
-          lv_list    TYPE string,
-          ls_item    TYPE zif_abapgit_definitions=>ty_item.
+    DATA: lv_list  TYPE string,
+          lt_types TYPE zcl_abapgit_objects=>ty_types_tt,
+          lv_type  LIKE LINE OF lt_types.
+    lt_types = zcl_abapgit_objects=>supported_list( ).
 
-    FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_objects.
-
-    CALL FUNCTION 'TR_OBJECT_TABLE'
-      TABLES
-        wt_object_text = lt_objects
-      EXCEPTIONS
-        OTHERS         = 1 ##FM_SUBRC_OK.
-
-    LOOP AT lt_objects ASSIGNING <ls_object> WHERE pgmid = 'R3TR'.
-      ls_item-obj_type = <ls_object>-object.
-      IF zcl_abapgit_objects=>is_supported( is_item = ls_item iv_native_only = abap_true ) = abap_true.
-        IF lv_list IS INITIAL.
-          lv_list = ls_item-obj_type.
-        ELSE.
-          lv_list = lv_list && `, ` && ls_item-obj_type.
-        ENDIF.
+    LOOP AT lt_types INTO lv_type.
+      IF lv_list IS INITIAL.
+        lv_list = lv_type.
+      ELSE.
+        lv_list = lv_list && `, ` && lv_type.
       ENDIF.
     ENDLOOP.
 
     rv_html = |<p>Supported objects: { lv_list }</p>|.
 
-  ENDMETHOD.  " render_supported_object_types
+  ENDMETHOD.
   METHOD scripts.
 
     CREATE OBJECT ro_html.
@@ -50594,5 +50610,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-03T14:23:02.763Z
+* abapmerge - 2018-04-03T14:23:17.649Z
 ****************************************************
