@@ -26818,6 +26818,14 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
           lt_methods TYPE cl_oo_source_scanner_class=>type_method_implementations,
           lv_method  LIKE LINE OF lt_methods,
           lt_source  TYPE seop_source_string.
+    "Buffer needs to be refreshed,
+    "otherwise standard SAP CLIF_SOURCE reorder methods alphabetically
+    CALL FUNCTION 'SEO_BUFFER_INIT'.
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        cifkey  = is_key
+        version = seoc_version_inactive.
+
     lo_scanner = init_scanner(
       it_source = it_source
       iv_name   = is_key-clsname ).
@@ -50515,5 +50523,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-03T14:21:13.224Z
+* abapmerge - 2018-04-03T14:21:55.784Z
 ****************************************************
