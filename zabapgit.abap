@@ -600,6 +600,8 @@ CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_dtel DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_dsys DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_doma DEFINITION DEFERRED.
@@ -619,9 +621,11 @@ CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
 CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_download DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_data_upload DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
@@ -2173,6 +2177,51 @@ CLASS zcl_abapgit_proxy_config DEFINITION FINAL CREATE PUBLIC.
           mi_exit     TYPE REF TO zif_abapgit_exit.
 
 ENDCLASS.
+CLASS zcl_abapgit_ecatt_config_downl DEFINITION
+  INHERITING FROM cl_apl_ecatt_config_download
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      download REDEFINITION,
+
+      get_xml_stream
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring,
+
+      get_xml_stream_size
+        RETURNING
+          VALUE(rv_xml_stream_size) TYPE int4.
+
+  PROTECTED SECTION.
+    METHODS:
+      download_data REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_xml_stream      TYPE xstring,
+      mv_xml_stream_size TYPE int4.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_config_upl DEFINITION
+  INHERITING FROM cl_apl_ecatt_config_upload
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      z_set_stream_for_upload
+        IMPORTING
+          im_xml TYPE xstring.
+
+  PROTECTED SECTION.
+    METHODS:
+      upload_data_from_stream REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA: mv_external_xml TYPE xstring.
+
+ENDCLASS.
 CLASS zcl_abapgit_ecatt_data_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_data_download
   CREATE PUBLIC .
@@ -2223,29 +2272,37 @@ CLASS zcl_abapgit_ecatt_data_upload DEFINITION
     DATA: mv_external_xml TYPE xstring.
 
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_download DEFINITION
-  INHERITING FROM cl_apl_ecatt_download
+CLASS zcl_abapgit_ecatt_helper DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
     CLASS-METHODS:
-      z_build_xml_of_object
+      build_xml_of_object
         IMPORTING
           im_object_name     TYPE  etobj_name
           im_object_version  TYPE  etobj_ver
           im_object_type     TYPE  etobj_type
+          io_download        TYPE REF TO cl_apl_ecatt_download
         EXPORTING
           ex_xml_stream      TYPE  xstring
           ex_xml_stream_size TYPE  int4
         RAISING
           zcx_abapgit_exception,
 
-      z_download_data
+      download_data
         IMPORTING
           ii_template_over_all TYPE REF TO if_ixml_document
         EXPORTING
           ev_xml_stream        TYPE xstring
-          ev_xml_stream_size   TYPE i.
+          ev_xml_stream_size   TYPE i,
+
+      upload_data_from_stream
+        IMPORTING
+          iv_xml_stream               TYPE xstring
+        RETURNING
+          VALUE(ri_template_over_all) TYPE REF TO if_ixml_document
+        RAISING
+          cx_ecatt_apl_xml.
 
 ENDCLASS.
 CLASS zcl_abapgit_comparison_null DEFINITION FINAL CREATE PUBLIC.
@@ -2972,9 +3029,9 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_ectd DEFINITION
+CLASS zcl_abapgit_object_ecatt_super DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
-  FINAL
+  ABSTRACT
   CREATE PUBLIC .
 
   PUBLIC SECTION.
@@ -2990,53 +3047,46 @@ CLASS zcl_abapgit_object_ectd DEFINITION
           !is_item     TYPE zif_abapgit_definitions=>ty_item
           !iv_language TYPE spras .
 
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type ABSTRACT
+        RETURNING VALUE(rv_object_type) TYPE etobj_type,
+
+      get_upload ABSTRACT
+        RETURNING
+          VALUE(ro_upload) TYPE REF TO cl_apl_ecatt_upload,
+
+      get_download ABSTRACT
+        RETURNING
+          VALUE(ro_download) TYPE REF TO cl_apl_ecatt_download.
+
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_last_changed,
-             luser TYPE xubname,
-             ldate TYPE datum,
-             ltime TYPE uzeit,
-           END OF ty_last_changed.
+    TYPES:
+      BEGIN OF ty_last_changed,
+        luser TYPE xubname,
+        ldate TYPE datum,
+        ltime TYPE uzeit,
+      END OF ty_last_changed.
 
     CONSTANTS:
-      co_default_version TYPE etobj_ver VALUE '1' ##NO_TEXT,
       BEGIN OF co_name,
         version  TYPE string VALUE 'VERSION' ##NO_TEXT,
         versions TYPE string VALUE 'VERSIONS' ##NO_TEXT,
-      END OF co_name.
+      END OF co_name,
+      co_default_version TYPE etobj_ver VALUE '1' ##NO_TEXT.
+
+    CLASS-METHODS:
+      is_change_more_recent_than
+        IMPORTING
+          is_currently_changed            TYPE ty_last_changed
+          is_last_changed                 TYPE ty_last_changed
+        RETURNING
+          VALUE(rv_is_change_more_recent) TYPE abap_bool.
 
     DATA:
       mv_object_name TYPE etobj_name.
 
     METHODS:
-      clear_attributes
-        CHANGING
-          ci_document TYPE REF TO if_ixml_document,
-
-      clear_elements
-        CHANGING
-          ci_document TYPE REF TO if_ixml_document,
-
-      get_version_from_node
-        IMPORTING
-          io_node           TYPE REF TO if_ixml_node
-        RETURNING
-          VALUE(rv_version) TYPE string,
-
-      deserialize_version
-        IMPORTING
-          io_version_node TYPE REF TO if_ixml_node
-          iv_package      TYPE devclass
-        RAISING
-          zcx_abapgit_exception,
-
-      serialize_version
-        IMPORTING
-          is_version_info  TYPE etversinfo
-        CHANGING
-          co_versions_node TYPE REF TO if_ixml_element
-        RAISING
-          zcx_abapgit_exception,
-
       get_changed_date
         IMPORTING
           ii_document            TYPE REF TO if_ixml_document
@@ -3064,12 +3114,90 @@ CLASS zcl_abapgit_object_ectd DEFINITION
           cx_ecatt_apl
           zcx_abapgit_exception,
 
-      is_change_more_recent_than
+      clear_attributes
+        CHANGING
+          ci_document TYPE REF TO if_ixml_document,
+
+      clear_elements
+        CHANGING
+          ci_document TYPE REF TO if_ixml_document,
+
+      get_version_from_node
         IMPORTING
-          is_currently_changed            TYPE zcl_abapgit_object_ectd=>ty_last_changed
-          is_last_changed                 TYPE zcl_abapgit_object_ectd=>ty_last_changed
+          ii_node           TYPE REF TO if_ixml_node
         RETURNING
-          VALUE(rv_is_change_more_recent) TYPE abap_bool.
+          VALUE(rv_version) TYPE string,
+
+      deserialize_version
+        IMPORTING
+          ii_version_node TYPE REF TO if_ixml_node
+          iv_package      TYPE devclass
+        RAISING
+          zcx_abapgit_exception,
+
+      serialize_version
+        IMPORTING
+          iv_version TYPE etversinfo-version
+        CHANGING
+          ci_node    TYPE REF TO if_ixml_element
+        RAISING
+          cx_ecatt
+          zcx_abapgit_exception,
+
+      clear_element
+        IMPORTING
+          iv_name     TYPE csequence
+        CHANGING
+          ci_document TYPE REF TO if_ixml_document,
+
+      serialize_versions
+        IMPORTING
+          it_version_info TYPE etversinfo_tabtype
+        CHANGING
+          ci_document     TYPE REF TO if_ixml_document
+        RAISING
+          cx_ecatt
+          zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ectc DEFINITION
+  INHERITING FROM zcl_abapgit_object_ecatt_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING
+          !is_item     TYPE zif_abapgit_definitions=>ty_item
+          !iv_language TYPE spras.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type REDEFINITION,
+      get_upload REDEFINITION,
+      get_download REDEFINITION.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ectd DEFINITION
+  INHERITING FROM zcl_abapgit_object_ecatt_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING
+          !is_item     TYPE zif_abapgit_definitions=>ty_item
+          !iv_language TYPE spras.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type REDEFINITION,
+      get_upload REDEFINITION,
+      get_download REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_enho DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -42613,49 +42741,111 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
 ENDCLASS.                    "zcl_abapgit_object_enho IMPLEMENTATION
 CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
+
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+  ENDMETHOD.
+  METHOD get_object_type.
+
+    rv_object_type = cl_apl_ecatt_const=>obj_type_test_data.
+
+  ENDMETHOD.
+
+  METHOD get_upload.
+
+    CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_data_upload.
+
+  ENDMETHOD.
+
+  METHOD get_download.
+
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_data_downl.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+  ENDMETHOD.
+  METHOD get_object_type.
+
+    rv_object_type = cl_apl_ecatt_const=>obj_type_test_config.
+
+  ENDMETHOD.
+
+  METHOD get_upload.
+
+    CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_config_upl.
+
+  ENDMETHOD.
+
+  METHOD get_download.
+
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_config_downl.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD clear_attributes.
 
     DATA: lo_element TYPE REF TO if_ixml_element.
 
-    lo_element = ci_document->find_from_name( |ECTD| ).
-    lo_element->set_attribute(  name  = |SAPRL|
-                                value = || ).
-    lo_element->set_attribute(  name  = |DOWNLOADDATE|
-                                value = || ).
-    lo_element->set_attribute(  name  = |DOWNLOADTIME|
-                                value = || ).
+    lo_element = ci_document->find_from_name( get_object_type( ) ).
+    lo_element->set_attribute( name  = |SAPRL|
+                               value = || ).
+    lo_element->set_attribute( name  = |DOWNLOADDATE|
+                               value = || ).
+    lo_element->set_attribute( name  = |DOWNLOADTIME|
+                               value = || ).
+
+  ENDMETHOD.
+  METHOD clear_element.
+
+    DATA: lo_element TYPE REF TO if_ixml_element.
+
+    lo_element = ci_document->find_from_name( iv_name ).
+
+    IF lo_element IS BOUND.
+      lo_element->set_value( || ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD clear_elements.
 
-    DATA: lo_element TYPE REF TO if_ixml_element.
+    clear_element( EXPORTING iv_name     = |FUSER|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |FUSER| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |FDATE|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |FDATE| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |LUSER|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |LUSER| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |LDATE|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |LDATE| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |LTIME|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |LTIME| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |TWB_RESP|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |TWB_RESP| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |DEVCLASS|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |DEVCLASS| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |TADIR_RESP|
+                   CHANGING  ci_document = ci_document ).
 
-    lo_element = ci_document->find_from_name( |TADIR_RESP| ).
-    lo_element->set_value( || ).
-
-    lo_element = ci_document->find_from_name( |VAR_EXT_PATH| ).
-    lo_element->set_value( || ).
+    clear_element( EXPORTING iv_name     = |VAR_EXT_PATH|
+                   CHANGING  ci_document = ci_document ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -42668,31 +42858,34 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_version.
 
-    DATA: ls_object   TYPE etmobjects,
-          lo_upload   TYPE REF TO zcl_abapgit_ecatt_data_upload,
-          lv_xml      TYPE xstring,
-          lv_text     TYPE string,
-          li_document TYPE REF TO if_ixml_document,
-          lv_version  TYPE string,
-          lx_error    TYPE REF TO cx_ecatt.
+    DATA: ls_object      TYPE etmobjects,
+          lo_upload      TYPE REF TO cl_apl_ecatt_upload,
+          lv_xml         TYPE xstring,
+          lv_text        TYPE string,
+          li_document    TYPE REF TO if_ixml_document,
+          lv_version     TYPE string,
+          lx_error       TYPE REF TO cx_ecatt,
+          lv_object_type TYPE etobj_type.
 
-    lv_version = get_version_from_node( io_version_node ).
+    lv_version = get_version_from_node( ii_version_node ).
 
     IF lv_version IS INITIAL.
       RETURN.
     ENDIF.
 
-    CREATE OBJECT lo_upload.
+    lo_upload = get_upload( ).
 
     li_document = cl_ixml=>create( )->create_document( ).
-    li_document->append_child( io_version_node->get_first_child( ) ).
+    li_document->append_child( ii_version_node->get_first_child( ) ).
 
     lv_xml = cl_ixml_80_20=>render_to_xstring( li_document ).
 
-    lo_upload->z_set_stream_for_upload( lv_xml ).
+    CALL METHOD lo_upload->('Z_SET_STREAM_FOR_UPLOAD')
+      EXPORTING
+        im_xml = lv_xml.
 
     ls_object-d_obj_name  = mv_object_name.
-    ls_object-s_obj_type  = ms_item-obj_type.
+    ls_object-s_obj_type  = get_object_type( ).
     ls_object-d_devclass  = iv_package.
     ls_object-d_obj_ver   = lv_version.
     ls_object-d_overwrite = abap_true.
@@ -42758,16 +42951,17 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   METHOD get_change_information.
 
     DATA: li_document TYPE REF TO if_ixml_document,
-          lo_download TYPE REF TO zcl_abapgit_ecatt_data_downl,
-          lv_xml      TYPE xstring.
+          lv_xml      TYPE xstring,
+          lo_download TYPE REF TO cl_apl_ecatt_download.
 
-    CREATE OBJECT lo_download.
+    lo_download = get_download( ).
 
-    zcl_abapgit_ecatt_download=>z_build_xml_of_object(
+    zcl_abapgit_ecatt_helper=>build_xml_of_object(
       EXPORTING
         im_object_name    = mv_object_name
         im_object_version = is_version_info-version
         im_object_type    = ms_item-obj_type
+        io_download       = lo_download
       IMPORTING
         ex_xml_stream     = lv_xml ).
 
@@ -42781,7 +42975,7 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   METHOD get_version_from_node.
 
     TRY.
-        rv_version = io_node->get_first_child(
+        rv_version = ii_node->get_first_child(
                            )->get_first_child(
                            )->get_first_child(
                            )->get_first_child(
@@ -42806,17 +43000,18 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   METHOD serialize_version.
 
     DATA: li_document TYPE REF TO if_ixml_document,
-          lo_download TYPE REF TO zcl_abapgit_ecatt_data_downl,
           lv_xml      TYPE xstring,
-          lo_node     TYPE REF TO if_ixml_element.
+          lo_node     TYPE REF TO if_ixml_element,
+          lo_download TYPE REF TO cl_apl_ecatt_download.
 
-    CREATE OBJECT lo_download.
+    lo_download = get_download( ).
 
-    zcl_abapgit_ecatt_download=>z_build_xml_of_object(
+    zcl_abapgit_ecatt_helper=>build_xml_of_object(
       EXPORTING
         im_object_name    = mv_object_name
-        im_object_version = is_version_info-version
+        im_object_version = iv_version
         im_object_type    = ms_item-obj_type
+        io_download       = lo_download
       IMPORTING
         ex_xml_stream     = lv_xml ).
 
@@ -42833,9 +43028,10 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
     lo_node = li_document->create_element( co_name-version ).
     lo_node->append_child( li_document->get_root_element( ) ).
 
-    co_versions_node->append_child( lo_node ).
+    ci_node->append_child( lo_node ).
 
   ENDMETHOD.
+
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_last_changed      TYPE ty_last_changed,
@@ -42888,10 +43084,11 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lx_error TYPE REF TO cx_ecatt_apl.
+    DATA: lx_error TYPE REF TO cx_ecatt_apl,
+          lv_text  TYPE string.
 
     TRY.
-        cl_apl_ecatt_object=>delete_object( im_obj_type            = ms_item-obj_type
+        cl_apl_ecatt_object=>delete_object( im_obj_type            = get_object_type( )
                                             im_name                = mv_object_name
                                             " we have to supply a version, so let's use the default version
                                             " and delete them all
@@ -42899,7 +43096,8 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
                                             im_delete_all_versions = abap_true ).
 
       CATCH cx_ecatt_apl INTO lx_error.
-        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
+        lv_text = lx_error->get_text( ).
+        zcx_abapgit_exception=>raise( lv_text ).
     ENDTRY.
 
   ENDMETHOD.
@@ -42924,7 +43122,7 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
         EXIT.
       ENDIF.
 
-      deserialize_version( io_version_node = lo_version_node
+      deserialize_version( ii_version_node = lo_version_node
                            iv_package      = iv_package ).
 
     ENDDO.
@@ -42935,7 +43133,7 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
     TRY.
         rv_bool = cl_apl_ecatt_object=>existence_check_object( im_name               = mv_object_name
                                                                im_version            = co_default_version
-                                                               im_obj_type           = ms_item-obj_type
+                                                               im_obj_type           = get_object_type( )
                                                                im_exists_any_version = abap_true ).
 
       CATCH cx_ecatt.
@@ -42970,37 +43168,26 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA:
-      lt_version_info  TYPE etversinfo_tabtype,
-      li_document      TYPE REF TO if_ixml_document,
-      lo_versions_node TYPE REF TO if_ixml_element,
-      lv_text          TYPE string,
-      lx_error         TYPE REF TO cx_ecatt.
-
-    FIELD-SYMBOLS: <ls_version_info> TYPE etversinfo.
+      lt_version_info TYPE etversinfo_tabtype,
+      li_document     TYPE REF TO if_ixml_document,
+      lx_error        TYPE REF TO cx_ecatt,
+      lv_text         TYPE string.
 
     TRY.
         cl_apl_ecatt_object=>get_version_info_object(
           EXPORTING
             im_name          = mv_object_name
-            im_obj_type      = ms_item-obj_type
+            im_obj_type      = get_object_type( )
           IMPORTING
             ex_version_info  = lt_version_info  ).
 
         li_document = cl_ixml=>create( )->create_document( ).
 
-        lo_versions_node = li_document->create_element( co_name-versions ).
-
-        LOOP AT lt_version_info ASSIGNING <ls_version_info>.
-
-          serialize_version(
-            EXPORTING
-              is_version_info = <ls_version_info>
-            CHANGING
-              co_versions_node = lo_versions_node ).
-
-        ENDLOOP.
-
-        li_document->append_child( lo_versions_node ).
+        serialize_versions(
+          EXPORTING
+            it_version_info  = lt_version_info
+          CHANGING
+            ci_document      = li_document ).
 
         io_xml->set_raw( li_document->get_root_element( ) ).
 
@@ -43010,7 +43197,41 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD serialize_versions.
+
+    DATA: li_versions_node TYPE REF TO if_ixml_element.
+    FIELD-SYMBOLS: <ls_version_info> LIKE LINE OF it_version_info.
+
+    li_versions_node = ci_document->create_element( co_name-versions ).
+
+    IF lines( it_version_info ) > 0.
+
+      LOOP AT it_version_info ASSIGNING <ls_version_info>.
+
+        serialize_version(
+          EXPORTING
+            iv_version = <ls_version_info>-version
+          CHANGING
+            ci_node    = li_versions_node ).
+
+      ENDLOOP.
+
+    ELSE.
+
+      serialize_version(
+        EXPORTING
+          iv_version = co_default_version
+        CHANGING
+          ci_node    = li_versions_node ).
+
+    ENDIF.
+
+    ci_document->append_child( li_versions_node ).
+
+  ENDMETHOD.
+
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -46425,38 +46646,14 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_download IMPLEMENTATION.
-  METHOD z_build_xml_of_object.
+CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
+  METHOD build_xml_of_object.
 
-    " Downport of CL_APL_ECATT_DOWNLOAD=>BUILD_XML_OF_OBJECT
+    " downport of CL_APL_ECATT_DOWNLOAD=>BUILD_XML_OF_OBJECT
 
-    DATA: lo_download        TYPE REF TO cl_apl_ecatt_download,
-          lo_load_help_dummy TYPE REF TO cl_apl_ecatt_load_help,
+    DATA: lo_load_help_dummy TYPE REF TO cl_apl_ecatt_load_help,
           lx_ecatt           TYPE REF TO cx_ecatt_apl,
           lv_text            TYPE string.
-
-    CASE im_object_type.
-*      WHEN cl_apl_ecatt_const=>obj_type_ecatt.
-*        CREATE OBJECT lo_download TYPE cl_apl_ecatt_script_download.
-      WHEN cl_apl_ecatt_const=>obj_type_test_data.
-        CREATE OBJECT lo_download TYPE zcl_abapgit_ecatt_data_downl.
-*      WHEN cl_apl_ecatt_const=>obj_type_system_data.
-*        CREATE OBJECT lo_download TYPE cl_apl_ecatt_systems_download.
-*      WHEN cl_apl_ecatt_const=>obj_type_test_config.
-*        CREATE OBJECT lo_download TYPE cl_apl_ecatt_config_download.
-*      WHEN cl_apl_ecatt_const=>obj_type_ecatt_vo.
-*        CREATE OBJECT lo_download TYPE cl_apl_ecatt_vo_download.
-*      WHEN cl_apl_ecatt_const=>obj_type_start_profile.
-*        CREATE OBJECT lo_download TYPE cl_apl_ecatt_sp_download.
-    ENDCASE.
-
-    IF lo_download IS NOT BOUND.
-      zcx_abapgit_exception=>raise( |ECATT: Download not possible { im_object_type } { im_object_name }| ).
-    ENDIF.
-
-    CALL METHOD lo_download->('SET_GENERATE_XML_NO_DOWNLOAD')
-      EXPORTING
-        iv_generate_xml_no_download = abap_true.
 
     "download method will create the xml stream
     "note: it's the redefined download( ) of each object type specific download, which is called
@@ -46465,7 +46662,7 @@ CLASS zcl_abapgit_ecatt_download IMPLEMENTATION.
           EXPORTING
             im_maintain_function = ''.
 
-        lo_download->download( im_object_name    = im_object_name
+        io_download->download( im_object_name    = im_object_name
                                im_object_version = im_object_version
                                im_object_type    = im_object_type
                                im_load_help      = lo_load_help_dummy ).
@@ -46477,16 +46674,16 @@ CLASS zcl_abapgit_ecatt_download IMPLEMENTATION.
         "will never be raised from download, when called with mv_generate_xml_no_download = 'X'.
     ENDTRY.
 
-    CALL METHOD lo_download->('GET_XML_STREAM')
+    CALL METHOD io_download->('GET_XML_STREAM')
       RECEIVING
         rv_xml_stream = ex_xml_stream.
 
-    CALL METHOD lo_download->('GET_XML_STREAM_SIZE')
+    CALL METHOD io_download->('GET_XML_STREAM_SIZE')
       RECEIVING
         rv_xml_stream_size = ex_xml_stream_size.
 
   ENDMETHOD.
-  METHOD z_download_data.
+  METHOD download_data.
 
     DATA:
       lv_xtab  TYPE etxml_xline_tabtype,
@@ -46515,11 +46712,8 @@ CLASS zcl_abapgit_ecatt_download IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-ENDCLASS.
-CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
-  METHOD upload_data_from_stream.
 
-    " Downport
+  METHOD upload_data_from_stream.
 
     DATA:
       lt_eing          TYPE etxml_xline_tabtype,
@@ -46530,7 +46724,7 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
       lv_index         TYPE i VALUE 0,
       lv_count         TYPE i.
 
-    lv_xstr = mv_external_xml.
+    lv_xstr = iv_xml_stream.
 
     lo_xml = cl_apl_ecatt_xml=>create( im_type = if_apl_ecatt_xml=>co_xml ).
 
@@ -46542,10 +46736,10 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
 
     lo_xml->get_attributes(
       IMPORTING
-        ex_dom = template_over_all ).
+        ex_dom = ri_template_over_all ).
 
 * MD: Workaround, because nodes starting with "XML" are not allowed
-    lv_nc_xmlref_typ = template_over_all->get_elements_by_tag_name_ns(
+    lv_nc_xmlref_typ = ri_template_over_all->get_elements_by_tag_name_ns(
                       'XMLREF_TYP' ).                       "#EC NOTEXT
     lv_count = lv_nc_xmlref_typ->get_length( ).
     WHILE lv_index LT lv_count.
@@ -46556,6 +46750,15 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
 
     FREE: lt_eing.
     CLEAR: lo_xml, lv_xstr.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
+  METHOD upload_data_from_stream.
+
+    " Downport
+    template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
   METHOD z_set_stream_for_upload.
@@ -46620,7 +46823,7 @@ CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_download=>z_download_data(
+    zcl_abapgit_ecatt_helper=>download_data(
       EXPORTING
         ii_template_over_all = template_over_all
       IMPORTING
@@ -46641,6 +46844,91 @@ CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
   METHOD set_generate_xml_no_download.
 
     mv_generate_xml_no_download = iv_generate_xml_no_download.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_config_upl IMPLEMENTATION.
+  METHOD upload_data_from_stream.
+
+    " Downport
+    template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
+
+  ENDMETHOD.
+  METHOD z_set_stream_for_upload.
+
+    " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
+    mv_external_xml = im_xml.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
+
+  METHOD download.
+
+    " Downport
+
+    DATA: lv_partyp TYPE string.
+
+    load_help = im_load_help.
+    typ = im_object_type.
+
+    TRY.
+        cl_apl_ecatt_object=>show_object(
+          EXPORTING
+            im_obj_type = im_object_type
+            im_name     = im_object_name
+            im_version  = im_object_version
+          IMPORTING
+            re_object   = ecatt_object ).
+      CATCH cx_ecatt INTO ex_ecatt.
+        RETURN.
+    ENDTRY.
+
+    lv_partyp = cl_apl_ecatt_const=>params_type_par.
+
+    set_attributes_to_template( ).
+    ecatt_config ?= ecatt_object.
+    set_ecatt_objects_to_template( ).
+* MS180406
+    set_var_mode_to_dom( ).
+* ENDMS180406
+    get_general_params_data( im_params = ecatt_config->params
+                             im_ptyp   = lv_partyp ).
+    LOOP AT parm INTO wa_parm.
+      set_general_params_data_to_dom( ).
+      IF NOT wa_parm-val_type IS INITIAL.
+        set_deep_stru_to_dom( ecatt_config->params ).
+        set_deep_data_to_dom( im_params = ecatt_config->params
+                              im_pindex = wa_parm-pindex ).
+      ENDIF.
+    ENDLOOP.
+
+    set_variants_to_dom( im_params = ecatt_config->params ).
+
+    download_data( ).
+
+  ENDMETHOD.
+  METHOD download_data.
+
+    " Downport
+
+    zcl_abapgit_ecatt_helper=>download_data(
+      EXPORTING
+        ii_template_over_all = template_over_all
+      IMPORTING
+        ev_xml_stream        = mv_xml_stream
+        ev_xml_stream_size   = mv_xml_stream_size ).
+
+  ENDMETHOD.
+  METHOD get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+  METHOD get_xml_stream_size.
+
+    rv_xml_stream_size = mv_xml_stream_size.
 
   ENDMETHOD.
 
@@ -50911,5 +51199,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-04T07:47:03.027Z
+* abapmerge - 2018-04-05T05:07:58.667Z
 ****************************************************
