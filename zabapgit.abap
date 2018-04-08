@@ -1936,7 +1936,12 @@ CLASS zcl_abapgit_2fa_auth_base DEFINITION
       raise_comm_error_from_sy RAISING zcx_abapgit_2fa_comm_error.
     METHODS:
       "! @parameter rv_running | Internal session is currently active
-      is_session_running RETURNING VALUE(rv_running) TYPE abap_bool.
+      is_session_running RETURNING VALUE(rv_running) TYPE abap_bool,
+      "! Returns HTTP client configured with proxy (where required) for the given URL
+      get_http_client_for_url
+        IMPORTING iv_url           TYPE string
+        RETURNING VALUE(ri_client) TYPE REF TO if_http_client
+        RAISING   zcx_abapgit_2fa_comm_error.
   PRIVATE SECTION.
     DATA:
       mo_url_regex       TYPE REF TO cl_abap_regex,
@@ -47291,7 +47296,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
+CLASS zcl_abapgit_2fa_github_auth IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lv_match TYPE string.
@@ -47307,8 +47312,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_authenticated_client.
     DATA: lv_http_code             TYPE i,
-          lv_http_code_description TYPE string,
-          lo_settings              TYPE REF TO zcl_abapgit_settings.
+          lv_http_code_description TYPE string.
 
     " If there is a cached client return it instead
     IF is_session_running( ) = abap_true AND mi_authenticated_session IS BOUND.
@@ -47317,25 +47321,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     ENDIF.
 
     " Try to login to GitHub API with username, password and 2fa token
-
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-    cl_http_client=>create_by_url(
-      EXPORTING
-        url                = mv_github_api_url
-        ssl_id             = 'ANONYM'
-        proxy_host         = lo_settings->get_proxy_url( )
-        proxy_service      = lo_settings->get_proxy_port( )
-      IMPORTING
-        client             = ri_client
-      EXCEPTIONS
-        argument_not_found = 1
-        plugin_not_active  = 2
-        internal_error     = 3
-        OTHERS             = 4 ).
-    IF sy-subrc <> 0.
-      raise_comm_error_from_sy( ).
-    ENDIF.
+    ri_client = get_http_client_for_url( mv_github_api_url ).
 
     " https://developer.github.com/v3/auth/#working-with-two-factor-authentication
     ri_client->propertytype_accept_cookie = if_http_client=>co_enabled.
@@ -47542,26 +47528,9 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_2fa_authenticator~is_2fa_required.
 
-    DATA: li_client TYPE REF TO if_http_client,
-          lo_proxy  TYPE REF TO zcl_abapgit_proxy_config.
-    CREATE OBJECT lo_proxy.
+    DATA: li_client TYPE REF TO if_http_client.
 
-    cl_http_client=>create_by_url(
-      EXPORTING
-        url                = mv_github_api_url
-        ssl_id             = 'ANONYM'
-        proxy_host         = lo_proxy->get_proxy_url( )
-        proxy_service      = lo_proxy->get_proxy_port(  )
-      IMPORTING
-        client             = li_client
-      EXCEPTIONS
-        argument_not_found = 1
-        plugin_not_active  = 2
-        internal_error     = 3
-        OTHERS             = 4 ).
-    IF sy-subrc <> 0.
-      raise_comm_error_from_sy( ).
-    ENDIF.
+    li_client = get_http_client_for_url( mv_github_api_url ).
 
     li_client->propertytype_logon_popup = if_http_client=>co_disabled.
 
@@ -47715,7 +47684,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
+CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
   METHOD constructor.
     CREATE OBJECT mo_url_regex
       EXPORTING
@@ -47761,6 +47730,43 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
   METHOD supports_url.
     rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
   ENDMETHOD.
+
+  METHOD get_http_client_for_url.
+    DATA: lo_proxy       TYPE REF TO zcl_abapgit_proxy_config,
+          lo_abapgit_exc TYPE REF TO zcx_abapgit_exception,
+          lv_error_text  TYPE string.
+
+    CREATE OBJECT lo_proxy.
+    cl_http_client=>create_by_url(
+      EXPORTING
+        url                = iv_url
+        ssl_id             = 'ANONYM'
+        proxy_host         = lo_proxy->get_proxy_url( iv_url )
+        proxy_service      = lo_proxy->get_proxy_port( iv_url  )
+      IMPORTING
+        client             = ri_client
+      EXCEPTIONS
+        argument_not_found = 1
+        plugin_not_active  = 2
+        internal_error     = 3
+        OTHERS             = 4 ).
+    IF sy-subrc <> 0.
+      raise_comm_error_from_sy( ).
+    ENDIF.
+
+    IF lo_proxy->get_proxy_authentication( iv_url ) = abap_true.
+      TRY.
+          zcl_abapgit_proxy_auth=>run( ri_client ).
+        CATCH zcx_abapgit_exception INTO lo_abapgit_exc.
+          lv_error_text = lo_abapgit_exc->get_text( ).
+          IF lv_error_text IS INITIAL.
+            lv_error_text = `Proxy authentication error`.
+          ENDIF.
+          RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error EXPORTING mv_text = lv_error_text previous = lo_abapgit_exc.
+      ENDTRY.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_tag IMPLEMENTATION.
 
@@ -51199,5 +51205,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-05T05:07:58.667Z
+* abapmerge - 2018-04-08T16:11:38.957Z
 ****************************************************
