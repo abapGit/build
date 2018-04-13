@@ -599,6 +599,7 @@ CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
@@ -622,6 +623,8 @@ CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
 CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
@@ -2387,6 +2390,56 @@ CLASS zcl_abapgit_ecatt_script_upl DEFINITION
     DATA: mv_external_xml TYPE xstring.
 
 ENDCLASS.
+CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
+  INHERITING FROM cl_apl_ecatt_vo_download
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      download REDEFINITION,
+
+      get_xml_stream
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring,
+
+      get_xml_stream_size
+        RETURNING
+          VALUE(rv_xml_stream_size) TYPE int4.
+
+  PROTECTED SECTION.
+    METHODS:
+      download_data REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_xml_stream      TYPE xstring,
+      mv_xml_stream_size TYPE int4.
+
+    METHODS:
+      set_ecatt_impl_detail,
+      set_ecatt_flags,
+      set_business_msgs.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
+  INHERITING FROM cl_apl_ecatt_vo_upload
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      z_set_stream_for_upload
+        IMPORTING
+          im_xml TYPE xstring.
+
+  PROTECTED SECTION.
+    METHODS:
+      upload_data_from_stream REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA: mv_external_xml TYPE xstring.
+
+ENDCLASS.
 CLASS zcl_abapgit_comparison_null DEFINITION FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -3283,6 +3336,26 @@ CLASS zcl_abapgit_object_ectc DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ectd DEFINITION
+  INHERITING FROM zcl_abapgit_object_ecatt_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING
+          !is_item     TYPE zif_abapgit_definitions=>ty_item
+          !iv_language TYPE spras.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type REDEFINITION,
+      get_upload REDEFINITION,
+      get_download REDEFINITION.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ecvo DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
   FINAL
   CREATE PUBLIC .
@@ -42842,6 +42915,32 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
 ENDCLASS.                    "zcl_abapgit_object_enho IMPLEMENTATION
+CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+  ENDMETHOD.
+  METHOD get_object_type.
+
+    rv_object_type = cl_apl_ecatt_const=>obj_type_ecatt_vo.
+
+  ENDMETHOD.
+
+  METHOD get_upload.
+
+    CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_val_obj_upl.
+
+  ENDMETHOD.
+
+  METHOD get_download.
+
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_val_obj_down.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
 
   METHOD constructor.
@@ -42969,8 +43068,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
           lv_text        TYPE string,
           li_document    TYPE REF TO if_ixml_document,
           lv_version     TYPE string,
-          lx_error       TYPE REF TO cx_ecatt,
-          lv_object_type TYPE etobj_type.
+          lx_error       TYPE REF TO cx_ecatt.
 
     lv_version = get_version_from_node( ii_version_node ).
 
@@ -46794,6 +46892,215 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_comparison_result~show_confirmation_dialog.
     RETURN.
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
+  METHOD upload_data_from_stream.
+
+    " Downport
+    template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
+
+  ENDMETHOD.
+  METHOD z_set_stream_for_upload.
+
+    " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
+    mv_external_xml = im_xml.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
+  METHOD download.
+
+    " Downport
+
+    DATA: lv_partyp TYPE string.
+
+    load_help = im_load_help.
+    typ = im_object_type.
+
+    TRY.
+        cl_apl_ecatt_object=>show_object(
+          EXPORTING
+            im_obj_type = im_object_type
+            im_name     = im_object_name
+            im_version  = im_object_version
+          IMPORTING
+            re_object   = ecatt_object ).
+      CATCH cx_ecatt INTO ex_ecatt.
+        RETURN.
+    ENDTRY.
+
+    lv_partyp = cl_apl_ecatt_const=>params_type_par.
+
+    set_attributes_to_template( ).
+    ecatt_vo ?= ecatt_object.
+    set_ecatt_impl_detail( ).
+    set_ecatt_flags( ).
+    set_business_msgs( ).
+    get_general_params_data( im_params = ecatt_vo->params
+                             im_ptyp   = lv_partyp ).
+    LOOP AT parm INTO wa_parm.
+      set_general_params_data_to_dom( ).
+      IF NOT wa_parm-val_type IS INITIAL.
+        set_deep_stru_to_dom( ecatt_vo->params ).
+        set_deep_data_to_dom( im_params = ecatt_vo->params
+                              im_pindex = wa_parm-pindex ).
+      ENDIF.
+    ENDLOOP.
+
+    set_variants_to_dom( im_params = ecatt_vo->params ).
+
+    download_data( ).
+
+  ENDMETHOD.
+  METHOD download_data.
+
+    " Downport
+
+    zcl_abapgit_ecatt_helper=>download_data(
+      EXPORTING
+        ii_template_over_all = template_over_all
+      IMPORTING
+        ev_xml_stream        = mv_xml_stream
+        ev_xml_stream_size   = mv_xml_stream_size ).
+
+  ENDMETHOD.
+  METHOD get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+  METHOD get_xml_stream_size.
+
+    rv_xml_stream_size = mv_xml_stream_size.
+
+  ENDMETHOD.
+  METHOD set_business_msgs.
+
+    DATA:
+      lt_buss_msg_ref   TYPE etvo_bus_msg_tabtype,
+      li_element        TYPE REF TO if_ixml_element,
+      li_insert_objects TYPE REF TO if_ixml_element.
+
+    objects_node = template_over_all->create_simple_element(
+                                        name   = 'BUSINESS_MESSAGES'
+                                        parent = root_node ).
+    ecatt_vo->get_bussiness_msg(
+      IMPORTING
+        ex_buss_msg_ref = lt_buss_msg_ref ).
+
+    CALL FUNCTION 'SDIXML_DATA_TO_DOM'
+      EXPORTING
+        name         = 'ETVO_MSG'
+        dataobject   = lt_buss_msg_ref
+      IMPORTING
+        data_as_dom  = li_element
+      CHANGING
+        document     = template_over_all
+      EXCEPTIONS
+        illegal_name = 1
+        OTHERS       = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    li_insert_objects = template_over_all->find_from_name( 'BUSINESS_MESSAGES' ).
+
+    li_insert_objects->append_child( new_child = li_element ).
+
+  ENDMETHOD.
+  METHOD set_ecatt_flags.
+
+    DATA:
+      lv_invert_validation TYPE etvo_invert_validation,
+      lv_error_prio        TYPE etvo_error_prio,
+      li_element           TYPE REF TO if_ixml_element,
+      li_insert_objects    TYPE REF TO if_ixml_element.
+
+    objects_node = template_over_all->create_simple_element(
+                                        name   = 'VO_FLAGS'
+                                        parent = root_node ).
+
+    lv_invert_validation = ecatt_vo->get_invert_validation_flag( ).
+
+    CALL FUNCTION 'SDIXML_DATA_TO_DOM'
+      EXPORTING
+        name         = 'INVERT_VALIDATION'
+        dataobject   = lv_invert_validation
+      IMPORTING
+        data_as_dom  = li_element
+      CHANGING
+        document     = template_over_all
+      EXCEPTIONS
+        illegal_name = 1
+        OTHERS       = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    li_insert_objects = template_over_all->find_from_name( 'VO_FLAGS' ).
+
+    li_insert_objects->append_child( new_child = li_element ).
+
+    lv_error_prio = ecatt_vo->get_error_priority( ).
+
+    CALL FUNCTION 'SDIXML_DATA_TO_DOM'
+      EXPORTING
+        name         = 'ERROR_PRIORITY'
+        dataobject   = lv_error_prio
+      IMPORTING
+        data_as_dom  = li_element
+      CHANGING
+        document     = template_over_all
+      EXCEPTIONS
+        illegal_name = 1
+        OTHERS       = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    li_insert_objects = template_over_all->find_from_name( 'VO_FLAGS' ).
+
+    li_insert_objects->append_child( new_child = li_element ).
+
+  ENDMETHOD.
+  METHOD set_ecatt_impl_detail.
+
+    DATA:
+      ls_impl_details   TYPE etvoimpl_det,
+      li_element        TYPE REF TO if_ixml_element,
+      li_insert_objects TYPE REF TO if_ixml_element.
+
+    objects_node = template_over_all->create_simple_element(
+                                        name   = 'IMPL_DETAILS'
+                                        parent = root_node ).
+
+    ls_impl_details = ecatt_vo->get_impl_details( ).
+
+    CALL FUNCTION 'SDIXML_DATA_TO_DOM'
+      EXPORTING
+        name         = 'IMPL_DET'
+        dataobject   = ls_impl_details
+      IMPORTING
+        data_as_dom  = li_element
+      CHANGING
+        document     = template_over_all
+      EXCEPTIONS
+        illegal_name = 1
+        OTHERS       = 2.
+
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    li_insert_objects = template_over_all->find_from_name( 'IMPL_DETAILS' ).
+
+    li_insert_objects->append_child( new_child = li_element ).
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_upl IMPLEMENTATION.
@@ -51775,5 +52082,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-13T12:42:50.005Z
+* abapmerge - 2018-04-13T12:45:03.191Z
 ****************************************************
