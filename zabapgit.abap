@@ -620,6 +620,7 @@ CLASS zcl_abapgit_object_cus1 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_cus0 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_cmpt DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_clas_old DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_clas_new DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
@@ -4618,6 +4619,20 @@ CLASS zcl_abapgit_object_clas DEFINITION INHERITING FROM zcl_abapgit_object_clas
   PROTECTED SECTION.
     METHODS:
       deserialize_abap REDEFINITION.
+
+ENDCLASS.
+"! This class is just a different name for zcl_zabapgit_object_clas.
+"! It has been created to heal repositories of the brave ones who uses abapGit
+"! experimental features "! and had the luck to serialize their CLAS objects with
+"! the serializer LCL_OBJECT_CLAS_NEW.
+"! It can be removed on 2019-04 where we expect all CLAS object being
+"! re-serialized with the serializer LCL_OBJECT_CLAS.
+"! References: https://github.com/larshp/abapGit/pull/1311
+CLASS zcl_abapgit_object_clas_new DEFINITION INHERITING FROM zcl_abapgit_object_clas.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_metadata REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_program FINAL.
@@ -46800,6 +46815,14 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 ENDCLASS.
+CLASS zcl_abapgit_object_clas_new IMPLEMENTATION.
+
+  METHOD get_metadata.
+    rs_metadata = super->get_metadata( ).
+    rs_metadata-class = 'ZCL_ABAPGIT_OBJECT_CLAS'.
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
   METHOD constructor.
@@ -52276,5 +52299,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-13T12:47:47.488Z
+* abapmerge - 2018-04-14T08:00:32.809Z
 ****************************************************
