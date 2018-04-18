@@ -604,6 +604,7 @@ CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecat DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_dtel DEFINITION DEFERRED.
@@ -628,6 +629,8 @@ CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
 CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_system_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_system_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
@@ -2393,6 +2396,54 @@ CLASS zcl_abapgit_ecatt_script_upl DEFINITION
     DATA: mv_external_xml TYPE xstring.
 
 ENDCLASS.
+CLASS zcl_abapgit_ecatt_system_downl DEFINITION
+  INHERITING FROM cl_apl_ecatt_systems_download
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      download REDEFINITION,
+
+      get_xml_stream
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring,
+
+      get_xml_stream_size
+        RETURNING
+          VALUE(rv_xml_stream_size) TYPE int4.
+
+  PROTECTED SECTION.
+    METHODS:
+      download_data REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_xml_stream      TYPE xstring,
+      mv_xml_stream_size TYPE int4.
+
+    METHODS:
+      set_systems_data_to_template.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_system_upl DEFINITION
+  INHERITING FROM cl_apl_ecatt_systems_upload
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      z_set_stream_for_upload
+        IMPORTING
+          im_xml TYPE xstring.
+
+  PROTECTED SECTION.
+    METHODS:
+      upload_data_from_stream REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA: mv_external_xml TYPE xstring.
+
+ENDCLASS.
 CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
   INHERITING FROM cl_apl_ecatt_vo_download
   CREATE PUBLIC .
@@ -3299,6 +3350,26 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ecat DEFINITION
+  INHERITING FROM zcl_abapgit_object_ecatt_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING
+          !is_item     TYPE zif_abapgit_definitions=>ty_item
+          !iv_language TYPE spras.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type REDEFINITION,
+      get_upload REDEFINITION,
+      get_download REDEFINITION.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ecsd DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
   FINAL
   CREATE PUBLIC .
@@ -43304,6 +43375,32 @@ CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+  ENDMETHOD.
+  METHOD get_object_type.
+
+    rv_object_type = cl_apl_ecatt_const=>obj_type_system_data.
+
+  ENDMETHOD.
+
+  METHOD get_upload.
+
+    CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_system_upl.
+
+  ENDMETHOD.
+
+  METHOD get_download.
+
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_system_downl.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD clear_attributes.
 
@@ -47420,6 +47517,120 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
     li_insert_objects->append_child( new_child = li_element ).
 
   ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
+
+  METHOD upload_data_from_stream.
+
+    " Downport
+    template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
+
+  ENDMETHOD.
+  METHOD z_set_stream_for_upload.
+
+    " downport from CL_APL_ECATT_SYSTEMS_UPLOAD SET_STREAM_FOR_UPLOAD
+    mv_external_xml = im_xml.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
+
+  METHOD download.
+
+    " Downport
+
+    DATA: lv_partyp TYPE string.
+
+    load_help = im_load_help.
+    typ = im_object_type.
+
+    TRY.
+        cl_apl_ecatt_object=>show_object(
+          EXPORTING
+            im_obj_type = im_object_type
+            im_name     = im_object_name
+            im_version  = im_object_version
+          IMPORTING
+            re_object   = ecatt_object ).
+      CATCH cx_ecatt INTO ex_ecatt.
+        RETURN.
+    ENDTRY.
+
+    lv_partyp = cl_apl_ecatt_const=>params_type_par.
+
+* build_schema( ).
+* set_attributes_to_schema( ).
+    set_attributes_to_template( ).
+* set_systems_data_to_schema( ).
+    set_systems_data_to_template( ).
+* download_schema( ).
+    download_data( ).
+
+  ENDMETHOD.
+  METHOD download_data.
+
+    " Downport
+
+    zcl_abapgit_ecatt_helper=>download_data(
+      EXPORTING
+        ii_template_over_all = template_over_all
+      IMPORTING
+        ev_xml_stream        = mv_xml_stream
+        ev_xml_stream_size   = mv_xml_stream_size ).
+
+  ENDMETHOD.
+  METHOD get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+  METHOD get_xml_stream_size.
+
+    rv_xml_stream_size = mv_xml_stream_size.
+
+  ENDMETHOD.
+  METHOD set_systems_data_to_template.
+
+    DATA: lo_ecatt_systems TYPE REF TO cl_apl_ecatt_system_data,
+          lt_sys_data      TYPE etsys_def_tabtype,
+          ls_sys_data      TYPE etsys_def,
+          li_item          TYPE REF TO if_ixml_element,
+          li_sysdata_node  TYPE REF TO if_ixml_element.
+
+    lo_ecatt_systems ?= ecatt_object.
+    lt_sys_data = lo_ecatt_systems->get_system_data( ).
+
+    li_sysdata_node = template_over_all->create_simple_element(
+                        name = 'SYSTEMS_DATA'
+                        parent = root_node ).
+
+    etpar_node = template_over_all->create_simple_element(
+                   name = 'ETSYS_DEF'
+                   parent = li_sysdata_node ).
+
+    LOOP AT lt_sys_data INTO ls_sys_data.
+
+      CLEAR: ls_sys_data-sys_desc, ls_sys_data-instance.
+
+      CALL FUNCTION 'SDIXML_DATA_TO_DOM'
+        EXPORTING
+          name         = 'item'
+          dataobject   = ls_sys_data
+        IMPORTING
+          data_as_dom  = li_item
+        CHANGING
+          document     = template_over_all
+        EXCEPTIONS
+          illegal_name = 1
+          OTHERS       = 2.
+
+      etpar_node->append_child( new_child = li_item ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_upl IMPLEMENTATION.
   METHOD upload_data_from_stream.
@@ -52400,5 +52611,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-18T17:59:07.154Z
+* abapmerge - 2018-04-18T18:01:10.920Z
 ****************************************************
