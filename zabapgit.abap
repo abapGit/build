@@ -604,6 +604,7 @@ CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecsp DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecat DEFINITION DEFERRED.
@@ -631,6 +632,8 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_system_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_system_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_sp_upload DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_sp_download DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
@@ -2396,6 +2399,61 @@ CLASS zcl_abapgit_ecatt_script_upl DEFINITION
     DATA: mv_external_xml TYPE xstring.
 
 ENDCLASS.
+CLASS zcl_abapgit_ecatt_sp_download DEFINITION
+  INHERITING FROM cl_apl_ecatt_download
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      download REDEFINITION,
+
+      get_xml_stream
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring,
+
+      get_xml_stream_size
+        RETURNING
+          VALUE(rv_xml_stream_size) TYPE int4.
+
+  PROTECTED SECTION.
+    METHODS:
+      download_data REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_xml_stream      TYPE xstring,
+      mv_xml_stream_size TYPE int4.
+
+    METHODS:
+      set_sp_data_to_template.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_sp_upload DEFINITION
+  INHERITING FROM cl_apl_ecatt_upload
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS:
+      z_set_stream_for_upload
+        IMPORTING
+          im_xml TYPE xstring,
+
+      upload
+        REDEFINITION.
+
+  PROTECTED SECTION.
+    METHODS:
+      upload_data_from_stream REDEFINITION,
+
+      get_ecatt_sp
+        RAISING
+          cx_ecatt_apl .
+
+  PRIVATE SECTION.
+    DATA: mv_external_xml TYPE xstring.
+
+ENDCLASS.
 CLASS zcl_abapgit_ecatt_system_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_systems_download
   CREATE PUBLIC .
@@ -3387,6 +3445,26 @@ CLASS zcl_abapgit_object_ecat DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsd DEFINITION
+  INHERITING FROM zcl_abapgit_object_ecatt_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING
+          !is_item     TYPE zif_abapgit_definitions=>ty_item
+          !iv_language TYPE spras.
+
+  PROTECTED SECTION.
+    METHODS:
+      get_object_type REDEFINITION,
+      get_upload REDEFINITION,
+      get_download REDEFINITION.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_ecsp DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
   FINAL
   CREATE PUBLIC .
@@ -43392,6 +43470,32 @@ CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+  ENDMETHOD.
+  METHOD get_object_type.
+
+    rv_object_type = cl_apl_ecatt_const=>obj_type_start_profile.
+
+  ENDMETHOD.
+
+  METHOD get_upload.
+
+    CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_sp_upload.
+
+  ENDMETHOD.
+
+  METHOD get_download.
+
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_sp_download.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   METHOD constructor.
 
@@ -47887,6 +47991,241 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
       etpar_node->append_child( new_child = li_item ).
 
     ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
+  METHOD get_ecatt_sp.
+
+    " downport
+
+    DATA: li_ixml               TYPE REF TO if_ixml,
+          li_section            TYPE REF TO if_ixml_element,
+          li_dom                TYPE REF TO if_ixml_document,
+          li_root               TYPE REF TO if_ixml_node,
+          lv_start_profile      TYPE etxml_line_str,
+          lv_exception_occurred TYPE etonoff.
+
+    TRY.
+        li_section = template_over_all->find_from_name_ns(
+                                          name = 'START_PROFILE' ).
+
+        IF NOT li_section IS INITIAL.
+          CLASS cl_ixml DEFINITION LOAD .
+          li_ixml = cl_ixml=>create( ).
+          li_dom  = li_ixml->create_document( ).
+          li_root ?= li_section->clone( ).
+          li_dom->append_child( new_child = li_root ).
+          CALL FUNCTION 'SDIXML_DOM_TO_XML'
+            EXPORTING
+              document      = li_dom
+            IMPORTING
+              xml_as_string = lv_start_profile.
+
+          ecatt_sp->set_sp_attributes( i_sp_xml = lv_start_profile ).
+        ENDIF.
+      CATCH cx_ecatt_apl .
+        lv_exception_occurred = 'X'.
+    ENDTRY.
+
+    IF  lv_exception_occurred = 'X'.
+      raise_upload_exception( previous = exception_to_raise ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD upload.
+
+    " We inherit from CL_APL_ECATT_UPLOAD because CL_APL_ECATT_SP_UPLOAD
+    " doesn't exist in 702
+
+    " Downport
+
+    "26.03.2013
+
+    DATA: lx_ecatt              TYPE REF TO cx_ecatt_apl,
+          lv_exists             TYPE etonoff,
+          lv_exc_occ            TYPE etonoff,
+          ls_tadir              TYPE tadir,
+          lv_exception_occurred TYPE etonoff.
+
+    TRY.
+        ch_object-i_devclass = ch_object-d_devclass.
+        ch_object-i_akh      = ch_object-d_akh.
+
+        super->upload(
+          EXPORTING
+            i_use_cts_api_2 = i_use_cts_api_2
+          CHANGING
+            ch_object       = ch_object ).
+
+        upload_data_from_stream( im_xml_file = ch_object-filename ).
+
+      CATCH cx_ecatt_apl INTO lx_ecatt.
+        IF template_over_all IS INITIAL.
+          RAISE EXCEPTION lx_ecatt.
+        ELSE.
+          lv_exc_occ = 'X'.
+        ENDIF.
+    ENDTRY.
+
+    TRY.
+        get_attributes_from_dom_new( CHANGING ch_object = ch_object ).
+      CATCH cx_ecatt_apl INTO lx_ecatt.
+        lv_exc_occ = 'X'.
+    ENDTRY.
+
+    ecatt_sp ?= ecatt_object.
+
+    TRY.
+        get_ecatt_sp( ).
+      CATCH cx_ecatt_apl INTO lx_ecatt.
+        lv_exc_occ = 'X'.
+    ENDTRY.
+
+    TRY.
+        lv_exists = cl_apl_ecatt_object=>existence_check_object(
+                      im_name               = ch_object-d_obj_name
+                      im_version            = ch_object-d_obj_ver
+                      im_obj_type           = ch_object-s_obj_type
+                      im_exists_any_version = 'X' ).
+
+        IF lv_exists EQ space.
+          ecatt_sp->set_tadir_for_new_object( im_tadir_for_new_object = tadir_preset ).
+        ENDIF.
+      CATCH cx_ecatt.
+        CLEAR lv_exists.
+    ENDTRY.
+
+    TRY.
+        ecatt_sp->save( im_do_commit = 'X' ).
+      CATCH cx_ecatt_apl INTO lx_ecatt.
+        lv_exc_occ = 'X'.
+    ENDTRY.
+* Devesh,C5129871  18.07.2011  Releasing enqueu after uploading
+*begin
+    TRY.
+        ecatt_object->close_object( im_suppress_events ='X' ).
+      CATCH cx_ecatt_apl INTO lx_ecatt.
+        lv_exception_occurred = 'X'.
+    ENDTRY.
+*end
+*     get devclass from existing object
+    TRY.
+        cl_apl_ecatt_object=>get_tadir_entry(
+          EXPORTING im_obj_name = ch_object-d_obj_name
+                    im_obj_type = ch_object-s_obj_type
+          IMPORTING ex_tadir = ls_tadir ).
+
+        ch_object-d_devclass = ls_tadir-devclass.
+
+      CATCH cx_ecatt.
+        CLEAR ls_tadir.
+    ENDTRY.
+    IF lv_exc_occ = 'X'.
+      raise_upload_exception( previous = lx_ecatt ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD upload_data_from_stream.
+
+    " Downport
+    template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
+
+  ENDMETHOD.
+  METHOD z_set_stream_for_upload.
+
+    " downport from CL_APL_ECATT_START_PROFIL SET_STREAM_FOR_UPLOAD
+    mv_external_xml = im_xml.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
+  METHOD download.
+
+    " We inherit from CL_APL_ECATT_DOWNLOAD because CL_APL_ECATT_SP_DOWNLOAD
+    " doesn't exist in 702
+
+    " Downport
+
+    DATA: lv_partyp TYPE string.
+
+    load_help = im_load_help.
+    typ = im_object_type.
+
+    TRY.
+        cl_apl_ecatt_object=>show_object(
+          EXPORTING
+            im_obj_type = im_object_type
+            im_name     = im_object_name
+            im_version  = im_object_version
+          IMPORTING
+            re_object   = ecatt_object ).
+      CATCH cx_ecatt INTO ex_ecatt.
+        RETURN.
+    ENDTRY.
+
+    lv_partyp = cl_apl_ecatt_const=>params_type_par.
+
+    set_attributes_to_template( ).
+
+    ecatt_sp ?= ecatt_object.
+
+    set_sp_data_to_template( ).
+
+    download_data( ).
+
+  ENDMETHOD.
+  METHOD download_data.
+
+    " Downport
+
+    zcl_abapgit_ecatt_helper=>download_data(
+      EXPORTING
+        ii_template_over_all = template_over_all
+      IMPORTING
+        ev_xml_stream        = mv_xml_stream
+        ev_xml_stream_size   = mv_xml_stream_size ).
+
+  ENDMETHOD.
+  METHOD get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+  METHOD get_xml_stream_size.
+
+    rv_xml_stream_size = mv_xml_stream_size.
+
+  ENDMETHOD.
+
+  METHOD set_sp_data_to_template.
+
+    " downport
+
+    DATA: li_dom                     TYPE REF TO if_ixml_document,
+          li_start_profile_data_node TYPE REF TO if_ixml_element,
+          li_element                 TYPE REF TO if_ixml_element,
+          lv_sp_xml                  TYPE etxml_line_str.
+
+    li_start_profile_data_node = template_over_all->create_simple_element(
+                                name = 'START_PROFILE'
+                                parent = root_node ).
+
+    TRY.
+        ecatt_sp->get_sp_attributes(
+          IMPORTING
+            e_sp_xml = lv_sp_xml ).
+      CATCH cx_ecatt_apl .
+    ENDTRY.
+
+    CALL FUNCTION 'SDIXML_XML_TO_DOM'
+      EXPORTING
+        xml      = lv_sp_xml
+      IMPORTING
+        document = li_dom.
+
+    li_element = li_dom->get_root_element( ).
+    li_start_profile_data_node->append_child( new_child = li_element ).
 
   ENDMETHOD.
 
@@ -52870,5 +53209,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-22T11:10:27.165Z
+* abapmerge - 2018-04-22T11:26:16.156Z
 ****************************************************
