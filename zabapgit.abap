@@ -11576,6 +11576,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
     ls_child-devclass  = iv_child.
     ls_child-dlvunit   = li_parent->software_component.
+    ls_child-component = li_parent->application_component.
     ls_child-ctext     = iv_child.
     ls_child-parentcl  = mv_package.
     ls_child-pdevclass = li_parent->transport_layer.
@@ -53225,5 +53226,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-23T06:51:31.365Z
+* abapmerge - 2018-04-23T06:53:02.129Z
 ****************************************************
