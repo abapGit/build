@@ -2526,6 +2526,18 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
       download_data REDEFINITION.
 
   PRIVATE SECTION.
+    " downport missing types
+    TYPES:
+      etvo_bus_msg_tabtype   TYPE STANDARD TABLE OF ecvo_bus_msg,
+      etvo_invert_validation TYPE c LENGTH 1,
+      etvo_error_prio        TYPE n LENGTH 1,
+      BEGIN OF etvoimpl_det,
+        impl_name    TYPE etvo_impl_name,
+        impl_type    TYPE etvo_impl_type,
+        impl_subtype TYPE etvo_impl_subtype,
+        impl_package TYPE etvo_package,
+      END OF etvoimpl_det.
+
     DATA:
       mv_xml_stream      TYPE xstring,
       mv_xml_stream_size TYPE int4.
@@ -43400,7 +43412,9 @@ CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_object_type.
 
-    rv_object_type = cl_apl_ecatt_const=>obj_type_ecatt_vo.
+*    constant missing in 702
+*    rv_object_type = cl_apl_ecatt_const=>obj_type_ecatt_vo.
+    rv_object_type = 'ECVO'.
 
   ENDMETHOD.
 
@@ -43479,7 +43493,9 @@ CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_object_type.
 
-    rv_object_type = cl_apl_ecatt_const=>obj_type_start_profile.
+*    constant missing in 702
+*    rv_object_type = cl_apl_ecatt_const=>obj_type_start_profile.
+    rv_object_type = 'ECSP'.
 
   ENDMETHOD.
 
@@ -53209,5 +53225,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-04-22T11:27:27.037Z
+* abapmerge - 2018-04-23T06:51:31.365Z
 ****************************************************
