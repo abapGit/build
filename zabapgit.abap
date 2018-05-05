@@ -1005,6 +1005,11 @@ INTERFACE zif_abapgit_definitions.
          END OF ty_repo_item.
   TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
+  TYPES: BEGIN OF ty_s_user_settings,
+           max_lines        TYPE i,
+           adt_jump_enabled TYPE abap_bool,
+         END OF ty_s_user_settings.
+
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
   CONSTANTS gc_abap_version TYPE string VALUE 'v1.64.0' ##NO_TEXT.
   CONSTANTS:
@@ -5678,12 +5683,12 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         zcx_abapgit_exception .
     METHODS get_settings
       RETURNING
-        VALUE(rs_user_settings) TYPE zcl_abapgit_settings=>ty_s_user_settings
+        VALUE(rs_user_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
       RAISING
         zcx_abapgit_exception.
     METHODS set_settings
       IMPORTING
-        is_user_settings TYPE zcl_abapgit_settings=>ty_s_user_settings
+        is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings
       RAISING
         zcx_abapgit_exception.
   PRIVATE SECTION.
@@ -5706,7 +5711,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         diff_unified     TYPE abap_bool,
         favorites        TYPE tt_favorites,
         repo_config      TYPE ty_repo_config_tt,
-        settings         TYPE zcl_abapgit_settings=>ty_s_user_settings,
+        settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
       END OF ty_user .
 
     DATA mv_user TYPE xubname .
@@ -9181,10 +9186,6 @@ ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
-    TYPES: BEGIN OF ty_s_user_settings,
-             max_lines        TYPE i,
-             adt_jump_enabled TYPE abap_bool,
-           END OF ty_s_user_settings.
     CONSTANTS: c_commitmsg_comment_length_dft TYPE i VALUE 50.
     CONSTANTS: c_commitmsg_body_size_dft      TYPE i VALUE 72.
 
@@ -9249,7 +9250,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           zcx_abapgit_exception,
       get_user_settings
         RETURNING
-          VALUE(rs_settings) TYPE zcl_abapgit_settings=>ty_s_user_settings
+          VALUE(rs_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
         RAISING
           zcx_abapgit_exception,
       set_xml_settings
@@ -9260,7 +9261,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       set_defaults,
       set_user_settings
         IMPORTING
-          is_user_settings TYPE ty_s_user_settings.
+          is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -9273,7 +9274,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
              commitmsg_body_size      TYPE i,
            END OF ty_s_settings.
     DATA: ms_settings      TYPE ty_s_settings,
-          ms_user_settings TYPE ty_s_user_settings.
+          ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
 
 ENDCLASS.
 CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
@@ -26903,7 +26904,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
   ENDMETHOD.  " validate_and_unprettify_xml
 ENDCLASS.
-CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
   METHOD get_instance.
 
     IF go_persist IS NOT BOUND.
@@ -26915,7 +26916,7 @@ CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
   METHOD modify.
 
     DATA: lv_settings      TYPE string,
-          ls_user_settings TYPE zcl_abapgit_settings=>ty_s_user_settings.
+          ls_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
     lv_settings = io_settings->get_settings_xml( ).
 
     zcl_abapgit_persistence_db=>get_instance( )->modify(
@@ -26969,7 +26970,7 @@ CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
 
     DATA: lt_abapgit_users    TYPE STANDARD TABLE OF char12
                                    WITH NON-UNIQUE DEFAULT KEY,
-          ls_user_settings    TYPE zcl_abapgit_settings=>ty_s_user_settings,
+          ls_user_settings    TYPE zif_abapgit_definitions=>ty_s_user_settings,
           lo_user_persistence TYPE REF TO zcl_abapgit_persistence_user.
 
     FIELD-SYMBOLS: <ls_user>                     LIKE LINE OF lt_abapgit_users,
@@ -53575,5 +53576,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-04T08:20:18.011Z
+* abapmerge - 2018-05-05T16:34:20.578Z
 ****************************************************
