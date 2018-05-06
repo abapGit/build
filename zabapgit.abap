@@ -29358,7 +29358,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDIF.
 
 * loop dynpros and skip generated selection screens
-    LOOP AT lt_d020s ASSIGNING <ls_d020s> WHERE type <> 'S'.
+    LOOP AT lt_d020s ASSIGNING <ls_d020s>
+        WHERE type <> 'S' AND type <> 'W' AND type <> 'J'.
 
       CALL FUNCTION 'RPY_DYNPRO_READ'
         EXPORTING
@@ -53576,5 +53577,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-05T16:34:20.578Z
+* abapmerge - 2018-05-06T06:59:32.183Z
 ****************************************************
