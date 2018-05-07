@@ -14503,6 +14503,11 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rs_result-path     = is_local-file-path.
     rs_result-filename = is_local-file-filename.
 
+    IF is_local-file-sha1 = is_remote-sha1.
+      rs_result-match = abap_true.
+      RETURN.
+    ENDIF.
+
     " Match against current state
     READ TABLE it_state INTO ls_file_sig
       WITH KEY path = is_local-file-path
@@ -53576,5 +53581,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-06T06:59:48.353Z
+* abapmerge - 2018-05-07T14:52:39.496Z
 ****************************************************
