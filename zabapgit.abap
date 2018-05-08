@@ -43886,13 +43886,13 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_version.
 
-    DATA: ls_object      TYPE etmobjects,
-          lo_upload      TYPE REF TO cl_apl_ecatt_upload,
-          lv_xml         TYPE xstring,
-          lv_text        TYPE string,
-          li_document    TYPE REF TO if_ixml_document,
-          lv_version     TYPE string,
-          lx_error       TYPE REF TO cx_ecatt.
+    DATA: ls_object   TYPE etmobjects,
+          lo_upload   TYPE REF TO cl_apl_ecatt_upload,
+          lv_xml      TYPE xstring,
+          lv_text     TYPE string,
+          li_document TYPE REF TO if_ixml_document,
+          lv_version  TYPE string,
+          lx_error    TYPE REF TO cx_ecatt.
 
     lv_version = get_version_from_node( ii_version_node ).
 
@@ -43919,8 +43919,6 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
     TRY.
         lo_upload->upload(
-          EXPORTING
-            im_commit_flag = abap_true
           CHANGING
             ch_object      = ls_object ).
 
@@ -45465,7 +45463,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
+CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -45521,7 +45519,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     ii_package->set_permissions_changeable(
       EXPORTING
         i_changeable                = iv_lock
-        i_suppress_dialog           = abap_true
+* downport, does not exist in 7.30. Let's see if we can get along without it
+*        i_suppress_dialog           = abap_true
       EXCEPTIONS
         object_already_changeable   = 1
         object_already_unlocked     = 2
@@ -45617,7 +45616,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
         EXCEPTIONS
           object_not_changeable = 1
           object_invalid        = 2
-          deletion_not_allowed  = 3
+*          deletion_not_allowed  = 3 downport, does not exist in 7.30
           intern_err            = 4
           OTHERS                = 5 ).
       IF sy-subrc <> 0.
@@ -45718,8 +45717,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
           prefix_in_use              = 13
           unexpected_error           = 14
           intern_err                 = 15
-          wrong_mainpack_value       = 16
-          superpackage_invalid       = 17
+*          wrong_mainpack_value       = 16  downport, does not exist in 7.30
+*          superpackage_invalid       = 17  downport, does not exist in 7.30
           OTHERS                     = 18 ).
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
@@ -45756,9 +45755,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
           unexpected_error           = 15
           intern_err                 = 16
           no_access                  = 17
-          invalid_translation_depth  = 18
-          wrong_mainpack_value       = 19
-          superpackage_invalid       = 20
+*          invalid_translation_depth  = 18 downport, does not exist in 7.30
+*          wrong_mainpack_value       = 19 downport, does not exist in 7.30
+*          superpackage_invalid       = 20 downport, does not exist in 7.30
 *          error_in_cts_checks        = 21 downport, does not exist in 7.31
           OTHERS                     = 22 ).
       IF sy-subrc <> 0.
@@ -45878,8 +45877,14 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     " Clear text descriptions that might be localized
     CLEAR: ls_package_data-comp_text,
            ls_package_data-dlvu_text,
-           ls_package_data-translation_depth_text,
            ls_package_data-layer_text.
+
+    ASSIGN COMPONENT 'TRANSLATION_DEPTH_TEXT'
+           OF STRUCTURE ls_package_data
+           TO <lg_field>.
+    IF sy-subrc = 0.
+      CLEAR: <lg_field>.
+    ENDIF.
 
     ASSIGN COMPONENT 'TRANSLATION_GRAPH_DEPTH_TEXT'
            OF STRUCTURE ls_package_data
@@ -45894,7 +45899,12 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
            ls_package_data-pdevclass.
 
     " Not usable on customer systems
-    CLEAR: ls_package_data-translation_depth.
+    ASSIGN COMPONENT 'TRANSLATION_DEPTH'
+           OF STRUCTURE ls_package_data
+           TO <lg_field>.
+    IF sy-subrc = 0.
+      CLEAR: <lg_field>.
+    ENDIF.
 
     ASSIGN COMPONENT 'TRANSLATION_GRAPH_DEPTH'
            OF STRUCTURE ls_package_data
@@ -47912,8 +47922,6 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
         ch_object-i_akh      = ch_object-d_akh.
 
         super->upload(
-          EXPORTING
-            i_use_cts_api_2 = i_use_cts_api_2
           CHANGING
             ch_object       = ch_object ).
 
@@ -53581,5 +53589,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-08T05:40:36.884Z
+* abapmerge - 2018-05-08T11:41:19.067Z
 ****************************************************
