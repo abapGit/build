@@ -48420,8 +48420,6 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
         ch_object-i_akh      = ch_object-d_akh.
 
         super->upload(
-          EXPORTING
-            i_use_cts_api_2 = i_use_cts_api_2
           CHANGING
             ch_object       = ch_object ).
 
@@ -53589,5 +53587,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-08T11:41:19.067Z
+* abapmerge - 2018-05-08T12:26:22.348Z
 ****************************************************
