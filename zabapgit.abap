@@ -10951,7 +10951,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                      it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -11071,8 +11071,11 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.                    "check_exists
-
   METHOD exists.
+
+    IF is_item IS INITIAL.
+      RETURN.
+    ENDIF.
 
     IF zcl_abapgit_objects=>is_supported( is_item ) = abap_false.
       rv_exists = abap_true.
@@ -11082,7 +11085,6 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     rv_exists = zcl_abapgit_objects=>exists( is_item ).
 
   ENDMETHOD.
-
   METHOD get_object_package.
 
     DATA: ls_tadir TYPE tadir,
@@ -53633,5 +53635,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-10T05:54:48.879Z
+* abapmerge - 2018-05-10T06:18:30.089Z
 ****************************************************
