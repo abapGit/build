@@ -34039,6 +34039,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     SELECT SINGLE * FROM tddat INTO rs_tobj-tddat WHERE tabname = iv_tabname.
 
     SELECT SINGLE * FROM tvdir INTO rs_tobj-tvdir WHERE tabname = iv_tabname.
+    CLEAR: rs_tobj-tvdir-gendate, rs_tobj-tvdir-gentime.
 
     SELECT * FROM tvimf INTO TABLE rs_tobj-tvimf WHERE tabname = iv_tabname.
 
@@ -34205,10 +34206,12 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'TOBJ'
                   CHANGING cg_data = ls_tobj ).
+    ls_tobj-tvdir-gendate = sy-datum.
+    ls_tobj-tvdir-gentime = sy-uzeit.
 
     update_extra( ls_tobj ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -36881,6 +36884,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    CLEAR ls_icfservice-icf_mandt.
     CLEAR ls_icfservice-icfnodguid.
     CLEAR ls_icfservice-icfparguid.
     CLEAR ls_icfservice-icf_user.
@@ -53608,5 +53612,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-10T05:49:20.173Z
+* abapmerge - 2018-05-10T05:53:08.429Z
 ****************************************************
