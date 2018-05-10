@@ -460,7 +460,7 @@ CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
-CLASS zcl_abapgit_default_task DEFINITION DEFERRED.
+CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
@@ -669,7 +669,10 @@ INTERFACE zif_abapgit_sap_package.
       IMPORTING iv_child TYPE devclass
       RAISING   zcx_abapgit_exception,
     exists
-      RETURNING VALUE(rv_bool) TYPE abap_bool.
+      RETURNING VALUE(rv_bool) TYPE abap_bool,
+    are_changes_recorded_in_tr_req
+      RETURNING VALUE(rv_are_changes_rec_in_tr_req) TYPE abap_bool
+      RAISING zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -821,10 +824,15 @@ INTERFACE zif_abapgit_definitions.
            decision TYPE ty_yes_no,
          END OF ty_requirements.
 
+  TYPES: BEGIN OF ty_transport,
+           required  TYPE abap_bool,
+           transport TYPE trkorr,
+         END OF ty_transport.
   TYPES: BEGIN OF ty_deserialize_checks,
            overwrite       TYPE ty_overwrite_tt,
            warning_package TYPE ty_overwrite_tt,
            requirements    TYPE ty_requirements,
+           transport       TYPE ty_transport,
          END OF ty_deserialize_checks.
 
   TYPES:
@@ -7250,6 +7258,13 @@ CLASS zcl_abapgit_popups DEFINITION
         !cv_show_popup TYPE char01
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS popup_transport_request
+      RETURNING
+        VALUE(rv_transport) TYPE trkorr
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
+
   PRIVATE SECTION.
 
     TYPES:
@@ -8122,15 +8137,14 @@ CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PUBLIC.
       gt_commits  TYPE TABLE OF zif_abapgit_definitions=>ty_commit,
       gt_tags     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
 ENDCLASS.
-CLASS zcl_abapgit_default_task DEFINITION
-  FINAL
-  CREATE PUBLIC .
+CLASS zcl_abapgit_default_transport DEFINITION
+  CREATE PRIVATE .
 
   PUBLIC SECTION.
     CLASS-METHODS:
       get_instance
         RETURNING
-          VALUE(ro_instance) TYPE REF TO zcl_abapgit_default_task
+          VALUE(ro_instance) TYPE REF TO zcl_abapgit_default_transport
         RAISING
           zcx_abapgit_exception.
 
@@ -8141,55 +8155,49 @@ CLASS zcl_abapgit_default_task DEFINITION
 
       set
         IMPORTING
-          iv_package TYPE devclass
+          iv_transport TYPE trkorr
         RAISING
           zcx_abapgit_exception,
 
       reset
         RAISING
           zcx_abapgit_exception.
-
   PRIVATE SECTION.
 
-    CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_task .
-    DATA mv_task_is_set_by_abapgit TYPE abap_bool .
-    DATA ms_save_default_task TYPE e070use .
+    CLASS-DATA:
+      mo_instance TYPE REF TO zcl_abapgit_default_transport .
 
-    METHODS store_current_default_task
-      RAISING
-        zcx_abapgit_exception .
-    METHODS restore_saved_default_task
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_default_task
-      RETURNING
-        VALUE(rs_default_task) TYPE e070use
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_default_task
-      IMPORTING
-        !iv_order TYPE trkorr
-        !iv_task  TYPE trkorr
-      RAISING
-        zcx_abapgit_exception .
-    METHODS call_transport_order_popup
-      EXPORTING
-        !ev_order TYPE trkorr
-        !ev_task  TYPE trkorr
-      RAISING
-        zcx_abapgit_exception .
-    METHODS are_objects_recorded_in_tr_req
-      IMPORTING
-        !iv_package                    TYPE devclass
-      RETURNING
-        VALUE(rv_are_objects_recorded) TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-    METHODS clear_default_task
-      IMPORTING
-        !is_default_task TYPE e070use
-      RAISING
-        zcx_abapgit_exception .
+    DATA:
+      mv_is_set_by_abapgit TYPE abap_bool,
+      ms_save              TYPE e070use.
+
+    METHODS:
+      store
+        RAISING
+          zcx_abapgit_exception,
+
+      restore
+        RAISING
+          zcx_abapgit_exception,
+
+      get
+        RETURNING
+          VALUE(rs_default_task) TYPE e070use
+        RAISING
+          zcx_abapgit_exception,
+
+      set_internal
+        IMPORTING
+          iv_transport TYPE trkorr
+        RAISING
+          zcx_abapgit_exception,
+
+      clear
+        IMPORTING
+          is_default_task TYPE e070use
+        RAISING
+          zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
   FINAL
@@ -8880,7 +8888,7 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
     METHODS set_local_settings
       IMPORTING
-        !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -8903,7 +8911,6 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
       RAISING
         zcx_abapgit_exception .
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -11513,7 +11520,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
+CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
   ENDMETHOD.
@@ -11724,6 +11731,32 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_sap_package~are_changes_recorded_in_tr_req.
+
+    DATA: li_package TYPE REF TO if_package.
+
+    cl_package_factory=>load_package(
+      EXPORTING
+        i_package_name             = mv_package
+      IMPORTING
+        e_package                  = li_package
+      EXCEPTIONS
+        object_not_existing        = 1
+        unexpected_error           = 2
+        intern_err                 = 3
+        no_access                  = 4
+        object_locked_and_modified = 5
+        OTHERS                     = 6 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from CL_PACKAGE_FACTORY=>LOAD_PACKAGE { sy-subrc }| ).
+    ENDIF.
+
+    rv_are_changes_rec_in_tr_req = li_package->wbo_korr_flag.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
@@ -11986,7 +12019,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
   ENDMETHOD.                    "validate_package
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD actualize_head_branch.
     DATA lv_branch_name TYPE string.
     lv_branch_name = mo_branches->get_head( )-name.
@@ -12478,7 +12511,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
   ENDMETHOD.  "list
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD constructor.
 
     ASSERT NOT is_data-key IS INITIAL.
@@ -12503,13 +12536,18 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     IF is_checks-requirements-met = 'N' AND is_checks-requirements-decision IS INITIAL.
       zcx_abapgit_exception=>raise( 'Requirements not met and undecided ').
     ENDIF.
+
+    IF is_checks-transport-required = abap_true AND is_checks-transport-transport IS INITIAL.
+      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
+    ENDIF.
+
     TRY.
         lt_updated_files = zcl_abapgit_objects=>deserialize(
-          io_repo   = me
-          is_checks = is_checks ).
+            io_repo   = me
+            is_checks = is_checks ).
       CATCH zcx_abapgit_exception INTO lx_error.
 * ensure to reset default transport request task
-        zcl_abapgit_default_task=>get_instance( )->reset( ).
+        zcl_abapgit_default_transport=>get_instance( )->reset( ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
@@ -12536,6 +12574,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
     rs_checks-requirements-met = zcl_abapgit_requirement_helper=>is_requirements_met(
       lt_requirements ).
+
+    rs_checks-transport-required = zcl_abapgit_sap_package=>get( ms_data-package )->are_changes_recorded_in_tr_req( ).
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -12899,6 +12939,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.  " update_local_checksums
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -13040,7 +13081,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -13251,7 +13292,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
                    <ls_deser>  LIKE LINE OF lt_late.
     lv_package = io_repo->get_package( ).
 
-    zcl_abapgit_default_task=>get_instance( )->set( lv_package ).
+    IF is_checks-transport-required = abap_true.
+      zcl_abapgit_default_transport=>get_instance( )->set( is_checks-transport-transport ).
+    ENDIF.
+
     zcl_abapgit_objects_activation=>clear( ).
 
     lt_remote = io_repo->get_files_remote( ).
@@ -13341,7 +13385,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     SORT rt_accessed_files BY path ASCENDING filename ASCENDING.
     DELETE ADJACENT DUPLICATES FROM rt_accessed_files. " Just in case
 
-    zcl_abapgit_default_task=>get_instance( )->reset( ).
+    zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
   ENDMETHOD.                    "deserialize
   METHOD deserialize_checks.
@@ -15282,62 +15326,9 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
 
   ENDMETHOD.                    "resolve_ddic
 ENDCLASS.
-CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
-  METHOD are_objects_recorded_in_tr_req.
+CLASS zcl_abapgit_default_transport IMPLEMENTATION.
 
-    DATA: li_package TYPE REF TO if_package.
-
-    cl_package_factory=>load_package(
-      EXPORTING
-        i_package_name             = iv_package
-      IMPORTING
-        e_package                  = li_package
-      EXCEPTIONS
-        object_not_existing        = 1
-        unexpected_error           = 2
-        intern_err                 = 3
-        no_access                  = 4
-        object_locked_and_modified = 5
-        OTHERS                     = 6 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from CL_PACKAGE_FACTORY=>LOAD_PACKAGE { sy-subrc }| ).
-    ENDIF.
-
-    rv_are_objects_recorded = li_package->wbo_korr_flag.
-
-  ENDMETHOD.
-  METHOD call_transport_order_popup.
-
-    DATA: lt_e071  TYPE STANDARD TABLE OF e071,
-          lt_e071k TYPE STANDARD TABLE OF e071k.
-
-    CLEAR: ev_order,
-           ev_task.
-
-    CALL FUNCTION 'TRINT_ORDER_CHOICE'
-      IMPORTING
-        we_order               = ev_order
-        we_task                = ev_task
-      TABLES
-        wt_e071                = lt_e071
-        wt_e071k               = lt_e071k
-      EXCEPTIONS
-        no_correction_selected = 1
-        display_mode           = 2
-        object_append_error    = 3
-        recursive_call         = 4
-        wrong_order_type       = 5
-        OTHERS                 = 6.
-
-    IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( 'cancelled' ).
-    ELSEIF sy-subrc > 1.
-      zcx_abapgit_exception=>raise( |Error from TRINT_ORDER_CHOICE { sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD clear_default_task.
+  METHOD clear.
 
     CALL FUNCTION 'TR_TASK_RESET'
       EXPORTING
@@ -15358,10 +15349,10 @@ CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    store_current_default_task( ).
+    store( ).
 
   ENDMETHOD.
-  METHOD get_default_task.
+  METHOD get.
 
     DATA: lt_e070use TYPE STANDARD TABLE OF e070use.
 
@@ -15384,39 +15375,39 @@ CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_instance.
 
-    IF go_instance IS NOT BOUND.
-      CREATE OBJECT go_instance.
+    IF mo_instance IS NOT BOUND.
+      CREATE OBJECT mo_instance.
     ENDIF.
 
-    ro_instance = go_instance.
+    ro_instance = mo_instance.
 
   ENDMETHOD.
   METHOD reset.
 
     DATA: ls_default_task TYPE e070use.
 
-    IF mv_task_is_set_by_abapgit = abap_false.
+    IF mv_is_set_by_abapgit = abap_false.
       " if the default transport request task isn't set
       " by us there is nothing to do.
       RETURN.
     ENDIF.
 
-    CLEAR mv_task_is_set_by_abapgit.
+    CLEAR mv_is_set_by_abapgit.
 
-    ls_default_task = get_default_task( ).
+    ls_default_task = get( ).
 
     IF ls_default_task IS NOT INITIAL.
 
-      clear_default_task( ls_default_task ).
+      clear( ls_default_task ).
 
     ENDIF.
 
-    restore_saved_default_task( ).
+    restore( ).
 
   ENDMETHOD.
-  METHOD restore_saved_default_task.
+  METHOD restore.
 
-    IF ms_save_default_task IS INITIAL.
+    IF ms_save IS INITIAL.
       " There wasn't a default transport request before
       " so we needn't restore anything.
       RETURN.
@@ -15424,8 +15415,8 @@ CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
 
     CALL FUNCTION 'TR_TASK_SET'
       EXPORTING
-        iv_order          = ms_save_default_task-ordernum
-        iv_task           = ms_save_default_task-tasknum
+        iv_order          = ms_save-ordernum
+        iv_task           = ms_save-tasknum
       EXCEPTIONS
         invalid_username  = 1
         invalid_category  = 2
@@ -15446,38 +15437,27 @@ CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
     " requests. If true then we set the default task, so that no annoying
     " transport request popups are shown while deserializing.
 
-    DATA: lv_order TYPE trkorr,
-          lv_task  TYPE trkorr.
-
-    IF mv_task_is_set_by_abapgit = abap_true.
+    IF mv_is_set_by_abapgit = abap_true.
       " the default transport request task is already set by us
       " -> no reason to do it again.
       RETURN.
     ENDIF.
 
-    IF are_objects_recorded_in_tr_req( iv_package ) = abap_false.
-      " Objects of package are not recorded in transport request,
-      " no need to proceed.
-      RETURN.
+    IF iv_transport IS INITIAL.
+      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
     ENDIF.
 
-    call_transport_order_popup(
-      IMPORTING
-        ev_order = lv_order
-        ev_task  = lv_task ).
+    set_internal( iv_transport ).
 
-    set_default_task( iv_order = lv_order
-                      iv_task  = lv_task ).
-
-    mv_task_is_set_by_abapgit = abap_true.
+    mv_is_set_by_abapgit = abap_true.
 
   ENDMETHOD.
-  METHOD set_default_task.
+  METHOD set_internal.
 
     CALL FUNCTION 'TR_TASK_SET'
       EXPORTING
-        iv_order          = iv_order
-        iv_task           = iv_task
+        iv_order          = iv_transport
+*       iv_task           = iv_task
       EXCEPTIONS
         invalid_username  = 1
         invalid_category  = 2
@@ -15492,9 +15472,9 @@ CLASS ZCL_ABAPGIT_DEFAULT_TASK IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD store_current_default_task.
+  METHOD store.
 
-    ms_save_default_task = get_default_task( ).
+    ms_save = get( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -17339,7 +17319,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD clone.
 
     DATA: lo_repo  TYPE REF TO zcl_abapgit_repo_online,
@@ -17383,6 +17363,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
           lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
           zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
           ls_checks-requirements-decision = 'Y'.
+        ENDIF.
+
+        IF ls_checks-transport-required = abap_true.
+          ls_checks-transport-transport = zcl_abapgit_popups=>popup_transport_request( ).
         ENDIF.
 
       CATCH zcx_abapgit_cancel.
@@ -18126,7 +18110,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.  "open_abapgit_wikipage
 ENDCLASS.
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -19293,6 +19277,34 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD popup_transport_request.
+
+    DATA: lt_e071  TYPE STANDARD TABLE OF e071,
+          lt_e071k TYPE STANDARD TABLE OF e071k.
+
+    CALL FUNCTION 'TRINT_ORDER_CHOICE'
+      IMPORTING
+        we_order               = rv_transport
+      TABLES
+        wt_e071                = lt_e071
+        wt_e071k               = lt_e071k
+      EXCEPTIONS
+        no_correction_selected = 1
+        display_mode           = 2
+        object_append_error    = 3
+        recursive_call         = 4
+        wrong_order_type       = 5
+        OTHERS                 = 6.
+
+    IF sy-subrc = 1.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ELSEIF sy-subrc > 1.
+      zcx_abapgit_exception=>raise( |Error from TRINT_ORDER_CHOICE { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -53596,5 +53608,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-08T17:35:31.264Z
+* abapmerge - 2018-05-10T05:49:20.173Z
 ****************************************************
