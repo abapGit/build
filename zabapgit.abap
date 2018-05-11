@@ -1075,11 +1075,11 @@ INTERFACE zif_abapgit_definitions.
   CONSTANTS gc_author_regex TYPE string VALUE '^([\\\w\s\.@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_action,
-      repo_clone               TYPE string VALUE 'repo_clone',
       repo_refresh             TYPE string VALUE 'repo_refresh',
       repo_remove              TYPE string VALUE 'repo_remove',
       repo_settings            TYPE string VALUE 'repo_settings',
       repo_purge               TYPE string VALUE 'repo_purge',
+      repo_newonline           TYPE string VALUE 'repo_newonline',
       repo_newoffline          TYPE string VALUE 'repo_newoffline',
       repo_remote_attach       TYPE string VALUE 'repo_remote_attach',
       repo_remote_detach       TYPE string VALUE 'repo_remote_detach',
@@ -7465,9 +7465,11 @@ CLASS zcl_abapgit_services_repo DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS clone
+    CLASS-METHODS new_online
       IMPORTING
-        !iv_url TYPE string
+        !iv_url        TYPE string
+      RETURNING
+        VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_online
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
@@ -11964,6 +11966,9 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
         is_data = ls_repo.
 
     add( ro_repo ).
+
+    ro_repo->initialize( ).
+    ro_repo->find_remote_dot_abapgit( ).
 
   ENDMETHOD.                    "new_online
   METHOD purge.
@@ -17370,34 +17375,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
-  METHOD clone.
-
-    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo_online,
-          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
-    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-      iv_url         = ls_popup-url
-      iv_branch_name = ls_popup-branch_name
-      iv_package     = ls_popup-package ).
-
-    toggle_favorite( lo_repo->get_key( ) ).
-
-    lo_repo->initialize( ).
-    lo_repo->find_remote_dot_abapgit( ).
-    lo_repo->status( ). " check for errors
-
-    gui_deserialize( lo_repo ).
-
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
-
-    COMMIT WORK.
-
-  ENDMETHOD.  "clone
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -17448,6 +17426,27 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.  "new_offline
+  METHOD new_online.
+
+    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup.
+    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
+    IF ls_popup-cancel = abap_true.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
+      iv_url         = ls_popup-url
+      iv_branch_name = ls_popup-branch_name
+      iv_package     = ls_popup-package ).
+
+    toggle_favorite( ro_repo->get_key( ) ).
+
+* Set default repo for user
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( ro_repo->get_key( ) ).
+
+    COMMIT WORK.
+
+  ENDMETHOD.
   METHOD open_se80.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -18062,10 +18061,6 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
         iv_url         = iv_url
         iv_branch_name = 'refs/heads/master'
         iv_package     = iv_package ) ##NO_TEXT.
-
-      lo_repo->initialize( ).
-      lo_repo->find_remote_dot_abapgit( ).
-      lo_repo->status( ). " check for errors
 
       zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
@@ -20048,7 +20043,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '<p><ul>' ).
 
     ro_html->add( `<li>To clone a remote repo (e.g. from github) click ` ).
-    ro_html->add_a( iv_txt = '+ Clone' iv_act = zif_abapgit_definitions=>gc_action-repo_clone ).
+    ro_html->add_a( iv_txt = '+ Online' iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ).
     ro_html->add( ' from the top menu. This will copy a remote repo to your system.</li>' ).
 
     ro_html->add( `<li>To add a local package as a repo click ` ).
@@ -20830,8 +20825,11 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_clone OR 'install'.    " Repo clone, 'install' is for explore page
-        zcl_abapgit_services_repo=>clone( lv_url ).
+      WHEN zif_abapgit_definitions=>gc_action-repo_newonline.
+        zcl_abapgit_services_repo=>new_online( lv_url ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+      WHEN 'install'.    " 'install' is for explore page
+        zcl_abapgit_services_repo=>new_online( lv_url ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-repo_refresh_checksums.          " Rebuil local checksums
         zcl_abapgit_services_repo=>refresh_local_checksums( lv_key ).
@@ -21833,7 +21831,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     lo_helpsub->add( iv_txt = 'Tutorial'        iv_act = zif_abapgit_definitions=>gc_action-go_tutorial ) ##NO_TEXT.
     lo_helpsub->add( iv_txt = 'abapGit wiki'    iv_act = zif_abapgit_definitions=>gc_action-abapgit_wiki ) ##NO_TEXT.
 
-    ro_menu->add( iv_txt = '+ Clone'            iv_act = zif_abapgit_definitions=>gc_action-repo_clone ) ##NO_TEXT.
+    ro_menu->add( iv_txt = '+ Online'           iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ) ##NO_TEXT.
     ro_menu->add( iv_txt = '+ Offline'          iv_act = zif_abapgit_definitions=>gc_action-repo_newoffline ) ##NO_TEXT.
     ro_menu->add( iv_txt = 'Explore'            iv_act = zif_abapgit_definitions=>gc_action-go_explore ) ##NO_TEXT.
 
@@ -53761,5 +53759,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-11T08:15:14.152Z
+* abapmerge - 2018-05-11T08:15:45.066Z
 ****************************************************
