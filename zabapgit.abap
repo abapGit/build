@@ -12631,8 +12631,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     rs_checks-requirements-met = zcl_abapgit_requirement_helper=>is_requirements_met(
       lt_requirements ).
 
-    rs_checks-transport-required = zcl_abapgit_sap_package=>get( ms_data-package )->are_changes_recorded_in_tr_req( ).
-
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
 
@@ -13454,6 +13452,11 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     rs_checks-warning_package = warning_package_find(
       io_repo    = io_repo
       it_results = lt_results ).
+
+    IF lines( lt_results ) > 0.
+      rs_checks-transport-required = zcl_abapgit_sap_package=>get( io_repo->get_package( )
+                                         )->are_changes_recorded_in_tr_req( ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD deserialize_objects.
@@ -53698,5 +53701,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-11T08:16:05.766Z
+* abapmerge - 2018-05-11T08:16:37.884Z
 ****************************************************
