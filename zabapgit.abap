@@ -18806,7 +18806,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     IF sy-subrc = 1.
 * looks like the function module used does not exist on all
 * versions since 702, so show an error
-      zcx_abapgit_exception=>raise( 'Function module PB_POPUP_PACKAGE_CREATE does not exist' ).
+      zcx_abapgit_exception=>raise( 'Your system does not support automatic creation of packages.' &&
+        'Please, create the package manually.' ).
     ENDIF.
 
     CALL FUNCTION 'PB_POPUP_PACKAGE_CREATE'
@@ -53756,5 +53757,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-11T08:11:17.346Z
+* abapmerge - 2018-05-11T08:11:42.864Z
 ****************************************************
