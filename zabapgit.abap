@@ -46468,7 +46468,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_ddl  TYPE REF TO object,
-          lr_data TYPE REF TO data.
+          lr_data TYPE REF TO data,
+          lt_clr_comps TYPE STANDARD TABLE OF fieldname WITH DEFAULT KEY.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any.
@@ -46490,15 +46491,17 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DDLS error reading' ).
     ENDTRY.
 
-    ASSIGN COMPONENT 'AS4USER' OF STRUCTURE <lg_data> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-    ASSIGN COMPONENT 'AS4DATE' OF STRUCTURE <lg_data> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-    ASSIGN COMPONENT 'AS4TIME' OF STRUCTURE <lg_data> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
+    APPEND 'AS4USER' TO lt_clr_comps.
+    APPEND 'AS4DATE' TO lt_clr_comps.
+    APPEND 'AS4TIME' TO lt_clr_comps.
+    APPEND 'ACTFLAG' TO lt_clr_comps.
+    APPEND 'CHGFLAG' TO lt_clr_comps.
+
+    LOOP AT lt_clr_comps ASSIGNING field-symbol(<lv_comp>).
+      ASSIGN COMPONENT <lv_comp> OF STRUCTURE <lg_data> TO <lg_field>.
+      ASSERT sy-subrc = 0.
+      CLEAR <lg_field>.
+    ENDLOOP.
 
     ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
     ASSERT sy-subrc = 0.
@@ -53702,5 +53705,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-11T08:25:17.372Z
+* abapmerge - 2018-05-12T05:24:34.484Z
 ****************************************************
