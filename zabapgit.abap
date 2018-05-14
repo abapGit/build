@@ -10325,7 +10325,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
   ENDMETHOD.                    "read_pair
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
+CLASS zcl_abapgit_zip IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -10345,9 +10345,16 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.                    "encode_files
   METHOD export.
 
-    DATA: lo_log TYPE REF TO zcl_abapgit_log,
-          lt_zip TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA: lo_log     TYPE REF TO zcl_abapgit_log,
+          lt_zip     TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          lv_package TYPE devclass.
     CREATE OBJECT lo_log.
+
+    lv_package = io_repo->get_package( ).
+
+    IF zcl_abapgit_sap_package=>get( lv_package )->exists( ) = abap_false.
+      zcx_abapgit_exception=>raise( |Package { lv_package } doesn't exist| ).
+    ENDIF.
 
     lt_zip = io_repo->get_files_local( io_log    = lo_log
                                        it_filter = it_filter ).
@@ -45048,20 +45055,43 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     DATA: lv_objname TYPE rsedd0-ddobjname.
     lv_objname = ms_item-obj_name.
 
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'D'
-*       no_ask_delete_append = abap_true parameter not available in lower NW versions
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
-    ENDIF.
+    TRY.
+        CALL FUNCTION 'RS_DD_DELETE_OBJ'
+          EXPORTING
+            no_ask               = abap_true
+            objname              = lv_objname
+            objtype              = 'D'
+            no_ask_delete_append = abap_true
+          EXCEPTIONS
+            not_executed         = 1
+            object_not_found     = 2
+            object_not_specified = 3
+            permission_failure   = 4.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
+        ENDIF.
+
+      CATCH cx_sy_dyn_call_param_not_found.
+
+        TRY.
+            CALL FUNCTION 'RS_DD_DELETE_OBJ'
+              EXPORTING
+                no_ask               = abap_true
+                objname              = lv_objname
+                objtype              = 'D'
+*               no_ask_delete_append = abap_true parameter not available in lower NW versions
+              EXCEPTIONS
+                not_executed         = 1
+                object_not_found     = 2
+                object_not_specified = 3
+                permission_failure   = 4.
+            IF sy-subrc <> 0.
+              zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
+            ENDIF.
+
+        ENDTRY.
+
+    ENDTRY.
 
   ENDMETHOD.                    "delete
   METHOD zif_abapgit_object~deserialize.
@@ -53780,5 +53810,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-14T14:45:49.728Z
+* abapmerge - 2018-05-14T14:47:00.056Z
 ****************************************************
