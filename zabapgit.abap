@@ -7711,9 +7711,19 @@ CLASS zcl_abapgit_log DEFINITION CREATE PUBLIC.
              msg  TYPE string,
              type TYPE symsgty,
              rc   TYPE balsort,
-           END OF ty_log.
-
+           END OF ty_log,
+           BEGIN OF ty_log_out,
+             type TYPE icon_d,
+             msg  TYPE string,
+           END OF ty_log_out,
+           tty_log_out TYPE STANDARD TABLE OF ty_log_out
+                            WITH NON-UNIQUE DEFAULT KEY.
     DATA: mt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY.
+
+    METHODS:
+      prepare_log_for_display
+        RETURNING
+          VALUE(rt_log_out) TYPE zcl_abapgit_log=>tty_log_out.
 
 ENDCLASS.
 CLASS zcl_abapgit_login_manager DEFINITION
@@ -16799,7 +16809,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
+CLASS zcl_abapgit_log IMPLEMENTATION.
   METHOD add.
 
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
@@ -16820,26 +16830,82 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
     rv_yes = boolc( sy-subrc = 0 ).
   ENDMETHOD.
+  METHOD prepare_log_for_display.
+
+    DATA: ls_log TYPE ty_log_out.
+
+    FIELD-SYMBOLS: <ls_log> TYPE ty_log.
+
+    LOOP AT mt_log ASSIGNING <ls_log>.
+
+      CLEAR: ls_log.
+
+      ls_log-msg = <ls_log>-msg.
+
+      CASE <ls_log>-type.
+        WHEN 'E' OR 'A' OR 'X'.
+          ls_log-type = icon_led_red.
+        WHEN 'W'.
+          ls_log-type = icon_led_yellow.
+        WHEN 'I' OR 'S'.
+          ls_log-type = icon_led_green.
+        WHEN OTHERS.
+          ls_log-type = icon_led_inactive.
+      ENDCASE.
+
+      INSERT ls_log INTO TABLE rt_log_out.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD show.
-* only supports showing 4 errors, but I guess this is okay
-* alternatively refactor to use method TO_HTML instead
 
-    DATA: ls_log1 LIKE LINE OF mt_log,
-          ls_log2 LIKE LINE OF mt_log,
-          ls_log3 LIKE LINE OF mt_log,
-          ls_log4 LIKE LINE OF mt_log.
-    READ TABLE mt_log INDEX 1 INTO ls_log1.
-    READ TABLE mt_log INDEX 2 INTO ls_log2.
-    READ TABLE mt_log INDEX 3 INTO ls_log3.
-    READ TABLE mt_log INDEX 4 INTO ls_log4.
+    DATA: lt_log         TYPE tty_log_out,
+          lo_alv         TYPE REF TO cl_salv_table,
+          lx_error       TYPE REF TO cx_salv_error,
+          lo_form_header TYPE REF TO cl_salv_form_header_info,
+          lo_columns     TYPE REF TO cl_salv_columns_table,
+          lo_column      TYPE REF TO cl_salv_column,
+          lo_functions   TYPE REF TO cl_salv_functions_list.
 
-    CALL FUNCTION 'POPUP_TO_INFORM'
-      EXPORTING
-        titel = 'Log'
-        txt1  = ls_log1-msg
-        txt2  = ls_log2-msg
-        txt3  = ls_log3-msg
-        txt4  = ls_log4-msg.
+    lt_log = prepare_log_for_display( ).
+
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = lo_alv
+          CHANGING
+            t_table      = lt_log ).
+
+        lo_functions = lo_alv->get_functions( ).
+        lo_functions->set_all( ).
+
+        lo_columns = lo_alv->get_columns( ).
+
+        lo_columns->set_optimize( ).
+
+        lo_column = lo_columns->get_column( |TYPE| ).
+        lo_column->set_medium_text( |Type| ).
+
+        lo_column = lo_columns->get_column( |MSG| ).
+        lo_column->set_medium_text( |Message| ).
+
+        lo_alv->set_screen_popup( start_column = 10
+                                  end_column   = 120
+                                  start_line   = 4
+                                  end_line     = 20 ).
+
+        CREATE OBJECT lo_form_header
+          EXPORTING
+            text = |Log|.
+
+        lo_alv->set_top_of_list( lo_form_header ).
+
+        lo_alv->display( ).
+
+      CATCH cx_salv_error INTO lx_error.
+        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD to_html.
@@ -53712,5 +53778,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-14T14:39:29.155Z
+* abapmerge - 2018-05-14T14:45:06.023Z
 ****************************************************
