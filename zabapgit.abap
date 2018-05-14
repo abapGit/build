@@ -46472,7 +46472,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
           lt_clr_comps TYPE STANDARD TABLE OF fieldname WITH DEFAULT KEY.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
-                   <lg_field> TYPE any.
+                   <lg_field> TYPE any,
+                   <lv_comp>  LIKE LINE OF lt_clr_comps.
     CREATE DATA lr_data TYPE ('DDDDLSRCV').
     ASSIGN lr_data->* TO <lg_data>.
 
@@ -46497,7 +46498,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     APPEND 'ACTFLAG' TO lt_clr_comps.
     APPEND 'CHGFLAG' TO lt_clr_comps.
 
-    LOOP AT lt_clr_comps ASSIGNING field-symbol(<lv_comp>).
+    LOOP AT lt_clr_comps ASSIGNING <lv_comp>.
       ASSIGN COMPONENT <lv_comp> OF STRUCTURE <lg_data> TO <lg_field>.
       ASSERT sy-subrc = 0.
       CLEAR <lg_field>.
@@ -53705,5 +53706,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-13T06:59:36.146Z
+* abapmerge - 2018-05-14T08:50:58.994Z
 ****************************************************
