@@ -44819,7 +44819,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_dsys IMPLEMENTATION
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -44979,7 +44979,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
         no_ask               = abap_true
         objname              = lv_objname
         objtype              = 'D'
-        no_ask_delete_append = abap_true
+*       no_ask_delete_append = abap_true parameter not available in lower NW versions
       EXCEPTIONS
         not_executed         = 1
         object_not_found     = 2
@@ -53706,5 +53706,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-14T08:50:58.994Z
+* abapmerge - 2018-05-14T10:23:10.595Z
 ****************************************************
