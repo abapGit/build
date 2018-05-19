@@ -14986,7 +14986,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
     DATA: ls_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
     ls_data-master_language = sy-langu.
-    ls_data-starting_folder = '/'.
+    ls_data-starting_folder = '/src/'.
     ls_data-folder_logic    = zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
 
     APPEND '/.gitignore' TO ls_data-ignore.
@@ -53810,5 +53810,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-14T14:47:00.056Z
+* abapmerge - 2018-05-19T07:24:27.467Z
 ****************************************************
