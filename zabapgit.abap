@@ -9341,7 +9341,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rv_length) TYPE i,
       get_settings_xml
         RETURNING
-          VALUE(ev_settings_xml) TYPE string
+          VALUE(rv_settings_xml) TYPE string
         RAISING
           zcx_abapgit_exception,
       get_user_settings
@@ -11572,7 +11572,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     lo_output->add( iv_name = zcl_abapgit_persistence_db=>c_type_settings
                     ig_data = ms_settings ).
 
-    ev_settings_xml = lo_output->render( ).
+    rv_settings_xml = lo_output->render( ).
 
   ENDMETHOD.
 
@@ -54234,5 +54234,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-19T08:19:08.634Z
+* abapmerge - 2018-05-21T11:52:00.930Z
 ****************************************************
