@@ -481,6 +481,7 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
@@ -492,6 +493,7 @@ CLASS zcl_abapgit_html DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_settings DEFINITION DEFERRED.
@@ -776,11 +778,26 @@ INTERFACE zif_abapgit_definitions.
   TYPES:
     ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY .
 
+  TYPES:
+    BEGIN OF ty_git_tag,
+      sha1         TYPE zif_abapgit_definitions=>ty_sha1,
+      object       TYPE zif_abapgit_definitions=>ty_sha1,
+      name         TYPE string,
+      type         TYPE ty_git_branch_type,
+      display_name TYPE string,
+      tagger_name  TYPE string,
+      tagger_email TYPE string,
+      message      TYPE string,
+      body         TYPE string,
+    END OF ty_git_tag .
+  TYPES:
+    ty_git_tag_list_tt TYPE STANDARD TABLE OF ty_git_tag WITH DEFAULT KEY .
   CONSTANTS:
     BEGIN OF c_git_branch_type,
-      branch TYPE ty_git_branch_type VALUE 'HD',
-      tag    TYPE ty_git_branch_type VALUE 'TG',
-      other  TYPE ty_git_branch_type VALUE 'ZZ',
+      branch          TYPE ty_git_branch_type VALUE 'HD',
+      lightweight_tag TYPE ty_git_branch_type VALUE 'TG',
+      annotated_tag   TYPE ty_git_branch_type VALUE 'AT',
+      other           TYPE ty_git_branch_type VALUE 'ZZ',
     END OF c_git_branch_type .
   CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
 
@@ -1574,9 +1591,9 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         zcx_abapgit_exception .
     METHODS get_tags_only   " For potential future use
       RETURNING
-        VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
+        VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     CLASS-METHODS is_ignored
       IMPORTING
         !iv_branch_name  TYPE clike
@@ -1589,9 +1606,11 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rv_display_name) TYPE string .
     CLASS-METHODS get_type
       IMPORTING
-        !iv_branch_name TYPE clike
+        !iv_branch_name      TYPE clike
+        it_result            TYPE stringtab OPTIONAL
+        iv_current_row_index TYPE sytabix OPTIONAL
       RETURNING
-        VALUE(rv_type)  TYPE zif_abapgit_definitions=>ty_git_branch_type .
+        VALUE(rv_type)       TYPE zif_abapgit_definitions=>ty_git_branch_type .
     CLASS-METHODS complete_heads_branch_name
       IMPORTING
         !iv_branch_name TYPE clike
@@ -1642,7 +1661,16 @@ CLASS zcl_abapgit_git_pack DEFINITION
         author    TYPE string,
         committer TYPE string,
         body      TYPE string,
-      END OF ty_commit .
+      END OF ty_commit,
+      BEGIN OF ty_tag,
+        object       TYPE string,
+        type         TYPE string,
+        tag          TYPE string,
+        tagger_name  TYPE string,
+        tagger_email TYPE string,
+        message      TYPE string,
+        body         TYPE string,
+      END OF ty_tag .
     TYPES:
       BEGIN OF ty_adler32,
         sha1 TYPE zif_abapgit_definitions=>ty_sha1,
@@ -1670,6 +1698,13 @@ CLASS zcl_abapgit_git_pack DEFINITION
         VALUE(rs_commit) TYPE ty_commit
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS decode_tag
+      IMPORTING
+        !iv_data      TYPE xstring
+      RETURNING
+        VALUE(rs_tag) TYPE ty_tag
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS encode
       IMPORTING
         !it_objects    TYPE zif_abapgit_definitions=>ty_objects_tt
@@ -1684,9 +1719,16 @@ CLASS zcl_abapgit_git_pack DEFINITION
         VALUE(rv_data) TYPE xstring .
     CLASS-METHODS encode_commit
       IMPORTING
-        !is_commit     TYPE ty_commit
+        is_commit      TYPE ty_commit
       RETURNING
         VALUE(rv_data) TYPE xstring .
+    CLASS-METHODS encode_tag
+      IMPORTING
+        is_tag         TYPE zcl_abapgit_git_pack=>ty_tag
+      RETURNING
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception.
   PRIVATE SECTION.
 
     CONSTANTS:
@@ -1780,9 +1822,10 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS create_tag
       IMPORTING
-        !io_repo TYPE REF TO zcl_abapgit_repo_online
-        !iv_name TYPE string
-        !iv_from TYPE zif_abapgit_definitions=>ty_sha1
+        !io_repo                   TYPE REF TO zcl_abapgit_repo_online
+        is_tag                     TYPE zif_abapgit_definitions=>ty_git_tag
+      RETURNING
+        VALUE(rv_created_tag_type) TYPE  zif_abapgit_definitions=>ty_git_branch_type
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS delete_branch
@@ -1794,7 +1837,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
     CLASS-METHODS delete_tag
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo_online
-        !is_tag  TYPE zif_abapgit_definitions=>ty_git_branch
+        !is_tag  TYPE zif_abapgit_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS full_tree
@@ -1804,9 +1847,9 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       RETURNING
         VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
       RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
+        zcx_abapgit_exception.
 
+  PRIVATE SECTION.
     TYPES: BEGIN OF ty_tree,
              path TYPE string,
              data TYPE xstring,
@@ -1848,13 +1891,18 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       RETURNING VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
       RAISING   zcx_abapgit_exception.
 
-    CLASS-METHODS receive_pack
+    CLASS-METHODS receive_pack_push
       IMPORTING is_comment       TYPE zif_abapgit_definitions=>ty_comment
                 io_repo          TYPE REF TO zcl_abapgit_repo_online
                 it_trees         TYPE ty_trees_tt
                 it_blobs         TYPE zif_abapgit_definitions=>ty_files_tt
                 io_stage         TYPE REF TO zcl_abapgit_stage
       RETURNING VALUE(rv_branch) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS receive_pack_create_tag
+      IMPORTING is_tag  TYPE zif_abapgit_definitions=>ty_git_tag
+                io_repo TYPE REF TO zcl_abapgit_repo_online
       RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_git_transport DEFINITION
@@ -1939,15 +1987,15 @@ CLASS zcl_abapgit_tag DEFINITION
     CLASS-METHODS:
       add_tag_prefix
         IMPORTING
-          !iv_text       TYPE csequence
+          iv_text        TYPE csequence
         RETURNING
           VALUE(rv_text) TYPE string,
 
       remove_tag_prefix
         IMPORTING
-          !iv_text       TYPE string
+          iv_text        TYPE string
         RETURNING
-          VALUE(rv_text) TYPE string .
+          VALUE(rv_text) TYPE string.
 
 ENDCLASS.
 "! Default <em>LIF_2FA-AUTHENTICATOR</em> implememtation
@@ -6247,9 +6295,10 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
     METHODS render_content REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: mo_repo     TYPE REF TO zcl_abapgit_repo_online,
-          mv_compress TYPE abap_bool VALUE abap_false,
-          mt_commits  TYPE zif_abapgit_definitions=>ty_commit_tt.
+    DATA: mo_repo            TYPE REF TO zcl_abapgit_repo_online,
+          mv_compress        TYPE abap_bool VALUE abap_false,
+          mt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
+          mo_branch_overview TYPE REF TO zcl_abapgit_branch_overview.
 
     CONSTANTS: BEGIN OF c_actions,
                  uncompress TYPE string VALUE 'uncompress' ##NO_TEXT,
@@ -6895,6 +6944,49 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
       render_content REDEFINITION.
 
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
+    CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+
+  PUBLIC SECTION.
+
+    CONSTANTS: BEGIN OF c_action,
+                 commit_post   TYPE string VALUE 'commit_post',
+                 commit_cancel TYPE string VALUE 'commit_cancel',
+               END OF c_action.
+
+    METHODS:
+      constructor
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
+        RAISING   zcx_abapgit_exception,
+      zif_abapgit_gui_page~on_event REDEFINITION.
+
+  PROTECTED SECTION.
+    METHODS:
+      render_content REDEFINITION,
+      scripts        REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA: mo_repo_online  TYPE REF TO zcl_abapgit_repo_online.
+
+    METHODS:
+      render_menu
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+      render_form
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        RAISING   zcx_abapgit_exception,
+      render_text_input
+        IMPORTING iv_name        TYPE string
+                  iv_label       TYPE string
+                  iv_value       TYPE string OPTIONAL
+                  iv_max_length  TYPE string OPTIONAL
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+      create_tag
+        IMPORTING
+          it_postdata TYPE cnht_post_data_tab
+        RAISING
+          zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_router DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -7212,6 +7304,11 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !it_postdata TYPE cnht_post_data_tab
       EXPORTING
         !es_fields   TYPE any .
+    CLASS-METHODS parse_tag_request
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      EXPORTING
+        !es_fields   TYPE any .
     CLASS-METHODS decode_bg_update
       IMPORTING
         !iv_getdata      TYPE clike
@@ -7349,15 +7446,7 @@ CLASS zcl_abapgit_popups DEFINITION
         !ev_cancel TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS create_tag_popup
-      IMPORTING
-        !iv_sha1   TYPE zif_abapgit_definitions=>ty_sha1
-      EXPORTING
-        !ev_name   TYPE string
-        !ev_sha1   TYPE zif_abapgit_definitions=>ty_sha1
-        !ev_cancel TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
+
     CLASS-METHODS run_page_class_popup
       EXPORTING
         !ev_name   TYPE string
@@ -7376,14 +7465,6 @@ CLASS zcl_abapgit_popups DEFINITION
         !iv_show_new_option TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(rs_branch)    TYPE zif_abapgit_definitions=>ty_git_branch
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS tag_list_popup
-      IMPORTING
-        !iv_url         TYPE string
-        !iv_select_mode TYPE abap_bool DEFAULT abap_true
-      RETURNING
-        VALUE(rs_tag)   TYPE zif_abapgit_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS repo_popup
@@ -7474,7 +7555,7 @@ CLASS zcl_abapgit_popups DEFINITION
   PRIVATE SECTION.
 
     TYPES:
-      ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
+      ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
 
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
     CLASS-DATA go_select_list_popup TYPE REF TO cl_salv_table .
@@ -7509,11 +7590,12 @@ CLASS zcl_abapgit_popups DEFINITION
           !e_salv_function .
     CLASS-METHODS extract_field_values
       IMPORTING
-        !it_fields  TYPE ty_sval_tt
+        it_fields  TYPE ty_sval_tt
       EXPORTING
-        !ev_url     TYPE abaptxt255-line
-        !ev_package TYPE tdevc-devclass
-        !ev_branch  TYPE textl-line .
+        ev_url     TYPE abaptxt255-line
+        ev_package TYPE tdevc-devclass
+        ev_branch  TYPE textl-line .
+
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
   FINAL
@@ -7563,7 +7645,6 @@ CLASS zcl_abapgit_services_git DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
     TYPES:
       BEGIN OF ty_commit_fields,
         repo_key        TYPE zif_abapgit_persistence=>ty_repo-key,
@@ -7573,7 +7654,7 @@ CLASS zcl_abapgit_services_git DEFINITION
         author_email    TYPE string,
         comment         TYPE string,
         body            TYPE string,
-      END OF ty_commit_fields .
+      END OF ty_commit_fields.
 
     CLASS-METHODS pull
       IMPORTING
@@ -7605,12 +7686,7 @@ CLASS zcl_abapgit_services_git DEFINITION
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
-    CLASS-METHODS create_tag
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+
     CLASS-METHODS delete_tag
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -7636,7 +7712,8 @@ CLASS zcl_abapgit_services_git DEFINITION
         !io_stage  TYPE REF TO zcl_abapgit_stage
       RAISING
         zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_cancel.
+
 ENDCLASS.
 CLASS zcl_abapgit_services_repo DEFINITION
   FINAL
@@ -7732,6 +7809,60 @@ CLASS zcl_abapgit_services_repo DEFINITION
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
+ENDCLASS.
+CLASS zcl_abapgit_tag_popups DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS:
+      tag_list_popup
+        IMPORTING
+          io_repo       TYPE REF TO zcl_abapgit_repo_online
+        RETURNING
+          VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+        RAISING
+          zcx_abapgit_exception,
+
+      tag_select_popup
+        IMPORTING
+          io_repo       TYPE REF TO zcl_abapgit_repo_online
+        RETURNING
+          VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+        RAISING
+          zcx_abapgit_exception .
+
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_tag_out.
+        INCLUDE TYPE zif_abapgit_definitions=>ty_git_tag.
+    TYPES: body_icon TYPE icon_d,
+           END OF ty_tag_out,
+           tty_tag_out TYPE STANDARD TABLE OF ty_tag_out
+                       WITH NON-UNIQUE DEFAULT KEY.
+
+    CLASS-DATA:
+      mt_tags              TYPE tty_tag_out,
+      mo_docking_container TYPE REF TO cl_gui_docking_container,
+      mo_text_control      TYPE REF TO cl_gui_textedit.
+
+    CLASS-METHODS:
+      on_double_click FOR EVENT double_click OF cl_salv_events_table
+        IMPORTING row column,
+
+      prepare_tags_for_display
+        IMPORTING
+          it_tags            TYPE zif_abapgit_definitions=>ty_git_tag_list_tt
+        RETURNING
+          VALUE(rt_tags_out) TYPE zcl_abapgit_tag_popups=>tty_tag_out,
+
+      clean_up,
+
+      show_docking_container_with
+        IMPORTING
+          iv_text TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -8318,25 +8449,39 @@ CLASS zcl_abapgit_background DEFINITION CREATE PUBLIC.
         RETURNING VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user.
 
 ENDCLASS.
-CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PRIVATE.
 
   PUBLIC SECTION.
     CLASS-METHODS: run
-      IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo_online
-      RETURNING VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
+      IMPORTING io_repo                   TYPE REF TO zcl_abapgit_repo_online
+      RETURNING VALUE(ro_branch_overview) TYPE REF TO zcl_abapgit_branch_overview
       RAISING   zcx_abapgit_exception.
+    METHODS:
+      constructor
+        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
+        RAISING   zcx_abapgit_exception,
 
-    CLASS-METHODS: compress
-      IMPORTING it_commits        TYPE zif_abapgit_definitions=>ty_commit_tt
-      RETURNING VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
-      RAISING   zcx_abapgit_exception.
+      get_branches
+        RETURNING VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
 
-    CLASS-METHODS: get_branches
-      RETURNING VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
+      get_tags
+        RETURNING VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
+
+      get_commits
+        RETURNING
+          VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt,
+
+      compress
+        IMPORTING it_commits        TYPE zif_abapgit_definitions=>ty_commit_tt
+        RETURNING VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
+        RAISING   zcx_abapgit_exception.
+
   PRIVATE SECTION.
-
-    CLASS-METHODS:
+    METHODS:
       parse_commits
+        IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+        RAISING   zcx_abapgit_exception,
+      parse_annotated_tags
         IMPORTING it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
         RAISING   zcx_abapgit_exception,
       determine_branch
@@ -8352,10 +8497,12 @@ CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PUBLIC.
       determine_tags
         RAISING zcx_abapgit_exception.
 
-    CLASS-DATA:
-      gt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
-      gt_commits  TYPE TABLE OF zif_abapgit_definitions=>ty_commit,
-      gt_tags     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
+    DATA:
+      mo_repo     TYPE REF TO zcl_abapgit_repo_online,
+      mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      mt_commits  TYPE TABLE OF zif_abapgit_definitions=>ty_commit,
+      mt_tags     TYPE zif_abapgit_definitions=>ty_git_tag_list_tt.
+
 ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
   CREATE PRIVATE .
@@ -15829,7 +15976,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
+CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD compress.
 
     DEFINE _compress.
@@ -15851,11 +15998,11 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
           lv_name     TYPE string,
           lt_temp     LIKE it_commits.
 
-    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF gt_branches,
+    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF mt_branches,
                    <ls_new>    LIKE LINE OF rt_commits,
                    <ls_temp>   LIKE LINE OF lt_temp,
                    <ls_commit> LIKE LINE OF it_commits.
-    LOOP AT gt_branches ASSIGNING <ls_branch>.
+    LOOP AT mt_branches ASSIGNING <ls_branch>.
 
       CLEAR lt_temp.
       lv_name = <ls_branch>-name+11.
@@ -15888,29 +16035,52 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     SORT rt_commits BY time ASCENDING.
 
   ENDMETHOD.
+  METHOD constructor.
+
+    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
+
+    mo_repo = io_repo.
+
+    CLEAR mt_branches.
+    CLEAR mt_commits.
+
+    lt_objects = get_git_objects( io_repo ).
+    parse_commits( lt_objects ).
+    parse_annotated_tags( lt_objects ).
+
+    CLEAR lt_objects.
+
+    determine_branch( ).
+    determine_merges( ).
+    determine_tags( ).
+    fixes( ).
+
+    SORT mt_commits BY time ASCENDING.
+
+  ENDMETHOD.
   METHOD determine_branch.
 
     CONSTANTS: lc_head TYPE string VALUE 'HEAD'.
 
     DATA: lv_name TYPE string.
 
-    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF gt_branches,
-                   <ls_head>   LIKE LINE OF gt_branches,
-                   <ls_commit> LIKE LINE OF gt_commits,
+    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF mt_branches,
+                   <ls_head>   LIKE LINE OF mt_branches,
+                   <ls_commit> LIKE LINE OF mt_commits,
                    <ls_create> LIKE LINE OF <ls_commit>-create.
 * exchange HEAD, and make sure the branch determination starts with the HEAD branch
-    READ TABLE gt_branches ASSIGNING <ls_head> WITH KEY name = lc_head.
+    READ TABLE mt_branches ASSIGNING <ls_head> WITH KEY name = lc_head.
     ASSERT sy-subrc = 0.
-    LOOP AT gt_branches ASSIGNING <ls_branch>
+    LOOP AT mt_branches ASSIGNING <ls_branch>
         WHERE sha1 = <ls_head>-sha1 AND name <> lc_head.
       <ls_head>-name = <ls_branch>-name.
-      DELETE gt_branches INDEX sy-tabix.
+      DELETE mt_branches INDEX sy-tabix.
       EXIT.
     ENDLOOP.
 
-    LOOP AT gt_branches ASSIGNING <ls_branch>.
+    LOOP AT mt_branches ASSIGNING <ls_branch>.
       lv_name = <ls_branch>-name+11.
-      READ TABLE gt_commits ASSIGNING <ls_commit> WITH KEY sha1 = <ls_branch>-sha1.
+      READ TABLE mt_commits ASSIGNING <ls_commit> WITH KEY sha1 = <ls_branch>-sha1.
       ASSERT sy-subrc = 0.
 
       DO.
@@ -15926,7 +16096,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
         IF <ls_commit>-parent1 IS INITIAL.
           EXIT.
         ELSE.
-          READ TABLE gt_commits ASSIGNING <ls_commit>
+          READ TABLE mt_commits ASSIGNING <ls_commit>
               WITH KEY sha1 = <ls_commit>-parent1.
           ASSERT sy-subrc = 0.
         ENDIF.
@@ -15937,22 +16107,22 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_merges.
 
-    FIELD-SYMBOLS: <ls_merged> LIKE LINE OF gt_commits,
-                   <ls_commit> LIKE LINE OF gt_commits.
+    FIELD-SYMBOLS: <ls_merged> LIKE LINE OF mt_commits,
+                   <ls_commit> LIKE LINE OF mt_commits.
 * important: start with the newest first and propagate branches
-    SORT gt_commits BY time DESCENDING.
+    SORT mt_commits BY time DESCENDING.
 
-    LOOP AT gt_commits ASSIGNING <ls_commit> WHERE NOT parent2 IS INITIAL.
+    LOOP AT mt_commits ASSIGNING <ls_commit> WHERE NOT parent2 IS INITIAL.
       ASSERT NOT <ls_commit>-branch IS INITIAL.
 
-      READ TABLE gt_commits ASSIGNING <ls_merged> WITH KEY sha1 = <ls_commit>-parent2.
+      READ TABLE mt_commits ASSIGNING <ls_merged> WITH KEY sha1 = <ls_commit>-parent2.
       IF sy-subrc = 0.
         <ls_commit>-merge = <ls_merged>-branch.
 
 * orphaned, branch has been deleted after merge
         WHILE <ls_merged>-branch IS INITIAL.
           <ls_merged>-branch = <ls_commit>-branch.
-          READ TABLE gt_commits ASSIGNING <ls_merged> WITH KEY sha1 = <ls_merged>-parent1.
+          READ TABLE mt_commits ASSIGNING <ls_merged> WITH KEY sha1 = <ls_merged>-parent1.
           IF sy-subrc <> 0.
             EXIT.
           ENDIF.
@@ -15965,13 +16135,19 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     DATA: lv_tag TYPE LINE OF zif_abapgit_definitions=>ty_commit-tags.
 
-    FIELD-SYMBOLS: <ls_tag>    TYPE zif_abapgit_definitions=>ty_git_branch,
-                   <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    FIELD-SYMBOLS: <ls_tag>    LIKE LINE OF mt_tags,
+                   <ls_commit> LIKE LINE OF mt_commits.
 
-    LOOP AT gt_tags ASSIGNING <ls_tag>.
+    LOOP AT mt_tags ASSIGNING <ls_tag>.
 
-      READ TABLE gt_commits WITH KEY sha1 = <ls_tag>-sha1
-                            ASSIGNING <ls_commit>.
+      IF <ls_tag>-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+        READ TABLE mt_commits WITH KEY sha1 = <ls_tag>-sha1
+                              ASSIGNING <ls_commit>.
+      ELSEIF <ls_tag>-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+        READ TABLE mt_commits WITH KEY sha1 = <ls_tag>-object
+                              ASSIGNING <ls_commit>.
+      ENDIF.
+
       CHECK sy-subrc = 0.
 
       lv_tag = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
@@ -15982,8 +16158,8 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD fixes.
 
-    FIELD-SYMBOLS: <ls_commit> LIKE LINE OF gt_commits.
-    LOOP AT gt_commits ASSIGNING <ls_commit> WHERE NOT merge IS INITIAL.
+    FIELD-SYMBOLS: <ls_commit> LIKE LINE OF mt_commits.
+    LOOP AT mt_commits ASSIGNING <ls_commit> WHERE NOT merge IS INITIAL.
 * commits from old branches
       IF <ls_commit>-branch = <ls_commit>-merge.
         CLEAR <ls_commit>-merge.
@@ -15992,12 +16168,21 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_branches.
-    rt_branches = gt_branches.
+    rt_branches = mt_branches.
+  ENDMETHOD.
+  METHOD get_commits.
+    rt_commits = mt_commits.
   ENDMETHOD.
   METHOD get_git_objects.
 
-    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
-          lo_progress    TYPE REF TO zcl_abapgit_progress.
+    DATA: lo_branch_list       TYPE REF TO zcl_abapgit_git_branch_list,
+          lo_progress          TYPE REF TO zcl_abapgit_progress,
+          lt_branches_and_tags TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+          lt_tags              TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+          ls_tag               LIKE LINE OF mt_tags.
+
+    FIELD-SYMBOLS: <ls_branch> TYPE zif_abapgit_definitions=>ty_git_branch.
+
     CREATE OBJECT lo_progress
       EXPORTING
         iv_total = 1.
@@ -16013,24 +16198,69 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     lo_branch_list = zcl_abapgit_git_transport=>branches( io_repo->get_url( ) ).
 
-    gt_branches = lo_branch_list->get_branches_only( ).
-    gt_tags = lo_branch_list->get_tags_only( ).
+    mt_branches = lo_branch_list->get_branches_only( ).
+    INSERT LINES OF mt_branches INTO TABLE lt_branches_and_tags.
+
+    lt_tags = lo_branch_list->get_tags_only( ).
+    INSERT LINES OF lt_tags INTO TABLE lt_branches_and_tags.
+
+    LOOP AT lt_tags ASSIGNING <ls_branch>.
+      MOVE-CORRESPONDING <ls_branch> TO ls_tag.
+      INSERT ls_tag INTO TABLE mt_tags.
+    ENDLOOP.
 
     zcl_abapgit_git_transport=>upload_pack(
       EXPORTING
         iv_url         = io_repo->get_url( )
         iv_branch_name = io_repo->get_branch_name( )
         iv_deepen      = abap_false
-        it_branches    = gt_branches
+        it_branches    = lt_branches_and_tags
       IMPORTING
         et_objects     = rt_objects ).
 
     DELETE rt_objects WHERE type = zif_abapgit_definitions=>gc_type-blob.
 
   ENDMETHOD.
+  METHOD get_tags.
+
+    rt_tags = mt_tags.
+
+  ENDMETHOD.
+  METHOD parse_annotated_tags.
+
+    DATA: ls_raw TYPE zcl_abapgit_git_pack=>ty_tag,
+          ls_tag LIKE LINE OF mt_tags.
+
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects,
+                   <ls_tag>    LIKE LINE OF mt_tags.
+
+    LOOP AT it_objects ASSIGNING <ls_object> WHERE type = zif_abapgit_definitions=>gc_type-tag.
+
+      ls_raw = zcl_abapgit_git_pack=>decode_tag( <ls_object>-data ).
+
+      CLEAR ls_tag.
+      ls_tag-sha1 = <ls_object>-sha1.
+
+      READ TABLE mt_tags ASSIGNING <ls_tag>
+                         WITH KEY sha1 = <ls_object>-sha1.
+      ASSERT sy-subrc = 0.
+
+      <ls_tag>-name         = |refs/tags/{ ls_raw-tag }|.
+      <ls_tag>-sha1         = <ls_object>-sha1.
+      <ls_tag>-object       = ls_raw-object.
+      <ls_tag>-type         = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+      <ls_tag>-display_name = ls_raw-tag.
+      <ls_tag>-tagger_name  = ls_raw-tagger_name.
+      <ls_tag>-tagger_email = ls_raw-tagger_email.
+      <ls_tag>-message      = ls_raw-message.
+      <ls_tag>-body         = ls_raw-body.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD parse_commits.
 
-    DATA: ls_commit LIKE LINE OF gt_commits,
+    DATA: ls_commit LIKE LINE OF mt_commits,
           lv_trash  TYPE string ##NEEDED,
           ls_raw    TYPE zcl_abapgit_git_pack=>ty_commit.
 
@@ -16052,31 +16282,19 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
         ls_commit-email
         ls_commit-time ##NO_TEXT.
       ASSERT sy-subrc = 0.
-      APPEND ls_commit TO gt_commits.
+      APPEND ls_commit TO mt_commits.
 
     ENDLOOP.
 
   ENDMETHOD.
   METHOD run.
 
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
-    CLEAR gt_branches.
-    CLEAR gt_commits.
-
-    lt_objects = get_git_objects( io_repo ).
-    parse_commits( lt_objects ).
-    CLEAR lt_objects.
-
-    determine_branch( ).
-    determine_merges( ).
-    determine_tags( ).
-    fixes( ).
-
-    SORT gt_commits BY time ASCENDING.
-
-    rt_commits = gt_commits.
+    CREATE OBJECT ro_branch_overview
+      EXPORTING
+        io_repo = io_repo.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_background IMPLEMENTATION.
   METHOD build_comment.
@@ -17726,6 +17944,274 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
+CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
+  METHOD on_double_click.
+
+    FIELD-SYMBOLS: <ls_tag> TYPE zcl_abapgit_tag_popups=>ty_tag_out.
+
+    READ TABLE mt_tags ASSIGNING <ls_tag>
+                       INDEX row.
+    IF sy-subrc <> 0 OR <ls_tag>-body IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    show_docking_container_with( <ls_tag>-body ).
+
+  ENDMETHOD.
+  METHOD prepare_tags_for_display.
+
+    DATA: ls_tag_out LIKE LINE OF rt_tags_out.
+
+    FIELD-SYMBOLS: <ls_tag> TYPE zif_abapgit_definitions=>ty_git_tag.
+
+    LOOP AT it_tags ASSIGNING <ls_tag>.
+
+      CLEAR: ls_tag_out.
+
+      MOVE-CORRESPONDING <ls_tag> TO ls_tag_out.
+
+      ls_tag_out-name = zcl_abapgit_tag=>remove_tag_prefix( ls_tag_out-name ).
+
+      IF ls_tag_out-body IS NOT INITIAL.
+        ls_tag_out-body_icon = |{ icon_display_text }|.
+      ENDIF.
+
+      INSERT ls_tag_out INTO TABLE rt_tags_out.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD tag_list_popup.
+
+    DATA: lo_alv          TYPE REF TO cl_salv_table,
+          lo_table_header TYPE REF TO cl_salv_form_header_info,
+          lo_columns      TYPE REF TO cl_salv_columns_table,
+          lx_alv          TYPE REF TO cx_salv_error,
+          lt_tags         TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
+          lo_event        TYPE REF TO cl_salv_events_table.
+
+    CLEAR: mt_tags.
+
+    lt_tags = zcl_abapgit_branch_overview=>run( io_repo = io_repo )->get_tags( ).
+
+    IF lines( lt_tags ) = 0.
+      zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
+    ENDIF.
+
+    mt_tags = prepare_tags_for_display( lt_tags ).
+
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table   = lo_alv
+          CHANGING
+            t_table        = mt_tags ).
+
+        lo_columns = lo_alv->get_columns( ).
+
+        lo_columns->get_column( `TYPE` )->set_technical( ).
+        lo_columns->get_column( `DISPLAY_NAME` )->set_technical( ).
+        lo_columns->get_column( `BODY` )->set_technical( ).
+
+        lo_columns->get_column( `NAME` )->set_medium_text( 'Tag name' ).
+        lo_columns->set_column_position( columnname = 'NAME'
+                                         position   = 1 ).
+
+        lo_columns->get_column( `TAGGER_NAME` )->set_medium_text( 'Tagger' ).
+        lo_columns->set_column_position( columnname = 'TAGGER_NAME'
+                                         position   = 2 ).
+
+        lo_columns->get_column( `TAGGER_EMAIL` )->set_medium_text( 'Tagger E-Mail' ).
+        lo_columns->set_column_position( columnname = 'TAGGER_EMAIL'
+                                         position   = 3 ).
+
+        lo_columns->get_column( `MESSAGE` )->set_medium_text( 'Tag message' ).
+        lo_columns->set_column_position( columnname = 'MESSAGE'
+                                         position   = 4 ).
+
+        lo_columns->get_column( `BODY_ICON` )->set_medium_text( 'Body' ).
+        lo_columns->get_column( `BODY_ICON` )->set_output_length( 4 ).
+        lo_columns->set_column_position( columnname = 'BODY_ICON'
+                                         position   = 5 ).
+
+        lo_columns->get_column( `SHA1` )->set_output_length( 15 ).
+        lo_columns->get_column( `SHA1` )->set_medium_text( 'SHA' ).
+        lo_columns->set_column_position( columnname = 'SHA1'
+                                         position   = 6 ).
+
+        lo_columns->get_column( `OBJECT` )->set_output_length( 15 ).
+        lo_columns->get_column( `OBJECT` )->set_medium_text( 'Object' ).
+        lo_columns->set_column_position( columnname = 'OBJECT'
+                                         position   = 7 ).
+
+        lo_columns->set_optimize( ).
+
+        lo_alv->set_screen_popup( start_column = 7
+                                  end_column   = 200
+                                  start_line   = 1
+                                  end_line     = 25 ).
+
+        CREATE OBJECT lo_table_header
+          EXPORTING
+            text = `Tags`.
+
+        lo_alv->set_top_of_list( lo_table_header ).
+
+        lo_event = lo_alv->get_event( ).
+
+        SET HANDLER on_double_click FOR lo_event.
+
+        lo_alv->display( ).
+
+      CATCH cx_salv_error INTO lx_alv.
+        zcx_abapgit_exception=>raise( lx_alv->get_text( ) ).
+    ENDTRY.
+
+    clean_up( ).
+
+  ENDMETHOD.
+  METHOD tag_select_popup.
+
+    DATA: lt_tags             TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
+          lv_answer           TYPE c LENGTH 1,
+          lt_selection        TYPE TABLE OF spopli,
+          lv_name_with_prefix TYPE string.
+
+    FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
+                   <ls_tag> LIKE LINE OF lt_tags.
+
+    lt_tags = zcl_abapgit_branch_overview=>run( io_repo = io_repo )->get_tags( ).
+
+    IF lines( lt_tags ) = 0.
+      zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
+    ENDIF.
+
+    LOOP AT lt_tags ASSIGNING <ls_tag>.
+
+      INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
+      <ls_sel>-varoption = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
+
+    ENDLOOP.
+
+    CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
+      EXPORTING
+        textline1          = 'Select tag'
+        titel              = 'Select tag'
+        start_col          = 30
+        start_row          = 5
+      IMPORTING
+        answer             = lv_answer
+      TABLES
+        t_spopli           = lt_selection
+      EXCEPTIONS
+        not_enough_answers = 1
+        too_much_answers   = 2
+        too_much_marks     = 3
+        OTHERS             = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
+    ENDIF.
+
+    IF lv_answer = 'A'.
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
+    ASSERT sy-subrc = 0.
+
+    lv_name_with_prefix = zcl_abapgit_tag=>add_tag_prefix( <ls_sel>-varoption ).
+
+    READ TABLE lt_tags ASSIGNING <ls_tag> WITH KEY name = lv_name_with_prefix.
+    ASSERT sy-subrc = 0.
+
+    rs_tag = <ls_tag>.
+
+  ENDMETHOD.
+
+  METHOD clean_up.
+
+    IF mo_text_control IS BOUND.
+
+      mo_text_control->finalize( ).
+      mo_text_control->free(
+        EXCEPTIONS
+          cntl_error        = 1
+          cntl_system_error = 2
+          OTHERS            = 3 ).
+      ASSERT sy-subrc = 0.
+
+      CLEAR: mo_text_control.
+
+    ENDIF.
+
+    IF mo_docking_container IS BOUND.
+
+      mo_docking_container->finalize( ).
+      mo_docking_container->free(
+        EXCEPTIONS
+          cntl_error        = 1
+          cntl_system_error = 2
+          OTHERS            = 3 ).
+      ASSERT sy-subrc = 0.
+
+      CLEAR: mo_docking_container.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD show_docking_container_with.
+
+    IF mo_docking_container IS NOT BOUND.
+
+      CREATE OBJECT mo_docking_container
+        EXPORTING
+          side                        = cl_gui_docking_container=>dock_at_bottom
+          extension                   = 120
+        EXCEPTIONS
+          cntl_error                  = 1
+          cntl_system_error           = 2
+          create_error                = 3
+          lifetime_error              = 4
+          lifetime_dynpro_dynpro_link = 5
+          OTHERS                      = 6.
+      ASSERT sy-subrc = 0.
+
+    ENDIF.
+
+    IF mo_text_control IS NOT BOUND.
+      CREATE OBJECT mo_text_control
+        EXPORTING
+          parent                 = mo_docking_container
+        EXCEPTIONS
+          error_cntl_create      = 1
+          error_cntl_init        = 2
+          error_cntl_link        = 3
+          error_dp_create        = 4
+          gui_type_not_supported = 5
+          OTHERS                 = 6.
+      ASSERT sy-subrc = 0.
+
+      mo_text_control->set_readonly_mode(
+        EXCEPTIONS
+          error_cntl_call_method = 1
+          invalid_parameter      = 2
+          OTHERS                 = 3 ).
+      ASSERT sy-subrc = 0.
+
+    ENDIF.
+
+    mo_text_control->set_textstream(
+      EXPORTING
+        text                   = iv_text
+      EXCEPTIONS
+        error_cntl_call_method = 1
+        not_supported_by_gui   = 2
+        OTHERS                 = 3 ).
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
@@ -18169,53 +18655,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     MESSAGE 'Switched to new branch' TYPE 'S' ##NO_TEXT.
 
   ENDMETHOD.
-  METHOD create_tag.
-
-    " Here we create a 'lightweight' tag. Which means that
-    " the tag only contains the commit checksum but no meta data
-    "
-    " Later we probably want to add also 'annotated' tags.
-    " Which include more detailed information besides the commit. Like message, date and the tagger
-    "
-    " https://git-scm.com/book/en/v2/Git-Basics-Tagging
-
-    DATA: lv_name   TYPE string,
-          lv_cancel TYPE abap_bool,
-          lx_error  TYPE REF TO zcx_abapgit_exception,
-          lv_text   TYPE string,
-          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    zcl_abapgit_popups=>create_tag_popup(
-      EXPORTING
-        iv_sha1   = lo_repo->get_sha1_local( )
-      IMPORTING
-        ev_name   = lv_name
-        ev_sha1   = lv_sha1
-        ev_cancel = lv_cancel ).
-
-    IF lv_cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    ASSERT lv_name CP 'refs/tags/+*'.
-
-    TRY.
-        zcl_abapgit_git_porcelain=>create_tag( io_repo = lo_repo
-                                       iv_name = lv_name
-                                       iv_from = lv_sha1 ).
-
-      CATCH zcx_abapgit_exception INTO lx_error.
-        zcx_abapgit_exception=>raise( |Cannot create tag { lv_name }. Error: '{ lx_error->get_text( ) }'| ).
-    ENDTRY.
-
-    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( lv_name ) } created| ##NO_TEXT.
-
-    MESSAGE lv_text TYPE 'S'.
-
-  ENDMETHOD.
   METHOD delete_branch.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
@@ -18243,12 +18682,12 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD delete_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch,
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag,
           lv_text TYPE string.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    ls_tag = zcl_abapgit_tag_popups=>tag_select_popup( lo_repo ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -18357,11 +18796,11 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD switch_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_branch.
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = zcl_abapgit_popups=>tag_list_popup( lo_repo->get_url( ) ).
+    ls_tag = zcl_abapgit_tag_popups=>tag_select_popup( lo_repo ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -18379,10 +18818,10 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    zcl_abapgit_popups=>tag_list_popup( iv_url         = lo_repo->get_url( )
-                                iv_select_mode = abap_false ).
+    zcl_abapgit_tag_popups=>tag_list_popup( io_repo = lo_repo ).
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD do_install.
@@ -18755,73 +19194,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       MOVE-CORRESPONDING <lg_data> TO <lg_line>.
       INSERT <lg_line> INTO TABLE <lt_table>.
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD create_tag_popup.
-
-    DATA: lv_answer          TYPE c LENGTH 1,
-          lt_fields          TYPE TABLE OF sval,
-          lv_exit_while_loop TYPE abap_bool.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-
-    CLEAR: ev_name, ev_cancel, ev_sha1.
-
-    add_field( EXPORTING iv_tabname    = 'TBDTPPT'
-                         iv_fieldname  = 'P_TEXT'
-                         iv_fieldtext  = 'SHA'
-                         iv_value      = iv_sha1
-                         iv_obligatory = abap_true
-               CHANGING ct_fields      = lt_fields ).
-
-    add_field( EXPORTING iv_tabname    = 'TEXTL'
-                         iv_fieldname  = 'LINE'
-                         iv_fieldtext  = 'Name'
-                         iv_obligatory = abap_true
-               CHANGING ct_fields      = lt_fields ).
-
-    WHILE lv_exit_while_loop = abap_false.
-
-      CALL FUNCTION 'POPUP_GET_VALUES'
-        EXPORTING
-          popup_title     = 'Create tag'
-        IMPORTING
-          returncode      = lv_answer
-        TABLES
-          fields          = lt_fields
-        EXCEPTIONS
-          error_in_fields = 1
-          OTHERS          = 2 ##NO_TEXT.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_answer = 'A'.
-        ev_cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_fields WITH KEY fieldname = 'P_TEXT'
-                           ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-
-      ev_sha1 = <ls_field>-value.
-
-      READ TABLE lt_fields WITH KEY fieldname = 'LINE'
-                           ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-
-      IF condense( <ls_field>-value ) CS ` `.
-        CLEAR: lv_exit_while_loop.
-        MESSAGE 'Tag name cannot contain blank spaces' TYPE 'S' DISPLAY LIKE 'E'.
-        CONTINUE.
-      ENDIF.
-
-      ev_name = zcl_abapgit_tag=>add_tag_prefix( <ls_field>-value ).
-
-      lv_exit_while_loop = abap_true.
-
-    ENDWHILE.
 
   ENDMETHOD.
   METHOD extract_field_values.
@@ -19594,118 +19966,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.  "run_page_class_popup
-  METHOD tag_list_popup.
-
-    DATA: lo_branches         TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_tags             TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
-          lv_answer           TYPE c LENGTH 1,
-          lt_selection        TYPE TABLE OF spopli,
-          lv_name_with_prefix TYPE string,
-          lo_alv              TYPE REF TO cl_salv_table,
-          lo_table_header     TYPE REF TO cl_salv_form_text,
-          lo_columns          TYPE REF TO cl_salv_columns_table,
-          lx_alv              TYPE REF TO cx_salv_error.
-
-    FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
-                   <ls_tag> LIKE LINE OF lt_tags.
-
-    lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
-    lt_tags     = lo_branches->get_tags_only( ).
-
-    IF lines( lt_tags ) = 0.
-      zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
-    ENDIF.
-
-    IF iv_select_mode = abap_true.
-
-      LOOP AT lt_tags ASSIGNING <ls_tag>.
-
-        INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
-        <ls_sel>-varoption = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
-
-      ENDLOOP.
-
-      CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
-        EXPORTING
-          textline1          = 'Select tag'
-          titel              = 'Select tag'
-          start_col          = 30
-          start_row          = 5
-        IMPORTING
-          answer             = lv_answer
-        TABLES
-          t_spopli           = lt_selection
-        EXCEPTIONS
-          not_enough_answers = 1
-          too_much_answers   = 2
-          too_much_marks     = 3
-          OTHERS             = 4.                             "#EC NOTEXT
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
-      ENDIF.
-
-      IF lv_answer = 'A'. " cancel
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
-      ASSERT sy-subrc = 0.
-
-      lv_name_with_prefix = zcl_abapgit_tag=>add_tag_prefix( <ls_sel>-varoption ).
-
-      READ TABLE lt_tags ASSIGNING <ls_tag> WITH KEY name = lv_name_with_prefix.
-      ASSERT sy-subrc = 0.
-
-      rs_tag = <ls_tag>.
-
-    ELSE.
-
-      LOOP AT lt_tags ASSIGNING <ls_tag>.
-
-        <ls_tag>-name = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
-
-      ENDLOOP.
-
-      TRY.
-          cl_salv_table=>factory(
-            IMPORTING
-              r_salv_table   = lo_alv
-            CHANGING
-              t_table        = lt_tags ).
-
-          lo_columns = lo_alv->get_columns( ).
-
-          lo_columns->get_column( `TYPE` )->set_technical( ).
-          lo_columns->get_column( `IS_HEAD` )->set_technical( ).
-          lo_columns->get_column( `DISPLAY_NAME` )->set_technical( ).
-
-          lo_columns->get_column( `SHA1` )->set_output_length( 30 ).
-          lo_columns->get_column( `SHA1` )->set_medium_text( 'SHA' ).
-
-          lo_columns->get_column( `NAME` )->set_medium_text( 'Tag name' ).
-
-          lo_columns->set_optimize( ).
-
-          lo_alv->set_screen_popup( start_column = 5
-                                    end_column   = 70
-                                    start_line   = 5
-                                    end_line     = 25 ).
-
-          CREATE OBJECT lo_table_header
-            EXPORTING
-              text = `Tags`.
-
-          lo_alv->set_top_of_list( lo_table_header ).
-
-          lo_alv->display( ).
-
-        CATCH cx_salv_error INTO lx_alv.
-          zcx_abapgit_exception=>raise( lx_alv->get_text( ) ).
-      ENDTRY.
-
-    ENDIF.
-
-  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -19872,7 +20132,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
   ENDMETHOD.  "render_items
 ENDCLASS.
-CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   METHOD add_field.
 
     DATA ls_field LIKE LINE OF ct.
@@ -20134,6 +20394,36 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?'.
 
   ENDMETHOD.
+
+  METHOD parse_tag_request.
+
+    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
+
+    DATA: lv_string TYPE string,
+          lt_fields TYPE tihttpnvp.
+
+    FIELD-SYMBOLS <lv_body> TYPE string.
+
+    CLEAR es_fields.
+
+    CONCATENATE LINES OF it_postdata INTO lv_string.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
+    lt_fields = parse_fields_upper_case_name( lv_string ).
+
+    get_field( EXPORTING name = 'SHA1'         it = lt_fields CHANGING cv = es_fields ).
+    get_field( EXPORTING name = 'NAME'         it = lt_fields CHANGING cv = es_fields ).
+    get_field( EXPORTING name = 'TAGGER_NAME'  it = lt_fields CHANGING cv = es_fields ).
+    get_field( EXPORTING name = 'TAGGER_EMAIL' it = lt_fields CHANGING cv = es_fields ).
+    get_field( EXPORTING name = 'MESSAGE'      it = lt_fields CHANGING cv = es_fields ).
+    get_field( EXPORTING name = 'BODY'         it = lt_fields CHANGING cv = es_fields ).
+
+    ASSIGN COMPONENT 'BODY' OF STRUCTURE es_fields TO <lv_body>.
+    ASSERT <lv_body> IS ASSIGNED.
+    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD a.
@@ -20969,7 +21259,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
   ENDMETHOD.  "lif_gui_page~render
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD get_page_background.
 
     CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_bkg
@@ -21248,9 +21538,10 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         zcl_abapgit_services_git=>tag_overview( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-git_tag_create.                " GIT Tag create
-        zcl_abapgit_services_git=>create_tag( lv_key ).
-        zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_tag
+          EXPORTING
+            io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
       WHEN zif_abapgit_definitions=>gc_action-git_tag_delete.                " GIT Tag create
         zcl_abapgit_services_git=>delete_tag( lv_key ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
@@ -21265,6 +21556,200 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.        " on_event
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+
+    mo_repo_online ?= io_repo.
+
+    ms_control-page_title = 'TAG'.
+  ENDMETHOD.
+  METHOD render_content.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<div class="repo">' ).
+    ro_html->add( render_menu( ) ).
+    ro_html->add( render_form( ) ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.  "render_content
+  METHOD render_form.
+
+    CONSTANTS: lc_body_col_max TYPE i VALUE 150.
+
+    DATA: lo_user      TYPE REF TO zcl_abapgit_persistence_user,
+          lv_user      TYPE string,
+          lv_email     TYPE string,
+          lv_s_param   TYPE string,
+          lo_settings  TYPE REF TO zcl_abapgit_settings,
+          lv_body_size TYPE i.
+
+    lo_user  = zcl_abapgit_persistence_user=>get_instance( ).
+
+    lv_user  = lo_user->get_repo_git_user_name( mo_repo_online->get_url( ) ).
+    IF lv_user IS INITIAL.
+      lv_user  = lo_user->get_default_git_user_name( ).
+    ENDIF.
+    IF lv_user IS INITIAL.
+      " get default from user master record
+      lv_user = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_name( ).
+    ENDIF.
+
+    lv_email = lo_user->get_repo_git_user_email( mo_repo_online->get_url( ) ).
+    IF lv_email IS INITIAL.
+      lv_email = lo_user->get_default_git_user_email( ).
+    ENDIF.
+    IF lv_email IS INITIAL.
+      " get default from user master record
+      lv_email = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_email( ).
+    ENDIF.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( |<h3>If comment and body are empty a lightweight tag will be created, |
+               && |otherwise an annotated tag.</h3>| ).
+
+    ro_html->add( '<div class="form-container">' ).
+    ro_html->add( '<form id="commit_form" class="aligned-form"'
+               && ' method="post" action="sapevent:commit_post">' ).
+
+    ro_html->add( render_text_input( iv_name  = 'sha1'
+                                     iv_label = 'SHA1'
+                                     iv_value = mo_repo_online->get_sha1_local( ) ) ).
+
+    ro_html->add( render_text_input( iv_name  = 'name'
+                                     iv_label = 'tag name' ) ).
+
+    ro_html->add( render_text_input( iv_name  = 'tagger_name'
+                                     iv_label = 'tagger name'
+                                     iv_value = lv_user ) ).
+
+    ro_html->add( render_text_input( iv_name  = 'tagger_email'
+                                     iv_label = 'tagger e-mail'
+                                     iv_value = lv_email ) ).
+
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    lv_s_param = lo_settings->get_commitmsg_comment_length( ).
+
+    ro_html->add( render_text_input( iv_name       = 'message'
+                                     iv_label      = 'message'
+                                     iv_max_length = lv_s_param ) ).
+
+    ro_html->add( '<div class="row">' ).
+    ro_html->add( '<label for="c-body">body</label>' ).
+
+    lv_body_size = lo_settings->get_commitmsg_body_size( ).
+    IF lv_body_size > lc_body_col_max.
+      lv_body_size = lc_body_col_max.
+    ENDIF.
+    ro_html->add( |<textarea id="c-body" name="body" rows="10" cols="| &&
+                  |{ lv_body_size }"></textarea>| ).
+
+    ro_html->add( '<input type="submit" class="hidden-submit">' ).
+    ro_html->add( '</div>' ).
+
+    ro_html->add( '</form>' ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.    "render_form
+  METHOD render_menu.
+
+    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CREATE OBJECT ro_html.
+    CREATE OBJECT lo_toolbar.
+
+    lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
+                     iv_txt = 'Create'
+                     iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
+                     iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ) ##NO_TEXT.
+
+    lo_toolbar->add( iv_act = c_action-commit_cancel
+                     iv_txt = 'Cancel'
+                     iv_opt = zif_abapgit_definitions=>gc_html_opt-cancel ) ##NO_TEXT.
+
+    ro_html->add( '<div class="paddings">' ).
+    ro_html->add( lo_toolbar->render( ) ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.      "render_menu
+  METHOD render_text_input.
+
+    DATA lv_attrs TYPE string.
+
+    CREATE OBJECT ro_html.
+
+    IF iv_value IS NOT INITIAL.
+      lv_attrs = | value="{ iv_value }"|.
+    ENDIF.
+
+    IF iv_max_length IS NOT INITIAL.
+      lv_attrs = | maxlength="{ iv_max_length }"|.
+    ENDIF.
+
+    ro_html->add( '<div class="row">' ).
+    ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
+    ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.  " render_text_input
+  METHOD scripts.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( 'setInitialFocus("tag_name");' ).
+
+  ENDMETHOD.    "scripts
+  METHOD zif_abapgit_gui_page~on_event.
+
+    CASE iv_action.
+      WHEN c_action-commit_post.
+
+        create_tag( it_postdata ).
+
+        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+
+      WHEN c_action-commit_cancel.
+        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+    ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD create_tag.
+
+    DATA:
+      ls_tag      TYPE zif_abapgit_definitions=>ty_git_tag,
+      lx_error    TYPE REF TO zcx_abapgit_exception,
+      lv_text     TYPE string,
+      lv_tag_type TYPE zif_abapgit_definitions=>ty_git_branch_type.
+
+    zcl_abapgit_html_action_utils=>parse_tag_request(
+      EXPORTING it_postdata = it_postdata
+      IMPORTING es_fields   = ls_tag ).
+
+    ls_tag-name = zcl_abapgit_tag=>add_tag_prefix( ls_tag-name ).
+    ASSERT ls_tag-name CP 'refs/tags/+*'.
+
+    TRY.
+        lv_tag_type = zcl_abapgit_git_porcelain=>create_tag( io_repo = mo_repo_online
+                                                             is_tag  = ls_tag ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( |Cannot create tag { ls_tag-name }. Error: '{ lx_error->get_text( ) }'| ).
+    ENDTRY.
+
+    IF lv_tag_type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+      lv_text = |Lightweight tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+    ELSE.
+      lv_text = |Annotated tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+    ENDIF.
+
+    MESSAGE lv_text TYPE 'S'.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   METHOD constructor.
@@ -23997,7 +24482,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
     DATA: lv_tag TYPE string.
 
@@ -24153,7 +24638,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
     CREATE OBJECT ro_html.
 
-    lt_branches = zcl_abapgit_branch_overview=>get_branches( ).
+    lt_branches = mo_branch_overview->get_branches( ).
 
     ro_html->add( |<select name="{ iv_name }">| ).
     LOOP AT lt_branches ASSIGNING <ls_branch>.
@@ -24165,9 +24650,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD refresh.
 
-    mt_commits = zcl_abapgit_branch_overview=>run( mo_repo ).
+    mo_branch_overview = zcl_abapgit_branch_overview=>run( mo_repo ).
+
+    mt_commits = mo_branch_overview->get_commits( ).
     IF mv_compress = abap_true.
-      mt_commits = zcl_abapgit_branch_overview=>compress( mt_commits ).
+      mt_commits = mo_branch_overview->compress( mt_commits ).
     ENDIF.
 
   ENDMETHOD.
@@ -51527,8 +52014,7 @@ CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_tag IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
 
     rv_text = zif_abapgit_definitions=>gc_tag_prefix && iv_text.
@@ -51543,7 +52029,6 @@ CLASS zcl_abapgit_tag IMPLEMENTATION.
             WITH ''.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
@@ -51604,7 +52089,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
 
   ENDMETHOD.                    "pkt_string
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -51738,6 +52223,8 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'funny refname' ).
     ELSEIF lv_string CP '*failed to update ref*'.
       zcx_abapgit_exception=>raise( 'failed to update ref' ).
+    ELSEIF lv_string CP '*missing necessary objects*'.
+      zcx_abapgit_exception=>raise( 'missing necessary objects' ).
     ENDIF.
 
   ENDMETHOD.                    "receive_pack
@@ -51808,7 +52295,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
 
   ENDMETHOD.                    "upload_pack
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
+CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   METHOD build_trees.
 
     DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
@@ -51890,20 +52377,36 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
           lv_pack    TYPE xstring.
 
-    IF iv_name CS ` `.
+    IF is_tag-name CS ` `.
       zcx_abapgit_exception=>raise( 'Tag name cannot contain blank spaces' ).
     ENDIF.
 
+    " It the message is filled we must create an annotated tag.
+    " Otherwise a lightweight tag is created
+    IF is_tag-message IS NOT INITIAL.
+
+      receive_pack_create_tag(
+          is_tag  = is_tag
+          io_repo = io_repo ).
+
+      rv_created_tag_type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+
+    ELSE.
+
 * "client MUST send an empty packfile"
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+      lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
-    zcl_abapgit_git_transport=>receive_pack(
-      iv_url         = io_repo->get_url( )
-      iv_old         = c_zero
-      iv_new         = iv_from
-      iv_branch_name = iv_name
-      iv_pack        = lv_pack ).
+      zcl_abapgit_git_transport=>receive_pack(
+        iv_url         = io_repo->get_url( )
+        iv_old         = c_zero
+        iv_new         = io_repo->get_sha1_local( )
+        iv_branch_name = is_tag-name
+        iv_pack        = lv_pack ).
+
+      rv_created_tag_type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD delete_branch.
@@ -52099,14 +52602,14 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     lt_trees = build_trees( lt_expanded ).
 
-    ev_branch = receive_pack( is_comment = is_comment
-                              io_repo    = io_repo
-                              it_trees   = lt_trees
-                              it_blobs   = lt_blobs
-                              io_stage   = io_stage ).
+    ev_branch = receive_pack_push( is_comment = is_comment
+                                   io_repo    = io_repo
+                                   it_trees   = lt_trees
+                                   it_blobs   = lt_blobs
+                                   io_stage   = io_stage ).
 
   ENDMETHOD.                    "push
-  METHOD receive_pack.
+  METHOD receive_pack_push.
 
     DATA: lv_time    TYPE zcl_abapgit_time=>ty_unixtime,
           lv_commit  TYPE xstring,
@@ -52282,8 +52785,53 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
+  METHOD receive_pack_create_tag.
+
+    DATA: lv_tag          TYPE xstring,
+          lt_objects      TYPE zif_abapgit_definitions=>ty_objects_tt,
+          lv_pack         TYPE xstring,
+          lt_files        TYPE zif_abapgit_definitions=>ty_files_tt,
+          ls_object       LIKE LINE OF lt_objects,
+          ls_tag          TYPE zcl_abapgit_git_pack=>ty_tag,
+          lv_new_tag_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
+
+* new tag
+    ls_tag-object       = is_tag-sha1.
+    ls_tag-type         = zif_abapgit_definitions=>gc_type-commit.
+    ls_tag-tag          = is_tag-name.
+    ls_tag-tagger_name  = is_tag-tagger_name.
+    ls_tag-tagger_email = is_tag-tagger_email.
+    ls_tag-message      = is_tag-message
+                      && |{ zif_abapgit_definitions=>gc_newline }|
+                      && |{ zif_abapgit_definitions=>gc_newline }|
+                      && is_tag-body.
+
+    lv_tag = zcl_abapgit_git_pack=>encode_tag( ls_tag ).
+
+    lv_new_tag_sha1 = zcl_abapgit_hash=>sha1(
+      iv_type = zif_abapgit_definitions=>gc_type-tag
+      iv_data = lv_tag ).
+
+    CLEAR ls_object.
+    ls_object-sha1 = lv_new_tag_sha1.
+    ls_object-type = zif_abapgit_definitions=>gc_type-tag.
+    ls_object-data = lv_tag.
+    APPEND ls_object TO lt_objects.
+
+    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = io_repo->get_url( )
+      iv_old         = c_zero
+      iv_new         = lv_new_tag_sha1
+      iv_branch_name = is_tag-name
+      iv_pack        = lv_pack ).
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
+CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -52475,6 +53023,64 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.                    "decode_deltas
+  METHOD decode_tag.
+
+    DATA: lv_string TYPE string,
+          lv_word   TYPE string,
+          lv_length TYPE i,
+          lv_trash  TYPE string ##NEEDED,
+          lt_string TYPE TABLE OF string.
+
+    FIELD-SYMBOLS: <lv_string> LIKE LINE OF lt_string.
+    lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data ).
+
+    SPLIT lv_string AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_string.
+
+    LOOP AT lt_string ASSIGNING <lv_string>.
+
+      SPLIT <lv_string> AT space INTO lv_word lv_trash.
+
+      CASE lv_word.
+        WHEN 'object'.
+          rs_tag-object = lv_trash.
+        WHEN 'type'.
+          rs_tag-type = lv_trash.
+        WHEN 'tag'.
+          rs_tag-tag = lv_trash.
+        WHEN 'tagger'.
+
+          FIND FIRST OCCURRENCE OF REGEX `(.*)<(.*)>`
+                     IN lv_trash
+                     SUBMATCHES rs_tag-tagger_name
+                                rs_tag-tagger_email.
+
+          rs_tag-tagger_name = condense( rs_tag-tagger_name ).
+
+        WHEN ''.
+          " ignore blank lines
+          CONTINUE.
+        WHEN OTHERS.
+
+          " these are the non empty line which don't start with a key word
+          " the first one is the message, the rest are cumulated to the body
+
+          IF rs_tag-message IS INITIAL.
+            rs_tag-message = <lv_string>.
+          ELSE.
+
+            IF rs_tag-body IS NOT INITIAL.
+              rs_tag-body = rs_tag-body && zif_abapgit_definitions=>gc_newline.
+            ENDIF.
+
+            rs_tag-body = rs_tag-body && <lv_string>.
+
+          ENDIF.
+
+      ENDCASE.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD decode_tree.
 
     CONSTANTS: lc_sha_length TYPE i VALUE 20,
@@ -52858,6 +53464,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
         lv_type = 32.
       WHEN zif_abapgit_definitions=>gc_type-blob.
         lv_type = 48.
+      WHEN zif_abapgit_definitions=>gc_type-tag.
+        lv_type = 64.
       WHEN zif_abapgit_definitions=>gc_type-ref_d.
         lv_type = 112.
       WHEN OTHERS.
@@ -52936,8 +53544,29 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Wrong Adler checksum' ).
     ENDIF.
   ENDMETHOD.
+
+  METHOD encode_tag.
+
+    DATA: lv_string TYPE string,
+          lv_tmp    TYPE string,
+          lv_time   TYPE zcl_abapgit_time=>ty_unixtime.
+
+    lv_time = zcl_abapgit_time=>get( ).
+
+    lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>gc_newline }|
+             && |type { is_tag-type }{ zif_abapgit_definitions=>gc_newline }|
+             && |tag { zcl_abapgit_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>gc_newline }|
+             && |tagger { is_tag-tagger_name } <{ is_tag-tagger_email }> { lv_time }|
+             && |{ zif_abapgit_definitions=>gc_newline }|
+             && |{ zif_abapgit_definitions=>gc_newline }|
+             && |{ is_tag-message }|.
+
+    rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
       rv_name = iv_branch_name.
@@ -52998,13 +53627,19 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD get_tags_only.
     FIELD-SYMBOLS <ls_branch> LIKE LINE OF mt_branches.
 
-    LOOP AT mt_branches ASSIGNING <ls_branch>.
-      IF <ls_branch>-type = zif_abapgit_definitions=>c_git_branch_type-tag.
-        APPEND <ls_branch> TO rt_branches.
-      ENDIF.
+    LOOP AT mt_branches ASSIGNING <ls_branch>
+                        WHERE type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag
+                           OR type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+      APPEND <ls_branch> TO rt_tags.
     ENDLOOP.
+
   ENDMETHOD.  "get_tags_only
   METHOD get_type.
+
+    DATA: lv_annotated_tag_with_suffix TYPE string.
+
+    FIELD-SYMBOLS: <ls_result> TYPE LINE OF stringtab.
+
     rv_type = zif_abapgit_definitions=>c_git_branch_type-other.
 
     IF iv_branch_name CP 'refs/heads/*' OR iv_branch_name = zif_abapgit_definitions=>c_head_name.
@@ -53013,7 +53648,17 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
     ENDIF.
 
     IF iv_branch_name CP 'refs/tags/*'.
-      rv_type = zif_abapgit_definitions=>c_git_branch_type-tag.
+
+      lv_annotated_tag_with_suffix = iv_branch_name && '^{}'.
+
+      READ TABLE it_result ASSIGNING <ls_result>
+                           INDEX iv_current_row_index + 1.
+      IF sy-subrc = 0 AND <ls_result> CP '*' && lv_annotated_tag_with_suffix.
+        rv_type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+      ELSE.
+        rv_type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.  "get_type
@@ -53030,6 +53675,10 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       rv_ignore = abap_true.
     ENDIF.
 
+    IF iv_branch_name CP 'refs/tags/*^{}'. " 2nd ref of annotated tag
+      rv_ignore = abap_true.
+    ENDIF.
+
   ENDMETHOD.  "is_ignored
   METHOD normalize_branch_name.
 
@@ -53039,12 +53688,13 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   ENDMETHOD.  " normalize_branch_name.
   METHOD parse_branch_list.
 
-    DATA: lt_result      TYPE TABLE OF string,
-          lv_hash        TYPE zif_abapgit_definitions=>ty_sha1,
-          lv_name        TYPE string,
-          lv_head_params TYPE string,
-          lv_char        TYPE c,
-          lv_data        LIKE LINE OF lt_result.
+    DATA: lt_result            TYPE TABLE OF string,
+          lv_hash              TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_name              TYPE string,
+          lv_head_params       TYPE string,
+          lv_char              TYPE c,
+          lv_data              LIKE LINE OF lt_result,
+          lv_current_row_index TYPE syst-tabix.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF et_list.
 
@@ -53053,6 +53703,9 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
     SPLIT iv_data AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_result.
 
     LOOP AT lt_result INTO lv_data.
+
+      lv_current_row_index = sy-tabix.
+
       IF sy-tabix = 1.
         CONTINUE. " current loop
       ELSEIF sy-tabix = 2 AND strlen( lv_data ) > 49.
@@ -53078,7 +53731,9 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       <ls_branch>-sha1         = lv_hash.
       <ls_branch>-name         = lv_name.
       <ls_branch>-display_name = get_display_name( lv_name ).
-      <ls_branch>-type         = get_type( lv_name ).
+      <ls_branch>-type         = get_type( iv_branch_name       = lv_name
+                                           it_result            = lt_result
+                                           iv_current_row_index = lv_current_row_index ).
       IF <ls_branch>-name = zif_abapgit_definitions=>c_head_name OR <ls_branch>-name = ev_head_symref.
         <ls_branch>-is_head    = abap_true.
       ENDIF.
@@ -54968,5 +55623,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-27T14:30:35.510Z
+* abapmerge - 2018-05-27T14:48:38.469Z
 ****************************************************
