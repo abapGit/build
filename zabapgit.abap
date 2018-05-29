@@ -51542,7 +51542,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_2fa_github_auth IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lv_match TYPE string.
@@ -51796,6 +51796,8 @@ CLASS zcl_abapgit_2fa_github_auth IMPLEMENTATION.
 
     li_client->receive( EXCEPTIONS OTHERS = 1 ).
     IF sy-subrc <> 0.
+* if the code fails here with a SSL error, make sure STRUST is setup to
+* work with https://api.github.com
       raise_comm_error_from_sy( ).
     ENDIF.
 
@@ -55623,5 +55625,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-28T10:34:26.117Z
+* abapmerge - 2018-05-29T13:57:56.051Z
 ****************************************************
