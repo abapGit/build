@@ -28552,7 +28552,7 @@ CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
     ls_dd02v-ddlanguage = zif_abapgit_definitions=>gc_english.
     ls_dd02v-tabclass   = 'TRANSP'.
     ls_dd02v-ddtext     = c_text.
-    ls_dd02v-contflag   = 'A'.
+    ls_dd02v-contflag   = 'L'.
     ls_dd02v-exclass    = '1'.
 
     ls_dd09l-tabname  = zcl_abapgit_persistence_db=>c_tabname.
@@ -55625,5 +55625,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-05-29T13:58:47.834Z
+* abapmerge - 2018-06-02T09:07:10.639Z
 ****************************************************
