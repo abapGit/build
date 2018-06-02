@@ -6016,27 +6016,26 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS constructor.
-
     CONSTANTS:
       BEGIN OF c_css,
         xml_tag  TYPE string VALUE 'xml_tag',               "#EC NOTEXT
         attr     TYPE string VALUE 'attr',                  "#EC NOTEXT
         attr_val TYPE string VALUE 'attr_val',              "#EC NOTEXT
-      END OF c_css,
-
+      END OF c_css .
+    CONSTANTS:
       BEGIN OF c_token,
         xml_tag  TYPE c VALUE 'X',                          "#EC NOTEXT
         attr     TYPE c VALUE 'A',                          "#EC NOTEXT
         attr_val TYPE c VALUE 'V',                          "#EC NOTEXT
-      END OF c_token,
-
+      END OF c_token .
+    CONSTANTS:
       BEGIN OF c_regex,
         xml_tag  TYPE string VALUE '[<>]',                  "#EC NOTEXT
         attr     TYPE string VALUE '\s[-a-z:_0-9]+\s*(?==)', "#EC NOTEXT
         attr_val TYPE string VALUE '["''][^''"]+[''"]',     "#EC NOTEXT
-      END OF c_regex.
+      END OF c_regex .
 
+    METHODS constructor .
   PROTECTED SECTION.
 
     METHODS order_matches REDEFINITION.
@@ -27101,7 +27100,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
   ENDMETHOD.                    "startup
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -27152,8 +27151,10 @@ CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
             " Adjust length and offset of closing tag
           ELSEIF <ls_match>-text_tag = '>' AND lv_prev_token <> c_token-xml_tag.
             lv_state = 'C'.
-            <ls_match>-length = <ls_match>-offset - <ls_prev>-offset - <ls_prev>-length + <ls_match>-length.
-            <ls_match>-offset = <ls_prev>-offset + <ls_prev>-length.
+            IF <ls_prev> IS ASSIGNED.
+              <ls_match>-length = <ls_match>-offset - <ls_prev>-offset - <ls_prev>-length + <ls_match>-length.
+              <ls_match>-offset = <ls_prev>-offset + <ls_prev>-length.
+            ENDIF.
           ELSE.
             lv_state = 'O'.
           ENDIF.
@@ -31581,7 +31582,25 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
   ENDMETHOD.  "zif_abapgit_object~has_changed_since
 
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+
+    DATA: lo_xslt       TYPE REF TO cl_o2_api_xsltdesc,
+          ls_attributes TYPE o2xsltattr.
+
+    lo_xslt = get( ).
+    lo_xslt->get_attributes(
+      RECEIVING
+        p_attributes     = ls_attributes
+      EXCEPTIONS
+        object_invalid   = 1
+        xsltdesc_deleted = 2
+        OTHERS           = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    rv_user = ls_attributes-changedby.
+
   ENDMETHOD.
 
   METHOD get.
@@ -55625,5 +55644,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-02T09:28:01.030Z
+* abapmerge - 2018-06-02T10:01:57.339Z
 ****************************************************
