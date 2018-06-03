@@ -51837,6 +51837,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
     TRY.
         lo_class ?= cl_oo_class=>get_instance( 'ZCL_ABAPGIT_2FA_AUTH_BASE' ).
         lt_sub = lo_class->get_subclasses( ).
+        SORT lt_sub BY clsname ASCENDING AS TEXT.
         LOOP AT lt_sub INTO ls_sub.
           CREATE OBJECT li_authenticator TYPE (ls_sub-clsname).
           INSERT li_authenticator INTO TABLE gt_registered_authenticators.
@@ -55644,5 +55645,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-03T13:40:39.222Z
+* abapmerge - 2018-06-03T14:15:28.551Z
 ****************************************************
