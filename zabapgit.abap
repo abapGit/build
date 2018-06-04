@@ -35578,6 +35578,28 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from OBJ_GENERATE' ).
     ENDIF.
 
+    CALL FUNCTION 'OBJ_SET_IMPORTABLE'
+      EXPORTING
+        iv_objectname         = ls_objh-objectname
+        iv_objecttype         = ls_objh-objecttype
+        iv_importable         = ls_objh-importable
+      EXCEPTIONS
+        object_not_defined    = 1
+        invalid               = 2
+        transport_error       = 3
+        object_enqueue_failed = 4
+        OTHERS                = 5.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from OBJ_SET_IMPORTABLE' ).
+    ENDIF.
+
+* fm OBJ_GENERATE takes the defaults from the DDIC object
+* set OBJTRANSP directly, should be okay looking at the code in OBJ_SET_IMPORTABLE
+* locking has been done in OBJ_SET_IMPORTABLE plus recording of transport
+    UPDATE objh SET objtransp = ls_objh-objtransp
+      WHERE objectname = ls_objh-objectname
+      AND objecttype = ls_objh-objecttype.
+
     io_xml->read( EXPORTING iv_name = 'TOBJ'
                   CHANGING cg_data = ls_tobj ).
     ls_tobj-tvdir-gendate = sy-datum.
@@ -45397,8 +45419,41 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+
+    DATA: lv_enh_id   TYPE enhname,
+          li_enho     TYPE REF TO zif_abapgit_object_enho,
+          lt_log      TYPE enh_log_it,
+          li_log_obj  TYPE REF TO if_enh_log,
+          ls_enhlog   TYPE enhlog,
+          lv_lines    TYPE i,
+          lt_enhlog   TYPE STANDARD TABLE OF enhlog WITH DEFAULT KEY,
+          li_enh_tool TYPE REF TO if_enh_tool.
+    lv_enh_id = ms_item-obj_name.
+    TRY.
+        li_enh_tool = cl_enh_factory=>get_enhancement(
+          enhancement_id   = lv_enh_id
+          bypassing_buffer = abap_true ).
+      CATCH cx_enh_root.
+        rv_user = c_user_unknown.
+        RETURN.
+    ENDTRY.
+
+    lt_log = li_enh_tool->get_log( ).
+
+    LOOP AT lt_log INTO li_log_obj.
+      ls_enhlog = li_log_obj->get_enhlog( ).
+      APPEND ls_enhlog TO lt_enhlog.
+    ENDLOOP.
+
+    lv_lines = lines( lt_enhlog ).
+    READ TABLE lt_enhlog INTO ls_enhlog INDEX lv_lines.
+    IF sy-subrc = 0.
+      rv_user = ls_enhlog-loguser.
+    ELSE.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -55645,5 +55700,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-03T14:15:28.551Z
+* abapmerge - 2018-06-04T13:12:28.693Z
 ****************************************************
