@@ -27490,12 +27490,11 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
 
       CASE <ls_match>-token.
         WHEN c_token-keyword.
-          IF <ls_match>-offset > 0.
+          IF <ls_match>-offset > 0
+              AND substring( val = iv_line off = ( <ls_match>-offset - 1 ) len = 1 ) CA '-<'.
             " Delete match if keyword is part of structure or field symbol
-            IF substring( val = iv_line off = ( <ls_match>-offset - 1 ) len = 1 ) CA '-<'.
-              DELETE ct_matches INDEX lv_index.
-              CONTINUE.
-            ENDIF.
+            DELETE ct_matches INDEX lv_index.
+            CONTINUE.
           ENDIF.
 
         WHEN c_token-comment.
@@ -29611,8 +29610,12 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
         no_access    = 4
         other        = 5
         OTHERS       = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from SEO_CLASS_DELETE_COMPLETE' ).
+    IF sy-subrc = 1.
+* ignore deletion of objects that does not exist
+* this can happen when the SXCI object is deleted before the implementing CLAS
+      RETURN.
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE: { sy-subrc }| ).
     ENDIF.
   ENDMETHOD.
 
@@ -30566,31 +30569,29 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
 
       zcl_abapgit_language=>restore_login_language( ).
-    ELSE.
+    ELSEIF strlen( is_progdir-name ) > 30.
 * function module RPY_PROGRAM_INSERT cannot handle function group includes
 
-      IF strlen( is_progdir-name ) > 30.
-        " special treatment for extensions
-        " if the program name exceeds 30 characters it is not a usual
-        " ABAP program but might be some extension, which requires the internal
-        " addition EXTENSION TYPE, see
-        " http://help.sap.com/abapdocu_751/en/abapinsert_report_internal.htm#!ABAP_ADDITION_1@1@
-        " This e.g. occurs in case of transportable Code Inspector variants (ending with ===VC)
-        INSERT REPORT is_progdir-name
-         FROM it_source
-         STATE 'I'
-         EXTENSION TYPE is_progdir-name+30.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'error from INSERT REPORT .. EXTENSION TYPE' ).
-        ENDIF.
-      ELSE.
-        INSERT REPORT is_progdir-name
-          FROM it_source
-          STATE 'I'
-          PROGRAM TYPE is_progdir-subc.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'error from INSERT REPORT' ).
-        ENDIF.
+      " special treatment for extensions
+      " if the program name exceeds 30 characters it is not a usual
+      " ABAP program but might be some extension, which requires the internal
+      " addition EXTENSION TYPE, see
+      " http://help.sap.com/abapdocu_751/en/abapinsert_report_internal.htm#!ABAP_ADDITION_1@1@
+      " This e.g. occurs in case of transportable Code Inspector variants (ending with ===VC)
+      INSERT REPORT is_progdir-name
+       FROM it_source
+       STATE 'I'
+       EXTENSION TYPE is_progdir-name+30.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from INSERT REPORT .. EXTENSION TYPE' ).
+      ENDIF.
+    ELSE.
+      INSERT REPORT is_progdir-name
+        FROM it_source
+        STATE 'I'
+        PROGRAM TYPE is_progdir-subc.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from INSERT REPORT' ).
       ENDIF.
     ENDIF.
 
@@ -45737,12 +45738,9 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     lv_object_type = get_object_type( ).
 
     lo_element = ci_document->find_from_name( |{ lv_object_type }| ).
-    lo_element->set_attribute( name  = |SAPRL|
-                               value = || ).
-    lo_element->set_attribute( name  = |DOWNLOADDATE|
-                               value = || ).
-    lo_element->set_attribute( name  = |DOWNLOADTIME|
-                               value = || ).
+    lo_element->remove_attribute( |SAPRL| ).
+    lo_element->remove_attribute( |DOWNLOADDATE| ).
+    lo_element->remove_attribute( |DOWNLOADTIME| ).
 
   ENDMETHOD.
   METHOD clear_element.
@@ -46619,7 +46617,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_dsys IMPLEMENTATION
-CLASS zcl_abapgit_object_doma IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -46792,23 +46790,20 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
       CATCH cx_sy_dyn_call_param_not_found.
 
-        TRY.
-            CALL FUNCTION 'RS_DD_DELETE_OBJ'
-              EXPORTING
-                no_ask               = abap_true
-                objname              = lv_objname
-                objtype              = 'D'
-*               no_ask_delete_append = abap_true parameter not available in lower NW versions
-              EXCEPTIONS
-                not_executed         = 1
-                object_not_found     = 2
-                object_not_specified = 3
-                permission_failure   = 4.
-            IF sy-subrc <> 0.
-              zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
-            ENDIF.
-
-        ENDTRY.
+        CALL FUNCTION 'RS_DD_DELETE_OBJ'
+          EXPORTING
+            no_ask               = abap_true
+            objname              = lv_objname
+            objtype              = 'D'
+*           no_ask_delete_append = abap_true parameter not available in lower NW versions
+          EXCEPTIONS
+            not_executed         = 1
+            object_not_found     = 2
+            object_not_specified = 3
+            permission_failure   = 4.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
+        ENDIF.
 
     ENDTRY.
 
@@ -55700,5 +55695,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-04T13:12:28.693Z
+* abapmerge - 2018-06-04T13:13:37.233Z
 ****************************************************
