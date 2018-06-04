@@ -6032,7 +6032,7 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
       BEGIN OF c_regex,
         xml_tag  TYPE string VALUE '[<>]',                  "#EC NOTEXT
         attr     TYPE string VALUE '\s[-a-z:_0-9]+\s*(?==)', "#EC NOTEXT
-        attr_val TYPE string VALUE '["''][^''"]+[''"]',     "#EC NOTEXT
+        attr_val TYPE string VALUE '["''][^''"]*[''"]',     "#EC NOTEXT
       END OF c_regex .
 
     METHODS constructor .
@@ -55695,5 +55695,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-04T13:13:37.233Z
+* abapmerge - 2018-06-04T13:13:43.863Z
 ****************************************************
