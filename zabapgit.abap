@@ -1051,7 +1051,7 @@ INTERFACE zif_abapgit_definitions.
          END OF ty_s_user_settings.
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE 'v1.68.2' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.68.2' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -51576,7 +51576,8 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD get_agent.
 
 * bitbucket require agent prefix = "git/"
-    rv_agent = 'git/abapGit-' && zif_abapgit_definitions=>gc_abap_version.
+* also see https://github.com/larshp/abapGit/issues/1432
+    rv_agent = |git/2.0 (abapGit { zif_abapgit_definitions=>gc_abap_version })|.
 
   ENDMETHOD.
   METHOD is_local_system.
@@ -55695,5 +55696,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-04T13:42:13.753Z
+* abapmerge - 2018-06-06T06:22:21.367Z
 ****************************************************
