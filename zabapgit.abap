@@ -13539,7 +13539,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -13574,7 +13574,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD check_duplicates.
 
     DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
-    lt_files[] = it_files[].
+    lt_files = it_files.
     SORT lt_files BY path ASCENDING filename ASCENDING.
     DELETE ADJACENT DUPLICATES FROM lt_files COMPARING path filename.
     IF lines( lt_files ) <> lines( it_files ).
@@ -13687,7 +13687,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
 
-    lt_tadir[] = it_tadir[].
+    lt_tadir = it_tadir.
 
     zcl_abapgit_dependencies=>resolve( CHANGING ct_tadir = lt_tadir ).
 
@@ -14757,8 +14757,8 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_definitions=>ty_merge_conflict,
                    <ls_result>   LIKE LINE OF ms_merge-result.
 
-    IF  is_conflict-result_sha1 IS NOT INITIAL
-    AND is_conflict-result_data IS NOT INITIAL.
+    IF is_conflict-result_sha1 IS NOT INITIAL
+        AND is_conflict-result_data IS NOT INITIAL.
       READ TABLE mt_conflicts ASSIGNING <ls_conflict> WITH KEY path = is_conflict-path
                                                                filename = is_conflict-filename.
       IF sy-subrc EQ 0.
@@ -14768,8 +14768,8 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
           <ls_result>-sha1 = is_conflict-result_sha1.
 
           ms_merge-stage->add( iv_path     = <ls_conflict>-path
-                             iv_filename = <ls_conflict>-filename
-                             iv_data     = is_conflict-result_data ).
+                               iv_filename = <ls_conflict>-filename
+                               iv_data     = is_conflict-result_data ).
 
           DELETE mt_conflicts WHERE path     EQ is_conflict-path
                                 AND filename EQ is_conflict-filename.
@@ -18614,7 +18614,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_services_git IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -18844,10 +18844,9 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    zcl_abapgit_tag_popups=>tag_list_popup( io_repo = lo_repo ).
+    zcl_abapgit_tag_popups=>tag_list_popup( lo_repo ).
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD do_install.
@@ -19648,7 +19647,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     CLEAR: et_list.
 
-    create_new_table( it_list = it_list ).
+    create_new_table( it_list ).
 
     ASSIGN gr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
@@ -21030,10 +21029,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       ro_html->add( |<td class="icon">{ get_item_icon( is_item ) }</td>| ).
 
       IF is_item-is_dir = abap_true. " Subdir
-        lv_link = build_dir_jump_link( iv_path = is_item-path ).
+        lv_link = build_dir_jump_link( is_item-path ).
         ro_html->add( |<td class="dir" colspan="2">{ lv_link }</td>| ).
       ELSE.
-        lv_link = build_obj_jump_link( is_item = is_item ).
+        lv_link = build_obj_jump_link( is_item ).
         ro_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ro_html->add( |<td class="object">{ lv_link }</td>| ).
       ENDIF.
@@ -23661,12 +23660,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '<thead class="nav_line">' ).
     ro_html->add( '<tr>' ).
 
+    ro_html->add( '<th class="num"></th>' ).
     IF mv_unified = abap_true.
-      ro_html->add( '<th class="num"></th>' ).
       ro_html->add( '<th class="num"></th>' ).
       ro_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ELSE.
-      ro_html->add( '<th class="num"></th>' ).
       ro_html->add( |<th colspan="3">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ENDIF.
 
@@ -23712,13 +23710,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ro_html->add( render_table_head( ) ).
       ro_html->add( render_lines( is_diff ) ).
       ro_html->add( '</table>' ).                           "#EC NOTEXT
-      ro_html->add( '</div>' ).                             "#EC NOTEXT
     ELSE.
       ro_html->add( '<div class="diff_content paddings center grey">' ). "#EC NOTEXT
       ro_html->add( 'The content seems to be binary.' ).    "#EC NOTEXT
       ro_html->add( 'Cannot display as diff.' ).            "#EC NOTEXT
-      ro_html->add( '</div>' ).                             "#EC NOTEXT
     ENDIF.
+    ro_html->add( '</div>' ).                               "#EC NOTEXT
 
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
@@ -23903,24 +23900,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->add( '<thead class="header">' ).               "#EC NOTEXT
+    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+
     IF mv_unified = abap_true.
-      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
-      ro_html->add( '<tr>' ).                               "#EC NOTEXT
       ro_html->add( '<th class="num">old</th>' ).           "#EC NOTEXT
       ro_html->add( '<th class="num">new</th>' ).           "#EC NOTEXT
       ro_html->add( '<th>code</th>' ).                      "#EC NOTEXT
-      ro_html->add( '</tr>' ).                              "#EC NOTEXT
-      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ELSE.
-      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
-      ro_html->add( '<tr>' ).                               "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>LOCAL</th>' ).                     "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>REMOTE</th>' ).                    "#EC NOTEXT
-      ro_html->add( '</tr>' ).                              "#EC NOTEXT
-      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ENDIF.
+
+    ro_html->add( '</tr>' ).                                "#EC NOTEXT
+    ro_html->add( '</thead>' ).                             "#EC NOTEXT
 
   ENDMETHOD.  " render_table_head.
   METHOD scripts.
@@ -28856,7 +28851,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
     IF lv_found = abap_false.
-      CLEAR ct_source[].
+      CLEAR ct_source.
     ENDIF.
 
   ENDMETHOD.                    "reduce
@@ -40340,7 +40335,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'DYNPROS'
                   CHANGING cg_data  = lt_dynpros ).
-    deserialize_dynpros( it_dynpros = lt_dynpros ).
+    deserialize_dynpros( lt_dynpros ).
 
     io_xml->read( EXPORTING iv_name = 'CUA'
                   CHANGING cg_data  = ls_cua ).
@@ -41636,7 +41631,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     super->constructor(
       is_item     = is_item
       iv_language = iv_language ).
-    mo_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( iv_object_type = ms_item-obj_type ).
+    mo_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( ms_item-obj_type ).
   ENDMETHOD.
   METHOD deserialize_abap.
     DATA: ls_vseointerf   TYPE vseointerf,
@@ -41665,7 +41660,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
       is_key          = ls_clskey
       it_descriptions = lt_descriptions ).
 
-    mo_object_oriented_object_fct->add_to_activation_list( is_item = ms_item ).
+    mo_object_oriented_object_fct->add_to_activation_list( ms_item ).
   ENDMETHOD.
   METHOD deserialize_docu.
 
@@ -41675,7 +41670,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'LINES'
                   CHANGING cg_data = lt_lines ).
 
-    IF lt_lines[] IS INITIAL.
+    IF lines( lt_lines ) = 0.
       RETURN.
     ENDIF.
 
@@ -41776,7 +41771,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     ls_class_key-clsname = ms_item-obj_name.
 
-    rv_bool = mo_object_oriented_object_fct->exists( iv_object_name = ls_class_key ).
+    rv_bool = mo_object_oriented_object_fct->exists( ls_class_key ).
 
     IF rv_bool = abap_true.
       SELECT SINGLE category FROM seoclassdf INTO lv_category
@@ -48326,8 +48321,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
     CASE lv_ddtypekind.
       WHEN 'STOB'.
-
-        me->open_adt_stob( iv_ddls_name = ms_item-obj_name ).
+        me->open_adt_stob( ms_item-obj_name ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
     ENDCASE.
@@ -49156,7 +49150,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'LINES'
                   CHANGING cg_data = lt_lines ).
 
-    IF lt_lines[] IS INITIAL.
+    IF lines( lt_lines ) = 0.
       RETURN.
     ENDIF.
 
@@ -49191,7 +49185,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
                   CHANGING cg_data = lt_tpool_ext ).
     lt_tpool = read_tpool( lt_tpool_ext ).
 
-    IF lt_tpool[] IS INITIAL.
+    IF lines( lt_tpool ) = 0.
       RETURN.
     ENDIF.
 
@@ -49220,7 +49214,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     zcl_abapgit_language=>set_current_language( mv_language ).
 
     TRY.
-        ls_vseoclass = mo_object_oriented_object_fct->get_class_properties( is_class_key = ls_clskey ).
+        ls_vseoclass = mo_object_oriented_object_fct->get_class_properties( ls_clskey ).
 
       CLEANUP.
         zcl_abapgit_language=>restore_login_language( ).
@@ -49332,7 +49326,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     DATA: ls_class_key TYPE seoclskey.
     ls_class_key-clsname = ms_item-obj_name.
 
-    rv_bool = mo_object_oriented_object_fct->exists( iv_object_name = ls_class_key ).
+    rv_bool = mo_object_oriented_object_fct->exists( ls_class_key ).
   ENDMETHOD.                    "zif_abapgit_object~exists
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -49388,7 +49382,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     lt_source = mo_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_def ).
-    IF NOT lt_source[] IS INITIAL.
+    IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'locals_def'
                           it_abap  = lt_source ).           "#EC NOTEXT
     ENDIF.
@@ -49396,7 +49390,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     lt_source = mo_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_imp ).
-    IF NOT lt_source[] IS INITIAL.
+    IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'locals_imp'
                           it_abap  = lt_source ).           "#EC NOTEXT
     ENDIF.
@@ -49406,7 +49400,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
       iv_type                 = seop_ext_class_testclasses ).
 
     mv_skip_testclass = mo_object_oriented_object_fct->get_skip_test_classes( ).
-    IF NOT lt_source[] IS INITIAL AND mv_skip_testclass = abap_false.
+    IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
       mo_files->add_abap( iv_extra = 'testclasses'
                           it_abap  = lt_source ).           "#EC NOTEXT
     ENDIF.
@@ -49414,7 +49408,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     lt_source = mo_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_macros ).
-    IF NOT lt_source[] IS INITIAL.
+    IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'macros'
                           it_abap  = lt_source ).           "#EC NOTEXT
     ENDIF.
@@ -49719,7 +49713,7 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -49760,7 +49754,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
         lv_exception_occurred = 'X'.
     ENDTRY.
 
-    IF  lv_exception_occurred = 'X'.
+    IF lv_exception_occurred = 'X'.
       raise_upload_exception( previous = exception_to_raise ).
     ENDIF.
 
@@ -49776,7 +49770,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ecatt_vo> TYPE any.
 
-    li_section = template_over_all->find_from_name_ns( name = 'IMPL_DET' ).
+    li_section = template_over_all->find_from_name_ns( 'IMPL_DET' ).
 
     IF NOT li_section IS INITIAL.
       CALL FUNCTION 'SDIXML_DOM_TO_DATA'
@@ -49805,7 +49799,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
         lv_exception_occurred = 'X'.
     ENDTRY.
 
-    IF  lv_exception_occurred = 'X'.
+    IF lv_exception_occurred = 'X'.
       raise_upload_exception( previous = exception_to_raise ).
     ENDIF.
 
@@ -49876,7 +49870,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
         lv_exception_occurred = 'X'.
     ENDTRY.
 
-    IF  lv_exception_occurred = 'X'.
+    IF lv_exception_occurred = 'X'.
       raise_upload_exception( previous = exception_to_raise ).
     ENDIF.
 
@@ -49908,7 +49902,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
           CHANGING
             ch_object       = ch_object ).
 
-        upload_data_from_stream( im_xml_file = ch_object-filename ).
+        upload_data_from_stream( ch_object-filename ).
       CATCH cx_ecatt_apl INTO ex.
         IF template_over_all IS INITIAL.
           RAISE EXCEPTION ex.
@@ -50017,8 +50011,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD download.
 
     " We inherit from CL_APL_ECATT_DOWNLOAD because CL_APL_ECATT_VO_DOWNLOAD
@@ -50061,7 +50054,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    set_variants_to_dom( im_params = ecatt_vo->params ).
+    set_variants_to_dom( ecatt_vo->params ).
 
     download_data( ).
 
@@ -50331,7 +50324,7 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
     " downport
@@ -50347,8 +50340,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
     FIELD-SYMBOLS: <ecatt_object> TYPE any.
 
     TRY.
-        li_section = template_over_all->find_from_name_ns(
-                                          name = 'START_PROFILE' ).
+        li_section = template_over_all->find_from_name_ns( 'START_PROFILE' ).
 
         IF NOT li_section IS INITIAL.
           CLASS cl_ixml DEFINITION LOAD .
@@ -50376,7 +50368,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
         lv_exception_occurred = 'X'.
     ENDTRY.
 
-    IF  lv_exception_occurred = 'X'.
+    IF lv_exception_occurred = 'X'.
       raise_upload_exception( previous = exception_to_raise ).
     ENDIF.
   ENDMETHOD.
@@ -50406,7 +50398,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
           CHANGING
             ch_object       = ch_object ).
 
-        upload_data_from_stream( im_xml_file = ch_object-filename ).
+        upload_data_from_stream( ch_object-filename ).
 
       CATCH cx_ecatt_apl INTO lx_ecatt.
         IF template_over_all IS INITIAL.
@@ -55746,5 +55738,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-06T14:25:12.604Z
+* abapmerge - 2018-06-06T14:26:22.435Z
 ****************************************************
