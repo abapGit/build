@@ -8976,6 +8976,11 @@ CLASS zcl_abapgit_news DEFINITION
     DATA mv_lastseen_version TYPE string .
     DATA mv_latest_version TYPE string .
 
+    CLASS-METHODS is_relevant
+      IMPORTING
+        !iv_url            TYPE string
+      RETURNING
+        VALUE(rv_relevant) TYPE abap_bool .
     METHODS latest_version
       RETURNING
         VALUE(rv_version) TYPE string .
@@ -14246,8 +14251,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
     lo_repo_online ?= io_repo.
     lv_url          = lo_repo_online->get_url( ).
 
-    " News announcement temporary restricted to abapGit only
-    IF lv_url NS '/abapGit.git'. " TODO refactor
+    IF is_relevant( lv_url ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -14262,7 +14266,6 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
     READ TABLE lt_remote ASSIGNING <ls_file>
       WITH KEY path = lc_log_path filename = lc_log_filename.
-
     IF sy-subrc = 0.
       CREATE OBJECT ro_instance
         EXPORTING
@@ -14298,6 +14301,14 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       iv_a = mv_latest_version
       iv_b = mv_current_version ) > 0 ).
   ENDMETHOD.                    "has_updates
+  METHOD is_relevant.
+
+    " News announcement restricted to abapGit only
+    IF iv_url CS '/abapGit' OR iv_url CS '/abapGit.git'.
+      rv_relevant = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD latest_version.
     rv_version = me->mv_latest_version.
   ENDMETHOD.                    "latest_version
@@ -55735,5 +55746,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-06T14:24:07.299Z
+* abapmerge - 2018-06-06T14:24:46.528Z
 ****************************************************
