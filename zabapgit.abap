@@ -36219,6 +36219,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         <ls_dd03p>-dtelmaster,
         <ls_dd03p>-logflag,
         <ls_dd03p>-ddtext,
+        <ls_dd03p>-reservedte,
         <ls_dd03p>-reptext,
         <ls_dd03p>-scrtext_s,
         <ls_dd03p>-scrtext_m,
@@ -55738,5 +55739,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-06T14:26:22.435Z
+* abapmerge - 2018-06-06T14:41:09.689Z
 ****************************************************
