@@ -18856,7 +18856,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo->set_branch_name( ls_tag-name ).
 
-    COMMIT WORK.
+    COMMIT WORK AND WAIT.
 
     zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
@@ -55862,5 +55862,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-07T09:07:34.922Z
+* abapmerge - 2018-06-07T18:38:46.494Z
 ****************************************************
