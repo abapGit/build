@@ -18637,7 +18637,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -18839,8 +18839,6 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     COMMIT WORK AND WAIT.
 
-    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
-
   ENDMETHOD.
   METHOD switch_tag.
 
@@ -18857,8 +18855,6 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
     lo_repo->set_branch_name( ls_tag-name ).
 
     COMMIT WORK AND WAIT.
-
-    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
   ENDMETHOD.
   METHOD tag_overview.
@@ -55862,5 +55858,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-07T18:38:46.494Z
+* abapmerge - 2018-06-07T18:40:19.181Z
 ****************************************************
