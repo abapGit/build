@@ -1625,6 +1625,13 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
 
     DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
     DATA mv_head_symref TYPE string .
+    METHODS find_tag_by_name
+      IMPORTING
+        iv_branch_name   TYPE string
+      RETURNING
+        VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
+      RAISING
+        zcx_abapgit_exception.
 
     CLASS-METHODS parse_branch_list
       IMPORTING
@@ -12960,18 +12967,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.  "constructor
   METHOD filter_changes.
 
-    DATA lt_repo_temp LIKE ct_repo_items.
-
-    FIELD-SYMBOLS <ls_item> LIKE LINE OF ct_repo_items.
-
-    LOOP AT ct_repo_items ASSIGNING <ls_item>.
-      CHECK <ls_item>-changes > 0.
-      APPEND <ls_item> TO lt_repo_temp.
-    ENDLOOP.
-
-    IF lines( lt_repo_temp ) > 0. " Prevent showing empty package if no changes, show all
-      ct_repo_items = lt_repo_temp.
-    ENDIF.
+    DELETE ct_repo_items WHERE changes = 0.
 
   ENDMETHOD. "filter_changes
   METHOD get_log.
@@ -16264,6 +16260,11 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     INSERT LINES OF lt_tags INTO TABLE lt_branches_and_tags.
 
     LOOP AT lt_tags ASSIGNING <ls_branch>.
+
+      IF <ls_branch>-name CP '*^{}'.
+        CONTINUE.
+      ENDIF.
+
       MOVE-CORRESPONDING <ls_branch> TO ls_tag.
       INSERT ls_tag INTO TABLE mt_tags.
     ENDLOOP.
@@ -16353,7 +16354,6 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
         io_repo = io_repo.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_background IMPLEMENTATION.
   METHOD build_comment.
@@ -20773,7 +20773,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.  "lif_gui_page~render
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   METHOD build_dir_jump_link.
 
     DATA: lv_path   TYPE string,
@@ -21016,9 +21016,17 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD. "get_item_icon
   METHOD render_empty_package.
 
-    rv_html = '<tr class="unsupported"><td class="paddings">'
-           && '  <center>Empty package</center>'
-           && '</td></tr>' ##NO_TEXT.
+    DATA: lv_text TYPE string.
+
+    IF mv_changes_only = abap_true.
+      lv_text = |No changes|.
+    ELSE.
+      lv_text = |Empty package|.
+    ENDIF.
+
+    rv_html = |<tr class="unsupported"><td class="paddings">|
+           && |  <center>{ lv_text }</center>|
+           && |</td></tr>|.
 
   ENDMETHOD. "render_empty_package
   METHOD render_head_line.
@@ -53872,10 +53880,16 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Branch name empty' ).
     ENDIF.
 
-    READ TABLE mt_branches INTO rs_branch
-      WITH KEY name = iv_branch_name.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Branch not found' ).
+    IF iv_branch_name CP |refs/tags/*|.
+      rs_branch = find_tag_by_name( iv_branch_name ).
+    ELSE.
+
+      READ TABLE mt_branches INTO rs_branch
+        WITH KEY name = iv_branch_name.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Branch not found' ).
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.  "find_by_name
@@ -53961,10 +53975,6 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       rv_ignore = abap_true.
     ENDIF.
 
-    IF iv_branch_name CP 'refs/tags/*^{}'. " 2nd ref of annotated tag
-      rv_ignore = abap_true.
-    ENDIF.
-
   ENDMETHOD.  "is_ignored
   METHOD normalize_branch_name.
 
@@ -54038,6 +54048,27 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.  "parse_head_params
+
+  METHOD find_tag_by_name.
+
+    DATA: lv_branch_name TYPE string.
+
+    lv_branch_name = iv_branch_name && '^{}'.
+
+    READ TABLE mt_branches INTO rs_branch
+        WITH KEY name = lv_branch_name.
+    IF sy-subrc <> 0.
+
+      READ TABLE mt_branches INTO rs_branch
+      WITH KEY name = iv_branch_name.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Branch not found' ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 ****************************************************
 * abapmerge - ZABAPGIT_PASSWORD_DIALOG
@@ -55909,5 +55940,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-09T09:51:37.733Z
+* abapmerge - 2018-06-09T09:52:08.103Z
 ****************************************************
