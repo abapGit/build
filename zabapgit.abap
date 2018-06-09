@@ -3774,6 +3774,12 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       RETURNING
         VALUE(r_result) TYPE string.
 
+    METHODS _build_extra_from_header_old
+      IMPORTING
+        ls_header       TYPE tys_form_header
+      RETURNING
+        VALUE(r_result) TYPE string.
+
     METHODS _save_form
       IMPORTING
         it_lines     TYPE zcl_abapgit_object_form=>tyt_lines
@@ -43917,6 +43923,20 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD _build_extra_from_header.
+
+    DATA: lv_tdspras type laiso.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
+      EXPORTING
+        input  = ls_header-tdspras
+      IMPORTING
+        output = lv_tdspras.
+
+    r_result = c_objectname_tdlines && '_' && lv_tdspras.
+
+  ENDMETHOD.
+
+  METHOD _build_extra_from_header_old.
     r_result = c_objectname_tdlines && '_' && ls_header-tdspras.
   ENDMETHOD.
 
@@ -43966,9 +43986,17 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     DATA lv_string TYPE string.
     DATA lo_xml TYPE REF TO zcl_abapgit_xml_input.
 
-    lv_string = mo_files->read_string( iv_extra =
-                               _build_extra_from_header( is_form_data-form_header )
-                                       iv_ext   = c_extension_xml ).
+    TRY.
+        lv_string = mo_files->read_string( iv_extra =
+                                   _build_extra_from_header( is_form_data-form_header )
+                                           iv_ext   = c_extension_xml ).
+      CATCH zcx_abapgit_exception.
+
+        lv_string = mo_files->read_string( iv_extra =
+                               _build_extra_from_header_old( is_form_data-form_header )
+                                           iv_ext   = c_extension_xml ).
+
+    ENDTRY.
 
     CREATE OBJECT lo_xml EXPORTING iv_xml = lv_string.
     lo_xml->read( EXPORTING iv_name = c_objectname_tdlines
@@ -55858,5 +55886,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-07T18:40:19.181Z
+* abapmerge - 2018-06-09T09:50:16.922Z
 ****************************************************
