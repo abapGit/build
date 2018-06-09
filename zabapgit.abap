@@ -12808,6 +12808,10 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
          iv_head_branch = ''
          iv_sha1        = '' ).
 
+    " If the SHA1 is empty, it's not possible to create tags or branches.
+    " Therefore we update the local SHA1 with the new remote SHA1
+    set( iv_sha1 = get_sha1_remote( ) ).
+
   ENDMETHOD.  "set_new_remote
   METHOD set_objects.
     mt_objects = it_objects.
@@ -55886,5 +55890,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-09T09:50:16.922Z
+* abapmerge - 2018-06-09T09:50:40.724Z
 ****************************************************
