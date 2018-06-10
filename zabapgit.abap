@@ -702,7 +702,12 @@ INTERFACE zif_abapgit_exit.
       CHANGING  c_proxy_authentication TYPE abap_bool,
     http_client
       IMPORTING
-        ii_client TYPE REF TO if_http_client.
+        ii_client TYPE REF TO if_http_client,
+    change_tadir
+      IMPORTING
+        iv_package TYPE devclass
+      CHANGING
+        ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
 ENDINTERFACE.
 
@@ -11421,7 +11426,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                      it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD build.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -11588,6 +11593,12 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
                       iv_ignore_subpackages = iv_ignore_subpackages
                       iv_only_local_objects = iv_only_local_objects
                       io_log                = io_log ).
+
+    zcl_abapgit_exit=>get_instance( )->change_tadir(
+      EXPORTING
+        iv_package = iv_package
+      CHANGING
+        ct_tadir   = rt_tadir ).
 
     rt_tadir = check_exists( rt_tadir ).
 
@@ -15420,7 +15431,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.  "status
 ENDCLASS.
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -15493,6 +15504,20 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_exit~change_tadir.
+
+    TRY.
+        gi_exit->change_tadir(
+          EXPORTING
+            iv_package = iv_package
+          CHANGING
+            ct_tadir   = ct_tadir ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
@@ -55940,5 +55965,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-10T11:46:49.857Z
+* abapmerge - 2018-06-10T11:58:22.925Z
 ****************************************************
