@@ -684,7 +684,16 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_exit.
 
   TYPES:
-    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY .
+    BEGIN OF ty_tadir,
+      pgmid    TYPE tadir-pgmid,
+      object   TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      devclass TYPE tadir-devclass,
+      korrnum  TYPE tadir-korrnum,
+      path     TYPE string,
+    END OF ty_tadir,
+    ty_tadir_tt      TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY,
+    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY.
 
   METHODS:
     change_local_host
@@ -707,7 +716,7 @@ INTERFACE zif_abapgit_exit.
       IMPORTING
         iv_package TYPE devclass
       CHANGING
-        ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt.
+        ct_tadir   TYPE ty_tadir_tt.
 
 ENDINTERFACE.
 
@@ -55965,5 +55974,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-10T11:58:22.925Z
+* abapmerge - 2018-06-10T17:58:02.601Z
 ****************************************************
