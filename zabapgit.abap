@@ -659,94 +659,164 @@ CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
-INTERFACE zif_abapgit_sap_package.
-
-  TYPES: ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY.
+"! Defines a two factor authentication authenticator
+"! <p>
+"! Authenticators support one or multiple services and are able to generate access tokens using the
+"! service's API using the users username, password and two factor authentication token
+"! (app/sms/tokengenerator). With these access tokens the user can be authenticated to the service's
+"! implementation of the git http api, just like the "normal" password would.
+"! </p>
+"! <p>
+"! <em>LCL_2FA_AUTHENTICATOR_REGISTRY</em> can be used to find a suitable implementation for a given
+"! repository.
+"! </p>
+"! <p>
+"! Using the <em>begin</em> and <em>end</em> methods an internal session can be started and
+"! completed in which internal state necessary for multiple methods will be cached. This can be
+"! used to avoid having multiple http sessions between <em>authenticate</em> and
+"! <em>delete_access_tokens</em>.
+"! </p>
+INTERFACE zif_abapgit_2fa_authenticator
+  .
+  "! Generate an access token
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter iv_2fa_token | Two factor token
+  "! @parameter rv_access_token | Generated access token
+  "! @raising lcx_2fa_auth_failed | Authentication failed
+  "! @raising lcx_2fa_token_gen_failed | Token generation failed
+  METHODS authenticate
+    IMPORTING
+      !iv_url                TYPE string
+      !iv_username           TYPE string
+      !iv_password           TYPE string
+      !iv_2fa_token          TYPE string
+    RETURNING
+      VALUE(rv_access_token) TYPE string
+    RAISING
+      zcx_abapgit_2fa_auth_failed
+      zcx_abapgit_2fa_gen_failed
+      zcx_abapgit_2fa_comm_error .
+  "! Check if this authenticator instance supports the give repository url
+  "! @parameter iv_url | Repository url
+  "! @parameter rv_supported | Is supported
+  METHODS supports_url
+    IMPORTING
+      !iv_url             TYPE string
+    RETURNING
+      VALUE(rv_supported) TYPE abap_bool .
+  "! Check if two factor authentication is required
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter rv_required | 2FA is required
+  METHODS is_2fa_required
+    IMPORTING
+      !iv_url            TYPE string
+      !iv_username       TYPE string
+      !iv_password       TYPE string
+    RETURNING
+      VALUE(rv_required) TYPE abap_bool
+    RAISING
+      zcx_abapgit_2fa_comm_error .
+  "! Delete all previously created access tokens for abapGit
+  "! @parameter iv_url | Repository url
+  "! @parameter iv_username | Username
+  "! @parameter iv_password | Password
+  "! @parameter iv_2fa_token | Two factor token
+  "! @raising lcx_2fa_token_del_failed | Token deletion failed
+  "! @raising lcx_2fa_auth_failed | Authentication failed
+  METHODS delete_access_tokens
+    IMPORTING
+      !iv_url       TYPE string
+      !iv_username  TYPE string
+      !iv_password  TYPE string
+      !iv_2fa_token TYPE string
+    RAISING
+      zcx_abapgit_2fa_del_failed
+      zcx_abapgit_2fa_comm_error
+      zcx_abapgit_2fa_auth_failed .
+  "! Begin an authenticator session that uses internal caching for authorizations
+  "! @raising lcx_2fa_illegal_state | Session already started
+  METHODS begin
+    RAISING
+      zcx_abapgit_2fa_illegal_state .
+  "! End an authenticator session and clear internal caches
+  "! @raising lcx_2fa_illegal_state | Session not running
+  METHODS end
+    RAISING
+      zcx_abapgit_2fa_illegal_state .
+ENDINTERFACE.
+INTERFACE zif_abapgit_comparison_result.
 
   METHODS:
-    list_subpackages
-      RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
-    list_superpackages
-      RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
-    read_parent
-      RETURNING VALUE(rv_parentcl) TYPE tdevc-parentcl,
-    create_child
-      IMPORTING iv_child TYPE devclass
+    show_confirmation_dialog,
+    is_result_complete_halt
+      RETURNING VALUE(rv_response) TYPE abap_bool.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_object_enho.
+
+  METHODS:
+    deserialize
+      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_input
+                iv_package TYPE devclass
       RAISING   zcx_abapgit_exception,
-    exists
-      RETURNING VALUE(rv_bool) TYPE abap_bool,
-    are_changes_recorded_in_tr_req
-      RETURNING VALUE(rv_are_changes_rec_in_tr_req) TYPE abap_bool
-      RAISING zcx_abapgit_exception.
+    serialize
+      IMPORTING io_xml      TYPE REF TO zcl_abapgit_xml_output
+                ii_enh_tool TYPE REF TO if_enh_tool
+      RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
-
-INTERFACE zif_abapgit_exit.
-
-  TYPES:
-    BEGIN OF ty_tadir,
-      pgmid    TYPE tadir-pgmid,
-      object   TYPE tadir-object,
-      obj_name TYPE tadir-obj_name,
-      devclass TYPE tadir-devclass,
-      korrnum  TYPE tadir-korrnum,
-      path     TYPE string,
-    END OF ty_tadir,
-    ty_tadir_tt      TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY,
-    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY.
+INTERFACE zif_abapgit_object_enhs.
 
   METHODS:
-    change_local_host
-      CHANGING ct_hosts TYPE ty_icm_sinfo2_tt,
-    allow_sap_objects
-      RETURNING VALUE(rv_allowed) TYPE abap_bool,
-    change_proxy_url
-      IMPORTING iv_repo_url TYPE csequence
-      CHANGING  c_proxy_url TYPE string,
-    change_proxy_port
-      IMPORTING iv_repo_url  TYPE csequence
-      CHANGING  c_proxy_port TYPE string,
-    change_proxy_authentication
-      IMPORTING iv_repo_url            TYPE csequence
-      CHANGING  c_proxy_authentication TYPE abap_bool,
-    http_client
-      IMPORTING
-        ii_client TYPE REF TO if_http_client,
-    change_tadir
-      IMPORTING
-        iv_package TYPE devclass
-      CHANGING
-        ct_tadir   TYPE ty_tadir_tt.
+    deserialize
+      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_input
+                iv_package       TYPE devclass
+                ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
+      RAISING   zcx_abapgit_exception,
+
+    serialize
+      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_output
+                ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
+      RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_gui_page.
 
-INTERFACE zif_abapgit_dot_abapgit.
+  METHODS on_event
+    IMPORTING iv_action    TYPE clike
+              iv_prev_page TYPE clike
+              iv_getdata   TYPE clike OPTIONAL
+              it_postdata  TYPE cnht_post_data_tab OPTIONAL
+    EXPORTING ei_page      TYPE REF TO zif_abapgit_gui_page
+              ev_state     TYPE i
+    RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
 
-  TYPES:
-    BEGIN OF ty_requirement,
-      component   TYPE dlvunit,
-      min_release TYPE saprelease,
-      min_patch   TYPE sappatchlv,
-    END OF ty_requirement .
-  TYPES:
-    ty_requirement_tt TYPE STANDARD TABLE OF ty_requirement WITH DEFAULT KEY .
-  TYPES:
-    BEGIN OF ty_dot_abapgit,
-      master_language TYPE spras,
-      starting_folder TYPE string,
-      folder_logic    TYPE string,
-      ignore          TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      requirements    TYPE ty_requirement_tt,
-    END OF ty_dot_abapgit .
-
-  CONSTANTS:
-    BEGIN OF c_folder_logic,
-      prefix TYPE string VALUE 'PREFIX',
-      full   TYPE string VALUE 'FULL',
-    END OF c_folder_logic .
+  METHODS render
+    RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+    RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_auth.
 
+  TYPES: ty_authorization TYPE string.
+
+  CONSTANTS: BEGIN OF gc_authorization,
+               uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
+               transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
+               update_local_checksum TYPE ty_authorization VALUE 'UPDATE_LOCAL_CHECKSUM',
+             END OF gc_authorization.
+
+  METHODS:
+    is_allowed
+      IMPORTING iv_authorization  TYPE ty_authorization
+                iv_param          TYPE string OPTIONAL
+      RETURNING VALUE(rv_allowed) TYPE abap_bool.
+
+ENDINTERFACE.
 INTERFACE zif_abapgit_definitions.
 
   TYPES:
@@ -1186,92 +1256,41 @@ INTERFACE zif_abapgit_definitions.
   CONSTANTS gc_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
 
 ENDINTERFACE.
-
-INTERFACE zif_abapgit_auth.
-
-  TYPES: ty_authorization TYPE string.
-
-  CONSTANTS: BEGIN OF gc_authorization,
-               uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
-               transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
-               update_local_checksum TYPE ty_authorization VALUE 'UPDATE_LOCAL_CHECKSUM',
-             END OF gc_authorization.
+INTERFACE zif_abapgit_object.
 
   METHODS:
-    is_allowed
-      IMPORTING iv_authorization  TYPE ty_authorization
-                iv_param          TYPE string OPTIONAL
-      RETURNING VALUE(rv_allowed) TYPE abap_bool.
+    serialize
+      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+      RAISING   zcx_abapgit_exception,
+    deserialize
+      IMPORTING iv_package TYPE devclass
+                io_xml     TYPE REF TO zcl_abapgit_xml_input
+      RAISING   zcx_abapgit_exception,
+    delete
+      RAISING zcx_abapgit_exception,
+    exists
+      RETURNING VALUE(rv_bool) TYPE abap_bool
+      RAISING   zcx_abapgit_exception,
+    changed_by
+      RETURNING VALUE(rv_user) TYPE xubname
+      RAISING   zcx_abapgit_exception,
+    jump
+      RAISING zcx_abapgit_exception,
+    get_metadata
+      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
+    has_changed_since
+      IMPORTING iv_timestamp      TYPE timestamp
+      RETURNING VALUE(rv_changed) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+  METHODS:
+    compare_to_remote_version
+      IMPORTING io_remote_version_xml       TYPE REF TO zcl_abapgit_xml_input
+      RETURNING VALUE(ro_comparison_result) TYPE REF TO zif_abapgit_comparison_result
+      RAISING   zcx_abapgit_exception.
+
+  DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
 
 ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_page.
-
-  METHODS on_event
-    IMPORTING iv_action    TYPE clike
-              iv_prev_page TYPE clike
-              iv_getdata   TYPE clike OPTIONAL
-              it_postdata  TYPE cnht_post_data_tab OPTIONAL
-    EXPORTING ei_page      TYPE REF TO zif_abapgit_gui_page
-              ev_state     TYPE i
-    RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-  METHODS render
-    RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-    RAISING   zcx_abapgit_exception.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_persistence.
-
-  TYPES:
-    ty_type  TYPE c LENGTH 12 .
-  TYPES:
-    ty_value TYPE c LENGTH 12 .
-  TYPES:
-    BEGIN OF ty_content,
-      type     TYPE ty_type,
-      value    TYPE ty_value,
-      data_str TYPE string,
-    END OF ty_content .
-  TYPES:
-    tt_content TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
-
-  TYPES: BEGIN OF ty_local_checksum,
-           item  TYPE zif_abapgit_definitions=>ty_item,
-           files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-         END OF ty_local_checksum.
-
-  TYPES:
-    BEGIN OF ty_local_settings,
-      ignore_subpackages TYPE abap_bool,
-      write_protected    TYPE abap_bool,
-      only_local_objects TYPE abap_bool,
-    END OF ty_local_settings.
-
-  TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
-
-  TYPES: BEGIN OF ty_repo_xml,
-           url             TYPE string,
-           branch_name     TYPE string,
-           sha1            TYPE zif_abapgit_definitions=>ty_sha1,
-           package         TYPE devclass,
-           offline         TYPE sap_bool,
-           local_checksums TYPE ty_local_checksum_tt,
-           dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
-           head_branch     TYPE string,   " HEAD symref of the repo, master branch
-           local_settings  TYPE ty_local_settings,
-         END OF ty_repo_xml.
-
-  TYPES: BEGIN OF ty_repo,
-           key TYPE zif_abapgit_persistence=>ty_value.
-      INCLUDE TYPE ty_repo_xml.
-  TYPES: END OF ty_repo.
-  TYPES: tt_repo TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY.
-  TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_oo_object_fnc.
 
   TYPES: BEGIN OF ty_includes,
@@ -1408,172 +1427,140 @@ INTERFACE zif_abapgit_oo_object_fnc.
         VALUE(rv_superclass) TYPE seoclsname.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_dot_abapgit.
 
-INTERFACE zif_abapgit_object_enhs.
+  TYPES:
+    BEGIN OF ty_requirement,
+      component   TYPE dlvunit,
+      min_release TYPE saprelease,
+      min_patch   TYPE sappatchlv,
+    END OF ty_requirement .
+  TYPES:
+    ty_requirement_tt TYPE STANDARD TABLE OF ty_requirement WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_dot_abapgit,
+      master_language TYPE spras,
+      starting_folder TYPE string,
+      folder_logic    TYPE string,
+      ignore          TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+      requirements    TYPE ty_requirement_tt,
+    END OF ty_dot_abapgit .
 
-  METHODS:
-    deserialize
-      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_input
-                iv_package       TYPE devclass
-                ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
-      RAISING   zcx_abapgit_exception,
-
-    serialize
-      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_output
-                ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
-      RAISING   zcx_abapgit_exception.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_object_enho.
-
-  METHODS:
-    deserialize
-      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_input
-                iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception,
-    serialize
-      IMPORTING io_xml      TYPE REF TO zcl_abapgit_xml_output
-                ii_enh_tool TYPE REF TO if_enh_tool
-      RAISING   zcx_abapgit_exception.
+  CONSTANTS:
+    BEGIN OF c_folder_logic,
+      prefix TYPE string VALUE 'PREFIX',
+      full   TYPE string VALUE 'FULL',
+    END OF c_folder_logic .
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_persistence.
 
-INTERFACE zif_abapgit_object.
+  TYPES:
+    ty_type  TYPE c LENGTH 12 .
+  TYPES:
+    ty_value TYPE c LENGTH 12 .
+  TYPES:
+    BEGIN OF ty_content,
+      type     TYPE ty_type,
+      value    TYPE ty_value,
+      data_str TYPE string,
+    END OF ty_content .
+  TYPES:
+    tt_content TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
+
+  TYPES: BEGIN OF ty_local_checksum,
+           item  TYPE zif_abapgit_definitions=>ty_item,
+           files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+         END OF ty_local_checksum.
+
+  TYPES:
+    BEGIN OF ty_local_settings,
+      ignore_subpackages TYPE abap_bool,
+      write_protected    TYPE abap_bool,
+      only_local_objects TYPE abap_bool,
+    END OF ty_local_settings.
+
+  TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_repo_xml,
+           url             TYPE string,
+           branch_name     TYPE string,
+           sha1            TYPE zif_abapgit_definitions=>ty_sha1,
+           package         TYPE devclass,
+           offline         TYPE sap_bool,
+           local_checksums TYPE ty_local_checksum_tt,
+           dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
+           head_branch     TYPE string,   " HEAD symref of the repo, master branch
+           local_settings  TYPE ty_local_settings,
+         END OF ty_repo_xml.
+
+  TYPES: BEGIN OF ty_repo,
+           key TYPE zif_abapgit_persistence=>ty_value.
+      INCLUDE TYPE ty_repo_xml.
+  TYPES: END OF ty_repo.
+  TYPES: tt_repo TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY.
+  TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_exit.
+
+  TYPES:
+    BEGIN OF ty_tadir,
+      pgmid    TYPE tadir-pgmid,
+      object   TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      devclass TYPE tadir-devclass,
+      korrnum  TYPE tadir-korrnum,
+      path     TYPE string,
+    END OF ty_tadir,
+    ty_tadir_tt      TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY,
+    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY.
 
   METHODS:
-    serialize
-      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+    change_local_host
+      CHANGING ct_hosts TYPE ty_icm_sinfo2_tt,
+    allow_sap_objects
+      RETURNING VALUE(rv_allowed) TYPE abap_bool,
+    change_proxy_url
+      IMPORTING iv_repo_url TYPE csequence
+      CHANGING  c_proxy_url TYPE string,
+    change_proxy_port
+      IMPORTING iv_repo_url  TYPE csequence
+      CHANGING  c_proxy_port TYPE string,
+    change_proxy_authentication
+      IMPORTING iv_repo_url            TYPE csequence
+      CHANGING  c_proxy_authentication TYPE abap_bool,
+    http_client
+      IMPORTING
+        ii_client TYPE REF TO if_http_client,
+    change_tadir
+      IMPORTING
+        iv_package TYPE devclass
+      CHANGING
+        ct_tadir   TYPE ty_tadir_tt.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_sap_package.
+
+  TYPES: ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY.
+
+  METHODS:
+    list_subpackages
+      RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
+    list_superpackages
+      RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
+    read_parent
+      RETURNING VALUE(rv_parentcl) TYPE tdevc-parentcl,
+    create_child
+      IMPORTING iv_child TYPE devclass
       RAISING   zcx_abapgit_exception,
-    deserialize
-      IMPORTING iv_package TYPE devclass
-                io_xml     TYPE REF TO zcl_abapgit_xml_input
-      RAISING   zcx_abapgit_exception,
-    delete
-      RAISING zcx_abapgit_exception,
     exists
-      RETURNING VALUE(rv_bool) TYPE abap_bool
-      RAISING   zcx_abapgit_exception,
-    changed_by
-      RETURNING VALUE(rv_user) TYPE xubname
-      RAISING   zcx_abapgit_exception,
-    jump
-      RAISING zcx_abapgit_exception,
-    get_metadata
-      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
-    has_changed_since
-      IMPORTING iv_timestamp      TYPE timestamp
-      RETURNING VALUE(rv_changed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-  METHODS:
-    compare_to_remote_version
-      IMPORTING io_remote_version_xml       TYPE REF TO zcl_abapgit_xml_input
-      RETURNING VALUE(ro_comparison_result) TYPE REF TO zif_abapgit_comparison_result
-      RAISING   zcx_abapgit_exception.
-
-  DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
+      RETURNING VALUE(rv_bool) TYPE abap_bool,
+    are_changes_recorded_in_tr_req
+      RETURNING VALUE(rv_are_changes_rec_in_tr_req) TYPE abap_bool
+      RAISING zcx_abapgit_exception.
 
 ENDINTERFACE.
-
-INTERFACE zif_abapgit_comparison_result.
-
-  METHODS:
-    show_confirmation_dialog,
-    is_result_complete_halt
-      RETURNING VALUE(rv_response) TYPE abap_bool.
-
-ENDINTERFACE.
-
-"! Defines a two factor authentication authenticator
-"! <p>
-"! Authenticators support one or multiple services and are able to generate access tokens using the
-"! service's API using the users username, password and two factor authentication token
-"! (app/sms/tokengenerator). With these access tokens the user can be authenticated to the service's
-"! implementation of the git http api, just like the "normal" password would.
-"! </p>
-"! <p>
-"! <em>LCL_2FA_AUTHENTICATOR_REGISTRY</em> can be used to find a suitable implementation for a given
-"! repository.
-"! </p>
-"! <p>
-"! Using the <em>begin</em> and <em>end</em> methods an internal session can be started and
-"! completed in which internal state necessary for multiple methods will be cached. This can be
-"! used to avoid having multiple http sessions between <em>authenticate</em> and
-"! <em>delete_access_tokens</em>.
-"! </p>
-INTERFACE zif_abapgit_2fa_authenticator
-  .
-  "! Generate an access token
-  "! @parameter iv_url | Repository url
-  "! @parameter iv_username | Username
-  "! @parameter iv_password | Password
-  "! @parameter iv_2fa_token | Two factor token
-  "! @parameter rv_access_token | Generated access token
-  "! @raising lcx_2fa_auth_failed | Authentication failed
-  "! @raising lcx_2fa_token_gen_failed | Token generation failed
-  METHODS authenticate
-    IMPORTING
-      !iv_url                TYPE string
-      !iv_username           TYPE string
-      !iv_password           TYPE string
-      !iv_2fa_token          TYPE string
-    RETURNING
-      VALUE(rv_access_token) TYPE string
-    RAISING
-      zcx_abapgit_2fa_auth_failed
-      zcx_abapgit_2fa_gen_failed
-      zcx_abapgit_2fa_comm_error .
-  "! Check if this authenticator instance supports the give repository url
-  "! @parameter iv_url | Repository url
-  "! @parameter rv_supported | Is supported
-  METHODS supports_url
-    IMPORTING
-      !iv_url             TYPE string
-    RETURNING
-      VALUE(rv_supported) TYPE abap_bool .
-  "! Check if two factor authentication is required
-  "! @parameter iv_url | Repository url
-  "! @parameter iv_username | Username
-  "! @parameter iv_password | Password
-  "! @parameter rv_required | 2FA is required
-  METHODS is_2fa_required
-    IMPORTING
-      !iv_url            TYPE string
-      !iv_username       TYPE string
-      !iv_password       TYPE string
-    RETURNING
-      VALUE(rv_required) TYPE abap_bool
-    RAISING
-      zcx_abapgit_2fa_comm_error .
-  "! Delete all previously created access tokens for abapGit
-  "! @parameter iv_url | Repository url
-  "! @parameter iv_username | Username
-  "! @parameter iv_password | Password
-  "! @parameter iv_2fa_token | Two factor token
-  "! @raising lcx_2fa_token_del_failed | Token deletion failed
-  "! @raising lcx_2fa_auth_failed | Authentication failed
-  METHODS delete_access_tokens
-    IMPORTING
-      !iv_url       TYPE string
-      !iv_username  TYPE string
-      !iv_password  TYPE string
-      !iv_2fa_token TYPE string
-    RAISING
-      zcx_abapgit_2fa_del_failed
-      zcx_abapgit_2fa_comm_error
-      zcx_abapgit_2fa_auth_failed .
-  "! Begin an authenticator session that uses internal caching for authorizations
-  "! @raising lcx_2fa_illegal_state | Session already started
-  METHODS begin
-    RAISING
-      zcx_abapgit_2fa_illegal_state .
-  "! End an authenticator session and clear internal caches
-  "! @raising lcx_2fa_illegal_state | Session not running
-  METHODS end
-    RAISING
-      zcx_abapgit_2fa_illegal_state .
-ENDINTERFACE.
-
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
 
@@ -12867,7 +12854,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -13009,7 +12996,8 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
         CHANGING  ct_repo_items = rt_repo_items ).
     ENDIF.
 
-    IF iv_changes_only = abap_true.
+    IF iv_changes_only = abap_true AND mo_repo->is_offline( ) = abap_false.
+      " There are never changes for offline repositories
       filter_changes( CHANGING ct_repo_items = rt_repo_items ).
     ENDIF.
 
@@ -55975,5 +55963,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-11T14:21:51.388Z
+* abapmerge - 2018-06-12T06:43:21.269Z
 ****************************************************
