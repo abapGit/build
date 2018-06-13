@@ -928,9 +928,15 @@ INTERFACE zif_abapgit_definitions.
            decision TYPE ty_yes_no,
          END OF ty_requirements.
 
+  TYPES: BEGIN OF ty_transport_type,
+           request TYPE trfunction,
+           task    TYPE trfunction,
+         END OF ty_transport_type.
+
   TYPES: BEGIN OF ty_transport,
            required  TYPE abap_bool,
            transport TYPE trkorr,
+           type      TYPE ty_transport_type,
          END OF ty_transport.
   TYPES: BEGIN OF ty_deserialize_checks,
            overwrite       TYPE ty_overwrite_tt,
@@ -1558,6 +1564,9 @@ INTERFACE zif_abapgit_sap_package.
       RETURNING VALUE(rv_bool) TYPE abap_bool,
     are_changes_recorded_in_tr_req
       RETURNING VALUE(rv_are_changes_rec_in_tr_req) TYPE abap_bool
+      RAISING zcx_abapgit_exception,
+    get_transport_type
+      RETURNING VALUE(rv_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
       RAISING zcx_abapgit_exception.
 
 ENDINTERFACE.
@@ -7598,6 +7607,8 @@ CLASS zcl_abapgit_popups DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS popup_transport_request
+      IMPORTING
+        !is_transport_type TYPE zif_abapgit_definitions=>ty_transport_type
       RETURNING
         VALUE(rv_transport) TYPE trkorr
       RAISING
@@ -12257,6 +12268,45 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_sap_package~get_transport_type.
+    DATA: lv_err_prefix TYPE string,
+          lv_pkg_name   TYPE e071-obj_name.
+
+    lv_err_prefix = |TRINT_GET_REQUEST_TYPE(R3TR, DEVC, { mv_package })|.
+    lv_pkg_name = mv_package.
+
+    CALL FUNCTION 'TRINT_GET_REQUEST_TYPE'
+      EXPORTING
+        iv_pgmid = 'R3TR'
+        iv_object = 'DEVC'
+        iv_obj_name = lv_pkg_name
+      IMPORTING
+        ev_request_type = rv_transport_type-request
+        ev_task_type = rv_transport_type-task
+      EXCEPTIONS
+        no_request_needed = 1
+        internal_error = 2
+        cts_initialization_failure = 3.
+
+    CASE sy-subrc.
+      WHEN 0.
+        " OK!
+
+      WHEN 1.
+        zcx_abapgit_exception=>raise( |{ lv_err_prefix }: transport is not needed| ).
+
+      WHEN 2.
+        zcx_abapgit_exception=>raise( |{ lv_err_prefix }: internal error| ).
+
+      WHEN 3.
+        zcx_abapgit_exception=>raise( |{ lv_err_prefix }: failed to initialized CTS| ).
+
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |{ lv_err_prefix }: unrecognized return code| ).
+    ENDCASE.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
@@ -13885,7 +13935,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.                    "deserialize
   METHOD deserialize_checks.
 
-    DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt.
+    DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
+          li_package TYPE REF TO zif_abapgit_sap_package.
     lt_results = files_to_deserialize( io_repo ).
 
     rs_checks-overwrite = warning_overwrite_find( lt_results ).
@@ -13895,8 +13946,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       it_results = lt_results ).
 
     IF lines( lt_results ) > 0.
-      rs_checks-transport-required = zcl_abapgit_sap_package=>get( io_repo->get_package( )
-                                         )->are_changes_recorded_in_tr_req( ).
+      li_package = zcl_abapgit_sap_package=>get( io_repo->get_package( ) ).
+      rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
+      IF NOT rs_checks-transport-required IS INITIAL.
+        rs_checks-transport-type = li_package->get_transport_type( ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -18313,7 +18367,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         ENDIF.
 
         IF ls_checks-transport-required = abap_true.
-          ls_checks-transport-transport = zcl_abapgit_popups=>popup_transport_request( ).
+          ls_checks-transport-transport = zcl_abapgit_popups=>popup_transport_request(
+            is_transport_type = ls_checks-transport-type ).
         ENDIF.
 
       CATCH zcx_abapgit_cancel.
@@ -19791,6 +19846,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           lt_e071k TYPE STANDARD TABLE OF e071k.
 
     CALL FUNCTION 'TRINT_ORDER_CHOICE'
+      EXPORTING
+        wi_order_type          = is_transport_type-request
+        wi_task_type           = is_transport_type-task
       IMPORTING
         we_order               = rv_transport
       TABLES
@@ -55963,5 +56021,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-12T06:43:21.269Z
+* abapmerge - 2018-06-13T04:54:49.504Z
 ****************************************************
