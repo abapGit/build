@@ -1545,6 +1545,7 @@ INTERFACE zif_abapgit_exit.
     change_tadir
       IMPORTING
         iv_package TYPE devclass
+        io_log     TYPE REF TO zcl_abapgit_log
       CHANGING
         ct_tadir   TYPE ty_tadir_tt.
 
@@ -11640,6 +11641,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     zcl_abapgit_exit=>get_instance( )->change_tadir(
       EXPORTING
         iv_package = iv_package
+        io_log     = io_log
       CHANGING
         ct_tadir   = rt_tadir ).
 
@@ -15612,6 +15614,7 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
         gi_exit->change_tadir(
           EXPORTING
             iv_package = iv_package
+            io_log     = io_log
           CHANGING
             ct_tadir   = ct_tadir ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
@@ -56071,5 +56074,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-14T04:29:22.703Z
+* abapmerge - 2018-06-14T04:30:07.774Z
 ****************************************************
