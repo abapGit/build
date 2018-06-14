@@ -416,6 +416,7 @@ CLASS zcx_abapgit_not_found DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
+INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
@@ -457,6 +458,7 @@ CLASS zcl_abapgit_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
+CLASS zcl_abapgit_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
@@ -1569,6 +1571,38 @@ INTERFACE zif_abapgit_sap_package.
       RETURNING VALUE(rv_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
       RAISING zcx_abapgit_exception.
 
+ENDINTERFACE.
+INTERFACE zif_abapgit_tadir
+  .
+  METHODS get_object_package
+    IMPORTING
+      !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
+      !iv_object         TYPE tadir-object
+      !iv_obj_name       TYPE tadir-obj_name
+    RETURNING
+      VALUE(rv_devclass) TYPE tadir-devclass
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read
+    IMPORTING
+      !iv_package            TYPE tadir-devclass
+      !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+      !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
+      !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+      !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+    RETURNING
+      VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read_single
+    IMPORTING
+      !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
+      !iv_object      TYPE tadir-object
+      !iv_obj_name    TYPE tadir-obj_name
+    RETURNING
+      VALUE(rs_tadir) TYPE tadir
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
@@ -8772,6 +8806,19 @@ CLASS zcl_abapgit_exit DEFINITION
 
     CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit .
 ENDCLASS.
+CLASS zcl_abapgit_factory DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
+
+    CLASS-METHODS get_tadir
+      RETURNING
+        VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -9936,55 +9983,28 @@ CLASS zcl_abapgit_syntax_check DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC
+
+  FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
 
-    CLASS-METHODS read
-      IMPORTING
-        !iv_package            TYPE tadir-devclass
-        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-        !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
-        !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
-        !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-      RETURNING
-        VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS read_single
-      IMPORTING
-        !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
-        !iv_object      TYPE tadir-object
-        !iv_obj_name    TYPE tadir-obj_name
-      RETURNING
-        VALUE(rs_tadir) TYPE tadir
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS get_object_package
-      IMPORTING
-        !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
-        !iv_object         TYPE tadir-object
-        !iv_obj_name       TYPE tadir-obj_name
-      RETURNING
-        VALUE(rv_devclass) TYPE tadir-devclass
-      RAISING
-        zcx_abapgit_exception .
-
+    INTERFACES zif_abapgit_tadir .
   PRIVATE SECTION.
 
-    CLASS-METHODS exists
+    METHODS exists
       IMPORTING
-        is_item          TYPE zif_abapgit_definitions=>ty_item
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
       RETURNING
-        VALUE(rv_exists) TYPE abap_bool.
-    CLASS-METHODS check_exists
+        VALUE(rv_exists) TYPE abap_bool .
+    METHODS check_exists
       IMPORTING
         !it_tadir       TYPE zif_abapgit_definitions=>ty_tadir_tt
       RETURNING
         VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS build
+    METHODS build
       IMPORTING
         !iv_package            TYPE tadir-devclass
         !iv_top                TYPE tadir-devclass
@@ -11374,7 +11394,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
           lv_obj_name = <ls_object>-obj_name.
         ENDIF.
 
-        ls_tadir = zcl_abapgit_tadir=>read_single(
+        ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
           iv_object   = lv_object
           iv_obj_name = lv_obj_name ).
 
@@ -11433,7 +11453,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                      it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -11567,14 +11587,15 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     rv_exists = zcl_abapgit_objects=>exists( is_item ).
 
   ENDMETHOD.
-  METHOD get_object_package.
+  METHOD zif_abapgit_tadir~get_object_package.
 
     DATA: ls_tadir TYPE tadir,
           ls_item  TYPE zif_abapgit_definitions=>ty_item.
 
-    ls_tadir = read_single( iv_pgmid    = iv_pgmid
-                            iv_object   = iv_object
-                            iv_obj_name = iv_obj_name ).
+    ls_tadir = zif_abapgit_tadir~read_single(
+      iv_pgmid    = iv_pgmid
+      iv_object   = iv_object
+      iv_obj_name = iv_obj_name ).
 
     IF ls_tadir-delflag = 'X'.
       RETURN. "Mark for deletion -> return nothing
@@ -11589,8 +11610,8 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     rv_devclass = ls_tadir-devclass.
 
-  ENDMETHOD.  "get_object_package.
-  METHOD read.
+  ENDMETHOD.
+  METHOD zif_abapgit_tadir~read.
 
 * start recursion
 * hmm, some problems here, should TADIR also build path?
@@ -11609,8 +11630,8 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     rt_tadir = check_exists( rt_tadir ).
 
-  ENDMETHOD.                    "read
-  METHOD read_single.
+  ENDMETHOD.
+  METHOD zif_abapgit_tadir~read_single.
 
     IF iv_object = 'SICF'.
       rs_tadir = zcl_abapgit_object_sicf=>read_tadir_sicf(
@@ -11623,7 +11644,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
         AND obj_name = iv_obj_name.                       "#EC CI_SUBRC
     ENDIF.
 
-  ENDMETHOD.                    "read_single
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   METHOD create_inspection.
@@ -12477,7 +12498,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    lt_tadir = zcl_abapgit_tadir=>read( io_repo->get_package( ) ).
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( io_repo->get_package( ) ).
 
     zcl_abapgit_objects=>delete( lt_tadir ).
 
@@ -12572,7 +12593,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
   ENDMETHOD.                    "validate_package
 ENDCLASS.
-CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD actualize_head_branch.
     DATA lv_branch_name TYPE string.
     lv_branch_name = mo_branches->get_head( )-name.
@@ -12656,8 +12677,8 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     lt_remote = get_files_remote( ).
     lt_status = status( ).
 
-    lv_package = me->get_package( ).
-    lt_tadir = zcl_abapgit_tadir=>read( lv_package ).
+    lv_package = get_package( ).
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
     SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
 
     LOOP AT lt_status ASSIGNING <ls_status>
@@ -12957,7 +12978,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_repo_item> LIKE LINE OF rt_repo_items,
                    <ls_tadir>     LIKE LINE OF lt_tadir.
-    lt_tadir = zcl_abapgit_tadir=>read(
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
       iv_package = mo_repo->get_package( )
       io_dot     = mo_repo->get_dot_abapgit( ) ).
 
@@ -13058,7 +13079,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
   ENDMETHOD.  "list
 ENDCLASS.
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     ASSERT NOT is_data-key IS INITIAL.
@@ -13171,7 +13192,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
                                                         iv_data = <ls_return>-file-data ).
 
     lt_cache = mt_local.
-    lt_tadir = zcl_abapgit_tadir=>read(
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
       iv_package            = get_package( )
       iv_ignore_subpackages = get_local_settings( )-ignore_subpackages
       iv_only_local_objects = get_local_settings( )-only_local_objects
@@ -13484,7 +13505,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.  " update_local_checksums
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -14264,7 +14284,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         io_dot  = io_repo->get_dot_abapgit( )
         iv_path = <ls_result>-path ).
 
-      ls_tadir = zcl_abapgit_tadir=>read_single(
+      ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
         iv_object   = <ls_result>-obj_type
         iv_obj_name = <ls_result>-obj_name ).
 
@@ -15302,9 +15322,9 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
       CHECK lv_is_xml = abap_true. " Skip all but obj definitions
 
-      ls_item-devclass = zcl_abapgit_tadir=>get_object_package(
-                           iv_object   = ls_item-obj_type
-                           iv_obj_name = ls_item-obj_name ).
+      ls_item-devclass = zcl_abapgit_factory=>get_tadir( )->get_object_package(
+        iv_object   = ls_item-obj_type
+        iv_obj_name = ls_item-obj_name ).
 
       IF NOT ls_item-devclass IS INITIAL AND iv_devclass <> ls_item-devclass.
 * make sure the package is under the repo main package
@@ -15481,6 +15501,17 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       iv_top     = io_repo->get_package( ) ).
 
   ENDMETHOD.  "status
+ENDCLASS.
+CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+  METHOD get_tadir.
+
+    IF gi_tadir IS INITIAL.
+      CREATE OBJECT gi_tadir TYPE zcl_abapgit_tadir.
+    ENDIF.
+
+    ri_tadir = gi_tadir.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
@@ -18515,7 +18546,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     lv_package = lo_repo->get_package( ).
-    lt_tadir   = zcl_abapgit_tadir=>read( lv_package ).
+    lt_tadir   = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
 
     IF lines( lt_tadir ) > 0.
 
@@ -19572,7 +19603,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     TRANSLATE <ls_field>-value TO UPPER CASE.
     rs_tadir-obj_name = <ls_field>-value.
 
-    rs_tadir = zcl_abapgit_tadir=>read_single(
+    rs_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
       iv_object   = rs_tadir-object
       iv_obj_name = rs_tadir-obj_name ).
 
@@ -56021,5 +56052,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-13T04:54:49.504Z
+* abapmerge - 2018-06-14T04:28:35.148Z
 ****************************************************
