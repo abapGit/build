@@ -456,6 +456,7 @@ CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
@@ -8870,17 +8871,20 @@ CLASS zcl_abapgit_exit DEFINITION
     CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit .
 ENDCLASS.
 CLASS zcl_abapgit_factory DEFINITION
-  CREATE PUBLIC .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_injector.
 
   PUBLIC SECTION.
 
-    CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
+    CLASS-METHODS:
+      get_tadir
+        RETURNING
+          VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir.
 
-    CLASS-METHODS get_tadir
-      RETURNING
-        VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir .
-  PROTECTED SECTION.
   PRIVATE SECTION.
+    CLASS-DATA:
+      mi_tadir TYPE REF TO zif_abapgit_tadir.
+
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -8992,6 +8996,17 @@ CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
   PRIVATE SECTION.
     DATA: mi_client TYPE REF TO if_http_client,
           mo_digest TYPE REF TO zcl_abapgit_http_digest.
+
+ENDCLASS.
+CLASS zcl_abapgit_injector DEFINITION
+  CREATE PRIVATE
+  FOR TESTING .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS set_tadir
+      IMPORTING
+        !ii_tadir TYPE REF TO zif_abapgit_tadir .
 
 ENDCLASS.
 CLASS zcl_abapgit_merge DEFINITION
@@ -9999,13 +10014,12 @@ CLASS zcl_abapgit_syntax_check DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
   FINAL
-  CREATE PUBLIC
-
+  CREATE PRIVATE
   FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
-
     INTERFACES zif_abapgit_tadir .
+
   PRIVATE SECTION.
 
     METHODS exists
@@ -11469,7 +11483,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                      it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD build.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -14947,6 +14961,15 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS zcl_abapgit_injector IMPLEMENTATION.
+
+  METHOD set_tadir.
+
+    zcl_abapgit_factory=>mi_tadir = ii_tadir.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
   METHOD check_http_200.
 
@@ -15523,16 +15546,18 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.  "status
 ENDCLASS.
-CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_factory IMPLEMENTATION.
+
   METHOD get_tadir.
 
-    IF gi_tadir IS INITIAL.
-      CREATE OBJECT gi_tadir TYPE zcl_abapgit_tadir.
+    IF mi_tadir IS INITIAL.
+      CREATE OBJECT mi_tadir TYPE zcl_abapgit_tadir.
     ENDIF.
 
-    ri_tadir = gi_tadir.
+    ri_tadir = mi_tadir.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
@@ -56083,5 +56108,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-15T05:26:50.565Z
+* abapmerge - 2018-06-15T07:11:21.634Z
 ****************************************************
