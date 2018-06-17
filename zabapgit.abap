@@ -29429,7 +29429,13 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lg_cache_entry> TYPE any,
                    <lg_field>       TYPE any.
-    CREATE DATA lr_cache_entry TYPE ('SEO_CS_CACHE').
+    TRY.
+        CREATE DATA lr_cache_entry TYPE ('SEO_CS_CACHE').
+      CATCH cx_sy_create_data_error.
+* does not exist in some older systems
+        RETURN.
+    ENDTRY.
+
     ASSIGN lr_cache_entry->* TO <lg_cache_entry>.
     ASSERT sy-subrc = 0.
 
@@ -56108,5 +56114,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-15T07:11:21.634Z
+* abapmerge - 2018-06-17T07:39:48.903Z
 ****************************************************
