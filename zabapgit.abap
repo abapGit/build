@@ -423,6 +423,7 @@ INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
@@ -485,6 +486,8 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
@@ -1435,6 +1438,167 @@ INTERFACE zif_abapgit_oo_object_fnc.
         iv_classname         TYPE seoclsname
       RETURNING
         VALUE(rv_superclass) TYPE seoclsname.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_popups
+  .
+
+  TYPES:
+    BEGIN OF ty_popup,
+      url         TYPE string,
+      package     TYPE devclass,
+      branch_name TYPE string,
+      cancel      TYPE abap_bool,
+    END OF ty_popup .
+
+  CONSTANTS:
+    c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
+
+  METHODS:
+    popup_package_export
+      EXPORTING
+        ev_package      TYPE devclass
+        ev_folder_logic TYPE string
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_folder_logic
+      RETURNING
+        VALUE(rv_folder_logic) TYPE string
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_object
+      RETURNING
+        VALUE(rs_tadir) TYPE tadir
+      RAISING
+        zcx_abapgit_exception,
+
+    create_branch_popup
+      EXPORTING
+        ev_name   TYPE string
+        ev_cancel TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception,
+
+    run_page_class_popup
+      EXPORTING
+        ev_name   TYPE string
+        ev_cancel TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception,
+
+    repo_new_offline
+      RETURNING
+        VALUE(rs_popup) TYPE zif_abapgit_popups=>ty_popup
+      RAISING
+        zcx_abapgit_exception,
+
+    branch_list_popup
+      IMPORTING
+        iv_url             TYPE string
+        iv_default_branch  TYPE string OPTIONAL
+        iv_show_new_option TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(rs_branch)   TYPE zif_abapgit_definitions=>ty_git_branch
+      RAISING
+        zcx_abapgit_exception,
+
+    repo_popup
+      IMPORTING
+        iv_url            TYPE string
+        iv_package        TYPE devclass OPTIONAL
+        iv_branch         TYPE string DEFAULT 'refs/heads/master'
+        iv_freeze_package TYPE abap_bool OPTIONAL
+        iv_freeze_url     TYPE abap_bool OPTIONAL
+        iv_title          TYPE clike DEFAULT 'Clone repository ...'
+      RETURNING
+        VALUE(rs_popup)   TYPE zif_abapgit_popups=>ty_popup
+      RAISING
+        zcx_abapgit_exception ##NO_TEXT,
+
+    popup_to_confirm
+      IMPORTING
+        titlebar              TYPE clike
+        text_question         TYPE clike
+        text_button_1         TYPE clike DEFAULT 'Yes'
+        icon_button_1         TYPE icon-name DEFAULT space
+        text_button_2         TYPE clike DEFAULT 'No'
+        icon_button_2         TYPE icon-name DEFAULT space
+        default_button        TYPE char1 DEFAULT '1'
+        display_cancel_button TYPE char1 DEFAULT abap_true
+      RETURNING
+        VALUE(rv_answer)      TYPE char1
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_to_inform
+      IMPORTING
+        titlebar     TYPE clike
+        text_message TYPE clike
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_to_create_package
+      EXPORTING
+        es_package_data TYPE scompkdtln
+        ev_create       TYPE boolean
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_to_create_transp_branch
+      IMPORTING
+        it_transport_headers       TYPE trwbo_request_headers
+      RETURNING
+        VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel,
+
+    popup_to_select_transports
+      RETURNING
+        VALUE(rt_trkorr) TYPE trwbo_request_headers,
+
+    popup_to_select_from_list
+      IMPORTING
+        it_list               TYPE STANDARD TABLE
+        i_header_text         TYPE csequence
+        i_select_column_text  TYPE csequence
+        it_columns_to_display TYPE stringtab
+      EXPORTING
+        VALUE(et_list)        TYPE STANDARD TABLE
+      RAISING
+        zcx_abapgit_cancel
+        zcx_abapgit_exception,
+
+    branch_popup_callback
+      IMPORTING
+        iv_code       TYPE clike
+      CHANGING
+        ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+        cs_error      TYPE svale
+        cv_show_popup TYPE char01
+      RAISING
+        zcx_abapgit_exception,
+
+    package_popup_callback
+      IMPORTING
+        iv_code       TYPE clike
+      CHANGING
+        ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+        cs_error      TYPE svale
+        cv_show_popup TYPE char01
+      RAISING
+        zcx_abapgit_exception,
+
+    popup_transport_request
+      IMPORTING
+        is_transport_type   TYPE zif_abapgit_definitions=>ty_transport_type
+      RETURNING
+        VALUE(rv_transport) TYPE trkorr
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_dot_abapgit.
@@ -7569,149 +7733,30 @@ CLASS zcl_abapgit_password_dialog DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_popups DEFINITION
   FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_ui_factory.
 
   PUBLIC SECTION.
 
-    TYPES:
-      BEGIN OF ty_popup,
-        url         TYPE string,
-        package     TYPE devclass,
-        branch_name TYPE string,
-        cancel      TYPE abap_bool,
-      END OF ty_popup .
-
-    CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
-
-    CLASS-METHODS popup_package_export
-      EXPORTING
-        !ev_package      TYPE devclass
-        !ev_folder_logic TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_folder_logic
-      RETURNING
-        VALUE(rv_folder_logic) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_object
-      RETURNING
-        VALUE(rs_tadir) TYPE tadir
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS create_branch_popup
-      EXPORTING
-        !ev_name   TYPE string
-        !ev_cancel TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-
-    CLASS-METHODS run_page_class_popup
-      EXPORTING
-        !ev_name   TYPE string
-        !ev_cancel TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS repo_new_offline
-      RETURNING
-        VALUE(rs_popup) TYPE ty_popup
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS branch_list_popup
-      IMPORTING
-        !iv_url             TYPE string
-        !iv_default_branch  TYPE string OPTIONAL
-        !iv_show_new_option TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(rs_branch)    TYPE zif_abapgit_definitions=>ty_git_branch
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS repo_popup
-      IMPORTING
-        !iv_url            TYPE string
-        !iv_package        TYPE devclass OPTIONAL
-        !iv_branch         TYPE string DEFAULT 'refs/heads/master'
-        !iv_freeze_package TYPE abap_bool OPTIONAL
-        !iv_freeze_url     TYPE abap_bool OPTIONAL
-        !iv_title          TYPE clike DEFAULT 'Clone repository ...'
-      RETURNING
-        VALUE(rs_popup)    TYPE ty_popup
-      RAISING
-        zcx_abapgit_exception ##NO_TEXT.
-    CLASS-METHODS popup_to_confirm
-      IMPORTING
-        !titlebar              TYPE clike
-        !text_question         TYPE clike
-        !text_button_1         TYPE clike DEFAULT 'Yes'
-        !icon_button_1         TYPE icon-name DEFAULT space
-        !text_button_2         TYPE clike DEFAULT 'No'
-        !icon_button_2         TYPE icon-name DEFAULT space
-        !default_button        TYPE char1 DEFAULT '1'
-        !display_cancel_button TYPE char1 DEFAULT abap_true
-      RETURNING
-        VALUE(rv_answer)       TYPE char1
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_to_inform
-      IMPORTING
-        !titlebar     TYPE clike
-        !text_message TYPE clike
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_to_create_package
-      EXPORTING
-        !es_package_data TYPE scompkdtln
-        !ev_create       TYPE boolean
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_to_create_transp_branch
-      IMPORTING
-        !it_transport_headers      TYPE trwbo_request_headers
-      RETURNING
-        VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
-    CLASS-METHODS popup_to_select_transports
-      RETURNING
-        VALUE(rt_trkorr) TYPE trwbo_request_headers .
-    CLASS-METHODS popup_to_select_from_list
-      IMPORTING
-        !it_list               TYPE STANDARD TABLE
-        !i_header_text         TYPE csequence
-        !i_select_column_text  TYPE csequence
-        !it_columns_to_display TYPE stringtab
-      EXPORTING
-        VALUE(et_list)         TYPE STANDARD TABLE
-      RAISING
-        zcx_abapgit_cancel
-        zcx_abapgit_exception .
-    CLASS-METHODS branch_popup_callback
-      IMPORTING
-        !iv_code       TYPE clike
-      CHANGING
-        !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-        !cs_error      TYPE svale
-        !cv_show_popup TYPE char01
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS package_popup_callback
-      IMPORTING
-        !iv_code       TYPE clike
-      CHANGING
-        !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-        !cs_error      TYPE svale
-        !cv_show_popup TYPE char01
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS popup_transport_request
-      IMPORTING
-        !is_transport_type TYPE zif_abapgit_definitions=>ty_transport_type
-      RETURNING
-        VALUE(rv_transport) TYPE trkorr
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+    INTERFACES: zif_abapgit_popups.
+    ALIASES:
+      popup_package_export          FOR zif_abapgit_popups~popup_package_export,
+      popup_folder_logic            FOR zif_abapgit_popups~popup_folder_logic,
+      popup_object                  FOR zif_abapgit_popups~popup_object,
+      create_branch_popup           FOR zif_abapgit_popups~create_branch_popup,
+      run_page_class_popup          FOR zif_abapgit_popups~run_page_class_popup,
+      repo_new_offline              FOR zif_abapgit_popups~repo_new_offline,
+      branch_list_popup             FOR zif_abapgit_popups~branch_list_popup,
+      repo_popup                    FOR zif_abapgit_popups~repo_popup,
+      popup_to_confirm              FOR zif_abapgit_popups~popup_to_confirm,
+      popup_to_inform               FOR zif_abapgit_popups~popup_to_inform,
+      popup_to_create_package       FOR zif_abapgit_popups~popup_to_create_package,
+      popup_to_create_transp_branch FOR zif_abapgit_popups~popup_to_create_transp_branch,
+      popup_to_select_transports    FOR zif_abapgit_popups~popup_to_select_transports,
+      popup_to_select_from_list     FOR zif_abapgit_popups~popup_to_select_from_list,
+      branch_popup_callback         FOR zif_abapgit_popups~branch_popup_callback,
+      package_popup_callback        FOR zif_abapgit_popups~package_popup_callback,
+      popup_transport_request       FOR zif_abapgit_popups~popup_transport_request.
 
   PRIVATE SECTION.
 
@@ -7719,12 +7764,13 @@ CLASS zcl_abapgit_popups DEFINITION
       ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
 
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
-    CLASS-DATA go_select_list_popup TYPE REF TO cl_salv_table .
-    CLASS-DATA gr_table TYPE REF TO data .
-    CLASS-DATA gv_cancel TYPE abap_bool .
-    CLASS-DATA go_table_descr TYPE REF TO cl_abap_tabledescr .
 
-    CLASS-METHODS add_field
+    DATA go_select_list_popup TYPE REF TO cl_salv_table .
+    DATA gr_table TYPE REF TO data .
+    DATA gv_cancel TYPE abap_bool .
+    DATA go_table_descr TYPE REF TO cl_abap_tabledescr .
+
+    METHODS add_field
       IMPORTING
         !iv_tabname    TYPE sval-tabname
         !iv_fieldname  TYPE sval-fieldname
@@ -7734,22 +7780,22 @@ CLASS zcl_abapgit_popups DEFINITION
         !iv_obligatory TYPE spo_obl OPTIONAL
       CHANGING
         !ct_fields     TYPE ty_sval_tt .
-    CLASS-METHODS create_new_table
+    METHODS create_new_table
       IMPORTING
         !it_list TYPE STANDARD TABLE .
-    CLASS-METHODS get_selected_rows
+    METHODS get_selected_rows
       EXPORTING
         !et_list TYPE INDEX TABLE .
-    CLASS-METHODS on_select_list_link_click
+    METHODS on_select_list_link_click
           FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
           !row
           !column .
-    CLASS-METHODS on_select_list_function_click
+    METHODS on_select_list_function_click
           FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
           !e_salv_function .
-    CLASS-METHODS extract_field_values
+    METHODS extract_field_values
       IMPORTING
         it_fields  TYPE ty_sval_tt
       EXPORTING
@@ -8023,6 +8069,31 @@ CLASS zcl_abapgit_tag_popups DEFINITION
       show_docking_container_with
         IMPORTING
           iv_text TYPE string.
+
+ENDCLASS.
+CLASS zcl_abapgit_ui_factory DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_ui_injector.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      get_popups
+        RETURNING
+          VALUE(ri_popups) TYPE REF TO zif_abapgit_popups.
+
+  PRIVATE SECTION.
+    CLASS-DATA:
+      mi_popups TYPE REF TO zif_abapgit_popups.
+
+ENDCLASS.
+CLASS zcl_abapgit_ui_injector DEFINITION
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      set_popups
+        IMPORTING
+          ii_popups TYPE REF TO zif_abapgit_popups.
 
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
@@ -10862,7 +10933,7 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
     STATICS: sv_prev TYPE string.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF lt_files.
-    ls_tadir = zcl_abapgit_popups=>popup_object( ).
+    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
     IF ls_tadir IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -10944,7 +11015,7 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
     ls_data-key = 'DUMMY'.
     ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
 
-    zcl_abapgit_popups=>popup_package_export(
+    zcl_abapgit_ui_factory=>get_popups( )->popup_package_export(
       IMPORTING
         ev_package      = ls_data-package
         ev_folder_logic = ls_data-dot_abapgit-folder_logic ).
@@ -11453,7 +11524,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
           ls_data     TYPE zif_abapgit_persistence=>ty_repo,
           lo_repo     TYPE REF TO zcl_abapgit_repo_offline,
           lt_trkorr   TYPE trwbo_request_headers.
-    lt_trkorr = zcl_abapgit_popups=>popup_to_select_transports( ).
+    lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
     IF lines( lt_trkorr ) = 0.
       RETURN.
     ENDIF.
@@ -11473,7 +11544,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     ls_data-package     = lv_package.
     ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
 
-    ls_data-dot_abapgit-folder_logic = zcl_abapgit_popups=>popup_folder_logic( ).
+    ls_data-dot_abapgit-folder_logic = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ).
 
     CREATE OBJECT lo_repo
       EXPORTING
@@ -18157,6 +18228,28 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
+CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
+
+  METHOD set_popups.
+
+    zcl_abapgit_ui_factory=>mi_popups = ii_popups.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
+
+  METHOD get_popups.
+
+    IF mi_popups IS INITIAL.
+      CREATE OBJECT mi_popups TYPE zcl_abapgit_popups.
+    ENDIF.
+
+    ri_popups = mi_popups.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
   METHOD on_double_click.
 
@@ -18445,7 +18538,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         ENDIF.
 
         IF ls_checks-transport-required = abap_true.
-          ls_checks-transport-transport = zcl_abapgit_popups=>popup_transport_request(
+          ls_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request(
             is_transport_type = ls_checks-transport-type ).
         ENDIF.
 
@@ -18460,9 +18553,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD new_offline.
 
     DATA: lo_repo  TYPE REF TO zcl_abapgit_repo,
-          ls_popup TYPE zcl_abapgit_popups=>ty_popup.
+          ls_popup TYPE zif_abapgit_popups=>ty_popup.
 
-    ls_popup  = zcl_abapgit_popups=>repo_new_offline( ).
+    ls_popup  = zcl_abapgit_ui_factory=>get_popups( )->repo_new_offline( ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -18479,8 +18572,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.  "new_offline
   METHOD new_online.
 
-    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup.
-    ls_popup = zcl_abapgit_popups=>repo_popup( iv_url ).
+    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup.
+
+    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup( iv_url ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -18525,7 +18619,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lv_column = 'OBJ_NAME'.
     INSERT lv_column INTO TABLE lt_columns.
 
-    zcl_abapgit_popups=>popup_to_select_from_list(
+    zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_from_list(
       EXPORTING
         it_list               = ct_overwrite
         i_header_text         = |The following Objects have been modified locally.|
@@ -18563,7 +18657,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         'from package' <ls_overwrite>-devclass
         INTO lv_question SEPARATED BY space.                "#EC NOTEXT
 
-      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
         titlebar              = 'Warning'
         text_question         = lv_question
         text_button_1         = 'Ok'
@@ -18600,7 +18694,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       lv_question = |This will DELETE all objects in package { lv_package
         } ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
 
-      lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+      lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
         titlebar              = 'Uninstall'
         text_question         = lv_question
         text_button_1         = 'Delete'
@@ -18648,7 +18742,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
                 && ' Please make sure you don''t have ones like that.'.
     ENDIF.
 
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = lv_question
       text_button_1         = 'OK'
@@ -18667,10 +18761,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.  "refresh_local_checksums
   METHOD remote_attach.
 
-    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
           lo_repo  TYPE REF TO zcl_abapgit_repo_online.
 
-    ls_popup = zcl_abapgit_popups=>repo_popup(
+    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup(
       iv_title          = 'Attach repo to remote ...'
       iv_url            = ''
       iv_package        = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_package( )
@@ -18692,12 +18786,12 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.  "remote_attach
   METHOD remote_change.
 
-    DATA: ls_popup TYPE zcl_abapgit_popups=>ty_popup,
+    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
           lo_repo  TYPE REF TO zcl_abapgit_repo_online.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_popup = zcl_abapgit_popups=>repo_popup(
+    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup(
       iv_title          = 'Change repo remote ...'
       iv_url            = lo_repo->get_url( )
       iv_package        = lo_repo->get_package( )
@@ -18717,7 +18811,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     DATA: lv_answer TYPE c LENGTH 1.
 
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Make repository OFF-line'
       text_question         = 'This will detach the repo from remote and make it OFF-line'
       text_button_1         = 'Make OFF-line'
@@ -18747,7 +18841,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lv_question = |This will remove the repository reference to the package { lv_package
       }. All objects will safely remain in the system.|.
 
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Remove'
       text_question         = lv_question
       text_button_1         = 'Remove'
@@ -18785,13 +18879,13 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
 
-    lt_transport_headers = zcl_abapgit_popups=>popup_to_select_transports( ).
+    lt_transport_headers = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
     lt_transport_objects = zcl_abapgit_transport=>to_tadir( lt_transport_headers ).
     IF lt_transport_objects IS INITIAL.
       zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
     ENDIF.
 
-    ls_transport_to_branch = zcl_abapgit_popups=>popup_to_create_transp_branch(
+    ls_transport_to_branch = zcl_abapgit_ui_factory=>get_popups( )->popup_to_create_transp_branch(
       lt_transport_headers ).
 
     CREATE OBJECT lo_transport_to_branch.
@@ -18848,7 +18942,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           lo_repo   TYPE REF TO zcl_abapgit_repo_online.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    zcl_abapgit_popups=>create_branch_popup(
+    zcl_abapgit_ui_factory=>get_popups( )->create_branch_popup(
       IMPORTING
         ev_name   = lv_name
         ev_cancel = lv_cancel ).
@@ -18875,7 +18969,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_branch = zcl_abapgit_popups=>branch_list_popup( lo_repo->get_url( ) ).
+    ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup( lo_repo->get_url( ) ).
     IF ls_branch IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -18942,7 +19036,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
     ENDIF.
 
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = 'Reset local objects?'
       text_button_1         = 'Ok'
@@ -18963,7 +19057,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       INSERT `OBJECT` INTO TABLE lt_columns.
       INSERT `OBJ_NAME` INTO TABLE lt_columns.
 
-      zcl_abapgit_popups=>popup_to_select_from_list(
+      zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_from_list(
         EXPORTING
           it_list              = lt_unnecessary_local_objs
           i_header_text        = |Which unnecessary objects should be deleted?|
@@ -18987,7 +19081,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_branch = zcl_abapgit_popups=>branch_list_popup(
+    ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
       iv_url             = lo_repo->get_url( )
       iv_default_branch  = lo_repo->get_branch_name( )
       iv_show_new_option = abap_true ).
@@ -18995,7 +19089,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    IF ls_branch-name = zcl_abapgit_popups=>c_new_branch_label.
+    IF ls_branch-name = zcl_abapgit_ui_factory=>get_popups( )->c_new_branch_label.
       create_branch( iv_key ).
       RETURN.
     ENDIF.
@@ -19037,7 +19131,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           lv_answer TYPE c LENGTH 1.
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = iv_title
       text_question         = iv_text
       text_button_1         = 'Continue'
@@ -19075,7 +19169,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
     IF is_installed( ) = abap_true.
       lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
-      zcl_abapgit_popups=>popup_to_inform(
+      zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
         titlebar              = lc_title
         text_message          = lv_text ).
       RETURN.
@@ -19096,7 +19190,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
     IF is_installed_pi( ) = abap_true.
       lv_text = 'Seems like abapGit plugins package is already installed. No changes to be done'.
-      zcl_abapgit_popups=>popup_to_inform(
+      zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
         titlebar              = lc_title
         text_message          = lv_text ).
       RETURN.
@@ -19154,7 +19248,8 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.  "open_abapgit_wikipage
 ENDCLASS.
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
+
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -19168,7 +19263,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     <ls_field>-field_obl  = iv_obligatory.
 
   ENDMETHOD.
-  METHOD branch_list_popup.
+  METHOD zif_abapgit_popups~branch_list_popup.
 
     DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
           lt_branches    TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
@@ -19224,7 +19319,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     IF iv_show_new_option = abap_true.
       APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
-      <ls_sel>-varoption = c_new_branch_label.
+      <ls_sel>-varoption = zif_abapgit_popups=>c_new_branch_label.
     ENDIF.
 
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
@@ -19254,8 +19349,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
     ASSERT sy-subrc = 0.
 
-    IF iv_show_new_option = abap_true AND <ls_sel>-varoption = c_new_branch_label.
-      rs_branch-name = c_new_branch_label.
+    IF iv_show_new_option = abap_true AND <ls_sel>-varoption = zif_abapgit_popups=>c_new_branch_label.
+      rs_branch-name = zif_abapgit_popups=>c_new_branch_label.
     ELSE.
       REPLACE FIRST OCCURRENCE OF lv_head_suffix IN <ls_sel>-varoption WITH ''.
       READ TABLE lt_branches WITH KEY display_name = <ls_sel>-varoption ASSIGNING <ls_branch>.
@@ -19270,7 +19365,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD branch_popup_callback.
+  METHOD zif_abapgit_popups~branch_popup_callback.
 
     DATA: lv_url          TYPE string,
           ls_package_data TYPE scompkdtln,
@@ -19293,7 +19388,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ENDIF.
       lv_url = <ls_furl>-value.
 
-      ls_branch = zcl_abapgit_popups=>branch_list_popup( lv_url ).
+      ls_branch = branch_list_popup( lv_url ).
       IF ls_branch IS INITIAL.
         RETURN.
       ENDIF.
@@ -19309,7 +19404,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ASSERT sy-subrc = 0.
       ls_package_data-devclass = <ls_fpackage>-value.
 
-      zcl_abapgit_popups=>popup_to_create_package(
+      popup_to_create_package(
         IMPORTING
           es_package_data = ls_package_data
           ev_create       = lv_create ).
@@ -19324,7 +19419,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD create_branch_popup.
+  METHOD zif_abapgit_popups~create_branch_popup.
 
     DATA: lv_answer TYPE c LENGTH 1,
           lt_fields TYPE TABLE OF sval.
@@ -19539,7 +19634,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     go_select_list_popup->refresh( ).
   ENDMETHOD.
-  METHOD package_popup_callback.
+  METHOD zif_abapgit_popups~package_popup_callback.
 
     DATA: ls_package_data TYPE scompkdtln,
           lv_create       TYPE boolean.
@@ -19555,8 +19650,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ASSERT sy-subrc = 0.
       ls_package_data-devclass = <ls_fpackage>-value.
 
-      zcl_abapgit_popups=>popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                                     ev_create       = lv_create ).
+      popup_to_create_package( IMPORTING es_package_data = ls_package_data
+                                         ev_create       = lv_create ).
       IF lv_create = abap_false.
         RETURN.
       ENDIF.
@@ -19568,7 +19663,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD popup_folder_logic.
+  METHOD zif_abapgit_popups~popup_folder_logic.
 
     DATA: lv_returncode TYPE c,
           lt_fields     TYPE TABLE OF sval.
@@ -19605,7 +19700,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     rv_folder_logic = <ls_field>-value.
 
   ENDMETHOD.                    "popup_package_export
-  METHOD popup_object.
+  METHOD zif_abapgit_popups~popup_object.
 
     DATA: lv_returncode TYPE c,
           lt_fields     TYPE TABLE OF sval.
@@ -19655,7 +19750,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       iv_obj_name = rs_tadir-obj_name ).
 
   ENDMETHOD.
-  METHOD popup_package_export.
+  METHOD zif_abapgit_popups~popup_package_export.
 
     DATA: lv_returncode TYPE c,
           lt_fields     TYPE TABLE OF sval.
@@ -19702,7 +19797,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ev_folder_logic = <ls_field>-value.
 
   ENDMETHOD.                    "popup_package_export
-  METHOD popup_to_confirm.
+  METHOD zif_abapgit_popups~popup_to_confirm.
 
     CALL FUNCTION 'POPUP_TO_CONFIRM'
       EXPORTING
@@ -19724,7 +19819,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.  "popup_to_confirm
-  METHOD popup_to_create_package.
+  METHOD zif_abapgit_popups~popup_to_create_package.
     CALL FUNCTION 'FUNCTION_EXISTS'
       EXPORTING
         funcname           = 'PB_POPUP_PACKAGE_CREATE'
@@ -19749,7 +19844,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ev_create = abap_false.
     ENDIF.
   ENDMETHOD.  " popup_to_create_package
-  METHOD popup_to_create_transp_branch.
+  METHOD zif_abapgit_popups~popup_to_create_transp_branch.
     DATA: lv_returncode         TYPE c,
           lt_fields             TYPE TABLE OF sval,
           lv_transports_as_text TYPE string,
@@ -19800,7 +19895,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ASSERT sy-subrc = 0.
     rs_transport_branch-commit_text = <ls_field>-value.
   ENDMETHOD.
-  METHOD popup_to_inform.
+  METHOD zif_abapgit_popups~popup_to_inform.
 
     DATA: lv_line1 TYPE char70,
           lv_line2 TYPE char70.
@@ -19817,7 +19912,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
         txt2  = lv_line2.
 
   ENDMETHOD.  " popup_to_inform.
-  METHOD popup_to_select_from_list.
+  METHOD zif_abapgit_popups~popup_to_select_from_list.
 
     DATA:
       lo_events       TYPE REF TO cl_salv_events_table,
@@ -19902,7 +19997,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
            go_table_descr.
 
   ENDMETHOD.
-  METHOD popup_to_select_transports.
+  METHOD zif_abapgit_popups~popup_to_select_transports.
 
 * todo, method to be renamed, it only returns one transport
 
@@ -19918,7 +20013,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD popup_transport_request.
+  METHOD zif_abapgit_popups~popup_transport_request.
 
     DATA: lt_e071  TYPE STANDARD TABLE OF e071,
           lt_e071k TYPE STANDARD TABLE OF e071k.
@@ -19947,7 +20042,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD repo_new_offline.
+  METHOD zif_abapgit_popups~repo_new_offline.
 
     DATA: lv_returncode TYPE c,
           lt_fields     TYPE TABLE OF sval,
@@ -20024,7 +20119,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDWHILE.
 
   ENDMETHOD.                    "repo_new_offline
-  METHOD repo_popup.
+  METHOD zif_abapgit_popups~repo_popup.
 
     DATA: lv_returncode TYPE c,
           lv_icon_ok    TYPE icon-name,
@@ -20141,7 +20236,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     rs_popup-branch_name = lv_branch.
 
   ENDMETHOD.
-  METHOD run_page_class_popup.
+  METHOD zif_abapgit_popups~run_page_class_popup.
 
     DATA: lv_answer TYPE c LENGTH 1,
           lt_fields TYPE TABLE OF sval.
@@ -21502,7 +21597,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     DATA: lv_class_name TYPE string,
           lv_cancel     TYPE abap_bool.
 
-    zcl_abapgit_popups=>run_page_class_popup(
+    zcl_abapgit_ui_factory=>get_popups( )->run_page_class_popup(
       IMPORTING
         ev_name   = lv_class_name
         ev_cancel = lv_cancel ).
@@ -23617,7 +23712,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     DATA: ls_tadir TYPE tadir,
           lv_user  TYPE xubname,
           ls_item  TYPE zif_abapgit_definitions=>ty_item.
-    ls_tadir = zcl_abapgit_popups=>popup_object( ).
+    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
     IF ls_tadir IS INITIAL.
       RETURN.
     ENDIF.
@@ -24419,7 +24514,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 
     ASSERT is_key-type IS NOT INITIAL.
 
-    lv_answer = zcl_abapgit_popups=>popup_to_confirm(
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = 'Delete?'
       text_button_1         = 'Ok'
@@ -36176,24 +36271,42 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
-    DATA: lv_as4date TYPE dd02l-as4date,
-          lv_as4time TYPE dd02l-as4time.
-    SELECT SINGLE as4user as4date as4time
-      FROM dd02l INTO (rv_user, lv_as4date, lv_as4time)
+    TYPES: BEGIN OF ty_data,
+             as4user TYPE as4user,
+             as4date TYPE as4date,
+             as4time TYPE as4time,
+           END OF ty_data.
+
+    DATA: lt_data TYPE STANDARD TABLE OF ty_data WITH DEFAULT KEY,
+          ls_data LIKE LINE OF lt_data.
+    SELECT as4user as4date as4time
+      FROM dd02l INTO TABLE lt_data
       WHERE tabname = ms_item-obj_name
       AND as4local = 'A'
       AND as4vers = '0000'.
-    IF sy-subrc <> 0.
-      rv_user = c_user_unknown.
-      RETURN.
-    ENDIF.
 
-    SELECT SINGLE as4user INTO rv_user
+    SELECT as4user as4date as4time
+      APPENDING TABLE lt_data
       FROM dd09l
       WHERE tabname = ms_item-obj_name
       AND as4local = 'A'
-      AND as4vers = '0000'
-      AND ( as4date > lv_as4date OR ( as4date = lv_as4date AND as4time > lv_as4time ) ).
+      AND as4vers = '0000'.
+
+    SELECT as4user as4date as4time
+      APPENDING TABLE lt_data
+      FROM dd12l
+      WHERE sqltab = ms_item-obj_name
+      AND as4local = 'A'
+      AND as4vers = '0000'.
+
+    SORT lt_data BY as4date DESCENDING as4time DESCENDING.
+
+    READ TABLE lt_data INDEX 1 INTO ls_data.
+    IF sy-subrc = 0.
+      rv_user = ls_data-as4user.
+    ELSE.
+      rv_user = c_user_unknown.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
@@ -56015,7 +56128,7 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
   DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
   TRY.
-      zcl_abapgit_popups=>branch_popup_callback(
+      zcl_abapgit_ui_factory=>get_popups( )->branch_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -56039,7 +56152,7 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
   DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
   TRY.
-      zcl_abapgit_popups=>package_popup_callback(
+      zcl_abapgit_ui_factory=>get_popups( )->package_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -56114,5 +56227,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-17T07:39:48.903Z
+* abapmerge - 2018-06-17T07:53:59.659Z
 ****************************************************
