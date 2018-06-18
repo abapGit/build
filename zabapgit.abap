@@ -1285,6 +1285,10 @@ INTERFACE zif_abapgit_object.
     exists
       RETURNING VALUE(rv_bool) TYPE abap_bool
       RAISING   zcx_abapgit_exception,
+    is_locked
+      RETURNING VALUE(rv_is_locked) type abap_bool
+      RAISING
+        zcx_abapgit_exception,
     changed_by
       RETURNING VALUE(rv_user) TYPE xubname
       RAISING   zcx_abapgit_exception,
@@ -3358,6 +3362,11 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
       jump_se11
         IMPORTING iv_radio TYPE string
                   iv_field TYPE string
+        RAISING   zcx_abapgit_exception,
+      exists_a_lock_entry_for
+        IMPORTING iv_lock_object                 TYPE string
+                  iv_argument                    TYPE seqg3-garg OPTIONAL
+        RETURNING VALUE(rv_exists_a_lock_entry) TYPE abap_bool
         RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
@@ -3770,7 +3779,11 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
 
       get_download ABSTRACT
         RETURNING
-          VALUE(ro_download) TYPE REF TO cl_apl_ecatt_download.
+          VALUE(ro_download) TYPE REF TO cl_apl_ecatt_download,
+
+      get_lock_object ABSTRACT
+        RETURNING
+          VALUE(rv_lock_object) TYPE eqeobj.
 
   PRIVATE SECTION.
     TYPES:
@@ -3889,7 +3902,8 @@ CLASS zcl_abapgit_object_ecat DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsd DEFINITION
@@ -3909,7 +3923,8 @@ CLASS zcl_abapgit_object_ecsd DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsp DEFINITION
@@ -3929,7 +3944,8 @@ CLASS zcl_abapgit_object_ecsp DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ectc DEFINITION
@@ -3949,7 +3965,8 @@ CLASS zcl_abapgit_object_ectc DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ectd DEFINITION
@@ -3969,7 +3986,8 @@ CLASS zcl_abapgit_object_ectd DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ecvo DEFINITION
@@ -3989,7 +4007,8 @@ CLASS zcl_abapgit_object_ecvo DEFINITION
     METHODS:
       get_object_type REDEFINITION,
       get_upload REDEFINITION,
-      get_download REDEFINITION.
+      get_download REDEFINITION,
+      get_lock_object REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_enho DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -5221,6 +5240,20 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
                 iv_skip_gui       TYPE abap_bool DEFAULT abap_false
       RETURNING VALUE(rv_changed) TYPE abap_bool.
 
+    METHODS is_any_dynpro_locked
+      IMPORTING iv_program                     TYPE programm
+      RETURNING VALUE(rv_is_any_dynpro_locked) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    METHODS is_cua_locked
+      IMPORTING iv_program              TYPE programm
+      RETURNING VALUE(rv_is_cua_locked) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
+
+    METHODS is_text_locked
+      IMPORTING iv_program               TYPE programm
+      RETURNING VALUE(rv_is_text_locked) TYPE abap_bool
+      RAISING   zcx_abapgit_exception.
     CLASS-METHODS:
       add_tpool
         IMPORTING it_tpool        TYPE textpool_table
@@ -5270,6 +5303,11 @@ CLASS zcl_abapgit_object_clas_old DEFINITION INHERITING FROM zcl_abapgit_objects
         RAISING   zcx_abapgit_exception,
       serialize_xml
         IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+        RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+    METHODS:
+      is_class_locked
+        RETURNING VALUE(rv_is_class_locked) TYPE abap_bool
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
@@ -5379,11 +5417,27 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS are_exceptions_class_based
       IMPORTING
-        !iv_function_name TYPE rs38l_fnam
+        iv_function_name TYPE rs38l_fnam
       RETURNING
-        VALUE(rv_return)  TYPE abap_bool
+        VALUE(rv_return) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
+    METHODS is_function_group_locked
+      RETURNING
+        VALUE(rv_is_functions_group_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+    METHODS is_any_include_locked
+      RETURNING
+        VALUE(rv_is_any_include_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+    METHODS is_any_function_module_locked
+      RETURNING
+        VALUE(rv_any_function_module_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objects_program.
   PUBLIC SECTION.
@@ -5430,7 +5484,12 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         RAISING   zcx_abapgit_exception,
       deserialize_texts
         IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
-        RAISING   zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception,
+      is_program_locked
+        RETURNING
+          VALUE(rv_is_program_locked) TYPE abap_bool
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_objects_saxx_super DEFINITION ABSTRACT
@@ -9370,7 +9429,16 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS supported_list
       RETURNING
         VALUE(rt_types) TYPE ty_types_tt .
+  PROTECTED SECTION.
+
   PRIVATE SECTION.
+    TYPES: BEGIN OF ty_obj_serializer_map,
+             item     TYPE zif_abapgit_definitions=>ty_item,
+             metadata TYPE zif_abapgit_definitions=>ty_metadata,
+           END OF ty_obj_serializer_map,
+           tty_obj_serializer_map
+        TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item.
+    CLASS-DATA st_obj_serializer_map TYPE tty_obj_serializer_map.
 
     CLASS-METHODS files_to_deserialize
       IMPORTING
@@ -9384,16 +9452,7 @@ CLASS zcl_abapgit_objects DEFINITION
         !it_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS create_object
-      IMPORTING
-        !is_item        TYPE zif_abapgit_definitions=>ty_item
-        !iv_language    TYPE spras
-        !is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-        !iv_native_only TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(ri_obj)   TYPE REF TO zif_abapgit_object
-      RAISING
-        zcx_abapgit_exception .
+
     CLASS-METHODS prioritize_deser
       IMPORTING
         !it_results       TYPE zif_abapgit_definitions=>ty_results_tt
@@ -9459,11 +9518,27 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
       IMPORTING
-        !it_objects TYPE ty_deserialization_tt
-        !iv_ddic    TYPE abap_bool DEFAULT abap_false
-        !iv_descr   TYPE string
+        it_objects TYPE ty_deserialization_tt
+        iv_ddic    TYPE abap_bool DEFAULT abap_false
+        iv_descr   TYPE string
       CHANGING
-        !ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS check_objects_locked
+      IMPORTING
+        iv_language TYPE spras
+        it_results  TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS create_object
+      IMPORTING
+        is_item        TYPE zif_abapgit_definitions=>ty_item
+        iv_language    TYPE spras
+        is_metadata    TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+        iv_native_only TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_obj)  TYPE REF TO zif_abapgit_object
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -9610,6 +9685,7 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
       RAISING
         zcx_abapgit_exception .
+
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -13639,6 +13715,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.  " update_local_checksums
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -13767,6 +13844,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.  "lif_object~has_changed_since
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~JUMP').
@@ -13780,7 +13862,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -13823,6 +13905,27 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD check_objects_locked.
+
+    DATA: li_obj  TYPE REF TO zif_abapgit_object,
+          ls_item TYPE zif_abapgit_definitions=>ty_item.
+    FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result.
+
+    LOOP AT it_results ASSIGNING <ls_result>.
+
+      MOVE-CORRESPONDING <ls_result> TO ls_item.
+
+      li_obj = create_object( is_item     = ls_item
+                              iv_language = iv_language ).
+
+      IF li_obj->is_locked( ) = abap_true.
+        zcx_abapgit_exception=>raise( |Object { ls_item-obj_type } { ls_item-obj_name } |
+                                   && |is locked. Deserialization not possible.| ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD class_name.
 
     CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name. "#EC NOTEXT
@@ -13862,14 +13965,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD create_object.
-
-    TYPES: BEGIN OF ty_obj_serializer_map,
-             item     LIKE is_item,
-             metadata LIKE is_metadata,
-           END OF ty_obj_serializer_map.
-
-    STATICS st_obj_serializer_map
-      TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item.
 
     DATA: lv_message            TYPE string,
           lv_class_name         TYPE string,
@@ -14011,6 +14106,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     CREATE OBJECT lo_progress
       EXPORTING
         iv_total = lines( lt_results ).
+
+    check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_master_language( )
+                          it_results  = lt_results ).
 
     LOOP AT lt_results ASSIGNING <ls_result>.
       lo_progress->show( iv_current = sy-tabix
@@ -30273,7 +30371,7 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
     INSERT seocompotx FROM TABLE it_descriptions.         "#EC CI_SUBRC
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD check_timestamp.
 
     DATA: lv_ts TYPE timestamp.
@@ -30324,6 +30422,32 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "corr_insert
+  METHOD exists_a_lock_entry_for.
+
+    DATA: lt_lock_entries TYPE STANDARD TABLE OF seqg3.
+
+    CALL FUNCTION 'ENQUEUE_READ'
+      EXPORTING
+        guname                = '*'
+        garg                  = iv_argument
+      TABLES
+        enq                   = lt_lock_entries
+      EXCEPTIONS
+        communication_failure = 1
+        system_failure        = 2
+        OTHERS                = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    READ TABLE lt_lock_entries TRANSPORTING NO FIELDS
+                               WITH KEY gobj = iv_lock_object.
+    IF sy-subrc = 0.
+      rv_exists_a_lock_entry = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_metadata.
 
     DATA: lv_class TYPE string.
@@ -30498,7 +30622,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
   METHOD create_channel_objects.
 
     get_names( ).
@@ -30807,8 +30931,63 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
                  ig_data = <lg_data> ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_objects_program IMPLEMENTATION.
+
+  METHOD is_text_locked.
+
+    DATA: lv_object TYPE eqegraarg.
+
+    lv_object = |*{ iv_program }|.
+
+    rv_is_text_locked = exists_a_lock_entry_for( iv_lock_object = 'EABAPTEXTE'
+                                                 iv_argument    = lv_object ).
+
+  ENDMETHOD.
+
+  METHOD is_cua_locked.
+
+    DATA: lv_object TYPE eqegraarg,
+          ls_cua    TYPE zcl_abapgit_objects_program=>ty_cua.
+
+    lv_object = |CU{ iv_program }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_cua_locked = exists_a_lock_entry_for( iv_lock_object = 'ESCUAPAINT'
+                                                iv_argument    = lv_object ).
+
+  ENDMETHOD.
+
+  METHOD is_any_dynpro_locked.
+
+    DATA: lt_dynpros TYPE zcl_abapgit_objects_program=>ty_dynpro_tt,
+          lv_object  TYPE seqg3-garg.
+
+    FIELD-SYMBOLS: <ls_dynpro> TYPE zcl_abapgit_objects_program=>ty_dynpro.
+
+    lt_dynpros = serialize_dynpros( iv_program ).
+
+    LOOP AT lt_dynpros ASSIGNING <ls_dynpro>.
+
+      lv_object = |{ <ls_dynpro>-header-screen }{ <ls_dynpro>-header-program }|.
+
+      IF exists_a_lock_entry_for( iv_lock_object = 'ESCRP'
+                                  iv_argument    = lv_object ) = abap_true.
+        rv_is_any_dynpro_locked = abap_true.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
 
   METHOD condense_flow.
 
@@ -32215,6 +32394,12 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_xslt IMPLEMENTATION
 CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   METHOD constructor.
@@ -32386,6 +32571,13 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
                  ig_data = ls_extension_index ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   METHOD handle_endpoint.
@@ -32761,6 +32953,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
                  ig_data = ls_webi ).
 
   ENDMETHOD.                    "zif_abapgit_object~serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD add_fm_exception.
@@ -33444,6 +33643,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
                  iv_name = 'SOURCES' ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
 
@@ -33636,6 +33842,12 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_wdya IMPLEMENTATION
@@ -34069,6 +34281,12 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_tran IMPLEMENTATION
 CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
   METHOD constructor.
@@ -34471,6 +34689,13 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
                                   iv_ext   = get_ext( lt_w3params ) ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_w3mi IMPLEMENTATION.
 
@@ -34742,6 +34967,13 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
                  iv_name = 'DD28V_TABLE' ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
 
@@ -34910,6 +35142,12 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_vcls IMPLEMENTATION
@@ -35129,6 +35367,13 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
@@ -35298,6 +35543,12 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_type IMPLEMENTATION
 CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
@@ -35458,6 +35709,12 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_ttyp IMPLEMENTATION
@@ -35861,6 +36118,13 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
@@ -36141,6 +36405,12 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_tobj IMPLEMENTATION
 CLASS zcl_abapgit_object_tabl_valid IMPLEMENTATION.
   METHOD get_where_used_recursive.
@@ -36298,6 +36568,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_DIALOG IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -36761,6 +37032,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
                  ig_data = lt_dd36m ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -37004,6 +37283,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
                  ig_data = ls_classic_badi_implementation ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
@@ -37151,6 +37437,12 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_suso IMPLEMENTATION
 CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
@@ -37245,6 +37537,12 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_susc IMPLEMENTATION
@@ -37408,6 +37706,12 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_styl IMPLEMENTATION
@@ -37630,6 +37934,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
                  iv_name = 'STXSTAB' ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 
@@ -37893,6 +38204,12 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_ssfo IMPLEMENTATION
 CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -38046,6 +38363,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
                  ig_data = <lg_srfc_data> ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_splo IMPLEMENTATION.
 
@@ -38142,6 +38466,12 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_splo IMPLEMENTATION
@@ -38431,6 +38761,12 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_smim IMPLEMENTATION
@@ -38874,6 +39210,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
                  ig_data = lt_icfhandler ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_shma IMPLEMENTATION.
 
@@ -39136,6 +39479,12 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
 
@@ -39319,6 +39668,12 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_shlp IMPLEMENTATION
 CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
@@ -39438,6 +39793,12 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_shi8 IMPLEMENTATION
 CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
@@ -39541,6 +39902,12 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_shi5 IMPLEMENTATION
@@ -39779,6 +40146,12 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_shi3 IMPLEMENTATION
 CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
   METHOD get.
@@ -39952,6 +40325,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
                  iv_name = 'CONFLICTS' ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
@@ -40083,6 +40463,12 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_doma IMPLEMENTATION
@@ -40253,6 +40639,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
     io_xml->set_raw( li_document->get_root_element( ) ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
   METHOD get.
@@ -40435,6 +40828,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
                  iv_name = 'PARENT_BFS' ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
   METHOD get.
@@ -40575,6 +40975,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -40688,7 +41093,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
@@ -40852,6 +41257,26 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.                    "zif_abapgit_serialize~serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    IF is_program_locked( )                     = abap_true
+    OR is_any_dynpro_locked( ms_item-obj_name ) = abap_true
+    OR is_cua_locked( ms_item-obj_name )        = abap_true
+    OR is_text_locked( ms_item-obj_name )       = abap_true.
+
+      rv_is_locked = abap_true.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_program_locked.
+
+    rv_is_program_locked = exists_a_lock_entry_for( iv_lock_object = 'ESRDIRE'
+                                                    iv_argument    = |{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -40983,6 +41408,13 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
     zcx_abapgit_exception=>raise( |Pragma { ms_item-obj_name } doesn't exist| ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
@@ -41284,6 +41716,12 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_PINF IMPLEMENTATION
 CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
@@ -41403,6 +41841,12 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_para IMPLEMENTATION
@@ -41655,6 +42099,12 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_nrob IMPLEMENTATION
@@ -41915,6 +42365,12 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
 CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -42087,6 +42543,13 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD constructor.
@@ -42296,6 +42759,13 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     serialize_xml( io_xml ).
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   METHOD constructor.
@@ -42473,6 +42943,12 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
 
     io_xml->add( iv_name = 'IEXT'
                  ig_data = ls_extension ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
 
   ENDMETHOD.
 
@@ -42659,6 +43135,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
                  ig_data = ls_idoc ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
@@ -42832,6 +43315,12 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_iatu IMPLEMENTATION
 CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
@@ -42988,6 +43477,12 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_iasp IMPLEMENTATION
 CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
@@ -43142,6 +43637,12 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_iarp IMPLEMENTATION
@@ -43405,8 +43906,14 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD are_exceptions_class_based.
     DATA:
       lt_dokumentation    TYPE TABLE OF funct,
@@ -44096,6 +44603,75 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_program TYPE program.
+
+    lv_program = main_name( ).
+
+    IF is_function_group_locked( )        = abap_true
+    OR is_any_include_locked( )           = abap_true
+    OR is_any_function_module_locked( )   = abap_true
+    OR is_any_dynpro_locked( lv_program ) = abap_true
+    OR is_cua_locked( lv_program )        = abap_true
+    OR is_text_locked( lv_program )       = abap_true.
+
+      rv_is_locked = abap_true.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_function_group_locked.
+
+    DATA: lv_object TYPE eqegraarg .
+
+    lv_object = |FG{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_functions_group_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                                            iv_argument    = lv_object ).
+
+  ENDMETHOD.
+  METHOD is_any_include_locked.
+
+    DATA: lt_includes TYPE rso_t_objnm.
+    FIELD-SYMBOLS: <lv_include> TYPE sobj_name.
+
+    lt_includes = includes( ).
+
+    LOOP AT lt_includes ASSIGNING <lv_include>.
+
+      IF exists_a_lock_entry_for( iv_lock_object = 'ESRDIRE'
+                                  iv_argument    = |{ <lv_include> }| ) = abap_true.
+        rv_is_any_include_locked = abap_true.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_any_function_module_locked.
+
+    DATA: lt_functions TYPE zcl_abapgit_object_fugr=>ty_rs38l_incl_tt.
+
+    FIELD-SYMBOLS: <ls_function> TYPE rs38l_incl.
+
+    lt_functions = functions( ).
+
+    LOOP AT lt_functions ASSIGNING <ls_function>.
+
+      IF exists_a_lock_entry_for( iv_lock_object = 'ESFUNCTION'
+                                  iv_argument    = |{ <ls_function>-funcname }| ) = abap_true.
+        rv_any_function_module_locked = abap_true.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
@@ -44433,6 +45009,12 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_FORM IMPLEMENTATION
 CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
@@ -44610,6 +45192,12 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS. "zcl_abapgit_object_ensc
 CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
 
@@ -44770,6 +45358,12 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_enqu IMPLEMENTATION
@@ -45104,6 +45698,12 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |ENHS: Unsupported tool { iv_tool }| ).
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
 
   ENDMETHOD.
 
@@ -46122,6 +46722,12 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_enho IMPLEMENTATION
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   METHOD constructor.
@@ -46147,6 +46753,12 @@ CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   METHOD get_download.
 
     CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_val_obj_down.
+
+  ENDMETHOD.
+
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TD'.
 
   ENDMETHOD.
 
@@ -46177,6 +46789,12 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TD'.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   METHOD constructor.
@@ -46200,6 +46818,12 @@ CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   METHOD get_download.
 
     CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_config_downl.
+
+  ENDMETHOD.
+
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TC'.
 
   ENDMETHOD.
 
@@ -46231,6 +46855,12 @@ CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_SP'.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   METHOD constructor.
@@ -46254,6 +46884,12 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   METHOD get_download.
 
     CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_system_downl.
+
+  ENDMETHOD.
+
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_SD'.
 
   ENDMETHOD.
 
@@ -46711,6 +47347,19 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_object TYPE seqg3-garg.
+
+    lv_object = ms_item-obj_name.
+    OVERLAY lv_object WITH '                              '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = get_lock_object( )
+                                            iv_argument    = lv_object ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
@@ -46738,8 +47387,14 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT'.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -47010,6 +47665,13 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
@@ -47145,8 +47807,14 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_dsys IMPLEMENTATION
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -47467,6 +48135,14 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_docv IMPLEMENTATION.
 
@@ -47589,6 +48265,12 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
@@ -47750,6 +48432,12 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
@@ -47920,6 +48608,13 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
            WHERE dnam = lv_dnam.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD constructor.
@@ -48408,8 +49103,22 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       io_xml->add( iv_name = 'PERMISSION' ig_data = lt_usage_data ).
     ENDIF.
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_object TYPE eqegraarg .
+
+    lv_object = |DV{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = lv_object ).
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
+CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -48609,6 +49318,14 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   METHOD open_adt_stob.
@@ -48863,8 +49580,16 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
                  ig_data = <lg_data> ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
@@ -49028,6 +49753,14 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'E_ACMDCLSRC'
+                                            iv_argument    = |{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
@@ -49141,6 +49874,12 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_cus2 IMPLEMENTATION
@@ -49263,6 +50002,12 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.                    "zcl_abapgit_object_cus1 IMPLEMENTATION
 CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
 
@@ -49382,6 +50127,12 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_cus0 IMPLEMENTATION
@@ -49562,9 +50313,17 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'CMPT not supported' ).
     ENDTRY.
+
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
@@ -49901,6 +50660,44 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS_OLD IMPLEMENTATION.
     serialize_xml( io_xml ).
 
   ENDMETHOD.                    "serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_classpool TYPE program.
+
+    lv_classpool = cl_oo_classname_service=>get_classpool_name( |{ ms_item-obj_name }| ).
+
+    IF is_class_locked( )             = abap_true
+    OR is_text_locked( lv_classpool ) = abap_true.
+
+      rv_is_locked = abap_true.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_class_locked.
+
+    DATA: lv_clsname TYPE seoclsenq-clsname.
+
+    lv_clsname = ms_item-obj_name.
+    OVERLAY lv_clsname WITH '=============================='.
+
+    CALL FUNCTION 'ENQUEUE_ESEOCLASS'
+      EXPORTING
+        clsname        = lv_clsname
+      EXCEPTIONS
+        foreign_lock   = 1
+        system_failure = 2
+        OTHERS         = 3.
+
+    rv_is_class_locked = boolc( sy-subrc <> 0 ).
+
+    CALL FUNCTION 'DEQUEUE_ESEOCLASS'
+      EXPORTING
+        clsname = lv_clsname.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_clas_new IMPLEMENTATION.
 
@@ -50167,7 +50964,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
+CLASS zcl_abapgit_object_auth IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
     rv_user = c_user_unknown.
@@ -50260,6 +51057,13 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
                  ig_data = ls_authx ).
 
   ENDMETHOD.                    "zif_abapgit_object~serialize
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
@@ -50377,6 +51181,12 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_acid IMPLEMENTATION
@@ -56448,5 +57258,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-18T13:26:21.757Z
+* abapmerge - 2018-06-18T13:34:12.914Z
 ****************************************************
