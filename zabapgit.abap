@@ -18896,7 +18896,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_services_git IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -19036,6 +19036,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot reset. Local code is write-protected by repo config' ).
     ENDIF.
 
+* todo, separate UI and logic
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       titlebar              = 'Warning'
       text_question         = 'Reset local objects?'
@@ -19068,6 +19069,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
       IF lines( lt_selected ) > 0.
         zcl_abapgit_objects=>delete( lt_selected ).
+* update repo cache
+        lo_repo->refresh( ).
       ENDIF.
 
     ENDIF.
@@ -56227,5 +56230,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-17T12:54:50.754Z
+* abapmerge - 2018-06-18T13:23:04.127Z
 ****************************************************
