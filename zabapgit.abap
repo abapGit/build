@@ -32179,7 +32179,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
           illegal_field_position = 9
           OTHERS                 = 10.
       IF sy-subrc <> 2 AND sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from RPY_DYNPRO_INSERT' ).
+        zcx_abapgit_exception=>raise( |error from RPY_DYNPRO_INSERT: { sy-subrc }| ).
       ENDIF.
 * todo, RPY_DYNPRO_UPDATE?
 
@@ -45524,7 +45524,11 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     DATA: lt_includes TYPE rso_t_objnm.
     FIELD-SYMBOLS: <lv_include> TYPE sobj_name.
 
-    lt_includes = includes( ).
+    TRY.
+        lt_includes = includes( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
 
     LOOP AT lt_includes ASSIGNING <lv_include>.
 
@@ -45543,7 +45547,11 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_function> TYPE rs38l_incl.
 
-    lt_functions = functions( ).
+    TRY.
+        lt_functions = functions( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
 
     LOOP AT lt_functions ASSIGNING <ls_function>.
 
@@ -58146,5 +58154,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-28T12:11:27.889Z
+* abapmerge - 2018-06-28T12:34:24.291Z
 ****************************************************
