@@ -422,6 +422,7 @@ INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
+INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
@@ -466,6 +467,7 @@ CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
@@ -515,6 +517,7 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
@@ -823,6 +826,21 @@ INTERFACE zif_abapgit_auth.
       IMPORTING iv_authorization  TYPE ty_authorization
                 iv_param          TYPE string OPTIONAL
       RETURNING VALUE(rv_allowed) TYPE abap_bool.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_code_inspector
+ .
+
+  METHODS:
+    run
+      RETURNING
+        VALUE(rt_list) TYPE scit_alvlist
+      RAISING
+        zcx_abapgit_exception,
+
+    get_inspection
+      RETURNING
+        VALUE(ro_inspection) TYPE REF TO cl_ci_inspection.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_definitions.
@@ -1218,6 +1236,7 @@ INTERFACE zif_abapgit_definitions.
       repo_toggle_fav          TYPE string VALUE 'repo_toggle_fav',
       repo_transport_to_branch TYPE string VALUE 'repo_transport_to_branch',
       repo_syntax_check        TYPE string VALUE 'repo_syntax_check',
+      repo_code_inspector      TYPE string VALUE 'repo_code_inspector',
 
       abapgit_home             TYPE string VALUE 'abapgit_home',
       abapgit_wiki             TYPE string VALUE 'abapgit_wiki',
@@ -1603,7 +1622,7 @@ INTERFACE zif_abapgit_popups
         VALUE(rv_transport) TYPE trkorr
       RAISING
         zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_cancel.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_dot_abapgit.
@@ -1618,11 +1637,11 @@ INTERFACE zif_abapgit_dot_abapgit.
     ty_requirement_tt TYPE STANDARD TABLE OF ty_requirement WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_dot_abapgit,
-      master_language TYPE spras,
-      starting_folder TYPE string,
-      folder_logic    TYPE string,
-      ignore          TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      requirements    TYPE ty_requirement_tt,
+      master_language              TYPE spras,
+      starting_folder              TYPE string,
+      folder_logic                 TYPE string,
+      ignore                       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+      requirements                 TYPE ty_requirement_tt,
     END OF ty_dot_abapgit .
 
   CONSTANTS:
@@ -1654,9 +1673,11 @@ INTERFACE zif_abapgit_persistence.
 
   TYPES:
     BEGIN OF ty_local_settings,
-      ignore_subpackages TYPE abap_bool,
-      write_protected    TYPE abap_bool,
-      only_local_objects TYPE abap_bool,
+      ignore_subpackages           TYPE abap_bool,
+      write_protected              TYPE abap_bool,
+      only_local_objects           TYPE abap_bool,
+      code_inspector_check_variant TYPE sci_chkv ,
+      block_commit                 TYPE abap_bool,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -6740,6 +6761,61 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
         IMPORTING iv_string        TYPE string
         RETURNING VALUE(rv_string) TYPE string.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
+    INHERITING FROM zcl_abapgit_gui_page.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          io_repo TYPE REF TO zcl_abapgit_repo
+        RAISING
+          zcx_abapgit_exception,
+
+      zif_abapgit_gui_page~on_event
+        REDEFINITION,
+
+      zif_abapgit_gui_page~render
+        REDEFINITION.
+  PROTECTED SECTION.
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo_online.
+
+    METHODS:
+      render_content REDEFINITION.
+
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_actions,
+        stage TYPE string VALUE 'stage' ##NO_TEXT,
+        rerun TYPE string VALUE 'rerun' ##NO_TEXT,
+      END OF c_actions.
+
+    DATA:
+      mt_result TYPE scit_alvlist.
+
+    METHODS:
+      build_menu
+        RETURNING
+          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar,
+
+      run_code_inspector
+        RAISING
+          zcx_abapgit_exception,
+
+      has_inspection_errors
+        RETURNING
+          VALUE(rv_has_inspection_errors) TYPE abap_bool,
+
+      is_stage_allowed
+        RETURNING
+          VALUE(rv_is_stage_allowed) TYPE abap_bool,
+      jump
+        IMPORTING
+          is_item TYPE zif_abapgit_definitions=>ty_item
+        RAISING
+          zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_commit DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
@@ -7219,7 +7295,9 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION FINAL
 
     METHODS render_content
         REDEFINITION .
+
   PRIVATE SECTION.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_settings DEFINITION
   FINAL
@@ -8012,6 +8090,7 @@ CLASS zcl_abapgit_services_git DEFINITION
         zcx_abapgit_exception
         zcx_abapgit_cancel.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_services_repo DEFINITION
   FINAL
@@ -8335,7 +8414,9 @@ CLASS zcl_abapgit_log DEFINITION CREATE PUBLIC.
       has_rc "For unit tests mainly
         IMPORTING iv_rc         TYPE balsort
         RETURNING VALUE(rv_yes) TYPE abap_bool,
-      show.
+      show
+        IMPORTING
+          iv_header_text TYPE csequence DEFAULT 'Log'.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_log,
@@ -8827,6 +8908,73 @@ CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PRIVATE.
       mt_tags     TYPE zif_abapgit_definitions=>ty_git_tag_list_tt.
 
 ENDCLASS.
+CLASS zcl_abapgit_code_inspector DEFINITION
+  CREATE PROTECTED
+  FRIENDS ZCL_ABAPGIT_factory.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_code_inspector.
+
+    METHODS:
+      constructor
+        IMPORTING
+          iv_package            TYPE devclass
+          iv_check_variant_name TYPE sci_chkv OPTIONAL
+        RAISING
+          zcx_abapgit_exception.
+
+    CLASS-METHODS:
+      validate_check_variant
+        IMPORTING
+          iv_check_variant_name TYPE sci_chkv
+        RAISING
+          zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+    TYPES:
+      ty_tdevc_tt TYPE STANDARD TABLE OF tdevc WITH DEFAULT KEY .
+
+    DATA:
+      mv_package TYPE devclass.
+
+    METHODS:
+      create_variant
+        RETURNING
+          VALUE(ro_variant) TYPE REF TO cl_ci_checkvariant
+        RAISING
+          zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_check_variant_name TYPE sci_chkv,
+      mo_inspection         TYPE REF TO cl_ci_inspection.
+
+    METHODS:
+      find_all_subpackages
+        IMPORTING
+          iv_package         TYPE devclass
+        RETURNING
+          VALUE(rt_packages) TYPE ty_tdevc_tt,
+
+      create_objectset
+        RETURNING
+          VALUE(ro_set) TYPE REF TO cl_ci_objectset,
+
+      run_inspection
+        IMPORTING
+          io_inspection  TYPE REF TO cl_ci_inspection
+        RETURNING
+          VALUE(rt_list) TYPE scit_alvlist,
+
+      create_inspection
+        IMPORTING
+          io_set               TYPE REF TO cl_ci_objectset
+          io_variant           TYPE REF TO cl_ci_checkvariant
+        RETURNING
+          VALUE(ro_inspection) TYPE REF TO cl_ci_inspection.
+
+ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
   CREATE PRIVATE .
 
@@ -8988,15 +9136,19 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS get_starting_folder
       RETURNING
         VALUE(rv_path) TYPE string .
+
     METHODS get_folder_logic
       RETURNING
         VALUE(rv_logic) TYPE string .
+
     METHODS set_folder_logic
       IMPORTING
         !iv_logic TYPE string .
+
     METHODS set_starting_folder
       IMPORTING
         !iv_path TYPE string .
+
     METHODS get_master_language
       RETURNING
         VALUE(rv_language) TYPE spras .
@@ -9047,8 +9199,24 @@ CLASS zcl_abapgit_factory DEFINITION
         IMPORTING
           iv_package            TYPE devclass
         RETURNING
-          VALUE(ri_sap_package) TYPE REF TO zif_abapgit_sap_package.
+          VALUE(ri_sap_package) TYPE REF TO zif_abapgit_sap_package,
 
+      get_code_inspector
+        IMPORTING
+          iv_package               TYPE devclass
+          iv_check_variant_name    TYPE sci_chkv
+        RETURNING
+          VALUE(ri_code_inspector) TYPE REF TO zif_abapgit_code_inspector
+        RAISING
+          zcx_abapgit_exception,
+
+      get_syntax_check
+        IMPORTING
+          iv_package             TYPE devclass
+        RETURNING
+          VALUE(ri_syntax_check) TYPE REF TO zif_abapgit_code_inspector
+        raising
+          zcx_abapgit_exception.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_sap_package,
@@ -9056,11 +9224,27 @@ CLASS zcl_abapgit_factory DEFINITION
         instance TYPE REF TO zif_abapgit_sap_package,
       END OF ty_sap_package,
       tty_sap_package TYPE HASHED TABLE OF ty_sap_package
-                      WITH UNIQUE KEY package.
+                      WITH UNIQUE KEY package,
+
+      BEGIN OF ty_code_inspector,
+        package            TYPE devclass,
+        check_variant_name TYPE sci_chkv,
+        instance           TYPE REF TO zif_abapgit_code_inspector,
+      END OF ty_code_inspector,
+      tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
+                         WITH UNIQUE KEY package check_variant_name,
+      BEGIN OF ty_syntax_check,
+        package  TYPE devclass,
+        instance TYPE REF TO zif_abapgit_code_inspector,
+      END OF ty_syntax_check,
+      tty_syntax_check TYPE HASHED TABLE OF ty_syntax_check
+                       WITH UNIQUE KEY package.
 
     CLASS-DATA:
-      mi_tadir       TYPE REF TO zif_abapgit_tadir,
-      mt_sap_package TYPE tty_sap_package.
+      mi_tadir          TYPE REF TO zif_abapgit_tadir,
+      mt_sap_package    TYPE tty_sap_package,
+      mt_code_inspector TYPE tty_code_inspector,
+      mt_syntax_check   TYPE tty_syntax_check.
 
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
@@ -9189,7 +9373,18 @@ CLASS zcl_abapgit_injector DEFINITION
       set_sap_package
         IMPORTING
           iv_package     TYPE devclass
-          ii_sap_package TYPE REF TO zif_abapgit_sap_package.
+          ii_sap_package TYPE REF TO zif_abapgit_sap_package,
+
+      set_code_inspector
+        IMPORTING
+          iv_package            TYPE devclass
+          iv_check_variant_name TYPE sci_chkv OPTIONAL
+          ii_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
+
+      set_syntax_check
+        IMPORTING
+          iv_package      TYPE devclass
+          ii_syntax_check TYPE REF TO zif_abapgit_code_inspector.
 
 ENDCLASS.
 CLASS zcl_abapgit_merge DEFINITION
@@ -9853,7 +10048,11 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
-
+    METHODS run_code_inspector
+      RETURNING
+        VALUE(rt_list) TYPE scit_alvlist
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize
         REDEFINITION .
     METHODS get_files_remote
@@ -9864,11 +10063,12 @@ CLASS zcl_abapgit_repo_online DEFINITION
         REDEFINITION .
   PRIVATE SECTION.
     DATA:
-      mt_objects     TYPE zif_abapgit_definitions=>ty_objects_tt,
-      mv_branch      TYPE zif_abapgit_definitions=>ty_sha1,
-      mv_initialized TYPE abap_bool,
-      mo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
-      mt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
+      mt_objects                   TYPE zif_abapgit_definitions=>ty_objects_tt,
+      mv_branch                    TYPE zif_abapgit_definitions=>ty_sha1,
+      mv_initialized               TYPE abap_bool,
+      mo_branches                  TYPE REF TO zcl_abapgit_git_branch_list,
+      mt_status                    TYPE zif_abapgit_definitions=>ty_results_tt,
+      mv_code_inspector_successful TYPE abap_bool.
 
     METHODS:
       handle_stage_ignore
@@ -10168,45 +10368,13 @@ CLASS zcl_abapgit_stage_logic DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
-  CREATE PUBLIC .
+  INHERITING FROM zcl_abapgit_code_inspector
+  FRIENDS ZCL_ABAPGIT_factory.
 
-  PUBLIC SECTION.
-
-    CLASS-METHODS run
-      IMPORTING
-        !iv_package    TYPE devclass
-      RETURNING
-        VALUE(rt_list) TYPE scit_alvlist .
   PROTECTED SECTION.
+    METHODS:
+      create_variant REDEFINITION.
 
-    TYPES:
-      ty_tdevc_tt TYPE STANDARD TABLE OF tdevc WITH DEFAULT KEY .
-
-    CLASS-METHODS find_all_subpackages
-      IMPORTING
-        !iv_package        TYPE devclass
-      RETURNING
-        VALUE(rt_packages) TYPE ty_tdevc_tt .
-    CLASS-METHODS create_inspection
-      IMPORTING
-        !io_set              TYPE REF TO cl_ci_objectset
-        !io_variant          TYPE REF TO cl_ci_checkvariant
-      RETURNING
-        VALUE(ro_inspection) TYPE REF TO cl_ci_inspection .
-    CLASS-METHODS create_objectset
-      IMPORTING
-        !iv_package   TYPE devclass
-      RETURNING
-        VALUE(ro_set) TYPE REF TO cl_ci_objectset .
-    CLASS-METHODS create_variant
-      RETURNING
-        VALUE(ro_variant) TYPE REF TO cl_ci_checkvariant .
-    CLASS-METHODS run_inspection
-      IMPORTING
-        !io_inspection TYPE REF TO cl_ci_inspection
-      RETURNING
-        VALUE(rt_list) TYPE scit_alvlist .
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
   FINAL
@@ -11874,50 +12042,11 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
-  METHOD create_inspection.
-
-    cl_ci_inspection=>create(
-      EXPORTING
-        p_user           = sy-uname
-        p_name           = ''
-      RECEIVING
-        p_ref            = ro_inspection
-      EXCEPTIONS
-        locked           = 1
-        error_in_enqueue = 2
-        not_authorized   = 3
-        OTHERS           = 4 ).
-    ASSERT sy-subrc = 0.
-
-    ro_inspection->set(
-      p_chkv = io_variant
-      p_objs = io_set ).
-
-  ENDMETHOD.
-  METHOD create_objectset.
-
-    DATA: lt_objs     TYPE scit_objs,
-          lt_packages TYPE ty_tdevc_tt.
-    lt_packages = find_all_subpackages( iv_package ).
-    IF lines( lt_packages ) = 0.
-      RETURN.
-    ENDIF.
-
-    SELECT object AS objtype obj_name AS objname
-      FROM tadir
-      INTO CORRESPONDING FIELDS OF TABLE lt_objs
-      FOR ALL ENTRIES IN lt_packages
-      WHERE devclass = lt_packages-devclass
-      AND delflag = abap_false
-      AND pgmid = 'R3TR'.                               "#EC CI_GENBUFF
-
-    ro_set = cl_ci_objectset=>save_from_list( lt_objs ).
-
-  ENDMETHOD.
   METHOD create_variant.
 
     DATA: lt_variant TYPE sci_tstvar,
           ls_variant LIKE LINE OF lt_variant.
+
     cl_ci_checkvariant=>create(
       EXPORTING
         p_user              = sy-uname
@@ -11941,54 +12070,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
         not_enqueued = 1
         OTHERS       = 2 ).
     ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD find_all_subpackages.
-
-* TODO, in the future, move this method to the ABAPGIT global package class
-
-    DATA: ls_package LIKE LINE OF rt_packages,
-          lt_found   LIKE rt_packages,
-          lt_sub     LIKE rt_packages.
-    SELECT SINGLE * FROM tdevc INTO ls_package WHERE devclass = iv_package.
-    ASSERT sy-subrc = 0.
-    APPEND ls_package TO rt_packages.
-
-    SELECT * FROM tdevc APPENDING TABLE lt_sub
-      WHERE parentcl = ls_package-devclass.
-
-    LOOP AT lt_sub INTO ls_package.
-      lt_found = find_all_subpackages( ls_package-devclass ).
-      APPEND LINES OF lt_found TO rt_packages.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD run.
-
-    DATA: lo_set        TYPE REF TO cl_ci_objectset,
-          lo_inspection TYPE REF TO cl_ci_inspection,
-          lo_variant    TYPE REF TO cl_ci_checkvariant.
-    lo_set = create_objectset( iv_package ).
-    lo_variant = create_variant( ).
-
-    lo_inspection = create_inspection(
-      io_set     = lo_set
-      io_variant = lo_variant ).
-
-    rt_list = run_inspection( lo_inspection ).
-
-  ENDMETHOD.
-  METHOD run_inspection.
-
-    io_inspection->run(
-      EXCEPTIONS
-        invalid_check_version = 1
-        OTHERS                = 2 ).
-    ASSERT sy-subrc = 0.
-
-    io_inspection->plain_list(
-      IMPORTING
-        p_list = rt_list ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -12806,7 +12887,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD actualize_head_branch.
     DATA lv_branch_name TYPE string.
     lv_branch_name = mo_branches->get_head( )-name.
@@ -12970,11 +13051,16 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     handle_stage_ignore( io_stage ).
 
+    IF ms_data-local_settings-block_commit = abap_true
+    AND mv_code_inspector_successful = abap_false.
+      zcx_abapgit_exception=>raise( |A successful code inspection is required| ).
+    ENDIF.
+
     zcl_abapgit_git_porcelain=>push( EXPORTING is_comment       = is_comment
-                                       io_repo          = me
-                                       io_stage         = io_stage
-                             IMPORTING ev_branch        = lv_branch
-                                       et_updated_files = lt_updated_files ).
+                                               io_repo          = me
+                                               io_stage         = io_stage
+                                     IMPORTING ev_branch        = lv_branch
+                                               et_updated_files = lt_updated_files ).
 
     IF io_stage->get_branch_sha1( ) = get_sha1_local( ).
 * pushing to the branch currently represented by this repository object
@@ -12989,6 +13075,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     IF zcl_abapgit_stage_logic=>count( me ) = 0.
       set( iv_sha1 = lv_branch ).
     ENDIF.
+
+    CLEAR: mv_code_inspector_successful.
 
   ENDMETHOD.                    "push
   METHOD rebuild_local_checksums. "REMOTE
@@ -13084,6 +13172,31 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD reset_status.
     CLEAR mt_status.
   ENDMETHOD.  " reset_status.
+  METHOD run_code_inspector.
+
+    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
+          lv_check_variant  TYPE string.
+
+    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
+
+    IF lv_check_variant IS INITIAL.
+      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
+    ENDIF.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
+                                  iv_package            = get_package( )
+                                  iv_check_variant_name = |{ lv_check_variant }| ).
+
+    rt_list = li_code_inspector->run( ).
+
+    DELETE rt_list WHERE kind = 'N'.
+
+    READ TABLE rt_list TRANSPORTING NO FIELDS
+                       WITH KEY kind = 'E'.
+
+    mv_code_inspector_successful = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
   METHOD set_branch_name.
 
     IF ms_data-local_settings-write_protected = abap_true.
@@ -15230,6 +15343,52 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD set_code_inspector.
+
+    DATA: ls_code_inspector LIKE LINE OF zcl_abapgit_factory=>mt_code_inspector.
+    FIELD-SYMBOLS: <ls_code_inspector> LIKE LINE OF zcl_abapgit_factory=>mt_code_inspector.
+
+    READ TABLE zcl_abapgit_factory=>mt_code_inspector
+         ASSIGNING <ls_code_inspector>
+         WITH TABLE KEY package            = iv_package
+                        check_variant_name = iv_check_variant_name.
+    IF sy-subrc <> 0.
+
+      ls_code_inspector-package = iv_package.
+      ls_code_inspector-check_variant_name = iv_check_variant_name.
+
+      INSERT ls_code_inspector
+             INTO TABLE zcl_abapgit_factory=>mt_code_inspector
+             ASSIGNING <ls_code_inspector>.
+
+    ENDIF.
+
+    <ls_code_inspector>-instance = ii_code_inspector.
+
+  ENDMETHOD.
+
+  METHOD set_syntax_check.
+
+    DATA: ls_syntax_check LIKE LINE OF zcl_abapgit_factory=>mt_syntax_check.
+    FIELD-SYMBOLS: <ls_syntax_check> LIKE LINE OF zcl_abapgit_factory=>mt_syntax_check.
+
+    READ TABLE zcl_abapgit_factory=>mt_syntax_check
+         ASSIGNING <ls_syntax_check>
+         WITH TABLE KEY package = iv_package.
+    IF sy-subrc <> 0.
+
+      ls_syntax_check-package = iv_package.
+
+      INSERT ls_syntax_check
+             INTO TABLE zcl_abapgit_factory=>mt_syntax_check
+             ASSIGNING <ls_syntax_check>.
+
+    ENDIF.
+
+    <ls_syntax_check>-instance = ii_syntax_check.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
   METHOD check_http_200.
@@ -15844,6 +16003,57 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_code_inspector.
+
+    DATA: ls_code_inspector LIKE LINE OF mt_code_inspector.
+    FIELD-SYMBOLS: <ls_code_inspector> TYPE zcl_abapgit_factory=>ty_code_inspector.
+
+    READ TABLE mt_code_inspector ASSIGNING <ls_code_inspector>
+                                 WITH TABLE KEY package            = iv_package
+                                                check_variant_name = iv_check_variant_name.
+    IF sy-subrc <> 0.
+      ls_code_inspector-package = iv_package.
+      ls_code_inspector-check_variant_name = iv_check_variant_name.
+
+      CREATE OBJECT ls_code_inspector-instance TYPE zcl_abapgit_code_inspector
+        EXPORTING
+          iv_package            = iv_package
+          iv_check_variant_name = iv_check_variant_name.
+
+      INSERT ls_code_inspector
+             INTO TABLE mt_code_inspector
+             ASSIGNING <ls_code_inspector>.
+
+    ENDIF.
+
+    ri_code_inspector = <ls_code_inspector>-instance.
+
+  ENDMETHOD.
+
+  METHOD get_syntax_check.
+
+    DATA: ls_syntax_check LIKE LINE OF mt_syntax_check.
+    FIELD-SYMBOLS: <ls_syntax_check> TYPE zcl_abapgit_factory=>ty_syntax_check.
+
+    READ TABLE mt_syntax_check ASSIGNING <ls_syntax_check>
+                               WITH TABLE KEY package = iv_package.
+    IF sy-subrc <> 0.
+      ls_syntax_check-package =  iv_package.
+
+      CREATE OBJECT ls_syntax_check-instance TYPE zcl_abapgit_syntax_check
+        EXPORTING
+          iv_package = iv_package.
+
+      INSERT ls_syntax_check
+             INTO TABLE mt_syntax_check
+             ASSIGNING <ls_syntax_check>.
+
+    ENDIF.
+
+    ri_syntax_check = <ls_syntax_check>-instance.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
@@ -15934,7 +16144,7 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -16091,6 +16301,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   METHOD get_ddls_dependencies.
@@ -16470,6 +16681,149 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
     ms_save = get( ).
 
   ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
+  METHOD constructor.
+
+    mv_package = iv_package.
+    mv_check_variant_name = iv_check_variant_name.
+
+  ENDMETHOD.
+  METHOD create_inspection.
+
+    cl_ci_inspection=>create(
+      EXPORTING
+        p_user           = sy-uname
+        p_name           = ''
+      RECEIVING
+        p_ref            = ro_inspection
+      EXCEPTIONS
+        locked           = 1
+        error_in_enqueue = 2
+        not_authorized   = 3
+        OTHERS           = 4 ).
+    ASSERT sy-subrc = 0.
+
+    ro_inspection->set(
+      p_chkv = io_variant
+      p_objs = io_set ).
+
+  ENDMETHOD.
+  METHOD create_objectset.
+
+    DATA: lt_objs     TYPE scit_objs,
+          lt_packages TYPE ty_tdevc_tt.
+    lt_packages = find_all_subpackages( mv_package ).
+    IF lines( lt_packages ) = 0.
+      RETURN.
+    ENDIF.
+
+    SELECT object AS objtype obj_name AS objname
+      FROM tadir
+      INTO CORRESPONDING FIELDS OF TABLE lt_objs
+      FOR ALL ENTRIES IN lt_packages
+      WHERE devclass = lt_packages-devclass
+      AND delflag = abap_false
+      AND pgmid = 'R3TR'.                               "#EC CI_GENBUFF
+
+    ro_set = cl_ci_objectset=>save_from_list( lt_objs ).
+
+  ENDMETHOD.
+  METHOD create_variant.
+
+    IF mv_check_variant_name IS INITIAL.
+      zcx_abapgit_exception=>raise( |No check variant supplied.| ).
+    ENDIF.
+
+    cl_ci_checkvariant=>get_ref(
+      EXPORTING
+        p_user                   = ''
+        p_name                   = mv_check_variant_name
+      RECEIVING
+        p_ref                    = ro_variant
+      EXCEPTIONS
+        chkv_not_exists          = 1
+        missing_parameter        = 2
+        OTHERS                   = 3 ).
+
+    CASE sy-subrc.
+      WHEN 1.
+        zcx_abapgit_exception=>raise( |Check variant { mv_check_variant_name } doesn't exist| ).
+      WHEN 2.
+        zcx_abapgit_exception=>raise( |Parameter missing for check variant { mv_check_variant_name }| ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD find_all_subpackages.
+
+* TODO, in the future, move this method to the ABAPGIT global package class
+
+    DATA: ls_package LIKE LINE OF rt_packages,
+          lt_found   LIKE rt_packages,
+          lt_sub     LIKE rt_packages.
+    SELECT SINGLE * FROM tdevc INTO ls_package WHERE devclass = iv_package.
+    ASSERT sy-subrc = 0.
+    APPEND ls_package TO rt_packages.
+
+    SELECT * FROM tdevc APPENDING TABLE lt_sub
+      WHERE parentcl = ls_package-devclass.
+
+    LOOP AT lt_sub INTO ls_package.
+      lt_found = find_all_subpackages( ls_package-devclass ).
+      APPEND LINES OF lt_found TO rt_packages.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD run_inspection.
+
+    io_inspection->run(
+      EXCEPTIONS
+        invalid_check_version = 1
+        OTHERS                = 2 ).
+    ASSERT sy-subrc = 0.
+
+    io_inspection->plain_list(
+      IMPORTING
+        p_list = rt_list ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~run.
+
+    DATA: lo_set     TYPE REF TO cl_ci_objectset,
+          lo_variant TYPE REF TO cl_ci_checkvariant.
+
+    lo_set = create_objectset( ).
+    lo_variant = create_variant( ).
+
+    mo_inspection = create_inspection(
+      io_set     = lo_set
+      io_variant = lo_variant ).
+
+    rt_list = run_inspection( mo_inspection ).
+
+  ENDMETHOD.
+
+  METHOD validate_check_variant.
+
+    cl_ci_checkvariant=>get_ref(
+      EXPORTING
+        p_user                   = ''
+        p_name                   = iv_check_variant_name
+      EXCEPTIONS
+        chkv_not_exists          = 1
+        missing_parameter        = 2
+        OTHERS                   = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |No valid check variant { iv_check_variant_name  }| ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_code_inspector~get_inspection.
+    ro_inspection = mo_inspection.
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD compress.
@@ -17866,7 +18220,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_log IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD add.
 
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
@@ -17954,7 +18308,7 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
 
         CREATE OBJECT lo_form_header
           EXPORTING
-            text = |Log|.
+            text = iv_header_text.
 
         lo_alv->set_top_of_list( lo_form_header ).
 
@@ -20491,6 +20845,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.  "run_page_class_popup
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -21356,6 +21711,8 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Syntax Check'
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_syntax_check }?{ lv_key }| ).
+    lo_tb_advanced->add( iv_txt = 'Run Code Inspector'
+                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_code_inspector }?{ lv_key }| ).
     lo_tb_advanced->add( iv_txt = 'Repo settings'
                          iv_act = |{ zif_abapgit_definitions=>gc_action-repo_settings }?{ lv_key }| ).
 
@@ -21833,10 +22190,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.  "get_page_playground
   METHOD get_page_stage.
 
-    DATA: lo_repo       TYPE REF TO zcl_abapgit_repo_online,
-          lv_key        TYPE zif_abapgit_persistence=>ty_repo-key,
-          lv_seed       TYPE string,
-          lo_stage_page TYPE REF TO zcl_abapgit_gui_page_stage.
+    DATA: lo_repo                TYPE REF TO zcl_abapgit_repo_online,
+          lv_key                 TYPE zif_abapgit_persistence=>ty_repo-key,
+          lv_seed                TYPE string,
+          lo_stage_page          TYPE REF TO zcl_abapgit_gui_page_stage,
+          lo_code_inspector_page TYPE REF TO zcl_abapgit_gui_page_code_insp.
 
     FIND FIRST OCCURRENCE OF '=' IN iv_getdata.
     IF sy-subrc <> 0. " Not found ? -> just repo key in params
@@ -21850,15 +22208,27 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
-    " force refresh on stage, to make sure the latest local and remote files are used
-    lo_repo->refresh( ).
+    IF lo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
 
-    CREATE OBJECT lo_stage_page
-      EXPORTING
-        io_repo = lo_repo
-        iv_seed = lv_seed.
+      CREATE OBJECT lo_code_inspector_page
+        EXPORTING
+          io_repo = lo_repo.
 
-    ri_page = lo_stage_page.
+      ri_page = lo_code_inspector_page.
+
+    ELSE.
+
+      " force refresh on stage, to make sure the latest local and remote files are used
+      lo_repo->refresh( ).
+
+      CREATE OBJECT lo_stage_page
+        EXPORTING
+          io_repo = lo_repo
+          iv_seed = lv_seed.
+
+      ri_page = lo_stage_page.
+
+    ENDIF.
 
   ENDMETHOD.  "get_page_stage
   METHOD on_event.
@@ -21964,6 +22334,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN zif_abapgit_definitions=>gc_action-repo_syntax_check.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_syntax
+          EXPORTING
+            io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+      WHEN zif_abapgit_definitions=>gc_action-repo_code_inspector.
+        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_code_insp
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
@@ -22357,7 +22732,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SYNTAX CHECK'.
@@ -22365,9 +22740,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.  " constructor.
   METHOD render_content.
 
-    DATA: lt_result TYPE scit_alvlist,
-          ls_result LIKE LINE OF lt_result.
-    lt_result = zcl_abapgit_syntax_check=>run( mo_repo->get_package( ) ).
+    DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector,
+          lt_result       TYPE scit_alvlist,
+          ls_result       LIKE LINE OF lt_result.
+
+    li_syntax_check = zcl_abapgit_factory=>get_syntax_check( iv_package = mo_repo->get_package( ) ).
+
+    lt_result = li_syntax_check->run( ).
 
     CREATE OBJECT ro_html.
     ro_html->add( '<div class="toc">' ).
@@ -22961,7 +23340,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'REPO SETTINGS'.
@@ -23034,6 +23413,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     DATA: lv_checked  TYPE string,
           ls_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings.
+
     ls_settings = mo_repo->get_local_settings( ).
 
     io_html->add( '<h2>Local settings</h2>' ).
@@ -23056,6 +23436,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ENDIF.
     io_html->add( |Only local objects <input name="only_local_objects" type="checkbox"{ lv_checked }><br>| ).
 
+    io_html->add( '<br>' ).
+    io_html->add( 'Code inspector check variant: <input name="check_variant" type="text" size="30" value="' &&
+      ls_settings-code_inspector_check_variant && '">' ).
+    io_html->add( '<br>' ).
+
+    CLEAR lv_checked.
+    IF ls_settings-block_commit = abap_true.
+      lv_checked = | checked|.
+    ENDIF.
+    io_html->add( |Block commit commit/push if code inspection has erros: |
+               && |<input name="block_commit" type="checkbox"{ lv_checked }><br>| ).
   ENDMETHOD.
   METHOD save.
 
@@ -23087,8 +23478,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   ENDMETHOD.
   METHOD save_local_settings.
 
-    DATA: ls_settings   TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          ls_post_field LIKE LINE OF it_post_fields.
+    DATA: ls_settings      TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          ls_post_field    LIKE LINE OF it_post_fields,
+          lv_check_variant TYPE sci_chkv.
     ls_settings = mo_repo->get_local_settings( ).
 
     READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'write_protected' value = 'on'.
@@ -23110,6 +23502,26 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       ls_settings-only_local_objects = abap_true.
     ELSE.
       ls_settings-only_local_objects = abap_false.
+    ENDIF.
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'check_variant'.
+    ASSERT sy-subrc = 0.
+    lv_check_variant = to_upper( ls_post_field-value ).
+    IF ls_post_field-value IS NOT INITIAL.
+      zcl_abapgit_code_inspector=>validate_check_variant( lv_check_variant ).
+    ENDIF.
+    ls_settings-code_inspector_check_variant = lv_check_variant.
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'block_commit' value = 'on'.
+    IF sy-subrc = 0.
+      ls_settings-block_commit = abap_true.
+    ELSE.
+      ls_settings-block_commit = abap_false.
+    ENDIF.
+
+    IF  ls_settings-block_commit = abap_true
+    AND ls_settings-code_inspector_check_variant IS INITIAL.
+      zcx_abapgit_exception=>raise( |If block commit is active, a check variant has to be maintained.| ).
     ENDIF.
 
     mo_repo->set_local_settings( ls_settings ).
@@ -25084,6 +25496,199 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+  METHOD build_menu.
+
+    DATA: lv_opt TYPE c LENGTH 1.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add( iv_txt = 'Re-Run'
+                  iv_act = c_actions-rerun
+                  iv_cur = abap_false ) ##NO_TEXT.
+
+    IF is_stage_allowed( ) = abap_false.
+      lv_opt = zif_abapgit_definitions=>gc_html_opt-crossout.
+    ENDIF.
+
+    ro_menu->add( iv_txt = 'Stage'
+                  iv_act = c_actions-stage
+                  iv_cur = abap_false
+                  iv_opt = lv_opt ) ##NO_TEXT.
+
+  ENDMETHOD.
+  METHOD constructor.
+    super->constructor( ).
+    mo_repo ?= io_repo.
+    ms_control-page_title = 'Code Inspector'.
+    run_code_inspector( ).
+  ENDMETHOD.  " constructor.
+  METHOD has_inspection_errors.
+
+    READ TABLE mt_result TRANSPORTING NO FIELDS
+                         WITH KEY kind = 'E'.
+    rv_has_inspection_errors = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD is_stage_allowed.
+
+    rv_is_stage_allowed =  boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
+                                           AND has_inspection_errors( ) = abap_true ) ).
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    DATA: lv_check_variant TYPE sci_chkv,
+          lv_class         TYPE string.
+    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+
+    CREATE OBJECT ro_html.
+
+    lv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
+
+    IF lv_check_variant IS INITIAL.
+      ro_html->add( |No check variant maintained in repo settings.| ).
+      RETURN.
+    ENDIF.
+
+    ro_html->add( '<div class="toc"><br/>' ).
+
+    ro_html->add( |Code inspector check variant: {
+                    mo_repo->get_local_settings( )-code_inspector_check_variant
+                  }<br/>| ).
+
+    IF lines( mt_result ) = 0.
+      ro_html->add( '<br/><div class="success">No code inspector findings</div>' ).
+    ENDIF.
+
+    ro_html->add( |<br/>| ).
+
+    LOOP AT mt_result ASSIGNING <ls_result>.
+
+      ro_html->add( '<div>' ).
+      ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
+                      iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }|
+                      iv_typ = zif_abapgit_definitions=>gc_action_type-sapevent ).
+      ro_html->add( '</div>' ).
+
+      CASE <ls_result>-kind.
+        WHEN 'E'.
+          lv_class = 'error'.
+        WHEN 'W'.
+          lv_class = 'warning'.
+        WHEN OTHERS.
+          lv_class = 'grey'.
+      ENDCASE.
+
+      ro_html->add( |<div class="{ lv_class }">Line { <ls_result>-line ALPHA = OUT }: { <ls_result>-text }</div><br>| ).
+    ENDLOOP.
+
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.  "render_content
+  METHOD run_code_inspector.
+
+    mt_result = mo_repo->run_code_inspector( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page~on_event.
+
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
+          ls_item        TYPE zif_abapgit_definitions=>ty_item.
+
+    lo_repo_online ?= mo_repo.
+
+    CASE iv_action.
+      WHEN c_actions-stage.
+
+        IF is_stage_allowed( ) = abap_true.
+
+          " we need to refresh as the source might have changed
+          lo_repo_online->refresh( ).
+
+          CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_stage
+            EXPORTING
+              io_repo = lo_repo_online.
+
+          ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+
+        ELSE.
+
+          ei_page = me.
+          ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+
+        ENDIF.
+
+      WHEN c_actions-rerun.
+
+        run_code_inspector( ).
+
+        ei_page = me.
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+
+      WHEN OTHERS.
+
+        ls_item-obj_type = iv_action(4).
+        ls_item-obj_name = iv_action+4(*).
+
+        jump( ls_item ).
+
+*        zcl_abapgit_objects=>jump( ls_item ).
+
+        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page~render.
+
+    ms_control-page_menu = build_menu( ).
+    ro_html = super->zif_abapgit_gui_page~render( ).
+
+  ENDMETHOD.
+  METHOD jump.
+
+    DATA: lo_test               TYPE REF TO cl_ci_test_root,
+          li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
+          ls_info               TYPE scir_rest,
+          lo_result             TYPE REF TO cl_ci_result_root,
+          lv_check_variant_name TYPE sci_chkv,
+          lv_package            TYPE devclass,
+          lv_srcid              TYPE scr_source_id.
+
+    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+
+    READ TABLE mt_result WITH KEY objtype = is_item-obj_type
+                                  objname = is_item-obj_name
+                         ASSIGNING <ls_result>.
+    ASSERT sy-subrc = 0.
+
+    lv_package = mo_repo->get_package( ).
+    lv_check_variant_name = mo_repo->get_local_settings( )-code_inspector_check_variant.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
+        iv_package            = lv_package
+        iv_check_variant_name = lv_check_variant_name ).
+
+    " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
+
+    MOVE-CORRESPONDING <ls_result> TO ls_info.
+
+    lo_test = cl_ci_tests=>get_test_ref( <ls_result>-test ).
+    lo_result = lo_test->get_result_node( <ls_result>-kind ).
+
+    lv_srcid = li_code_inspector->get_inspection( )->objs->objectsinf-srcid.
+
+    lo_result->set_srcid(
+        p_info  = ls_info
+        p_srcid = lv_srcid ).
+
+    lo_result->set_info( ls_info ).
+    lo_result->if_ci_test~navigate( ).
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
     DATA: lv_tag TYPE string.
@@ -25997,6 +26602,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '.attention        { color: red        !important; }'.
         _inline '.error            { color: #d41919    !important; }'.
         _inline '.warning          { color: #efb301    !important; }'.
+        _inline '.success          { color: green       !important; }'.
         _inline '.blue             { color: #5e8dc9    !important; }'.
         _inline '.red              { color: red        !important; }'.
         _inline '.white            { color: white      !important; }'.
@@ -57375,5 +57981,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-21T12:30:06.345Z
+* abapmerge - 2018-06-28T11:34:28.392Z
 ****************************************************
