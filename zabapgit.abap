@@ -13229,7 +13229,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     READ TABLE rt_list TRANSPORTING NO FIELDS
                        WITH KEY kind = 'E'.
 
-    mv_code_inspector_successful = boolc( sy-subrc = 0 ).
+    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
 
   ENDMETHOD.
   METHOD set_branch_name.
@@ -58154,5 +58154,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-28T12:34:24.291Z
+* abapmerge - 2018-06-28T13:53:19.731Z
 ****************************************************
