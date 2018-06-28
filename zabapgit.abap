@@ -424,6 +424,7 @@ INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
@@ -1623,6 +1624,27 @@ INTERFACE zif_abapgit_popups
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_tag_popups
+ .
+
+  METHODS:
+    tag_list_popup
+      IMPORTING
+        io_repo       TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+      RAISING
+        zcx_abapgit_exception,
+
+    tag_select_popup
+      IMPORTING
+        io_repo       TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+      RAISING
+        zcx_abapgit_exception .
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_dot_abapgit.
@@ -8189,26 +8211,11 @@ CLASS zcl_abapgit_services_repo DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_tag_popups DEFINITION
   FINAL
-  CREATE PUBLIC.
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_ui_factory.
 
   PUBLIC SECTION.
-
-    CLASS-METHODS:
-      tag_list_popup
-        IMPORTING
-          io_repo       TYPE REF TO zcl_abapgit_repo_online
-        RETURNING
-          VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
-        RAISING
-          zcx_abapgit_exception,
-
-      tag_select_popup
-        IMPORTING
-          io_repo       TYPE REF TO zcl_abapgit_repo_online
-        RETURNING
-          VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
-        RAISING
-          zcx_abapgit_exception .
+    INTERFACES: zif_abapgit_tag_popups.
 
   PRIVATE SECTION.
     TYPES:
@@ -8219,12 +8226,12 @@ CLASS zcl_abapgit_tag_popups DEFINITION
            tty_tag_out TYPE STANDARD TABLE OF ty_tag_out
                        WITH NON-UNIQUE DEFAULT KEY.
 
-    CLASS-DATA:
+    DATA:
       mt_tags              TYPE tty_tag_out,
       mo_docking_container TYPE REF TO cl_gui_docking_container,
       mo_text_control      TYPE REF TO cl_gui_textedit.
 
-    CLASS-METHODS:
+    METHODS:
       on_double_click FOR EVENT double_click OF cl_salv_events_table
         IMPORTING row column,
 
@@ -8249,11 +8256,16 @@ CLASS zcl_abapgit_ui_factory DEFINITION
     CLASS-METHODS:
       get_popups
         RETURNING
-          VALUE(ri_popups) TYPE REF TO zif_abapgit_popups.
+          VALUE(ri_popups) TYPE REF TO zif_abapgit_popups,
+
+      get_tag_popups
+        RETURNING
+          VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups.
 
   PRIVATE SECTION.
     CLASS-DATA:
-      mi_popups TYPE REF TO zif_abapgit_popups.
+      mi_popups     TYPE REF TO zif_abapgit_popups,
+      mi_tag_popups TYPE REF TO zif_abapgit_tag_popups.
 
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
@@ -8263,7 +8275,11 @@ CLASS zcl_abapgit_ui_injector DEFINITION
     CLASS-METHODS:
       set_popups
         IMPORTING
-          ii_popups TYPE REF TO zif_abapgit_popups.
+          ii_popups TYPE REF TO zif_abapgit_popups,
+
+      set_tag_popups
+        IMPORTING
+          ii_tag_popups TYPE REF TO zif_abapgit_tag_popups.
 
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
@@ -18805,6 +18821,12 @@ CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD set_tag_popups.
+
+    zcl_abapgit_ui_factory=>mi_tag_popups = ii_tag_popups.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 
@@ -18818,8 +18840,49 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_tag_popups.
+
+    IF mi_tag_popups IS INITIAL.
+      CREATE OBJECT mi_tag_popups TYPE zcl_abapgit_tag_popups.
+    ENDIF.
+
+    ri_tag_popups = mi_tag_popups.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
+  METHOD clean_up.
+
+    IF mo_text_control IS BOUND.
+
+      mo_text_control->finalize( ).
+      mo_text_control->free(
+        EXCEPTIONS
+          cntl_error        = 1
+          cntl_system_error = 2
+          OTHERS            = 3 ).
+      ASSERT sy-subrc = 0.
+
+      CLEAR: mo_text_control.
+
+    ENDIF.
+
+    IF mo_docking_container IS BOUND.
+
+      mo_docking_container->finalize( ).
+      mo_docking_container->free(
+        EXCEPTIONS
+          cntl_error        = 1
+          cntl_system_error = 2
+          OTHERS            = 3 ).
+      ASSERT sy-subrc = 0.
+
+      CLEAR: mo_docking_container.
+
+    ENDIF.
+
+  ENDMETHOD.
   METHOD on_double_click.
 
     FIELD-SYMBOLS: <ls_tag> TYPE zcl_abapgit_tag_popups=>ty_tag_out.
@@ -18856,7 +18919,58 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD tag_list_popup.
+  METHOD show_docking_container_with.
+
+    IF mo_docking_container IS NOT BOUND.
+
+      CREATE OBJECT mo_docking_container
+        EXPORTING
+          side                        = cl_gui_docking_container=>dock_at_bottom
+          extension                   = 120
+        EXCEPTIONS
+          cntl_error                  = 1
+          cntl_system_error           = 2
+          create_error                = 3
+          lifetime_error              = 4
+          lifetime_dynpro_dynpro_link = 5
+          OTHERS                      = 6.
+      ASSERT sy-subrc = 0.
+
+    ENDIF.
+
+    IF mo_text_control IS NOT BOUND.
+      CREATE OBJECT mo_text_control
+        EXPORTING
+          parent                 = mo_docking_container
+        EXCEPTIONS
+          error_cntl_create      = 1
+          error_cntl_init        = 2
+          error_cntl_link        = 3
+          error_dp_create        = 4
+          gui_type_not_supported = 5
+          OTHERS                 = 6.
+      ASSERT sy-subrc = 0.
+
+      mo_text_control->set_readonly_mode(
+        EXCEPTIONS
+          error_cntl_call_method = 1
+          invalid_parameter      = 2
+          OTHERS                 = 3 ).
+      ASSERT sy-subrc = 0.
+
+    ENDIF.
+
+    mo_text_control->set_textstream(
+      EXPORTING
+        text                   = iv_text
+      EXCEPTIONS
+        error_cntl_call_method = 1
+        not_supported_by_gui   = 2
+        OTHERS                 = 3 ).
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_tag_popups~tag_list_popup.
 
     DATA: lo_alv          TYPE REF TO cl_salv_table,
           lo_table_header TYPE REF TO cl_salv_form_header_info,
@@ -18945,7 +19059,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
     clean_up( ).
 
   ENDMETHOD.
-  METHOD tag_select_popup.
+  METHOD zif_abapgit_tag_popups~tag_select_popup.
 
     DATA: lt_tags             TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
           lv_answer           TYPE c LENGTH 1,
@@ -19002,90 +19116,6 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
     rs_tag = <ls_tag>.
 
   ENDMETHOD.
-
-  METHOD clean_up.
-
-    IF mo_text_control IS BOUND.
-
-      mo_text_control->finalize( ).
-      mo_text_control->free(
-        EXCEPTIONS
-          cntl_error        = 1
-          cntl_system_error = 2
-          OTHERS            = 3 ).
-      ASSERT sy-subrc = 0.
-
-      CLEAR: mo_text_control.
-
-    ENDIF.
-
-    IF mo_docking_container IS BOUND.
-
-      mo_docking_container->finalize( ).
-      mo_docking_container->free(
-        EXCEPTIONS
-          cntl_error        = 1
-          cntl_system_error = 2
-          OTHERS            = 3 ).
-      ASSERT sy-subrc = 0.
-
-      CLEAR: mo_docking_container.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD show_docking_container_with.
-
-    IF mo_docking_container IS NOT BOUND.
-
-      CREATE OBJECT mo_docking_container
-        EXPORTING
-          side                        = cl_gui_docking_container=>dock_at_bottom
-          extension                   = 120
-        EXCEPTIONS
-          cntl_error                  = 1
-          cntl_system_error           = 2
-          create_error                = 3
-          lifetime_error              = 4
-          lifetime_dynpro_dynpro_link = 5
-          OTHERS                      = 6.
-      ASSERT sy-subrc = 0.
-
-    ENDIF.
-
-    IF mo_text_control IS NOT BOUND.
-      CREATE OBJECT mo_text_control
-        EXPORTING
-          parent                 = mo_docking_container
-        EXCEPTIONS
-          error_cntl_create      = 1
-          error_cntl_init        = 2
-          error_cntl_link        = 3
-          error_dp_create        = 4
-          gui_type_not_supported = 5
-          OTHERS                 = 6.
-      ASSERT sy-subrc = 0.
-
-      mo_text_control->set_readonly_mode(
-        EXCEPTIONS
-          error_cntl_call_method = 1
-          invalid_parameter      = 2
-          OTHERS                 = 3 ).
-      ASSERT sy-subrc = 0.
-
-    ENDIF.
-
-    mo_text_control->set_textstream(
-      EXPORTING
-        text                   = iv_text
-      EXCEPTIONS
-        error_cntl_call_method = 1
-        not_supported_by_gui   = 2
-        OTHERS                 = 3 ).
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
@@ -19465,7 +19495,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -19564,7 +19594,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = zcl_abapgit_tag_popups=>tag_select_popup( lo_repo ).
+    ls_tag = zcl_abapgit_ui_factory=>get_tag_popups( )->tag_select_popup( lo_repo ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -19678,7 +19708,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = zcl_abapgit_tag_popups=>tag_select_popup( lo_repo ).
+    ls_tag = zcl_abapgit_ui_factory=>get_tag_popups( )->tag_select_popup( lo_repo ).
     IF ls_tag IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
@@ -19694,7 +19724,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    zcl_abapgit_tag_popups=>tag_list_popup( lo_repo ).
+    zcl_abapgit_ui_factory=>get_tag_popups( )->tag_list_popup( lo_repo ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -57981,5 +58011,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-06-28T11:34:28.392Z
+* abapmerge - 2018-06-28T11:35:23.764Z
 ****************************************************
