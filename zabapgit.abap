@@ -16393,6 +16393,9 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           ENDIF.
         WHEN 'DTEL'.
           <ls_tadir>-korrnum = '8000'.
+        WHEN 'PARA'.
+* PARA after DTEL
+          <ls_tadir>-korrnum = '8100'.
         WHEN 'DOMA'.
           <ls_tadir>-korrnum = '9000'.
         WHEN 'PROG'.
@@ -58155,5 +58158,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-02T15:31:02.706Z
+* abapmerge - 2018-07-02T15:32:37.977Z
 ****************************************************
