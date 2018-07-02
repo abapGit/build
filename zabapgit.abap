@@ -508,6 +508,7 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
@@ -1266,6 +1267,7 @@ INTERFACE zif_abapgit_definitions.
 
       go_main                  TYPE string VALUE 'go_main',
       go_explore               TYPE string VALUE 'go_explore',
+      go_repo_overview         TYPE string VALUE 'go_repo_overview',
       go_db                    TYPE string VALUE 'go_db',
       go_background            TYPE string VALUE 'go_background',
       go_background_run        TYPE string VALUE 'go_background_run',
@@ -7123,6 +7125,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
     CONSTANTS: BEGIN OF c_actions,
                  show       TYPE string VALUE 'show' ##NO_TEXT,
                  changed_by TYPE string VALUE 'changed_by',
+                 overview   TYPE string VALUE 'overview',
                END OF c_actions.
 
     DATA: mv_show         TYPE zif_abapgit_persistence=>ty_value,
@@ -7289,6 +7292,97 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS toggle_merge_mode .
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_repo_over DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor .
+
+    METHODS zif_abapgit_gui_page~on_event
+        REDEFINITION .
+
+  PROTECTED SECTION.
+    METHODS render_content
+        REDEFINITION .
+
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_overview,
+        favorite TYPE string,
+        type     TYPE string,
+        key      TYPE string,
+        name     TYPE string,
+        url      TYPE string,
+        package  TYPE string,
+        branch   TYPE string,
+      END OF ty_overview,
+      tty_overview TYPE STANDARD TABLE OF ty_overview
+                   WITH NON-UNIQUE DEFAULT KEY.
+    CONSTANTS:
+      BEGIN OF gc_action,
+        delete          TYPE string VALUE 'delete',
+        select          TYPE string VALUE 'select',
+        change_order_by TYPE string VALUE 'change_order_by',
+        direction       TYPE string VALUE 'direction',
+        apply_filter    TYPE string VALUE 'apply_filter',
+      END OF gc_action .
+
+    DATA:
+      mv_order_by         TYPE string,
+      mv_order_descending TYPE char01,
+      mv_filter           TYPE string.
+
+    METHODS:
+      render_text_input
+        IMPORTING iv_name        TYPE string
+                  iv_label       TYPE string
+                  iv_value       TYPE string OPTIONAL
+                  iv_max_length  TYPE string OPTIONAL
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+
+      parse_change_order_by
+        IMPORTING
+          it_postdata TYPE cnht_post_data_tab,
+
+      parse_direction
+        IMPORTING
+          it_postdata TYPE cnht_post_data_tab,
+
+      parse_filter
+        IMPORTING
+          it_postdata TYPE cnht_post_data_tab,
+
+      add_order_by_option
+        IMPORTING
+          iv_option TYPE string
+          io_html   TYPE REF TO zcl_abapgit_html,
+
+      add_direction_option
+        IMPORTING
+          iv_option   TYPE string
+          io_html     TYPE REF TO zcl_abapgit_html
+          iv_selected TYPE abap_bool,
+
+      apply_order_by
+        CHANGING
+          ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
+
+      apply_filter
+        CHANGING
+          ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
+
+      map_repo_list_to_overview
+        IMPORTING
+          it_repo_list       TYPE zif_abapgit_persistence=>tt_repo
+        RETURNING
+          VALUE(rt_overview) TYPE zcl_abapgit_gui_page_repo_over=>tty_overview
+        RAISING
+          zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
@@ -7895,6 +7989,7 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
           iv_right       TYPE abap_bool OPTIONAL
           iv_sort        TYPE abap_bool OPTIONAL
           iv_corner      TYPE abap_bool OPTIONAL
+          iv_action      TYPE string OPTIONAL
         RETURNING
           VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -20912,7 +21007,7 @@ CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
+CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
@@ -20977,8 +21072,8 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
     ro_html->add( |<div class="{ lv_class }">| ).
     ro_html->add( '<ul><li>' ).
     ro_html->add_a( iv_txt = iv_label
-                    iv_typ = zif_abapgit_definitions=>gc_action_type-dummy
-                    iv_act = '' ).
+                    iv_typ = zif_abapgit_definitions=>gc_action_type-sapevent
+                    iv_act = iv_action ).
     ro_html->add( '<div class="minizone"></div>' ).
     ro_html->add( render_items( iv_sort = iv_sort ) ).
     ro_html->add( '</li></ul>' ).
@@ -22302,6 +22397,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-go_explore.                     " Go Explore page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_explore.
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+      WHEN zif_abapgit_definitions=>gc_action-go_repo_overview.               " Go Repository overview
+        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_over.
+        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
       WHEN zif_abapgit_definitions=>gc_action-go_db.                          " Go DB util page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db.
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
@@ -23592,6 +23690,333 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
+  METHOD add_direction_option.
+
+    DATA: lv_selected TYPE string.
+
+    IF iv_selected = abap_true.
+      lv_selected = 'selected'.
+    ENDIF.
+
+    io_html->add( |<option value="{ iv_option }" { lv_selected }>|
+               && |{ to_mixed( iv_option ) }</option>| ).
+
+  ENDMETHOD.
+  METHOD add_order_by_option.
+
+    DATA: lv_selected TYPE string.
+
+    IF mv_order_by = iv_option.
+      lv_selected = 'selected'.
+    ENDIF.
+
+    io_html->add( |<option value="{ iv_option }" { lv_selected }>|
+               && |{ to_mixed( iv_option ) }</option>| ).
+
+  ENDMETHOD.
+  METHOD apply_filter.
+
+    IF mv_filter IS NOT INITIAL.
+
+      DELETE ct_overview WHERE key     NS mv_filter
+                           AND name    NS mv_filter
+                           AND url     NS mv_filter
+                           AND package NS mv_filter
+                           AND branch  NS mv_filter.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD apply_order_by.
+
+    DATA:
+      lt_sort TYPE abap_sortorder_tab,
+      ls_sort LIKE LINE OF lt_sort.
+
+    IF mv_order_by IS NOT INITIAL.
+
+      ls_sort-name       = mv_order_by.
+      ls_sort-descending = mv_order_descending.
+      ls_sort-astext     = abap_true.
+      INSERT ls_sort INTO TABLE lt_sort.
+      SORT ct_overview BY (lt_sort).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor( ).
+    ms_control-page_title = |Repository Overview|.
+    mv_order_by = |NAME|.
+
+  ENDMETHOD.  " constructor.
+  METHOD map_repo_list_to_overview.
+
+    DATA: ls_overview LIKE LINE OF rt_overview,
+          lo_repo_srv TYPE REF TO zcl_abapgit_repo,
+          lo_user     TYPE REF TO zcl_abapgit_persistence_user.
+
+    FIELD-SYMBOLS: <ls_repo> LIKE LINE OF it_repo_list.
+
+    lo_user = zcl_abapgit_persistence_user=>get_instance( ).
+
+    LOOP AT it_repo_list ASSIGNING <ls_repo>.
+
+      CLEAR: ls_overview.
+      lo_repo_srv = zcl_abapgit_repo_srv=>get_instance( )->get( <ls_repo>-key ).
+
+      ls_overview-favorite = lo_user->is_favorite_repo( <ls_repo>-key ).
+      ls_overview-type     = <ls_repo>-offline.
+      ls_overview-key      = <ls_repo>-key.
+      ls_overview-name     = lo_repo_srv->get_name( ).
+      ls_overview-url      = <ls_repo>-url.
+      ls_overview-package  = <ls_repo>-package.
+      ls_overview-branch   = zcl_abapgit_git_branch_list=>get_display_name( <ls_repo>-branch_name ).
+      INSERT ls_overview INTO TABLE rt_overview.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD parse_change_order_by.
+
+    FIELD-SYMBOLS: <ls_postdata> TYPE cnht_post_data_line.
+
+    READ TABLE it_postdata ASSIGNING <ls_postdata>
+                           INDEX 1.
+    IF sy-subrc = 0.
+      FIND FIRST OCCURRENCE OF REGEX `orderBy=(.*)`
+           IN <ls_postdata>
+           SUBMATCHES mv_order_by.
+    ENDIF.
+
+    mv_order_by = condense( mv_order_by ).
+
+  ENDMETHOD.
+  METHOD parse_direction.
+
+    DATA: lv_direction TYPE string.
+
+    FIELD-SYMBOLS: <ls_postdata> TYPE cnht_post_data_line.
+
+    CLEAR: mv_order_descending.
+
+    READ TABLE it_postdata ASSIGNING <ls_postdata>
+                           INDEX 1.
+    IF sy-subrc = 0.
+      FIND FIRST OCCURRENCE OF REGEX `direction=(.*)`
+           IN <ls_postdata>
+           SUBMATCHES lv_direction.
+    ENDIF.
+
+    IF condense( lv_direction ) = 'DESCENDING'.
+      mv_order_descending = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD parse_filter.
+
+    FIELD-SYMBOLS: <ls_postdata> LIKE LINE OF it_postdata.
+
+    READ TABLE it_postdata ASSIGNING <ls_postdata>
+                           INDEX 1.
+    IF sy-subrc = 0.
+      FIND FIRST OCCURRENCE OF REGEX `filter=(.*)`
+           IN <ls_postdata>
+           SUBMATCHES mv_filter.
+    ENDIF.
+
+    mv_filter = condense( mv_filter ).
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    DATA: lv_trclass          TYPE string,
+          lo_persistence_repo TYPE REF TO zcl_abapgit_persistence_repo,
+          lt_overview         TYPE tty_overview,
+          lv_type_icon        TYPE string,
+          lv_favorite_icon    TYPE string.
+
+    FIELD-SYMBOLS: <ls_overview> LIKE LINE OF lt_overview.
+
+    CREATE OBJECT lo_persistence_repo.
+
+    lt_overview = map_repo_list_to_overview( lo_persistence_repo->list( ) ).
+
+    apply_order_by( CHANGING ct_overview = lt_overview ).
+
+    apply_filter( CHANGING ct_overview = lt_overview ).
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( |<div class="form-container">| ).
+
+    ro_html->add( |<form id="commit_form" class="grey70"|
+               && | method="post" action="sapevent:{ gc_action-apply_filter }">| ).
+
+    ro_html->add( |<div class="row">| ).
+
+    ro_html->add( |Order by: <select name="order_by" onchange="onOrderByChange(this)">| ).
+
+    add_order_by_option( iv_option = |TYPE|
+                         io_html   = ro_html ).
+
+    add_order_by_option( iv_option = |KEY|
+                         io_html   = ro_html ).
+
+    add_order_by_option( iv_option = |NAME|
+                         io_html   = ro_html ).
+
+    add_order_by_option( iv_option = |URL|
+                         io_html   = ro_html ).
+
+    add_order_by_option( iv_option = |PACKAGE|
+                         io_html   = ro_html ).
+
+    add_order_by_option( iv_option = |BRANCH|
+                         io_html   = ro_html ).
+
+    ro_html->add( |</select>| ).
+
+    ro_html->add( |<select name="direction" onchange="onDirectionChange(this)">| ).
+
+    add_direction_option( iv_option   = |ASCENDING|
+                          iv_selected = mv_order_descending
+                          io_html     = ro_html ).
+
+    add_direction_option( iv_option   = |DESCENDING|
+                          iv_selected = mv_order_descending
+                          io_html     = ro_html ).
+
+    ro_html->add( |</select>| ).
+
+    ro_html->add( render_text_input( iv_name  = |filter|
+                                     iv_label = |Filter: |
+                                     iv_value = mv_filter ) ).
+
+    ro_html->add( |<input type="submit" class="hidden-submit">| ).
+
+    ro_html->add( |</div>| ).
+
+    ro_html->add( |</form>| ).
+    ro_html->add( |</div>| ).
+
+    ro_html->add( |<div class="db_list">| ).
+    ro_html->add( |<table class="db_tab">| ).
+
+    " Header
+    ro_html->add( |<thead>| ).
+    ro_html->add( |<tr>| ).
+    ro_html->add( |<th>Favorite</th>| ).
+    ro_html->add( |<th>Type</th>| ).
+    ro_html->add( |<th>Key</th>| ).
+    ro_html->add( |<th>Name</th>| ).
+    ro_html->add( |<th>Url</th>| ).
+    ro_html->add( |<th>Package</th>| ).
+    ro_html->add( |<th>Branch name</th>| ).
+    ro_html->add( |<th></th>| ).
+    ro_html->add( '</tr>' ).
+    ro_html->add( '</thead>' ).
+    ro_html->add( '<tbody>' ).
+    LOOP AT lt_overview ASSIGNING <ls_overview>.
+      CLEAR lv_trclass.
+      IF sy-tabix = 1.
+        lv_trclass = ' class="firstrow"' ##NO_TEXT.
+      ENDIF.
+
+      IF <ls_overview>-type = abap_true.
+        lv_type_icon = 'plug/darkgrey'.
+      ELSE.
+        lv_type_icon = 'cloud-upload/blue'.
+      ENDIF.
+
+      IF <ls_overview>-favorite = abap_true.
+        lv_favorite_icon = 'star/blue'.
+      ELSE.
+        lv_favorite_icon = 'star/grey'.
+      ENDIF.
+
+      ro_html->add( |<tr{ lv_trclass }>| ).
+      ro_html->add( |<td>| ).
+      ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>gc_action-repo_toggle_fav }?{ <ls_overview>-key }|
+                      iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_favorite_icon
+                                                       iv_class = 'pad-sides'
+                                                       iv_hint  = 'Click to toggle favorite' ) ).
+      ro_html->add( |</td>| ).
+      ro_html->add( |<td>{ zcl_abapgit_html=>icon( lv_type_icon )  }</td>| ).
+
+      ro_html->add( |<td>{ <ls_overview>-key }</td>| ).
+      ro_html->add( |<td>{ zcl_abapgit_html=>a( iv_txt = <ls_overview>-name
+                                                iv_act = |{ gc_action-select }?{ <ls_overview>-key }| ) }</td>| ).
+      ro_html->add( |<td>{ <ls_overview>-url }</td>| ).
+      ro_html->add( |<td>{ <ls_overview>-package }</td>| ).
+      ro_html->add( |<td>{ <ls_overview>-branch }</td>| ).
+      ro_html->add( |<td>| ).
+      ro_html->add( |</td>| ).
+      ro_html->add( |</tr>| ).
+    ENDLOOP.
+
+    ro_html->add( |</tbody>| ).
+    ro_html->add( |</table>| ).
+    ro_html->add( |</div>| ).
+
+  ENDMETHOD.            "render_content
+  METHOD render_text_input.
+
+    DATA lv_attrs TYPE string.
+
+    CREATE OBJECT ro_html.
+
+    IF iv_value IS NOT INITIAL.
+      lv_attrs = | value="{ iv_value }"|.
+    ENDIF.
+
+    IF iv_max_length IS NOT INITIAL.
+      lv_attrs = | maxlength="{ iv_max_length }"|.
+    ENDIF.
+
+    ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
+    ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
+
+  ENDMETHOD.  " render_text_input
+  METHOD zif_abapgit_gui_page~on_event.
+
+    DATA: lv_key  TYPE zif_abapgit_persistence=>ty_value.
+
+    CASE iv_action.
+      WHEN gc_action-select.
+
+        lv_key = iv_getdata.
+
+        zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
+
+        TRY.
+            zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
+          CATCH zcx_abapgit_exception ##NO_HANDLER.
+        ENDTRY.
+
+        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+
+      WHEN gc_action-change_order_by.
+
+        parse_change_order_by( it_postdata ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+
+      WHEN gc_action-direction.
+
+        parse_direction( it_postdata ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+
+      WHEN gc_action-apply_filter.
+
+        parse_filter( it_postdata ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+
+    ENDCASE.
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD apply_merged_content.
 
@@ -24185,7 +24610,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -24195,24 +24620,41 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     CREATE OBJECT lo_advsub.
     CREATE OBJECT lo_helpsub.
 
-    lo_advsub->add( iv_txt = 'Database util'    iv_act = zif_abapgit_definitions=>gc_action-go_db ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Package to zip'   iv_act = zif_abapgit_definitions=>gc_action-zip_package ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Transport to zip' iv_act = zif_abapgit_definitions=>gc_action-zip_transport ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Object to files'  iv_act = zif_abapgit_definitions=>gc_action-zip_object ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Test changed by'  iv_act = c_actions-changed_by ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Page playground'  iv_act = zif_abapgit_definitions=>gc_action-go_playground ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Debug info'       iv_act = zif_abapgit_definitions=>gc_action-go_debuginfo ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Settings'         iv_act = zif_abapgit_definitions=>gc_action-go_settings ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Repository overview'
+                    iv_act = zif_abapgit_definitions=>gc_action-go_repo_overview ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Database util'
+                    iv_act = zif_abapgit_definitions=>gc_action-go_db ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Package to zip'
+                    iv_act = zif_abapgit_definitions=>gc_action-zip_package ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Transport to zip'
+                    iv_act = zif_abapgit_definitions=>gc_action-zip_transport ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Object to files'
+                    iv_act = zif_abapgit_definitions=>gc_action-zip_object ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Test changed by'
+                    iv_act = c_actions-changed_by ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Page playground'
+                    iv_act = zif_abapgit_definitions=>gc_action-go_playground ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Debug info'
+                    iv_act = zif_abapgit_definitions=>gc_action-go_debuginfo ) ##NO_TEXT.
+    lo_advsub->add( iv_txt = 'Settings'
+                    iv_act = zif_abapgit_definitions=>gc_action-go_settings ) ##NO_TEXT.
 
-    lo_helpsub->add( iv_txt = 'Tutorial'        iv_act = zif_abapgit_definitions=>gc_action-go_tutorial ) ##NO_TEXT.
-    lo_helpsub->add( iv_txt = 'abapGit wiki'    iv_act = zif_abapgit_definitions=>gc_action-abapgit_wiki ) ##NO_TEXT.
+    lo_helpsub->add( iv_txt = 'Tutorial'
+                     iv_act = zif_abapgit_definitions=>gc_action-go_tutorial ) ##NO_TEXT.
+    lo_helpsub->add( iv_txt = 'abapGit wiki'
+                     iv_act = zif_abapgit_definitions=>gc_action-abapgit_wiki ) ##NO_TEXT.
 
-    ro_menu->add( iv_txt = '+ Online'           iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ) ##NO_TEXT.
-    ro_menu->add( iv_txt = '+ Offline'          iv_act = zif_abapgit_definitions=>gc_action-repo_newoffline ) ##NO_TEXT.
-    ro_menu->add( iv_txt = 'Explore'            iv_act = zif_abapgit_definitions=>gc_action-go_explore ) ##NO_TEXT.
+    ro_menu->add( iv_txt = '+ Online'
+                  iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ) ##NO_TEXT.
+    ro_menu->add( iv_txt = '+ Offline'
+                  iv_act = zif_abapgit_definitions=>gc_action-repo_newoffline ) ##NO_TEXT.
+    ro_menu->add( iv_txt = 'Explore'
+                  iv_act = zif_abapgit_definitions=>gc_action-go_explore ) ##NO_TEXT.
 
-    ro_menu->add( iv_txt = 'Advanced'           io_sub = lo_advsub ) ##NO_TEXT.
-    ro_menu->add( iv_txt = 'Help'               io_sub = lo_helpsub ) ##NO_TEXT.
+    ro_menu->add( iv_txt = 'Advanced'
+                  io_sub = lo_advsub ) ##NO_TEXT.
+    ro_menu->add( iv_txt = 'Help'
+                  io_sub = lo_helpsub ) ##NO_TEXT.
 
   ENDMETHOD.                    "build main_menu
   METHOD constructor.
@@ -24350,9 +24792,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
     ro_html->add( '<td>' ).
     ro_html->add( lo_allbar->render_as_droplist(
-      iv_label = zcl_abapgit_html=>icon( iv_name = 'three-bars/blue' )
-      iv_right = abap_true
-      iv_sort  = abap_true ) ).
+      iv_label  = zcl_abapgit_html=>icon( iv_name = 'three-bars/blue' )
+      iv_action = c_actions-overview
+      iv_right  = abap_true
+      iv_sort   = abap_true ) ).
     ro_html->add( '</td>' ).
     ro_html->add( '</tr></table>' ).
 
@@ -24412,7 +24855,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
-    DATA: lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
+          li_repo_overview TYPE REF TO zif_abapgit_gui_page.
     IF NOT mo_repo_content IS INITIAL.
       mo_repo_content->zif_abapgit_gui_page~on_event(
         EXPORTING
@@ -24443,6 +24887,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
       WHEN c_actions-changed_by.
         test_changed_by( ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+
+      WHEN c_actions-overview.
+
+        CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
+
+        ei_page = li_repo_overview.
+        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+
     ENDCASE.
 
   ENDMETHOD.  "on_event
@@ -27279,6 +27731,20 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'window.onTagTypeChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ ''type'': sValue }, "change_tag_type", "post");'.
+        _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Repo Overview Logic'.
+        _inline ' **********************************************************/'.
+        _inline '// somehow only functions on window are visible for the select tag'.
+        _inline 'window.onOrderByChange = function(oSelectObject){'.
+        _inline '  var sValue = oSelectObject.value;'.
+        _inline '  submitSapeventForm({ ''orderBy'': sValue }, "change_order_by", "post");'.
+        _inline '}'.
+        _inline ''.
+        _inline 'window.onDirectionChange = function(oSelectObject){'.
+        _inline '  var sValue = oSelectObject.value;'.
+        _inline '  submitSapeventForm({ ''direction'': sValue }, "direction", "post");'.
         _inline '}'.
         _inline ''.
         _inline '/**********************************************************'.
@@ -58158,5 +58624,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-02T15:32:37.977Z
+* abapmerge - 2018-07-02T17:51:14.555Z
 ****************************************************
