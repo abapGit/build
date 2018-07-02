@@ -1700,7 +1700,7 @@ INTERFACE zif_abapgit_persistence.
       ignore_subpackages           TYPE abap_bool,
       write_protected              TYPE abap_bool,
       only_local_objects           TYPE abap_bool,
-      code_inspector_check_variant TYPE sci_chkv ,
+      code_inspector_check_variant TYPE sci_chkv,
       block_commit                 TYPE abap_bool,
     END OF ty_local_settings.
 
@@ -1711,6 +1711,8 @@ INTERFACE zif_abapgit_persistence.
            branch_name     TYPE string,
            sha1            TYPE zif_abapgit_definitions=>ty_sha1,
            package         TYPE devclass,
+           created_by      TYPE xubname,
+           created_at      TYPE timestampl,
            offline         TYPE sap_bool,
            local_checksums TYPE ty_local_checksum_tt,
            dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
@@ -29602,6 +29604,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ls_repo-sha1         = iv_branch.
     ls_repo-package      = iv_package.
     ls_repo-offline      = iv_offline.
+    ls_repo-created_by   = sy-uname.
+    GET TIME STAMP FIELD ls_repo-created_at.
     ls_repo-dot_abapgit  = is_dot_abapgit.
 
     lv_repo_as_xml = to_xml( ls_repo ).
@@ -58624,5 +58628,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-02T17:51:14.555Z
+* abapmerge - 2018-07-02T17:57:21.297Z
 ****************************************************
