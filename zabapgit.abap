@@ -19044,10 +19044,14 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
     CLEAR rv_bitbyte.
 
-    DO 8 TIMES.
-      GET BIT sy-index OF iv_x INTO lv_b.
-      CONCATENATE rv_bitbyte lv_b INTO rv_bitbyte.
-    ENDDO.
+    GET BIT 1 OF iv_x INTO rv_bitbyte+0(1).
+    GET BIT 2 OF iv_x INTO rv_bitbyte+1(1).
+    GET BIT 3 OF iv_x INTO rv_bitbyte+2(1).
+    GET BIT 4 OF iv_x INTO rv_bitbyte+3(1).
+    GET BIT 5 OF iv_x INTO rv_bitbyte+4(1).
+    GET BIT 6 OF iv_x INTO rv_bitbyte+5(1).
+    GET BIT 7 OF iv_x INTO rv_bitbyte+6(1).
+    GET BIT 8 OF iv_x INTO rv_bitbyte+7(1).
 
   ENDMETHOD.                    "x_to_bitbyte
 ENDCLASS.
@@ -58892,5 +58896,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-06T13:24:19.324Z
+* abapmerge - 2018-07-06T14:31:42.281Z
 ****************************************************
