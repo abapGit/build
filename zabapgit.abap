@@ -10266,9 +10266,16 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         VALUE(rv_allowed) TYPE abap_bool .
     METHODS add
       IMPORTING
-        !io_repo TYPE REF TO zcl_abapgit_repo
+        io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
         zcx_abapgit_exception .
+    METHODS validate_sub_super_packages
+      IMPORTING
+        iv_package TYPE devclass
+        it_repos   TYPE zif_abapgit_persistence=>tt_repo
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
     FRIENDS ZCL_ABAPGIT_factory.
@@ -12768,7 +12775,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
+CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -13008,6 +13015,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     DATA: lv_as4user TYPE tdevc-as4user,
           lt_repos   TYPE zif_abapgit_persistence=>tt_repo.
+
     IF iv_package IS INITIAL.
       zcx_abapgit_exception=>raise( 'add, package empty' ).
     ENDIF.
@@ -13034,7 +13042,32 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Package { iv_package } already in use| ).
     ENDIF.
 
+    validate_sub_super_packages(
+      iv_package = iv_package
+      it_repos   = lt_repos ).
   ENDMETHOD.
+
+  METHOD validate_sub_super_packages.
+    DATA:
+      ls_repo     LIKE LINE OF it_repos,
+      lo_package  TYPE REF TO zif_abapgit_sap_package,
+      lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+      lo_repo     TYPE REF TO zcl_abapgit_repo.
+
+    LOOP AT it_repos INTO ls_repo.
+      lo_repo = get( ls_repo-key ).
+
+      lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
+      APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+      APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+      READ TABLE lt_packages TRANSPORTING NO FIELDS
+        WITH KEY table_line = iv_package.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD actualize_head_branch.
@@ -58833,5 +58866,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-06T12:14:49.376Z
+* abapmerge - 2018-07-06T12:31:04.238Z
 ****************************************************
