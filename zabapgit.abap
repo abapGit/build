@@ -3644,7 +3644,16 @@ CLASS zcl_abapgit_object_devc DEFINITION
                          RAISING   zcx_abapgit_exception,
       set_lock IMPORTING ii_package TYPE REF TO if_package
                          iv_lock    TYPE abap_bool
-               RAISING   zcx_abapgit_exception.
+               RAISING   zcx_abapgit_exception,
+      is_empty
+        IMPORTING iv_package_name    TYPE devclass
+        RETURNING VALUE(rv_is_empty) TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
+      load_package
+        IMPORTING iv_package_name   TYPE devclass
+        RETURNING VALUE(ri_package) TYPE REF TO if_package
+        RAISING   zcx_abapgit_exception.
+
     DATA:
       mv_local_devclass TYPE devclass.
 ENDCLASS.
@@ -9192,7 +9201,6 @@ CLASS zcl_abapgit_dependencies DEFINITION
         !ct_tadir TYPE ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
-
   PRIVATE SECTION.
 
     TYPES:
@@ -9221,9 +9229,12 @@ CLASS zcl_abapgit_dependencies DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS get_ddls_dependencies
       IMPORTING
-        !iv_ddls_name        TYPE tadir-obj_name
+        iv_ddls_name         TYPE tadir-obj_name
       RETURNING
         VALUE(rt_dependency) TYPE tty_dedenpency .
+    CLASS-METHODS resolve_packages
+      CHANGING
+        ct_tadir TYPE zcl_abapgit_dependencies=>ty_tadir_tt.
 ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
@@ -16451,7 +16462,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ms_data-requirements = it_requirements.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
+CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
     TYPES: BEGIN OF ty_ddls_name.
@@ -16473,14 +16484,16 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   ENDMETHOD.
   METHOD resolve.
 
-    DATA: lv_tabclass TYPE dd02l-tabclass.
+    DATA: lv_tabclass    TYPE dd02l-tabclass.
 
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
+    FIELD-SYMBOLS: <ls_tadir>            LIKE LINE OF ct_tadir.
 
 * misuse field KORRNUM to fix deletion sequence
 
     LOOP AT ct_tadir ASSIGNING <ls_tadir>.
       CASE <ls_tadir>-object.
+        WHEN 'DEVC'.
+          <ls_tadir>-korrnum = '9990'.
         WHEN 'IATU'.
           <ls_tadir>-korrnum = '5500'.
         WHEN 'IARP'.
@@ -16529,6 +16542,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
     ENDLOOP.
 
     resolve_ddic( CHANGING ct_tadir = ct_tadir ).
+    resolve_packages( CHANGING ct_tadir = ct_tadir ).
 
     SORT ct_tadir BY korrnum ASCENDING.
 
@@ -16680,6 +16694,36 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
     ENDDO.
 
   ENDMETHOD.                    "resolve_ddic
+  METHOD resolve_packages.
+
+    DATA: lt_subpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    FIELD-SYMBOLS: <ls_tadir>            LIKE LINE OF ct_tadir,
+                   <lv_subpackage>       LIKE LINE OF lt_subpackages,
+                   <ls_tadir_subpackage> LIKE LINE OF ct_tadir.
+
+    " List subpackage before corresponding superpackage
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>
+                     WHERE object = 'DEVC'.
+
+      lt_subpackages = zcl_abapgit_factory=>get_sap_package( |{ <ls_tadir>-obj_name }| )->list_subpackages( ).
+
+      LOOP AT lt_subpackages ASSIGNING <lv_subpackage>.
+
+        READ TABLE ct_tadir ASSIGNING <ls_tadir_subpackage>
+                            WITH KEY object   = 'DEVC'
+                                     obj_name = <lv_subpackage>.
+        IF sy-subrc = 0.
+          <ls_tadir_subpackage>-korrnum = condense( |{ <ls_tadir_subpackage>-korrnum - 1 }| ).
+        ENDIF.
+
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_default_transport IMPLEMENTATION.
 
@@ -50055,24 +50099,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_package.
     IF me->zif_abapgit_object~exists( ) = abap_true.
-      cl_package_factory=>load_package(
-        EXPORTING
-          i_package_name             = mv_local_devclass
-          i_force_reload             = abap_true
-        IMPORTING
-          e_package                  = ri_package
-        EXCEPTIONS
-          object_not_existing        = 1
-          unexpected_error           = 2
-          intern_err                 = 3
-          no_access                  = 4
-          object_locked_and_modified = 5
-          OTHERS                     = 6 ).
-      IF sy-subrc = 1.
-        RETURN.
-      ELSEIF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
+      ri_package = load_package( mv_local_devclass ).
     ENDIF.
   ENDMETHOD.
   METHOD set_lock.
@@ -50215,12 +50242,83 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
+
+    DATA: li_package TYPE REF TO if_package,
+          lv_package TYPE devclass.
+
     " Package deletion is a bit tricky. A package can only be deleted if there are no objects
     " contained in it. This includes subpackages, so first the leaf packages need to be deleted.
     " Unfortunately deleted objects that are still contained in an unreleased transport request
     " also count towards the contained objects counter.
-    " -> Package deletion is currently not supported by abapGit
-    RETURN.
+    " -> Currently we delete only empty packages
+    "
+    " If objects are deleted, the TADIR entry is deleted when the transport request is released.
+    " So before we can delete the package, the transport which deletes the objects
+    " in the package has to be released.
+
+    lv_package = ms_item-obj_name.
+
+    IF is_empty( lv_package ) = abap_true.
+
+      li_package = load_package( lv_package ).
+
+      IF li_package IS NOT BOUND.
+        RETURN.
+      ENDIF.
+
+      li_package->set_changeable(
+        EXPORTING
+          i_changeable                = abap_true
+          i_suppress_dialog           = abap_true
+        EXCEPTIONS
+          object_locked_by_other_user = 1
+          permission_failure          = 2
+          object_already_changeable   = 3
+          object_already_unlocked     = 4
+          object_just_created         = 5
+          object_deleted              = 6
+          object_modified             = 7
+          object_not_existing         = 8
+          object_invalid              = 9
+          unexpected_error            = 10
+          OTHERS                      = 11 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+      li_package->delete(
+        EXPORTING
+          i_suppress_dialog     = abap_true
+        EXCEPTIONS
+          object_not_empty      = 1
+          object_not_changeable = 2
+          object_invalid        = 3
+          intern_err            = 4
+          OTHERS                = 5 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+      li_package->save(
+        EXPORTING
+          i_suppress_dialog     = abap_true
+        EXCEPTIONS
+          object_invalid        = 1
+          object_not_changeable = 2
+          cancelled_in_corr     = 3
+          permission_failure    = 4
+          unexpected_error      = 5
+          intern_err            = 6
+          OTHERS                = 7 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
     DATA: li_package      TYPE REF TO if_package,
@@ -50545,6 +50643,49 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
                                             iv_argument    = lv_object ).
+
+  ENDMETHOD.
+  METHOD is_empty.
+
+    DATA: lv_object_name TYPE tadir-obj_name,
+          lt_subpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    lt_subpackages = zcl_abapgit_factory=>get_sap_package( iv_package_name )->list_subpackages( ).
+
+    IF lines( lt_subpackages ) > 0.
+      rv_is_empty = abap_false.
+      RETURN.
+    ENDIF.
+
+    SELECT SINGLE obj_name
+           FROM tadir
+           INTO lv_object_name
+           WHERE pgmid    =  'R3TR'
+           AND   NOT ( object = 'DEVC' AND obj_name = iv_package_name )
+           AND   devclass = iv_package_name.
+    rv_is_empty = boolc( sy-subrc <> 0 ).
+
+  ENDMETHOD.
+  METHOD load_package.
+
+    cl_package_factory=>load_package(
+      EXPORTING
+        i_package_name             = iv_package_name
+        i_force_reload             = abap_true
+      IMPORTING
+        e_package                  = ri_package
+      EXCEPTIONS
+        object_not_existing        = 1
+        unexpected_error           = 2
+        intern_err                 = 3
+        no_access                  = 4
+        object_locked_and_modified = 5
+        OTHERS                     = 6 ).
+    IF sy-subrc = 1.
+      RETURN.
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -58692,5 +58833,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-05T18:36:48.278Z
+* abapmerge - 2018-07-06T12:14:49.376Z
 ****************************************************
