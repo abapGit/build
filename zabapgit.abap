@@ -43250,7 +43250,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
@@ -43259,7 +43259,9 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+* Data elements can refer to PARA objects
+    rs_metadata-ddic = abap_true.
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -43268,7 +43270,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
       WHERE paramid = ms_item-obj_name.                 "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -43289,7 +43291,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
     io_xml->add( iv_name = 'TPARAT'
                  ig_data = ls_tparat ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 * see fm RS_PARAMETER_ADD and RS_PARAMETER_EDIT
@@ -43333,7 +43335,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
     MODIFY tparat FROM ls_tparat.                         "#EC CI_SUBRC
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -43349,7 +43351,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_PRAMETER_DELETE' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -43360,7 +43362,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
         object_type   = 'PARA'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -43372,7 +43374,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_para IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -58896,5 +58898,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-06T14:31:42.281Z
+* abapmerge - 2018-07-07T06:58:11.769Z
 ****************************************************
