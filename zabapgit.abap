@@ -1243,7 +1243,6 @@ INTERFACE zif_abapgit_definitions.
       abapgit_home             TYPE string VALUE 'abapgit_home',
       abapgit_wiki             TYPE string VALUE 'abapgit_wiki',
       abapgit_install          TYPE string VALUE 'abapgit_install',
-      abapgit_install_pi       TYPE string VALUE 'abapgit_install_pi',
 
       zip_import               TYPE string VALUE 'zip_import',
       zip_export               TYPE string VALUE 'zip_export',
@@ -8160,9 +8159,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CONSTANTS c_abapgit_homepage TYPE string VALUE 'http://www.abapgit.org' ##NO_TEXT.
     CONSTANTS c_abapgit_wikipage TYPE string VALUE 'http://docs.abapgit.org' ##NO_TEXT.
     CONSTANTS c_package_abapgit TYPE devclass VALUE '$ABAPGIT' ##NO_TEXT.
-    CONSTANTS c_package_plugins TYPE devclass VALUE '$ABAPGIT_PLUGINS' ##NO_TEXT.
     CONSTANTS c_abapgit_url TYPE string VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT.
-    CONSTANTS c_plugins_url TYPE string VALUE 'https://github.com/larshp/abapGit-plugins.git' ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -8174,14 +8171,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
-    CLASS-METHODS install_abapgit_pi
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
     CLASS-METHODS is_installed
-      RETURNING
-        VALUE(rv_installed) TYPE abap_bool .
-    CLASS-METHODS is_installed_pi
       RETURNING
         VALUE(rv_installed) TYPE abap_bool .
   PRIVATE SECTION.
@@ -14813,6 +14803,9 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    SORT rt_overwrite.
+    DELETE ADJACENT DUPLICATES FROM rt_overwrite.
+
   ENDMETHOD.
   METHOD warning_package_adjust.
 
@@ -20038,7 +20031,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
     COMMIT WORK.
 
-  ENDMETHOD.  " do_install.
+  ENDMETHOD.
   METHOD install_abapgit.
 
     CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit'.
@@ -20059,29 +20052,8 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
                 iv_url     = c_abapgit_url
                 iv_package = c_package_abapgit ).
 
-  ENDMETHOD.  "install_abapgit
-  METHOD install_abapgit_pi.
+  ENDMETHOD.
 
-    CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit plugins'.
-    DATA lv_text       TYPE c LENGTH 100.
-
-    IF is_installed_pi( ) = abap_true.
-      lv_text = 'Seems like abapGit plugins package is already installed. No changes to be done'.
-      zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
-        titlebar              = lc_title
-        text_message          = lv_text ).
-      RETURN.
-    ENDIF.
-
-    lv_text = |Confirm to install current version abapGit plugins to package {
-               c_package_plugins }|.
-
-    do_install( iv_title   = lc_title
-                iv_text    = lv_text
-                iv_url     = c_plugins_url
-                iv_package = c_package_plugins ).
-
-  ENDMETHOD.  "install_abapgit_pi
   METHOD is_installed.
 
     TRY.
@@ -20092,18 +20064,8 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
         rv_installed = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "is_installed
-  METHOD is_installed_pi.
+  ENDMETHOD.
 
-    TRY.
-        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_plugins_url ).
-        " TODO, alternative checks for presence in the system
-      CATCH zcx_abapgit_exception.
-        " cannot be installed anyway in this case, e.g. no connection
-        rv_installed = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.                    "is_installed_pi
   METHOD open_abapgit_homepage.
 
     cl_gui_frontend_services=>execute(
@@ -20113,7 +20075,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
     ENDIF.
 
-  ENDMETHOD.  "open_abapgit_homepage
+  ENDMETHOD.
   METHOD open_abapgit_wikipage.
 
     cl_gui_frontend_services=>execute(
@@ -20123,7 +20085,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
     ENDIF.
 
-  ENDMETHOD.  "open_abapgit_wikipage
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_popups IMPLEMENTATION.
 
@@ -21866,7 +21828,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
                   zcl_abapgit_html=>icon( 'star/darkgrey' ) } icon at repo toolbar.</li>| ).
     ro_html->add( '</ul></p>' ).
 
-    ro_html->add( '<h2>abapGit related repositories</h2>' ).
+    ro_html->add( '<h2>abapGit repository</h2>' ).
     ro_html->add( '<p><ul>' ).
     ro_html->add( '<li>' ).
     IF zcl_abapgit_services_abapgit=>is_installed( ) = abap_true.
@@ -21878,22 +21840,12 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
       ro_html->add( 'install it as a repository.' ).
     ENDIF.
     ro_html->add( '</li>' ).
-    ro_html->add( '<li>' ).
-    IF zcl_abapgit_services_abapgit=>is_installed_pi( ) = abap_true.
-      ro_html->add( 'abapGit plugins installed in package&nbsp;' ).
-      ro_html->add( zcl_abapgit_services_abapgit=>c_package_plugins ).
-    ELSE.
-      ro_html->add_a( iv_txt = 'install abapGit plugins'
-                      iv_act = zif_abapgit_definitions=>gc_action-abapgit_install_pi ).
-      ro_html->add( ' - you can also install plugins to extend supported object types' ).
-    ENDIF.
-    ro_html->add( '</li>' ).
     ro_html->add( '</ul></p>' ).
 
-  ENDMETHOD. " render_content.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
     ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
-  ENDMETHOD.  " lif_gui_page~on_event.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
     CREATE OBJECT ro_html.
@@ -21902,7 +21854,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( render_content( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "lif_gui_page~render
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   METHOD build_dir_jump_link.
@@ -22432,7 +22384,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       EXPORTING
         iv_key = iv_key.
 
-  ENDMETHOD.  "get_page_background
+  ENDMETHOD.
   METHOD get_page_branch_overview.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
@@ -22448,7 +22400,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     ri_page = lo_page.
 
-  ENDMETHOD.  "get_page_branch_overview
+  ENDMETHOD.
   METHOD get_page_diff.
 
     DATA: ls_file   TYPE zif_abapgit_definitions=>ty_file,
@@ -22472,7 +22424,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     ri_page = lo_page.
 
-  ENDMETHOD.  "get_page_diff
+  ENDMETHOD.
   METHOD get_page_playground.
     DATA: lv_class_name TYPE string,
           lv_cancel     TYPE abap_bool.
@@ -22492,7 +22444,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Cannot create page class { lv_class_name }| ).
     ENDTRY.
 
-  ENDMETHOD.  "get_page_playground
+  ENDMETHOD.
   METHOD get_page_stage.
 
     DATA: lo_repo                TYPE REF TO zcl_abapgit_repo_online,
@@ -22535,7 +22487,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.  "get_page_stage
+  ENDMETHOD.
   METHOD on_event.
 
     DATA: lv_url  TYPE string,
@@ -22628,9 +22580,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>gc_action-abapgit_install.                 " Install abapGit
         zcl_abapgit_services_abapgit=>install_abapgit( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-abapgit_install_pi.              " Install abapGit plugins
-        zcl_abapgit_services_abapgit=>install_abapgit_pi( ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
 
         " REPOSITORY services actions
@@ -22742,7 +22691,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
     ENDCASE.
 
-  ENDMETHOD.        " on_event
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   METHOD constructor.
@@ -26016,7 +25965,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD build_menu.
 
     DATA: lv_opt TYPE c LENGTH 1.
@@ -26071,10 +26020,45 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
                                            AND has_inspection_errors( ) = abap_true ) ).
 
   ENDMETHOD.
+  METHOD jump.
+
+    DATA: lo_test               TYPE REF TO cl_ci_test_root,
+          li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
+          ls_info               TYPE scir_rest,
+          lo_result             TYPE REF TO cl_ci_result_root,
+          lv_check_variant_name TYPE sci_chkv,
+          lv_package            TYPE devclass.
+
+    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+
+    READ TABLE mt_result WITH KEY objtype = is_item-obj_type
+                                  objname = is_item-obj_name
+                         ASSIGNING <ls_result>.
+    ASSERT sy-subrc = 0.
+
+    lv_package = mo_repo->get_package( ).
+    lv_check_variant_name = mo_repo->get_local_settings( )-code_inspector_check_variant.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
+        iv_package            = lv_package
+        iv_check_variant_name = lv_check_variant_name ).
+
+    " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
+
+    MOVE-CORRESPONDING <ls_result> TO ls_info.
+
+    lo_test = cl_ci_tests=>get_test_ref( <ls_result>-test ).
+    lo_result = lo_test->get_result_node( <ls_result>-kind ).
+
+    lo_result->set_info( ls_info ).
+    lo_result->if_ci_test~navigate( ).
+
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: lv_check_variant TYPE sci_chkv,
-          lv_class         TYPE string.
+          lv_class         TYPE string,
+          lv_line          TYPE string.
     FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
 
     CREATE OBJECT ro_html.
@@ -26115,7 +26099,13 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
           lv_class = 'grey'.
       ENDCASE.
 
-      ro_html->add( |<div class="{ lv_class }">Line { <ls_result>-line ALPHA = OUT }: { <ls_result>-text }</div><br>| ).
+      CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+        EXPORTING
+          input  = <ls_result>-line
+        IMPORTING
+          output = lv_line.
+
+      ro_html->add( |<div class="{ lv_class }">Line { lv_line }: { <ls_result>-text }</div><br>| ).
     ENDLOOP.
 
     ro_html->add( '</div>' ).
@@ -26196,41 +26186,6 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ro_html = super->zif_abapgit_gui_page~render( ).
 
   ENDMETHOD.
-  METHOD jump.
-
-    DATA: lo_test               TYPE REF TO cl_ci_test_root,
-          li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
-          ls_info               TYPE scir_rest,
-          lo_result             TYPE REF TO cl_ci_result_root,
-          lv_check_variant_name TYPE sci_chkv,
-          lv_package            TYPE devclass.
-
-    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
-
-    READ TABLE mt_result WITH KEY objtype = is_item-obj_type
-                                  objname = is_item-obj_name
-                         ASSIGNING <ls_result>.
-    ASSERT sy-subrc = 0.
-
-    lv_package = mo_repo->get_package( ).
-    lv_check_variant_name = mo_repo->get_local_settings( )-code_inspector_check_variant.
-
-    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
-        iv_package            = lv_package
-        iv_check_variant_name = lv_check_variant_name ).
-
-    " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
-
-    MOVE-CORRESPONDING <ls_result> TO ls_info.
-
-    lo_test = cl_ci_tests=>get_test_ref( <ls_result>-test ).
-    lo_result = lo_test->get_result_node( <ls_result>-kind ).
-
-    lo_result->set_info( ls_info ).
-    lo_result->if_ci_test~navigate( ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
@@ -59046,5 +59001,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-08T05:19:36.891Z
+* abapmerge - 2018-07-08T05:21:30.514Z
 ****************************************************
