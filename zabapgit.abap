@@ -7349,7 +7349,8 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
     DATA:
       mv_order_by         TYPE string,
       mv_order_descending TYPE char01,
-      mv_filter           TYPE string.
+      mv_filter           TYPE string,
+      mv_time_zone        TYPE timezone.
 
     METHODS:
       render_text_input
@@ -23908,30 +23909,26 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ms_control-page_title = |Repository Overview|.
     mv_order_by = |NAME|.
 
+    CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
+      IMPORTING
+        timezone            = mv_time_zone
+      EXCEPTIONS
+        customizing_missing = 1
+        OTHERS              = 2.
+    ASSERT sy-subrc = 0.
+
   ENDMETHOD.  " constructor.
   METHOD map_repo_list_to_overview.
 
-    DATA: ls_overview  LIKE LINE OF rt_overview,
-          lo_repo_srv  TYPE REF TO zcl_abapgit_repo,
-          lo_user      TYPE REF TO zcl_abapgit_persistence_user,
-          lv_time_zone TYPE timezone,
-          lv_date      TYPE d,
-          lv_time      TYPE t.
+    DATA: ls_overview LIKE LINE OF rt_overview,
+          lo_repo_srv TYPE REF TO zcl_abapgit_repo,
+          lo_user     TYPE REF TO zcl_abapgit_persistence_user,
+          lv_date     TYPE d,
+          lv_time     TYPE t.
 
     FIELD-SYMBOLS: <ls_repo> LIKE LINE OF it_repo_list.
 
     lo_user = zcl_abapgit_persistence_user=>get_instance( ).
-
-    CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
-      IMPORTING
-        timezone            = lv_time_zone
-      EXCEPTIONS
-        customizing_missing = 1
-        OTHERS              = 2.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
 
     LOOP AT it_repo_list ASSIGNING <ls_repo>.
 
@@ -23949,7 +23946,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
       IF <ls_repo>-created_at IS NOT INITIAL.
         CONVERT TIME STAMP <ls_repo>-created_at
-                TIME ZONE lv_time_zone
+                TIME ZONE mv_time_zone
                 INTO DATE lv_date
                      TIME lv_time.
 
@@ -24107,7 +24104,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     io_html->add( |<th>Package</th>| ).
     io_html->add( |<th>Branch name</th>| ).
     io_html->add( |<th>Creator</th>| ).
-    io_html->add( |<th>Created at</th>| ).
+    io_html->add( |<th>Created at [{ mv_time_zone }]</th>| ).
     io_html->add( |<th></th>| ).
     io_html->add( '</tr>' ).
     io_html->add( '</thead>' ).
@@ -59002,5 +58999,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-08T09:42:18.637Z
+* abapmerge - 2018-07-08T10:07:41.899Z
 ****************************************************
