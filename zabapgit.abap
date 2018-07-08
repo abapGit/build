@@ -19390,7 +19390,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -19439,9 +19439,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
     toggle_favorite( lo_repo->get_key( ) ).
 
-    COMMIT WORK.
+    COMMIT WORK AND WAIT.
 
-  ENDMETHOD.  "new_offline
+  ENDMETHOD.
   METHOD new_online.
 
     DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup.
@@ -19474,7 +19474,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         object_type     = 'DEVC'
         with_objectlist = abap_true.
 
-  ENDMETHOD.  " open_se80.
+  ENDMETHOD.
   METHOD popup_overwrite.
 
     DATA: lt_columns  TYPE stringtab,
@@ -19630,7 +19630,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     lo_repo->rebuild_local_checksums( ).
 
-  ENDMETHOD.  "refresh_local_checksums
+    COMMIT WORK AND WAIT.
+
+  ENDMETHOD.
   METHOD remote_attach.
 
     DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
@@ -19655,7 +19657,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     COMMIT WORK.
 
-  ENDMETHOD.  "remote_attach
+  ENDMETHOD.
   METHOD remote_change.
 
     DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
@@ -59044,5 +59046,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-07T08:41:36.848Z
+* abapmerge - 2018-07-08T05:19:36.891Z
 ****************************************************
