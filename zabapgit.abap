@@ -19022,17 +19022,36 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD bitbyte_to_int.
 
-    DATA: lv_bits TYPE string.
-    lv_bits = iv_bits.
+    DATA: bitbyte TYPE string,
+          len     TYPE i,
+          offset  TYPE i.
+
+    bitbyte = iv_bits.
+    SHIFT bitbyte LEFT DELETING LEADING '0 '.
+    len     = strlen( bitbyte ).
+    offset  = len - 1.
 
     rv_int = 0.
-    WHILE strlen( lv_bits ) > 0.
-      rv_int = rv_int * 2.
-      IF lv_bits(1) = '1'.
-        rv_int = rv_int + 1.
+    DO len TIMES.
+
+      IF sy-index = 1.
+
+        "Intialize
+        CASE bitbyte+offset(1).
+          WHEN '1'.
+            rv_int = 1.
+        ENDCASE.
+
+      ELSE.
+        CASE bitbyte+offset(1).
+          WHEN '1'.
+            rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
+        ENDCASE.
       ENDIF.
-      lv_bits = lv_bits+1.
-    ENDWHILE.
+
+      offset = offset - 1. "Move Cursor
+
+    ENDDO.
 
   ENDMETHOD.                    "bitbyte_to_int
   METHOD int_to_xstring4.
@@ -59307,5 +59326,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-09T12:09:09.167Z
+* abapmerge - 2018-07-09T14:25:14.503Z
 ****************************************************
