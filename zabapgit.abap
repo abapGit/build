@@ -1165,8 +1165,9 @@ INTERFACE zif_abapgit_definitions.
   TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_s_user_settings,
-           max_lines        TYPE i,
-           adt_jump_enabled TYPE abap_bool,
+           max_lines         TYPE i,
+           adt_jump_enabled  TYPE abap_bool,
+           show_default_repo TYPE abap_bool,
          END OF ty_s_user_settings.
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
@@ -7571,6 +7572,9 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
     METHODS render_section_end
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    METHODS render_start_up
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
@@ -10438,7 +10442,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       set_defaults,
       set_user_settings
         IMPORTING
-          is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+          is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings,
+      get_show_default_repo
+        RETURNING
+          VALUE(rv_show_default_repo) TYPE abap_bool,
+      set_show_default_repo
+        IMPORTING
+          iv_show_default_repo TYPE abap_bool.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -12536,6 +12546,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     set_experimental_features( abap_false ).
     set_max_lines( 500 ).
     set_adt_jump_enanbled( abap_true ).
+    set_show_default_repo( abap_false ).
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
 
@@ -12578,6 +12589,12 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
 
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
+  ENDMETHOD.
+  METHOD get_show_default_repo.
+    rv_show_default_repo = ms_user_settings-show_default_repo.
+  ENDMETHOD.
+  METHOD set_show_default_repo.
+    ms_user_settings-show_default_repo = iv_show_default_repo.
   ENDMETHOD.
 
 ENDCLASS.
@@ -23413,6 +23430,13 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
       mo_settings->set_experimental_features( abap_false ).
     ENDIF.
 
+    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'show_default_repo'.
+    IF sy-subrc = 0.
+      mo_settings->set_show_default_repo( abap_true ).
+    ELSE.
+      mo_settings->set_show_default_repo( abap_false ).
+    ENDIF.
+
     READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'max_lines'.
     IF sy-subrc = 0.
       lv_i_param_value = <ls_post_field>-value.
@@ -23526,6 +23550,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( render_development_internals( ) ).
     ro_html->add( render_section_end( ) ).
     ro_html->add( render_section_begin( |User specific settings| ) ).
+    ro_html->add( render_start_up( ) ).
     ro_html->add( render_max_lines( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
@@ -23654,6 +23679,21 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
 
     ro_html->add( |</div>| ).
 
+  ENDMETHOD.
+  METHOD render_start_up.
+
+    DATA lv_checked TYPE string.
+
+    IF mo_settings->get_show_default_repo( ) = abap_true.
+      lv_checked = 'checked'.
+    ENDIF.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |<h2>Start up</h2>| ).
+    ro_html->add( `<input type="checkbox" name="show_default_repo" value="X" `
+                   && lv_checked && ` > Show last repo` ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
   ENDMETHOD.
 
 ENDCLASS.
@@ -59197,6 +59237,12 @@ FORM open_gui RAISING zcx_abapgit_exception.
   IF sy-batch = abap_true.
     zcl_abapgit_background=>run( ).
   ELSE.
+
+    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
+      " Don't show the last seen repo at startup
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
+    ENDIF.
+
     zcl_abapgit_gui=>get_instance( )->go_home( ).
     CALL SELECTION-SCREEN 1001. " trigger screen
   ENDIF.
@@ -59326,5 +59372,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-09T14:25:14.503Z
+* abapmerge - 2018-07-09T14:29:08.168Z
 ****************************************************
