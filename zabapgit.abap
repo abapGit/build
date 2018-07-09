@@ -42715,7 +42715,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
+CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
   METHOD adjust_inbound.
 
     FIELD-SYMBOLS: <ls_scprvals> TYPE scprvals,
@@ -42935,7 +42935,17 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+    DATA: lv_display_only TYPE scpr_txt20,
+          lv_bcset_id     TYPE scpr_id.
+
+    lv_display_only = abap_false.
+    lv_bcset_id     = ms_item-obj_name.
+
+    EXPORT scpr3_display_only = lv_display_only
+           scpr3_bcset_id     = lv_bcset_id
+        TO MEMORY ID 'SCPR3_PARAMETER'.
+
+    SUBMIT scpr3 AND RETURN.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -59297,5 +59307,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-09T12:07:14.649Z
+* abapmerge - 2018-07-09T12:09:09.167Z
 ****************************************************
