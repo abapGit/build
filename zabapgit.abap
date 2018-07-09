@@ -2774,7 +2774,7 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
     DATA:
       mv_xml_stream      TYPE xstring,
       mv_xml_stream_size TYPE int4,
-      mv_script_node     TYPE REF TO if_ixml_element.
+      mi_script_node     TYPE REF TO if_ixml_element.
 
     METHODS:
       set_script_to_template
@@ -2784,15 +2784,15 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
       set_control_data_for_tcd
         IMPORTING
           is_param  TYPE etpar_gui
-          ip_params TYPE REF TO cl_apl_ecatt_params
+          io_params TYPE REF TO cl_apl_ecatt_params
         RAISING
           cx_ecatt_apl,
 
       escape_control_data
         IMPORTING
-          ip_element TYPE REF TO if_ixml_element
-          im_tabname TYPE string
-          im_node    TYPE string
+          ii_element TYPE REF TO if_ixml_element
+          iv_tabname TYPE string
+          iv_node    TYPE string
         RAISING
           cx_ecatt_apl_util,
 
@@ -2982,7 +2982,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring,
+          iv_xml TYPE xstring,
 
       upload REDEFINITION.
 
@@ -53306,7 +53306,7 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -53316,7 +53316,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_vo> TYPE any.
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
     li_section = template_over_all->find_from_name_ns( 'ETVO_MSG' ).
 
@@ -53334,10 +53334,10 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    ASSIGN ('ECATT_OBJECT') TO <ecatt_vo>.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_vo = <ecatt_vo>.
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
     TRY.
         CALL METHOD lo_ecatt_vo->('SET_BUSSINESS_MSG')
@@ -53361,7 +53361,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_vo> TYPE any.
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
     li_section = template_over_all->find_from_name_ns( 'IMPL_DET' ).
 
@@ -53379,10 +53379,10 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    ASSIGN ('ECATT_OBJECT') TO <ecatt_vo>.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_vo = <ecatt_vo>.
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
     TRY.
         CALL METHOD lo_ecatt_vo->('SET_IMPL_DETAILS')
@@ -53407,7 +53407,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_vo> TYPE any.
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
     li_section = template_over_all->find_from_name_ns( 'INVERT_VALIDATION' ).
 
@@ -53425,10 +53425,10 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    ASSIGN ('ECATT_OBJECT') TO <ecatt_vo>.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_vo = <ecatt_vo>.
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
     TRY.
         CALL METHOD lo_ecatt_vo->('SET_INVERT_VALIDATION_FLAG')
@@ -53477,15 +53477,15 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
 
     "26.03.2013
 
-    DATA: ex          TYPE REF TO cx_ecatt_apl,
-          l_exists    TYPE etonoff,
-          l_exc_occ   TYPE etonoff,
+    DATA: lx_ex       TYPE REF TO cx_ecatt_apl,
+          lv_exists   TYPE etonoff,
+          lv_exc_occ  TYPE etonoff,
           ls_tadir    TYPE tadir,
           lo_ecatt_vo TYPE REF TO object,
           lo_params   TYPE REF TO cl_apl_ecatt_params.
 
-    FIELD-SYMBOLS: <ecatt_vo> TYPE any,
-                   <params>   TYPE data.
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
+                   <lg_params>   TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
@@ -53496,82 +53496,82 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
             ch_object       = ch_object ).
 
         upload_data_from_stream( ch_object-filename ).
-      CATCH cx_ecatt_apl INTO ex.
+      CATCH cx_ecatt_apl INTO lx_ex.
         IF template_over_all IS INITIAL.
-          RAISE EXCEPTION ex.
+          RAISE EXCEPTION lx_ex.
         ELSE.
-          l_exc_occ = 'X'.
+          lv_exc_occ = 'X'.
         ENDIF.
     ENDTRY.
 
     TRY.
         get_attributes_from_dom_new( CHANGING ch_object = ch_object ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
-    ASSIGN ('ECATT_OBJECT') TO <ecatt_vo>.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_vo = <ecatt_vo>.
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
-    ASSIGN lo_ecatt_vo->('PARAMS') TO <params>.
+    ASSIGN lo_ecatt_vo->('PARAMS') TO <lg_params>.
     ASSERT sy-subrc = 0.
 
-    lo_params = <params>.
+    lo_params = <lg_params>.
 
     TRY.
         get_impl_detail_from_dom( ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
     TRY.
         get_vo_flags_from_dom( ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
     TRY.
         get_business_msgs_from_dom( ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
     TRY.
         get_params_from_dom_new( im_params = lo_params ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
     TRY.
         get_variants_from_dom( lo_params ).
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
     TRY.
-        l_exists = cl_apl_ecatt_object=>existence_check_object(
+        lv_exists = cl_apl_ecatt_object=>existence_check_object(
                 im_name               = ch_object-d_obj_name
                 im_version            = ch_object-d_obj_ver
                 im_obj_type           = ch_object-s_obj_type
                 im_exists_any_version = 'X' ).
 
-        IF l_exists EQ space.
+        IF lv_exists EQ space.
           CALL METHOD lo_ecatt_vo->('SET_TADIR_FOR_NEW_OBJECT')
             EXPORTING
               im_tadir_for_new_object = tadir_preset.
         ENDIF.
       CATCH cx_ecatt.
-        CLEAR l_exists.
+        CLEAR lv_exists.
     ENDTRY.
 
     TRY.
         CALL METHOD lo_ecatt_vo->('SAVE')
           EXPORTING
             im_do_commit = 'X'.
-      CATCH cx_ecatt_apl INTO ex.
-        l_exc_occ = 'X'.
+      CATCH cx_ecatt_apl INTO lx_ex.
+        lv_exc_occ = 'X'.
     ENDTRY.
 
 *     get devclass from existing object
@@ -53586,8 +53586,8 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
       CATCH cx_ecatt.
         CLEAR ls_tadir.
     ENDTRY.
-    IF l_exc_occ = 'X'.
-      raise_upload_exception( previous = ex ).
+    IF lv_exc_occ = 'X'.
+      raise_upload_exception( previous = lx_ex ).
     ENDIF.
 
   ENDMETHOD.
@@ -53600,7 +53600,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
@@ -54244,7 +54244,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
               set_deep_data_to_dom( im_params = ecatt_script->params ).
               IF wa_parm-xmlref_typ EQ cl_apl_ecatt_const=>ref_type_c_tcd.
                 set_control_data_for_tcd( is_param  =  wa_parm
-                                          ip_params = ecatt_script->params ).
+                                          io_params = ecatt_script->params ).
 
               ENDIF.
             ENDIF.
@@ -54291,19 +54291,19 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
     " Downport
 
     DATA:
-      lv_text    TYPE etxml_line_tabtype,
+      lt_text    TYPE etxml_line_tabtype,
       li_element TYPE REF TO if_ixml_element,
       lv_rc      TYPE sy-subrc.
 
     ecatt_script->get_script_text(
       CHANGING
-        scripttext = lv_text ).
+        scripttext = lt_text ).
 
-    mv_script_node = template_over_all->create_simple_element(
+    mi_script_node = template_over_all->create_simple_element(
                         name = 'SCRIPT'
                         parent = root_node ).
 
-    IF mv_script_node IS INITIAL.
+    IF mi_script_node IS INITIAL.
       me->raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
@@ -54313,7 +54313,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
         name         = 'ETXML_LINE_TABTYPE'
-        dataobject   = lv_text
+        dataobject   = lt_text
       IMPORTING
         data_as_dom  = li_element
       CHANGING
@@ -54329,7 +54329,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
 
     ENDIF.
 
-    lv_rc = mv_script_node->append_child( li_element ).
+    lv_rc = mi_script_node->append_child( li_element ).
     IF lv_rc <> 0.
       me->raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
@@ -54354,21 +54354,21 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
     DATA: li_element   TYPE REF TO if_ixml_element,
           li_deep_tcd  TYPE REF TO if_ixml_element,
           lv_rc        TYPE sy-subrc,
-          lt_name      TYPE string,
+          lv_name      TYPE string,
           lv_parname   TYPE string,
           lo_pval_xml  TYPE REF TO cl_apl_ecatt_xml_data,
           lo_ctrl_tabs TYPE REF TO cl_apl_ecatt_control_tables.
 
-    FIELD-SYMBOLS: <tab> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS: <lt_tab> TYPE STANDARD TABLE.
 
     IF is_param-xmlref_typ <> cl_apl_ecatt_const=>ref_type_c_tcd
-      OR  ip_params IS INITIAL.
+      OR  io_params IS INITIAL.
       RETURN.
     ENDIF.
 
     lv_parname = is_param-pname.
 
-    ip_params->get_param_value(     "TCD command interface
+    io_params->get_param_value(     "TCD command interface
       EXPORTING
         im_var_id   = cl_apl_ecatt_const=>varid_default_val
         im_pname    = lv_parname
@@ -54417,35 +54417,35 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
     DO 8 TIMES.                                "Loop at 8 control tables
       CASE sy-index.
         WHEN 1.
-          lt_name = 'ETTCD_PARAMS_TABTYPE'.
-          ASSIGN lt_params TO <tab>.
+          lv_name = 'ETTCD_PARAMS_TABTYPE'.
+          ASSIGN lt_params TO <lt_tab>.
         WHEN 2.
-          lt_name = 'ETTCD_VERBS_TABTYPE'.
-          ASSIGN lt_verbs TO <tab>.
+          lv_name = 'ETTCD_VERBS_TABTYPE'.
+          ASSIGN lt_verbs TO <lt_tab>.
         WHEN 3.
-          lt_name = 'ETTCD_VARS_TABTYPE'.
-          ASSIGN lt_vars TO <tab>.
+          lv_name = 'ETTCD_VARS_TABTYPE'.
+          ASSIGN lt_vars TO <lt_tab>.
         WHEN 4.
-          lt_name = 'ETTCD_DP_TAB_TABTYPE'.
-          ASSIGN lt_dp_tab TO <tab>.
+          lv_name = 'ETTCD_DP_TAB_TABTYPE'.
+          ASSIGN lt_dp_tab TO <lt_tab>.
         WHEN 5.
-          lt_name = 'ETTCD_DP_FOR_TABTYPE'.
-          ASSIGN lt_dp_for TO <tab>.
+          lv_name = 'ETTCD_DP_FOR_TABTYPE'.
+          ASSIGN lt_dp_for TO <lt_tab>.
         WHEN 6.
-          lt_name = 'ETTCD_DP_PRO_TABTYPE'.
-          ASSIGN lt_dp_pro TO <tab>.
+          lv_name = 'ETTCD_DP_PRO_TABTYPE'.
+          ASSIGN lt_dp_pro TO <lt_tab>.
         WHEN 7.
-          lt_name = 'ETTCD_DP_FLD_TABTYPE'.
-          ASSIGN lt_dp_fld TO <tab>.
+          lv_name = 'ETTCD_DP_FLD_TABTYPE'.
+          ASSIGN lt_dp_fld TO <lt_tab>.
         WHEN 8.
-          lt_name = 'ETTCD_SVARS_TABTYPE'.
-          ASSIGN lt_svars TO <tab>.
+          lv_name = 'ETTCD_SVARS_TABTYPE'.
+          ASSIGN lt_svars TO <lt_tab>.
       ENDCASE.
 
       CALL FUNCTION 'SDIXML_DATA_TO_DOM'       "Ast generieren lassen
         EXPORTING
-          name         = lt_name
-          dataobject   = <tab>
+          name         = lv_name
+          dataobject   = <lt_tab>
         IMPORTING
           data_as_dom  = li_element
         EXCEPTIONS
@@ -54467,17 +54467,17 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
               previous = ex_ecatt ).
       ENDIF.
       FREE li_element.
-      UNASSIGN <tab>.
+      UNASSIGN <lt_tab>.
     ENDDO.
 
-    escape_control_data( ip_element = li_deep_tcd
-      im_tabname = 'ETTCD_VARS_TABTYPE'
-      im_node    = 'CB_INDEX' ).
+    escape_control_data( ii_element = li_deep_tcd
+      iv_tabname = 'ETTCD_VARS_TABTYPE'
+      iv_node    = 'CB_INDEX' ).
 
     escape_control_data(
-      ip_element = li_deep_tcd
-      im_tabname = 'ETTCD_VERBS_TABTYPE'
-      im_node    = 'NAME' ).
+      ii_element = li_deep_tcd
+      iv_tabname = 'ETTCD_VERBS_TABTYPE'
+      iv_node    = 'NAME' ).
 
     FREE: lt_dp_tab, lt_dp_for, lt_dp_fld, lt_svars,
           lt_params, lt_vars,   lt_dp_pro, lt_verbs.
@@ -54497,12 +54497,12 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
           li_vars     TYPE REF TO if_ixml_element,
           li_elem     TYPE REF TO if_ixml_element.
 
-    li_vars = ip_element->find_from_name_ns(
-    name = im_tabname ).
-    li_filter = ip_element->create_filter_node_type(
+    li_vars = ii_element->find_from_name_ns(
+    name = iv_tabname ).
+    li_filter = ii_element->create_filter_node_type(
     if_ixml_node=>co_node_text ).
     IF li_vars IS NOT INITIAL.
-      li_abapctrl = ip_element->get_elements_by_tag_name_ns( name = im_node ).
+      li_abapctrl = ii_element->get_elements_by_tag_name_ns( name = iv_node ).
 
 * just for debugging
       li_iter = li_abapctrl->create_iterator( ).
@@ -54532,15 +54532,15 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
 
     " Downport
 
-    DATA: blob_node TYPE REF TO if_ixml_element,
-          rc        TYPE sy-subrc,
-          text      TYPE string.
+    DATA: li_blob_node TYPE REF TO if_ixml_element,
+          lv_rc        TYPE sy-subrc,
+          lv_text      TYPE string.
 
-    blob_node = template_over_all->create_simple_element(
+    li_blob_node = template_over_all->create_simple_element(
                   name   = 'ECET_BLOBS'
                   parent = root_node ).
 
-    IF blob_node IS INITIAL.
+    IF li_blob_node IS INITIAL.
       me->raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
@@ -54551,10 +54551,10 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
       EXPORTING
         im_whole_data = 1
       IMPORTING
-        ex_xml_blob   = text ).
+        ex_xml_blob   = lv_text ).
 
-    rc = blob_node->set_value( value = text ).
-    IF rc <> 0.
+    lv_rc = li_blob_node->set_value( value = lv_text ).
+    IF lv_rc <> 0.
       me->raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
@@ -54566,11 +54566,11 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
 
     " Downport
 
-    DATA: li_artmp_node TYPE REF TO if_ixml_element,
-          lv_rc         TYPE sy-subrc,
-          lv_text       TYPE string,
-          l_rc          TYPE int4,
-          lv_errmsg     TYPE string.
+    DATA: li_artmp_node   TYPE REF TO if_ixml_element,
+          lv_rc           TYPE sy-subrc,
+          lv_text         TYPE string,
+          lv_rc_args_tmpl TYPE int4,
+          lv_errmsg       TYPE string.
 
     li_artmp_node = template_over_all->create_simple_element(
                       name   = 'ECET_ARTMP'
@@ -54579,10 +54579,10 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
     ecatt_extprog->get_args_tmpl(
       IMPORTING
         ex_xml_arg_tmpl = lv_text
-        ex_rc           = l_rc
+        ex_rc           = lv_rc_args_tmpl
         ex_errmsg       = lv_errmsg ).
 
-    IF li_artmp_node IS INITIAL OR l_rc > 0.
+    IF li_artmp_node IS INITIAL OR lv_rc_args_tmpl > 0.
       me->raise_download_exception(
           textid        = cx_ecatt_apl_util=>download_processing
           previous      = ex_ecatt
@@ -59372,5 +59372,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-09T14:29:08.168Z
+* abapmerge - 2018-07-09T14:32:08.953Z
 ****************************************************
