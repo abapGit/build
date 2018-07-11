@@ -7484,8 +7484,9 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         REDEFINITION .
 
   PROTECTED SECTION.
-    METHODS render_content
-        REDEFINITION .
+    METHODS:
+      render_content REDEFINITION,
+      scripts REDEFINITION.
 
   PRIVATE SECTION.
     TYPES:
@@ -24461,6 +24462,13 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     io_html->add( |</form>| ).
     io_html->add( |</div>| ).
+
+  ENDMETHOD.
+
+  METHOD scripts.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( 'setInitialFocus("filter");' ).
 
   ENDMETHOD.
 
@@ -60141,5 +60149,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-10T14:43:32.571Z
+* abapmerge - 2018-07-11T13:46:59.025Z
 ****************************************************
