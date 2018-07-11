@@ -41396,7 +41396,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       WHERE pgmid = iv_pgmid
       AND object = 'SICF'
       AND obj_name LIKE lv_obj_name
-      ORDER BY PRIMARY KEY.
+      ORDER BY PRIMARY KEY. "#EC CI_GENBUFF
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       IF read_sicf_url( <ls_tadir>-obj_name ) = lv_hash.
@@ -60149,5 +60149,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-11T13:46:59.025Z
+* abapmerge - 2018-07-11T14:18:07.430Z
 ****************************************************
