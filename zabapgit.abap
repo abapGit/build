@@ -527,6 +527,7 @@ CLASS zcl_abapgit_gui DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
+CLASS zcl_abapgit_test_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
@@ -6687,6 +6688,20 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
 
     METHODS order_matches REDEFINITION.
 
+ENDCLASS.
+CLASS zcl_abapgit_test_serialize DEFINITION
+  CREATE PUBLIC
+  FOR TESTING .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS check
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
   final
@@ -29389,6 +29404,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_TEST_SERIALIZE IMPLEMENTATION.
+  METHOD check.
+
+    DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
+
+    lt_files = zcl_abapgit_objects=>serialize(
+      is_item     = is_item
+      iv_language = zif_abapgit_definitions=>gc_english ).
+
+    cl_abap_unit_assert=>assert_not_initial( lt_files ).
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
   METHOD constructor.
 
@@ -47956,26 +47984,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS. "zcl_abapgit_object_ensc
-CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd25l
-      INTO (lv_date, lv_time)
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
-
+CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd25l
@@ -47988,30 +47997,9 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_viewname TYPE dd25l-viewname.
-    SELECT SINGLE viewname FROM dd25l INTO lv_viewname
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
-    rv_bool = boolc( sy-subrc = 0 ).
-
-  ENDMETHOD.                    "zif_abapgit_object~exists
-
-  METHOD zif_abapgit_object~jump.
-
-    jump_se11( iv_radio = 'RSRD1-ENQU'
-               iv_field = 'RSRD1-ENQU_VAL' ).
-
-  ENDMETHOD.                    "jump
-
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
@@ -48032,7 +48020,86 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "delete
+  METHOD zif_abapgit_object~deserialize.
 
+    DATA: lv_name  TYPE ddobjname,
+          ls_dd25v TYPE dd25v,
+          lt_dd26e TYPE TABLE OF dd26e,
+          lt_dd27p TYPE TABLE OF dd27p.
+    io_xml->read( EXPORTING iv_name = 'DD25V'
+                  CHANGING cg_data = ls_dd25v ).
+    io_xml->read( EXPORTING iv_name = 'DD26E_TABLE'
+                  CHANGING cg_data = lt_dd26e ).
+    io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
+                  CHANGING cg_data = lt_dd27p ).
+
+    corr_insert( iv_package ).
+
+    lv_name = ms_item-obj_name.
+
+    CALL FUNCTION 'DDIF_ENQU_PUT'
+      EXPORTING
+        name              = lv_name
+        dd25v_wa          = ls_dd25v
+      TABLES
+        dd26e_tab         = lt_dd26e
+        dd27p_tab         = lt_dd27p
+      EXCEPTIONS
+        enqu_not_found    = 1
+        name_inconsistent = 2
+        enqu_inconsistent = 3
+        put_failure       = 4
+        put_refused       = 5
+        OTHERS            = 6.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from DDIF_ENQU_PUT' ).
+    ENDIF.
+
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
+
+  ENDMETHOD.                    "deserialize
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_viewname TYPE dd25l-viewname.
+    SELECT SINGLE viewname FROM dd25l INTO lv_viewname
+      WHERE viewname = ms_item-obj_name
+      AND as4local = 'A'
+      AND as4vers = '0000'.
+    rv_bool = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.                    "zif_abapgit_object~exists
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-ddic = abap_true.
+  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  METHOD zif_abapgit_object~has_changed_since.
+
+    DATA: lv_date TYPE dats,
+          lv_time TYPE tims.
+
+    SELECT SINGLE as4date as4time FROM dd25l
+      INTO (lv_date, lv_time)
+      WHERE viewname = ms_item-obj_name
+      AND as4local = 'A'
+      AND as4vers  = '0000'.
+
+    rv_changed = check_timestamp(
+      iv_timestamp = iv_timestamp
+      iv_date      = lv_date
+      iv_time      = lv_time ).
+
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    jump_se11( iv_radio = 'RSRD1-ENQU'
+               iv_field = 'RSRD1-ENQU_VAL' ).
+
+  ENDMETHOD.                    "jump
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -48073,57 +48140,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
                  iv_name = 'DD27P_TABLE' ).
 
   ENDMETHOD.                    "serialize
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lv_name  TYPE ddobjname,
-          ls_dd25v TYPE dd25v,
-          lt_dd26e TYPE TABLE OF dd26e,
-          lt_dd27p TYPE TABLE OF dd27p.
-    io_xml->read( EXPORTING iv_name = 'DD25V'
-                  CHANGING cg_data = ls_dd25v ).
-    io_xml->read( EXPORTING iv_name = 'DD26E_TABLE'
-                  CHANGING cg_data = lt_dd26e ).
-    io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
-                  CHANGING cg_data = lt_dd27p ).
-
-    corr_insert( iv_package ).
-
-    lv_name = ms_item-obj_name.
-
-    CALL FUNCTION 'DDIF_ENQU_PUT'
-      EXPORTING
-        name              = lv_name
-        dd25v_wa          = ls_dd25v
-      TABLES
-        dd26e_tab         = lt_dd26e
-        dd27p_tab         = lt_dd27p
-      EXCEPTIONS
-        enqu_not_found    = 1
-        name_inconsistent = 2
-        enqu_inconsistent = 3
-        put_failure       = 4
-        put_refused       = 5
-        OTHERS            = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_ENQU_PUT' ).
-    ENDIF.
-
-    zcl_abapgit_objects_activation=>add_item( ms_item ).
-
-  ENDMETHOD.                    "deserialize
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-
-ENDCLASS.                    "zcl_abapgit_object_enqu IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
 
   METHOD zif_abapgit_object_enhs~deserialize.
@@ -60196,5 +60213,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-11T14:19:43.974Z
+* abapmerge - 2018-07-12T14:42:51.975Z
 ****************************************************
