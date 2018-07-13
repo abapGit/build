@@ -4305,23 +4305,23 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
            tys_text_header TYPE LINE OF tyt_text_header,
            tyt_lines       TYPE tline_tab.
 
-    METHODS _get_last_changes
+    METHODS get_last_changes
       IMPORTING
         iv_form_name           TYPE zif_abapgit_definitions=>ty_item-obj_name
       RETURNING
-        VALUE(es_last_changed) TYPE tys_form_header.
+        VALUE(rs_last_changed) TYPE tys_form_header.
 
-    METHODS _build_extra_from_header
+    METHODS build_extra_from_header
       IMPORTING
-        ls_header       TYPE tys_form_header
+        is_header        TYPE tys_form_header
       RETURNING
-        VALUE(r_result) TYPE string.
+        VALUE(rv_result) TYPE string.
 
-    METHODS _build_extra_from_header_old
+    METHODS build_extra_from_header_old
       IMPORTING
-        ls_header       TYPE tys_form_header
+        is_header        TYPE tys_form_header
       RETURNING
-        VALUE(r_result) TYPE string.
+        VALUE(rv_result) TYPE string.
 
     METHODS _save_form
       IMPORTING
@@ -4329,11 +4329,11 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       CHANGING
         cs_form_data TYPE zcl_abapgit_object_form=>tys_form_data.
 
-    METHODS _extract_tdlines
+    METHODS extract_tdlines
       IMPORTING
         is_form_data    TYPE zcl_abapgit_object_form=>tys_form_data
       RETURNING
-        VALUE(et_lines) TYPE zcl_abapgit_object_form=>tyt_lines
+        VALUE(rt_lines) TYPE zcl_abapgit_object_form=>tyt_lines
       RAISING
         zcx_abapgit_exception.
 
@@ -4341,18 +4341,18 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       CHANGING
         cs_form_data TYPE zcl_abapgit_object_form=>tys_form_data.
 
-    METHODS _compress_lines
+    METHODS compress_lines
       IMPORTING
         is_form_data TYPE zcl_abapgit_object_form=>tys_form_data
         it_lines     TYPE zcl_abapgit_object_form=>tyt_lines
       RAISING
         zcx_abapgit_exception.
 
-    METHODS _find_form
+    METHODS find_form
       IMPORTING
         iv_object_name        TYPE zif_abapgit_definitions=>ty_item-obj_name
       RETURNING
-        VALUE(et_text_header) TYPE zcl_abapgit_object_form=>tyt_text_header.
+        VALUE(rt_text_header) TYPE zcl_abapgit_object_form=>tyt_text_header.
 
     METHODS _read_form
       IMPORTING
@@ -47501,7 +47501,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     DATA: ls_last_changed    TYPE tys_form_header.
     DATA: lv_last_changed_ts TYPE timestamp.
 
-    ls_last_changed = _get_last_changes( ms_item-obj_name ).
+    ls_last_changed = get_last_changes( ms_item-obj_name ).
 
     CONVERT DATE ls_last_changed-tdldate TIME ls_last_changed-tdltime
             INTO TIME STAMP lv_last_changed_ts TIME ZONE sy-zonlo.
@@ -47514,7 +47514,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
     DATA: ls_last_changed TYPE tys_form_header.
 
-    ls_last_changed = _get_last_changes( ms_item-obj_name ).
+    ls_last_changed = get_last_changes( ms_item-obj_name ).
 
     IF ls_last_changed-tdluser IS NOT INITIAL.
       rv_user = ls_last_changed-tdluser.
@@ -47601,7 +47601,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     DATA: lv_form_found             TYPE flag.
     FIELD-SYMBOLS: <ls_text_header> LIKE LINE OF lt_text_header.
 
-    lt_text_header = _find_form( ms_item-obj_name ).
+    lt_text_header = find_form( ms_item-obj_name ).
 
     LOOP AT lt_text_header ASSIGNING <ls_text_header>.
       CLEAR lt_lines.
@@ -47617,7 +47617,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
         _clear_changed_fields( CHANGING cs_form_data = ls_form_data ).
 
-        _compress_lines( is_form_data = ls_form_data
+        compress_lines( is_form_data = ls_form_data
                          it_lines     = lt_lines ).
 
         INSERT ls_form_data INTO TABLE lt_form_data.
@@ -47646,7 +47646,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
     LOOP AT lt_form_data ASSIGNING <ls_form_data>.
 
-      lt_lines = _extract_tdlines( <ls_form_data> ).
+      lt_lines = extract_tdlines( <ls_form_data> ).
 
       _save_form( EXPORTING it_lines     = lt_lines
                   CHANGING  cs_form_data = <ls_form_data> ).
@@ -47667,29 +47667,29 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
 
-  METHOD _build_extra_from_header.
+  METHOD build_extra_from_header.
 
-    DATA: lv_tdspras type laiso.
+    DATA: lv_tdspras TYPE laiso.
 
     CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
       EXPORTING
-        input  = ls_header-tdspras
+        input  = is_header-tdspras
       IMPORTING
         output = lv_tdspras.
 
-    r_result = c_objectname_tdlines && '_' && lv_tdspras.
+    rv_result = c_objectname_tdlines && '_' && lv_tdspras.
 
   ENDMETHOD.
 
-  METHOD _build_extra_from_header_old.
-    r_result = c_objectname_tdlines && '_' && ls_header-tdspras.
+  METHOD build_extra_from_header_old.
+    rv_result = c_objectname_tdlines && '_' && is_header-tdspras.
   ENDMETHOD.
 
-  METHOD _get_last_changes.
+  METHOD get_last_changes.
 
     DATA: lv_form_name         TYPE thead-tdform.
 
-    CLEAR es_last_changed.
+    CLEAR rs_last_changed.
 
     lv_form_name = iv_form_name.
 
@@ -47698,7 +47698,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         form             = lv_form_name
         read_only_header = abap_true
       IMPORTING
-        form_header      = es_last_changed.
+        form_header      = rs_last_changed.
 
   ENDMETHOD.
   METHOD _save_form.
@@ -47726,26 +47726,26 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         ##fm_subrc_ok.                                                   "#EC CI_SUBRC
 
   ENDMETHOD.
-  METHOD _extract_tdlines.
+  METHOD extract_tdlines.
 
     DATA lv_string TYPE string.
     DATA lo_xml TYPE REF TO zcl_abapgit_xml_input.
 
     TRY.
         lv_string = mo_files->read_string( iv_extra =
-                                   _build_extra_from_header( is_form_data-form_header )
+                                   build_extra_from_header( is_form_data-form_header )
                                            iv_ext   = c_extension_xml ).
       CATCH zcx_abapgit_exception.
 
         lv_string = mo_files->read_string( iv_extra =
-                               _build_extra_from_header_old( is_form_data-form_header )
+                               build_extra_from_header_old( is_form_data-form_header )
                                            iv_ext   = c_extension_xml ).
 
     ENDTRY.
 
     CREATE OBJECT lo_xml EXPORTING iv_xml = lv_string.
     lo_xml->read( EXPORTING iv_name = c_objectname_tdlines
-                  CHANGING  cg_data = et_lines ).
+                  CHANGING  cg_data = rt_lines ).
 
   ENDMETHOD.
   METHOD _clear_changed_fields.
@@ -47768,7 +47768,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
            cs_form_data-text_header-tdlreles.
 
   ENDMETHOD.
-  METHOD _compress_lines.
+  METHOD compress_lines.
 
     DATA lv_string TYPE string.
     DATA lo_xml TYPE REF TO zcl_abapgit_xml_output.
@@ -47779,13 +47779,13 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     lv_string = lo_xml->render( ).
     IF lv_string IS NOT INITIAL.
       mo_files->add_string( iv_extra  =
-                    _build_extra_from_header( is_form_data-form_header )
+                    build_extra_from_header( is_form_data-form_header )
                             iv_ext    = c_extension_xml
                             iv_string = lv_string ).
     ENDIF.
 
   ENDMETHOD.
-  METHOD _find_form.
+  METHOD find_form.
 
     DATA: lv_text_name TYPE thead-tdname.
 
@@ -47799,7 +47799,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         name          = lv_text_name
         object        = c_objectname_form
       TABLES
-        selections    = et_text_header
+        selections    = rt_text_header
       EXCEPTIONS
         OTHERS        = 1
         ##fm_subrc_ok ##NO_TEXT.  "#EC CI_SUBRC
@@ -60428,5 +60428,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-12T15:00:47.152Z
+* abapmerge - 2018-07-13T02:31:42.299Z
 ****************************************************
