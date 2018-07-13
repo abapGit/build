@@ -46962,7 +46962,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         rv_abap_version = ls_progdir-uccheck.
       ELSEIF rv_abap_version NE ls_progdir-uccheck.
 *** All includes need to have the same ABAP language version
-        zcx_abapgit_exception=>raise( 'different ABAP Language Versions' ).
+*        zcx_abapgit_exception=>raise( 'different ABAP Language Versions' ).
       ENDIF.
     ENDLOOP.
 
@@ -60428,5 +60428,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-13T02:31:42.299Z
+* abapmerge - 2018-07-13T08:12:00.070Z
 ****************************************************
