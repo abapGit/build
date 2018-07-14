@@ -7243,8 +7243,8 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_diff DEFINITION
-  final
-  create public INHERITING FROM zcl_abapgit_gui_page.
+  FINAL
+  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
 
@@ -25481,10 +25481,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       lv_offs    TYPE i,
       ls_r_dummy LIKE LINE OF it_remote ##NEEDED,
       ls_l_dummy LIKE LINE OF it_local  ##NEEDED.
+
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
                    <ls_local>  LIKE LINE OF it_local,
                    <ls_diff>   LIKE LINE OF mt_diff_files.
-
     READ TABLE it_remote ASSIGNING <ls_remote>
       WITH KEY filename = is_status-filename
                path     = is_status-path.
@@ -25555,7 +25555,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.  "append_diff
+  ENDMETHOD.
   METHOD build_menu.
 
     DATA: lo_sub   TYPE REF TO zcl_abapgit_html_toolbar,
@@ -25615,7 +25615,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_menu->add( iv_txt = 'Split/Unified view'
                   iv_act = c_actions-toggle_unified ) ##NO_TEXT.
 
-  ENDMETHOD.  " build_menu.
+  ENDMETHOD.
   METHOD constructor.
 
     DATA: lt_remote TYPE zif_abapgit_definitions=>ty_files_tt,
@@ -25712,7 +25712,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDIF.
     ENDDO.
 
-  ENDMETHOD.  " is_binary.
+  ENDMETHOD.
   METHOD render_beacon.
 
     DATA: lv_beacon  TYPE string.
@@ -25738,7 +25738,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '</tr>' ).
     ro_html->add( '</thead>' ).
 
-  ENDMETHOD.  " render_beacon.
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: ls_diff_file LIKE LINE OF mt_diff_files,
@@ -25760,7 +25760,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDLOOP.
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_diff.
 
     CREATE OBJECT ro_html.
@@ -25786,7 +25786,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
-  ENDMETHOD.  " render_diff
+  ENDMETHOD.
   METHOD render_diff_head.
 
     DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count.
@@ -25807,7 +25807,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ro_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
     ENDIF.
 
-    ro_html->add( |<span class="diff_name">{ is_diff-filename }</span>| ). "#EC NOTEXT
+    ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ). "#EC NOTEXT
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
       iv1 = is_diff-lstate
       iv2 = is_diff-rstate ) ).
@@ -25871,7 +25871,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ro_html->add( render_line_unified( ) ). " Release delayed lines
     ENDIF.
 
-  ENDMETHOD.  "render_lines
+  ENDMETHOD.
   METHOD render_line_split.
 
     DATA: lv_new  TYPE string,
@@ -25917,7 +25917,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
-  ENDMETHOD. "render_line_split
+  ENDMETHOD.
   METHOD render_line_unified.
 
     FIELD-SYMBOLS <ls_diff_line> LIKE LINE OF mt_delayed_lines.
@@ -25962,7 +25962,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDCASE.
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
-  ENDMETHOD. "render_line_unified
+  ENDMETHOD.
   METHOD render_table_head.
 
     CREATE OBJECT ro_html.
@@ -25984,7 +25984,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
     ro_html->add( '</thead>' ).                             "#EC NOTEXT
 
-  ENDMETHOD.  " render_table_head.
+  ENDMETHOD.
   METHOD scripts.
 
     CREATE OBJECT ro_html.
@@ -25999,7 +25999,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '  }' ).
     ro_html->add( '});' ).
 
-  ENDMETHOD.  "scripts
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
@@ -26008,7 +26008,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         ev_state   = zif_abapgit_definitions=>gc_event_state-re_render.
     ENDCASE.
 
-  ENDMETHOD. "lif_gui_page~on_event
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD constructor.
@@ -33928,7 +33928,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
         CONCATENATE lv_where_statement 'AND' INTO lv_where_statement
           SEPARATED BY space.
       ENDIF.
-      CONCATENATE '''' ls_objkey-value '''' INTO lv_value128.
+      lv_value128 = cl_abap_dyn_prg=>quote( ls_objkey-value ).
       CONCATENATE lv_where_statement <ls_table_field>-fieldname '='
         lv_value128 INTO lv_where_statement SEPARATED BY space.
       lv_key_pos = lv_key_pos + 1.
@@ -37460,20 +37460,73 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
-
+CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+* Do the same as in VIEWCLUSTER_SAVE_DEFINITION
+    DATA: lv_vclname TYPE vcl_name.
+    lv_vclname = ms_item-obj_name.
 
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+    DELETE FROM vcldir WHERE vclname = lv_vclname.        "#EC CI_SUBRC
+    DELETE FROM vcldirt WHERE vclname = lv_vclname. "#EC CI_NOFIRST "#EC CI_SUBRC
+    DELETE FROM vclstruc WHERE vclname = lv_vclname.      "#EC CI_SUBRC
+    DELETE FROM vclstruct WHERE vclname = lv_vclname. "#EC CI_NOFIRST "#EC CI_SUBRC
+    DELETE FROM vclstrudep WHERE vclname = lv_vclname.    "#EC CI_SUBRC
+    DELETE FROM vclmf WHERE vclname = lv_vclname.         "#EC CI_SUBRC
 
+  ENDMETHOD.                    "delete
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: ls_vcldir_entry TYPE v_vcldir,
+          lt_vclstruc     TYPE TABLE OF v_vclstruc,
+          lt_vclstrudep   TYPE TABLE OF v_vclstdep,
+          lt_vclmf        TYPE TABLE OF v_vclmf,
+          lv_objectname   TYPE ob_object.
+    io_xml->read( EXPORTING iv_name = 'VCLDIR'
+                  CHANGING cg_data = ls_vcldir_entry ).
+    io_xml->read( EXPORTING iv_name = 'VLCSTRUC_TAB'
+                  CHANGING cg_data = lt_vclstruc ).
+    io_xml->read( EXPORTING iv_name = 'VCLSTRUDEP_TAB'
+                  CHANGING cg_data = lt_vclstrudep ).
+    io_xml->read( EXPORTING iv_name = 'lt_vclstrudep'
+                  CHANGING cg_data = lt_vclmf ).
+
+    ls_vcldir_entry-author = sy-uname.
+
+    CALL FUNCTION 'VIEWCLUSTER_SAVE_DEFINITION'
+      EXPORTING
+        vcldir_entry   = ls_vcldir_entry
+      TABLES
+        vclstruc_tab   = lt_vclstruc
+        vclstrudep_tab = lt_vclstrudep
+        vclmf_tab      = lt_vclmf.
+
+    corr_insert( iv_package ).
+
+    lv_objectname = ls_vcldir_entry-vclname.
+    CALL FUNCTION 'OBJ_GENERATE'
+      EXPORTING
+        iv_objectname         = lv_objectname
+        iv_objecttype         = c_cluster_type
+        iv_maint_mode         = c_mode_insert
+        iv_devclass           = iv_package
+      EXCEPTIONS
+        illegal_call          = 1
+        object_not_found      = 2
+        generate_error        = 3
+        transport_error       = 4
+        object_enqueue_failed = 5
+        OTHERS                = 6.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error in OBJ_GENERATE for VCLS' ).
+    ENDIF.
+
+  ENDMETHOD.                    "deserialize
   METHOD zif_abapgit_object~exists.
 
     DATA lv_changedate TYPE vcldir-changedate.
@@ -37489,7 +37542,49 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "zif_abapgit_object~exists
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  METHOD zif_abapgit_object~is_locked.
 
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    DATA: lv_vclname      TYPE  vcl_name.
+
+    lv_vclname = ms_item-obj_name.
+    CALL FUNCTION 'VIEWCLUSTER_MAINTENANCE_CALL'
+      EXPORTING
+        viewcluster_name             = lv_vclname
+        maintenance_action           = 'S'
+      EXCEPTIONS
+        client_reference             = 1
+        foreign_lock                 = 2
+        viewcluster_not_found        = 3
+        viewcluster_is_inconsistent  = 4
+        missing_generated_function   = 5
+        no_upd_auth                  = 6
+        no_show_auth                 = 7
+        object_not_found             = 8
+        no_tvdir_entry               = 9
+        no_clientindep_auth          = 10
+        invalid_action               = 11
+        saving_correction_failed     = 12
+        system_failure               = 13
+        unknown_field_in_dba_sellist = 14
+        missing_corr_number          = 15
+        OTHERS                       = 16.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error in VIEWCLUSTER_MAINTENANCE_CALL' ).
+    ENDIF.
+
+  ENDMETHOD.                    "jump
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_vclname      TYPE vcl_name,
@@ -37532,110 +37627,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
                  ig_data = lt_vclmf ).
 
   ENDMETHOD.                    "serialize
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: ls_vcldir_entry TYPE v_vcldir,
-          lt_vclstruc     TYPE TABLE OF v_vclstruc,
-          lt_vclstrudep   TYPE TABLE OF v_vclstdep,
-          lt_vclmf        TYPE TABLE OF v_vclmf,
-          lv_objectname   TYPE ob_object.
-    io_xml->read( EXPORTING iv_name = 'VCLDIR'
-                  CHANGING cg_data = ls_vcldir_entry ).
-    io_xml->read( EXPORTING iv_name = 'VLCSTRUC_TAB'
-                  CHANGING cg_data = lt_vclstruc ).
-    io_xml->read( EXPORTING iv_name = 'VCLSTRUDEP_TAB'
-                  CHANGING cg_data = lt_vclstrudep ).
-    io_xml->read( EXPORTING iv_name = 'lt_vclstrudep'
-                  CHANGING cg_data = lt_vclmf ).
-
-    ls_vcldir_entry-author = sy-uname.
-
-    CALL FUNCTION 'VIEWCLUSTER_SAVE_DEFINITION'
-      EXPORTING
-        vcldir_entry   = ls_vcldir_entry
-      TABLES
-        vclstruc_tab   = lt_vclstruc
-        vclstrudep_tab = lt_vclstrudep
-        vclmf_tab      = lt_vclmf.
-
-    lv_objectname = ls_vcldir_entry-vclname.
-    CALL FUNCTION 'OBJ_GENERATE'
-      EXPORTING
-        iv_objectname         = lv_objectname
-        iv_objecttype         = c_cluster_type
-        iv_maint_mode         = c_mode_insert
-        iv_devclass           = iv_package
-      EXCEPTIONS
-        illegal_call          = 1
-        object_not_found      = 2
-        generate_error        = 3
-        transport_error       = 4
-        object_enqueue_failed = 5
-        OTHERS                = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error in OBJ_GENERATE for VCLS' ).
-    ENDIF.
-
-  ENDMETHOD.                    "deserialize
-
-  METHOD zif_abapgit_object~delete.
-* Do the same as in VIEWCLUSTER_SAVE_DEFINITION
-    DATA: lv_vclname TYPE vcl_name.
-    lv_vclname = ms_item-obj_name.
-
-    DELETE FROM vcldir WHERE vclname = lv_vclname.        "#EC CI_SUBRC
-    DELETE FROM vcldirt WHERE vclname = lv_vclname. "#EC CI_NOFIRST "#EC CI_SUBRC
-    DELETE FROM vclstruc WHERE vclname = lv_vclname.      "#EC CI_SUBRC
-    DELETE FROM vclstruct WHERE vclname = lv_vclname. "#EC CI_NOFIRST "#EC CI_SUBRC
-    DELETE FROM vclstrudep WHERE vclname = lv_vclname.    "#EC CI_SUBRC
-    DELETE FROM vclmf WHERE vclname = lv_vclname.         "#EC CI_SUBRC
-
-  ENDMETHOD.                    "delete
-
-  METHOD zif_abapgit_object~jump.
-
-    DATA: lv_vclname      TYPE  vcl_name.
-
-    lv_vclname = ms_item-obj_name.
-    CALL FUNCTION 'VIEWCLUSTER_MAINTENANCE_CALL'
-      EXPORTING
-        viewcluster_name             = lv_vclname
-        maintenance_action           = 'S'
-      EXCEPTIONS
-        client_reference             = 1
-        foreign_lock                 = 2
-        viewcluster_not_found        = 3
-        viewcluster_is_inconsistent  = 4
-        missing_generated_function   = 5
-        no_upd_auth                  = 6
-        no_show_auth                 = 7
-        object_not_found             = 8
-        no_tvdir_entry               = 9
-        no_clientindep_auth          = 10
-        invalid_action               = 11
-        saving_correction_failed     = 12
-        system_failure               = 13
-        unknown_field_in_dba_sellist = 14
-        missing_corr_number          = 15
-        OTHERS                       = 16.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error in VIEWCLUSTER_MAINTENANCE_CALL' ).
-    ENDIF.
-
-  ENDMETHOD.                    "jump
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-
-ENDCLASS.                    "zcl_abapgit_object_vcls IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD clear_dynamic_fields.
 
@@ -52918,8 +52910,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_cus1 IMPLEMENTATION
-CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -52928,47 +52919,12 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
     mv_img_activity = ms_item-obj_name.
 
   ENDMETHOD.                    "constructor
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
-
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
-
-  METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
-*   doesn't work...
-*    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_MAINTAIN'
-*      EXPORTING
-*        i_display        = 'X'
-*        i_no_replacement = 'X'
-*      CHANGING
-*        img_activity     = mv_img_activity.
-
-  ENDMETHOD.                    "jump
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: ls_message TYPE hier_mess.
-
-    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_EXISTS'
-      EXPORTING
-        img_activity = mv_img_activity
-      IMPORTING
-        message      = ls_message.
-
-    rv_bool = boolc( ls_message IS INITIAL ).
-
-  ENDMETHOD.                    "zif_abapgit_object~exists
-
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: ls_message TYPE hier_mess.
@@ -52984,31 +52940,6 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "delete
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_img_activity TYPE ty_img_activity.
-
-    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_READ'
-      EXPORTING
-        img_activity        = mv_img_activity
-      IMPORTING
-        img_activity_header = ls_img_activity-header
-      TABLES
-        img_activity_texts  = ls_img_activity-texts.
-
-    CLEAR: ls_img_activity-header-fuser,
-           ls_img_activity-header-fdate,
-           ls_img_activity-header-ftime,
-           ls_img_activity-header-luser,
-           ls_img_activity-header-ldate,
-           ls_img_activity-header-ltime.
-
-    io_xml->add( iv_name = 'CUS0'
-                 ig_data = ls_img_activity ).
-
-  ENDMETHOD.                    "serialize
-
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_img_activity TYPE ty_img_activity,
@@ -53032,19 +52963,86 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
         i_description = ls_text
         i_tcode       = ls_img_activity-header-tcode.
 
-  ENDMETHOD.                    "deserialize
+    CALL FUNCTION 'RS_CORR_INSERT'
+      EXPORTING
+        object              = ms_item-obj_name
+        object_class        = ms_item-obj_type
+        mode                = 'I'
+        global_lock         = abap_true
+        devclass            = iv_package
+        master_language     = sy-langu
+      EXCEPTIONS
+        cancelled           = 1
+        permission_failure  = 2
+        unknown_objectclass = 3
+        OTHERS              = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CUS0' ).
+    ENDIF.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
+    DATA: ls_message TYPE hier_mess.
+
+    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_EXISTS'
+      EXPORTING
+        img_activity = mv_img_activity
+      IMPORTING
+        message      = ls_message.
+
+    rv_bool = boolc( ls_message IS INITIAL ).
+
+  ENDMETHOD.                    "zif_abapgit_object~exists
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.  "zif_abapgit_object~has_changed_since
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
 
-ENDCLASS.                    "zcl_abapgit_object_cus0 IMPLEMENTATION
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+*   doesn't work...
+*    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_MAINTAIN'
+*      EXPORTING
+*        i_display        = 'X'
+*        i_no_replacement = 'X'
+*      CHANGING
+*        img_activity     = mv_img_activity.
+
+  ENDMETHOD.                    "jump
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: ls_img_activity TYPE ty_img_activity.
+
+    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_READ'
+      EXPORTING
+        img_activity        = mv_img_activity
+      IMPORTING
+        img_activity_header = ls_img_activity-header
+      TABLES
+        img_activity_texts  = ls_img_activity-texts.
+
+    CLEAR: ls_img_activity-header-fuser,
+           ls_img_activity-header-fdate,
+           ls_img_activity-header-ftime,
+           ls_img_activity-header-luser,
+           ls_img_activity-header-ldate,
+           ls_img_activity-header-ltime.
+
+    io_xml->add( iv_name = 'CUS0'
+                 ig_data = ls_img_activity ).
+
+  ENDMETHOD.                    "serialize
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
   METHOD constructor.
 
@@ -60430,5 +60428,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-14T04:51:30.983Z
+* abapmerge - 2018-07-14T04:52:55.382Z
 ****************************************************
