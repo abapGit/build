@@ -14436,7 +14436,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -15135,9 +15135,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD warning_package_find.
 
-    DATA: lv_package   TYPE devclass,
-          ls_overwrite LIKE LINE OF rt_overwrite,
-          ls_tadir     TYPE tadir.
+    DATA: lv_package         TYPE devclass,
+          lt_overwrite_uniqe TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_overwrite
+                                  WITH UNIQUE KEY obj_type obj_name devclass,
+          ls_overwrite       LIKE LINE OF rt_overwrite,
+          ls_tadir           TYPE tadir.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
     LOOP AT it_results ASSIGNING <ls_result>.
@@ -15157,12 +15159,15 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         ls_overwrite-obj_type = <ls_result>-obj_type.
         ls_overwrite-obj_name = <ls_result>-obj_name.
         ls_overwrite-devclass = ls_tadir-devclass.
-        APPEND ls_overwrite TO rt_overwrite.
+        INSERT ls_overwrite INTO TABLE lt_overwrite_uniqe.
       ENDIF.
 
     ENDLOOP.
 
+    rt_overwrite = lt_overwrite_uniqe.
+
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
@@ -60428,5 +60433,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-17T05:03:30.415Z
+* abapmerge - 2018-07-17T05:30:44.396Z
 ****************************************************
