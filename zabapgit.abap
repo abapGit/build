@@ -3645,7 +3645,8 @@ CLASS zcl_abapgit_object_cmpt DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
 
   PRIVATE SECTION.
-    DATA: mo_cmp_db TYPE REF TO object.
+    DATA: mo_cmp_db TYPE REF TO object,
+          mv_name   TYPE c LENGTH 30.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_cus0 DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -53076,7 +53077,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
   ENDMETHOD.                    "serialize
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
+CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -53090,6 +53091,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
       CATCH cx_root.
     ENDTRY.
 
+    mv_name = ms_item-obj_name.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
@@ -53098,7 +53101,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
     TRY.
         CALL METHOD ('CL_CMP_TEMPLATE')=>('S_CREATE_FROM_DB')
           EXPORTING
-            i_name         = |{ ms_item-obj_name }|
+            i_name         = mv_name
             i_version      = 'A'
           RECEIVING
             r_ref_template = lo_cmp_template.
@@ -53124,7 +53127,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
     TRY.
         CALL METHOD mo_cmp_db->('IF_CMP_TEMPLATE_DB~DELETE_TEMPLATE')
           EXPORTING
-            i_name        = |{ ms_item-obj_name }|
+            i_name        = mv_name
             i_version     = 'A'
             i_flg_header  = abap_true
             i_flg_lines   = abap_true
@@ -53186,14 +53189,10 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lv_name TYPE c LENGTH 30.
-
-    lv_name = ms_item-obj_name.
-
     TRY.
         CALL METHOD ('CL_CMP_TEMPLATE')=>('S_TEMPLATE_EXISTS')
           EXPORTING
-            i_name       = lv_name
+            i_name       = mv_name
             i_version    = 'A'
           RECEIVING
             r_flg_exists = rv_bool.
@@ -60461,5 +60460,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-17T05:41:02.900Z
+* abapmerge - 2018-07-17T11:08:06.317Z
 ****************************************************
