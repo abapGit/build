@@ -4684,10 +4684,10 @@ CLASS zcl_abapgit_object_sfpf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS:
       load
         RETURNING VALUE(ri_wb_form) TYPE REF TO if_fp_wb_form
-        RAISING zcx_abapgit_exception,
+        RAISING   zcx_abapgit_exception,
       form_to_xstring
         RETURNING VALUE(rv_xstr) TYPE xstring
-        RAISING zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_sfpi DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -4700,10 +4700,10 @@ CLASS zcl_abapgit_object_sfpi DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS:
       load
         RETURNING VALUE(ri_wb_interface) TYPE REF TO if_fp_wb_interface
-        RAISING zcx_abapgit_exception,
+        RAISING   zcx_abapgit_exception,
       interface_to_xstring
         RETURNING VALUE(rv_xstr) TYPE xstring
-        RAISING zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -42884,7 +42884,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_name TYPE fpname,
+    DATA: lv_name         TYPE fpname,
           lo_wb_interface TYPE REF TO cl_fp_wb_interface.
     lo_wb_interface ?= load( ).
 
@@ -42966,12 +42966,19 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_object TYPE seqg3-garg.
+
+    lv_object = |{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                              '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EFPINTERFACE'
+                                            iv_argument    = lv_object ).
 
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_doma IMPLEMENTATION
-CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   METHOD fix_oref.
 
     DATA: li_iterator TYPE REF TO if_ixml_node_iterator,
@@ -43066,7 +43073,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_name TYPE fpname,
+    DATA: lv_name    TYPE fpname,
           lo_wb_form TYPE REF TO cl_fp_wb_form.
     lo_wb_form ?= load( ).
 
@@ -43141,8 +43148,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_object TYPE seqg3-garg.
 
+    lv_object = |{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                              '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EFPFORM'
+                                            iv_argument    = lv_object ).
   ENDMETHOD.
 
 ENDCLASS.
@@ -47831,8 +47844,16 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_object TYPE seqg3-garg.
 
+    " example lock entry
+    "'001FORM      ZTEST_SAPSCRIPT                                                       TXT'
+    lv_object = |{ sy-mandt }{ ms_item-obj_type }      { ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                                                                                   '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESSFORM'
+                                            iv_argument    = lv_object ).
   ENDMETHOD.
 
 ENDCLASS.                    "zcl_abapgit_object_FORM IMPLEMENTATION
@@ -49533,7 +49554,14 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_object TYPE seqg3-garg.
+
+    lv_object = |{ ms_item-obj_type }{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'E_ENHANCE'
+                                            iv_argument    = lv_object ).
 
   ENDMETHOD.
 
@@ -60433,5 +60461,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-17T05:31:47.051Z
+* abapmerge - 2018-07-17T05:41:02.900Z
 ****************************************************
