@@ -37512,7 +37512,24 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
         vclstrudep_tab = lt_vclstrudep
         vclmf_tab      = lt_vclmf.
 
-    corr_insert( iv_package ).
+    CALL FUNCTION 'RS_CORR_INSERT'
+      EXPORTING
+        object              = ms_item-obj_name
+        object_class        = ms_item-obj_type
+        devclass            = iv_package
+        master_language     = mv_language
+        mode                = 'INSERT'
+        global_lock         = abap_true
+      EXCEPTIONS
+        cancelled           = 1
+        permission_failure  = 2
+        unknown_objectclass = 3
+        OTHERS              = 4.
+    IF sy-subrc = 1.
+      zcx_abapgit_exception=>raise( 'Cancelled' ).
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
+    ENDIF.
 
     lv_objectname = ls_vcldir_entry-vclname.
     CALL FUNCTION 'OBJ_GENERATE'
@@ -60465,5 +60482,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-18T13:39:23.627Z
+* abapmerge - 2018-07-18T14:37:44.437Z
 ****************************************************
