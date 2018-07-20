@@ -52888,6 +52888,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.                    "zif_abapgit_object~get_metadata
 
   METHOD zif_abapgit_object~jump.
@@ -52978,6 +52979,23 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
     IF ls_message-msgty <> 'S'.
       zcx_abapgit_exception=>raise( |error from deserialize CUS1 { mv_customizing_activity } S_CUS_ACTIVITY_SAVE| ).
+    ENDIF.
+
+    CALL FUNCTION 'RS_CORR_INSERT'
+      EXPORTING
+        object              = ms_item-obj_name
+        object_class        = ms_item-obj_type
+        mode                = 'I'
+        global_lock         = abap_true
+        devclass            = iv_package
+        master_language     = sy-langu
+      EXCEPTIONS
+        cancelled           = 1
+        permission_failure  = 2
+        unknown_objectclass = 3
+        OTHERS              = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CUS0' ).
     ENDIF.
 
   ENDMETHOD.                    "deserialize
@@ -60514,5 +60532,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-20T04:46:41.922Z
+* abapmerge - 2018-07-20T05:22:23.327Z
 ****************************************************
