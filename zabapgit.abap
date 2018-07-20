@@ -9666,7 +9666,7 @@ CLASS zcl_abapgit_factory DEFINITION
       gt_sap_package     TYPE tty_sap_package,
       gt_code_inspector  TYPE tty_code_inspector,
       gt_syntax_check    TYPE tty_syntax_check,
-      gt_branch_overview TYPE tty_branch_overview.
+      gi_branch_overview TYPE REF TO zif_abapgit_branch_overview.
 
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
@@ -16561,28 +16561,10 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
 
   METHOD get_branch_overview.
 
-    DATA: ls_branch_overview LIKE LINE OF gt_branch_overview,
-          lv_repo_key        TYPE ty_branch_overview-repo_key.
-    FIELD-SYMBOLS: <ls_branch_overview> TYPE zcl_abapgit_factory=>ty_branch_overview.
-
-    lv_repo_key = io_repo->get_key( ).
-
-    READ TABLE gt_branch_overview ASSIGNING <ls_branch_overview>
-                               WITH TABLE KEY repo_key = lv_repo_key.
-    IF sy-subrc <> 0.
-      ls_branch_overview-repo_key = lv_repo_key.
-
-      CREATE OBJECT ls_branch_overview-instance TYPE zcl_abapgit_branch_overview
-        EXPORTING
-          io_repo = io_repo.
-
-      INSERT ls_branch_overview
-             INTO TABLE gt_branch_overview
-             ASSIGNING <ls_branch_overview>.
-
-    ENDIF.
-
-    ri_branch_overview = <ls_branch_overview>-instance.
+    CREATE OBJECT ri_branch_overview
+      TYPE zcl_abapgit_branch_overview
+      EXPORTING
+        io_repo = io_repo.
   ENDMETHOD.
 
 ENDCLASS.
@@ -60585,5 +60567,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-20T07:31:08.099Z
+* abapmerge - 2018-07-20T09:23:32.484Z
 ****************************************************
