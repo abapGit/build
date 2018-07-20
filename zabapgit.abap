@@ -423,6 +423,7 @@ INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
+INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
@@ -1655,6 +1656,26 @@ INTERFACE zif_abapgit_tag_popups
         VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception .
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_branch_overview
+  .
+
+  METHODS:
+    get_branches
+      RETURNING VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+
+    get_tags
+      RETURNING VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
+
+    get_commits
+      RETURNING
+        VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt,
+
+    compress
+      IMPORTING it_commits        TYPE zif_abapgit_definitions=>ty_commit_tt
+      RETURNING VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
+      RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_dot_abapgit.
@@ -7082,7 +7103,7 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
     DATA: mo_repo            TYPE REF TO zcl_abapgit_repo_online,
           mv_compress        TYPE abap_bool VALUE abap_false,
           mt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
-          mo_branch_overview TYPE REF TO zcl_abapgit_branch_overview.
+          mi_branch_overview TYPE REF TO zif_abapgit_branch_overview.
 
     CONSTANTS: BEGIN OF c_actions,
                  uncompress TYPE string VALUE 'uncompress' ##NO_TEXT,
@@ -9244,31 +9265,17 @@ CLASS zcl_abapgit_background DEFINITION CREATE PUBLIC.
         RETURNING VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user.
 
 ENDCLASS.
-CLASS zcl_abapgit_branch_overview DEFINITION FINAL CREATE PRIVATE.
-
+CLASS zcl_abapgit_branch_overview DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
   PUBLIC SECTION.
-    CLASS-METHODS: run
-      IMPORTING io_repo                   TYPE REF TO zcl_abapgit_repo_online
-      RETURNING VALUE(ro_branch_overview) TYPE REF TO zcl_abapgit_branch_overview
-      RAISING   zcx_abapgit_exception.
+
+    INTERFACES zif_abapgit_branch_overview.
+
     METHODS:
       constructor
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
-        RAISING   zcx_abapgit_exception,
-
-      get_branches
-        RETURNING VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
-
-      get_tags
-        RETURNING VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_tag_list_tt,
-
-      get_commits
-        RETURNING
-          VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt,
-
-      compress
-        IMPORTING it_commits        TYPE zif_abapgit_definitions=>ty_commit_tt
-        RETURNING VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
         RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
@@ -9615,6 +9622,14 @@ CLASS zcl_abapgit_factory DEFINITION
         RETURNING
           VALUE(ri_syntax_check) TYPE REF TO zif_abapgit_code_inspector
         RAISING
+          zcx_abapgit_exception,
+
+      get_branch_overview
+        IMPORTING
+          io_repo                   TYPE REF TO zcl_abapgit_repo_online
+        RETURNING
+          VALUE(ri_branch_overview) TYPE REF TO zif_abapgit_branch_overview
+        RAISING
           zcx_abapgit_exception.
   PRIVATE SECTION.
     TYPES:
@@ -9637,13 +9652,21 @@ CLASS zcl_abapgit_factory DEFINITION
         instance TYPE REF TO zif_abapgit_code_inspector,
       END OF ty_syntax_check,
       tty_syntax_check TYPE HASHED TABLE OF ty_syntax_check
-                       WITH UNIQUE KEY package.
+                       WITH UNIQUE KEY package,
+
+      BEGIN OF ty_branch_overview,
+        repo_key TYPE zif_abapgit_persistence=>ty_value,
+        instance TYPE REF TO zif_abapgit_branch_overview,
+      END OF ty_branch_overview,
+      tty_branch_overview TYPE HASHED TABLE OF ty_branch_overview
+                         WITH UNIQUE KEY repo_key.
 
     CLASS-DATA:
-      gi_tadir          TYPE REF TO zif_abapgit_tadir,
-      gt_sap_package    TYPE tty_sap_package,
-      gt_code_inspector TYPE tty_code_inspector,
-      gt_syntax_check   TYPE tty_syntax_check.
+      gi_tadir           TYPE REF TO zif_abapgit_tadir,
+      gt_sap_package     TYPE tty_sap_package,
+      gt_code_inspector  TYPE tty_code_inspector,
+      gt_syntax_check    TYPE tty_syntax_check,
+      gt_branch_overview TYPE tty_branch_overview.
 
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
@@ -16536,6 +16559,32 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_branch_overview.
+
+    DATA: ls_branch_overview LIKE LINE OF gt_branch_overview,
+          lv_repo_key        TYPE ty_branch_overview-repo_key.
+    FIELD-SYMBOLS: <ls_branch_overview> TYPE zcl_abapgit_factory=>ty_branch_overview.
+
+    lv_repo_key = io_repo->get_key( ).
+
+    READ TABLE gt_branch_overview ASSIGNING <ls_branch_overview>
+                               WITH TABLE KEY repo_key = lv_repo_key.
+    IF sy-subrc <> 0.
+      ls_branch_overview-repo_key = lv_repo_key.
+
+      CREATE OBJECT ls_branch_overview-instance TYPE zcl_abapgit_branch_overview
+        EXPORTING
+          io_repo = io_repo.
+
+      INSERT ls_branch_overview
+             INTO TABLE gt_branch_overview
+             ASSIGNING <ls_branch_overview>.
+
+    ENDIF.
+
+    ri_branch_overview = <ls_branch_overview>-instance.
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
@@ -17351,7 +17400,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
-  METHOD compress.
+  METHOD zif_abapgit_branch_overview~compress.
 
     DEFINE _compress.
       IF lines( lt_temp ) >= 10.
@@ -17541,10 +17590,10 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD get_branches.
+  METHOD zif_abapgit_branch_overview~get_branches.
     rt_branches = mt_branches.
   ENDMETHOD.
-  METHOD get_commits.
+  METHOD zif_abapgit_branch_overview~get_commits.
     rt_commits = mt_commits.
   ENDMETHOD.
   METHOD get_git_objects.
@@ -17600,7 +17649,7 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     DELETE rt_objects WHERE type = zif_abapgit_definitions=>gc_type-blob.
 
   ENDMETHOD.
-  METHOD get_tags.
+  METHOD zif_abapgit_branch_overview~get_tags.
 
     rt_tags = mt_tags.
 
@@ -17666,13 +17715,7 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD run.
 
-    CREATE OBJECT ro_branch_overview
-      EXPORTING
-        io_repo = io_repo.
-
-  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_background IMPLEMENTATION.
   METHOD build_comment.
@@ -19536,7 +19579,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
 
     CLEAR: mt_tags.
 
-    lt_tags = zcl_abapgit_branch_overview=>run( io_repo = io_repo )->get_tags( ).
+    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo = io_repo )->get_tags( ).
 
     IF lines( lt_tags ) = 0.
       zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
@@ -19624,7 +19667,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
                    <ls_tag> LIKE LINE OF lt_tags.
 
-    lt_tags = zcl_abapgit_branch_overview=>run( io_repo = io_repo )->get_tags( ).
+    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo = io_repo )->get_tags( ).
 
     IF lines( lt_tags ) = 0.
       zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
@@ -26675,7 +26718,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
     CREATE OBJECT ro_html.
 
-    lt_branches = mo_branch_overview->get_branches( ).
+    lt_branches = mi_branch_overview->get_branches( ).
 
     ro_html->add( |<select name="{ iv_name }">| ).
     LOOP AT lt_branches ASSIGNING <ls_branch>.
@@ -26687,11 +26730,11 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   ENDMETHOD.
   METHOD refresh.
 
-    mo_branch_overview = zcl_abapgit_branch_overview=>run( mo_repo ).
+    mi_branch_overview = zcl_abapgit_factory=>get_branch_overview( io_repo = mo_repo ).
 
-    mt_commits = mo_branch_overview->get_commits( ).
+    mt_commits = mi_branch_overview->get_commits( ).
     IF mv_compress = abap_true.
-      mt_commits = mo_branch_overview->compress( mt_commits ).
+      mt_commits = mi_branch_overview->compress( mt_commits ).
     ENDIF.
 
   ENDMETHOD.
@@ -60542,5 +60585,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-20T06:11:50.104Z
+* abapmerge - 2018-07-20T07:31:08.099Z
 ****************************************************
