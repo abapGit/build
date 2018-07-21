@@ -47003,7 +47003,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         OTHERS                  = 12.
     IF sy-subrc <> 0 AND sy-subrc <> 1 AND sy-subrc <> 3.
 * todo, change description
-      zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( 'error from RS_FUNCTION_POOL_INSERT' ).
     ENDIF.
 
   ENDMETHOD.                    "deserialize_xml
@@ -60571,5 +60571,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-21T09:37:36.830Z
+* abapmerge - 2018-07-21T09:38:50.420Z
 ****************************************************
