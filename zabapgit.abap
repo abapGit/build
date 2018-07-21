@@ -16123,7 +16123,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -16248,6 +16248,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
           lt_items        TYPE zif_abapgit_definitions=>ty_items_tt,
           ls_item         LIKE LINE OF lt_items,
           lv_is_xml       TYPE abap_bool,
+          lv_sub_fetched  TYPE abap_bool,
           lt_sub_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
           lt_items_idx    TYPE zif_abapgit_definitions=>ty_items_ts,
           lt_state_idx    TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
@@ -16297,8 +16298,11 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
         iv_obj_name = ls_item-obj_name ).
 
       IF NOT ls_item-devclass IS INITIAL AND iv_devclass <> ls_item-devclass.
+        IF lv_sub_fetched = abap_false.
+          lt_sub_packages = zcl_abapgit_factory=>get_sap_package( iv_devclass )->list_subpackages( ).
+          lv_sub_fetched = abap_true.
+        ENDIF.
 * make sure the package is under the repo main package
-        lt_sub_packages = zcl_abapgit_factory=>get_sap_package( iv_devclass )->list_subpackages( ).
         READ TABLE lt_sub_packages WITH KEY table_line = ls_item-devclass TRANSPORTING NO FIELDS.
         IF sy-subrc <> 0.
           CLEAR ls_item-devclass.
@@ -46999,7 +47003,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         OTHERS                  = 12.
     IF sy-subrc <> 0 AND sy-subrc <> 1 AND sy-subrc <> 3.
 * todo, change description
-      zcx_abapgit_exception=>raise( 'error from RS_FUNCTION_POOL_INSERT' ).
+      zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.                    "deserialize_xml
@@ -60567,5 +60571,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-20T09:23:32.484Z
+* abapmerge - 2018-07-21T09:37:36.830Z
 ****************************************************
