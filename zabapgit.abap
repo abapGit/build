@@ -1738,7 +1738,6 @@ INTERFACE zif_abapgit_persistence.
   TYPES: BEGIN OF ty_repo_xml,
            url             TYPE string,
            branch_name     TYPE string,
-           sha1            TYPE zif_abapgit_definitions=>ty_sha1,
            package         TYPE devclass,
            created_by      TYPE xubname,
            created_at      TYPE timestampl,
@@ -2182,7 +2181,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo_online
         !iv_name TYPE string
-        !iv_from TYPE zif_abapgit_definitions=>ty_sha1
+        iv_from  TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_tag
@@ -6294,12 +6293,6 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
         VALUE(rt_repos) TYPE zif_abapgit_persistence=>tt_repo
       RAISING
         zcx_abapgit_exception .
-    METHODS update_sha1
-      IMPORTING
-        !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-        !iv_branch_sha1 TYPE zif_abapgit_persistence=>ty_repo_xml-sha1
-      RAISING
-        zcx_abapgit_exception .
     METHODS update_local_checksums
       IMPORTING
         !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
@@ -10339,7 +10332,6 @@ CLASS zcl_abapgit_repo DEFINITION
 
     METHODS set
       IMPORTING
-        !iv_sha1           TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
         !it_checksums      TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
         !iv_url            TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
         !iv_branch_name    TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
@@ -10442,12 +10434,9 @@ CLASS zcl_abapgit_repo_online DEFINITION
         !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
       RAISING
         zcx_abapgit_exception .
-    METHODS get_sha1_local
-      RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1 .
     METHODS get_sha1_remote
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_persistence=>ty_repo-sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     METHODS get_objects
@@ -12089,7 +12078,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
+CLASS zcl_abapgit_transport_2_branch IMPLEMENTATION.
   METHOD create.
     DATA:
       lv_branch_name     TYPE string,
@@ -12131,7 +12120,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
         zcl_abapgit_git_porcelain=>create_branch(
           io_repo = io_repository
           iv_name = iv_branch_name
-          iv_from = io_repository->get_sha1_local( ) ).
+          iv_from = io_repository->get_sha1_remote( ) ).
 
         io_repository->set_branch_name( iv_branch_name ).
       CATCH zcx_abapgit_exception.
@@ -13295,7 +13284,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       lo_repo->set(
         iv_url         = zcl_abapgit_url=>name( lo_repo->ms_data-url )
         iv_branch_name = ''
-        iv_sha1        = ''
         iv_head_branch = ''
         iv_offline     = abap_true ).
       CREATE OBJECT <lo_repo> TYPE zcl_abapgit_repo_offline
@@ -13386,7 +13374,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.                    "constructor
   METHOD delete_initial_online_repo.
 
-    IF me->is_offline( ) = abap_false AND me->get_sha1_local( ) IS INITIAL.
+    IF me->is_offline( ) = abap_false AND me->get_sha1_remote( ) IS INITIAL.
 
       zcl_abapgit_repo_srv=>get_instance( )->delete( me ).
 
@@ -13402,8 +13390,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     initialize( ).
 
     super->deserialize( is_checks ).
-
-    set( iv_sha1 = mv_branch ).
 
     reset_status( ).
 
@@ -13426,9 +13412,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     rt_objects = mt_objects.
   ENDMETHOD.                    "get_objects
-  METHOD get_sha1_local.
-    rv_sha1 = ms_data-sha1.
-  ENDMETHOD.                    "get_sha1_local
   METHOD get_sha1_remote.
     initialize( ).
 
@@ -13542,39 +13525,32 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
                                      IMPORTING ev_branch        = lv_branch
                                                et_updated_files = lt_updated_files ).
 
-    IF io_stage->get_branch_sha1( ) = get_sha1_local( ).
-* pushing to the branch currently represented by this repository object
+    IF io_stage->get_branch_sha1( ) = get_sha1_remote( ).
+* pushing to the branch currently represented by this repository object      mv_branch = lv_branch.
       mv_branch = lv_branch.
-      set( iv_sha1 = lv_branch ).
     ELSE.
       refresh( ).
     ENDIF.
 
     update_local_checksums( lt_updated_files ).
 
-    IF zcl_abapgit_stage_logic=>count( me ) = 0.
-      set( iv_sha1 = lv_branch ).
-    ENDIF.
-
     CLEAR: mv_code_inspector_successful.
 
   ENDMETHOD.                    "push
   METHOD rebuild_local_checksums. "REMOTE
 
-    DATA: lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          ls_last_item    TYPE zif_abapgit_definitions=>ty_item,
-          lv_branch_equal TYPE abap_bool,
-          lt_checksums    TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+    DATA: lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          ls_last_item TYPE zif_abapgit_definitions=>ty_item,
+          lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
 
     FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
                    <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
                    <ls_remote>   LIKE LINE OF lt_remote,
                    <ls_local>    LIKE LINE OF lt_local.
 
-    lt_remote       = get_files_remote( ).
-    lt_local        = get_files_local( ).
-    lv_branch_equal = boolc( get_sha1_remote( ) = get_sha1_local( ) ).
+    lt_remote = get_files_remote( ).
+    lt_local  = get_files_local( ).
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
@@ -13602,7 +13578,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
       " If hashes are equal -> local sha1 is OK
       " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
       "      Else (branches equal) -> assume changes were local, state - remote sha1
-      IF <ls_local>-file-sha1 <> <ls_remote>-sha1 AND lv_branch_equal = abap_true.
+      IF <ls_local>-file-sha1 <> <ls_remote>-sha1.
         <ls_file_sig>-sha1 = <ls_remote>-sha1.
       ENDIF.
     ENDLOOP.
@@ -13696,12 +13672,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     mv_initialized = abap_false.
     set( iv_url         = iv_url
          iv_branch_name = iv_branch_name
-         iv_head_branch = ''
-         iv_sha1        = '' ).
-
-    " If the SHA1 is empty, it's not possible to create tags or branches.
-    " Therefore we update the local SHA1 with the new remote SHA1
-    set( iv_sha1 = get_sha1_remote( ) ).
+         iv_head_branch = '' ).
 
   ENDMETHOD.  "set_new_remote
   METHOD set_objects.
@@ -14161,8 +14132,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 * TODO: refactor
 
     DATA: lo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
-    ASSERT iv_sha1 IS SUPPLIED
-      OR it_checksums IS SUPPLIED
+    ASSERT it_checksums IS SUPPLIED
       OR iv_url IS SUPPLIED
       OR iv_branch_name IS SUPPLIED
       OR iv_head_branch IS SUPPLIED
@@ -14171,13 +14141,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       OR is_local_settings IS SUPPLIED.
 
     CREATE OBJECT lo_persistence.
-
-    IF iv_sha1 IS SUPPLIED.
-      lo_persistence->update_sha1(
-        iv_key         = ms_data-key
-        iv_branch_sha1 = iv_sha1 ).
-      ms_data-sha1 = iv_sha1.
-    ENDIF.
 
     IF it_checksums IS SUPPLIED.
       lo_persistence->update_local_checksums(
@@ -20154,7 +20117,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     zcl_abapgit_git_porcelain=>create_branch(
       io_repo = lo_repo
       iv_name = lv_name
-      iv_from = lo_repo->get_sha1_local( ) ).
+      iv_from = lo_repo->get_sha1_remote( ) ).
 
     " automatically switch to new branch
     lo_repo->set_branch_name( lv_name ).
@@ -23124,7 +23087,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
     ro_html->add( render_text_input( iv_name  = 'sha1'
                                      iv_label = 'SHA1'
-                                     iv_value = mo_repo_online->get_sha1_local( ) ) ).
+                                     iv_value = mo_repo_online->get_sha1_remote( ) ) ).
 
     ro_html->add( render_text_input( iv_name  = 'name'
                                      iv_label = 'tag name' ) ).
@@ -30248,14 +30211,13 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
   METHOD add.
 
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
           lv_repo_as_xml TYPE string.
     ls_repo-url          = iv_url.
     ls_repo-branch_name  = iv_branch_name.
-    ls_repo-sha1         = iv_branch.
     ls_repo-package      = iv_package.
     ls_repo-offline      = iv_offline.
     ls_repo-created_by   = sy-uname.
@@ -30508,27 +30470,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
                    iv_data  = ls_content-data_str ).
 
   ENDMETHOD.  "update_offline
-  METHOD update_sha1.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-sha1 = iv_branch_sha1.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
   METHOD update_url.
 
     DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
@@ -57290,8 +57231,6 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     IF iv_name CS ` `.
       zcx_abapgit_exception=>raise( 'Branch name cannot contain blank spaces' ).
-    ELSEIF iv_from = ''.
-      zcx_abapgit_exception=>raise( 'New branch, "from" SHA1 empty' ).
     ENDIF.
 
 * "client MUST send an empty packfile"
@@ -57770,7 +57709,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     zcl_abapgit_git_transport=>receive_pack(
       iv_url         = io_repo->get_url( )
       iv_old         = c_zero
-      iv_new         = io_repo->get_sha1_local( )
+      iv_new         = is_tag-sha1
       iv_branch_name = is_tag-name
       iv_pack        = lv_pack ).
 
@@ -59059,5 +58998,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-22T07:48:28.703Z
+* abapmerge - 2018-07-22T08:12:02.161Z
 ****************************************************
