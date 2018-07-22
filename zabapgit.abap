@@ -15246,7 +15246,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
           iv_lastseen_version = normalize_version( lv_last_seen ).
     ENDIF.
 
-    IF ro_instance IS BOUND.
+    IF ro_instance IS BOUND AND lv_last_seen <> ro_instance->latest_version( ).
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_last_change_seen(
         iv_url     = lv_url
         iv_version = ro_instance->latest_version( ) ).
@@ -58998,5 +58998,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-22T08:12:02.161Z
+* abapmerge - 2018-07-22T09:07:37.967Z
 ****************************************************
