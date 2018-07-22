@@ -3624,7 +3624,9 @@ CLASS zcl_abapgit_object_avas DEFINITION
         !is_avas TYPE ty_avas .
     METHODS instantiate
       RETURNING
-        VALUE(ro_avas) TYPE REF TO cl_cls_attr_value_assignment .
+        VALUE(ro_avas) TYPE REF TO cl_cls_attr_value_assignment
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_char DEFINITION
@@ -54080,7 +54082,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
   ENDMETHOD.
   METHOD instantiate.
 
-    DATA: lv_id TYPE guid_32,
+    DATA: lv_id  TYPE guid_32,
           lo_err TYPE REF TO cx_root.
 
     lv_id = ms_item-obj_name.
@@ -59057,5 +59059,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-22T07:29:57.379Z
+* abapmerge - 2018-07-22T07:48:28.703Z
 ****************************************************
