@@ -5736,11 +5736,15 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS get_abap_version
       IMPORTING
-        !io_xml                TYPE REF TO zcl_abapgit_xml_input
+        io_xml                 TYPE REF TO zcl_abapgit_xml_input
       RETURNING
         VALUE(rv_abap_version) TYPE progdir-uccheck
       RAISING
         zcx_abapgit_exception .
+    METHODS update_func_group_short_text
+      IMPORTING
+        iv_group      TYPE rs38l-area
+        iv_short_text TYPE tftit-stext.
 ENDCLASS.
 CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objects_program.
   PUBLIC SECTION.
@@ -46781,7 +46785,7 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD are_exceptions_class_based.
     DATA:
       lt_dokumentation    TYPE TABLE OF funct,
@@ -47001,10 +47005,17 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         canceled_in_corr        = 10
         undefined_error         = 11
         OTHERS                  = 12.
-    IF sy-subrc <> 0 AND sy-subrc <> 1 AND sy-subrc <> 3.
-* todo, change description
-      zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
-    ENDIF.
+
+    CASE sy-subrc.
+      WHEN 0.
+        " Everything is ok
+      WHEN 1 OR 3.
+        " If the function group exists we need to manually update the short text
+        update_func_group_short_text( iv_group      = lv_group
+                                      iv_short_text = lv_stext ).
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
+    ENDCASE.
 
   ENDMETHOD.                    "deserialize_xml
   METHOD functions.
@@ -47584,6 +47595,20 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "serialize
+
+  METHOD update_func_group_short_text.
+
+    " We update the short text directly.
+    " SE80 does the same in
+    "   Program SAPLSEUF / LSEUFF07
+    "   FORM GROUP_CHANGE
+
+    UPDATE tlibt SET areat = iv_short_text
+                 WHERE spras = sy-langu
+                 AND   area  = iv_group.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
@@ -59032,5 +59057,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-22T05:22:23.425Z
+* abapmerge - 2018-07-22T05:25:24.184Z
 ****************************************************
