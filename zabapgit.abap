@@ -2166,11 +2166,12 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
   PUBLIC SECTION.
     CLASS-METHODS pull
       IMPORTING
-        !io_repo    TYPE REF TO zcl_abapgit_repo_online
+        !io_repo        TYPE REF TO zcl_abapgit_repo_online
       EXPORTING
-        !et_files   TYPE zif_abapgit_definitions=>ty_files_tt
-        !et_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_branch  TYPE zif_abapgit_definitions=>ty_sha1
+        !et_files       TYPE zif_abapgit_definitions=>ty_files_tt
+        !et_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
+        !ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+        !eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS push
@@ -2301,6 +2302,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
                 it_branches    TYPE zif_abapgit_definitions=>ty_git_branch_list_tt OPTIONAL
       EXPORTING et_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
                 ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+                eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING   zcx_abapgit_exception.
 
 * local to remote
@@ -2335,6 +2337,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
                 iv_branch_name TYPE string
       EXPORTING eo_client      TYPE REF TO zcl_abapgit_http_client
                 ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+                eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS parse
@@ -10495,7 +10498,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
     DATA mv_branch TYPE zif_abapgit_definitions=>ty_sha1 .
     DATA mv_initialized TYPE abap_bool .
-    DATA mo_branches TYPE REF TO zcl_abapgit_git_branch_list .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mv_code_inspector_successful TYPE abap_bool .
 
@@ -10505,6 +10507,8 @@ CLASS zcl_abapgit_repo_online DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS actualize_head_branch
+      IMPORTING
+        io_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -13362,7 +13366,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD actualize_head_branch.
     DATA lv_branch_name TYPE string.
-    lv_branch_name = mo_branches->get_head( )-name.
+    lv_branch_name = io_branch_list->get_head( )-name.
 
     IF lv_branch_name <> ms_data-head_branch.
       set( iv_head_branch = lv_branch_name ).
@@ -13580,8 +13584,9 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.  " rebuild_local_checksums.
   METHOD refresh.
 
-    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
-          lx_exception TYPE REF TO zcx_abapgit_exception.
+    DATA: lo_progress    TYPE REF TO zcl_abapgit_progress,
+          lx_exception   TYPE REF TO zcx_abapgit_exception,
+          lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
 
     super->refresh( iv_drop_cache ).
     reset_status( ).
@@ -13595,14 +13600,14 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     zcl_abapgit_git_porcelain=>pull(
       EXPORTING
-        io_repo    = me
+        io_repo        = me
       IMPORTING
-        et_files   = mt_remote
-        et_objects = mt_objects
-        ev_branch  = mv_branch ).
+        et_files       = mt_remote
+        et_objects     = mt_objects
+        ev_branch      = mv_branch
+        eo_branch_list = lo_branch_list ).
 
-    mo_branches = zcl_abapgit_git_transport=>branches( get_url( ) ).
-    actualize_head_branch( ).
+    actualize_head_branch( lo_branch_list ).
 
     mv_initialized = abap_true.
 
@@ -56977,18 +56982,16 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   ENDMETHOD.                    "branch_list
   METHOD find_branch.
 
-    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
-
     branch_list(
       EXPORTING
         iv_url          = iv_url
         iv_service      = iv_service
       IMPORTING
         eo_client       = eo_client
-        eo_branch_list  = lo_branch_list ).
+        eo_branch_list  = eo_branch_list ).
 
     IF ev_branch IS SUPPLIED.
-      ev_branch = lo_branch_list->find_by_name( iv_branch_name )-sha1.
+      ev_branch = eo_branch_list->find_by_name( iv_branch_name )-sha1.
     ENDIF.
 
   ENDMETHOD.                    "find_branch
@@ -57096,7 +57099,9 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
           lv_capa     TYPE string.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
-    CLEAR et_objects.
+    CLEAR: et_objects,
+           ev_branch,
+           eo_branch_list.
 
     find_branch(
       EXPORTING
@@ -57105,6 +57110,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
         iv_branch_name = iv_branch_name
       IMPORTING
         eo_client      = lo_client
+        eo_branch_list = eo_branch_list
         ev_branch      = ev_branch ).
 
     IF it_branches IS INITIAL.
@@ -57344,6 +57350,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     CLEAR et_files.
     CLEAR et_objects.
     CLEAR ev_branch.
+    CLEAR eo_branch_list.
 
     zcl_abapgit_git_transport=>upload_pack(
       EXPORTING
@@ -57351,7 +57358,8 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         iv_branch_name = io_repo->get_branch_name( )
       IMPORTING
         et_objects     = et_objects
-        ev_branch      = ev_branch ).
+        ev_branch      = ev_branch
+        eo_branch_list = eo_branch_list ).
 
     READ TABLE et_objects INTO ls_object WITH KEY sha1 = ev_branch type = zif_abapgit_definitions=>gc_type-commit.
     IF sy-subrc <> 0.
@@ -58980,5 +58988,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-25T04:39:36.679Z
+* abapmerge - 2018-07-25T04:44:18.127Z
 ****************************************************
