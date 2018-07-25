@@ -7168,7 +7168,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
       zif_abapgit_gui_page~render
         REDEFINITION.
   PROTECTED SECTION.
-    DATA: mo_repo TYPE REF TO zcl_abapgit_repo_online.
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS:
       render_content REDEFINITION.
@@ -7188,7 +7188,9 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
     METHODS:
       build_menu
         RETURNING
-          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar,
+          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar
+        RAISING
+          zcx_abapgit_exception,
 
       run_code_inspector
         RAISING
@@ -10331,6 +10333,11 @@ CLASS zcl_abapgit_repo DEFINITION
         is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
       RAISING
         zcx_abapgit_exception .
+    METHODS run_code_inspector
+      RETURNING
+        value(rt_list) TYPE scit_alvlist
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -10338,6 +10345,7 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mv_do_local_refresh TYPE abap_bool .
     DATA mv_last_serialization TYPE timestamp .
     DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
+    DATA mv_code_inspector_successful TYPE abap_bool .
 
     METHODS set
       IMPORTING
@@ -10480,11 +10488,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS run_code_inspector
-      RETURNING
-        VALUE(rt_list) TYPE scit_alvlist
-      RAISING
-        zcx_abapgit_exception .
+
     METHODS deserialize
         REDEFINITION .
     METHODS get_files_remote
@@ -10499,7 +10503,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     DATA mv_branch TYPE zif_abapgit_definitions=>ty_sha1 .
     DATA mv_initialized TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
-    DATA mv_code_inspector_successful TYPE abap_bool .
 
     METHODS handle_stage_ignore
       IMPORTING
@@ -13619,31 +13622,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD reset_status.
     CLEAR mt_status.
   ENDMETHOD.  " reset_status.
-  METHOD run_code_inspector.
-
-    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
-          lv_check_variant  TYPE string.
-
-    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
-
-    IF lv_check_variant IS INITIAL.
-      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
-    ENDIF.
-
-    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
-                                  iv_package            = get_package( )
-                                  iv_check_variant_name = |{ lv_check_variant }| ).
-
-    rt_list = li_code_inspector->run( ).
-
-    DELETE rt_list WHERE kind = 'N'.
-
-    READ TABLE rt_list TRANSPORTING NO FIELDS
-                       WITH KEY kind = 'E'.
-
-    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
-
-  ENDMETHOD.
   METHOD set_branch_name.
 
     IF ms_data-local_settings-write_protected = abap_true.
@@ -13848,6 +13826,32 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   ENDMETHOD.  "list
 ENDCLASS.
 CLASS zcl_abapgit_repo IMPLEMENTATION.
+
+  METHOD run_code_inspector.
+
+    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
+          lv_check_variant  TYPE string.
+
+    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
+
+    IF lv_check_variant IS INITIAL.
+      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
+    ENDIF.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
+                                  iv_package            = get_package( )
+                                  iv_check_variant_name = |{ lv_check_variant }| ).
+
+    rt_list = li_code_inspector->run( ).
+
+    DELETE rt_list WHERE kind = 'N'.
+
+    READ TABLE rt_list TRANSPORTING NO FIELDS
+                       WITH KEY kind = 'E'.
+
+    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
+
+  ENDMETHOD.
   METHOD constructor.
 
     ASSERT NOT is_data-key IS INITIAL.
@@ -26286,7 +26290,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   METHOD build_menu.
 
     DATA: lv_opt TYPE c LENGTH 1.
@@ -26299,6 +26303,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     IF is_stage_allowed( ) = abap_false.
       lv_opt = zif_abapgit_definitions=>gc_html_opt-crossout.
+    ENDIF.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      RETURN.
     ENDIF.
 
     IF mo_stage IS BOUND.
@@ -26441,11 +26449,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
           ls_item        TYPE zif_abapgit_definitions=>ty_item.
-
-    lo_repo_online ?= mo_repo.
-
     CASE iv_action.
       WHEN c_actions-stage.
+
+        lo_repo_online ?= mo_repo.
 
         IF is_stage_allowed( ) = abap_true.
           " we need to refresh as the source might have changed
@@ -26465,11 +26472,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
       WHEN c_actions-commit.
 
+        lo_repo_online ?= mo_repo.
+
         IF is_stage_allowed( ) = abap_true.
 
           CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_commit
             EXPORTING
-              io_repo  = mo_repo
+              io_repo  = lo_repo_online
               io_stage = mo_stage.
           ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
 
@@ -58992,5 +59001,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-25T04:45:27.533Z
+* abapmerge - 2018-07-25T04:49:40.811Z
 ****************************************************
