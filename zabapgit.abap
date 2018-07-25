@@ -416,6 +416,7 @@ CLASS zcx_abapgit_not_found DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
+INTERFACE zif_abapgit_version DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
@@ -1178,8 +1179,6 @@ INTERFACE zif_abapgit_definitions.
            show_default_repo TYPE abap_bool,
          END OF ty_s_user_settings.
 
-  CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.72.1' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF gc_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -1916,6 +1915,13 @@ INTERFACE zif_abapgit_tadir
       VALUE(rs_tadir) TYPE tadir
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+INTERFACE zif_abapgit_version
+  .
+
+  CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.72.1' ##NO_TEXT.
+
 ENDINTERFACE.
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
@@ -15218,7 +15224,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       CREATE OBJECT ro_instance
         EXPORTING
           iv_rawdata          = <ls_file>-data
-          iv_current_version  = zif_abapgit_definitions=>gc_abap_version " TODO refactor
+          iv_current_version  = zif_abapgit_version=>gc_abap_version " TODO refactor
           iv_lastseen_version = normalize_version( lv_last_seen ).
     ENDIF.
 
@@ -18037,7 +18043,7 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
     ENDIF.
 
     li_git = mi_xml_doc->create_element( c_abapgit_tag ).
-    li_git->set_attribute( name = c_attr_version value = zif_abapgit_definitions=>gc_xml_version ).
+    li_git->set_attribute( name = c_attr_version value = zif_abapgit_version=>gc_xml_version ).
     IF NOT is_metadata IS INITIAL.
       li_git->set_attribute( name  = c_attr_serializer
                              value = is_metadata-class ).
@@ -18113,7 +18119,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
   METHOD display_xml_error.
 
     DATA: lv_version TYPE string.
-    lv_version = |abapGit version: { zif_abapgit_definitions=>gc_abap_version }|.
+    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|.
 
     CALL FUNCTION 'POPUP_TO_INFORM'
       EXPORTING
@@ -18179,7 +18185,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     li_element = mi_xml_doc->find_from_name_ns( depth = 0 name = c_abapgit_tag ).
     li_version = li_element->if_ixml_node~get_attributes(
       )->get_named_item_ns( c_attr_version ) ##no_text.
-    IF li_version->get_value( ) <> zif_abapgit_definitions=>gc_xml_version.
+    IF li_version->get_value( ) <> zif_abapgit_version=>gc_xml_version.
       display_xml_error( ).
     ENDIF.
 
@@ -26022,8 +26028,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
-    ro_html->add( |<p>abapGit version: { zif_abapgit_definitions=>gc_abap_version }</p>| ).
-    ro_html->add( |<p>XML version:     { zif_abapgit_definitions=>gc_xml_version }</p>| ).
+    ro_html->add( |<p>abapGit version: { zif_abapgit_version=>gc_abap_version }</p>| ).
+    ro_html->add( |<p>XML version:     { zif_abapgit_version=>gc_xml_version }</p>| ).
     ro_html->add( |<p>GUI version:     { lv_gui_version }</p>| ).
     ro_html->add( |<p>LCL_TIME:        { zcl_abapgit_time=>get( ) }</p>| ).
     ro_html->add( |<p>SY time:         { sy-datum } { sy-uzeit } { sy-tzone }</p>| ).
@@ -26941,7 +26947,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
 
     ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
-    ro_html->add( |<td><span class="version">{ zif_abapgit_definitions=>gc_abap_version }</span></td>| ). "#EC NOTEXT
+    ro_html->add( |<td><span class="version">{ zif_abapgit_version=>gc_abap_version }</span></td>| ). "#EC NOTEXT
     ro_html->add( '<td id="debug-output" class="w40"></td>' ). "#EC NOTEXT
 
     ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
@@ -56355,7 +56361,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 
 * bitbucket require agent prefix = "git/"
 * also see https://github.com/larshp/abapGit/issues/1432
-    rv_agent = |git/2.0 (abapGit { zif_abapgit_definitions=>gc_abap_version })|.
+    rv_agent = |git/2.0 (abapGit { zif_abapgit_version=>gc_abap_version })|.
 
   ENDMETHOD.
   METHOD is_local_system.
@@ -58974,5 +58980,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-24T03:15:06.612Z
+* abapmerge - 2018-07-25T04:39:36.679Z
 ****************************************************
