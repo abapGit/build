@@ -1740,6 +1740,8 @@ INTERFACE zif_abapgit_persistence.
            package         TYPE devclass,
            created_by      TYPE xubname,
            created_at      TYPE timestampl,
+           deserialized_by TYPE xubname,
+           deserialized_at TYPE timestampl,
            offline         TYPE sap_bool,
            local_checksums TYPE ty_local_checksum_tt,
            dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
@@ -6371,10 +6373,18 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
         zcx_abapgit_exception .
     METHODS update_local_settings
       IMPORTING
-        !iv_key      TYPE zif_abapgit_persistence=>ty_repo-key
-        !is_settings TYPE zif_abapgit_persistence=>ty_repo_xml-local_settings
+        iv_key      TYPE zif_abapgit_persistence=>ty_repo-key
+        is_settings TYPE zif_abapgit_persistence=>ty_repo_xml-local_settings
       RAISING
         zcx_abapgit_exception .
+    METHODS update_deserialized
+      IMPORTING
+        iv_key             TYPE zif_abapgit_persistence=>ty_value
+        iv_deserialized_at TYPE timestampl
+        iv_deserialized_by TYPE xubname
+      RAISING
+        zcx_abapgit_exception.
+
   PRIVATE SECTION.
 
     DATA mo_db TYPE REF TO zcl_abapgit_persistence_db .
@@ -7578,15 +7588,17 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_overview,
-        favorite   TYPE string,
-        type       TYPE string,
-        key        TYPE string,
-        name       TYPE string,
-        url        TYPE string,
-        package    TYPE string,
-        branch     TYPE string,
-        created_by TYPE string,
-        created_at TYPE string,
+        favorite        TYPE string,
+        type            TYPE string,
+        key             TYPE string,
+        name            TYPE string,
+        url             TYPE string,
+        package         TYPE string,
+        branch          TYPE string,
+        created_by      TYPE string,
+        created_at      TYPE string,
+        deserialized_by TYPE string,
+        deserialized_at TYPE string,
       END OF ty_overview,
       tty_overview TYPE STANDARD TABLE OF ty_overview
                    WITH NON-UNIQUE DEFAULT KEY.
@@ -10339,7 +10351,6 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
-
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
     DATA mv_do_local_refresh TYPE abap_bool .
@@ -10349,15 +10360,23 @@ CLASS zcl_abapgit_repo DEFINITION
 
     METHODS set
       IMPORTING
-        !it_checksums      TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
-        !iv_url            TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
-        !iv_branch_name    TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
-        !iv_head_branch    TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
-        !iv_offline        TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
-        !is_dot_abapgit    TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
-        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
+        !it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
+        !iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
+        !iv_branch_name     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
+        !iv_head_branch     TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
+        !iv_offline         TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
+        !is_dot_abapgit     TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
+        !is_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
+        !iv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at OPTIONAL
+        !iv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by OPTIONAL
       RAISING
         zcx_abapgit_exception .
+
+  PRIVATE SECTION.
+    METHODS:
+      update_last_deserialize
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
@@ -13896,6 +13915,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     CLEAR: mt_local, mv_last_serialization.
 
     update_local_checksums( lt_updated_files ).
+    update_last_deserialize( ).
 
   ENDMETHOD.
   METHOD deserialize_checks.
@@ -14133,7 +14153,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       OR iv_head_branch IS SUPPLIED
       OR iv_offline IS SUPPLIED
       OR is_dot_abapgit IS SUPPLIED
-      OR is_local_settings IS SUPPLIED.
+      OR is_local_settings IS SUPPLIED
+      OR iv_deserialized_by IS SUPPLIED
+      OR iv_deserialized_at IS SUPPLIED.
 
     CREATE OBJECT lo_persistence.
 
@@ -14184,6 +14206,15 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
         iv_key      = ms_data-key
         is_settings = is_local_settings ).
       ms_data-local_settings = is_local_settings.
+    ENDIF.
+
+    IF iv_deserialized_at IS SUPPLIED
+    OR iv_deserialized_by IS SUPPLIED.
+      lo_persistence->update_deserialized(
+        iv_key             = ms_data-key
+        iv_deserialized_at = iv_deserialized_at
+        iv_deserialized_by = iv_deserialized_by ).
+      ms_data-deserialized_at = iv_deserialized_at.
     ENDIF.
 
   ENDMETHOD.
@@ -14277,6 +14308,18 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.  " update_local_checksums
+  METHOD update_last_deserialize.
+
+    DATA: lv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at,
+          lv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by.
+
+    GET TIME STAMP FIELD lv_deserialized_at.
+    lv_deserialized_by = sy-uname.
+
+    set( iv_deserialized_at = lv_deserialized_at
+         iv_deserialized_by = lv_deserialized_by ).
+
+  ENDMETHOD.
 
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
@@ -24195,13 +24238,15 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     IF mv_filter IS NOT INITIAL.
 
-      DELETE ct_overview WHERE key        NS mv_filter
-                           AND name       NS mv_filter
-                           AND url        NS mv_filter
-                           AND package    NS mv_filter
-                           AND branch     NS mv_filter
-                           AND created_by NS mv_filter
-                           AND created_at NS mv_filter.
+      DELETE ct_overview WHERE key             NS mv_filter
+                           AND name            NS mv_filter
+                           AND url             NS mv_filter
+                           AND package         NS mv_filter
+                           AND branch          NS mv_filter
+                           AND created_by      NS mv_filter
+                           AND created_at      NS mv_filter
+                           AND deserialized_by NS mv_filter
+                           AND deserialized_at NS mv_filter.
 
     ENDIF.
 
@@ -24271,6 +24316,17 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
                      TIME lv_time.
 
         ls_overview-created_at = |{ lv_date DATE = USER } { lv_time TIME = USER }|.
+      ENDIF.
+
+      ls_overview-deserialized_by = <ls_repo>-deserialized_by.
+
+      IF <ls_repo>-deserialized_at IS NOT INITIAL.
+        CONVERT TIME STAMP <ls_repo>-deserialized_at
+                TIME ZONE mv_time_zone
+                INTO DATE lv_date
+                     TIME lv_time.
+
+        ls_overview-deserialized_at = |{ lv_date DATE = USER } { lv_time TIME = USER }|.
       ENDIF.
 
       INSERT ls_overview INTO TABLE rt_overview.
@@ -24425,6 +24481,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     io_html->add( |<th>Branch name</th>| ).
     io_html->add( |<th>Creator</th>| ).
     io_html->add( |<th>Created at [{ mv_time_zone }]</th>| ).
+    io_html->add( |<th>Deserialized by</th>| ).
+    io_html->add( |<th>Deserialized at [{ mv_time_zone }]</th>| ).
     io_html->add( |<th></th>| ).
     io_html->add( '</tr>' ).
     io_html->add( '</thead>' ).
@@ -24488,6 +24546,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       io_html->add( |<td>{ <ls_overview>-branch }</td>| ).
       io_html->add( |<td>{ <ls_overview>-created_by }</td>| ).
       io_html->add( |<td>{ <ls_overview>-created_at }</td>| ).
+      io_html->add( |<td>{ <ls_overview>-deserialized_by }</td>| ).
+      io_html->add( |<td>{ <ls_overview>-deserialized_at }</td>| ).
       io_html->add( |<td>| ).
       io_html->add( |</td>| ).
       io_html->add( |</tr>| ).
@@ -24521,6 +24581,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
                          io_html   = io_html ).
 
     add_order_by_option( iv_option = |CREATED_AT|
+                         io_html   = io_html ).
+
+    add_order_by_option( iv_option = |DESERIALIZED_BY|
+                         io_html   = io_html ).
+
+    add_order_by_option( iv_option = |DESERIALIZED_AT|
                          io_html   = io_html ).
 
     io_html->add( |</select>| ).
@@ -30495,6 +30561,36 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
                    iv_data  = ls_content-data_str ).
 
   ENDMETHOD.
+
+  METHOD update_deserialized.
+
+    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
+          ls_content LIKE LINE OF lt_content,
+          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
+
+    ASSERT NOT iv_key IS INITIAL.
+
+    TRY.
+        ls_repo = read( iv_key ).
+      CATCH zcx_abapgit_not_found.
+        zcx_abapgit_exception=>raise( 'key not found' ).
+    ENDTRY.
+
+    IF iv_deserialized_at IS NOT INITIAL.
+      ls_repo-deserialized_at = iv_deserialized_at.
+    ENDIF.
+
+    IF iv_deserialized_by IS NOT INITIAL.
+      ls_repo-deserialized_by = iv_deserialized_by.
+    ENDIF.
+
+    ls_content-data_str = to_xml( ls_repo ).
+
+    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+                   iv_value = iv_key
+                   iv_data  = ls_content-data_str ).
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
@@ -59001,5 +59097,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-25T04:49:40.811Z
+* abapmerge - 2018-07-25T04:51:29.323Z
 ****************************************************
