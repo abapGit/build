@@ -40420,7 +40420,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
       EXCEPTIONS
         OTHERS              = 0.
 
-    SET PARAMETER ID 'EUK' FIELD iv_package.
+    set_default_package( iv_package ).
     ASSIGN ('(SAPLSTXBS)MASTER_LANGUAGE') TO <lv_spras>.
     IF sy-subrc = 0.
       <lv_spras> = ls_header-masterlang.
@@ -42873,13 +42873,12 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
     lo_switch->set_parent_bf( lt_parent_bf ).
     lo_switch->set_conflicts( lt_conflicts ).
 
-* magic, see function module RS_CORR_INSERT, FORM get_current_devclass
-    SET PARAMETER ID 'EUK' FIELD iv_package.
+    set_default_package( iv_package ).
     lo_switch->save_all(
       EXCEPTIONS
         not_saved = 1
         OTHERS    = 2 ).
-    SET PARAMETER ID 'EUK' FIELD ''.
+
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error in CL_SFW_SW->SAVE_ALL' ).
     ENDIF.
@@ -43390,10 +43389,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
     lo_bfs->set_assigned_bfs( lt_nested_bfs ).
     lo_bfs->set_nested_parent( lt_parent_bfs ).
 
-* magic, see function module RS_CORR_INSERT, FORM get_current_devclass
-    SET PARAMETER ID 'EUK' FIELD iv_package.
+    set_default_package( iv_package ).
     lo_bfs->save_all( ).
-    SET PARAMETER ID 'EUK' FIELD ''.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -43593,10 +43590,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
         im_sfw_bfc_tc = ls_sfw_bfc_tc ).
     lo_bf->set_parent_bfs( lt_parent_bfs ).
 
-* magic, see function module RS_CORR_INSERT, FORM get_current_devclass
-    SET PARAMETER ID 'EUK' FIELD iv_package.
+    set_default_package( iv_package ).
     lo_bf->save_all( ).
-    SET PARAMETER ID 'EUK' FIELD ''.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -59113,5 +59108,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-25T13:02:34.697Z
+* abapmerge - 2018-07-25T14:18:11.711Z
 ****************************************************
