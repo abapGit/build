@@ -3558,10 +3558,13 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
                   iv_field TYPE string
         RAISING   zcx_abapgit_exception,
       exists_a_lock_entry_for
-        IMPORTING iv_lock_object                 TYPE string
-                  iv_argument                    TYPE seqg3-garg OPTIONAL
+        IMPORTING iv_lock_object                TYPE string
+                  iv_argument                   TYPE seqg3-garg OPTIONAL
         RETURNING VALUE(rv_exists_a_lock_entry) TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception,
+      set_default_package
+        IMPORTING
+          iv_package TYPE devclass.
 
   PRIVATE SECTION.
 
@@ -32298,6 +32301,22 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_objects_super IMPLEMENTATION.
+
+  METHOD set_default_package.
+
+    " In certain cases we need to set the package package via ABAP memory
+    " because we can't supply it via the APIs.
+    "
+    " Set default package, see function module RS_CORR_INSERT FORM get_current_devclass.
+    "
+    " We use ABAP memory instead the SET parameter because it is
+    " more reliable. SET parameter doesn't work when multiple objects
+    " are deserialized which uses the ABAP memory mechanism.
+    " We don't need to reset the memory as it is done in above mentioned form routine.
+
+    EXPORT current_devclass FROM iv_package TO MEMORY ID 'EUK'.
+
+  ENDMETHOD.
   METHOD check_timestamp.
 
     DATA: lv_ts TYPE timestamp.
@@ -54001,12 +54020,9 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
       im_values   = ls_char-cls_attr_value
       im_values_t = ls_char-cls_attr_valuet ).
 
-* set default package, see function module RS_CORR_INSERT
-    SET PARAMETER ID 'EUK' FIELD iv_package.
+    set_default_package( iv_package ).
 
     lo_char->if_pak_wb_object~save( ).
-
-    SET PARAMETER ID 'EUK' FIELD ''.
 
     lo_char->if_pak_wb_object~activate( ).
 
@@ -59097,5 +59113,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-25T04:51:29.323Z
+* abapmerge - 2018-07-25T13:02:34.697Z
 ****************************************************
