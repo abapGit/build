@@ -16311,9 +16311,12 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         IF lv_sub_fetched = abap_false.
           lt_sub_packages = zcl_abapgit_factory=>get_sap_package( iv_devclass )->list_subpackages( ).
           lv_sub_fetched = abap_true.
+          SORT lt_sub_packages BY table_line. "Optimize Read Access
         ENDIF.
 * make sure the package is under the repo main package
-        READ TABLE lt_sub_packages WITH KEY table_line = ls_item-devclass TRANSPORTING NO FIELDS.
+        READ TABLE lt_sub_packages TRANSPORTING NO FIELDS
+          WITH KEY table_line = ls_item-devclass
+          BINARY SEARCH.
         IF sy-subrc <> 0.
           CLEAR ls_item-devclass.
         ENDIF.
@@ -59130,5 +59133,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-26T11:38:51.165Z
+* abapmerge - 2018-07-26T11:40:43.953Z
 ****************************************************
