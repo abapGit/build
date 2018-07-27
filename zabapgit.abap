@@ -10324,7 +10324,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize
       IMPORTING
-        VALUE(is_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_exception .
     METHODS refresh
@@ -13080,7 +13080,8 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
     SELECT devclass FROM tdevc
       INTO TABLE rt_list
-      WHERE parentcl = mv_package.      "#EC CI_GENBUFF "#EC CI_SUBRC
+      WHERE parentcl = mv_package
+      ORDER BY PRIMARY KEY.               "#EC CI_GENBUFF "#EC CI_SUBRC
     lv_children = sy-dbcnt.
 
     LOOP AT rt_list INTO lv_devclass FROM 1 TO lv_children.
@@ -13862,33 +13863,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
   ENDMETHOD.  "list
 ENDCLASS.
-CLASS zcl_abapgit_repo IMPLEMENTATION.
-
-  METHOD run_code_inspector.
-
-    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
-          lv_check_variant  TYPE string.
-
-    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
-
-    IF lv_check_variant IS INITIAL.
-      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
-    ENDIF.
-
-    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
-                                  iv_package            = get_package( )
-                                  iv_check_variant_name = |{ lv_check_variant }| ).
-
-    rt_list = li_code_inspector->run( ).
-
-    DELETE rt_list WHERE kind = 'N'.
-
-    READ TABLE rt_list TRANSPORTING NO FIELDS
-                       WITH KEY kind = 'E'.
-
-    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     ASSERT NOT is_data-key IS INITIAL.
@@ -13904,6 +13879,14 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     lo_persistence->delete( ms_data-key ).
 
   ENDMETHOD.                    "delete
+  METHOD delete_checks.
+
+    DATA: li_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_package = zcl_abapgit_factory=>get_sap_package( get_package( ) ).
+    rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
+
+  ENDMETHOD.
   METHOD deserialize.
 
     DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
@@ -13952,14 +13935,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
     rs_checks-requirements-met = zcl_abapgit_requirement_helper=>is_requirements_met(
       lt_requirements ).
-
-  ENDMETHOD.
-  METHOD delete_checks.
-
-    DATA: li_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_package = zcl_abapgit_factory=>get_sap_package( get_package( ) ).
-    rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -14160,6 +14135,31 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.                    "refresh
+  METHOD run_code_inspector.
+
+    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
+          lv_check_variant  TYPE string.
+
+    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
+
+    IF lv_check_variant IS INITIAL.
+      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
+    ENDIF.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
+                                  iv_package            = get_package( )
+                                  iv_check_variant_name = |{ lv_check_variant }| ).
+
+    rt_list = li_code_inspector->run( ).
+
+    DELETE rt_list WHERE kind = 'N'.
+
+    READ TABLE rt_list TRANSPORTING NO FIELDS
+                       WITH KEY kind = 'E'.
+
+    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
+
+  ENDMETHOD.
   METHOD set.
 
 * TODO: refactor
@@ -14249,6 +14249,18 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( is_local_settings = is_settings ).
 
   ENDMETHOD.
+  METHOD update_last_deserialize.
+
+    DATA: lv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at,
+          lv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by.
+
+    GET TIME STAMP FIELD lv_deserialized_at.
+    lv_deserialized_by = sy-uname.
+
+    set( iv_deserialized_at = lv_deserialized_at
+         iv_deserialized_by = lv_deserialized_by ).
+
+  ENDMETHOD.
   METHOD update_local_checksums.
 
     " ASSUMTION: SHA1 in param is actual and correct.
@@ -14326,19 +14338,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.  " update_local_checksums
-  METHOD update_last_deserialize.
-
-    DATA: lv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at,
-          lv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by.
-
-    GET TIME STAMP FIELD lv_deserialized_at.
-    lv_deserialized_by = sy-uname.
-
-    set( iv_deserialized_at = lv_deserialized_at
-         iv_deserialized_by = lv_deserialized_by ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -17730,7 +17729,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_background IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
   METHOD build_comment.
 
     DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -17757,11 +17756,7 @@ CLASS zcl_abapgit_background IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_user_details.
 
-    DATA: lt_return             TYPE TABLE OF bapiret2,
-          ls_address            TYPE bapiaddr3,
-          lt_smtp               TYPE TABLE OF bapiadsmtp,
-          ls_smtp               TYPE bapiadsmtp,
-          lo_user_master_record TYPE REF TO zcl_abapgit_user_master_record.
+    DATA: lo_user_master_record TYPE REF TO zcl_abapgit_user_master_record.
 
 *   IF the method is to use real user values, call the BAPI
     IF iv_method = zcl_abapgit_persist_background=>c_amethod-user.
@@ -59147,5 +59142,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-27T11:20:14.100Z
+* abapmerge - 2018-07-27T11:21:47.101Z
 ****************************************************
