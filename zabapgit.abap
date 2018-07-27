@@ -53979,7 +53979,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
           lv_text        TYPE string.
 
     FIELD-SYMBOLS: <ls_value>  LIKE LINE OF ls_char-cls_attr_value,
-                   <ls_valuet> LIKE LINE OF ls_char-cls_attr_value.
+                   <ls_valuet> LIKE LINE OF ls_char-cls_attr_valuet.
     io_xml->read( EXPORTING iv_name = 'CHAR'
                   CHANGING cg_data = ls_char ).
 
@@ -54024,8 +54024,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
         LOOP AT ls_char-cls_attr_value ASSIGNING <ls_value>.
           <ls_value>-activation_state = 'I'.
         ENDLOOP.
-        LOOP AT ls_char-cls_attr_value ASSIGNING <ls_valuet>.
-          <ls_value>-activation_state = 'I'.
+        LOOP AT ls_char-cls_attr_valuet ASSIGNING <ls_valuet>.
+          <ls_valuet>-activation_state = 'I'.
         ENDLOOP.
 
         lo_char->if_cls_attribute~set_values(
@@ -59133,5 +59133,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-26T11:40:43.953Z
+* abapmerge - 2018-07-27T04:18:49.993Z
 ****************************************************
