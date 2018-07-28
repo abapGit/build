@@ -31342,7 +31342,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
       CLEAR ct_source.
     ENDIF.
 
-  ENDMETHOD.                    "reduce
+  ENDMETHOD.
   METHOD remove_signatures.
 
 * signatures messes up in CL_OO_SOURCE when deserializing and serializing
@@ -31375,7 +31375,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "remove_signatures
+  ENDMETHOD.
   METHOD serialize_abap_clif_source.
     TRY.
         rt_source = serialize_abap_new( is_class_key ).
@@ -31424,7 +31424,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
     rt_source = lo_source->get_old_source( ).
     remove_signatures( CHANGING ct_source = rt_source ).
 
-  ENDMETHOD.                    "serialize_abap
+  ENDMETHOD.
   METHOD serialize_locals_def.
 
     rt_source = read_include( is_clskey = is_clskey
@@ -31432,7 +31432,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
     reduce( CHANGING ct_source = rt_source ).
 
-  ENDMETHOD.                    "serialize_locals_def
+  ENDMETHOD.
   METHOD serialize_locals_imp.
 
     rt_source = read_include( is_clskey = is_clskey
@@ -31440,7 +31440,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
     reduce( CHANGING ct_source = rt_source ).
 
-  ENDMETHOD.                    "serialize_local
+  ENDMETHOD.
   METHOD serialize_macros.
 
     rt_source = read_include( is_clskey = is_clskey
@@ -31448,7 +31448,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
     reduce( CHANGING ct_source = rt_source ).
 
-  ENDMETHOD.                    "serialize_macro
+  ENDMETHOD.
   METHOD serialize_testclasses.
 
     rt_source = read_include( is_clskey = is_clskey
@@ -31456,7 +31456,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
     mv_skip_testclass = calculate_skip_testclass( rt_source ).
 
-  ENDMETHOD.                    "serialize_test
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create.
@@ -32413,7 +32413,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     ASSERT NOT ms_item IS INITIAL.
     mv_language = iv_language.
     ASSERT NOT mv_language IS INITIAL.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD corr_insert.
 
     DATA: ls_object TYPE ddenqs.
@@ -32438,7 +32438,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
     ENDIF.
 
-  ENDMETHOD.                    "corr_insert
+  ENDMETHOD.
   METHOD exists_a_lock_entry_for.
 
     DATA: lt_lock_entries TYPE STANDARD TABLE OF seqg3.
@@ -32476,7 +32476,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     rs_metadata-class = lv_class.
     rs_metadata-version = 'v1.0.0' ##no_text.
 
-  ENDMETHOD.                    "get_metadata
+  ENDMETHOD.
   METHOD is_adt_jump_possible.
 
     DATA: lo_wb_request         TYPE REF TO cl_wb_request,
@@ -32618,7 +32618,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
         OTHERS                = 4
         ##fm_subrc_ok.                                                   "#EC CI_SUBRC
 
-  ENDMETHOD.                                                "jump_se11
+  ENDMETHOD.
   METHOD tadir_insert.
 
     CALL FUNCTION 'TR_TADIR_INTERFACE'
@@ -32719,7 +32719,7 @@ CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } | && lv_objname ).
     ENDIF.
 
-  ENDMETHOD.                    "lock
+  ENDMETHOD.
   METHOD unlock.
 
     DATA: lv_objname    TYPE trobj_name,
@@ -32734,7 +32734,7 @@ CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
                             p_object_key = lv_object_key
                             p_objtype_tr = lv_objtype ).
 
-  ENDMETHOD.                    "unlock
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lr_data TYPE REF TO data.
@@ -33124,7 +33124,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     io_files->add_abap( iv_extra = iv_extra
                         it_abap  = lt_source ).
 
-  ENDMETHOD.                    "serialize_program
+  ENDMETHOD.
 
   METHOD deserialize_program.
 
@@ -33287,7 +33287,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       iv_type = 'REPS'
       iv_name = is_progdir-name ).
 
-  ENDMETHOD.                    "deserialize_program
+  ENDMETHOD.
 
   METHOD read_progdir.
 
@@ -33313,7 +33313,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
            rs_progdir-idate,
            rs_progdir-itime.
 
-  ENDMETHOD.                    "read_progdir
+  ENDMETHOD.
 
   METHOD serialize_cua.
 
@@ -33344,7 +33344,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_FETCH' ).
     ENDIF.
 
-  ENDMETHOD.                    "serialize_cua
+  ENDMETHOD.
 
   METHOD serialize_dynpros.
 
@@ -33414,7 +33414,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "serialize_dynpros
+  ENDMETHOD.
   METHOD deserialize_dynpros.
 
     DATA: lv_name   TYPE dwinactiv-obj_name,
@@ -33461,7 +33461,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize_dynpros
+  ENDMETHOD.
 
   METHOD add_tpool.
 
@@ -33476,7 +33476,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "add_tpool
+  ENDMETHOD.
 
   METHOD read_tpool.
 
@@ -33492,7 +33492,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "read_tpool
+  ENDMETHOD.
 
   METHOD deserialize_textpool.
 
@@ -33548,7 +33548,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         iv_name   = iv_program
         iv_delete = lv_delete ).
     ENDIF.
-  ENDMETHOD.                    "deserialize_textpool
+  ENDMETHOD.
 
   METHOD deserialize_cua.
 
@@ -33613,7 +33613,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       iv_type = 'CUAD'
       iv_name = iv_program_name ).
 
-  ENDMETHOD.                    "deserialize_cua
+  ENDMETHOD.
 
   METHOD check_prog_changed_since.
 
@@ -33689,9 +33689,9 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "check_prog_changed_since
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_objects_program IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD after_import.
 
@@ -34212,7 +34212,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   METHOD add.
     APPEND is_file TO mt_files.
-  ENDMETHOD.                    "add
+  ENDMETHOD.
   METHOD add_abap.
 
     DATA: lv_source TYPE string,
@@ -34228,7 +34228,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     APPEND ls_file TO mt_files.
 
-  ENDMETHOD.                    "abap_to_file
+  ENDMETHOD.
   METHOD add_raw.
 
     DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
@@ -34240,7 +34240,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     APPEND ls_file TO mt_files.
 
-  ENDMETHOD.                    "add_raw
+  ENDMETHOD.
   METHOD add_string.
 
     DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
@@ -34251,7 +34251,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     APPEND ls_file TO mt_files.
 
-  ENDMETHOD.                    "add_string
+  ENDMETHOD.
   METHOD add_xml.
 
     DATA: lv_xml  TYPE string,
@@ -34273,7 +34273,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     APPEND ls_file TO mt_files.
 
-  ENDMETHOD.                    "do
+  ENDMETHOD.
   METHOD add_xml_from_plugin.
 *    this method wraps add_xml as in the plugin. This is necessary as the wrapped
 *    xml-object in the plugin can only be typed to object.
@@ -34288,11 +34288,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       io_xml       = lo_xml
       iv_normalize = iv_normalize ).
 
-  ENDMETHOD.                    "add_xml_from_plugin
+  ENDMETHOD.
   METHOD constructor.
     ms_item = is_item.
     mv_path = iv_path.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD filename.
 
     DATA: lv_obj_name TYPE string.
@@ -34316,13 +34316,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
     TRANSLATE rv_filename TO LOWER CASE.
 
-  ENDMETHOD.                    "filename
+  ENDMETHOD.
   METHOD get_accessed_files.
     rt_files = mt_accessed_files.
-  ENDMETHOD.  " get_accessed_files.
+  ENDMETHOD.
   METHOD get_files.
     rt_files = mt_files.
-  ENDMETHOD.                    "get_files
+  ENDMETHOD.
   METHOD read_abap.
 
     DATA: lv_filename TYPE string,
@@ -34343,7 +34343,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     SPLIT lv_abap AT zif_abapgit_definitions=>gc_newline INTO TABLE rt_abap.
 
-  ENDMETHOD.                    "read_abap
+  ENDMETHOD.
   METHOD read_file.
 
     FIELD-SYMBOLS: <ls_file>     LIKE LINE OF mt_files,
@@ -34376,7 +34376,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     ev_data = <ls_file>-data.
 
-  ENDMETHOD.  " read_file.
+  ENDMETHOD.
   METHOD read_raw.
 
     DATA: lv_filename TYPE string.
@@ -34387,7 +34387,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     read_file( EXPORTING iv_filename = lv_filename
                IMPORTING ev_data     = rv_data ).
 
-  ENDMETHOD.                    "read_raw
+  ENDMETHOD.
   METHOD read_string.
 
     DATA: lv_filename TYPE string,
@@ -34401,7 +34401,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     rv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
-  ENDMETHOD.                    "read_string
+  ENDMETHOD.
   METHOD read_xml.
 
     DATA: lv_filename TYPE string,
@@ -34420,10 +34420,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       EXPORTING
         iv_xml = lv_xml.
 
-  ENDMETHOD.                    "read_xml
+  ENDMETHOD.
   METHOD set_files.
     mt_files = it_files.
-  ENDMETHOD.                    "set_files
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
@@ -34436,7 +34436,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
     update_where_used( ).
 
-  ENDMETHOD.                    "activate
+  ENDMETHOD.
   METHOD activate_ddic.
 
     DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
@@ -34619,15 +34619,15 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
         <ls_object>-delet_flag = iv_delete.
     ENDCASE.
 
-  ENDMETHOD.                    "activate
+  ENDMETHOD.
   METHOD add_item.
     add( iv_type = is_item-obj_type
          iv_name = is_item-obj_name ).
-  ENDMETHOD.                    "add_item
+  ENDMETHOD.
   METHOD clear.
     CLEAR gt_objects.
     CLEAR gt_classes.
-  ENDMETHOD.                    "clear
+  ENDMETHOD.
   METHOD fix_class_methods.
 * function module RS_WORKING_OBJECTS_ACTIVATE assumes that
 * METH lines contains spaces between class and method name
@@ -34748,7 +34748,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -34816,7 +34816,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
                           iv_ext    = 'xml'
                           iv_string = lv_source ) ##NO_TEXT.
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -34867,7 +34867,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -34894,7 +34894,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
     lo_xslt->delete( ).
     lo_xslt->save( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -34908,7 +34908,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
       rv_bool = abap_false.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -34918,11 +34918,11 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -34934,7 +34934,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_xslt IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   METHOD constructor.
 
@@ -34982,7 +34982,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from RS_DD_INDX_DELETE { sy-subrc }| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_extension_index TYPE ty_extension_index,
@@ -35034,7 +35034,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Cannot activate extension index { mv_id } of table { mv_name }| ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_dd12v TYPE dd12v.
@@ -35051,13 +35051,13 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     rv_bool = boolc( lv_dd12v IS NOT INITIAL ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -35075,7 +35075,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS { sy-subrc }| ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_extension_index TYPE ty_extension_index.
@@ -35104,7 +35104,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     io_xml->add( iv_name = 'XINX'
                  ig_data = ls_extension_index ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -35149,7 +35149,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       data_version = '1'
       data         = <ls_function>-function ).
 
-  ENDMETHOD.                    "handle_endpoint
+  ENDMETHOD.
   METHOD handle_function.
 
     CONSTANTS: BEGIN OF lc_parameter_type,
@@ -35223,7 +35223,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "handle_function
+  ENDMETHOD.
   METHOD handle_soap.
 
     DATA: li_soap TYPE REF TO if_ws_md_soap_ext_virtinfc,
@@ -35238,7 +35238,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
     li_soap = mi_vi->create_soap_extension_virtinfc( ls_soap-soap_appl_uri ).
     li_soap->set_namespace( ls_soap-namespace ).
 
-  ENDMETHOD.                    "handle_soap
+  ENDMETHOD.
   METHOD handle_types.
 
     DATA: lv_index TYPE i,
@@ -35316,10 +35316,10 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "handle_types
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
@@ -35336,7 +35336,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deleting WEBI' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_webi   TYPE ty_webi,
@@ -35389,7 +35389,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE vepname.
@@ -35399,13 +35399,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       name      = lv_name
       i_version = sews_c_vif_version-active ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -35415,7 +35415,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
         object_type   = ms_item-obj_type
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_webi    TYPE ty_webi,
@@ -35486,7 +35486,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
     io_xml->add( iv_name = 'WEBI'
                  ig_data = ls_webi ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -35505,7 +35505,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     INSERT ls_exception INTO TABLE ct_exception.
 
-  ENDMETHOD.                    "add_fm_exception
+  ENDMETHOD.
   METHOD add_fm_param_exporting.
 
     DATA: ls_param LIKE LINE OF ct_param.
@@ -35516,7 +35516,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     INSERT ls_param INTO TABLE ct_param.
 
-  ENDMETHOD.                    "add_fm_param_exporting
+  ENDMETHOD.
   METHOD add_fm_param_tables.
 
     DATA: ls_param LIKE LINE OF ct_param.
@@ -35527,7 +35527,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     INSERT ls_param INTO TABLE ct_param.
 
-  ENDMETHOD.                    "add_fm_param_tables
+  ENDMETHOD.
   METHOD delta_controller.
 
     DATA: li_controller TYPE REF TO if_wdy_md_controller,
@@ -35620,7 +35620,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
 
-  ENDMETHOD.                    "delta_controller
+  ENDMETHOD.
   METHOD delta_definition.
 
     DATA: ls_key       TYPE wdy_md_component_key,
@@ -35673,7 +35673,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
 
-  ENDMETHOD.                    "delta_definition
+  ENDMETHOD.
   METHOD delta_view.
 
     DATA: ls_key     TYPE wdy_md_view_key,
@@ -35741,7 +35741,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
 
-  ENDMETHOD.                    "delta_view
+  ENDMETHOD.
   METHOD get_limu_objects.
 
     DATA: lv_name TYPE wdy_component_name.
@@ -35752,7 +35752,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       IMPORTING
         limu_objects   = rt_objects.
 
-  ENDMETHOD.                    "get_limu_objects
+  ENDMETHOD.
   METHOD read.
 
     DATA: lt_objects        TYPE wdy_md_transport_keys,
@@ -35824,7 +35824,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       cmpname ASCENDING
       line_number ASCENDING.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
   METHOD read_controller.
 
     DATA: lt_components   TYPE TABLE OF wdy_ctlr_compo_vrs,
@@ -35934,7 +35934,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
            rs_controller-definition-changedby,
            rs_controller-definition-changedon.
 
-  ENDMETHOD.                    "read_controller
+  ENDMETHOD.
   METHOD read_definition.
 
     DATA: lt_definition TYPE TABLE OF wdy_component,
@@ -35975,7 +35975,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
            rs_definition-definition-gendate,
            rs_definition-definition-gentime.
 
-  ENDMETHOD.                    "read_definition
+  ENDMETHOD.
   METHOD read_view.
 
     DATA: lt_definition TYPE TABLE OF wdy_view_vrs,
@@ -36024,7 +36024,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
            rs_view-definition-changedby,
            rs_view-definition-changedon.
 
-  ENDMETHOD.                    "read_view
+  ENDMETHOD.
   METHOD recover_controller.
 
     DATA: ls_key    TYPE wdy_controller_key,
@@ -36041,7 +36041,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       CHANGING
         corrnr         = lv_corrnr ).
 
-  ENDMETHOD.                    "recover_controller
+  ENDMETHOD.
   METHOD recover_definition.
 
     DATA: ls_key    TYPE wdy_md_component_key,
@@ -36060,7 +36060,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       CHANGING
         corrnr        = lv_corrnr ).
 
-  ENDMETHOD.                    "recover_definition
+  ENDMETHOD.
   METHOD recover_view.
 
     DATA: ls_key    TYPE wdy_md_view_key,
@@ -36077,10 +36077,10 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       CHANGING
         corrnr   = lv_corrnr ).
 
-  ENDMETHOD.                    "recover_view
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
@@ -36103,7 +36103,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       p_wb_request       = lo_request
       p_wb_program_state = li_state ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_component TYPE wdy_component_metadata.
@@ -36137,7 +36137,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_component_name TYPE wdy_component-component_name.
@@ -36147,13 +36147,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       AND version = 'A'.                                "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -36163,7 +36163,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
         object_type   = ms_item-obj_type
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_component TYPE wdy_component_metadata.
@@ -36176,7 +36176,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     io_xml->add( ig_data = mt_sources
                  iv_name = 'SOURCES' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -36189,7 +36189,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -36217,7 +36217,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -36235,7 +36235,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'WDYA, permission failure' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD read.
 
@@ -36271,7 +36271,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
       APPEND ls_prop TO et_properties.
     ENDDO.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -36285,7 +36285,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
     io_xml->add( iv_name = 'PROPERTIES'
                  ig_data = lt_properties ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD save.
 
@@ -36312,7 +36312,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error saving WDYA' ).
     ENDTRY.
 
-  ENDMETHOD.                    "save
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -36327,7 +36327,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
           it_properties = lt_properties
           iv_package    = iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -36361,7 +36361,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'WDYA, error deleting' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -36372,7 +36372,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
         object_type   = ms_item-obj_type
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -36384,7 +36384,7 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_wdya IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
   METHOD get_page_content.
 
@@ -36608,7 +36608,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       p_object               = lv_object
       p_complete_application = abap_true ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_bsp            TYPE REF TO cl_o2_api_application,
@@ -36742,7 +36742,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
     delete_superfluous_pages( it_local_pages  = lt_local_pages
                               it_remote_pages = lt_pages_info ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE o2applname.
@@ -36757,13 +36757,13 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
         error_occured       = 3 ).
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -36778,7 +36778,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
         object_type   = ms_item-obj_type
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name       TYPE o2applname,
@@ -36842,7 +36842,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
     io_xml->add( iv_name = 'PAGES'
                  ig_data = lt_pages_info ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD create_new_application.
 
@@ -36940,7 +36940,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
     super->constructor( is_item = is_item iv_language = iv_language ).
     ms_key-relid = ms_item-obj_type+2(2).
     ms_key-objid = ms_item-obj_name.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD find_param.
 
     FIELD-SYMBOLS <ls_param> LIKE LINE OF it_params.
@@ -36951,17 +36951,17 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
 
     rv_value = <ls_param>-value.
 
-  ENDMETHOD.  " find_param.
+  ENDMETHOD.
   METHOD get_ext.
 
     rv_ext = find_param( it_params = it_params iv_name = c_param_names-fileext ).
     SHIFT rv_ext LEFT DELETING LEADING '.'.
 
-  ENDMETHOD.  " get_ext.
+  ENDMETHOD.
   METHOD get_metadata. "Redefinition
     rs_metadata         = super->get_metadata( ).
     rs_metadata-version = 'v2.0.0'. " Seriazation v2, separate data file
-  ENDMETHOD.  " get_metadata. "Redefinition
+  ENDMETHOD.
   METHOD normalize_params.
 
     FIELD-SYMBOLS <ls_param> LIKE LINE OF ct_params.
@@ -36982,7 +36982,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  " normalize_params.
+  ENDMETHOD.
   METHOD strip_params.
 
     FIELD-SYMBOLS <ls_param> LIKE LINE OF ct_params.
@@ -36996,7 +36996,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
     DELETE ct_params WHERE name = c_param_names-version.
     DELETE ct_params WHERE name = c_param_names-filesize.
 
-  ENDMETHOD.  " strip_params.
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE chname INTO rv_user
@@ -37036,7 +37036,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot delete W3xx params' ).
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA lv_base64str TYPE string.
@@ -37174,7 +37174,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot update TADIR for W3xx' ).
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     SELECT SINGLE objid INTO ms_key-objid
@@ -37189,13 +37189,13 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
 
     rv_bool = abap_true.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: ls_bdcdata TYPE bdcdata,
@@ -37244,7 +37244,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SE35' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA lt_w3mime    TYPE STANDARD TABLE OF w3mime.
@@ -37335,7 +37335,7 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
                                   iv_extra = 'data'
                                   iv_ext   = get_ext( lt_w3params ) ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -37398,10 +37398,10 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       rv_user = c_user_unknown.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_objname TYPE rsedd0-ddobjname.
@@ -37421,7 +37421,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, VIEW' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -37471,7 +37471,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_viewname TYPE dd25l-viewname,
@@ -37497,11 +37497,11 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       ENDTRY.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
@@ -37538,7 +37538,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
     jump_se11( iv_radio = 'RSRD1-VIMA'
                iv_field = 'RSRD1-VIMA_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -37620,7 +37620,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
     io_xml->add( ig_data = lt_dd28v
                  iv_name = 'DD28V_TABLE' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -37648,7 +37648,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
     DELETE FROM vclstrudep WHERE vclname = lv_vclname.    "#EC CI_SUBRC
     DELETE FROM vclmf WHERE vclname = lv_vclname.         "#EC CI_SUBRC
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_vcldir_entry TYPE v_vcldir,
@@ -37712,7 +37712,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error in OBJ_GENERATE for VCLS' ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA lv_changedate TYPE vcldir-changedate.
@@ -37727,14 +37727,14 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       rv_bool = abap_false.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -37795,7 +37795,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SE35' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_vclname      TYPE vcl_name,
@@ -37837,7 +37837,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
     io_xml->add( iv_name = 'VCLMF_TAB'
                  ig_data = lt_vclmf ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD clear_dynamic_fields.
@@ -38067,7 +38067,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -38075,7 +38075,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -38086,7 +38086,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD read.
 
@@ -38119,7 +38119,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from TYPD_GET_OBJECT' ).
     ENDIF.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -38138,7 +38138,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
     mo_files->add_abap( lt_source ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD create.
 
@@ -38172,7 +38172,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error setting uccheck' ).
     ENDIF.
 
-  ENDMETHOD.                    "create
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -38197,7 +38197,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -38220,12 +38220,12 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error deleting TYPE' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
     jump_se11( iv_radio = 'RSRD1-TYMA'
                iv_field = 'RSRD1-TYMA_VAL' ).
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -38237,7 +38237,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_type IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -38255,7 +38255,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -38271,7 +38271,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -38281,14 +38281,14 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
       AND as4local = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -38309,7 +38309,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TTYP' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -38354,7 +38354,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
     io_xml->add( iv_name = 'DD43V'
                  ig_data = lt_dd43v ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -38393,7 +38393,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -38406,7 +38406,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_ttyp IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -38429,7 +38429,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.                    "deserialize_texts
+  ENDMETHOD.
   METHOD serialize_texts.
 
     DATA lt_tpool_i18n TYPE TABLE OF tstct.
@@ -38448,7 +38448,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
                    ig_data = lt_tpool_i18n ).
     ENDIF.
 
-  ENDMETHOD.                    "serialize_texts
+  ENDMETHOD.
   METHOD split_parameters.
 * see subroutine split_parameters in include LSEUKF01
 
@@ -38578,7 +38578,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         ENDCASE.
       ENDLOOP.
     ENDIF.
-  ENDMETHOD.                    "split_parameters
+  ENDMETHOD.
   METHOD split_parameters_comp.
     DATA: lv_off TYPE i.
 
@@ -38589,7 +38589,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         CLEAR cg_value+sy-fdpos.
       ENDIF.
     ENDIF.
-  ENDMETHOD.                    "split_parameters_comp
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -38612,7 +38612,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from RPY_TRANSACTION_DELETE' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     CONSTANTS: lc_hex_tra TYPE x VALUE '00',
@@ -38703,7 +38703,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     " Texts deserializing (translations)
     deserialize_texts( io_xml ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_tcode TYPE tstc-tcode.
@@ -38711,13 +38711,13 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       WHERE tcode = ms_item-obj_name.                   "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
@@ -38750,7 +38750,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         OTHERS                = 4
         ##fm_subrc_ok.    "#EC CI_SUBRC
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_transaction TYPE tstc-tcode,
@@ -38806,7 +38806,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     " Texts serializing (translations)
     serialize_texts( io_xml ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -38852,7 +38852,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -38872,7 +38872,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-late_deser = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -38886,7 +38886,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
       AND objecttype = ms_item-obj_name+lv_type_pos.    "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -38947,7 +38947,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     io_xml->add( iv_name = 'TOBJ'
                  ig_data = ls_tobj ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -39052,7 +39052,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
     delete_extra( ls_objh-objectname ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -39094,7 +39094,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, TOBJ' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -39106,7 +39106,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_tobj IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_tabl_valid IMPLEMENTATION.
   METHOD get_where_used_recursive.
 
@@ -39382,7 +39382,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name      TYPE ddobjname,
@@ -39488,7 +39488,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_tabname TYPE dd02l-tabname.
@@ -39498,11 +39498,11 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date    TYPE dats,
@@ -39556,7 +39556,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
@@ -39568,7 +39568,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name    TYPE ddobjname,
@@ -39742,7 +39742,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     io_xml->add( iv_name = 'DD36M'
                  ig_data = lt_dd36m ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -39998,7 +39998,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -40006,7 +40006,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -40015,7 +40015,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
       WHERE objct = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -40068,7 +40068,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     io_xml->add( ig_data = lt_tobjvor
                  iv_name = 'TOBJVOR' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
@@ -40114,7 +40114,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     DELETE FROM tobjvor WHERE objct = ms_item-obj_name.   "#EC CI_SUBRC
     INSERT tobjvor FROM TABLE lt_tobjvor.                 "#EC CI_SUBRC
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -40124,7 +40124,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
       EXPORTING
         object = lv_object.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -40134,7 +40134,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
       EXPORTING
         object = lv_object.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -40146,12 +40146,12 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_suso IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -40159,7 +40159,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -40168,7 +40168,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
       WHERE oclss = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -40189,7 +40189,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     io_xml->add( iv_name = 'TOBCT'
                  ig_data = ls_tobct ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
@@ -40216,7 +40216,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     MODIFY tobct FROM ls_tobct.                           "#EC CI_SUBRC
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -40226,7 +40226,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
       EXPORTING
         objclass = lv_objclass.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -40236,7 +40236,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
       EXPORTING
         objclass = lv_objclass.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -40248,12 +40248,12 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_susc IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -40278,7 +40278,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -40299,7 +40299,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
     rv_bool = boolc( lv_found = abap_true ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -40345,7 +40345,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, STYL' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -40357,7 +40357,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
         style    = lv_style
         language = '*'.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -40375,7 +40375,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -40405,7 +40405,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
     io_xml->add( iv_name = 'STYLE'
                  ig_data = ls_style ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -40417,7 +40417,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_styl IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
   METHOD validate_font.
 
@@ -40428,7 +40428,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Font family not found' ).
     ENDIF.
 
-  ENDMETHOD.                    "validate_font
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM stxsadm INTO rv_user
@@ -40463,7 +40463,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SSF_DELETE_STYLE' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 * see fm SSF_UPLOAD_STYLE
 
@@ -40526,7 +40526,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_stylename TYPE stxsadm-stylename.
@@ -40538,14 +40538,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
         AND vari      = ''.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
@@ -40580,7 +40580,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SSST' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * see fm SSF_DOWNLOAD_STYLE
 
@@ -40636,7 +40636,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
     io_xml->add( ig_data = lt_tabstops
                  iv_name = 'STXSTAB' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -40650,7 +40650,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -40665,7 +40665,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -40674,7 +40674,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
       WHERE formname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -40712,7 +40712,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
         OTHERS                = 4
         ##fm_subrc_ok.                                                   "#EC CI_SUBRC
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -40736,7 +40736,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from FB_DELETE_FORM' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 * see function module FB_DOWNLOAD_FORM
@@ -40796,7 +40796,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 
     io_xml->set_raw( li_xml_doc->get_root_element( ) ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD fix_ids.
 * makes sure ID and IDREF values are the same values for each serialization run
@@ -40902,7 +40902,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |{ ms_item-obj_type } { ms_item-obj_name }: { lv_text } | ).
     ENDTRY.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -40915,7 +40915,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_ssfo IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -41126,7 +41126,7 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     io_xml->add( iv_name = 'TSP0P'
                  ig_data = ls_tsp0p ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -41146,7 +41146,7 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -41154,7 +41154,7 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     DELETE FROM tsp1d WHERE papart = ms_item-obj_name.    "#EC CI_SUBRC
     DELETE FROM tsp0p WHERE pdpaper = ms_item-obj_name.   "#EC CI_SUBRC
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -41163,11 +41163,11 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
       WHERE papart = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
     zcx_abapgit_exception=>raise( 'todo, jump, SPLO' ).
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -41179,12 +41179,12 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_splo IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -41201,7 +41201,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -41248,7 +41248,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
     ev_url = lv_url.
 
-  ENDMETHOD.                    "get_url_for_io
+  ENDMETHOD.
 
   METHOD build_filename.
 
@@ -41256,7 +41256,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
       INTO rv_filename SEPARATED BY '.'.
     TRANSLATE rv_filename TO LOWER CASE.
 
-  ENDMETHOD.                    "build_filename
+  ENDMETHOD.
 
   METHOD find_content.
 
@@ -41277,7 +41277,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
     rv_content = <ls_file>-data.
 
-  ENDMETHOD.                    "find_content
+  ENDMETHOD.
 
   METHOD get_filename.
 
@@ -41289,7 +41289,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     READ TABLE lt_strings INDEX lv_lines INTO rv_filename.
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.                    "get_filename
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -41347,7 +41347,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     io_xml->add( iv_name = 'CLASS'
                  ig_data = lv_class ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -41422,7 +41422,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -41452,7 +41452,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from delete' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -41462,7 +41462,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -41474,7 +41474,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_smim IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   METHOD change_sicf.
 
@@ -41538,7 +41538,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'SICF - error from change_node' ).
     ENDIF.
 
-  ENDMETHOD.                    "change_sicf
+  ENDMETHOD.
   METHOD find_parent.
 
     cl_icf_tree=>if_icf_tree~service_from_url(
@@ -41558,7 +41558,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'SICF - error from service_from_url' ).
     ENDIF.
 
-  ENDMETHOD.                    "find_parent
+  ENDMETHOD.
   METHOD insert_sicf.
 
     DATA: lt_icfhndlist TYPE icfhndlist,
@@ -41616,7 +41616,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |SICF - error from insert_node: { sy-subrc }| ).
     ENDIF.
 
-  ENDMETHOD.                    "insert_sicf
+  ENDMETHOD.
   METHOD read.
 
     DATA: lt_serv_info TYPE icfservtbl,
@@ -41669,7 +41669,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       CLEAR <ls_icfhandler>-icfparguid.
     ENDLOOP.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
   METHOD read_sicf_url.
 
     DATA: lv_name    TYPE icfname,
@@ -41733,7 +41733,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       INSERT <ls_list>-icfhandler INTO TABLE rt_list.
     ENDLOOP.
 
-  ENDMETHOD.                    "to_icfhndlist
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_icfservice TYPE icfservice.
@@ -41798,7 +41798,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'SICF - error from delete_node' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_icfservice TYPE icfservice,
@@ -41831,7 +41831,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
                    iv_parent     = ls_read-icfparguid ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
@@ -41849,13 +41849,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       rv_bool = boolc( sy-subrc = 0 ).
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: ls_bcdata TYPE bdcdata,
@@ -41890,7 +41890,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SICF' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_icfservice TYPE icfservice,
@@ -41921,7 +41921,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
     io_xml->add( iv_name = 'ICFHANDLER_TABLE'
                  ig_data = lt_icfhandler ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -42215,7 +42215,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
      iv_date      = lv_date
      iv_time      = lv_time ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -42231,7 +42231,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -42241,14 +42241,14 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
       AND as4local = 'A'.                               "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-SHMA'
                iv_field = 'RSRD1-SHMA_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -42269,7 +42269,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, SHLP' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -42331,7 +42331,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     io_xml->add( ig_data = lt_dd33v
                  iv_name = 'DD33V_TABLE' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -42374,7 +42374,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -42386,7 +42386,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_shlp IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   METHOD constructor.
@@ -42396,11 +42396,11 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
     mv_assignment_id = ms_item-obj_name.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "ZIF_ABAPGIT_OBJECT~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
@@ -42408,11 +42408,11 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "ZIF_ABAPGIT_OBJECT~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
     zcx_abapgit_exception=>raise( |TODO: Jump SHI8| ).
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -42422,7 +42422,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
       IMPORTING
         exists        = rv_bool.
 
-  ENDMETHOD.                    "ZIF_ABAPGIT_OBJECT~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -42440,7 +42440,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |{ ls_message-msgtxt }| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -42467,7 +42467,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
     io_xml->add( iv_name = 'SHI8'
                  ig_data = ls_assignment_data ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -42499,7 +42499,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |{ ls_message-msgtxt }| ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -42511,7 +42511,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_shi8 IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
   METHOD constructor.
@@ -42521,11 +42521,11 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
     mv_extension = ms_item-obj_name.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
@@ -42533,11 +42533,11 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
     zcx_abapgit_exception=>raise( |TODO: Jump { ms_item-obj_type }| ).
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -42551,7 +42551,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
     rv_bool = boolc( ls_extension_header IS NOT INITIAL ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -42569,7 +42569,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( ls_message-msgtxt ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -42588,7 +42588,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
     io_xml->add( iv_name = 'SHI5'
                  ig_data = ls_extension ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -42610,7 +42610,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -42622,12 +42622,12 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_shi5 IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -42646,11 +42646,11 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item = is_item iv_language = iv_language ).
     mv_tree_id = ms_item-obj_name.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD jump_se43.
 
@@ -42688,7 +42688,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SHI3' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump_se43
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -42707,7 +42707,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Jump for type { ls_head-type } not implemented| ).
     ENDCASE.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -42726,7 +42726,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
     rv_bool = boolc( ls_header-id IS NOT INITIAL ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -42742,7 +42742,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from BMENU_DELETE_TREE, SHI3' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -42787,7 +42787,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     io_xml->add( iv_name = 'TREE_TEXTS'
                  ig_data = lt_texts ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD clear_fields.
 
@@ -42804,7 +42804,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       CLEAR: <ls_node>-frelease, <ls_node>-lrelease.
     ENDLOOP.
 
-  ENDMETHOD.                    "strip_stamps
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -42852,7 +42852,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from STREE_HIERARCHY_SAVE, SHI3' ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -42864,7 +42864,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_shi3 IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
   METHOD get.
 
@@ -42906,7 +42906,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'Error deleting Switch' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_switch    TYPE REF TO cl_sfw_sw,
@@ -42957,7 +42957,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir     TYPE tadir,
@@ -42976,14 +42976,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
     ENDIF.
 
     rv_bool = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -42993,7 +42993,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
         object_type   = 'SFSW'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_switch    TYPE REF TO cl_sfw_sw,
@@ -43035,7 +43035,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
     io_xml->add( ig_data = lt_conflicts
                  iv_name = 'CONFLICTS' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -43048,7 +43048,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -43070,7 +43070,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -43082,7 +43082,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
       AND state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -43092,7 +43092,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -43108,7 +43108,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'SFPI error, delete' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD load.
 
@@ -43146,7 +43146,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
     zcl_abapgit_object_sfpf=>fix_oref( li_document ).
     io_xml->set_raw( li_document->get_root_element( ) ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -43170,7 +43170,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -43189,7 +43189,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_doma IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   METHOD fix_oref.
 
@@ -43297,7 +43297,7 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'SFPI error, delete' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_xstr      TYPE xstring,
@@ -43320,7 +43320,7 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_name TYPE fpname.
@@ -43331,13 +43331,13 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
       AND state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -43346,7 +43346,7 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_xstr     TYPE xstring,
@@ -43356,7 +43356,7 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     fix_oref( li_document ).
     io_xml->set_raw( li_document->get_root_element( ) ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -43418,7 +43418,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBS' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_bfset       TYPE sfw_bset,
@@ -43466,7 +43466,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
@@ -43486,14 +43486,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
 
     rv_bool = abap_true.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -43503,7 +43503,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
         object_type   = 'SFBS'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_bfs         TYPE REF TO cl_sfw_bfs,
@@ -43549,7 +43549,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
     io_xml->add( ig_data = lt_parent_bfs
                  iv_name = 'PARENT_BFS' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -43606,7 +43606,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBF' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_bf                TYPE sfw_bfunction,
@@ -43667,7 +43667,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: ls_tadir TYPE tadir,
@@ -43687,14 +43687,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
     ENDIF.
 
     rv_bool = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -43709,7 +43709,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
         object_type   = 'SFBF'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_bf                TYPE REF TO cl_sfw_bf,
@@ -43769,7 +43769,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
     io_xml->add( ig_data = lt_parent_bfs
                  iv_name = 'PARENT_BFS' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
   METHOD adjust_inbound.
@@ -44098,7 +44098,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
                             it_tpool    = lt_tpool ).
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize_texts
+  ENDMETHOD.
   METHOD serialize_texts.
 
     DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
@@ -44128,7 +44128,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
                    ig_data = lt_tpool_i18n ).
     ENDIF.
 
-  ENDMETHOD.                    "serialize_texts
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     SELECT SINGLE unam FROM reposrc INTO rv_user
       WHERE progname = ms_item-obj_name
@@ -44136,10 +44136,10 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_program LIKE sy-repid.
@@ -44162,7 +44162,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from RS_DELETE_PROGRAM: { sy-subrc }| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_program_name TYPE programm,
@@ -44204,7 +44204,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     " Texts deserializing (translations)
     deserialize_texts( io_xml ).
 
-  ENDMETHOD.                    "zif_abapgit_serialize~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_progname TYPE reposrc-progname.
@@ -44214,17 +44214,17 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
       AND r3state = 'A'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     rv_changed = check_prog_changed_since(
       iv_program   = ms_item-obj_name
       iv_timestamp = iv_timestamp ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -44234,7 +44234,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
         object_type   = 'PROG'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     serialize_program( io_xml   = io_xml
@@ -44244,7 +44244,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     " Texts serializing (translations)
     serialize_texts( io_xml ).
 
-  ENDMETHOD.                    "zif_abapgit_serialize~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -44408,7 +44408,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -44422,7 +44422,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -44438,7 +44438,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
       rv_bool = boolc( sy-subrc = 0 ).
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -44491,7 +44491,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     io_xml->add( ig_data = ls_pinf
                  iv_name = 'PINF' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -44512,7 +44512,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
       is_pinf      = ls_pinf
       ii_interface = li_interface ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD update_attributes.
 
@@ -44687,7 +44687,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
     li_interface->save( ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -44698,7 +44698,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
         object_type   = 'PINF'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -44710,7 +44710,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_PINF IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -44844,7 +44844,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -44882,7 +44882,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-late_deser = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -44891,7 +44891,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
       WHERE object = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -44921,7 +44921,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     io_xml->add( iv_name = 'TEXT'
                  ig_data = ls_text ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -44962,7 +44962,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD delete_intervals.
 
@@ -45049,7 +45049,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_OBJECT_DELETE' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -45085,7 +45085,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, NROB' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -45097,12 +45097,12 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_nrob IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -45116,7 +45116,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -45125,7 +45125,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       WHERE arbgb = ms_item-obj_name.                   "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -45136,7 +45136,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         object_type   = 'MSAG'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -45153,7 +45153,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from RS_DELETE_MESSAGE_ID' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 * fm RPY_MESSAGE_ID_INSERT almost works, but not in older versions
@@ -45233,7 +45233,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     deserialize_texts( io_xml = io_xml ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -45265,7 +45265,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     serialize_texts( io_xml ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD serialize_texts.
 
@@ -45361,7 +45361,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -46144,7 +46144,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -46152,7 +46152,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD read.
 
@@ -46186,7 +46186,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     CONCATENATE LINES OF lt_source INTO ev_source RESPECTING BLANKS.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -46205,7 +46205,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     mo_files->add_string( iv_ext    = 'html'
                           iv_string = lv_source ) ##NO_TEXT.
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD save.
 
@@ -46232,7 +46232,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     li_template->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "save
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -46247,7 +46247,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     save( is_attr   = ls_attr
           iv_source = lv_source ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -46273,7 +46273,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     li_template->if_w3_api_object~delete( ).
     li_template->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -46296,7 +46296,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -46306,7 +46306,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -46318,12 +46318,12 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_iatu IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -46331,7 +46331,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD read.
 
@@ -46362,7 +46362,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
     li_service->get_parameters( IMPORTING p_parameters = et_parameters ).
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -46380,7 +46380,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD save.
 
@@ -46394,7 +46394,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
     li_service->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "save
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -46409,7 +46409,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     save( is_attr       = ls_attr
           it_parameters = lt_parameters ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -46435,7 +46435,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     li_service->if_w3_api_object~delete( ).
     li_service->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -46458,7 +46458,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -46468,7 +46468,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -46480,12 +46480,12 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_iasp IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -46493,7 +46493,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD read.
 
@@ -46524,7 +46524,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
     li_resource->get_parameters( IMPORTING p_parameters = et_parameters ).
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -46542,7 +46542,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD save.
 
@@ -46556,7 +46556,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
     li_resource->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "save
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -46571,7 +46571,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
     save( is_attr       = ls_attr
           it_parameters = lt_parameters ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -46597,7 +46597,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
     li_resource->if_w3_api_object~delete( ).
     li_resource->if_w3_api_object~save( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -46620,7 +46620,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
       rv_bool = abap_true.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -46630,7 +46630,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
         object_name = ms_item-obj_name
         object_type = ms_item-obj_type.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -46642,7 +46642,7 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_iarp IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -47030,7 +47030,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       INSERT REPORT lv_include FROM lt_source.
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize_functions
+  ENDMETHOD.
   METHOD deserialize_includes.
 
     DATA: lo_xml       TYPE REF TO zcl_abapgit_xml_input,
@@ -47070,7 +47070,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize_includes
+  ENDMETHOD.
   METHOD deserialize_xml.
 
     DATA: lv_complete     TYPE rs38l-area,
@@ -47142,7 +47142,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
     ENDCASE.
 
-  ENDMETHOD.                    "deserialize_xml
+  ENDMETHOD.
   METHOD functions.
 
     DATA: lv_area TYPE rs38l-area.
@@ -47163,7 +47163,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     SORT rt_functab BY funcname ASCENDING.
     DELETE ADJACENT DUPLICATES FROM rt_functab COMPARING funcname.
 
-  ENDMETHOD.                    "functions
+  ENDMETHOD.
   METHOD get_abap_version.
 
     DATA: lt_includes TYPE rso_t_objnm,
@@ -47271,7 +47271,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     APPEND lv_program TO rt_includes.
 
-  ENDMETHOD.                    "includes
+  ENDMETHOD.
   METHOD is_any_function_module_locked.
 
     DATA: lt_functions TYPE zcl_abapgit_object_fugr=>ty_rs38l_incl_tt.
@@ -47361,7 +47361,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     CONCATENATE lv_namespace 'SAPL' lv_group INTO rv_program.
 
-  ENDMETHOD.                    "main_name
+  ENDMETHOD.
   METHOD serialize_functions.
 
     DATA:
@@ -47426,7 +47426,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "serialize_functions
+  ENDMETHOD.
   METHOD serialize_includes.
 
     DATA: lt_includes TYPE rso_t_objnm.
@@ -47444,7 +47444,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "serialize_includes
+  ENDMETHOD.
   METHOD serialize_xml.
 
     DATA: lt_includes TYPE rso_t_objnm,
@@ -47461,7 +47461,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     io_xml->add( iv_name = 'INCLUDES'
                  ig_data = lt_includes ).
 
-  ENDMETHOD.                    "serialize_xml
+  ENDMETHOD.
   METHOD update_where_used.
 * make extra sure the where-used list is updated after deletion
 * Experienced some problems with the T00 include
@@ -47578,7 +47578,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     update_where_used( lt_includes ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_program_name TYPE programm,
@@ -47608,7 +47608,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     deserialize_cua( iv_program_name = lv_program_name
                      is_cua = ls_cua ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_pool  TYPE tlibg-area.
@@ -47620,10 +47620,10 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         pool_not_exists = 1.
     rv_bool = boolc( sy-subrc <> 1 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lt_functab  TYPE ty_rs38l_incl_tt,
@@ -47653,7 +47653,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     DATA: lv_program TYPE program.
@@ -47681,7 +47681,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         object_type   = 'FUGR'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
 * function group SEUF
@@ -47719,7 +47719,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
                    ig_data = ls_cua ).
     ENDIF.
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD update_func_group_short_text.
 
@@ -48085,7 +48085,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
                                             iv_argument    = lv_object ).
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_FORM IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -48155,7 +48155,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
-  ENDMETHOD.  "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -48197,7 +48197,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
-  ENDMETHOD.  "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -48214,7 +48214,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.  "exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
     DATA: lv_spot_name TYPE enhspotcompositename,
@@ -48241,11 +48241,11 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
-  ENDMETHOD.  "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.  "get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -48256,7 +48256,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         object_type   = 'ENSC'
         in_new_window = abap_true.
 
-  ENDMETHOD.  "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -48268,7 +48268,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS. "zcl_abapgit_object_ensc
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -48304,7 +48304,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, ENQU' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -48342,7 +48342,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_viewname TYPE dd25l-viewname.
@@ -48352,11 +48352,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
@@ -48373,7 +48373,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -48384,7 +48384,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     jump_se11( iv_radio = 'RSRD1-ENQU'
                iv_field = 'RSRD1-ENQU_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
@@ -48424,7 +48424,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     io_xml->add( ig_data = lt_dd27p
                  iv_name = 'DD27P_TABLE' ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
 
@@ -48601,7 +48601,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -48662,7 +48662,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
                           iv_package       = iv_package
                           ii_enh_spot_tool = li_spot_ref ).
 
-  ENDMETHOD.  "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -48685,7 +48685,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     li_enhs->serialize( io_xml           = io_xml
                         ii_enh_spot_tool = li_spot_ref ).
 
-  ENDMETHOD.  "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -48703,7 +48703,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.  "exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -48726,11 +48726,11 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
     ENDTRY.
 
-  ENDMETHOD.  "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.  "get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -48741,7 +48741,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
         object_type   = 'ENHS'
         in_new_window = abap_true.
 
-  ENDMETHOD.  "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -48766,11 +48766,11 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS. "zcl_abapgit_object_enhs
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHO_WDYN IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD zif_abapgit_object_enho~deserialize.
 
     DATA: ls_enh_data  TYPE enhwdyn,
@@ -48833,7 +48833,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_WDYN IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error deserializing ENHO wdyn { ms_item-obj_name }| ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object_enho~serialize.
 
     DATA: lo_wdyn           TYPE REF TO cl_enh_tool_wdy,
@@ -48859,13 +48859,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_WDYN IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error serializing ENHO wdyn { ms_item-obj_name }| ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
 
   METHOD constructor.
     ms_item = is_item.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~deserialize.
 
@@ -48903,7 +48903,7 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~serialize.
 
@@ -48940,15 +48940,15 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
     io_xml->add_xml( iv_name = 'ENHANCEMENT_DATA'
                      ii_xml = li_element ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_wdyconf IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
 
   METHOD constructor.
     ms_item  = is_item.
     mo_files = io_files.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~serialize.
 
@@ -48972,7 +48972,7 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
       io_files = mo_files
       io_clif = lo_enh_intf ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~deserialize.
 
@@ -49014,15 +49014,15 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO interface' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_interface IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
 
   METHOD constructor.
     ms_item = is_item.
     mo_files = io_files.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~serialize.
 
@@ -49060,7 +49060,7 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
     io_xml->add( iv_name = 'SPACES'
                  ig_data = lt_spaces ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 
   METHOD hook_impl_serialize.
 * handle normalization of XML values
@@ -49081,7 +49081,7 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
         ENDWHILE.
       ENDLOOP.
     ENDLOOP.
-  ENDMETHOD.                    "hook_impl_serialize
+  ENDMETHOD.
 
   METHOD hook_impl_deserialize.
 
@@ -49103,7 +49103,7 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "hook_impl_deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~deserialize.
 
@@ -49170,14 +49170,14 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lx_enh_root->get_text( ) ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_hook IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHO_FUGR IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
     mo_files = io_files.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD zif_abapgit_object_enho~deserialize.
 
     DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
@@ -49231,7 +49231,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_FUGR IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object_enho~serialize.
 
     DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
@@ -49267,7 +49267,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_FUGR IMPLEMENTATION.
     io_xml->add( iv_name = 'FUGRDATA'
                  ig_data = ls_enha_data ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
 
@@ -49302,7 +49302,7 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "serialize_includes
+  ENDMETHOD.
 
   METHOD serialize.
 
@@ -49342,7 +49342,7 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
     io_xml->add( iv_name = 'TAB_METHODS'
                  ig_data = lt_tab_methods ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD deserialize.
 
@@ -49392,15 +49392,15 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_clif IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
 
   METHOD constructor.
     ms_item = is_item.
     mo_files = io_files.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~serialize.
 
@@ -49440,7 +49440,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
       io_files = mo_files
       io_clif  = lo_enh_class ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~deserialize.
 
@@ -49501,14 +49501,14 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO class' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_class IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
 
   METHOD constructor.
     ms_item = is_item.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~serialize.
 
@@ -49549,7 +49549,7 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
     io_xml->add( iv_name = 'IMPL'
                  ig_data = lt_impl ).
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object_enho~deserialize.
 
@@ -49594,18 +49594,18 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO badi' ).
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object_enho~deserialize
+  ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho_badi IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -49657,7 +49657,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -49682,7 +49682,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     li_enho->serialize( io_xml      = io_xml
                         ii_enh_tool = li_enh_tool ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD factory.
 
@@ -49726,7 +49726,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Unsupported ENHO type { iv_tool }| ).
     ENDCASE.
 
-  ENDMETHOD.                    "factory
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -49746,7 +49746,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -49764,7 +49764,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'Error deleting ENHO' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -49775,11 +49775,11 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         object_type   = 'ENHO'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -49794,7 +49794,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_enho IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   METHOD constructor.
 
@@ -50591,7 +50591,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DTEL' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_dd04v TYPE dd04v,
@@ -50626,7 +50626,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_rollname TYPE dd04l-rollname.
@@ -50636,11 +50636,11 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
@@ -50657,13 +50657,13 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
                iv_field = 'RSRD1-DDTYPE_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * fm DDIF_DTEL_GET bypasses buffer, so SELECTs are
 * done directly from here
@@ -50730,7 +50730,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     serialize_texts( io_xml ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -50749,11 +50749,11 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
     mv_object  = ms_item-obj_name.
     mv_dokname = mv_object+4(*).
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
@@ -50765,7 +50765,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -50782,7 +50782,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DSYS_EDIT' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -50792,7 +50792,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -50810,7 +50810,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DOCU_DEL' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -50830,7 +50830,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
     io_xml->add( iv_name = 'DSYS'
                  ig_data = ls_data ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -50850,7 +50850,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -50879,7 +50879,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_dsys IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -50947,7 +50947,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "deserialize_texts
+  ENDMETHOD.
   METHOD serialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -51014,7 +51014,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
                    ig_data = lt_dd07_texts ).
     ENDIF.
 
-  ENDMETHOD.  "serialize_texts
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd01l INTO rv_user
@@ -51070,7 +51070,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
 * package SEDD
@@ -51114,7 +51114,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_domname TYPE dd01l-domname.
@@ -51124,11 +51124,11 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       AND as4vers = '0000'.
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lv_date TYPE dats,
@@ -51145,13 +51145,13 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
 
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DOMA'
                iv_field = 'RSRD1-DOMA_VAL' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name    TYPE ddobjname,
@@ -51200,7 +51200,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
     serialize_texts( io_xml ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -51214,14 +51214,14 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
     IF rv_user IS INITIAL.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
 
   METHOD read.
 
@@ -51243,12 +51243,12 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
       TABLES
         line     = rs_data-lines.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -51263,13 +51263,13 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( 'todo, jump DOCV' ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -51291,7 +51291,7 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DOCU_DEL' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -51308,7 +51308,7 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
       TABLES
         line    = ls_data-lines.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -51327,7 +51327,7 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     io_xml->add( iv_name = c_name
                  ig_data = ls_data ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -51339,16 +51339,16 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD read.
 
@@ -51368,14 +51368,14 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
       TABLES
         line     = rs_data-lines.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
     IF rv_user IS INITIAL.
       rv_user = c_user_unknown.
     ENDIF.
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -51389,7 +51389,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -51436,7 +51436,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, DOCT' ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -51456,7 +51456,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DOCU_DEL' ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -51475,7 +51475,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -51494,7 +51494,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     io_xml->add( iv_name = c_name
                  ig_data = ls_data ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -51506,7 +51506,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_msag IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -52543,7 +52543,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
     ENDTRY.
 
-  ENDMETHOD.                    "open_adt_stob
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lo_ddl   TYPE REF TO object,
@@ -52576,10 +52576,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
       rv_user = c_user_unknown.
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~changed_by
+  ENDMETHOD.
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.                    "zif_abapgit_object~compare_to_remote_version
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: lo_ddl TYPE REF TO object.
@@ -52595,7 +52595,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DDLS error deleting' ).
     ENDTRY.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_ddl  TYPE REF TO object,
@@ -52635,7 +52635,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_state TYPE objstate,
@@ -52660,16 +52660,16 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
     rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: lv_typename   TYPE typename.
@@ -52690,7 +52690,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
     ENDCASE.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_ddl       TYPE REF TO object,
@@ -52742,7 +52742,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     io_xml->add( iv_name = 'DDLS'
                  ig_data = <lg_data> ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -52934,11 +52934,11 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
     mv_img_attribute = ms_item-obj_name.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
@@ -52946,13 +52946,13 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( |TODO: Jump| ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -52965,7 +52965,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -52981,7 +52981,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from delete CUS2 { mv_img_attribute } S_CUS_ATTRIBUTES_DELETE| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -53006,7 +53006,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS2'
                  ig_data = ls_customizing_attribute ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -53033,7 +53033,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from deserialize CUS2 { mv_img_attribute } S_CUS_ATTRIBUTES_SAVE| ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -53045,7 +53045,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_cus2 IMPLEMENTATION
+ENDCLASS.
 CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
   METHOD constructor.
@@ -53055,11 +53055,11 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
     mv_customizing_activity = ms_item-obj_name.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
@@ -53068,13 +53068,13 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
     zcx_abapgit_exception=>raise( |TODO: Jump| ).
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -53087,7 +53087,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -53103,7 +53103,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from delete CUS1 { mv_customizing_activity } S_CUS_ACTIVITY_DELETE| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -53128,7 +53128,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS1'
                  ig_data = ls_customzing_activity ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -53177,7 +53177,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CUS0' ).
     ENDIF.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -53189,7 +53189,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_cus1 IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   METHOD constructor.
 
@@ -53198,7 +53198,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
     mv_img_activity = ms_item-obj_name.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
@@ -53219,7 +53219,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from delete CUS0 { mv_img_activity } S_CUS_IMG_ACTIVITY_DELETE| ).
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_img_activity TYPE ty_img_activity,
@@ -53273,14 +53273,14 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
     rv_bool = boolc( ls_message IS INITIAL ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -53298,7 +53298,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 *      CHANGING
 *        img_activity     = mv_img_activity.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_img_activity TYPE ty_img_activity.
@@ -53321,7 +53321,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS0'
                  ig_data = ls_img_activity ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
   METHOD constructor.
@@ -53570,7 +53570,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
       it_descriptions = lt_descriptions ).
 
     mo_object_oriented_object_fct->add_to_activation_list( ms_item ).
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD deserialize_docu.
 
     DATA: lt_lines  TYPE tlinetab,
@@ -53625,7 +53625,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
       it_text_pool  = lt_tpool
       iv_language   = mv_language ).
 
-  ENDMETHOD.                    "deserialize_textpool
+  ENDMETHOD.
   METHOD serialize_xml.
 
     DATA: ls_vseoclass    TYPE vseoclass,
@@ -53696,7 +53696,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
                    ig_data = lt_descriptions ).
     ENDIF.
 
-  ENDMETHOD.                    "serialize_xml
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     TYPES: BEGIN OF ty_includes,
@@ -53739,7 +53739,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
     ls_clskey-clsname = ms_item-obj_name.
 
     mo_object_oriented_object_fct->delete( ls_clskey ).
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
     deserialize_abap( io_xml     = io_xml
                       iv_package = iv_package ).
@@ -53750,16 +53750,16 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
                       iv_package = iv_package ).
 
     deserialize_docu( io_xml ).
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
     DATA: ls_class_key TYPE seoclskey.
     ls_class_key-clsname = ms_item-obj_name.
 
     rv_bool = mo_object_oriented_object_fct->exists( ls_class_key ).
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     DATA: lt_includes TYPE seoincl_t.
 
@@ -53783,7 +53783,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
         object_name   = ms_item-obj_name
         object_type   = 'CLAS'
         in_new_window = abap_true.
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lt_source    TYPE seop_source_string,
@@ -53844,7 +53844,7 @@ CLASS zcl_abapgit_object_clas_old IMPLEMENTATION.
 
     serialize_xml( io_xml ).
 
-  ENDMETHOD.                    "serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -54393,7 +54393,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SUSR_AUTF_DELETE_FIELD' ).
     ENDIF.
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 * see include LSAUT_FIELDF02
 
@@ -54416,7 +54416,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
     CALL FUNCTION 'DB_COMMIT'.
     lo_auth->set_authfld_info_from_db( ls_authx-fieldname ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_fieldname TYPE authx-fieldname.
@@ -54425,13 +54425,13 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
       WHERE fieldname = ms_item-obj_name.               "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: lv_field TYPE fieldname.
@@ -54444,7 +54444,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
         id_field    = lv_field
         id_wbo_mode = abap_false.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_authx TYPE authx.
@@ -54457,7 +54457,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
     io_xml->add( iv_name = 'AUTHX'
                  ig_data = ls_authx ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
 
@@ -54545,11 +54545,11 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
@@ -54571,7 +54571,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error creating CL_AAB_ID object' ).
     ENDIF.
 
-  ENDMETHOD.                    "create_object
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~serialize.
 
@@ -54590,7 +54590,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     io_xml->add( iv_name = 'DESCRIPTION'
                  ig_data = lv_description ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~deserialize.
 
@@ -54605,7 +54605,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     tadir_insert( iv_package ).
     lo_aab->save( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
 
@@ -54629,7 +54629,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     ENDIF.
     lo_aab->dequeue( ).
 
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~exists.
 
@@ -54642,7 +54642,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
         ex_state = lv_state ).
     rv_bool = boolc( lv_state = abap_true ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~jump.
 
@@ -54653,7 +54653,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
         object_type   = 'ACID'
         in_new_window = abap_true.
 
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
 
   METHOD zif_abapgit_object~compare_to_remote_version.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
@@ -54665,7 +54665,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.                    "zcl_abapgit_object_acid IMPLEMENTATION
+ENDCLASS.
 CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
   METHOD zif_abapgit_comparison_result~is_result_complete_halt.
     rv_response = abap_false.
@@ -55766,7 +55766,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_BLOB_TO_TEMPLATE' ).
     ENDIF.
 
-  ENDMETHOD.                    "SET_BLOB_TO_TEMPLATE
+  ENDMETHOD.
   METHOD set_control_data_for_tcd.
 
     " Downport
@@ -59193,5 +59193,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-28T05:27:18.532Z
+* abapmerge - 2018-07-28T08:11:12.138Z
 ****************************************************
