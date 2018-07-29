@@ -436,6 +436,7 @@ INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
 INTERFACE zif_abapgit_comparison_result DEFERRED.
 INTERFACE zif_abapgit_2fa_authenticator DEFERRED.
+INTERFACE zif_abapgit_background DEFERRED.
 CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
@@ -472,7 +473,6 @@ CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
-CLASS zcl_abapgit_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
@@ -679,6 +679,25 @@ CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
+CLASS zcl_abapgit_background DEFINITION DEFERRED.
+INTERFACE zif_abapgit_background
+  .
+  CLASS-METHODS get_description
+    RETURNING
+      VALUE(rv_description) TYPE string .
+  CLASS-METHODS get_settings
+    CHANGING
+      VALUE(ct_settings) TYPE zcl_abapgit_persist_background=>ty_settings_tt .
+  METHODS run
+    IMPORTING
+      !io_repo     TYPE REF TO zcl_abapgit_repo_online
+      !it_settings TYPE zcl_abapgit_persist_background=>ty_settings_tt OPTIONAL
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
 "! Defines a two factor authentication authenticator
 "! <p>
 "! Authenticators support one or multiple services and are able to generate access tokens using the
@@ -1925,6 +1944,94 @@ INTERFACE zif_abapgit_version
   CONSTANTS gc_abap_version TYPE string VALUE '1.72.2' ##NO_TEXT.
 
 ENDINTERFACE.
+CLASS zcl_abapgit_background DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES: BEGIN OF ty_methods,
+             class       TYPE seoclsname,
+             description TYPE string,
+           END OF ty_methods.
+
+    TYPES: ty_methods_tt TYPE SORTED TABLE OF ty_methods WITH UNIQUE KEY class.
+
+    CLASS-METHODS run
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS list_methods
+      RETURNING VALUE(rt_methods) TYPE ty_methods_tt.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_background_pull DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_background .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_background_push_au DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_background .
+  PROTECTED SECTION.
+
+    METHODS build_comment
+      IMPORTING
+        !is_files         TYPE zif_abapgit_definitions=>ty_stage_files
+      RETURNING
+        VALUE(rv_comment) TYPE string .
+    METHODS push_auto
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo_online
+      RAISING
+        zcx_abapgit_exception .
+    METHODS determine_user_details
+      IMPORTING
+        !iv_changed_by TYPE xubname
+      RETURNING
+        VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user .
+    METHODS push_deletions
+      IMPORTING
+        !io_repo  TYPE REF TO zcl_abapgit_repo_online
+        !is_files TYPE zif_abapgit_definitions=>ty_stage_files
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_background_push_fi DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_background .
+  PROTECTED SECTION.
+
+    CONSTANTS: BEGIN OF gc_settings,
+                 name  TYPE string VALUE 'NAME',
+                 email TYPE string VALUE 'EMAIL',
+               END OF gc_settings.
+
+    METHODS build_comment
+      IMPORTING
+        !is_files         TYPE zif_abapgit_definitions=>ty_stage_files
+      RETURNING
+        VALUE(rv_comment) TYPE string .
+    METHODS push_fixed
+      IMPORTING
+        !io_repo  TYPE REF TO zcl_abapgit_repo_online
+        !iv_name  TYPE string
+        !iv_email TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
 
@@ -6076,25 +6183,18 @@ CLASS zcl_abapgit_persist_background DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS: BEGIN OF c_method,
-                 nothing TYPE string VALUE 'nothing' ##NO_TEXT,
-                 pull    TYPE string VALUE 'pull' ##NO_TEXT,
-                 push    TYPE string VALUE 'push' ##NO_TEXT,
-               END OF c_method.
+    TYPES: BEGIN OF ty_settings,
+             key   TYPE string,
+             value TYPE string,
+           END OF ty_settings.
 
-    CONSTANTS: BEGIN OF c_amethod,
-                 fixed TYPE string VALUE 'fixed' ##NO_TEXT,
-                 auto  TYPE string VALUE 'auto' ##NO_TEXT,
-                 user  TYPE string VALUE 'user' ##NO_TEXT,
-               END OF c_amethod.
+    TYPES: ty_settings_tt TYPE STANDARD TABLE OF ty_settings WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_xml,
              method   TYPE string,
              username TYPE string,
              password TYPE string,
-             amethod  TYPE string,
-             aname    TYPE string,
-             amail    TYPE string,
+             settings TYPE ty_settings_tt,
            END OF ty_xml.
 
     TYPES: BEGIN OF ty_background,
@@ -7062,25 +7162,48 @@ CLASS zcl_abapgit_gui_page_bkg DEFINITION
     METHODS zif_abapgit_gui_page~on_event
         REDEFINITION .
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
 
-  PRIVATE SECTION.
-
-    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key .
-
+    METHODS read_persist
+      IMPORTING
+        !io_repo          TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rs_persist) TYPE zcl_abapgit_persist_background=>ty_background
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_methods
+      IMPORTING
+        !is_per        TYPE zcl_abapgit_persist_background=>ty_background
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS render_settings
+      IMPORTING
+        !is_per        TYPE zcl_abapgit_persist_background=>ty_background
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS build_menu
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    CLASS-METHODS update_task
+    CLASS-METHODS update
       IMPORTING
         !is_bg_task TYPE zcl_abapgit_persist_background=>ty_background
       RAISING
         zcx_abapgit_exception .
-    METHODS render_data
+    METHODS render
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    METHODS decode
+      IMPORTING
+        !iv_getdata      TYPE clike
+      RETURNING
+        VALUE(rs_fields) TYPE zcl_abapgit_persist_background=>ty_background .
+
+    METHODS render_content
+        REDEFINITION .
+  PRIVATE SECTION.
+
+    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -8205,13 +8328,13 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
     CLASS-METHODS file_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_file         TYPE any                   "assuming ty_file
+        !ig_file         TYPE any                             "assuming ty_file
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS obj_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_object       TYPE any                 "assuming ty_item
+        !ig_object       TYPE any                         "assuming ty_item
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS file_obj_decode
@@ -8219,8 +8342,8 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string TYPE clike
       EXPORTING
         !ev_key    TYPE zif_abapgit_persistence=>ty_repo-key
-        !eg_file   TYPE any            "assuming ty_file
-        !eg_object TYPE any          "assuming ty_item
+        !eg_file   TYPE any                "assuming ty_file
+        !eg_object TYPE any            "assuming ty_item
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS dbkey_encode
@@ -8243,11 +8366,6 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !it_postdata TYPE cnht_post_data_tab
       EXPORTING
         !es_fields   TYPE any .
-    CLASS-METHODS decode_bg_update
-      IMPORTING
-        !iv_getdata      TYPE clike
-      RETURNING
-        VALUE(rs_fields) TYPE zcl_abapgit_persist_background=>ty_background .
     CLASS-METHODS stage_decode
       IMPORTING
         !iv_getdata TYPE clike
@@ -9252,41 +9370,6 @@ CLASS zcl_abapgit_auth DEFINITION FINAL CREATE PUBLIC.
         IMPORTING iv_authorization  TYPE zif_abapgit_auth=>ty_authorization
                   iv_param          TYPE string OPTIONAL
         RETURNING VALUE(rv_allowed) TYPE abap_bool.
-
-ENDCLASS.
-CLASS zcl_abapgit_background DEFINITION CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    CLASS-METHODS:
-      run
-        RAISING zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      build_comment
-        IMPORTING is_files          TYPE zif_abapgit_definitions=>ty_stage_files
-        RETURNING VALUE(rv_comment) TYPE string,
-      push
-        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
-                  is_settings TYPE zcl_abapgit_persist_background=>ty_background
-        RAISING   zcx_abapgit_exception,
-      push_fixed
-        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
-                  is_settings TYPE zcl_abapgit_persist_background=>ty_background
-        RAISING   zcx_abapgit_exception,
-      push_auto
-        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
-                  is_settings TYPE zcl_abapgit_persist_background=>ty_background
-        RAISING   zcx_abapgit_exception,
-      determine_user_details
-        IMPORTING iv_method      TYPE string
-                  iv_changed_by  TYPE xubname
-        RETURNING VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user,
-      push_deletions
-        IMPORTING io_repo     TYPE REF TO zcl_abapgit_repo_online
-                  is_settings TYPE zcl_abapgit_persist_background=>ty_background
-                  is_files    TYPE zif_abapgit_definitions=>ty_stage_files
-        RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview DEFINITION
@@ -17728,319 +17811,6 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
-  METHOD build_comment.
-
-    DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-          lv_str     TYPE string.
-
-    FIELD-SYMBOLS: <ls_local> LIKE LINE OF is_files-local.
-    LOOP AT is_files-local ASSIGNING <ls_local>.
-      lv_str = |{ <ls_local>-item-obj_type } { <ls_local>-item-obj_name }|.
-      APPEND lv_str TO lt_objects.
-    ENDLOOP.
-
-    SORT lt_objects AS TEXT.
-    DELETE ADJACENT DUPLICATES FROM lt_objects.
-
-    IF lines( lt_objects ) = 1.
-      rv_comment = |BG: { lv_str }|.
-    ELSE.
-      rv_comment = 'BG: Multiple objects'.
-      LOOP AT lt_objects INTO lv_str.
-        CONCATENATE rv_comment zif_abapgit_definitions=>gc_newline lv_str INTO rv_comment.
-      ENDLOOP.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD determine_user_details.
-
-    DATA: lo_user_master_record TYPE REF TO zcl_abapgit_user_master_record.
-
-*   IF the method is to use real user values, call the BAPI
-    IF iv_method = zcl_abapgit_persist_background=>c_amethod-user.
-
-      lo_user_master_record = zcl_abapgit_user_master_record=>get_instance( iv_changed_by ).
-
-      rs_user-name = lo_user_master_record->get_name( ).
-      rs_user-email = lo_user_master_record->get_email( ).
-
-    ENDIF.
-
-*   If no email, fall back to localhost/default email
-    IF rs_user-email IS INITIAL.
-      rs_user-email = |{ iv_changed_by }@localhost|.
-    ENDIF.
-
-*   If no full name maintained, just use changed by user name
-    IF rs_user-name IS INITIAL.
-      rs_user-name  = iv_changed_by.
-    ENDIF.
-  ENDMETHOD.
-  METHOD push.
-
-    DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
-
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
-
-    IF  lines( ls_files-local ) = 0
-    AND lines( ls_files-remote ) = 0.
-      WRITE: / 'Nothing to stage' ##NO_TEXT.
-      RETURN.
-    ENDIF.
-
-    CASE is_settings-amethod.
-      WHEN zcl_abapgit_persist_background=>c_amethod-fixed.
-        push_fixed( io_repo     = io_repo
-                    is_settings = is_settings ).
-      WHEN zcl_abapgit_persist_background=>c_amethod-auto
-        OR zcl_abapgit_persist_background=>c_amethod-user.
-        push_auto( io_repo     = io_repo
-                   is_settings = is_settings ).
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'unknown push method' ).
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD push_auto.
-
-    TYPES: BEGIN OF ty_changed,
-             filename   TYPE string,
-             path       TYPE string,
-             changed_by TYPE xubname,
-           END OF ty_changed.
-
-    DATA: ls_comment    TYPE zif_abapgit_definitions=>ty_comment,
-          ls_files      TYPE zif_abapgit_definitions=>ty_stage_files,
-          lt_changed    TYPE STANDARD TABLE OF ty_changed WITH DEFAULT KEY,
-          lt_users      TYPE STANDARD TABLE OF xubname WITH DEFAULT KEY,
-          ls_user_files LIKE ls_files,
-          lv_changed_by TYPE xubname,
-          lo_stage      TYPE REF TO zcl_abapgit_stage.
-
-    FIELD-SYMBOLS: <ls_changed> LIKE LINE OF lt_changed,
-                   <ls_remote>  LIKE LINE OF ls_files-remote,
-                   <ls_local>   LIKE LINE OF ls_files-local.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
-
-    LOOP AT ls_files-local ASSIGNING <ls_local>.
-      lv_changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
-      APPEND lv_changed_by TO lt_users.
-      APPEND INITIAL LINE TO lt_changed ASSIGNING <ls_changed>.
-      <ls_changed>-changed_by = lv_changed_by.
-      <ls_changed>-filename   = <ls_local>-file-filename.
-      <ls_changed>-path       = <ls_local>-file-path.
-    ENDLOOP.
-
-    SORT lt_users ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM lt_users.
-
-    LOOP AT lt_users INTO lv_changed_by.
-      CLEAR: ls_comment.
-
-*     Fill user details
-      ls_comment-committer = determine_user_details( iv_method     = is_settings-amethod
-                                                     iv_changed_by = lv_changed_by ).
-
-      CREATE OBJECT lo_stage
-        EXPORTING
-          iv_branch_name = io_repo->get_branch_name( )
-          iv_branch_sha1 = io_repo->get_sha1_remote( ).
-
-      CLEAR ls_user_files.
-
-      LOOP AT ls_files-local ASSIGNING <ls_local>.
-        READ TABLE lt_changed WITH KEY
-          path = <ls_local>-file-path
-          filename = <ls_local>-file-filename
-          changed_by = lv_changed_by
-          TRANSPORTING NO FIELDS.
-        IF sy-subrc = 0.
-          WRITE: / 'stage' ##NO_TEXT,
-            ls_comment-committer-name,
-            <ls_local>-file-path,
-            <ls_local>-file-filename.
-
-          lo_stage->add( iv_path     = <ls_local>-file-path
-                         iv_filename = <ls_local>-file-filename
-                         iv_data     = <ls_local>-file-data ).
-
-          APPEND <ls_local> TO ls_user_files-local.
-
-          LOOP AT ls_files-remote ASSIGNING <ls_remote>
-              WHERE filename = <ls_local>-file-filename
-              AND path <> <ls_local>-file-path
-              AND filename <> 'package.devc.xml'.
-            WRITE: / 'rm' ##NO_TEXT,
-              <ls_remote>-path,
-              <ls_remote>-filename.
-
-* rm old file when object has moved
-            lo_stage->rm(
-              iv_path     = <ls_remote>-path
-              iv_filename = <ls_remote>-filename ).
-            EXIT. " assumption: only one file
-          ENDLOOP.
-        ENDIF.
-      ENDLOOP.
-
-      ls_comment-comment = build_comment( ls_user_files ).
-
-      io_repo->push( is_comment = ls_comment
-                     io_stage   = lo_stage ).
-    ENDLOOP.
-
-    IF lines( ls_files-remote ) = 0.
-      RETURN.
-    ENDIF.
-
-    push_deletions( io_repo     = io_repo
-                    is_settings = is_settings
-                    is_files    = ls_files ).
-
-  ENDMETHOD.
-  METHOD push_fixed.
-
-    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
-          ls_files   TYPE zif_abapgit_definitions=>ty_stage_files,
-          lo_stage   TYPE REF TO zcl_abapgit_stage.
-
-    FIELD-SYMBOLS: <ls_local>  LIKE LINE OF ls_files-local,
-                   <ls_remote> LIKE LINE OF ls_files-remote.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
-    ASSERT lines( ls_files-local ) > 0
-        OR lines( ls_files-remote ) > 0.
-
-    CREATE OBJECT lo_stage
-      EXPORTING
-        iv_branch_name = io_repo->get_branch_name( )
-        iv_branch_sha1 = io_repo->get_sha1_remote( ).
-
-    LOOP AT ls_files-local ASSIGNING <ls_local>.
-      WRITE: / 'stage' ##NO_TEXT,
-        <ls_local>-file-path,
-        <ls_local>-file-filename.
-      lo_stage->add( iv_path     = <ls_local>-file-path
-                     iv_filename = <ls_local>-file-filename
-                     iv_data     = <ls_local>-file-data ).
-    ENDLOOP.
-
-    LOOP AT ls_files-remote ASSIGNING <ls_remote>.
-
-      WRITE: / 'removed' ##NO_TEXT,
-        <ls_remote>-path,
-        <ls_remote>-filename.
-
-      lo_stage->rm( iv_path     = <ls_remote>-path
-                    iv_filename = <ls_remote>-filename ).
-
-    ENDLOOP.
-
-    ls_comment-committer-name  = is_settings-aname.
-    ls_comment-committer-email = is_settings-amail.
-    ls_comment-comment         = build_comment( ls_files ).
-
-    io_repo->push( is_comment = ls_comment
-                   io_stage   = lo_stage ).
-
-  ENDMETHOD.
-  METHOD run.
-
-    CONSTANTS: lc_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
-
-    DATA: lo_per       TYPE REF TO zcl_abapgit_persist_background,
-          lo_repo      TYPE REF TO zcl_abapgit_repo_online,
-          lt_list      TYPE zcl_abapgit_persist_background=>tt_background,
-          ls_checks    TYPE zif_abapgit_definitions=>ty_deserialize_checks,
-          lv_repo_name TYPE string.
-
-    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
-    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
-      EXPORTING
-        mode_zabapgit  = 'E'
-        type           = lc_enq_type
-        _scope         = '3'
-      EXCEPTIONS
-        foreign_lock   = 1
-        system_failure = 2
-        OTHERS         = 3.
-    IF sy-subrc <> 0.
-      WRITE: / 'Another intance of the program is already running'.
-      RETURN.
-    ENDIF.
-
-    CREATE OBJECT lo_per.
-    lt_list = lo_per->list( ).
-
-    WRITE: / 'Background mode' ##NO_TEXT.
-
-    LOOP AT lt_list ASSIGNING <ls_list>.
-      lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( <ls_list>-key ).
-      lv_repo_name = lo_repo->get_name( ).
-      WRITE: / <ls_list>-method, lv_repo_name.
-
-      zcl_abapgit_login_manager=>set(
-        iv_uri      = lo_repo->get_url( )
-        iv_username = <ls_list>-username
-        iv_password = <ls_list>-password ).
-
-      CASE <ls_list>-method.
-        WHEN zcl_abapgit_persist_background=>c_method-pull.
-* todo, set defaults in ls_checks
-          lo_repo->deserialize( ls_checks ).
-        WHEN zcl_abapgit_persist_background=>c_method-push.
-          push( io_repo     = lo_repo
-                is_settings = <ls_list> ).
-        WHEN OTHERS.
-          zcx_abapgit_exception=>raise( 'background, unknown mode' ).
-      ENDCASE.
-    ENDLOOP.
-
-    IF lines( lt_list ) = 0.
-      WRITE: / 'Nothing configured' ##NO_TEXT.
-    ENDIF.
-
-    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
-      EXPORTING
-        type = lc_enq_type.
-
-  ENDMETHOD.
-
-  METHOD push_deletions.
-
-    DATA: lo_stage   TYPE REF TO zcl_abapgit_stage,
-          ls_comment TYPE zif_abapgit_definitions=>ty_comment.
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF is_files-remote.
-
-    ASSERT lines( is_files-remote ) > 0.
-
-    CREATE OBJECT lo_stage
-      EXPORTING
-        iv_branch_name = io_repo->get_branch_name( )
-        iv_branch_sha1 = io_repo->get_sha1_remote( ).
-
-    LOOP AT is_files-remote ASSIGNING <ls_remote>.
-
-      WRITE: / 'removed' ##NO_TEXT,
-        <ls_remote>-path,
-        <ls_remote>-filename.
-
-      lo_stage->rm( iv_path     = <ls_remote>-path
-                    iv_filename = <ls_remote>-filename ).
-
-    ENDLOOP.
-
-    ls_comment-committer-name  = is_settings-aname.
-    ls_comment-committer-email = is_settings-amail.
-    ls_comment-comment         = build_comment( is_files ).
-
-    io_repo->push( is_comment = ls_comment
-                   io_stage   = lo_stage ).
-
-  ENDMETHOD.
-
-ENDCLASS.
 CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
   METHOD is_allowed.
 
@@ -21695,7 +21465,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
   ENDMETHOD.  "render_items
 ENDCLASS.
-CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
     DATA ls_field LIKE LINE OF ct.
@@ -21756,22 +21526,6 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
   ENDMETHOD.                    "dbkey_encode
-  METHOD decode_bg_update.
-
-    DATA: lt_fields TYPE tihttpnvp.
-
-    lt_fields = parse_fields_upper_case_name( iv_getdata ).
-
-    get_field( EXPORTING name = 'METHOD'   it = lt_fields CHANGING cv = rs_fields ).
-    get_field( EXPORTING name = 'USERNAME' it = lt_fields CHANGING cv = rs_fields ).
-    get_field( EXPORTING name = 'PASSWORD' it = lt_fields CHANGING cv = rs_fields ).
-    get_field( EXPORTING name = 'AMETHOD'  it = lt_fields CHANGING cv = rs_fields ).
-    get_field( EXPORTING name = 'ANAME'    it = lt_fields CHANGING cv = rs_fields ).
-    get_field( EXPORTING name = 'AMAIL'    it = lt_fields CHANGING cv = rs_fields ).
-
-    ASSERT NOT rs_fields IS INITIAL.
-
-  ENDMETHOD.  "decode_bg_update
   METHOD dir_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -21957,7 +21711,6 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?'.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD a.
@@ -26932,10 +26685,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   METHOD build_menu.
+
     CREATE OBJECT ro_menu.
+
     ro_menu->add( iv_txt = 'Run background logic'
                   iv_act = zif_abapgit_definitions=>gc_action-go_background_run ) ##NO_TEXT.
-  ENDMETHOD. "build_menu
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -26945,76 +26701,86 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     ms_control-page_menu  = build_menu( ).
 
   ENDMETHOD.
-  METHOD render_content.
+  METHOD decode.
 
-    CREATE OBJECT ro_html.
+    DATA: lt_fields TYPE tihttpnvp.
 
-    ro_html->add( render_data( ) ).
+    FIELD-SYMBOLS: <ls_setting> LIKE LINE OF rs_fields-settings.
+    rs_fields-key = mv_key.
 
-  ENDMETHOD.  "render_content
-  METHOD render_data.
+    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( iv_getdata ).
+
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'METHOD'
+        it   = lt_fields
+      CHANGING
+        cv   = rs_fields ).
+    IF rs_fields-method IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'USERNAME'
+        it   = lt_fields
+      CHANGING
+        cv   = rs_fields ).
+
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'PASSWORD'
+        it   = lt_fields
+      CHANGING
+        cv   = rs_fields ).
+    CALL METHOD (rs_fields-method)=>zif_abapgit_background~get_settings
+      CHANGING
+        ct_settings = rs_fields-settings.
+    LOOP AT rs_fields-settings ASSIGNING <ls_setting>.
+      zcl_abapgit_html_action_utils=>get_field(
+        EXPORTING
+          name = <ls_setting>-key
+          it   = lt_fields
+        CHANGING
+          cv   = <ls_setting>-value ).
+    ENDLOOP.
+
+    ASSERT NOT rs_fields IS INITIAL.
+
+  ENDMETHOD.
+  METHOD read_persist.
+
+    DATA: lo_per TYPE REF TO zcl_abapgit_persist_background,
+          lt_per TYPE zcl_abapgit_persist_background=>tt_background.
+    CREATE OBJECT lo_per.
+    lt_per = lo_per->list( ).
+
+    READ TABLE lt_per INTO rs_persist WITH KEY key = io_repo->get_key( ).
+    IF sy-subrc <> 0.
+      CLEAR rs_persist.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD render.
 
     DATA: lo_repo    TYPE REF TO zcl_abapgit_repo_online,
-          lo_per     TYPE REF TO zcl_abapgit_persist_background,
-          lt_per     TYPE zcl_abapgit_persist_background=>tt_background,
-          ls_per     LIKE LINE OF lt_per,
+          ls_per     TYPE zcl_abapgit_persist_background=>ty_background,
           lv_nothing TYPE string,
           lv_push    TYPE string,
           lv_pull    TYPE string,
           lv_afixed  TYPE string,
           lv_aauto   TYPE string,
           lv_auser   TYPE string.
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_key ).
+    ls_per = read_persist( lo_repo ).
     CREATE OBJECT ro_html.
 
     ro_html->add( '<div id="toc">' ).
 
-    CREATE OBJECT lo_per.
-    lt_per = lo_per->list( ).
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_key ).
-
-    READ TABLE lt_per INTO ls_per WITH KEY key = lo_repo->get_key( ).
-    IF sy-subrc <> 0.
-      CLEAR ls_per.
-    ENDIF.
-
-    IF ls_per-aname IS INITIAL.
-      ls_per-aname = 'foobar' ##NO_TEXT.
-    ENDIF.
-    IF ls_per-amail IS INITIAL.
-      ls_per-amail = 'foo@bar.com' ##NO_TEXT.
-    ENDIF.
-
-    CASE ls_per-method.
-      WHEN zcl_abapgit_persist_background=>c_method-push.
-        lv_push = ' checked' ##NO_TEXT.
-      WHEN zcl_abapgit_persist_background=>c_method-pull.
-        lv_pull = ' checked' ##NO_TEXT.
-      WHEN OTHERS.
-        lv_nothing = ' checked' ##NO_TEXT.
-    ENDCASE.
-
-    CASE ls_per-amethod.
-      WHEN zcl_abapgit_persist_background=>c_amethod-user.
-        lv_auser = ' checked' ##NO_TEXT.
-      WHEN zcl_abapgit_persist_background=>c_amethod-auto.
-        lv_aauto = ' checked' ##NO_TEXT.
-      WHEN OTHERS.
-        lv_afixed = ' checked' ##NO_TEXT.
-    ENDCASE.
-
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( lo_repo ) ).
     ro_html->add( '<br>' ).
 
-    ro_html->add( '<u>Method</u><br>' ) ##NO_TEXT.
-    ro_html->add( |<form method="get" action="sapevent:{ zif_abapgit_definitions=>gc_action-bg_update }">| ).
-    ro_html->add( '<input type="radio" name="method" value="nothing"' &&
-      lv_nothing && '>Do nothing<br>' ) ##NO_TEXT.
-    ro_html->add( '<input type="radio" name="method" value="push"' &&
-      lv_push && '>Automatic push<br>' ) ##NO_TEXT.
-    ro_html->add( '<input type="radio" name="method" value="pull"' &&
-      lv_pull && '>Automatic pull<br>' ) ##NO_TEXT.
-    ro_html->add( '<br>' ).
+    ro_html->add( render_methods( ls_per ) ).
 
     ro_html->add( '<u>HTTP Authentication, optional</u><br>' ) ##NO_TEXT.
     ro_html->add( '(password will be saved in clear text)<br>' ) ##NO_TEXT.
@@ -27033,27 +26799,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
     ro_html->add( '<br>' ).
 
-    ro_html->add( '<u>Commit author</u><br>' ).
-    ro_html->add( '<input type="radio" name="amethod" value="fixed"' &&
-      lv_afixed && '>Fixed<br>' ) ##NO_TEXT.
-    ro_html->add( '<input type="radio" name="amethod" value="auto"' &&
-      lv_aauto && '>Automatic<br>' ) ##NO_TEXT.
-    ro_html->add( '<input type="radio" name="amethod" value="user"' &&
-      lv_auser && '>Automatic using SU01 user details<br>' ) ##NO_TEXT.
-    ro_html->add( '<br>' ).
-
-    ro_html->add( '<table>' ).
-    ro_html->add( '<tr>' ).
-    ro_html->add( '<td>Name:</td>' ).
-    ro_html->add( '<td><input type="text" name="aname" value="' &&
-      ls_per-aname && '"></td>' ).
-    ro_html->add( '</tr>' ).
-    ro_html->add( '<tr>' ).
-    ro_html->add( '<td>Email:</td>' ).
-    ro_html->add( '<td><input type="text" name="amail" value="' &&
-      ls_per-amail && '"></td>' ).
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</table>' ).
+    ro_html->add( render_settings( ls_per ) ).
 
     ro_html->add( '<br>' ).
     ro_html->add( '<input type="submit" value="Save">' ).
@@ -27064,13 +26810,86 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
-  METHOD update_task.
+  METHOD render_content.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( render( ) ).
+
+  ENDMETHOD.
+  METHOD render_methods.
+
+    DATA: lt_methods TYPE zcl_abapgit_background=>ty_methods_tt,
+          ls_method  LIKE LINE OF lt_methods,
+          lv_checked TYPE string.
+    CREATE OBJECT ro_html.
+
+    lt_methods = zcl_abapgit_background=>list_methods( ).
+
+    ro_html->add( '<u>Method</u><br>' ) ##NO_TEXT.
+    ro_html->add( |<form method="get" action="sapevent:{ zif_abapgit_definitions=>gc_action-bg_update }">| ).
+
+    IF is_per-method IS INITIAL.
+      lv_checked = ' checked' ##NO_TEXT.
+    ENDIF.
+
+    ro_html->add( '<input type="radio" name="method" value=""' &&
+      lv_checked && '>Do nothing<br>' ) ##NO_TEXT.
+
+    LOOP AT lt_methods INTO ls_method.
+      CLEAR lv_checked.
+      IF is_per-method = ls_method-class.
+        lv_checked = ' checked' ##NO_TEXT.
+      ENDIF.
+
+      ro_html->add( '<input type="radio" name="method" value="' &&
+        ls_method-class && '"' &&
+        lv_checked && '>' &&
+        ls_method-description && '<br>' ) ##NO_TEXT.
+    ENDLOOP.
+
+    ro_html->add( '<br>' ).
+
+  ENDMETHOD.
+  METHOD render_settings.
+
+    DATA: lt_settings LIKE is_per-settings,
+          ls_setting  LIKE LINE OF lt_settings.
+    CREATE OBJECT ro_html.
+
+    IF is_per-method IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lt_settings = is_per-settings.
+
+    CALL METHOD (is_per-method)=>zif_abapgit_background~get_settings
+      CHANGING
+        ct_settings = lt_settings.
+
+    IF lines( lt_settings ) = 0.
+      RETURN.
+    ENDIF.
+
+    ro_html->add( '<table>' ).
+    LOOP AT lt_settings INTO ls_setting.
+      ro_html->add( '<tr>' ).
+      ro_html->add( '<td>' && ls_setting-key && ':</td>' ).
+      ro_html->add( '<td><input type="text" name="' &&
+        ls_setting-key && '" value="' &&
+        ls_setting-value && '"></td>' ).
+      ro_html->add( '</tr>' ).
+    ENDLOOP.
+    ro_html->add( '</table>' ).
+
+  ENDMETHOD.
+  METHOD update.
 
     DATA lo_persistence TYPE REF TO zcl_abapgit_persist_background.
 
     CREATE OBJECT lo_persistence.
 
-    IF is_bg_task-method = zcl_abapgit_persist_background=>c_method-nothing.
+    IF is_bg_task-method IS INITIAL.
       lo_persistence->delete( is_bg_task-key ).
     ELSE.
       lo_persistence->modify( is_bg_task ).
@@ -27083,13 +26902,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
-    DATA ls_bg_task TYPE zcl_abapgit_persist_background=>ty_background.
-
     CASE iv_action.
       WHEN zif_abapgit_definitions=>gc_action-bg_update.
-        ls_bg_task     = zcl_abapgit_html_action_utils=>decode_bg_update( iv_getdata ).
-        ls_bg_task-key = mv_key.
-        update_task( ls_bg_task ).
+        update( decode( iv_getdata ) ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
     ENDCASE.
 
@@ -58856,6 +58671,432 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
+  METHOD build_comment.
+
+    DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+          lv_str     TYPE string.
+
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF is_files-local.
+    LOOP AT is_files-local ASSIGNING <ls_local>.
+      lv_str = |{ <ls_local>-item-obj_type } { <ls_local>-item-obj_name }|.
+      APPEND lv_str TO lt_objects.
+    ENDLOOP.
+
+    SORT lt_objects AS TEXT.
+    DELETE ADJACENT DUPLICATES FROM lt_objects.
+
+    IF lines( lt_objects ) = 1.
+      rv_comment = |BG: { lv_str }|.
+    ELSE.
+      rv_comment = 'BG: Multiple objects' ##NO_TEXT.
+      LOOP AT lt_objects INTO lv_str.
+        CONCATENATE rv_comment zif_abapgit_definitions=>gc_newline lv_str INTO rv_comment.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD push_fixed.
+
+    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
+          ls_files   TYPE zif_abapgit_definitions=>ty_stage_files,
+          lo_stage   TYPE REF TO zcl_abapgit_stage.
+
+    FIELD-SYMBOLS: <ls_local>  LIKE LINE OF ls_files-local,
+                   <ls_remote> LIKE LINE OF ls_files-remote.
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+    ASSERT lines( ls_files-local ) > 0
+        OR lines( ls_files-remote ) > 0.
+
+    CREATE OBJECT lo_stage
+      EXPORTING
+        iv_branch_name = io_repo->get_branch_name( )
+        iv_branch_sha1 = io_repo->get_sha1_remote( ).
+
+    LOOP AT ls_files-local ASSIGNING <ls_local>.
+      WRITE: / 'stage' ##NO_TEXT,
+        <ls_local>-file-path,
+        <ls_local>-file-filename.
+      lo_stage->add( iv_path     = <ls_local>-file-path
+                     iv_filename = <ls_local>-file-filename
+                     iv_data     = <ls_local>-file-data ).
+    ENDLOOP.
+
+    LOOP AT ls_files-remote ASSIGNING <ls_remote>.
+
+      WRITE: / 'removed' ##NO_TEXT,
+        <ls_remote>-path,
+        <ls_remote>-filename.
+
+      lo_stage->rm( iv_path     = <ls_remote>-path
+                    iv_filename = <ls_remote>-filename ).
+
+    ENDLOOP.
+
+    ls_comment-committer-name  = iv_name.
+    ls_comment-committer-email = iv_email.
+    ls_comment-comment         = build_comment( ls_files ).
+
+    io_repo->push( is_comment = ls_comment
+                   io_stage   = lo_stage ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~get_description.
+
+    rv_description = 'Automatic push, fixed author' ##NO_TEXT.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~get_settings.
+
+    DATA: ls_setting LIKE LINE OF ct_settings.
+    READ TABLE ct_settings WITH KEY key = gc_settings-name INTO ls_setting.
+    IF sy-subrc <> 0.
+      ls_setting-key = gc_settings-name.
+      ls_setting-value = 'foobar'.
+      APPEND ls_setting TO ct_settings.
+    ENDIF.
+
+    READ TABLE ct_settings WITH KEY key = gc_settings-email INTO ls_setting.
+    IF sy-subrc <> 0.
+      ls_setting-key = gc_settings-email.
+      ls_setting-value = 'foobar@localhost'.
+      APPEND ls_setting TO ct_settings.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~run.
+
+    DATA: ls_files   TYPE zif_abapgit_definitions=>ty_stage_files,
+          ls_setting LIKE LINE OF it_settings,
+          lv_name    TYPE string,
+          lv_email   TYPE string.
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+
+    IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
+      WRITE: / 'Nothing to stage' ##NO_TEXT.
+      RETURN.
+    ENDIF.
+
+    READ TABLE it_settings WITH KEY key = gc_settings-name INTO ls_setting. "#EC CI_SUBRC
+    lv_name = ls_setting-value.
+
+    READ TABLE it_settings WITH KEY key = gc_settings-email INTO ls_setting. "#EC CI_SUBRC
+    lv_email = ls_setting-value.
+
+    push_fixed(
+      io_repo  = io_repo
+      iv_name  = lv_name
+      iv_email = lv_email ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
+  METHOD build_comment.
+
+    DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+          lv_str     TYPE string.
+
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF is_files-local.
+    LOOP AT is_files-local ASSIGNING <ls_local>.
+      lv_str = |{ <ls_local>-item-obj_type } { <ls_local>-item-obj_name }|.
+      APPEND lv_str TO lt_objects.
+    ENDLOOP.
+
+    SORT lt_objects AS TEXT.
+    DELETE ADJACENT DUPLICATES FROM lt_objects.
+
+    IF lines( lt_objects ) = 1.
+      rv_comment = |BG: { lv_str }|.
+    ELSE.
+      rv_comment = 'BG: Multiple objects' ##NO_TEXT.
+      LOOP AT lt_objects INTO lv_str.
+        CONCATENATE rv_comment zif_abapgit_definitions=>gc_newline lv_str INTO rv_comment.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD determine_user_details.
+
+    DATA: lo_user_master_record TYPE REF TO zcl_abapgit_user_master_record.
+    lo_user_master_record = zcl_abapgit_user_master_record=>get_instance( iv_changed_by ).
+    rs_user-name = lo_user_master_record->get_name( ).
+    rs_user-email = lo_user_master_record->get_email( ).
+
+*   If no email, fall back to localhost/default email
+    IF rs_user-email IS INITIAL.
+      rs_user-email = |{ iv_changed_by }@localhost|.
+    ENDIF.
+
+*   If no full name maintained, just use changed by user name
+    IF rs_user-name IS INITIAL.
+      rs_user-name  = iv_changed_by.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD push_auto.
+
+    TYPES: BEGIN OF ty_changed,
+             filename   TYPE string,
+             path       TYPE string,
+             changed_by TYPE xubname,
+           END OF ty_changed.
+
+    DATA: ls_comment    TYPE zif_abapgit_definitions=>ty_comment,
+          ls_files      TYPE zif_abapgit_definitions=>ty_stage_files,
+          lt_changed    TYPE STANDARD TABLE OF ty_changed WITH DEFAULT KEY,
+          lt_users      TYPE STANDARD TABLE OF xubname WITH DEFAULT KEY,
+          ls_user_files LIKE ls_files,
+          lv_changed_by LIKE LINE OF lt_users,
+          lo_stage      TYPE REF TO zcl_abapgit_stage.
+
+    FIELD-SYMBOLS: <ls_changed> LIKE LINE OF lt_changed,
+                   <ls_remote>  LIKE LINE OF ls_files-remote,
+                   <ls_local>   LIKE LINE OF ls_files-local.
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+
+    LOOP AT ls_files-local ASSIGNING <ls_local>.
+      lv_changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
+      APPEND lv_changed_by TO lt_users.
+      APPEND INITIAL LINE TO lt_changed ASSIGNING <ls_changed>.
+      <ls_changed>-changed_by = lv_changed_by.
+      <ls_changed>-filename   = <ls_local>-file-filename.
+      <ls_changed>-path       = <ls_local>-file-path.
+    ENDLOOP.
+
+    SORT lt_users ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_users.
+
+    LOOP AT lt_users INTO lv_changed_by.
+      CLEAR: ls_comment.
+
+*     Fill user details
+      ls_comment-committer = determine_user_details( lv_changed_by ).
+
+      CREATE OBJECT lo_stage
+        EXPORTING
+          iv_branch_name = io_repo->get_branch_name( )
+          iv_branch_sha1 = io_repo->get_sha1_remote( ).
+
+      CLEAR ls_user_files.
+
+      LOOP AT ls_files-local ASSIGNING <ls_local>.
+        READ TABLE lt_changed WITH KEY
+          path = <ls_local>-file-path
+          filename = <ls_local>-file-filename
+          changed_by = lv_changed_by
+          TRANSPORTING NO FIELDS.
+        IF sy-subrc = 0.
+          WRITE: / 'stage' ##NO_TEXT,
+            ls_comment-committer-name,
+            <ls_local>-file-path,
+            <ls_local>-file-filename.
+
+          lo_stage->add( iv_path     = <ls_local>-file-path
+                         iv_filename = <ls_local>-file-filename
+                         iv_data     = <ls_local>-file-data ).
+
+          APPEND <ls_local> TO ls_user_files-local.
+
+          LOOP AT ls_files-remote ASSIGNING <ls_remote>
+              WHERE filename = <ls_local>-file-filename
+              AND path <> <ls_local>-file-path
+              AND filename <> 'package.devc.xml'.
+            WRITE: / 'rm' ##NO_TEXT,
+              <ls_remote>-path,
+              <ls_remote>-filename.
+
+* rm old file when object has moved
+            lo_stage->rm(
+              iv_path     = <ls_remote>-path
+              iv_filename = <ls_remote>-filename ).
+            EXIT. " assumption: only one file
+          ENDLOOP.
+        ENDIF.
+      ENDLOOP.
+
+      ls_comment-comment = build_comment( ls_user_files ).
+
+      io_repo->push( is_comment = ls_comment
+                     io_stage   = lo_stage ).
+    ENDLOOP.
+
+    IF lines( ls_files-remote ) > 0.
+      push_deletions( io_repo  = io_repo
+                      is_files = ls_files ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD push_deletions.
+
+    DATA: lo_stage   TYPE REF TO zcl_abapgit_stage,
+          ls_comment TYPE zif_abapgit_definitions=>ty_comment.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF is_files-remote.
+
+    ASSERT lines( is_files-remote ) > 0.
+
+    CREATE OBJECT lo_stage
+      EXPORTING
+        iv_branch_name = io_repo->get_branch_name( )
+        iv_branch_sha1 = io_repo->get_sha1_remote( ).
+
+    LOOP AT is_files-remote ASSIGNING <ls_remote>.
+
+      WRITE: / 'removed' ##NO_TEXT,
+        <ls_remote>-path,
+        <ls_remote>-filename.
+
+      lo_stage->rm( iv_path     = <ls_remote>-path
+                    iv_filename = <ls_remote>-filename ).
+
+    ENDLOOP.
+
+    ls_comment-committer-name  = 'Deletion' ##NO_TEXT.
+    ls_comment-committer-email = 'deletion@localhost'.
+    ls_comment-comment         = build_comment( is_files ).
+
+    io_repo->push( is_comment = ls_comment
+                   io_stage   = lo_stage ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~get_description.
+
+    rv_description = 'Automatic push, auto author' ##NO_TEXT.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~get_settings.
+
+    RETURN.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~run.
+
+    DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
+
+    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+
+    IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
+      WRITE: / 'Nothing to stage' ##NO_TEXT.
+      RETURN.
+    ENDIF.
+
+    push_auto( io_repo ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
+  METHOD zif_abapgit_background~get_description.
+
+    rv_description = 'Automatic pull' ##NO_TEXT.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_background~get_settings.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_background~run.
+
+    DATA: ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
+* todo, set defaults in ls_checks
+    io_repo->deserialize( ls_checks ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
+  METHOD list_methods.
+
+    DATA: ls_method       LIKE LINE OF rt_methods,
+          ls_key          TYPE seoclskey,
+          lt_implementing TYPE seor_implementing_keys,
+          ls_implementing LIKE LINE OF lt_implementing.
+
+    FIELD-SYMBOLS: <ls_method> LIKE LINE OF rt_methods.
+* in order to handle local classes in the compiled report
+    ls_method-class = 'ZCL_ABAPGIT_BACKGROUND_PULL'.
+    INSERT ls_method INTO TABLE rt_methods.
+    ls_method-class = 'ZCL_ABAPGIT_BACKGROUND_PUSH_AU'.
+    INSERT ls_method INTO TABLE rt_methods.
+    ls_method-class = 'ZCL_ABAPGIT_BACKGROUND_PUSH_FI'.
+    INSERT ls_method INTO TABLE rt_methods.
+
+    ls_key-clsname = 'ZIF_ABAPGIT_BACKGROUND'.
+
+    CALL FUNCTION 'SEO_INTERFACE_IMPLEM_GET_ALL'
+      EXPORTING
+        intkey       = ls_key
+      IMPORTING
+        impkeys      = lt_implementing
+      EXCEPTIONS
+        not_existing = 1
+        OTHERS       = 2 ##FM_SUBRC_OK.
+    LOOP AT lt_implementing INTO ls_implementing.
+      ls_method-class = ls_implementing-clsname.
+      INSERT ls_method INTO TABLE rt_methods.
+    ENDLOOP.
+
+    LOOP AT rt_methods ASSIGNING <ls_method>.
+      CALL METHOD (<ls_method>-class)=>zif_abapgit_background~get_description
+        RECEIVING
+          rv_description = <ls_method>-description.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD run.
+
+    CONSTANTS: lc_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
+
+    DATA: lo_per        TYPE REF TO zcl_abapgit_persist_background,
+          lo_repo       TYPE REF TO zcl_abapgit_repo_online,
+          lt_list       TYPE zcl_abapgit_persist_background=>tt_background,
+          li_background TYPE REF TO zif_abapgit_background,
+          lv_repo_name  TYPE string.
+
+    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
+      EXPORTING
+        mode_zabapgit  = 'E'
+        type           = lc_enq_type
+        _scope         = '3'
+      EXCEPTIONS
+        foreign_lock   = 1
+        system_failure = 2
+        OTHERS         = 3.
+    IF sy-subrc <> 0.
+      WRITE: / 'Another intance of the program is already running' ##NO_TEXT.
+      RETURN.
+    ENDIF.
+
+    CREATE OBJECT lo_per.
+    lt_list = lo_per->list( ).
+
+    WRITE: / 'Background mode' ##NO_TEXT.
+
+    LOOP AT lt_list ASSIGNING <ls_list>.
+      lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( <ls_list>-key ).
+      lv_repo_name = lo_repo->get_name( ).
+      WRITE: / <ls_list>-method, lv_repo_name.
+
+      zcl_abapgit_login_manager=>set(
+        iv_uri      = lo_repo->get_url( )
+        iv_username = <ls_list>-username
+        iv_password = <ls_list>-password ).
+
+      CREATE OBJECT li_background TYPE (<ls_list>-method).
+
+      li_background->run(
+        io_repo     = lo_repo
+        it_settings = <ls_list>-settings ).
+    ENDLOOP.
+
+    IF lines( lt_list ) = 0.
+      WRITE: / 'Nothing configured' ##NO_TEXT.
+    ENDIF.
+
+    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
+      EXPORTING
+        type = lc_enq_type.
+
+  ENDMETHOD.
+ENDCLASS.
 ****************************************************
 * abapmerge - ZABAPGIT_PASSWORD_DIALOG
 ****************************************************
@@ -59193,5 +59434,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-28T08:11:12.138Z
+* abapmerge - 2018-07-29T08:10:08.947Z
 ****************************************************
