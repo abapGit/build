@@ -685,16 +685,24 @@ CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
 INTERFACE zif_abapgit_background
   .
+
+  TYPES: BEGIN OF ty_settings,
+           key   TYPE string,
+           value TYPE string,
+         END OF ty_settings.
+
+  TYPES: ty_settings_tt TYPE STANDARD TABLE OF ty_settings WITH DEFAULT KEY.
+
   CLASS-METHODS get_description
     RETURNING
       VALUE(rv_description) TYPE string .
   CLASS-METHODS get_settings
     CHANGING
-      VALUE(ct_settings) TYPE zcl_abapgit_persist_background=>ty_settings_tt .
+      VALUE(ct_settings) TYPE ty_settings_tt .
   METHODS run
     IMPORTING
       !io_repo     TYPE REF TO zcl_abapgit_repo_online
-      !it_settings TYPE zcl_abapgit_persist_background=>ty_settings_tt OPTIONAL
+      !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -6183,18 +6191,11 @@ CLASS zcl_abapgit_persist_background DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES: BEGIN OF ty_settings,
-             key   TYPE string,
-             value TYPE string,
-           END OF ty_settings.
-
-    TYPES: ty_settings_tt TYPE STANDARD TABLE OF ty_settings WITH DEFAULT KEY.
-
     TYPES: BEGIN OF ty_xml,
              method   TYPE string,
              username TYPE string,
              password TYPE string,
-             settings TYPE ty_settings_tt,
+             settings TYPE zif_abapgit_background=>ty_settings_tt,
            END OF ty_xml.
 
     TYPES: BEGIN OF ty_background,
@@ -59415,5 +59416,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-29T08:12:09.909Z
+* abapmerge - 2018-07-29T12:02:45.280Z
 ****************************************************
