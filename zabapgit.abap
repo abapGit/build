@@ -7133,6 +7133,12 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
         REDEFINITION .
   PROTECTED SECTION.
 
+    CLASS-METHODS dbcontent_decode
+      IMPORTING
+        !it_postdata      TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(rs_content) TYPE zif_abapgit_persistence=>ty_content .
+
     METHODS render_content
         REDEFINITION .
   PRIVATE SECTION.
@@ -7343,28 +7349,40 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
           zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_commit DEFINITION FINAL
-    CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+CLASS zcl_abapgit_gui_page_commit DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
-    CONSTANTS: BEGIN OF c_action,
-                 commit_post   TYPE string VALUE 'commit_post',
-                 commit_cancel TYPE string VALUE 'commit_cancel',
-               END OF c_action.
+    CONSTANTS:
+      BEGIN OF c_action,
+        commit_post   TYPE string VALUE 'commit_post',
+        commit_cancel TYPE string VALUE 'commit_cancel',
+      END OF c_action .
 
-    METHODS:
-      constructor
-        IMPORTING io_repo  TYPE REF TO zcl_abapgit_repo_online
-                  io_stage TYPE REF TO zcl_abapgit_stage
-        RAISING   zcx_abapgit_exception,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+    METHODS constructor
+      IMPORTING
+        !io_repo  TYPE REF TO zcl_abapgit_repo_online
+        !io_stage TYPE REF TO zcl_abapgit_stage
+      RAISING
+        zcx_abapgit_exception .
 
+    METHODS zif_abapgit_gui_page~on_event
+        REDEFINITION .
   PROTECTED SECTION.
-    METHODS:
-      render_content REDEFINITION,
-      scripts        REDEFINITION.
 
+    CLASS-METHODS parse_commit_request
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      EXPORTING
+        !es_fields   TYPE any .
+
+    METHODS render_content
+        REDEFINITION .
+    METHODS scripts
+        REDEFINITION .
   PRIVATE SECTION.
     DATA: mo_repo  TYPE REF TO zcl_abapgit_repo_online,
           mo_stage TYPE REF TO zcl_abapgit_stage.
@@ -8329,13 +8347,13 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
     CLASS-METHODS file_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_file         TYPE any                             "assuming ty_file
+        !ig_file         TYPE any                                                 "assuming ty_file
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS obj_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_object       TYPE any                         "assuming ty_item
+        !ig_object       TYPE any                                         "assuming ty_item
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS file_obj_decode
@@ -8343,8 +8361,8 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string TYPE clike
       EXPORTING
         !ev_key    TYPE zif_abapgit_persistence=>ty_repo-key
-        !eg_file   TYPE any                "assuming ty_file
-        !eg_object TYPE any            "assuming ty_item
+        !eg_file   TYPE any                        "assuming ty_file
+        !eg_object TYPE any                "assuming ty_item
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS dbkey_encode
@@ -8357,16 +8375,6 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string    TYPE clike
       RETURNING
         VALUE(rs_key) TYPE zif_abapgit_persistence=>ty_content .
-    CLASS-METHODS dbcontent_decode
-      IMPORTING
-        !it_postdata      TYPE cnht_post_data_tab
-      RETURNING
-        VALUE(rs_content) TYPE zif_abapgit_persistence=>ty_content .
-    CLASS-METHODS parse_commit_request
-      IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
-      EXPORTING
-        !es_fields   TYPE any .
     CLASS-METHODS stage_decode
       IMPORTING
         !iv_getdata TYPE clike
@@ -21489,24 +21497,6 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     APPEND ls_field TO ct.
 
   ENDMETHOD.  "add_field
-  METHOD dbcontent_decode.
-
-    DATA: lt_fields TYPE tihttpnvp,
-          lv_string TYPE string.
-    CONCATENATE LINES OF it_postdata INTO lv_string.
-
-    lv_string = cl_http_utility=>unescape_url( lv_string ).
-
-    rs_content = dbkey_decode( lv_string ).
-
-    lt_fields = parse_fields_upper_case_name( lv_string ).
-
-    get_field( EXPORTING name = 'XMLDATA' it = lt_fields CHANGING cv = rs_content-data_str ).
-    IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
-      rs_content-data_str = rs_content-data_str+1.
-    ENDIF.
-
-  ENDMETHOD.                    "dbcontent_decode
   METHOD dbkey_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -21633,34 +21623,6 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
   ENDMETHOD.                    "obj_encode
-  METHOD parse_commit_request.
-
-    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
-
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp.
-
-    FIELD-SYMBOLS <lv_body> TYPE string.
-
-    CLEAR es_fields.
-
-    CONCATENATE LINES OF it_postdata INTO lv_string.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
-    lt_fields = parse_fields_upper_case_name( lv_string ).
-
-    get_field( EXPORTING name = 'COMMITTER_NAME'  it = lt_fields CHANGING cv = es_fields ).
-    get_field( EXPORTING name = 'COMMITTER_EMAIL' it = lt_fields CHANGING cv = es_fields ).
-    get_field( EXPORTING name = 'AUTHOR_NAME'     it = lt_fields CHANGING cv = es_fields ).
-    get_field( EXPORTING name = 'AUTHOR_EMAIL'    it = lt_fields CHANGING cv = es_fields ).
-    get_field( EXPORTING name = 'COMMENT'         it = lt_fields CHANGING cv = es_fields ).
-    get_field( EXPORTING name = 'BODY'            it = lt_fields CHANGING cv = es_fields ).
-
-    ASSIGN COMPONENT 'BODY' OF STRUCTURE es_fields TO <lv_body>.
-    ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
-
-  ENDMETHOD.                    "parse_commit_request
   METHOD parse_fields.
 
     DATA: lt_substrings TYPE stringtab,
@@ -25970,7 +25932,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
   ENDMETHOD.  "scripts
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -25978,6 +25940,64 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     mo_stage  = io_stage.
 
     ms_control-page_title = 'COMMIT'.
+  ENDMETHOD.
+  METHOD parse_commit_request.
+
+    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
+
+    DATA: lv_string TYPE string,
+          lt_fields TYPE tihttpnvp.
+
+    FIELD-SYMBOLS <lv_body> TYPE string.
+
+    CLEAR es_fields.
+
+    CONCATENATE LINES OF it_postdata INTO lv_string.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
+    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
+
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'COMMITTER_NAME'
+        it = lt_fields
+      CHANGING
+        cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'COMMITTER_EMAIL'
+        it = lt_fields
+      CHANGING
+        cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'AUTHOR_NAME'
+        it = lt_fields
+      CHANGING
+        cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'AUTHOR_EMAIL'
+        it = lt_fields
+      CHANGING
+      cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'COMMENT'
+        it = lt_fields
+      CHANGING
+      cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'BODY'
+        it = lt_fields
+      CHANGING
+        cv = es_fields ).
+
+    ASSIGN COMPONENT 'BODY' OF STRUCTURE es_fields TO <lv_body>.
+    ASSERT <lv_body> IS ASSIGNED.
+    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
+
   ENDMETHOD.
   METHOD render_content.
 
@@ -25994,7 +26014,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ro_html->add( render_stage( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_form.
 
     CONSTANTS: lc_body_col_max TYPE i VALUE 150.
@@ -26080,7 +26100,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ro_html->add( '</form>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.    "render_form
+  ENDMETHOD.
   METHOD render_menu.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
@@ -26101,7 +26121,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ro_html->add( lo_toolbar->render( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.      "render_menu
+  ENDMETHOD.
   METHOD render_stage.
 
     DATA: lt_stage TYPE zcl_abapgit_stage=>ty_stage_tt.
@@ -26133,7 +26153,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
     ro_html->add( '</table>' ).
 
-  ENDMETHOD.    "render_stage
+  ENDMETHOD.
   METHOD render_text_input.
 
     DATA lv_attrs TYPE string.
@@ -26153,13 +26173,13 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  " render_text_input
+  ENDMETHOD.
   METHOD scripts.
 
     CREATE OBJECT ro_html.
     ro_html->add( 'setInitialFocus("comment");' ).
 
-  ENDMETHOD.    "scripts
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA: ls_commit TYPE zcl_abapgit_services_git=>ty_commit_fields.
@@ -26167,7 +26187,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     CASE iv_action.
       WHEN c_action-commit_post.
 
-        zcl_abapgit_html_action_utils=>parse_commit_request(
+        parse_commit_request(
           EXPORTING it_postdata = it_postdata
           IMPORTING es_fields   = ls_commit ).
 
@@ -29128,6 +29148,30 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     ms_key = is_key.
     ms_control-page_title = 'CONFIG EDIT'.
   ENDMETHOD.
+  METHOD dbcontent_decode.
+
+    DATA: lt_fields TYPE tihttpnvp,
+          lv_string TYPE string.
+    CONCATENATE LINES OF it_postdata INTO lv_string.
+
+    lv_string = cl_http_utility=>unescape_url( lv_string ).
+
+    rs_content = zcl_abapgit_html_action_utils=>dbkey_decode( lv_string ).
+
+    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
+
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        name = 'XMLDATA'
+        it = lt_fields
+      CHANGING
+        cv = rs_content-data_str ).
+
+    IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
+      rs_content-data_str = rs_content-data_str+1.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: lv_data    TYPE zif_abapgit_persistence=>ty_content-data_str,
@@ -29172,7 +29216,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     ro_html->add( '</div>' ). "db_entry
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD update.
 
     ASSERT is_content-type IS NOT INITIAL.
@@ -29191,7 +29235,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     CASE iv_action.
       WHEN gc_action-update.
-        ls_db = zcl_abapgit_html_action_utils=>dbcontent_decode( it_postdata ).
+        ls_db = dbcontent_decode( it_postdata ).
         update( ls_db ).
         ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
     ENDCASE.
@@ -59416,5 +59460,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-29T12:18:36.596Z
+* abapmerge - 2018-07-30T14:38:43.046Z
 ****************************************************
