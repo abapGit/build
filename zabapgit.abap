@@ -9860,7 +9860,7 @@ CLASS zcl_abapgit_folder_logic DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS package_to_path
+    METHODS package_to_path
       IMPORTING
         !iv_top        TYPE devclass
         !io_dot        TYPE REF TO zcl_abapgit_dot_abapgit
@@ -9869,7 +9869,7 @@ CLASS zcl_abapgit_folder_logic DEFINITION
         VALUE(rv_path) TYPE string
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS path_to_package
+    METHODS path_to_package
       IMPORTING
         !iv_top                  TYPE devclass
         !io_dot                  TYPE REF TO zcl_abapgit_dot_abapgit
@@ -9879,6 +9879,26 @@ CLASS zcl_abapgit_folder_logic DEFINITION
         VALUE(rv_package)        TYPE devclass
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS get_instance
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_folder_logic .
+  PROTECTED SECTION.
+    METHODS get_parent
+      IMPORTING
+        !iv_package     TYPE devclass
+      RETURNING
+        VALUE(r_parent) TYPE devclass.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_devclass_info,
+        devclass  TYPE devclass,
+        namespace TYPE namespace,
+        parentcl  TYPE parentcl,
+      END OF ty_devclass_info .
+    TYPES:
+      ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
+        WITH UNIQUE KEY devclass .
+    DATA mt_parent TYPE ty_devclass_info_tt .
 ENDCLASS.
 CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
 
@@ -10981,6 +11001,7 @@ CLASS zcl_abapgit_tadir DEFINITION
         !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
         !iv_only_local_objects TYPE abap_bool
         !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+        !io_folder_logic       TYPE REF TO zcl_abapgit_folder_logic OPTIONAL
       RETURNING
         VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
@@ -12433,6 +12454,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
           lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
           ls_srcsystem    LIKE LINE OF lt_srcsystem,
           ls_exclude      LIKE LINE OF lt_excludes.
+    DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
                    <ls_tadir> LIKE LINE OF rt_tadir.
@@ -12479,7 +12501,14 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     ENDIF.
 
     IF NOT io_dot IS INITIAL.
-      lv_path = zcl_abapgit_folder_logic=>package_to_path(
+      "Reuse given Folder Logic Instance
+      lo_folder_logic = io_folder_logic.
+      IF lo_folder_logic IS NOT BOUND.
+        "Get Folder Logic Instance
+        lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
+      ENDIF.
+
+      lv_path = lo_folder_logic->package_to_path(
         iv_top     = iv_top
         io_dot     = io_dot
         iv_package = iv_package ).
@@ -12507,7 +12536,8 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
                         iv_only_local_objects = iv_only_local_objects
                         iv_top                = iv_top
                         io_dot                = io_dot
-                        io_log                = io_log ).
+                        io_log                = io_log
+                        io_folder_logic       = lo_folder_logic ). "Hand down existing folder logic instance
       APPEND LINES OF lt_tadir TO rt_tadir.
     ENDLOOP.
 
@@ -14813,6 +14843,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           lo_progress TYPE REF TO zcl_abapgit_progress,
           lv_path     TYPE string,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt.
+    DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
                    <ls_deser>  LIKE LINE OF lt_late.
@@ -14844,6 +14875,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_master_language( )
                           it_items    = lt_items ).
 
+    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
       lo_progress->show( iv_current = sy-tabix
                          iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
@@ -14852,7 +14884,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       ls_item-obj_type = <ls_result>-obj_type.
       ls_item-obj_name = <ls_result>-obj_name.
 
-      lv_package = zcl_abapgit_folder_logic=>path_to_package(
+      lv_package = lo_folder_logic->path_to_package(
         iv_top  = io_repo->get_package( )
         io_dot  = io_repo->get_dot_abapgit( )
         iv_path = <ls_result>-path ).
@@ -15279,11 +15311,14 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
                                   WITH UNIQUE KEY obj_type obj_name devclass,
           ls_overwrite       LIKE LINE OF rt_overwrite,
           ls_tadir           TYPE tadir.
+    DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
+
+    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT it_results ASSIGNING <ls_result>.
 
-      lv_package = zcl_abapgit_folder_logic=>path_to_package(
+      lv_package = lo_folder_logic->path_to_package(
         iv_top  = io_repo->get_package( )
         io_dot  = io_repo->get_dot_abapgit( )
         iv_path = <ls_result>-path ).
@@ -16125,6 +16160,26 @@ CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
   ENDMETHOD.                    "set_headers
 ENDCLASS.
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
+  METHOD get_instance.
+    CREATE OBJECT ro_instance.
+  ENDMETHOD.
+
+  METHOD get_parent.
+    DATA: st_parent LIKE LINE OF mt_parent.
+
+    "Determine Parent Package
+    READ TABLE mt_parent INTO st_parent
+      WITH TABLE KEY devclass = iv_package.
+    IF sy-subrc <> 0.
+      r_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
+      st_parent-devclass = iv_package.
+      st_parent-parentcl = r_parent.
+      INSERT st_parent INTO TABLE mt_parent.
+    ELSE.
+      r_parent = st_parent-parentcl.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD package_to_path.
 
     DATA: lv_len          TYPE i,
@@ -16136,7 +16191,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
     IF iv_top = iv_package.
       rv_path = io_dot->get_starting_folder( ).
     ELSE.
-      lv_parentcl = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
+      lv_parentcl = get_parent( iv_package ).
 
       IF lv_parentcl IS INITIAL.
         zcx_abapgit_exception=>raise( |error, expected parent package, { iv_package }| ).
@@ -16467,7 +16522,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     " Try to get a unique package name for DEVC by using the path
     IF lv_type = 'DEVC'.
       ASSERT lv_name = 'PACKAGE'.
-      lv_name = zcl_abapgit_folder_logic=>path_to_package(
+      lv_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
         iv_top                  = iv_devclass
         io_dot                  = io_dot
         iv_create_if_not_exists = abap_false
@@ -16487,6 +16542,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
           ls_file     TYPE zif_abapgit_definitions=>ty_file_signature,
           lt_res_sort LIKE it_results,
           lt_item_idx LIKE it_results.
+    DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
                    <ls_res2> LIKE LINE OF it_results.
@@ -16525,9 +16581,10 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     ENDLOOP.
 
     " Check that objects are created in package corresponding to folder
+    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT it_results ASSIGNING <ls_res1>
         WHERE NOT package IS INITIAL AND NOT path IS INITIAL.
-      lv_path = zcl_abapgit_folder_logic=>package_to_path(
+      lv_path = lo_folder_logic->package_to_path(
         iv_top     = iv_top
         io_dot     = io_dot
         iv_package = <ls_res1>-package ).
@@ -59463,5 +59520,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-30T14:57:13.186Z
+* abapmerge - 2018-07-31T10:21:18.365Z
 ****************************************************
