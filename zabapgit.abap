@@ -58428,21 +58428,21 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.                    "get_length
   METHOD get_type.
 
-    DATA: lv_char3   TYPE c LENGTH 3,
-          lv_bitbyte TYPE zif_abapgit_definitions=>ty_bitbyte.
-    lv_bitbyte = zcl_abapgit_convert=>x_to_bitbyte( iv_x ).
-    lv_char3 = lv_bitbyte+1.
+    CONSTANTS: c_mask TYPE x VALUE 112.
+    DATA: xtype TYPE x.
 
-    CASE lv_char3.
-      WHEN '001'.
+    xtype = iv_x BIT-AND c_mask.
+
+    CASE xtype.
+      WHEN 16.
         rv_type = zif_abapgit_definitions=>gc_type-commit.
-      WHEN '010'.
+      WHEN 32.
         rv_type = zif_abapgit_definitions=>gc_type-tree.
-      WHEN '011'.
+      WHEN 48.
         rv_type = zif_abapgit_definitions=>gc_type-blob.
-      WHEN '100'.
+      WHEN 64.
         rv_type = zif_abapgit_definitions=>gc_type-tag.
-      WHEN '111'.
+      WHEN 112.
         rv_type = zif_abapgit_definitions=>gc_type-ref_d.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Todo, unknown type' ).
@@ -59546,5 +59546,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-07-31T15:33:33.882Z
+* abapmerge - 2018-08-01T11:13:06.715Z
 ****************************************************
