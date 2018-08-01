@@ -18323,7 +18323,7 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
     rv_time+11 = lv_utcsign.
     rv_time+12 = lv_utcdiff.
 
-  ENDMETHOD.                    "get
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   METHOD reduce.
@@ -18592,7 +18592,7 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
 
     " TODO: improve logic and cases
 
-  ENDMETHOD. "change_dir
+  ENDMETHOD.
   METHOD get_filename_from_syspath.
 
     DATA: lv_split TYPE c LENGTH 1,
@@ -18612,10 +18612,10 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
 
     READ TABLE lt_split INDEX lv_index INTO rv_filename.
 
-  ENDMETHOD.  " get_filename_from_syspath.
+  ENDMETHOD.
   METHOD is_root.
     rv_yes = boolc( iv_path = '/' ).
-  ENDMETHOD. "is_root
+  ENDMETHOD.
   METHOD is_subdir.
 
     DATA lv_len  TYPE i.
@@ -18627,7 +18627,7 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
                  AND iv_path+0(lv_len) = iv_parent
                  AND ( iv_parent+lv_last(1) = '/' OR iv_path+lv_len(1) = '/' ) ).
 
-  ENDMETHOD. "is_subdir
+  ENDMETHOD.
   METHOD split_file_location.
 
     DATA: lv_cnt TYPE i,
@@ -18645,7 +18645,7 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
       ev_filename = iv_fullpath.
     ENDIF.
 
-  ENDMETHOD.  "split_file_location
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   METHOD append.
@@ -18911,7 +18911,7 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
 
     rv_checksum = lv_char8.
 
-  ENDMETHOD.                                                "adler32
+  ENDMETHOD.
   METHOD sha1.
 
     DATA: lv_len     TYPE i,
@@ -18932,7 +18932,7 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
 
     rv_sha1 = sha1_raw( lv_xstring ).
 
-  ENDMETHOD.                                                "sha1
+  ENDMETHOD.
   METHOD sha1_raw.
 
     DATA: lv_hash TYPE hash160.
@@ -18954,7 +18954,7 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
 
     TRANSLATE rv_sha1 TO LOWER CASE.
 
-  ENDMETHOD.                                                "sha1_raw
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   METHOD calculate_line_num_and_stats.
@@ -18990,7 +18990,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.                " calculate_line_num_and_stats
+  ENDMETHOD.
   METHOD compute.
 
     DATA: lt_trdirtab_old TYPE TABLE OF trdir,
@@ -19005,7 +19005,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
         trdir_delta  = lt_trdir_delta
         text_delta   = rt_delta.
 
-  ENDMETHOD.                    "compute
+  ENDMETHOD.
   METHOD constructor.
 
     DATA: lt_delta TYPE vxabapt255_tab,
@@ -19027,10 +19027,10 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
     map_beacons( ).
     shortlist( ).
 
-  ENDMETHOD.                    "diff
+  ENDMETHOD.
   METHOD get.
     rt_diff = mt_diff.
-  ENDMETHOD.                    "get
+  ENDMETHOD.
   METHOD map_beacons.
 
     DEFINE _add_regex.
@@ -19088,7 +19088,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
-  ENDMETHOD.                " map_beacons
+  ENDMETHOD.
   METHOD render.
 
     DEFINE _append.
@@ -19145,7 +19145,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
       ENDIF.
     ENDDO.
 
-  ENDMETHOD.                " render
+  ENDMETHOD.
   METHOD shortlist.
 
     DATA: lv_index TYPE i.
@@ -19181,10 +19181,10 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
-  ENDMETHOD.                " shortlist
+  ENDMETHOD.
   METHOD stats.
     rs_count = ms_stats.
-  ENDMETHOD.                    "count
+  ENDMETHOD.
   METHOD unpack.
 
     DATA: lv_new TYPE string,
@@ -19195,7 +19195,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
     SPLIT lv_new AT zif_abapgit_definitions=>gc_newline INTO TABLE et_new.
     SPLIT lv_old AT zif_abapgit_definitions=>gc_newline INTO TABLE et_old.
 
-  ENDMETHOD.                    "unpack
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD bitbyte_to_int.
@@ -19231,7 +19231,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
     ENDDO.
 
-  ENDMETHOD.                    "bitbyte_to_int
+  ENDMETHOD.
   METHOD int_to_xstring4.
 * returns xstring of length 4 containing the integer value iv_i
 
@@ -19239,7 +19239,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     lv_x = iv_i.
     rv_xstring = lv_x.
 
-  ENDMETHOD.                    "int_to_xstring
+  ENDMETHOD.
   METHOD split_string.
 
     FIND FIRST OCCURRENCE OF cl_abap_char_utilities=>cr_lf IN iv_string.
@@ -19251,7 +19251,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
       SPLIT iv_string AT cl_abap_char_utilities=>newline INTO TABLE rt_lines.
     ENDIF.
 
-  ENDMETHOD.                    "split_string
+  ENDMETHOD.
   METHOD string_to_xstring_utf8.
 
     DATA: lo_obj TYPE REF TO cl_abap_conv_out_ce.
@@ -19267,7 +19267,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
             cx_parameter_invalid_type.                  "#EC NO_HANDLER
     ENDTRY.
 
-  ENDMETHOD.                    "string_to_xstring_utf8
+  ENDMETHOD.
   METHOD xstring_to_int.
 
     DATA: lv_xstring TYPE xstring,
@@ -19279,7 +19279,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
       lv_xstring = lv_xstring+1.
     ENDWHILE.
 
-  ENDMETHOD.                    "xstring_to_int
+  ENDMETHOD.
   METHOD xstring_to_string_utf8.
 
     DATA: lv_len TYPE i,
@@ -19299,7 +19299,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
             cx_parameter_invalid_type.                  "#EC NO_HANDLER
     ENDTRY.
 
-  ENDMETHOD.                    "xstring_to_string_utf8
+  ENDMETHOD.
   METHOD x_to_bitbyte.
 
     DATA: lv_b TYPE n.
@@ -19315,7 +19315,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     GET BIT 7 OF iv_x INTO rv_bitbyte+6(1).
     GET BIT 8 OF iv_x INTO rv_bitbyte+7(1).
 
-  ENDMETHOD.                    "x_to_bitbyte
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
 
@@ -59546,5 +59546,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-01T11:13:06.715Z
+* abapmerge - 2018-08-01T16:57:41.423Z
 ****************************************************
