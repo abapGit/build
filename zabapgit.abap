@@ -2807,7 +2807,7 @@ CLASS zcl_abapgit_ecatt_config_upl DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring.
+          iv_xml TYPE xstring.
 
   PROTECTED SECTION.
     METHODS:
@@ -2857,7 +2857,7 @@ CLASS zcl_abapgit_ecatt_data_upload DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring.
+          iv_xml TYPE xstring.
 
   PROTECTED SECTION.
     METHODS:
@@ -2964,7 +2964,7 @@ CLASS zcl_abapgit_ecatt_script_upl DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring.
+          iv_xml TYPE xstring.
 
   PROTECTED SECTION.
     METHODS:
@@ -3012,7 +3012,7 @@ CLASS zcl_abapgit_ecatt_sp_upload DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring,
+          iv_xml TYPE xstring,
 
       upload
         REDEFINITION.
@@ -3067,7 +3067,7 @@ CLASS zcl_abapgit_ecatt_system_upl DEFINITION
     METHODS:
       z_set_stream_for_upload
         IMPORTING
-          im_xml TYPE xstring.
+          iv_xml TYPE xstring.
 
   PROTECTED SECTION.
     METHODS:
@@ -3103,14 +3103,26 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
   PRIVATE SECTION.
     " downport missing types
     TYPES:
+      BEGIN OF ecvo_bus_msg.
+        INCLUDE TYPE etobj_key.
+    TYPES:
+      bus_msg_no   TYPE   etvo_msg_no,
+      arbgb        TYPE   arbgb,
+      msgnr        TYPE   msgnr,
+      bus_msg_text TYPE etvo_bus_msg_text,
+      otr_key      TYPE   sotr_conc,
+      msg_type     TYPE   etvo_msg_type,
+      END OF ecvo_bus_msg,
+
       etvo_bus_msg_tabtype   TYPE STANDARD TABLE OF ecvo_bus_msg,
       etvo_invert_validation TYPE c LENGTH 1,
       etvo_error_prio        TYPE n LENGTH 1,
+
       BEGIN OF etvoimpl_det,
-        impl_name    TYPE etvo_impl_name,
-        impl_type    TYPE etvo_impl_type,
-        impl_subtype TYPE etvo_impl_subtype,
-        impl_package TYPE etvo_package,
+        impl_name    TYPE c LENGTH 30,  " etvo_impl_name
+        impl_type    TYPE c LENGTH 1,   " etvo_impl_type
+        impl_subtype TYPE c LENGTH 4,   " etvo_impl_subtype
+        impl_package TYPE c LENGTH 255, " etvo_package
       END OF etvoimpl_det.
 
     DATA:
@@ -49981,7 +49993,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
     CALL METHOD lo_upload->('Z_SET_STREAM_FOR_UPLOAD')
       EXPORTING
-        im_xml = lv_xml.
+        iv_xml = lv_xml.
 
     ls_object-d_obj_name  = mv_object_name.
     ls_object-s_obj_type  = get_object_type( ).
@@ -54605,7 +54617,7 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -54903,7 +54915,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
   METHOD download.
 
     " We inherit from CL_APL_ECATT_DOWNLOAD because CL_APL_ECATT_VO_DOWNLOAD
@@ -55113,7 +55125,7 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " downport from CL_APL_ECATT_SYSTEMS_UPLOAD SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 
@@ -55374,7 +55386,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " downport from CL_APL_ECATT_START_PROFIL SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
@@ -55475,7 +55487,7 @@ CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_script_upl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
     " Downport
@@ -55485,7 +55497,7 @@ CLASS zcl_abapgit_ecatt_script_upl IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
@@ -56014,7 +56026,7 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " donwnpoort from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
@@ -56107,7 +56119,7 @@ CLASS zcl_abapgit_ecatt_config_upl IMPLEMENTATION.
   METHOD z_set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
-    mv_external_xml = im_xml.
+    mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
@@ -59550,5 +59562,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-03T11:36:28.576Z
+* abapmerge - 2018-08-03T12:48:54.820Z
 ****************************************************
