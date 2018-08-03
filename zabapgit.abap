@@ -11258,12 +11258,12 @@ CLASS ZCL_ABAPGIT_ZLIB_STREAM IMPLEMENTATION.
 
     mv_compressed = iv_data.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD remaining.
 
     rv_length = xstrlen( mv_compressed ) + 1.
 
-  ENDMETHOD.                    "remaining
+  ENDMETHOD.
   METHOD take_bits.
 
     DATA: lv_left  TYPE i,
@@ -11287,12 +11287,12 @@ CLASS ZCL_ABAPGIT_ZLIB_STREAM IMPLEMENTATION.
 
     ENDWHILE.
 
-  ENDMETHOD.                    "take_bits
+  ENDMETHOD.
   METHOD take_int.
 
     rv_int = zcl_abapgit_zlib_convert=>bits_to_int( take_bits( iv_length ) ).
 
-  ENDMETHOD.                    "take_int
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
   METHOD constructor.
@@ -11346,13 +11346,13 @@ CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
       <lv_offset> = <lv_offset> + 1.
     ENDDO.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD get_count.
     READ TABLE mt_count INDEX iv_index INTO rv_value.     "#EC CI_SUBRC
-  ENDMETHOD.                    "count
+  ENDMETHOD.
   METHOD get_symbol.
     READ TABLE mt_symbol INDEX iv_index INTO rv_value.    "#EC CI_SUBRC
-  ENDMETHOD.                    "symbol
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
   METHOD bits_to_int.
@@ -11369,7 +11369,7 @@ CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
       lv_bits = lv_bits+1.
     ENDWHILE.
 
-  ENDMETHOD.                    "bits_to_int
+  ENDMETHOD.
   METHOD hex_to_bits.
 
     DATA: lv_x   TYPE x LENGTH 1,
@@ -11387,14 +11387,14 @@ CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
       lv_hex = lv_hex+1.
     ENDWHILE.
 
-  ENDMETHOD.                    "hex_to_bits
+  ENDMETHOD.
   METHOD int_to_hex.
 
     DATA: lv_x TYPE x.
     lv_x = iv_int.
     rv_hex = lv_x.
 
-  ENDMETHOD.                    "int_to_hex
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   METHOD copy_out.
@@ -11413,7 +11413,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       CONCATENATE gv_out lv_x INTO gv_out IN BYTE MODE.
     ENDDO.
 
-  ENDMETHOD.                    "copy_out
+  ENDMETHOD.
   METHOD decode.
 
     DATA: lv_bit   TYPE c LENGTH 1,
@@ -11440,7 +11440,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       lv_first = lv_first * 2.
     ENDDO.
 
-  ENDMETHOD.                    "decode
+  ENDMETHOD.
   METHOD decompress.
 
     DATA: lv_x      TYPE x LENGTH 1,
@@ -11492,7 +11492,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
     rs_data-raw = gv_out.
     rs_data-compressed_len = xstrlen( iv_compressed ) - go_stream->remaining( ).
 
-  ENDMETHOD.                    "decompress
+  ENDMETHOD.
   METHOD dynamic.
 
     DATA: lv_nlen    TYPE i,
@@ -11582,7 +11582,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       EXPORTING
         it_lengths = lt_dists.
 
-  ENDMETHOD.                    "dynamic
+  ENDMETHOD.
   METHOD fixed.
 
     DATA: lt_lengths TYPE zcl_abapgit_zlib_huffman=>ty_lengths.
@@ -11612,7 +11612,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       EXPORTING
         it_lengths = lt_lengths.
 
-  ENDMETHOD.                    "fixed
+  ENDMETHOD.
   METHOD map_distance.
 
     DEFINE _distance.
@@ -11685,7 +11685,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
         ASSERT 1 = 0.
     ENDCASE.
 
-  ENDMETHOD.                    "map_distance
+  ENDMETHOD.
   METHOD map_length.
 
     DEFINE _length.
@@ -11756,7 +11756,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
         ASSERT 1 = 0.
     ENDCASE.
 
-  ENDMETHOD.                    "map_length
+  ENDMETHOD.
   METHOD read_pair.
 
     DATA: lv_symbol TYPE i.
@@ -11765,7 +11765,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
     lv_symbol = decode( go_distcode ).
     rs_pair-distance = map_distance( lv_symbol ).
 
-  ENDMETHOD.                    "read_pair
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_zip IMPLEMENTATION.
   METHOD encode_files.
@@ -18028,10 +18028,10 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
 
     rv_xml = to_xml( iv_normalize ).
 
-  ENDMETHOD.                    "render
+  ENDMETHOD.
   METHOD set_raw.
     mi_raw = ii_raw.
-  ENDMETHOD.                    "set_raw
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
   METHOD constructor.
@@ -18040,7 +18040,7 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
     parse( iv_xml ).
     fix_xml( ).
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD fix_xml.
 
     DATA: li_git  TYPE REF TO if_ixml_element,
@@ -18051,13 +18051,13 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
     mi_xml_doc->get_root( )->remove_child( li_git ).
     mi_xml_doc->get_root( )->append_child( li_abap ).
 
-  ENDMETHOD.                    "fix_xml
+  ENDMETHOD.
   METHOD get_metadata.
     rs_metadata = ms_metadata.
-  ENDMETHOD.                    "get_metadata
+  ENDMETHOD.
   METHOD get_raw.
     ri_raw = mi_xml_doc.
-  ENDMETHOD.                    "get_raw
+  ENDMETHOD.
   METHOD read.
 
     DATA: lx_error TYPE REF TO cx_transformation_error,
@@ -18082,13 +18082,13 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lx_error->if_message~get_text( ) ).
     ENDTRY.
 
-  ENDMETHOD.                    "read
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
   METHOD constructor.
     mi_ixml = cl_ixml=>create( ).
     mi_xml_doc = mi_ixml->create_document( ).
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD display_xml_error.
 
     DATA: lv_version TYPE string.
@@ -18103,7 +18103,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
 
     zcx_abapgit_exception=>raise( 'XML error' ).
 
-  ENDMETHOD.                    "display_xml_error
+  ENDMETHOD.
   METHOD error.
 
     DATA: lv_error TYPE i,
@@ -18134,7 +18134,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     ENDIF.
 
     zcx_abapgit_exception=>raise( 'Error while parsing XML' ).
-  ENDMETHOD.                    "error
+  ENDMETHOD.
   METHOD parse.
 
     DATA: li_stream_factory TYPE REF TO if_ixml_stream_factory,
@@ -18166,7 +18166,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     ms_metadata-class   = li_element->get_attribute_ns( c_attr_serializer ).
     ms_metadata-version = li_element->get_attribute_ns( c_attr_serializer_version ).
 
-  ENDMETHOD.                    "parse
+  ENDMETHOD.
   METHOD to_xml.
 * will render to codepage UTF-16
 
@@ -18183,7 +18183,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
 
     li_renderer->render( ).
 
-  ENDMETHOD.                    "to_xml
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
   METHOD constructor.
@@ -29598,7 +29598,7 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
       ASSIGN <ls_match> TO <ls_prev>.
     ENDLOOP.
 
-  ENDMETHOD.                    " order_matches
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
   METHOD add_rule.
@@ -29626,7 +29626,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       rv_line = lv_escaped.
     ENDIF.
 
-  ENDMETHOD.                    " apply_style
+  ENDMETHOD.
   METHOD create.
 
     " Create instance of highighter dynamically dependent on syntax type
@@ -29638,7 +29638,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       CLEAR ro_instance.
     ENDIF.
 
-  ENDMETHOD.                    " create.
+  ENDMETHOD.
   METHOD extend_matches.
 
     DATA: lv_line_len TYPE i,
@@ -29673,7 +29673,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       APPEND ls_match TO ct_matches.
     ENDIF.
 
-  ENDMETHOD.                    " extend_matches
+  ENDMETHOD.
   METHOD format_line.
 
     DATA:
@@ -29694,7 +29694,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       rv_line = rv_line && lv_chunk.
     ENDLOOP.
 
-  ENDMETHOD.                    " format_line
+  ENDMETHOD.
   METHOD parse_line.
 
     DATA:
@@ -29724,7 +29724,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
-  ENDMETHOD.                    " parse_line
+  ENDMETHOD.
   METHOD process_line.
 
     DATA: lt_matches TYPE ty_match_tt.
@@ -29745,14 +29745,14 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
     rv_line = me->format_line( iv_line    = iv_line
                                it_matches = lt_matches ).
 
-  ENDMETHOD.                    " process_line
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   METHOD class_constructor.
 
     init_keywords( ).
 
-  ENDMETHOD.                    " class_constructor
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -29771,7 +29771,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
               iv_token = c_token-text
               iv_style = c_css-text ).
 
-  ENDMETHOD.                    " constructor
+  ENDMETHOD.
   METHOD init_keywords.
 
     DATA: lv_keywords TYPE string,
@@ -29877,7 +29877,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
     SPLIT lv_keywords AT '|' INTO TABLE lt_keywords.
     gt_keywords = lt_keywords. " Hash table
 
-  ENDMETHOD.                    " init_keywords
+  ENDMETHOD.
   METHOD is_keyword.
 
     DATA lv_str TYPE string.
@@ -29886,7 +29886,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
     READ TABLE gt_keywords WITH KEY table_line = lv_str TRANSPORTING NO FIELDS.
     rv_yes = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.  " is_keyword.
+  ENDMETHOD.
   METHOD order_matches.
 
     DATA:
@@ -29955,7 +29955,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
       ASSIGN <ls_match> TO <ls_prev>.
     ENDLOOP.
 
-  ENDMETHOD.                    " order_matches.
+  ENDMETHOD.
   METHOD parse_line. "REDEFINITION
 
     DATA lv_index TYPE i.
@@ -59550,5 +59550,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-03T11:34:45.642Z
+* abapmerge - 2018-08-03T11:36:28.576Z
 ****************************************************
