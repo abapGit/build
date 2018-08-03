@@ -57053,7 +57053,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
     lv_z = <lv_y>.
     rv_c = lv_z(1).
 
-  ENDMETHOD.                    "get_null
+  ENDMETHOD.
   METHOD length_utf8_hex.
 
     DATA: lv_xstring TYPE xstring,
@@ -57084,7 +57084,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
     lv_x = lv_char4.
     rv_len = lv_x.
 
-  ENDMETHOD.                    "length_utf8_hex
+  ENDMETHOD.
   METHOD pkt_string.
 
     DATA: lv_x   TYPE x,
@@ -57099,7 +57099,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
 
     rv_pkt = rv_pkt && '00' && lv_x && iv_string.
 
-  ENDMETHOD.                    "pkt_string
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
@@ -57115,7 +57115,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
     lo_client->close( ).
 
-  ENDMETHOD.                    "branches
+  ENDMETHOD.
   METHOD branch_list.
 
     DATA: lv_data TYPE string.
@@ -57129,7 +57129,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       EXPORTING
         iv_data = lv_data.
 
-  ENDMETHOD.                    "branch_list
+  ENDMETHOD.
   METHOD find_branch.
 
     branch_list(
@@ -57144,7 +57144,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       ev_branch = eo_branch_list->find_by_name( iv_branch_name )-sha1.
     ENDIF.
 
-  ENDMETHOD.                    "find_branch
+  ENDMETHOD.
   METHOD parse.
 
     CONSTANTS: lc_band1 TYPE x VALUE '01'.
@@ -57177,7 +57177,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
     ev_pack = lv_pack.
 
-  ENDMETHOD.                    "parse
+  ENDMETHOD.
   METHOD receive_pack.
 
     DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
@@ -57237,7 +57237,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'missing necessary objects' ).
     ENDIF.
 
-  ENDMETHOD.                    "receive_pack
+  ENDMETHOD.
   METHOD upload_pack.
 
     DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
@@ -57306,7 +57306,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
     et_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
 
-  ENDMETHOD.                    "upload_pack
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   METHOD build_trees.
@@ -57492,7 +57492,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                              iv_tree    = ls_commit-tree
                              iv_base    = '/' ).
 
-  ENDMETHOD.                    "root_tree
+  ENDMETHOD.
   METHOD pull.
 
     DATA: ls_object LIKE LINE OF et_objects,
@@ -57522,7 +57522,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                     iv_path = '/'
           CHANGING ct_files = et_files ).
 
-  ENDMETHOD.                    "pull
+  ENDMETHOD.
   METHOD push.
 
     DATA: lt_expanded TYPE zif_abapgit_definitions=>ty_expanded_tt,
@@ -57610,7 +57610,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                                    it_blobs   = lt_blobs
                                    io_stage   = io_stage ).
 
-  ENDMETHOD.                    "push
+  ENDMETHOD.
   METHOD receive_pack_create_tag.
 
     DATA: lv_tag          TYPE xstring,
@@ -57749,7 +57749,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
           CHANGING ct_files = lt_files ).
     io_repo->set_files_remote( lt_files ).
 
-  ENDMETHOD.                    "receive_pack
+  ENDMETHOD.
   METHOD walk.
 
     DATA: lv_path  TYPE string,
@@ -57791,7 +57791,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
             CHANGING ct_files = ct_files ).
     ENDLOOP.
 
-  ENDMETHOD.                    "walk
+  ENDMETHOD.
   METHOD walk_tree.
 
     DATA: ls_object   LIKE LINE OF it_objects,
@@ -57978,7 +57978,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     decode_deltas( CHANGING ct_objects = rt_objects ).
 
-  ENDMETHOD.                    "decode
+  ENDMETHOD.
   METHOD decode_commit.
 
     DATA: lv_string TYPE string,
@@ -58024,7 +58024,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'multiple parents? not supported' ).
     ENDIF.
 
-  ENDMETHOD.                    "decode_commit
+  ENDMETHOD.
   METHOD decode_deltas.
 
     DATA: ls_object   LIKE LINE OF ct_objects,
@@ -58047,7 +58047,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
              CHANGING ct_objects = ct_objects ).
     ENDLOOP.
 
-  ENDMETHOD.                    "decode_deltas
+  ENDMETHOD.
   METHOD decode_tag.
 
     DATA: lv_string TYPE string,
@@ -58150,7 +58150,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       lv_cursor = lv_match + 1 + lc_sha_length.
     ENDDO.
 
-  ENDMETHOD.                    "decode_tree
+  ENDMETHOD.
   METHOD delta.
 
     CONSTANTS: lc_1   TYPE x VALUE '01',
@@ -58257,7 +58257,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ls_object-data = lv_result.
     APPEND ls_object TO ct_objects.
 
-  ENDMETHOD.                    "delta
+  ENDMETHOD.
   METHOD delta_header.
 
     DATA: lv_bitbyte TYPE zif_abapgit_definitions=>ty_bitbyte,
@@ -58275,7 +58275,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ENDDO.
     ev_header = zcl_abapgit_convert=>bitbyte_to_int( lv_bits ).
 
-  ENDMETHOD.                    "delta_header
+  ENDMETHOD.
   METHOD encode.
 
     DATA: lv_sha1          TYPE x LENGTH 20,
@@ -58331,7 +58331,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_sha1 = to_upper( zcl_abapgit_hash=>sha1_raw( rv_data ) ).
     CONCATENATE rv_data lv_sha1 INTO rv_data IN BYTE MODE.
 
-  ENDMETHOD.                    "encode
+  ENDMETHOD.
   METHOD encode_commit.
 
     DATA: lv_string       TYPE string,
@@ -58376,7 +58376,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
-  ENDMETHOD.                    "encode_commit
+  ENDMETHOD.
   METHOD encode_tag.
 
     DATA: lv_string TYPE string,
@@ -58420,7 +58420,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       CONCATENATE rv_data lv_xstring lc_null lv_hex20 INTO rv_data IN BYTE MODE.
     ENDLOOP.
 
-  ENDMETHOD.                    "encode_tree
+  ENDMETHOD.
   METHOD get_length.
 
     DATA: lv_x           TYPE x,
@@ -58441,7 +58441,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     ev_length = zcl_abapgit_convert=>bitbyte_to_int( lv_length_bits ).
 
-  ENDMETHOD.                    "get_length
+  ENDMETHOD.
   METHOD get_type.
 
     CONSTANTS: c_mask TYPE x VALUE 112.
@@ -58464,7 +58464,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'Todo, unknown type' ).
     ENDCASE.
 
-  ENDMETHOD.                    "get_type
+  ENDMETHOD.
   METHOD sort_tree.
 
     TYPES: BEGIN OF ty_sort,
@@ -58561,7 +58561,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Todo, encoding length' ).
     ENDIF.
 
-  ENDMETHOD.                    "type_and_length
+  ENDMETHOD.
   METHOD zlib_decompress.
 
     DATA: ls_data           TYPE zcl_abapgit_zlib=>ty_decompress,
@@ -58596,13 +58596,13 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     ELSE.
       rv_name = 'refs/heads/' && iv_branch_name.
     ENDIF.
-  ENDMETHOD.  "complete_heads_branch_name
+  ENDMETHOD.
   METHOD constructor.
     parse_branch_list(
       EXPORTING iv_data        = iv_data
       IMPORTING et_list        = me->mt_branches
                 ev_head_symref = me->mv_head_symref ).
-  ENDMETHOD.  "create
+  ENDMETHOD.
   METHOD find_by_name.
 
     IF iv_branch_name IS INITIAL.
@@ -58621,7 +58621,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.  "find_by_name
+  ENDMETHOD.
   METHOD get_branches_only.
     FIELD-SYMBOLS <ls_branch> LIKE LINE OF mt_branches.
 
@@ -58630,7 +58630,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
         APPEND <ls_branch> TO rt_branches.
       ENDIF.
     ENDLOOP.
-  ENDMETHOD.  "get_branches_only
+  ENDMETHOD.
   METHOD get_display_name.
     rv_display_name = iv_branch_name.
 
@@ -58640,7 +58640,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       REPLACE FIRST OCCURRENCE OF 'refs/' IN rv_display_name WITH ''.
     ENDIF.
 
-  ENDMETHOD.  "get_display_name
+  ENDMETHOD.
   METHOD get_head.
 
     IF mv_head_symref IS NOT INITIAL.
@@ -58649,10 +58649,10 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       rs_branch = find_by_name( zif_abapgit_definitions=>c_head_name ).
     ENDIF.
 
-  ENDMETHOD.  "get_head
+  ENDMETHOD.
   METHOD get_head_symref.
     rv_head_symref = mv_head_symref.
-  ENDMETHOD.  " get_head_symref.
+  ENDMETHOD.
   METHOD get_tags_only.
     FIELD-SYMBOLS <ls_branch> LIKE LINE OF mt_branches.
 
@@ -58662,7 +58662,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       APPEND <ls_branch> TO rt_tags.
     ENDLOOP.
 
-  ENDMETHOD.  "get_tags_only
+  ENDMETHOD.
   METHOD get_type.
 
     DATA: lv_annotated_tag_with_suffix TYPE string.
@@ -58690,7 +58690,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.  "get_type
+  ENDMETHOD.
   METHOD is_ignored.
 
     IF iv_branch_name = 'refs/heads/gh-pages'. " Github pages
@@ -58704,13 +58704,13 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       rv_ignore = abap_true.
     ENDIF.
 
-  ENDMETHOD.  "is_ignored
+  ENDMETHOD.
   METHOD normalize_branch_name.
 
     rv_name = iv_branch_name. " Force convert to string
     REPLACE ALL OCCURRENCES OF ` ` IN rv_name WITH '-'. " Disallow space in branch name
 
-  ENDMETHOD.  " normalize_branch_name.
+  ENDMETHOD.
   METHOD parse_branch_list.
 
     DATA: lt_result            TYPE TABLE OF string,
@@ -58764,7 +58764,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "parse_branch_list
+  ENDMETHOD.
   METHOD parse_head_params.
 
     DATA: ls_match    TYPE match_result,
@@ -58776,7 +58776,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       rv_head_symref = iv_data+ls_submatch-offset(ls_submatch-length).
     ENDIF.
 
-  ENDMETHOD.  "parse_head_params
+  ENDMETHOD.
 
   METHOD find_tag_by_name.
 
@@ -59562,5 +59562,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-03T12:48:54.820Z
+* abapmerge - 2018-08-03T12:50:56.245Z
 ****************************************************
