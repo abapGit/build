@@ -1204,7 +1204,7 @@ INTERFACE zif_abapgit_definitions.
            max_lines                  TYPE i,
            adt_jump_enabled           TYPE abap_bool,
            show_default_repo          TYPE abap_bool,
-           link_hints                 TYPE abap_bool,
+           link_hints_enabled         TYPE abap_bool,
            link_hint_key              TYPE char01,
            link_hint_background_color TYPE string,
          END OF ty_s_user_settings.
@@ -10835,12 +10835,12 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       set_show_default_repo
         IMPORTING
           iv_show_default_repo TYPE abap_bool,
-      set_link_hints
+      set_link_hints_enabled
         IMPORTING
-          iv_link_hints TYPE abap_bool,
-      get_link_hints
+          iv_link_hints_enabled TYPE abap_bool,
+      get_link_hints_enabled
         RETURNING
-          VALUE(rv_link_hints) TYPE abap_bool
+          VALUE(rv_link_hints_enabled) TYPE abap_bool
         RAISING
           zcx_abapgit_exception,
       set_link_hint_key
@@ -10868,8 +10868,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
              commitmsg_comment_length TYPE i,
              commitmsg_body_size      TYPE i,
            END OF ty_s_settings.
+
     DATA: ms_settings      TYPE ty_s_settings,
           ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+
+    METHODS:
+      set_default_link_hint_key,
+      set_default_link_hint_bg_color.
 
 ENDCLASS.
 CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
@@ -12923,8 +12928,8 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_experimental_features.
     rv_run = ms_settings-experimental_features.
   ENDMETHOD.
-  METHOD get_link_hints.
-    rv_link_hints = ms_user_settings-link_hints.
+  METHOD get_link_hints_enabled.
+    rv_link_hints_enabled = ms_user_settings-link_hints_enabled.
   ENDMETHOD.
   METHOD get_link_hint_key.
     rv_link_hint_key = ms_user_settings-link_hint_key.
@@ -12982,15 +12987,21 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     set_show_default_repo( abap_false ).
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
-    set_link_hint_key( |f| ).
-    set_link_hint_background_color( |yellow| ).
+    set_default_link_hint_key( ).
+    set_default_link_hint_bg_color( ).
 
+  ENDMETHOD.
+  METHOD set_default_link_hint_bg_color.
+    set_link_hint_background_color( |lightgreen| ).
+  ENDMETHOD.
+  METHOD set_default_link_hint_key.
+    set_link_hint_key( |f| ).
   ENDMETHOD.
   METHOD set_experimental_features.
     ms_settings-experimental_features = iv_run.
   ENDMETHOD.
-  METHOD set_link_hints.
-    ms_user_settings-link_hints = iv_link_hints.
+  METHOD set_link_hints_enabled.
+    ms_user_settings-link_hints_enabled = iv_link_hints_enabled.
   ENDMETHOD.
   METHOD set_link_hint_key.
     ms_user_settings-link_hint_key = iv_link_hint_key.
@@ -13015,6 +13026,14 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_user_settings.
     ms_user_settings = is_user_settings.
+
+    IF ms_user_settings-link_hint_key IS INITIAL.
+      set_default_link_hint_key( ).
+    ENDIF.
+
+    IF ms_user_settings-link_hint_background_color IS INITIAL.
+      set_default_link_hint_bg_color( ).
+    ENDIF.
   ENDMETHOD.
   METHOD set_xml_settings.
 
@@ -23637,11 +23656,11 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
       mo_settings->set_adt_jump_enanbled( abap_false ).
     ENDIF.
 
-    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hints'.
+    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hints_enabled'.
     IF sy-subrc = 0.
-      mo_settings->set_link_hints( abap_true ).
+      mo_settings->set_link_hints_enabled( abap_true ).
     ELSE.
-      mo_settings->set_link_hints( abap_false ).
+      mo_settings->set_link_hints_enabled( abap_false ).
     ENDIF.
 
     READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hint_key'.
@@ -23905,7 +23924,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
           lv_link_hint_key         TYPE char01,
           lv_link_background_color TYPE string.
 
-    IF mo_settings->get_link_hints( ) = abap_true.
+    IF mo_settings->get_link_hints_enabled( ) = abap_true.
       lv_checked = 'checked'.
     ENDIF.
 
@@ -23914,7 +23933,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
     ro_html->add( |<h2>Vimium like link hints</h2>| ).
-    ro_html->add( `<input type="checkbox" name="link_hints" value="X" `
+    ro_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
                    && lv_checked && ` > Enable Vimium like link hints` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
@@ -23924,7 +23943,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( |<br>| ).
     ro_html->add( |<input type="text" name="link_hint_background_color" size="20" maxlength="20"|
                && | value="{ lv_link_background_color }"|
-               && |> Background Color| ).
+               && |> Background Color (HTML colors e.g. lightgreen or #42f47a)| ).
 
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
@@ -27179,7 +27198,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     lv_link_hint_key = lo_settings->get_link_hint_key( ).
     lv_background_color = lo_settings->get_link_hint_background_color( ).
 
-    IF lo_settings->get_link_hints( ) = abap_true
+    IF lo_settings->get_link_hints_enabled( ) = abap_true
     AND lv_link_hint_key IS NOT INITIAL.
       ro_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
       ro_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
@@ -60021,5 +60040,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-04T05:37:27.776Z
+* abapmerge - 2018-08-04T07:14:38.692Z
 ****************************************************
