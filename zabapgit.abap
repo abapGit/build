@@ -1201,9 +1201,12 @@ INTERFACE zif_abapgit_definitions.
   TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_s_user_settings,
-           max_lines         TYPE i,
-           adt_jump_enabled  TYPE abap_bool,
-           show_default_repo TYPE abap_bool,
+           max_lines                  TYPE i,
+           adt_jump_enabled           TYPE abap_bool,
+           show_default_repo          TYPE abap_bool,
+           link_hints                 TYPE abap_bool,
+           link_hint_key              TYPE char01,
+           link_hint_background_color TYPE string,
          END OF ty_s_user_settings.
 
   CONSTANTS:
@@ -6671,7 +6674,6 @@ CLASS zcl_abapgit_persistence_user DEFINITION
       RAISING
         zcx_abapgit_exception.
   PRIVATE SECTION.
-
     TYPES:
       BEGIN OF ty_repo_config,
         url              TYPE zif_abapgit_persistence=>ty_repo-url,
@@ -6892,8 +6894,8 @@ CLASS zcl_abapgit_test_serialize DEFINITION
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
-  final
-  create private .
+  FINAL
+  CREATE PRIVATE .
 
   PUBLIC SECTION.
 
@@ -6911,6 +6913,8 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING action frame getdata postdata query_table.  "#EC NEEDED
+
+    METHODS focus.
 
   PRIVATE SECTION.
 
@@ -7068,6 +7072,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
     METHODS title
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+
     METHODS footer
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -7547,7 +7552,8 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
       zif_abapgit_gui_page~on_event REDEFINITION.
 
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
+    METHODS:
+      render_content REDEFINITION.
 
   PRIVATE SECTION.
     CONSTANTS: BEGIN OF c_actions,
@@ -7950,7 +7956,11 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     METHODS render_start_up
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+    METHODS render_link_hints
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
@@ -8213,7 +8223,7 @@ CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
 
 ENDCLASS.
 CLASS zcl_abapgit_html DEFINITION
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -8239,7 +8249,7 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_opt   TYPE clike OPTIONAL
         !iv_class TYPE string OPTIONAL
         !iv_id    TYPE string OPTIONAL
-        !iv_style TYPE string OPTIONAL .
+        !iv_style TYPE string OPTIONAL.
     METHODS add_icon
       IMPORTING
         !iv_name  TYPE string
@@ -10824,7 +10834,29 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rv_show_default_repo) TYPE abap_bool,
       set_show_default_repo
         IMPORTING
-          iv_show_default_repo TYPE abap_bool.
+          iv_show_default_repo TYPE abap_bool,
+      set_link_hints
+        IMPORTING
+          iv_link_hints TYPE abap_bool,
+      get_link_hints
+        RETURNING
+          VALUE(rv_link_hints) TYPE abap_bool
+        RAISING
+          zcx_abapgit_exception,
+      set_link_hint_key
+        IMPORTING
+          iv_link_hint_key TYPE char01,
+      get_link_hint_key
+        RETURNING
+          VALUE(rv_link_hint_key) TYPE char01
+        RAISING
+          zcx_abapgit_exception,
+      get_link_hint_background_color
+        RETURNING
+          VALUE(rv_background_color) TYPE string,
+      set_link_hint_background_color
+        IMPORTING
+          iv_background_color TYPE string.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -12891,6 +12923,12 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_experimental_features.
     rv_run = ms_settings-experimental_features.
   ENDMETHOD.
+  METHOD get_link_hints.
+    rv_link_hints = ms_user_settings-link_hints.
+  ENDMETHOD.
+  METHOD get_link_hint_key.
+    rv_link_hint_key = ms_user_settings-link_hint_key.
+  ENDMETHOD.
   METHOD get_max_lines.
     rv_lines = ms_user_settings-max_lines.
   ENDMETHOD.
@@ -12917,7 +12955,12 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     rv_settings_xml = lo_output->render( ).
 
   ENDMETHOD.
-
+  METHOD get_show_default_repo.
+    rv_show_default_repo = ms_user_settings-show_default_repo.
+  ENDMETHOD.
+  METHOD get_user_settings.
+    rs_settings = ms_user_settings.
+  ENDMETHOD.
   METHOD set_adt_jump_enanbled.
     ms_user_settings-adt_jump_enabled = iv_adt_jump_enabled.
   ENDMETHOD.
@@ -12939,10 +12982,18 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     set_show_default_repo( abap_false ).
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
+    set_link_hint_key( |f| ).
+    set_link_hint_background_color( |yellow| ).
 
   ENDMETHOD.
   METHOD set_experimental_features.
     ms_settings-experimental_features = iv_run.
+  ENDMETHOD.
+  METHOD set_link_hints.
+    ms_user_settings-link_hints = iv_link_hints.
+  ENDMETHOD.
+  METHOD set_link_hint_key.
+    ms_user_settings-link_hint_key = iv_link_hint_key.
   ENDMETHOD.
   METHOD set_max_lines.
     ms_user_settings-max_lines = iv_lines.
@@ -12958,6 +13009,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_run_critical_tests.
     ms_settings-run_critical_tests = iv_run.
+  ENDMETHOD.
+  METHOD set_show_default_repo.
+    ms_user_settings-show_default_repo = iv_show_default_repo.
   ENDMETHOD.
   METHOD set_user_settings.
     ms_user_settings = is_user_settings.
@@ -12977,14 +13031,11 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD get_user_settings.
-    rs_settings = ms_user_settings.
+  METHOD get_link_hint_background_color.
+    rv_background_color = ms_user_settings-link_hint_background_color.
   ENDMETHOD.
-  METHOD get_show_default_repo.
-    rv_show_default_repo = ms_user_settings-show_default_repo.
-  ENDMETHOD.
-  METHOD set_show_default_repo.
-    ms_user_settings-show_default_repo = iv_show_default_repo.
+  METHOD set_link_hint_background_color.
+    ms_user_settings-link_hint_background_color = iv_background_color.
   ENDMETHOD.
 
 ENDCLASS.
@@ -21757,7 +21808,8 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
           lv_href  TYPE string,
           lv_click TYPE string,
           lv_id    TYPE string,
-          lv_style TYPE string.
+          lv_style TYPE string,
+          lv_span  TYPE string.
 
     lv_class = iv_class.
 
@@ -21798,7 +21850,9 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       lv_style = | style="{ iv_style }"|.
     ENDIF.
 
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }</a>|.
+    lv_span = |<span class="tooltiptext hidden"></span>|.
+
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ lv_span }</a>|.
 
   ENDMETHOD. "a
   METHOD add.
@@ -23076,8 +23130,9 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   ENDMETHOD.  " render_text_input
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( 'setInitialFocus("tag_name");' ).
+    ro_html = super->scripts( ).
+
+    ro_html->add( 'setInitialFocus("name");' ).
 
   ENDMETHOD.    "scripts
   METHOD zif_abapgit_gui_page~on_event.
@@ -23470,7 +23525,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.      "render_lines
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    ro_html = super->scripts( ).
 
     ro_html->add( 'var gStageParams = {' ).
     ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
@@ -23582,6 +23637,23 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
       mo_settings->set_adt_jump_enanbled( abap_false ).
     ENDIF.
 
+    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hints'.
+    IF sy-subrc = 0.
+      mo_settings->set_link_hints( abap_true ).
+    ELSE.
+      mo_settings->set_link_hints( abap_false ).
+    ENDIF.
+
+    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hint_key'.
+    IF sy-subrc = 0.
+      mo_settings->set_link_hint_key( |{ <ls_post_field>-value }| ).
+    ENDIF.
+
+    READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hint_background_color'.
+    IF sy-subrc = 0.
+      mo_settings->set_link_hint_background_color( |{ <ls_post_field>-value }| ).
+    ENDIF.
+
     READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_length'.
     IF sy-subrc = 0.
       lv_i_param_value = <ls_post_field>-value.
@@ -23684,6 +23756,8 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( render_max_lines( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
+    ro_html->add( |<hr>| ).
+    ro_html->add( render_link_hints( ) ).
     ro_html->add( render_section_end( ) ).
     ro_html->add( render_form_end( ) ).
 
@@ -23824,6 +23898,37 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
                    && lv_checked && ` > Show last repo` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
+  ENDMETHOD.
+  METHOD render_link_hints.
+
+    DATA: lv_checked               TYPE string,
+          lv_link_hint_key         TYPE char01,
+          lv_link_background_color TYPE string.
+
+    IF mo_settings->get_link_hints( ) = abap_true.
+      lv_checked = 'checked'.
+    ENDIF.
+
+    lv_link_hint_key = mo_settings->get_link_hint_key( ).
+    lv_link_background_color = mo_settings->get_link_hint_background_color( ).
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |<h2>Vimium like link hints</h2>| ).
+    ro_html->add( `<input type="checkbox" name="link_hints" value="X" `
+                   && lv_checked && ` > Enable Vimium like link hints` ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
+               && |> Single key to activate links| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<input type="text" name="link_hint_background_color" size="20" maxlength="20"|
+               && | value="{ lv_link_background_color }"|
+               && |> Background Color| ).
+
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -24495,7 +24600,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    ro_html = super->scripts( ).
+
     ro_html->add( 'setInitialFocus("filter");' ).
 
   ENDMETHOD.
@@ -25395,6 +25501,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.  "on_event
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
@@ -25918,7 +26025,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    ro_html = super->scripts( ).
 
     ro_html->add( 'var gHelper = new DiffHelper({' ).
     ro_html->add( |  seed:        "{ mv_seed }",| ).
@@ -26000,7 +26107,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    ro_html = super->scripts( ).
 
     ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
       '"<br>Frontend time: " + new Date(), "debug_info");' ).
@@ -26251,7 +26358,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    ro_html = super->scripts( ).
+
     ro_html->add( 'setInitialFocus("comment");' ).
 
   ENDMETHOD.
@@ -27059,7 +27167,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD scripts.
-    ASSERT 1 = 1. " Dummy
+
+    DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
+          lv_link_hint_key    TYPE char01,
+          lv_background_color TYPE string.
+
+    CREATE OBJECT ro_html.
+
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    lv_link_hint_key = lo_settings->get_link_hint_key( ).
+    lv_background_color = lo_settings->get_link_hint_background_color( ).
+
+    IF lo_settings->get_link_hints( ) = abap_true
+    AND lv_link_hint_key IS NOT INITIAL.
+      ro_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
+      ro_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
+      ro_html->add( |enableArrowListNavigation();| ).
+    ENDIF.
+
   ENDMETHOD. "scripts
   METHOD title.
 
@@ -27070,6 +27196,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     ro_html->add( |<td class="logo">{
                   zcl_abapgit_html=>a( iv_txt = '<img src="img/logo" alt="logo">'
+                                       iv_id  = 'abapGitLogo'
                                        iv_act = zif_abapgit_definitions=>gc_action-abapgit_home )
                   }</td>| ).                                "#EC NOTEXT
 
@@ -27455,6 +27582,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'a:hover, a:active {'.
         _inline '  cursor: pointer;'.
         _inline '  text-decoration: underline;'.
+        _inline '}'.
+        _inline ''.
+        _inline '#abapGitLogo {'.
+        _inline '  outline: none;'.
         _inline '}'.
         _inline ''.
         _inline 'img               { border: 0px; vertical-align: middle; }'.
@@ -28098,6 +28229,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
         _inline ''.
         _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
+        _inline '.nav-container ul li.block ul { display: block; }'.
         _inline '.nav-container ul li:hover > ul { display: block; }'.
         _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
         _inline ''.
@@ -28261,6 +28393,42 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  border: #e8ba30 1px solid;'.
         _inline '  background-color: #f5c538;'.
         _inline '}'.
+        _inline ''.
+        _inline '/* Tooltip text */'.
+        _inline '.tooltiptext {'.
+        _inline '    line-height: 15px;'.
+        _inline '    width: 60px;'.
+        _inline '    color: #000;'.
+        _inline '    text-align: center;'.
+        _inline '    padding: 5px 0;'.
+        _inline '    border-radius: 6px;'.
+        _inline ''.
+        _inline '    /* Position the tooltip text */'.
+        _inline '    position: absolute;'.
+        _inline '    z-index: 1;'.
+        _inline '    margin-left: -60px;'.
+        _inline '    margin-top: -30px;'.
+        _inline ''.
+        _inline '    /* Fade in tooltip */'.
+        _inline '    opacity: 1;'.
+        _inline '    transition: opacity 0.3s;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.hidden {'.
+        _inline '  visibility: hidden;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* Tooltip arrow */'.
+        _inline '.tooltiptext::after {'.
+        _inline '    content: "";'.
+        _inline '    position: absolute;'.
+        _inline '    top: 100%;'.
+        _inline '    left: 50%;'.
+        _inline '    margin-left: -5px;'.
+        _inline '    border-width: 5px;'.
+        _inline '    border-style: solid;'.
+        _inline '    border-color: #555 transparent transparent transparent;'.
+        _inline '}'.
       WHEN 'JS_COMMON'.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
@@ -28331,6 +28499,20 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// Set focus to a control'.
         _inline 'function setInitialFocus(id) {'.
         _inline '  document.getElementById(id).focus();'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Set focus to a element with query selector'.
+        _inline 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {'.
+        _inline '  var oSelected = document.querySelector(sSelector);'.
+        _inline ''.
+        _inline '  if (oSelected) {'.
+        _inline '    if (bFocusParent) {'.
+        _inline '      oSelected.parentElement.focus();'.
+        _inline '    } else {'.
+        _inline '      oSelected.focus();'.
+        _inline '    }'.
+        _inline '  }'.
+        _inline ''.
         _inline '}'.
         _inline ''.
         _inline '// Submit an existing form'.
@@ -28804,9 +28986,276 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '// News announcement'.
         _inline 'function displayNews() {'.
-        _inline '  var div = document.getElementById("news"); '.
-        _inline '  div.style.display = (div.style.display)?'''':''none'';  '.
+        _inline '  var div = document.getElementById("news");'.
+        _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
         _inline '}'.
+        _inline ''.
+        _inline 'function KeyNavigation() {'.
+        _inline '  '.
+        _inline '}'.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.onkeydown = function(oEvent) {'.
+        _inline ''.
+        _inline '  if (oEvent.defaultPrevented) {'.
+        _inline '    return;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
+        _inline '  if (oEvent.key === "ENTER" || oEvent.key === "") {'.
+        _inline '    this.onEnterOrSpace(oEvent);'.
+        _inline '  } else if (/Down$/.test(oEvent.key)) {'.
+        _inline '    this.onArrowDown(oEvent);'.
+        _inline '  } else if (/Up$/.test(oEvent.key)) {'.
+        _inline '    this.onArrowUp(oEvent);'.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.getLiSelected = function() {'.
+        _inline '  return document.querySelector(''li .selected'');'.
+        _inline '};'.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.getActiveElement = function () {'.
+        _inline '  return document.activeElement;'.
+        _inline '};'.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.getActiveElementParent = function () {'.
+        _inline '  return this.getActiveElement().parentElement;'.
+        _inline '};'.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.onEnterOrSpace = function (oEvent) {'.
+        _inline '  '.
+        _inline '  // Enter or space clicks the selected link'.
+        _inline ''.
+        _inline '  var liSelected = this.getLiSelected();'.
+        _inline ''.
+        _inline '  if (liSelected) {'.
+        _inline '    liSelected.firstElementChild.click();'.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.onArrowDown = function (oEvent) {'.
+        _inline ''.
+        _inline '  var'.
+        _inline '    liNext,'.
+        _inline '    liSelected = this.getLiSelected(),'.
+        _inline '    oActiveElementParent = this.getActiveElementParent();'.
+        _inline ''.
+        _inline '  if (liSelected) {'.
+        _inline ''.
+        _inline '    // we deselect the current li and select the next sibling'.
+        _inline '    liNext = oActiveElementParent.nextElementSibling;'.
+        _inline '    if (liNext) {'.
+        _inline '      liSelected.classList.toggle(''selected'');'.
+        _inline '      liNext.firstElementChild.focus();'.
+        _inline '      oActiveElementParent.classList.toggle(''selected'');'.
+        _inline '      oEvent.preventDefault();'.
+        _inline '    }'.
+        _inline ''.
+        _inline '  } else {'.
+        _inline ''.
+        _inline '    // we don''t have any li selected, we have lookup where to start...'.
+        _inline '    // the right element should have been activated in fnTooltipActivate'.
+        _inline '    liNext = this.getActiveElement().nextElementSibling;'.
+        _inline '    if (liNext) {'.
+        _inline '      liNext.classList.toggle(''selected'');'.
+        _inline '      liNext.firstElementChild.firstElementChild.focus();'.
+        _inline '      oEvent.preventDefault();'.
+        _inline '    }'.
+        _inline ''.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline ''.
+        _inline 'KeyNavigation.prototype.onArrowUp = function (oEvent) {'.
+        _inline ''.
+        _inline '  var'.
+        _inline '    liSelected = this.getLiSelected(),'.
+        _inline '    liPrevious = this.getActiveElementParent().previousElementSibling;'.
+        _inline ''.
+        _inline '  if (liSelected && liPrevious) {'.
+        _inline ''.
+        _inline '    liSelected.classList.toggle(''selected'');'.
+        _inline '    liPrevious.firstElementChild.focus();'.
+        _inline '    this.getActiveElementParent().classList.toggle(''selected'');'.
+        _inline '    oEvent.preventDefault();'.
+        _inline ''.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline '// this functions enables the navigation with arrows through list items (li)'.
+        _inline '// e.g. in dropdown menus'.
+        _inline 'function enableArrowListNavigation() {'.
+        _inline ''.
+        _inline '  var oKeyNavigation = new KeyNavigation();'.
+        _inline ''.
+        _inline '  document.addEventListener(''keydown'', oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'function LinkHints(sLinkHintKey, sColor){'.
+        _inline '  this.sLinkHintKey = sLinkHintKey; '.
+        _inline '  this.sColor = sColor;'.
+        _inline '  this.oTooltipMap = {};'.
+        _inline '  this.bTooltipsOn = false;'.
+        _inline '  this.sPending = "";'.
+        _inline '  this.aTooltipElements = document.querySelectorAll(''a span'');'.
+        _inline '}'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnRenderTooltip = function (oTooltip, iTooltipCounter) {'.
+        _inline '  if (this.bTooltipsOn) {'.
+        _inline '    oTooltip.classList.remove(''hidden'');'.
+        _inline '  } else {'.
+        _inline '    oTooltip.classList.add(''hidden'');'.
+        _inline '  }'.
+        _inline '  oTooltip.innerHTML = iTooltipCounter;'.
+        _inline '  oTooltip.style.backgroundColor = this.sColor;'.
+        _inline '  this.oTooltipMap[iTooltipCounter] = oTooltip;'.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.getTooltipStartValue = function(iToolTipCount){'.
+        _inline '  '.
+        _inline '  // if whe have 333 tooltips we start from 100'.
+        _inline '  return Math.pow(10,iToolTipCount.toString().length - 1);'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnRenderTooltips = function () {'.
+        _inline ''.
+        _inline '  // all possible links which should be accessed via tooltip have'.
+        _inline '  // sub span which is hidden by default. If we like to show the '.
+        _inline '  // tooltip we have to toggle the css class ''hidden''.'.
+        _inline '  // '.
+        _inline '  // We use numeric values for the tooltip label. Maybe we can '.
+        _inline '  // support also alphanumeric chars in the future. Then we have to'.
+        _inline '  // calculate permutations and that''s work. So for the sake of simplicity'.
+        _inline '  // we stick to numeric values and just increment them.'.
+        _inline ''.
+        _inline '  var'.
+        _inline '    iTooltipCounter = this.getTooltipStartValue(this.aTooltipElements.length),'.
+        _inline '    that = this;'.
+        _inline ''.
+        _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
+        _inline '    iTooltipCounter += 1;'.
+        _inline '    this.fnRenderTooltip(oTooltip, iTooltipCounter)'.
+        _inline '  }.bind(that));'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnToggleAllTooltips = function () {'.
+        _inline ''.
+        _inline '  this.sPending = "";'.
+        _inline '  this.bTooltipsOn = !this.bTooltipsOn;'.
+        _inline '  this.fnRenderTooltips();'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnRemoveAllTooltips = function () {'.
+        _inline ''.
+        _inline '  this.sPending = "";'.
+        _inline '  this.bTooltipsOn = false;'.
+        _inline ''.
+        _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
+        _inline '    oTooltip.classList.add(''hidden'');'.
+        _inline '  });'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnFilterTooltips = function (sPending) {'.
+        _inline ''.
+        _inline '  var that = this;'.
+        _inline ''.
+        _inline '  Object'.
+        _inline '    .keys(this.oTooltipMap)'.
+        _inline '    .forEach(function (sKey) {'.
+        _inline ''.
+        _inline '      // we try to partially match, but only from the beginning!'.
+        _inline '      var regex = new RegExp("^" + this.sPending);'.
+        _inline '      var oTooltip = this.oTooltipMap[sKey];'.
+        _inline ''.
+        _inline '      if (regex.test(sKey)) {'.
+        _inline '        // we have a partial match, grey out the matched part'.
+        _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + ''</div>'');'.
+        _inline '      } else {'.
+        _inline '        // and hide the not matched tooltips'.
+        _inline '        oTooltip.classList.add(''hidden'');'.
+        _inline '      }'.
+        _inline ''.
+        _inline '    }.bind(that));'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnActivateDropDownMenu = function (oTooltip) {'.
+        _inline '  // to enable link hint navigation for drop down menu, we must expand '.
+        _inline '  // like if they were hovered'.
+        _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
+        _inline '};'.
+        _inline ''.
+        _inline ''.
+        _inline 'LinkHints.prototype.fnTooltipActivate = function (oTooltip) {'.
+        _inline ''.
+        _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
+        _inline '  // and remove all tooltips'.
+        _inline '  this.fnRemoveAllTooltips();'.
+        _inline '  oTooltip.parentElement.click();'.
+        _inline ''.
+        _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
+        _inline '  this.fnActivateDropDownMenu(oTooltip);'.
+        _inline '  oTooltip.parentElement.focus();'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline 'LinkHints.prototype.onkeypress = function(oEvent){'.
+        _inline ''.
+        _inline '  if (oEvent.defaultPrevented) {'.
+        _inline '    return;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
+        _inline '  '.
+        _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
+        _inline '  // Maybe we must add other types here in the future'.
+        _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
+        _inline ''.
+        _inline '    this.fnToggleAllTooltips();'.
+        _inline ''.
+        _inline '  } else if (this.bTooltipsOn === true) {'.
+        _inline '    '.
+        _inline '    // the user tries to reach a tooltip'.
+        _inline '    this.sPending += oEvent.key;'.
+        _inline '    var oTooltip = this.oTooltipMap[this.sPending];'.
+        _inline ''.
+        _inline '    if (oTooltip) {'.
+        _inline '      // we are there, we have a fully specified tooltip. Let''s activate it'.
+        _inline '      this.fnTooltipActivate(oTooltip);'.
+        _inline '    } else {'.
+        _inline '      // we are not there yet, but let''s filter the link so that only'.
+        _inline '      // the partially matched are shown'.
+        _inline '      this.fnFilterTooltips(this.sPending);'.
+        _inline '    }'.
+        _inline ''.
+        _inline '  }'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline '// Vimium like link hints'.
+        _inline 'function setLinkHints(sLinkHintKey, sColor) {'.
+        _inline ''.
+        _inline '  if (!sLinkHintKey || !sColor) {'.
+        _inline '    return;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  var oLinkHint = new LinkHints(sLinkHintKey, sColor);'.
+        _inline ''.
+        _inline '  document.addEventListener("keypress", oLinkHint.onkeypress.bind(oLinkHint));'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline ''.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
     ENDCASE.
@@ -29077,6 +29526,11 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     startup( ).
 
   ENDMETHOD.            "constructor
+  METHOD focus.
+
+    cl_gui_control=>set_focus( mo_html_viewer ).
+
+  ENDMETHOD.
   METHOD get_current_page_name.
     IF mi_cur_page IS BOUND.
       rv_page_name =
@@ -30077,6 +30531,15 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_key = read( )-repo_show.
 
   ENDMETHOD.
+  METHOD get_settings.
+
+    DATA: ls_user TYPE ty_user.
+
+    ls_user = read( ).
+
+    rs_user_settings = ls_user-settings.
+
+  ENDMETHOD.
   METHOD is_favorite_repo.
 
     DATA: lt_favorites TYPE tt_favorites.
@@ -30177,6 +30640,15 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
+  METHOD set_settings.
+
+    DATA: ls_user TYPE ty_user.
+
+    ls_user = read( ).
+    ls_user-settings = is_user_settings.
+    update( ls_user ).
+
+  ENDMETHOD.
   METHOD toggle_changes_only.
 
     DATA ls_user TYPE ty_user.
@@ -30268,27 +30740,6 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.  "update_repo_config
-
-  METHOD get_settings.
-
-    DATA: ls_user TYPE ty_user.
-
-    ls_user = read( ).
-
-    rs_user_settings = ls_user-settings.
-
-  ENDMETHOD.
-
-  METHOD set_settings.
-
-    DATA: ls_user TYPE ty_user.
-
-    ls_user = read( ).
-    ls_user-settings = is_user_settings.
-    update( ls_user ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
   METHOD add.
@@ -59502,7 +59953,9 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
 ENDFORM.                    "package_popup
 
 FORM output.
-  DATA: lt_ucomm TYPE TABLE OF sy-ucomm.
+  DATA: lt_ucomm TYPE TABLE OF sy-ucomm,
+        lx_error TYPE REF TO zcx_abapgit_exception.
+
   PERFORM set_pf_status IN PROGRAM rsdbrunt IF FOUND.
 
   APPEND 'CRET' TO lt_ucomm.  "Button Execute
@@ -59512,6 +59965,12 @@ FORM output.
       p_status  = sy-pfkey
     TABLES
       p_exclude = lt_ucomm.
+
+  TRY.
+      zcl_abapgit_gui=>get_instance( )->focus( ).
+    CATCH zcx_abapgit_exception INTO lx_error.
+      message lx_error type 'S' DISPLAY LIKE 'E'.
+  ENDTRY.
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
@@ -59562,5 +60021,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-03T12:50:56.245Z
+* abapmerge - 2018-08-04T05:37:27.776Z
 ****************************************************
