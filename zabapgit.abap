@@ -1952,7 +1952,7 @@ INTERFACE zif_abapgit_version
   .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.73.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.74.0' ##NO_TEXT.
 
 ENDINTERFACE.
 CLASS zcl_abapgit_background DEFINITION
@@ -60028,5 +60028,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-04T07:50:29.231Z
+* abapmerge - 2018-08-04T08:15:51.346Z
 ****************************************************
