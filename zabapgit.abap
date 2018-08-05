@@ -11009,20 +11009,18 @@ CLASS zcl_abapgit_stage DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_stage_logic DEFINITION
-  final
-  create public .
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      get
-        IMPORTING io_repo         TYPE REF TO zcl_abapgit_repo_online
-        RETURNING VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
-        RAISING   zcx_abapgit_exception,
-      count
-        IMPORTING io_repo         TYPE REF TO zcl_abapgit_repo_online
-        RETURNING VALUE(rv_count) TYPE i
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS get
+      IMPORTING
+        !io_repo        TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
     CLASS-METHODS:
       remove_ignored
@@ -12753,15 +12751,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
-  METHOD count.
-
-    DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
-
-    ls_files = get( io_repo ).
-
-    rv_count = lines( ls_files-remote ) + lines( ls_files-local ).
-
-  ENDMETHOD.
   METHOD get.
 
     rs_files-local  = io_repo->get_files_local( ).
@@ -60058,5 +60047,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T09:30:10.612Z
+* abapmerge - 2018-08-05T09:53:25.694Z
 ****************************************************
