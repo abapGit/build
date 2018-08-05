@@ -10683,6 +10683,12 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS create_branch
+      IMPORTING
+        !iv_name TYPE string
+        !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
 
     METHODS deserialize
         REDEFINITION .
@@ -11111,28 +11117,22 @@ CLASS zcl_abapgit_transport_2_branch DEFINITION FINAL CREATE PUBLIC.
                   is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
                   it_transport_objects   TYPE scts_tadir
         RAISING   zcx_abapgit_exception.
-  PRIVATE SECTION.
+  PROTECTED SECTION.
 
-    METHODS create_new_branch
-      IMPORTING
-        io_repository  TYPE REF TO zcl_abapgit_repo_online
-        iv_branch_name TYPE string
-      RAISING
-        zcx_abapgit_exception.
     METHODS generate_commit_message
       IMPORTING
-        is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
+        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
       RETURNING
-        VALUE(rs_comment)      TYPE zif_abapgit_definitions=>ty_comment.
+        VALUE(rs_comment)       TYPE zif_abapgit_definitions=>ty_comment .
     METHODS stage_transport_objects
       IMPORTING
-        it_transport_objects TYPE scts_tadir
-        io_stage             TYPE REF TO zcl_abapgit_stage
-        is_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files
-        it_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt
+        !it_transport_objects TYPE scts_tadir
+        !io_stage             TYPE REF TO zcl_abapgit_stage
+        !is_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_transport_objects DEFINITION
   FINAL
@@ -12321,13 +12321,11 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
     lv_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
         zcl_abapgit_git_branch_list=>normalize_branch_name( is_transport_to_branch-branch_name ) ).
 
-    create_new_branch(
-      io_repository  = io_repository
-      iv_branch_name = lv_branch_name ).
+    io_repository->create_branch( lv_branch_name ).
 
     CREATE OBJECT lo_stage
       EXPORTING
-        iv_branch_name = lv_branch_name
+        iv_branch_name = io_repository->get_branch_name( )
         iv_branch_sha1 = io_repository->get_sha1_remote( ).
 
     ls_stage_objects = zcl_abapgit_stage_logic=>get( io_repository ).
@@ -12344,19 +12342,6 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
 
     io_repository->push( is_comment = ls_comment
                          io_stage   = lo_stage ).
-  ENDMETHOD.
-  METHOD create_new_branch.
-    ASSERT iv_branch_name CP 'refs/heads/+*'.
-    TRY.
-        zcl_abapgit_git_porcelain=>create_branch(
-          iv_url  = io_repository->get_url( )
-          iv_name = iv_branch_name
-          iv_from = io_repository->get_sha1_remote( ) ).
-
-        io_repository->set_branch_name( iv_branch_name ).
-      CATCH zcx_abapgit_exception.
-        zcx_abapgit_exception=>raise( 'Error when creating new branch').
-    ENDTRY.
   ENDMETHOD.
   METHOD generate_commit_message.
     rs_comment-committer-name  = sy-uname.
@@ -13636,6 +13621,27 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     mv_initialized = abap_false.
 
   ENDMETHOD.                    "constructor
+  METHOD create_branch.
+
+    DATA: lv_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
+
+    ASSERT iv_name CP 'refs/heads/+*'.
+
+    IF iv_from IS INITIAL.
+      lv_sha1 = get_sha1_remote( ).
+    ELSE.
+      lv_sha1 = iv_from.
+    ENDIF.
+
+    zcl_abapgit_git_porcelain=>create_branch(
+      iv_url  = get_url( )
+      iv_name = iv_name
+      iv_from = lv_sha1 ).
+
+    " automatically switch to new branch
+    set_branch_name( iv_name ).
+
+  ENDMETHOD.
   METHOD deserialize.
 
     initialize( ).
@@ -20173,18 +20179,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-****************
-* TODO: move this part to ONLINE repo class
-    ASSERT lv_name CP 'refs/heads/+*'.
-
-    zcl_abapgit_git_porcelain=>create_branch(
-      iv_url  = lo_repo->get_url( )
-      iv_name = lv_name
-      iv_from = lo_repo->get_sha1_remote( ) ).
-
-    " automatically switch to new branch
-    lo_repo->set_branch_name( lv_name ).
-*****************
+    lo_repo->create_branch( lv_name ).
 
     MESSAGE 'Switched to new branch' TYPE 'S' ##NO_TEXT.
 
@@ -60031,5 +60026,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T10:42:26.364Z
+* abapmerge - 2018-08-05T10:49:02.258Z
 ****************************************************
