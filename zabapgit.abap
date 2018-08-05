@@ -10670,12 +10670,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
         !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
       RAISING
         zcx_abapgit_exception .
-    METHODS set_new_remote
-      IMPORTING
-        !iv_url         TYPE zif_abapgit_persistence=>ty_repo-url
-        !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_sha1_remote
       RETURNING
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
@@ -13837,18 +13831,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     set( iv_branch_name = iv_branch_name ).
 
   ENDMETHOD.
-  METHOD set_new_remote.
-
-    IF ms_data-local_settings-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot change remote. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    mv_initialized = abap_false.
-    set( iv_url         = iv_url
-         iv_branch_name = iv_branch_name
-         iv_head_branch = '' ).
-
-  ENDMETHOD.  "set_new_remote
   METHOD set_objects.
     mt_objects = it_objects.
   ENDMETHOD.
@@ -19751,7 +19733,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -20044,8 +20026,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_new_remote( iv_url         = ls_popup-url
-                             iv_branch_name = ls_popup-branch_name ).
+    lo_repo->set_url( ls_popup-url ).
+    lo_repo->set_branch_name( ls_popup-branch_name ).
 
     COMMIT WORK.
 
@@ -60040,5 +60022,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T11:06:38.730Z
+* abapmerge - 2018-08-05T11:14:04.119Z
 ****************************************************
