@@ -10659,13 +10659,9 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS reset_status .
     METHODS set_objects
       IMPORTING
         !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS initialize
       RAISING
         zcx_abapgit_exception .
     METHODS push
@@ -10695,6 +10691,10 @@ CLASS zcl_abapgit_repo_online DEFINITION
     DATA mv_initialized TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
 
+    METHODS reset_status .
+    METHODS initialize
+      RAISING
+        zcx_abapgit_exception .
     METHODS handle_stage_ignore
       IMPORTING
         !io_stage TYPE REF TO zcl_abapgit_stage
@@ -10702,7 +10702,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
     METHODS actualize_head_branch
       IMPORTING
-        io_branch_list TYPE REF TO zcl_abapgit_git_branch_list
+        !io_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -13344,7 +13344,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -13406,6 +13406,26 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     mv_init = abap_true.
 
   ENDMETHOD.                    "refresh
+  METHOD validate_sub_super_packages.
+    DATA:
+      ls_repo     LIKE LINE OF it_repos,
+      lo_package  TYPE REF TO zif_abapgit_sap_package,
+      lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+      lo_repo     TYPE REF TO zcl_abapgit_repo.
+
+    LOOP AT it_repos INTO ls_repo.
+      lo_repo = get( ls_repo-key ).
+
+      lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
+      APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+      APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+      READ TABLE lt_packages TRANSPORTING NO FIELDS
+        WITH KEY table_line = iv_package.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
   METHOD zif_abapgit_repo_srv~delete.
 
     io_repo->delete( ).
@@ -13527,7 +13547,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     add( ro_repo ).
 
-    ro_repo->initialize( ).
+    ro_repo->refresh( ).
     ro_repo->find_remote_dot_abapgit( ).
 
   ENDMETHOD.
@@ -13615,28 +13635,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       iv_package = iv_package
       it_repos   = lt_repos ).
   ENDMETHOD.
-
-  METHOD validate_sub_super_packages.
-    DATA:
-      ls_repo     LIKE LINE OF it_repos,
-      lo_package  TYPE REF TO zif_abapgit_sap_package,
-      lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-      lo_repo     TYPE REF TO zcl_abapgit_repo.
-
-    LOOP AT it_repos INTO ls_repo.
-      lo_repo = get( ls_repo-key ).
-
-      lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
-      APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
-      APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
-      READ TABLE lt_packages TRANSPORTING NO FIELDS
-        WITH KEY table_line = iv_package.
-      IF sy-subrc = 0.
-        zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD actualize_head_branch.
@@ -60060,5 +60058,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T06:11:51.711Z
+* abapmerge - 2018-08-05T09:30:10.612Z
 ****************************************************
