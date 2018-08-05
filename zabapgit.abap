@@ -685,13 +685,13 @@ CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
 INTERFACE zif_abapgit_background
   .
-
-  TYPES: BEGIN OF ty_settings,
-           key   TYPE string,
-           value TYPE string,
-         END OF ty_settings.
-
-  TYPES: ty_settings_tt TYPE STANDARD TABLE OF ty_settings WITH DEFAULT KEY.
+  TYPES:
+    BEGIN OF ty_settings,
+      key   TYPE string,
+      value TYPE string,
+    END OF ty_settings .
+  TYPES:
+    ty_settings_tt TYPE STANDARD TABLE OF ty_settings WITH DEFAULT KEY .
 
   CLASS-METHODS get_description
     RETURNING
@@ -702,6 +702,7 @@ INTERFACE zif_abapgit_background
   METHODS run
     IMPORTING
       !io_repo     TYPE REF TO zcl_abapgit_repo_online
+      !io_log      TYPE REF TO zcl_abapgit_log
       !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
@@ -1280,7 +1281,6 @@ INTERFACE zif_abapgit_definitions.
       repo_code_inspector      TYPE string VALUE 'repo_code_inspector',
 
       abapgit_home             TYPE string VALUE 'abapgit_home',
-      abapgit_wiki             TYPE string VALUE 'abapgit_wiki',
       abapgit_install          TYPE string VALUE 'abapgit_install',
 
       zip_import               TYPE string VALUE 'zip_import',
@@ -1992,6 +1992,8 @@ CLASS zcl_abapgit_background_push_au DEFINITION
     INTERFACES zif_abapgit_background .
   PROTECTED SECTION.
 
+    DATA mo_log TYPE REF TO zcl_abapgit_log .
+
     METHODS build_comment
       IMPORTING
         !is_files         TYPE zif_abapgit_definitions=>ty_stage_files
@@ -2024,10 +2026,12 @@ CLASS zcl_abapgit_background_push_fi DEFINITION
     INTERFACES zif_abapgit_background .
   PROTECTED SECTION.
 
-    CONSTANTS: BEGIN OF gc_settings,
-                 name  TYPE string VALUE 'NAME',
-                 email TYPE string VALUE 'EMAIL',
-               END OF gc_settings.
+    CONSTANTS:
+      BEGIN OF gc_settings,
+        name  TYPE string VALUE 'NAME',
+        email TYPE string VALUE 'EMAIL',
+      END OF gc_settings .
+    DATA mo_log TYPE REF TO zcl_abapgit_log .
 
     METHODS build_comment
       IMPORTING
@@ -7555,9 +7559,10 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
 
   PRIVATE SECTION.
     CONSTANTS: BEGIN OF c_actions,
-                 show       TYPE string VALUE 'show' ##NO_TEXT,
-                 changed_by TYPE string VALUE 'changed_by',
-                 overview   TYPE string VALUE 'overview',
+                 show          TYPE string VALUE 'show' ##NO_TEXT,
+                 changed_by    TYPE string VALUE 'changed_by',
+                 overview      TYPE string VALUE 'overview',
+                 documentation TYPE string VALUE 'documentation',
                END OF c_actions.
 
     DATA: mv_show         TYPE zif_abapgit_persistence=>ty_value,
@@ -8972,46 +8977,64 @@ CLASS zcl_abapgit_language DEFINITION
 
     CLASS-DATA gv_login_language TYPE langu .
 ENDCLASS.
-CLASS zcl_abapgit_log DEFINITION CREATE PUBLIC.
+CLASS zcl_abapgit_log DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      add
-        IMPORTING
-          iv_msg  TYPE csequence
-          iv_type TYPE symsgty   DEFAULT 'E'
-          iv_rc   TYPE balsort   OPTIONAL,
-      count
-        RETURNING VALUE(rv_count) TYPE i,
-      to_html
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
-      clear,
-      has_rc "For unit tests mainly
-        IMPORTING iv_rc         TYPE balsort
-        RETURNING VALUE(rv_yes) TYPE abap_bool,
-      show
-        IMPORTING
-          iv_header_text TYPE csequence DEFAULT 'Log'.
 
-  PRIVATE SECTION.
-    TYPES: BEGIN OF ty_log,
-             msg  TYPE string,
-             type TYPE symsgty,
-             rc   TYPE balsort,
-           END OF ty_log,
-           BEGIN OF ty_log_out,
-             type TYPE icon_d,
-             msg  TYPE string,
-           END OF ty_log_out,
-           tty_log_out TYPE STANDARD TABLE OF ty_log_out
-                            WITH NON-UNIQUE DEFAULT KEY.
-    DATA: mt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY.
+    METHODS add
+      IMPORTING
+        !iv_msg  TYPE csequence
+        !iv_type TYPE symsgty DEFAULT 'E'
+        !iv_rc   TYPE balsort OPTIONAL .
+    METHODS add_error
+      IMPORTING
+        !iv_msg TYPE csequence .
+    METHODS add_info
+      IMPORTING
+        !iv_msg TYPE csequence .
+    METHODS add_warning
+      IMPORTING
+        !iv_msg TYPE csequence .
+    METHODS clear .
+    METHODS count
+      RETURNING
+        VALUE(rv_count) TYPE i .
+    METHODS has_rc
+      IMPORTING
+        !iv_rc        TYPE balsort
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+    METHODS show
+      IMPORTING
+        !iv_header_text TYPE csequence DEFAULT 'Log' .
+    METHODS to_html
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS write .
+  PROTECTED SECTION.
 
-    METHODS:
-      prepare_log_for_display
-        RETURNING
-          VALUE(rt_log_out) TYPE zcl_abapgit_log=>tty_log_out.
+    TYPES:
+      BEGIN OF ty_log,
+        msg  TYPE string,
+        type TYPE symsgty,
+        rc   TYPE balsort,
+      END OF ty_log .
+    TYPES:
+      BEGIN OF ty_log_out,
+        type TYPE icon_d,
+        msg  TYPE string,
+      END OF ty_log_out .
+    TYPES:
+      tty_log_out TYPE STANDARD TABLE OF ty_log_out
+                              WITH NON-UNIQUE DEFAULT KEY .
 
+    DATA:
+      mt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
+
+    METHODS prepare_log_for_display
+      RETURNING
+        VALUE(rt_log_out) TYPE zcl_abapgit_log=>tty_log_out .
 ENDCLASS.
 CLASS zcl_abapgit_login_manager DEFINITION
   FINAL
@@ -18812,6 +18835,24 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     <ls_log>-rc   = iv_rc.
 
   ENDMETHOD.
+  METHOD add_error.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'E' ).
+
+  ENDMETHOD.
+  METHOD add_info.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'I' ).
+
+  ENDMETHOD.
+  METHOD add_warning.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'W' ).
+
+  ENDMETHOD.
   METHOD clear.
     CLEAR mt_log.
   ENDMETHOD.
@@ -18819,6 +18860,8 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     rv_count = lines( mt_log ).
   ENDMETHOD.
   METHOD has_rc.
+* todo, this method is only used in unit tests
+
     READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
     rv_yes = boolc( sy-subrc = 0 ).
   ENDMETHOD.
@@ -18930,6 +18973,14 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
       ro_html->add_icon( lv_icon ).
       ro_html->add( <ls_log>-msg ).
       ro_html->add( '</span>' ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD write.
+
+    DATA: ls_log LIKE LINE OF mt_log.
+    LOOP AT mt_log INTO ls_log.
+      WRITE: / |{ ls_log-type }: { ls_log-msg }|.
     ENDLOOP.
 
   ENDMETHOD.
@@ -22655,7 +22706,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
   ENDMETHOD.  "lif_gui_page~render
 ENDCLASS.
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD get_page_background.
 
     CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_bkg
@@ -22852,9 +22903,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>gc_action-abapgit_home.                    " Go abapGit homepage
         zcl_abapgit_services_abapgit=>open_abapgit_homepage( ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>gc_action-abapgit_wiki.                    " Go abapGit wikipage
-        zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+
       WHEN zif_abapgit_definitions=>gc_action-abapgit_install.                 " Install abapGit
         zcl_abapgit_services_abapgit=>install_abapgit( ).
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
@@ -25229,7 +25278,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -25260,8 +25309,8 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     lo_helpsub->add( iv_txt = 'Tutorial'
                      iv_act = zif_abapgit_definitions=>gc_action-go_tutorial ) ##NO_TEXT.
-    lo_helpsub->add( iv_txt = 'abapGit wiki'
-                     iv_act = zif_abapgit_definitions=>gc_action-abapgit_wiki ) ##NO_TEXT.
+    lo_helpsub->add( iv_txt = 'Documentation'
+                     iv_act = c_actions-documentation ) ##NO_TEXT.
 
     ro_menu->add( iv_txt = '+ Online'
                   iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ) ##NO_TEXT.
@@ -25275,12 +25324,12 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ro_menu->add( iv_txt = 'Help'
                   io_sub = lo_helpsub ) ##NO_TEXT.
 
-  ENDMETHOD.                    "build main_menu
+  ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'HOME'.
     ms_control-page_menu  = build_main_menu( ).
-  ENDMETHOD.  " constructor
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: lt_repos    TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
@@ -25309,7 +25358,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
       ro_html->add( render_repo( lo_repo ) ).
     ENDIF.
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_repo.
 
     DATA lo_news TYPE REF TO zcl_abapgit_news.
@@ -25329,7 +25378,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ro_html->add( mo_repo_content->render( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_repo
+  ENDMETHOD.
   METHOD render_toc.
 
     DATA: lo_pback      TYPE REF TO zcl_abapgit_persist_background,
@@ -25424,7 +25473,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ro_html->add( '</div>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_toc
+  ENDMETHOD.
   METHOD retrieve_active_repo.
 
     DATA: lv_show_old LIKE mv_show.
@@ -25453,7 +25502,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
           iv_key = mv_show. " Reinit content state
     ENDIF.
 
-  ENDMETHOD.  "retrieve_active_repo
+  ENDMETHOD.
   METHOD test_changed_by.
 
     DATA: ls_tadir TYPE tadir,
@@ -25495,29 +25544,26 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     lv_key = iv_getdata.
 
     CASE iv_action.
-      WHEN c_actions-show.              " Change displayed repo
+      WHEN c_actions-show.
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
         TRY.
             zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
-
         ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
       WHEN c_actions-changed_by.
         test_changed_by( ).
         ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-
+      WHEN c_actions-documentation.
+        zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
+        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
       WHEN c_actions-overview.
-
         CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
-
         ei_page = li_repo_overview.
         ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-
     ENDCASE.
 
-  ENDMETHOD.  "on_event
-
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
@@ -59278,9 +59324,9 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
         iv_branch_sha1 = io_repo->get_sha1_remote( ).
 
     LOOP AT ls_files-local ASSIGNING <ls_local>.
-      WRITE: / 'stage' ##NO_TEXT,
-        <ls_local>-file-path,
-        <ls_local>-file-filename.
+      mo_log->add_info( |stage: {
+        <ls_local>-file-path } {
+        <ls_local>-file-filename }| ).
       lo_stage->add( iv_path     = <ls_local>-file-path
                      iv_filename = <ls_local>-file-filename
                      iv_data     = <ls_local>-file-data ).
@@ -59288,9 +59334,9 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
 
     LOOP AT ls_files-remote ASSIGNING <ls_remote>.
 
-      WRITE: / 'removed' ##NO_TEXT,
-        <ls_remote>-path,
-        <ls_remote>-filename.
+      mo_log->add_info( |removed: {
+        <ls_remote>-path } {
+        <ls_remote>-filename }| ).
 
       lo_stage->rm( iv_path     = <ls_remote>-path
                     iv_filename = <ls_remote>-filename ).
@@ -59334,10 +59380,12 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
           ls_setting LIKE LINE OF it_settings,
           lv_name    TYPE string,
           lv_email   TYPE string.
+
+    mo_log = io_log.
     ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
-      WRITE: / 'Nothing to stage' ##NO_TEXT.
+      io_log->add_info( 'Nothing to stage' ).
       RETURN.
     ENDIF.
 
@@ -59450,10 +59498,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
           changed_by = lv_changed_by
           TRANSPORTING NO FIELDS.
         IF sy-subrc = 0.
-          WRITE: / 'stage' ##NO_TEXT,
-            ls_comment-committer-name,
-            <ls_local>-file-path,
-            <ls_local>-file-filename.
+          mo_log->add_info( |stage: {
+            ls_comment-committer-name } {
+            <ls_local>-file-path } {
+            <ls_local>-file-filename }| ).
 
           lo_stage->add( iv_path     = <ls_local>-file-path
                          iv_filename = <ls_local>-file-filename
@@ -59465,9 +59513,9 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
               WHERE filename = <ls_local>-file-filename
               AND path <> <ls_local>-file-path
               AND filename <> 'package.devc.xml'.
-            WRITE: / 'rm' ##NO_TEXT,
-              <ls_remote>-path,
-              <ls_remote>-filename.
+            mo_log->add_info( |rm: {
+              <ls_remote>-path } {
+              <ls_remote>-filename }| ).
 
 * rm old file when object has moved
             lo_stage->rm(
@@ -59506,9 +59554,9 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     LOOP AT is_files-remote ASSIGNING <ls_remote>.
 
-      WRITE: / 'removed' ##NO_TEXT,
-        <ls_remote>-path,
-        <ls_remote>-filename.
+      mo_log->add_info( |removed: {
+        <ls_remote>-path } {
+        <ls_remote>-filename }| ).
 
       lo_stage->rm( iv_path     = <ls_remote>-path
                     iv_filename = <ls_remote>-filename ).
@@ -59537,10 +59585,11 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
+    mo_log = io_log.
     ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
-      WRITE: / 'Nothing to stage' ##NO_TEXT.
+      io_log->add_info( 'Nothing to stage' ) ##NO_TEXT.
       RETURN.
     ENDIF.
 
@@ -59612,6 +59661,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
           lo_repo       TYPE REF TO zcl_abapgit_repo_online,
           lt_list       TYPE zcl_abapgit_persist_background=>tt_background,
           li_background TYPE REF TO zif_abapgit_background,
+          lo_log        TYPE REF TO zcl_abapgit_log,
           lv_repo_name  TYPE string.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
@@ -59644,11 +59694,15 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
         iv_username = <ls_list>-username
         iv_password = <ls_list>-password ).
 
+      CREATE OBJECT lo_log.
       CREATE OBJECT li_background TYPE (<ls_list>-method).
 
       li_background->run(
         io_repo     = lo_repo
+        io_log      = lo_log
         it_settings = <ls_list>-settings ).
+
+      lo_log->write( ).
     ENDLOOP.
 
     IF lines( lt_list ) = 0.
@@ -60006,5 +60060,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T06:10:45.946Z
+* abapmerge - 2018-08-05T06:11:51.711Z
 ****************************************************
