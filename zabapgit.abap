@@ -10623,9 +10623,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS get_branch_name
       RETURNING
         VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-branch_name .
-    METHODS get_head_branch_name
-      RETURNING
-        VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-head_branch .
     METHODS set_url
       IMPORTING
         !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
@@ -10698,11 +10695,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS handle_stage_ignore
       IMPORTING
         !io_stage TYPE REF TO zcl_abapgit_stage
-      RAISING
-        zcx_abapgit_exception .
-    METHODS actualize_head_branch
-      IMPORTING
-        !io_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -13626,15 +13618,6 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
-  METHOD actualize_head_branch.
-    DATA lv_branch_name TYPE string.
-    lv_branch_name = io_branch_list->get_head( )-name.
-
-    IF lv_branch_name <> ms_data-head_branch.
-      set( iv_head_branch = lv_branch_name ).
-    ENDIF.
-
-  ENDMETHOD.                    "actualize_head_branch
   METHOD constructor.
 
     super->constructor( is_data ).
@@ -13661,9 +13644,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     rt_files = mt_remote.
   ENDMETHOD.                    "get_files
-  METHOD get_head_branch_name.
-    rv_name = ms_data-head_branch.
-  ENDMETHOD.                    "get_head_branch_name
   METHOD get_objects.
     initialize( ).
 
@@ -13846,9 +13826,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.  " rebuild_local_checksums.
   METHOD refresh.
 
-    DATA: lo_progress    TYPE REF TO zcl_abapgit_progress,
-          lx_exception   TYPE REF TO zcx_abapgit_exception,
-          lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
+    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
+          lx_exception TYPE REF TO zcx_abapgit_exception.
 
     super->refresh( iv_drop_cache ).
     reset_status( ).
@@ -13866,10 +13845,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
       IMPORTING
         et_files       = mt_remote
         et_objects     = mt_objects
-        ev_branch      = mv_branch
-        eo_branch_list = lo_branch_list ).
-
-    actualize_head_branch( lo_branch_list ).
+        ev_branch      = mv_branch ).
 
     mv_initialized = abap_true.
 
@@ -27300,10 +27276,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     lv_text = zcl_abapgit_git_branch_list=>get_display_name( iv_branch ).
 
-    IF iv_branch = io_repo->get_head_branch_name( )
-       OR iv_branch = zif_abapgit_definitions=>c_head_name.
-      lv_class = 'branch branch_head'.
-    ELSEIF zcl_abapgit_git_branch_list=>get_type( iv_branch ) = zif_abapgit_definitions=>c_git_branch_type-branch.
+    IF zcl_abapgit_git_branch_list=>get_type( iv_branch ) = zif_abapgit_definitions=>c_git_branch_type-branch.
       lv_class = 'branch branch_branch'.
     ELSE.
       lv_class = 'branch'.
@@ -60047,5 +60020,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-05T09:53:25.694Z
+* abapmerge - 2018-08-05T09:54:34.065Z
 ****************************************************
