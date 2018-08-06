@@ -1062,6 +1062,7 @@ INTERFACE zif_abapgit_definitions.
       obj_name TYPE tadir-obj_name,
       devclass TYPE tadir-devclass,
       korrnum  TYPE tadir-korrnum,
+      delflag  TYPE tadir-delflag,
       path     TYPE string,
     END OF ty_tadir .
   TYPES:
@@ -1509,7 +1510,6 @@ INTERFACE zif_abapgit_oo_object_fnc.
 ENDINTERFACE.
 INTERFACE zif_abapgit_popups
   .
-
   TYPES:
     BEGIN OF ty_popup,
       url         TYPE string,
@@ -1518,155 +1518,136 @@ INTERFACE zif_abapgit_popups
       cancel      TYPE abap_bool,
     END OF ty_popup .
 
-  CONSTANTS:
-    c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
+  CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
 
-  METHODS:
-    popup_package_export
-      EXPORTING
-        ev_package      TYPE devclass
-        ev_folder_logic TYPE string
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_folder_logic
-      RETURNING
-        VALUE(rv_folder_logic) TYPE string
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_object
-      RETURNING
-        VALUE(rs_tadir) TYPE tadir
-      RAISING
-        zcx_abapgit_exception,
-
-    create_branch_popup
-      EXPORTING
-        ev_name   TYPE string
-        ev_cancel TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception,
-
-    run_page_class_popup
-      EXPORTING
-        ev_name   TYPE string
-        ev_cancel TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception,
-
-    repo_new_offline
-      RETURNING
-        VALUE(rs_popup) TYPE zif_abapgit_popups=>ty_popup
-      RAISING
-        zcx_abapgit_exception,
-
-    branch_list_popup
-      IMPORTING
-        iv_url             TYPE string
-        iv_default_branch  TYPE string OPTIONAL
-        iv_show_new_option TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(rs_branch)   TYPE zif_abapgit_definitions=>ty_git_branch
-      RAISING
-        zcx_abapgit_exception,
-
-    repo_popup
-      IMPORTING
-        iv_url            TYPE string
-        iv_package        TYPE devclass OPTIONAL
-        iv_branch         TYPE string DEFAULT 'refs/heads/master'
-        iv_freeze_package TYPE abap_bool OPTIONAL
-        iv_freeze_url     TYPE abap_bool OPTIONAL
-        iv_title          TYPE clike DEFAULT 'Clone repository ...'
-      RETURNING
-        VALUE(rs_popup)   TYPE zif_abapgit_popups=>ty_popup
-      RAISING
-        zcx_abapgit_exception ##NO_TEXT,
-
-    popup_to_confirm
-      IMPORTING
-        titlebar              TYPE clike
-        text_question         TYPE clike
-        text_button_1         TYPE clike DEFAULT 'Yes'
-        icon_button_1         TYPE icon-name DEFAULT space
-        text_button_2         TYPE clike DEFAULT 'No'
-        icon_button_2         TYPE icon-name DEFAULT space
-        default_button        TYPE char1 DEFAULT '1'
-        display_cancel_button TYPE char1 DEFAULT abap_true
-      RETURNING
-        VALUE(rv_answer)      TYPE char1
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_to_inform
-      IMPORTING
-        titlebar     TYPE clike
-        text_message TYPE clike
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_to_create_package
-      EXPORTING
-        es_package_data TYPE scompkdtln
-        ev_create       TYPE boolean
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_to_create_transp_branch
-      IMPORTING
-        it_transport_headers       TYPE trwbo_request_headers
-      RETURNING
-        VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel,
-
-    popup_to_select_transports
-      RETURNING
-        VALUE(rt_trkorr) TYPE trwbo_request_headers,
-
-    popup_to_select_from_list
-      IMPORTING
-        it_list               TYPE STANDARD TABLE
-        i_header_text         TYPE csequence
-        i_select_column_text  TYPE csequence
-        it_columns_to_display TYPE stringtab
-      EXPORTING
-        VALUE(et_list)        TYPE STANDARD TABLE
-      RAISING
-        zcx_abapgit_cancel
-        zcx_abapgit_exception,
-
-    branch_popup_callback
-      IMPORTING
-        iv_code       TYPE clike
-      CHANGING
-        ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-        cs_error      TYPE svale
-        cv_show_popup TYPE char01
-      RAISING
-        zcx_abapgit_exception,
-
-    package_popup_callback
-      IMPORTING
-        iv_code       TYPE clike
-      CHANGING
-        ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-        cs_error      TYPE svale
-        cv_show_popup TYPE char01
-      RAISING
-        zcx_abapgit_exception,
-
-    popup_transport_request
-      IMPORTING
-        is_transport_type   TYPE zif_abapgit_definitions=>ty_transport_type
-      RETURNING
-        VALUE(rv_transport) TYPE trkorr
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel.
-
+  METHODS popup_package_export
+    EXPORTING
+      !ev_package      TYPE devclass
+      !ev_folder_logic TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_folder_logic
+    RETURNING
+      VALUE(rv_folder_logic) TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_object
+    RETURNING
+      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
+    RAISING
+      zcx_abapgit_exception .
+  METHODS create_branch_popup
+    EXPORTING
+      !ev_name   TYPE string
+      !ev_cancel TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception .
+  METHODS run_page_class_popup
+    EXPORTING
+      !ev_name   TYPE string
+      !ev_cancel TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception .
+  METHODS repo_new_offline
+    RETURNING
+      VALUE(rs_popup) TYPE zif_abapgit_popups=>ty_popup
+    RAISING
+      zcx_abapgit_exception .
+  METHODS branch_list_popup
+    IMPORTING
+      !iv_url             TYPE string
+      !iv_default_branch  TYPE string OPTIONAL
+      !iv_show_new_option TYPE abap_bool OPTIONAL
+    RETURNING
+      VALUE(rs_branch)    TYPE zif_abapgit_definitions=>ty_git_branch
+    RAISING
+      zcx_abapgit_exception .
+  METHODS repo_popup
+    IMPORTING
+      !iv_url            TYPE string
+      !iv_package        TYPE devclass OPTIONAL
+      !iv_branch         TYPE string DEFAULT 'refs/heads/master'
+      !iv_freeze_package TYPE abap_bool OPTIONAL
+      !iv_freeze_url     TYPE abap_bool OPTIONAL
+      !iv_title          TYPE clike DEFAULT 'Clone repository ...'
+    RETURNING
+      VALUE(rs_popup)    TYPE zif_abapgit_popups=>ty_popup
+    RAISING
+      zcx_abapgit_exception ##NO_TEXT.
+  METHODS popup_to_confirm
+    IMPORTING
+      !titlebar              TYPE clike
+      !text_question         TYPE clike
+      !text_button_1         TYPE clike DEFAULT 'Yes'
+      !icon_button_1         TYPE icon-name DEFAULT space
+      !text_button_2         TYPE clike DEFAULT 'No'
+      !icon_button_2         TYPE icon-name DEFAULT space
+      !default_button        TYPE char1 DEFAULT '1'
+      !display_cancel_button TYPE char1 DEFAULT abap_true
+    RETURNING
+      VALUE(rv_answer)       TYPE char1
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_to_inform
+    IMPORTING
+      !titlebar     TYPE clike
+      !text_message TYPE clike
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_to_create_package
+    EXPORTING
+      !es_package_data TYPE scompkdtln
+      !ev_create       TYPE boolean
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_to_create_transp_branch
+    IMPORTING
+      !it_transport_headers      TYPE trwbo_request_headers
+    RETURNING
+      VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
+    RAISING
+      zcx_abapgit_exception
+      zcx_abapgit_cancel .
+  METHODS popup_to_select_transports
+    RETURNING
+      VALUE(rt_trkorr) TYPE trwbo_request_headers .
+  METHODS popup_to_select_from_list
+    IMPORTING
+      !it_list               TYPE STANDARD TABLE
+      !i_header_text         TYPE csequence
+      !i_select_column_text  TYPE csequence
+      !it_columns_to_display TYPE stringtab
+    EXPORTING
+      VALUE(et_list)         TYPE STANDARD TABLE
+    RAISING
+      zcx_abapgit_cancel
+      zcx_abapgit_exception .
+  METHODS branch_popup_callback
+    IMPORTING
+      !iv_code       TYPE clike
+    CHANGING
+      !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+      !cs_error      TYPE svale
+      !cv_show_popup TYPE char01
+    RAISING
+      zcx_abapgit_exception .
+  METHODS package_popup_callback
+    IMPORTING
+      !iv_code       TYPE clike
+    CHANGING
+      !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+      !cs_error      TYPE svale
+      !cv_show_popup TYPE char01
+    RAISING
+      zcx_abapgit_exception .
+  METHODS popup_transport_request
+    IMPORTING
+      !is_transport_type  TYPE zif_abapgit_definitions=>ty_transport_type
+    RETURNING
+      VALUE(rv_transport) TYPE trkorr
+    RAISING
+      zcx_abapgit_exception
+      zcx_abapgit_cancel .
 ENDINTERFACE.
 INTERFACE zif_abapgit_tag_popups
  .
@@ -1826,15 +1807,6 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_exit.
 
   TYPES:
-    BEGIN OF ty_tadir,
-      pgmid    TYPE tadir-pgmid,
-      object   TYPE tadir-object,
-      obj_name TYPE tadir-obj_name,
-      devclass TYPE tadir-devclass,
-      korrnum  TYPE tadir-korrnum,
-      path     TYPE string,
-    END OF ty_tadir,
-    ty_tadir_tt      TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY,
     ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY.
 
   METHODS:
@@ -1859,7 +1831,7 @@ INTERFACE zif_abapgit_exit.
         iv_package TYPE devclass
         io_log     TYPE REF TO zcl_abapgit_log
       CHANGING
-        ct_tadir   TYPE ty_tadir_tt.
+        ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_git_operations
@@ -1998,7 +1970,7 @@ INTERFACE zif_abapgit_tadir
       !iv_object      TYPE tadir-object
       !iv_obj_name    TYPE tadir-obj_name
     RETURNING
-      VALUE(rs_tadir) TYPE tadir
+      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -5011,7 +4983,7 @@ CLASS zcl_abapgit_object_sicf DEFINITION
         !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
         !iv_obj_name    TYPE tadir-obj_name
       RETURNING
-        VALUE(rs_tadir) TYPE tadir
+        VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS read_sicf_url
@@ -9654,21 +9626,9 @@ CLASS zcl_abapgit_dependencies DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES:
-      BEGIN OF ty_tadir,
-        pgmid    TYPE tadir-pgmid,
-        object   TYPE tadir-object,
-        obj_name TYPE tadir-obj_name,
-        devclass TYPE tadir-devclass,
-        korrnum  TYPE tadir-korrnum,
-        path     TYPE string,
-      END OF ty_tadir .
-    TYPES:
-      ty_tadir_tt TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY .
-
     CLASS-METHODS resolve
       CHANGING
-        !ct_tadir TYPE ty_tadir_tt
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -9694,7 +9654,7 @@ CLASS zcl_abapgit_dependencies DEFINITION
 
     CLASS-METHODS resolve_ddic
       CHANGING
-        !ct_tadir TYPE ty_tadir_tt
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS get_ddls_dependencies
@@ -9704,7 +9664,7 @@ CLASS zcl_abapgit_dependencies DEFINITION
         VALUE(rt_dependency) TYPE tty_dedenpency .
     CLASS-METHODS resolve_packages
       CHANGING
-        ct_tadir TYPE zcl_abapgit_dependencies=>ty_tadir_tt.
+        ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
 ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
@@ -10480,7 +10440,7 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_files_local
       IMPORTING
         !io_log         TYPE REF TO zcl_abapgit_log OPTIONAL
-        !it_filter      TYPE scts_tadir OPTIONAL
+        !it_filter      TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
@@ -10512,7 +10472,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize
       IMPORTING
-        is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_exception .
     METHODS refresh
@@ -10548,12 +10508,12 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
     METHODS set_local_settings
       IMPORTING
-        is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
       RAISING
         zcx_abapgit_exception .
     METHODS run_code_inspector
       RETURNING
-        value(rt_list) TYPE scit_alvlist
+        VALUE(rt_list) TYPE scit_alvlist
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -11087,39 +11047,57 @@ CLASS zcl_abapgit_tadir DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_transport DEFINITION FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_transport DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      zip RAISING zcx_abapgit_exception,
-      to_tadir IMPORTING it_transport_headers TYPE trwbo_request_headers
-               RETURNING VALUE(rt_tadir)      TYPE scts_tadir
-               RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS zip
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS to_tadir
+      IMPORTING
+        !it_transport_headers TYPE trwbo_request_headers
+      RETURNING
+        VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
-    CLASS-METHODS:
-      read_requests
-        IMPORTING it_trkorr          TYPE trwbo_request_headers
-        RETURNING VALUE(rt_requests) TYPE trwbo_requests
-        RAISING   zcx_abapgit_exception,
-      find_top_package
-        IMPORTING it_tadir          TYPE scts_tadir
-        RETURNING VALUE(rv_package) TYPE devclass,
-      resolve
-        IMPORTING it_requests     TYPE trwbo_requests
-        RETURNING VALUE(rt_tadir) TYPE scts_tadir
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS read_requests
+      IMPORTING
+        !it_trkorr         TYPE trwbo_request_headers
+      RETURNING
+        VALUE(rt_requests) TYPE trwbo_requests
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS find_top_package
+      IMPORTING
+        !it_tadir         TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rv_package) TYPE devclass .
+    CLASS-METHODS resolve
+      IMPORTING
+        !it_requests    TYPE trwbo_requests
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_transport_2_branch DEFINITION FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_transport_2_branch DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      create
-        IMPORTING io_repository          TYPE REF TO zcl_abapgit_repo_online
-                  is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
-                  it_transport_objects   TYPE scts_tadir
-        RAISING   zcx_abapgit_exception.
+
+    METHODS create
+      IMPORTING
+        !io_repository          TYPE REF TO zcl_abapgit_repo_online
+        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
+        !it_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     METHODS generate_commit_message
@@ -11129,7 +11107,7 @@ CLASS zcl_abapgit_transport_2_branch DEFINITION FINAL CREATE PUBLIC.
         VALUE(rs_comment)       TYPE zif_abapgit_definitions=>ty_comment .
     METHODS stage_transport_objects
       IMPORTING
-        !it_transport_objects TYPE scts_tadir
+        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt
         !io_stage             TYPE REF TO zcl_abapgit_stage
         !is_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files
         !it_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt
@@ -11145,7 +11123,7 @@ CLASS zcl_abapgit_transport_objects DEFINITION
 
     METHODS constructor
       IMPORTING
-        !it_transport_objects TYPE scts_tadir .
+        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
     METHODS to_stage
       IMPORTING
         !io_stage           TYPE REF TO zcl_abapgit_stage
@@ -11154,28 +11132,33 @@ CLASS zcl_abapgit_transport_objects DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
-    DATA mt_transport_objects TYPE scts_tadir.
 
+    DATA mt_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
 ENDCLASS.
 CLASS zcl_abapgit_zip DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS import
-      IMPORTING iv_key TYPE zif_abapgit_persistence=>ty_value
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_value
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS export
-      IMPORTING io_repo   TYPE REF TO zcl_abapgit_repo
-                it_filter TYPE scts_tadir OPTIONAL
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_repo   TYPE REF TO zcl_abapgit_repo
+        !it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS export_package
-      RAISING zcx_abapgit_exception zcx_abapgit_cancel.
-
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
     CLASS-METHODS export_object
-      RAISING zcx_abapgit_exception zcx_abapgit_cancel.
-
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
   PRIVATE SECTION.
     CLASS-METHODS file_upload
       RETURNING VALUE(rv_xstr) TYPE xstring
@@ -11841,7 +11824,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_zip IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -11885,7 +11868,7 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
   ENDMETHOD.                    "export_key
   METHOD export_object.
 
-    DATA: ls_tadir    TYPE tadir,
+    DATA: ls_tadir    TYPE zif_abapgit_definitions=>ty_tadir,
           ls_item     TYPE zif_abapgit_definitions=>ty_item,
           lv_folder   TYPE string,
           lv_fullpath TYPE string,
@@ -12264,7 +12247,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
     mt_transport_objects = it_transport_objects.
   ENDMETHOD.
   METHOD to_stage.
-    DATA: ls_transport_object TYPE tadir,
+    DATA: ls_transport_object LIKE LINE OF mt_transport_objects,
           ls_local_file       TYPE zif_abapgit_definitions=>ty_file_item,
           ls_object_status    TYPE zif_abapgit_definitions=>ty_result.
 
@@ -12416,7 +12399,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     DATA: lv_object     TYPE tadir-object,
           lv_obj_name   TYPE tadir-obj_name,
           lv_trobj_name TYPE trobj_name,
-          ls_tadir      TYPE tadir.
+          ls_tadir      TYPE zif_abapgit_definitions=>ty_tadir.
 
     FIELD-SYMBOLS: <ls_request> LIKE LINE OF it_requests,
                    <ls_object>  LIKE LINE OF <ls_request>-objects.
@@ -12466,7 +12449,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   METHOD zip.
 
     DATA: lt_requests TYPE trwbo_requests,
-          lt_tadir    TYPE scts_tadir,
+          lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_package  TYPE devclass,
           ls_data     TYPE zif_abapgit_persistence=>ty_repo,
           lo_repo     TYPE REF TO zcl_abapgit_repo_offline,
@@ -12498,10 +12481,10 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
         is_data = ls_data.
 
     zcl_abapgit_zip=>export( io_repo   = lo_repo
-                     it_filter = lt_tadir ).
+                             it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -12650,7 +12633,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_tadir~get_object_package.
 
-    DATA: ls_tadir TYPE tadir,
+    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
           ls_item  TYPE zif_abapgit_definitions=>ty_item.
 
     ls_tadir = zif_abapgit_tadir~read_single(
@@ -12700,7 +12683,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
         iv_pgmid    = iv_pgmid
         iv_obj_name = iv_obj_name ).
     ELSE.
-      SELECT SINGLE * FROM tadir INTO rs_tadir
+      SELECT SINGLE * FROM tadir INTO CORRESPONDING FIELDS OF rs_tadir
         WHERE pgmid = iv_pgmid
         AND object = iv_object
         AND obj_name = iv_obj_name.                       "#EC CI_SUBRC
@@ -14165,7 +14148,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
           lt_cache    TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
                    WITH NON-UNIQUE KEY item.
 
-    DATA: lt_filter       TYPE SORTED TABLE OF tadir
+    DATA: lt_filter       TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
                           WITH NON-UNIQUE KEY object obj_name,
           lv_filter_exist TYPE abap_bool.
 
@@ -14686,7 +14669,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.                    "lif_object~serialize
 ENDCLASS.
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -15391,7 +15374,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           lt_overwrite_uniqe TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_overwrite
                                   WITH UNIQUE KEY obj_type obj_name devclass,
           ls_overwrite       LIKE LINE OF rt_overwrite,
-          ls_tadir           TYPE tadir.
+          ls_tadir           TYPE zif_abapgit_definitions=>ty_tadir.
+
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
@@ -15422,7 +15406,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     rt_overwrite = lt_overwrite_uniqe.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
@@ -17077,7 +17060,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ms_data-requirements = it_requirements.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_dependencies IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
     TYPES: BEGIN OF ty_ddls_name.
@@ -17182,9 +17165,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           lt_scope        TYPE STANDARD TABLE OF seu_obj,
           lt_dependency   TYPE tty_dedenpency.
 
-    FIELD-SYMBOLS: <ls_tadir_ddls>      TYPE ty_tadir,
+    FIELD-SYMBOLS: <ls_tadir_ddls>      TYPE zif_abapgit_definitions=>ty_tadir,
                    <ls_dependency>      TYPE ty_dependency,
-                   <ls_tadir_dependent> TYPE ty_tadir,
+                   <ls_tadir_dependent> TYPE zif_abapgit_definitions=>ty_tadir,
                    <ls_tadir>           LIKE LINE OF ct_tadir,
                    <ls_edge>            LIKE LINE OF lt_edges,
                    <ls_found>           LIKE LINE OF lt_founds,
@@ -17338,7 +17321,6 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_default_transport IMPLEMENTATION.
 
@@ -20089,7 +20071,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       lo_repository          TYPE REF TO zcl_abapgit_repo_online,
       lo_transport_to_branch TYPE REF TO zcl_abapgit_transport_2_branch,
       lt_transport_headers   TYPE trwbo_request_headers,
-      lt_transport_objects   TYPE scts_tadir,
+      lt_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
@@ -25481,7 +25463,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD test_changed_by.
 
-    DATA: ls_tadir TYPE tadir,
+    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
           lv_user  TYPE xubname,
           ls_item  TYPE zif_abapgit_definitions=>ty_item.
     ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
@@ -42145,7 +42127,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_tadir_sicf.
 
-    DATA: lt_tadir    TYPE STANDARD TABLE OF tadir WITH DEFAULT KEY,
+    DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_hash     TYPE text25,
           lv_obj_name TYPE tadir-obj_name.
 
@@ -42153,11 +42135,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
     lv_hash = iv_obj_name+15.
     CONCATENATE iv_obj_name(15) '%' INTO lv_obj_name.
 
-    SELECT * FROM tadir INTO TABLE lt_tadir
+    SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE lt_tadir
       WHERE pgmid = iv_pgmid
       AND object = 'SICF'
       AND obj_name LIKE lv_obj_name
-      ORDER BY PRIMARY KEY. "#EC CI_GENBUFF
+      ORDER BY PRIMARY KEY.                             "#EC CI_GENBUFF
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       IF read_sicf_url( <ls_tadir>-obj_name ) = lv_hash.
@@ -42282,7 +42264,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: ls_tadir TYPE tadir,
+    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
           ls_key   TYPE ty_sicf_key.
 
     ls_tadir = read_tadir_sicf( ms_item-obj_name ).
@@ -42303,6 +42285,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -42370,13 +42357,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
                  ig_data = lt_icfhandler ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_shma IMPLEMENTATION.
 
@@ -60021,5 +60001,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T13:12:55.174Z
+* abapmerge - 2018-08-06T13:40:58.922Z
 ****************************************************
