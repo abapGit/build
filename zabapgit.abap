@@ -1569,7 +1569,7 @@ INTERFACE zif_abapgit_popups
       !iv_branch         TYPE string DEFAULT 'refs/heads/master'
       !iv_freeze_package TYPE abap_bool OPTIONAL
       !iv_freeze_url     TYPE abap_bool OPTIONAL
-      !iv_title          TYPE clike DEFAULT 'Clone repository ...'
+      !iv_title          TYPE clike DEFAULT 'New Online Project'
     RETURNING
       VALUE(rs_popup)    TYPE zif_abapgit_popups=>ty_popup
     RAISING
@@ -21347,7 +21347,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
       add_field( EXPORTING iv_tabname    = 'TDEVC'
                            iv_fieldname  = 'DEVCLASS'
-                           iv_fieldtext  = 'Target package'
+                           iv_fieldtext  = 'Package'
                            iv_value      = lv_package
                            iv_field_attr = lv_pattr
                  CHANGING ct_fields      = lt_fields ).
@@ -60090,5 +60090,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T18:02:14.427Z
+* abapmerge - 2018-08-06T18:07:55.988Z
 ****************************************************
