@@ -11973,12 +11973,14 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
   ENDMETHOD.  "export_package
   METHOD export_package.
 
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline,
-          ls_data TYPE zif_abapgit_persistence=>ty_repo.
+    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_offline,
+          ls_data   TYPE zif_abapgit_persistence=>ty_repo,
+          li_popups TYPE REF TO zif_abapgit_popups.
     ls_data-key = 'DUMMY'.
     ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
 
-    zcl_abapgit_ui_factory=>get_popups( )->popup_package_export(
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popups->popup_package_export(
       IMPORTING
         ev_package      = ls_data-package
         ev_folder_logic = ls_data-dot_abapgit-folder_logic ).
@@ -19811,7 +19813,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     DATA: lt_columns  TYPE stringtab,
           lt_selected LIKE ct_overwrite,
-          lv_column   LIKE LINE OF lt_columns.
+          lv_column   LIKE LINE OF lt_columns,
+          li_popups   TYPE REF TO zif_abapgit_popups.
 
     FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ct_overwrite.
     IF lines( ct_overwrite ) = 0.
@@ -19823,7 +19826,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lv_column = 'OBJ_NAME'.
     INSERT lv_column INTO TABLE lt_columns.
 
-    zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_from_list(
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popups->popup_to_select_from_list(
       EXPORTING
         it_list               = ct_overwrite
         i_header_text         = |The following Objects have been modified locally.|
@@ -20153,10 +20157,12 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     DATA: lv_name   TYPE string,
           lv_cancel TYPE abap_bool,
-          lo_repo   TYPE REF TO zcl_abapgit_repo_online.
+          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          li_popups TYPE REF TO zif_abapgit_popups.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    zcl_abapgit_ui_factory=>get_popups( )->create_branch_popup(
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popups->create_branch_popup(
       IMPORTING
         ev_name   = lv_name
         ev_cancel = lv_cancel ).
@@ -20235,7 +20241,8 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
           lt_unnecessary_local_objs TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lt_selected               LIKE lt_unnecessary_local_objs,
           lt_columns                TYPE stringtab,
-          ls_checks                 TYPE zif_abapgit_definitions=>ty_delete_checks.
+          ls_checks                 TYPE zif_abapgit_definitions=>ty_delete_checks,
+          li_popups                 TYPE REF TO zif_abapgit_popups.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
@@ -20265,7 +20272,8 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       INSERT `OBJECT` INTO TABLE lt_columns.
       INSERT `OBJ_NAME` INTO TABLE lt_columns.
 
-      zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_from_list(
+      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+      li_popups->popup_to_select_from_list(
         EXPORTING
           it_list              = lt_unnecessary_local_objs
           i_header_text        = |Which unnecessary objects should be deleted?|
@@ -22713,9 +22721,11 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_page_playground.
     DATA: lv_class_name TYPE string,
-          lv_cancel     TYPE abap_bool.
+          lv_cancel     TYPE abap_bool,
+          li_popups     TYPE REF TO zif_abapgit_popups.
 
-    zcl_abapgit_ui_factory=>get_popups( )->run_page_class_popup(
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popups->run_page_class_popup(
       IMPORTING
         ev_name   = lv_class_name
         ev_cancel = lv_cancel ).
@@ -31938,7 +31948,7 @@ CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
+CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -32147,18 +32157,27 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_source_index.
 
-    DATA li_index_helper TYPE REF TO if_oo_source_pos_index_helper.
+    "    dynamic invocation, IF_OO_SOURCE_POS_INDEX_HELPER doesn't exist in 702.
+    DATA li_index_helper TYPE REF TO object.
 
-    CREATE OBJECT li_index_helper TYPE cl_oo_source_pos_index_helper.
+    TRY.
+        CREATE OBJECT li_index_helper TYPE cl_oo_source_pos_index_helper.
 
-    li_index_helper->create_index_with_scanner(
-      class_name = iv_clsname
-      version    = if_oo_clif_source=>co_version_active
-      scanner    = io_scanner ).
+        CALL METHOD li_index_helper->('IF_OO_SOURCE_POS_INDEX_HELPER~CREATE_INDEX_WITH_SCANNER')
+          EXPORTING
+            class_name = iv_clsname
+            version    = if_oo_clif_source=>co_version_active
+            scanner    = io_scanner.
 
-    li_index_helper->delete_index(
-      class_name = iv_clsname
-      version    = if_oo_clif_source=>co_version_inactive ).
+        CALL METHOD li_index_helper->('IF_OO_SOURCE_POS_INDEX_HELPER~DELETE_INDEX')
+          EXPORTING
+            class_name = iv_clsname
+            version    = if_oo_clif_source=>co_version_inactive.
+
+      CATCH cx_root.
+        " it's probably okay to no update the index
+        RETURN.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
@@ -59888,10 +59907,12 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
                   RAISING zcx_abapgit_exception ##called ##needed.
 * called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
 
-  DATA: lx_error TYPE REF TO zcx_abapgit_exception.
+  DATA: lx_error  TYPE REF TO zcx_abapgit_exception,
+        li_popups TYPE REF TO zif_abapgit_popups.
 
   TRY.
-      zcl_abapgit_ui_factory=>get_popups( )->branch_popup_callback(
+      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+      li_popups->branch_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -59912,10 +59933,12 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
                    RAISING  zcx_abapgit_exception ##called ##needed.
 * called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
 
-  DATA: lx_error TYPE REF TO zcx_abapgit_exception.
+  DATA: lx_error  TYPE REF TO zcx_abapgit_exception,
+        li_popups TYPE REF TO zif_abapgit_popups.
 
   TRY.
-      zcl_abapgit_ui_factory=>get_popups( )->package_popup_callback(
+      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+      li_popups->package_popup_callback(
         EXPORTING
           iv_code       = pv_code
         CHANGING
@@ -59998,5 +60021,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T11:33:32.519Z
+* abapmerge - 2018-08-06T13:12:55.174Z
 ****************************************************
