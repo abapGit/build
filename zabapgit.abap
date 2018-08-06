@@ -32145,22 +32145,26 @@ CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_source_index.
 
+    CONSTANTS:
+      co_version_active   TYPE r3state VALUE 'A',           "#EC NOTEXT
+      co_version_inactive TYPE r3state VALUE 'I'.           "#EC NOTEXT
+
     "    dynamic invocation, IF_OO_SOURCE_POS_INDEX_HELPER doesn't exist in 702.
     DATA li_index_helper TYPE REF TO object.
 
     TRY.
-        CREATE OBJECT li_index_helper TYPE cl_oo_source_pos_index_helper.
+        CREATE OBJECT li_index_helper TYPE ('CL_OO_SOURCE_POS_INDEX_HELPER').
 
         CALL METHOD li_index_helper->('IF_OO_SOURCE_POS_INDEX_HELPER~CREATE_INDEX_WITH_SCANNER')
           EXPORTING
             class_name = iv_clsname
-            version    = if_oo_clif_source=>co_version_active
+            version    = co_version_active
             scanner    = io_scanner.
 
         CALL METHOD li_index_helper->('IF_OO_SOURCE_POS_INDEX_HELPER~DELETE_INDEX')
           EXPORTING
             class_name = iv_clsname
-            version    = if_oo_clif_source=>co_version_inactive.
+            version    = co_version_inactive.
 
       CATCH cx_root.
         " it's probably okay to no update the index
@@ -52099,7 +52103,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
+CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -52317,36 +52321,68 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      li_package->set_changeable(
-        EXPORTING
-          i_changeable                = abap_true
-          i_suppress_dialog           = abap_true
-        EXCEPTIONS
-          object_locked_by_other_user = 1
-          permission_failure          = 2
-          object_already_changeable   = 3
-          object_already_unlocked     = 4
-          object_just_created         = 5
-          object_deleted              = 6
-          object_modified             = 7
-          object_not_existing         = 8
-          object_invalid              = 9
-          unexpected_error            = 10
-          OTHERS                      = 11 ).
+      TRY.
+          CALL METHOD li_package->('SET_CHANGEABLE')
+            EXPORTING
+              i_changeable                = abap_true
+              i_suppress_dialog           = abap_true " Parameter missing in 702
+            EXCEPTIONS
+              object_locked_by_other_user = 1
+              permission_failure          = 2
+              object_already_changeable   = 3
+              object_already_unlocked     = 4
+              object_just_created         = 5
+              object_deleted              = 6
+              object_modified             = 7
+              object_not_existing         = 8
+              object_invalid              = 9
+              unexpected_error            = 10
+              OTHERS                      = 11.
+
+        CATCH cx_root.
+          li_package->set_changeable(
+            EXPORTING
+              i_changeable                = abap_true
+            EXCEPTIONS
+              object_locked_by_other_user = 1
+              permission_failure          = 2
+              object_already_changeable   = 3
+              object_already_unlocked     = 4
+              object_just_created         = 5
+              object_deleted              = 6
+              object_modified             = 7
+              object_not_existing         = 8
+              object_invalid              = 9
+              unexpected_error            = 10
+              OTHERS                      = 11 ).
+      ENDTRY.
 
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
-      li_package->delete(
-        EXPORTING
-          i_suppress_dialog     = abap_true
-        EXCEPTIONS
-          object_not_empty      = 1
-          object_not_changeable = 2
-          object_invalid        = 3
-          intern_err            = 4
-          OTHERS                = 5 ).
+      TRY.
+          CALL METHOD li_package->('DELETE')
+            EXPORTING
+              i_suppress_dialog     = abap_true  " Parameter missing in 702
+            EXCEPTIONS
+              object_not_empty      = 1
+              object_not_changeable = 2
+              object_invalid        = 3
+              intern_err            = 4
+              OTHERS                = 5.
+
+        CATCH cx_root.
+
+          li_package->delete(
+            EXCEPTIONS
+              object_not_empty      = 1
+              object_not_changeable = 2
+              object_invalid        = 3
+              intern_err            = 4
+              OTHERS                = 5 ).
+
+      ENDTRY.
 
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
@@ -55399,7 +55435,11 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
 
     " Downport
 
-    DATA: lv_partyp TYPE string.
+    DATA: lv_partyp   TYPE string,
+          lo_ecatt_vo TYPE REF TO object.
+
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
+                   <lt_params>   TYPE REF TO cl_apl_ecatt_params.
 
     load_help = im_load_help.
     typ = im_object_type.
@@ -55417,24 +55457,32 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
     ENDTRY.
 
     lv_partyp = cl_apl_ecatt_const=>params_type_par.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
+    ASSERT sy-subrc = 0.
+
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
     set_attributes_to_template( ).
-    ecatt_vo ?= ecatt_object.
     set_ecatt_impl_detail( ).
     set_ecatt_flags( ).
     set_business_msgs( ).
-    get_general_params_data( im_params = ecatt_vo->params
+
+    ASSIGN lo_ecatt_vo->('PARAMS')
+           TO <lt_params>.
+    ASSERT sy-subrc = 0.
+
+    get_general_params_data( im_params = <lt_params>
                              im_ptyp   = lv_partyp ).
     LOOP AT parm INTO wa_parm.
       set_general_params_data_to_dom( ).
       IF NOT wa_parm-val_type IS INITIAL.
-        set_deep_stru_to_dom( ecatt_vo->params ).
-        set_deep_data_to_dom( im_params = ecatt_vo->params
+        set_deep_stru_to_dom( <lt_params> ).
+        set_deep_data_to_dom( im_params = <lt_params>
                               im_pindex = wa_parm-pindex ).
       ENDIF.
     ENDLOOP.
 
-    set_variants_to_dom( ecatt_vo->params ).
+    set_variants_to_dom( <lt_params> ).
 
     download_data( ).
 
@@ -55466,15 +55514,23 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
     DATA:
       lt_buss_msg_ref   TYPE zif_abapgit_ecatt=>etvo_bus_msg_tabtype,
       li_element        TYPE REF TO if_ixml_element,
-      li_insert_objects TYPE REF TO if_ixml_element.
+      li_insert_objects TYPE REF TO if_ixml_element,
+      lo_ecatt_vo       TYPE REF TO object.
+
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
+
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
+    ASSERT sy-subrc = 0.
+
+    lo_ecatt_vo = <lg_ecatt_vo>.
 
     li_objects_node = template_over_all->create_simple_element(
                                            name   = 'BUSINESS_MESSAGES'
                                            parent = root_node ).
 
-    ecatt_vo->get_bussiness_msg(
+    CALL METHOD lo_ecatt_vo->('GET_BUSSINESS_MSG')
       IMPORTING
-        ex_buss_msg_ref = lt_buss_msg_ref ).
+        ex_buss_msg_ref = lt_buss_msg_ref.
 
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
@@ -55492,7 +55548,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
               WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
     ENDIF.
 
-    li_insert_objects = template_over_all->find_from_name( 'BUSINESS_MESSAGES' ).
+    li_insert_objects ?= template_over_all->find_from_name( 'BUSINESS_MESSAGES' ).
 
     li_insert_objects->append_child( new_child = li_element ).
 
@@ -55503,13 +55559,23 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
       lv_invert_validation TYPE zif_abapgit_ecatt=>etvo_invert_validation,
       lv_error_prio        TYPE zif_abapgit_ecatt=>etvo_error_prio,
       li_element           TYPE REF TO if_ixml_element,
-      li_insert_objects    TYPE REF TO if_ixml_element.
+      li_insert_objects    TYPE REF TO if_ixml_element,
+      lo_ecatt_vo          TYPE REF TO object.
+
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
     li_objects_node = template_over_all->create_simple_element(
                                            name   = 'VO_FLAGS'
                                            parent = root_node ).
 
-    lv_invert_validation = ecatt_vo->get_invert_validation_flag( ).
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
+    ASSERT sy-subrc = 0.
+
+    lo_ecatt_vo = <lg_ecatt_vo>.
+
+    CALL METHOD lo_ecatt_vo->('GET_INVERT_VALIDATION_FLAG')
+      RECEIVING
+        re_invert_validation = lv_invert_validation.
 
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
@@ -55527,11 +55593,13 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
               WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
     ENDIF.
 
-    li_insert_objects = template_over_all->find_from_name( 'VO_FLAGS' ).
+    li_insert_objects ?= template_over_all->find_from_name( 'VO_FLAGS' ).
 
     li_insert_objects->append_child( new_child = li_element ).
 
-    lv_error_prio = ecatt_vo->get_error_priority( ).
+    CALL METHOD lo_ecatt_vo->('GET_ERROR_PRIORITY')
+      RECEIVING
+        re_error_prio = lv_error_prio.
 
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
@@ -55559,13 +55627,23 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
     DATA:
       ls_impl_details   TYPE zif_abapgit_ecatt=>etvoimpl_det,
       li_element        TYPE REF TO if_ixml_element,
-      li_insert_objects TYPE REF TO if_ixml_element.
+      li_insert_objects TYPE REF TO if_ixml_element,
+      lo_ecatt_vo       TYPE REF TO object.
+
+    FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
     li_objects_node = template_over_all->create_simple_element(
                                            name   = 'IMPL_DETAILS'
                                            parent = root_node ).
 
-    ls_impl_details = ecatt_vo->get_impl_details( ).
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_vo>.
+    ASSERT sy-subrc = 0.
+
+    lo_ecatt_vo = <lg_ecatt_vo>.
+
+    CALL METHOD lo_ecatt_vo->('GET_IMPL_DETAILS')
+      RECEIVING
+        re_impl_details = ls_impl_details.
 
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
@@ -56408,7 +56486,8 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
       CATCH cx_ecatt_apl INTO lx_ecatt.
         lv_text = lx_ecatt->get_text( ).
         zcx_abapgit_exception=>raise( lv_text ).
-      CATCH cx_ecatt_ui_attachment.
+        " CATCH cx_ecatt_ui_attachment. " Doesn't exist in 702
+      CATCH cx_ecatt.
         "will never be raised from download, when called with mv_generate_xml_no_download = 'X'.
     ENDTRY.
 
@@ -60011,5 +60090,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T16:14:58.328Z
+* abapmerge - 2018-08-06T18:02:14.427Z
 ****************************************************
