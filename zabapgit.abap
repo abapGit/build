@@ -12499,7 +12499,8 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     DATA: last_package    TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab.
 
     FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
-                   <ls_tadir> LIKE LINE OF rt_tadir.
+                   <ls_tadir> LIKE LINE OF rt_tadir,
+                   <lv_package>  TYPE devclass.
 
     "Determine Packages to Read
     DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
@@ -12536,7 +12537,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
         AND object NOT IN lt_excludes
         AND delflag = abap_false
         AND srcsystem IN lt_srcsystem
-        ORDER BY PRIMARY KEY.    "#EC CI_GENBUFF "#EC CI_SUBRC
+        ORDER BY PRIMARY KEY.             "#EC CI_GENBUFF "#EC CI_SUBRC
     ENDIF.
 
     SORT rt_tadir BY devclass pgmid object obj_name.
@@ -12546,14 +12547,14 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       it_tadir = rt_tadir
       io_log   = io_log ).
 
-    LOOP AT lt_packages ASSIGNING FIELD-SYMBOL(<package>).
+    LOOP AT lt_packages ASSIGNING <lv_package>.
       " Local packages are not in TADIR, only in TDEVC, act as if they were
-      IF <package> CP '$*'. " OR <package> CP 'T*' ).
+      IF <lv_package> CP '$*'. " OR <package> CP 'T*' ).
         APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
         <ls_tadir>-pgmid    = 'R3TR'.
         <ls_tadir>-object   = 'DEVC'.
-        <ls_tadir>-obj_name = <package>.
-        <ls_tadir>-devclass = <package>.
+        <ls_tadir>-obj_name = <lv_package>.
+        <ls_tadir>-devclass = <lv_package>.
       ENDIF.
     ENDLOOP.
 
@@ -12657,6 +12658,8 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_tadir~read.
 
+    DATA: li_exit TYPE REF TO zif_abapgit_exit.
+
 * start recursion
 * hmm, some problems here, should TADIR also build path?
     rt_tadir = build( iv_package            = iv_package
@@ -12666,7 +12669,8 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
                       iv_only_local_objects = iv_only_local_objects
                       io_log                = io_log ).
 
-    zcl_abapgit_exit=>get_instance( )->change_tadir(
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_tadir(
       EXPORTING
         iv_package = iv_package
         io_log     = io_log
@@ -18774,7 +18778,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
+CLASS zcl_abapgit_log IMPLEMENTATION.
   METHOD add.
 
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
@@ -18928,9 +18932,11 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   ENDMETHOD.
   METHOD write.
 
-    DATA: ls_log LIKE LINE OF mt_log.
+    DATA: ls_log  LIKE LINE OF mt_log,
+          lv_text TYPE string.
     LOOP AT mt_log INTO ls_log.
-      WRITE: / |{ ls_log-type }: { ls_log-msg }|.
+      lv_text = |{ ls_log-type }: { ls_log-msg }|.
+      WRITE: / lv_text.
     ENDLOOP.
 
   ENDMETHOD.
@@ -55252,8 +55258,6 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
 
-    "26.03.2013
-
     DATA: lx_ex       TYPE REF TO cx_ecatt_apl,
           lv_exists   TYPE etonoff,
           lv_exc_occ  TYPE etonoff,
@@ -55262,11 +55266,17 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
           lo_params   TYPE REF TO cl_apl_ecatt_params.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
-                   <lg_params>   TYPE data.
+                   <lg_params>   TYPE data,
+                   <lv_d_akh>    TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
-        ch_object-i_akh      = ch_object-d_akh.
+
+        ASSIGN COMPONENT 'D_AKH' OF STRUCTURE ch_object
+               TO <lv_d_akh>. " doesn't exist in 702
+        IF sy-subrc = 0.
+          ch_object-i_akh = <lv_d_akh>.
+        ENDIF.
 
         super->upload(
           CHANGING
@@ -60001,5 +60011,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T13:40:58.922Z
+* abapmerge - 2018-08-06T16:14:58.328Z
 ****************************************************
