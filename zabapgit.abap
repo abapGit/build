@@ -7204,9 +7204,9 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
   PRIVATE SECTION.
 
     CONSTANTS:
-      BEGIN OF gc_action,
+      BEGIN OF c_action,
         update TYPE string VALUE 'update',
-      END OF gc_action .
+      END OF c_action .
     DATA ms_key TYPE zif_abapgit_persistence=>ty_content .
 
     CLASS-METHODS update
@@ -7437,7 +7437,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       IMPORTING
         !it_postdata TYPE cnht_post_data_tab
       EXPORTING
-        !es_fields   TYPE any .
+        !eg_fields   TYPE any .
 
     METHODS render_content
         REDEFINITION .
@@ -8097,10 +8097,10 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
       scripts        REDEFINITION.
 
   PRIVATE SECTION.
-    CONSTANTS: BEGIN OF co_tag_type,
+    CONSTANTS: BEGIN OF c_tag_type,
                  lightweight TYPE string VALUE 'lightweight',
                  annotated   TYPE string VALUE 'annotated',
-               END OF co_tag_type.
+               END OF c_tag_type.
 
     DATA: mo_repo_online   TYPE REF TO zcl_abapgit_repo_online,
           mv_selected_type TYPE string.
@@ -8126,7 +8126,7 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
 
       parse_tag_request
         IMPORTING it_postdata TYPE cnht_post_data_tab
-        EXPORTING es_fields   TYPE any,
+        EXPORTING eg_fields   TYPE any,
       parse_change_tag_type_request
         IMPORTING
           it_postdata TYPE cnht_post_data_tab.
@@ -8372,16 +8372,16 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         VALUE(rt_fields) TYPE tihttpnvp .
     CLASS-METHODS add_field
       IMPORTING
-        !name TYPE string
-        !iv   TYPE any
+        !iv_name TYPE string
+        !ig_field   TYPE any
       CHANGING
-        !ct   TYPE tihttpnvp .
+        !ct_field   TYPE tihttpnvp .
     CLASS-METHODS get_field
       IMPORTING
-        !name TYPE string
-        !it   TYPE tihttpnvp
+        !iv_name  TYPE string
+        !it_field TYPE tihttpnvp
       CHANGING
-        !cv   TYPE any .
+        !cg_field TYPE any .
     CLASS-METHODS jump_encode
       IMPORTING
         !iv_obj_type     TYPE tadir-object
@@ -21626,27 +21626,27 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
   ENDMETHOD.  "render_items
 ENDCLASS.
-CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   METHOD add_field.
 
-    DATA ls_field LIKE LINE OF ct.
+    DATA ls_field LIKE LINE OF ct_field.
 
     FIELD-SYMBOLS <lg_src> TYPE any.
 
-    ls_field-name = name.
+    ls_field-name = iv_name.
 
-    CASE cl_abap_typedescr=>describe_by_data( iv )->kind.
+    CASE cl_abap_typedescr=>describe_by_data( ig_field )->kind.
       WHEN cl_abap_typedescr=>kind_elem.
-        ls_field-value = iv.
+        ls_field-value = ig_field.
       WHEN cl_abap_typedescr=>kind_struct.
-        ASSIGN COMPONENT name OF STRUCTURE iv TO <lg_src>.
+        ASSIGN COMPONENT iv_name OF STRUCTURE ig_field TO <lg_src>.
         ASSERT <lg_src> IS ASSIGNED.
         ls_field-value = <lg_src>.
       WHEN OTHERS.
         ASSERT 0 = 1.
     ENDCASE.
 
-    APPEND ls_field TO ct.
+    APPEND ls_field TO ct_field.
 
   ENDMETHOD.  "add_field
   METHOD dbkey_decode.
@@ -21655,16 +21655,16 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     lt_fields = parse_fields_upper_case_name( cl_http_utility=>unescape_url( |{ iv_string }| ) ).
 
-    get_field( EXPORTING name = 'TYPE'  it = lt_fields CHANGING cv = rs_key-type ).
-    get_field( EXPORTING name = 'VALUE' it = lt_fields CHANGING cv = rs_key-value ).
+    get_field( EXPORTING iv_name = 'TYPE'  it_field = lt_fields CHANGING cg_field = rs_key-type ).
+    get_field( EXPORTING iv_name = 'VALUE' it_field = lt_fields CHANGING cg_field = rs_key-value ).
 
   ENDMETHOD.                    "dbkey_decode
   METHOD dbkey_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
 
-    add_field( EXPORTING name = 'TYPE'  iv = is_key-type CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'VALUE' iv = is_key-value CHANGING ct = lt_fields ).
+    add_field( EXPORTING iv_name = 'TYPE'  ig_field = is_key-type CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'VALUE' ig_field = is_key-value CHANGING ct_field = lt_fields ).
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
@@ -21674,13 +21674,13 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     DATA: lt_fields TYPE tihttpnvp.
 
     lt_fields = parse_fields( iv_string ).
-    get_field( EXPORTING name = 'PATH' it = lt_fields CHANGING cv = rv_path ).
+    get_field( EXPORTING iv_name = 'PATH' it_field = lt_fields CHANGING cg_field = rv_path ).
 
   ENDMETHOD.                    "dir_decode
   METHOD dir_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
-    add_field( EXPORTING name = 'PATH' iv = iv_path CHANGING ct = lt_fields ).
+    add_field( EXPORTING iv_name = 'PATH' ig_field = iv_path CHANGING ct_field = lt_fields ).
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
   ENDMETHOD.                    "dir_encode
@@ -21696,9 +21696,9 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD file_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
-    add_field( EXPORTING name = 'KEY'      iv = iv_key CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'PATH'     iv = ig_file CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'FILENAME' iv = ig_file CHANGING ct = lt_fields ).
+    add_field( EXPORTING iv_name = 'KEY'      ig_field = iv_key CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'PATH'     ig_field = ig_file CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'FILENAME' ig_field = ig_file CHANGING ct_field = lt_fields ).
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
@@ -21712,33 +21712,33 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     CLEAR: ev_key, eg_file, eg_object.
     lt_fields = parse_fields_upper_case_name( iv_string ).
 
-    get_field( EXPORTING name = 'KEY'      it = lt_fields CHANGING cv = ev_key ).
+    get_field( EXPORTING iv_name = 'KEY'      it_field = lt_fields CHANGING cg_field = ev_key ).
 
     IF eg_file IS SUPPLIED.
-      get_field( EXPORTING name = 'PATH'     it = lt_fields CHANGING cv = eg_file ).
-      get_field( EXPORTING name = 'FILENAME' it = lt_fields CHANGING cv = eg_file ).
+      get_field( EXPORTING iv_name = 'PATH'     it_field = lt_fields CHANGING cg_field = eg_file ).
+      get_field( EXPORTING iv_name = 'FILENAME' it_field = lt_fields CHANGING cg_field = eg_file ).
     ENDIF.
 
     IF eg_object IS SUPPLIED.
-      get_field( EXPORTING name = 'OBJ_TYPE' it = lt_fields CHANGING cv = eg_object ).
-      get_field( EXPORTING name = 'OBJ_NAME' it = lt_fields CHANGING cv = eg_object ).
+      get_field( EXPORTING iv_name = 'OBJ_TYPE' it_field = lt_fields CHANGING cg_field = eg_object ).
+      get_field( EXPORTING iv_name = 'OBJ_NAME' it_field = lt_fields CHANGING cg_field = eg_object ).
     ENDIF.
 
   ENDMETHOD.                    "file_decode
   METHOD get_field.
 
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it,
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_field,
                    <lg_dest>  TYPE any.
-    READ TABLE it ASSIGNING <ls_field> WITH KEY name = name.
+    READ TABLE it_field ASSIGNING <ls_field> WITH KEY name = iv_name.
     IF sy-subrc IS NOT INITIAL.
       RETURN.
     ENDIF.
 
-    CASE cl_abap_typedescr=>describe_by_data( cv )->kind.
+    CASE cl_abap_typedescr=>describe_by_data( cg_field )->kind.
       WHEN cl_abap_typedescr=>kind_elem.
-        cv = <ls_field>-value.
+        cg_field = <ls_field>-value.
       WHEN cl_abap_typedescr=>kind_struct.
-        ASSIGN COMPONENT name OF STRUCTURE cv TO <lg_dest>.
+        ASSIGN COMPONENT iv_name OF STRUCTURE cg_field TO <lg_dest>.
         ASSERT <lg_dest> IS ASSIGNED.
         <lg_dest> = <ls_field>-value.
       WHEN OTHERS.
@@ -21752,15 +21752,15 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     lt_fields = parse_fields( iv_string ).
 
-    get_field( EXPORTING name = 'TYPE' it = lt_fields CHANGING cv = ev_obj_type ).
-    get_field( EXPORTING name = 'NAME' it = lt_fields CHANGING cv = ev_obj_name ).
+    get_field( EXPORTING iv_name = 'TYPE' it_field = lt_fields CHANGING cg_field = ev_obj_type ).
+    get_field( EXPORTING iv_name = 'NAME' it_field = lt_fields CHANGING cg_field = ev_obj_name ).
 
   ENDMETHOD.                    "jump_decode
   METHOD jump_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
-    add_field( EXPORTING name = 'TYPE' iv = iv_obj_type CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'NAME' iv = iv_obj_name CHANGING ct = lt_fields ).
+    add_field( EXPORTING iv_name = 'TYPE' ig_field = iv_obj_type CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'NAME' ig_field = iv_obj_name CHANGING ct_field = lt_fields ).
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
@@ -21768,9 +21768,9 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD obj_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
-    add_field( EXPORTING name = 'KEY'      iv = iv_key CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'OBJ_TYPE' iv = ig_object CHANGING ct = lt_fields ).
-    add_field( EXPORTING name = 'OBJ_NAME' iv = ig_object CHANGING ct = lt_fields ).
+    add_field( EXPORTING iv_name = 'KEY'      ig_field = iv_key CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'OBJ_TYPE' ig_field = ig_object CHANGING ct_field = lt_fields ).
+    add_field( EXPORTING iv_name = 'OBJ_NAME' ig_field = ig_object CHANGING ct_field = lt_fields ).
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
@@ -21812,8 +21812,8 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     lt_fields = parse_fields_upper_case_name( iv_getdata ).
 
-    get_field( EXPORTING name = 'KEY'  it = lt_fields CHANGING cv = ev_key ).
-    get_field( EXPORTING name = 'SEED' it = lt_fields CHANGING cv = ev_seed ).
+    get_field( EXPORTING iv_name = 'KEY'  it_field = lt_fields CHANGING cg_field = ev_key ).
+    get_field( EXPORTING iv_name = 'SEED' it_field = lt_fields CHANGING cg_field = ev_seed ).
 
     ASSERT NOT ev_key IS INITIAL.
 
@@ -22977,14 +22977,14 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
     mo_repo_online ?= io_repo.
 
     ms_control-page_title = 'TAG'.
-    mv_selected_type = co_tag_type-lightweight.
+    mv_selected_type = c_tag_type-lightweight.
 
   ENDMETHOD.
   METHOD create_tag.
@@ -22996,7 +22996,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     parse_tag_request(
       EXPORTING it_postdata = it_postdata
-      IMPORTING es_fields   = ls_tag ).
+      IMPORTING eg_fields   = ls_tag ).
 
     IF ls_tag-name IS INITIAL.
       zcx_abapgit_exception=>raise( |Please supply a tag name| ).
@@ -23006,11 +23006,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ASSERT ls_tag-name CP 'refs/tags/+*'.
 
     CASE mv_selected_type.
-      WHEN co_tag_type-lightweight.
+      WHEN c_tag_type-lightweight.
 
         ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
 
-      WHEN co_tag_type-annotated.
+      WHEN c_tag_type-annotated.
 
         ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
 
@@ -23039,13 +23039,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_change_tag_type_request.
 
-    FIELD-SYMBOLS: <ls_postdata> TYPE cnht_post_data_line.
+    FIELD-SYMBOLS: <lv_postdata> TYPE cnht_post_data_line.
 
-    READ TABLE it_postdata ASSIGNING <ls_postdata>
+    READ TABLE it_postdata ASSIGNING <lv_postdata>
                            INDEX 1.
     IF sy-subrc = 0.
       FIND FIRST OCCURRENCE OF REGEX `type=(.*)`
-           IN <ls_postdata>
+           IN <lv_postdata>
            SUBMATCHES mv_selected_type.
     ENDIF.
 
@@ -23061,21 +23061,33 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     FIELD-SYMBOLS <lv_body> TYPE string.
 
-    CLEAR es_fields.
+    CLEAR eg_fields.
 
     CONCATENATE LINES OF it_postdata INTO lv_string.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
 
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'SHA1'         it = lt_fields CHANGING cv = es_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'NAME'         it = lt_fields CHANGING cv = es_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'TAGGER_NAME'  it = lt_fields CHANGING cv = es_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'TAGGER_EMAIL' it = lt_fields CHANGING cv = es_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'MESSAGE'      it = lt_fields CHANGING cv = es_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'BODY'         it = lt_fields CHANGING cv = es_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'SHA1'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'NAME'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'TAGGER_NAME'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'TAGGER_EMAIL'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'MESSAGE'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'BODY'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = eg_fields ).
 
-    ASSIGN COMPONENT 'BODY' OF STRUCTURE es_fields TO <lv_body>.
+    ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
     REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
 
@@ -23102,7 +23114,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
           lv_body_size TYPE i,
           lt_type      TYPE stringtab,
           lv_selected  TYPE string.
-    FIELD-SYMBOLS: <type> LIKE LINE OF lt_type.
+    FIELD-SYMBOLS: <lv_type> LIKE LINE OF lt_type.
 
     lo_user  = zcl_abapgit_persistence_user=>get_instance( ).
 
@@ -23130,26 +23142,26 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ro_html->add( '<form id="commit_form" class="aligned-form grey70"'
                && ' method="post" action="sapevent:commit_post">' ).
 
-    INSERT co_tag_type-lightweight
+    INSERT c_tag_type-lightweight
            INTO TABLE lt_type.
 
-    INSERT co_tag_type-annotated
+    INSERT c_tag_type-annotated
            INTO TABLE lt_type.
 
     ro_html->add( '<div class="row">' ).
     ro_html->add( 'Tag type <select name="folder_logic" onchange="onTagTypeChange(this)">' ).
 
-    LOOP AT lt_type ASSIGNING <type>.
+    LOOP AT lt_type ASSIGNING <lv_type>.
 
-      IF mv_selected_type = <type>.
+      IF mv_selected_type = <lv_type>.
         lv_selected = 'selected'.
       ELSE.
         CLEAR: lv_selected.
       ENDIF.
 
-      ro_html->add( |<option value="{ <type> }" |
+      ro_html->add( |<option value="{ <lv_type> }" |
                  && |{ lv_selected }>|
-                 && |{ <type> }</option>| ).
+                 && |{ <lv_type> }</option>| ).
 
     ENDLOOP.
 
@@ -23166,7 +23178,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ro_html->add( render_text_input( iv_name  = 'name'
                                      iv_label = 'tag name' ) ).
 
-    IF mv_selected_type = co_tag_type-annotated.
+    IF mv_selected_type = c_tag_type-annotated.
 
       ro_html->add( render_text_input( iv_name  = 'tagger_name'
                                        iv_label = 'tagger name'
@@ -24630,31 +24642,31 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
 
-    DATA: BEGIN OF filedata,
+    DATA: BEGIN OF ls_filedata,
             merge_content TYPE string,
-          END OF filedata.
+          END OF ls_filedata.
 
     DATA: lv_string           TYPE string,
           lt_fields           TYPE tihttpnvp,
           lv_new_file_content TYPE xstring.
 
-    FIELD-SYMBOLS: <postdata_line> LIKE LINE OF it_postdata,
+    FIELD-SYMBOLS: <lv_postdata_line> LIKE LINE OF it_postdata,
                    <ls_conflict>   TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
-    LOOP AT it_postdata ASSIGNING <postdata_line>.
-      lv_string = |{ lv_string }{ <postdata_line> }|.
+    LOOP AT it_postdata ASSIGNING <lv_postdata_line>.
+      lv_string = |{ lv_string }{ <lv_postdata_line> }|.
     ENDLOOP.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
 
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING name = 'MERGE_CONTENT'
-                                                        it = lt_fields
-                                              CHANGING cv = filedata ).
-    filedata-merge_content = cl_http_utility=>unescape_url( escaped = filedata-merge_content ).
-    REPLACE ALL OCCURRENCES OF lc_replace IN filedata-merge_content WITH zif_abapgit_definitions=>gc_newline.
+    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'MERGE_CONTENT'
+                                                        it_field = lt_fields
+                                              CHANGING cg_field = ls_filedata ).
+    ls_filedata-merge_content = cl_http_utility=>unescape_url( escaped = ls_filedata-merge_content ).
+    REPLACE ALL OCCURRENCES OF lc_replace IN ls_filedata-merge_content WITH zif_abapgit_definitions=>gc_newline.
 
-    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string = filedata-merge_content ).
+    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string = ls_filedata-merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
     <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
@@ -26139,7 +26151,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     FIELD-SYMBOLS <lv_body> TYPE string.
 
-    CLEAR es_fields.
+    CLEAR eg_fields.
 
     CONCATENATE LINES OF it_postdata INTO lv_string.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
@@ -26148,42 +26160,42 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'COMMITTER_NAME'
-        it = lt_fields
+        iv_name = 'COMMITTER_NAME'
+        it_field = lt_fields
       CHANGING
-        cv = es_fields ).
+        cg_field = eg_fields ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'COMMITTER_EMAIL'
-        it = lt_fields
+        iv_name = 'COMMITTER_EMAIL'
+        it_field = lt_fields
       CHANGING
-        cv = es_fields ).
+        cg_field = eg_fields ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'AUTHOR_NAME'
-        it = lt_fields
+        iv_name = 'AUTHOR_NAME'
+        it_field = lt_fields
       CHANGING
-        cv = es_fields ).
+        cg_field = eg_fields ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'AUTHOR_EMAIL'
-        it = lt_fields
+        iv_name = 'AUTHOR_EMAIL'
+        it_field = lt_fields
       CHANGING
-      cv = es_fields ).
+      cg_field = eg_fields ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'COMMENT'
-        it = lt_fields
+        iv_name = 'COMMENT'
+        it_field = lt_fields
       CHANGING
-      cv = es_fields ).
+      cg_field = eg_fields ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'BODY'
-        it = lt_fields
+        iv_name = 'BODY'
+        it_field = lt_fields
       CHANGING
-        cv = es_fields ).
+        cg_field = eg_fields ).
 
-    ASSIGN COMPONENT 'BODY' OF STRUCTURE es_fields TO <lv_body>.
+    ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
     REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
 
@@ -26379,7 +26391,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
         parse_commit_request(
           EXPORTING it_postdata = it_postdata
-          IMPORTING es_fields   = ls_commit ).
+          IMPORTING eg_fields   = ls_commit ).
 
         ls_commit-repo_key = mo_repo->get_key( ).
 
@@ -26923,37 +26935,37 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'METHOD'
-        it   = lt_fields
+        iv_name = 'METHOD'
+        it_field   = lt_fields
       CHANGING
-        cv   = rs_fields ).
+        cg_field   = rs_fields ).
     IF rs_fields-method IS INITIAL.
       RETURN.
     ENDIF.
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'USERNAME'
-        it   = lt_fields
+        iv_name = 'USERNAME'
+        it_field   = lt_fields
       CHANGING
-        cv   = rs_fields ).
+        cg_field   = rs_fields ).
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'PASSWORD'
-        it   = lt_fields
+        iv_name = 'PASSWORD'
+        it_field   = lt_fields
       CHANGING
-        cv   = rs_fields ).
+        cg_field   = rs_fields ).
     CALL METHOD (rs_fields-method)=>zif_abapgit_background~get_settings
       CHANGING
         ct_settings = rs_fields-settings.
     LOOP AT rs_fields-settings ASSIGNING <ls_setting>.
       zcl_abapgit_html_action_utils=>get_field(
         EXPORTING
-          name = <ls_setting>-key
-          it   = lt_fields
+          iv_name = <ls_setting>-key
+          it_field   = lt_fields
         CHANGING
-          cv   = <ls_setting>-value ).
+          cg_field   = <ls_setting>-value ).
     ENDLOOP.
 
     ASSERT NOT rs_fields IS INITIAL.
@@ -29698,10 +29710,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
-        name = 'XMLDATA'
-        it = lt_fields
+        iv_name = 'XMLDATA'
+        it_field = lt_fields
       CHANGING
-        cv = rs_content-data_str ).
+        cg_field = rs_content-data_str ).
 
     IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
       rs_content-data_str = rs_content-data_str+1.
@@ -29744,7 +29756,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     ro_html->add( '</td></tr></table>' ).
 
     " Form
-    ro_html->add( |<form id="db_form" method="post" action="sapevent:| && |{ gc_action-update }">| ).
+    ro_html->add( |<form id="db_form" method="post" action="sapevent:| && |{ c_action-update }">| ).
     ro_html->add( |<input type="hidden" name="type" value="{ ms_key-type }">| ).
     ro_html->add( |<input type="hidden" name="value" value="{ ms_key-value }">| ).
     ro_html->add( |<textarea rows="20" cols="100" name="xmldata">{ lv_data }</textarea>| ).
@@ -29770,7 +29782,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
 
     CASE iv_action.
-      WHEN gc_action-update.
+      WHEN c_action-update.
         ls_db = dbcontent_decode( it_postdata ).
         update( ls_db ).
         ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
@@ -59986,5 +59998,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T10:56:46.084Z
+* abapmerge - 2018-08-06T11:10:58.956Z
 ****************************************************
