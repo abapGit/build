@@ -422,6 +422,7 @@ INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
+INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
@@ -1788,6 +1789,40 @@ INTERFACE zif_abapgit_persistence.
   TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_ecatt
+  .
+
+  " downport missing types
+
+  TYPES:
+    etvo_invert_validation TYPE c LENGTH 1,
+    etvo_error_prio        TYPE n LENGTH 1,
+    etvo_impl_name         TYPE c LENGTH 30,
+    etvo_impl_type         TYPE c LENGTH 1,
+    etvo_impl_subtype      TYPE c LENGTH 4,
+    etvo_package           TYPE c LENGTH 255,
+    BEGIN OF etvoimpl_det,
+      impl_name    TYPE etvo_impl_name,
+      impl_type    TYPE etvo_impl_type,
+      impl_subtype TYPE etvo_impl_subtype,
+      impl_package TYPE etvo_package,
+    END OF etvoimpl_det.
+
+  TYPES:
+    BEGIN OF ecvo_bus_msg.
+      INCLUDE TYPE etobj_key.
+  TYPES:
+    bus_msg_no   TYPE c LENGTH 1, " etvo_msg_no
+    arbgb        TYPE arbgb,
+    msgnr        TYPE msgnr,
+    bus_msg_text TYPE string, "etvo_bus_msg_text
+    otr_key      TYPE sotr_conc,
+    msg_type     TYPE c LENGTH 4, "etvo_msg_type
+    END OF ecvo_bus_msg,
+
+    etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
+
+ENDINTERFACE.
 INTERFACE zif_abapgit_exit.
 
   TYPES:
@@ -3147,30 +3182,6 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
       download_data REDEFINITION.
 
   PRIVATE SECTION.
-    " downport missing types
-    TYPES:
-      BEGIN OF ecvo_bus_msg.
-        INCLUDE TYPE etobj_key.
-    TYPES:
-      bus_msg_no   TYPE   etvo_msg_no,
-      arbgb        TYPE   arbgb,
-      msgnr        TYPE   msgnr,
-      bus_msg_text TYPE etvo_bus_msg_text,
-      otr_key      TYPE   sotr_conc,
-      msg_type     TYPE   etvo_msg_type,
-      END OF ecvo_bus_msg,
-
-      etvo_bus_msg_tabtype   TYPE STANDARD TABLE OF ecvo_bus_msg,
-      etvo_invert_validation TYPE c LENGTH 1,
-      etvo_error_prio        TYPE n LENGTH 1,
-
-      BEGIN OF etvoimpl_det,
-        impl_name    TYPE c LENGTH 30,  " etvo_impl_name
-        impl_type    TYPE c LENGTH 1,   " etvo_impl_type
-        impl_subtype TYPE c LENGTH 4,   " etvo_impl_subtype
-        impl_package TYPE c LENGTH 255, " etvo_package
-      END OF etvoimpl_det.
-
     DATA:
       mv_xml_stream      TYPE xstring,
       mv_xml_stream_size TYPE int4.
@@ -3211,17 +3222,6 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
           cx_ecatt_apl.
 
   PRIVATE SECTION.
-    TYPES:
-      etvo_invert_validation TYPE c LENGTH 1,
-      etvo_error_prio        TYPE n LENGTH 1,
-      etvo_bus_msg_tabtype   TYPE STANDARD TABLE OF ecvo_bus_msg,
-      BEGIN OF etvoimpl_det,
-        impl_name    TYPE etvo_impl_name,
-        impl_type    TYPE etvo_impl_type,
-        impl_subtype TYPE etvo_impl_subtype,
-        impl_package TYPE etvo_package,
-      END OF etvoimpl_det.
-
     DATA:
       mv_external_xml TYPE xstring.
 
@@ -55090,7 +55090,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          lt_buss_msg_ref       TYPE etvo_bus_msg_tabtype,
+          lt_buss_msg_ref       TYPE zif_abapgit_ecatt=>etvo_bus_msg_tabtype,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
@@ -55135,7 +55135,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          ls_impl_details       TYPE etvoimpl_det,
+          ls_impl_details       TYPE zif_abapgit_ecatt=>etvoimpl_det,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
@@ -55180,8 +55180,8 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          lv_error_prio         TYPE etvo_error_prio,
-          lv_invert_validation  TYPE etvo_invert_validation,
+          lv_error_prio         TYPE zif_abapgit_ecatt=>etvo_error_prio,
+          lv_invert_validation  TYPE zif_abapgit_ecatt=>etvo_invert_validation,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
@@ -55455,7 +55455,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
   METHOD set_business_msgs.
 
     DATA:
-      lt_buss_msg_ref   TYPE etvo_bus_msg_tabtype,
+      lt_buss_msg_ref   TYPE zif_abapgit_ecatt=>etvo_bus_msg_tabtype,
       li_element        TYPE REF TO if_ixml_element,
       li_insert_objects TYPE REF TO if_ixml_element.
 
@@ -55491,8 +55491,8 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
   METHOD set_ecatt_flags.
 
     DATA:
-      lv_invert_validation TYPE etvo_invert_validation,
-      lv_error_prio        TYPE etvo_error_prio,
+      lv_invert_validation TYPE zif_abapgit_ecatt=>etvo_invert_validation,
+      lv_error_prio        TYPE zif_abapgit_ecatt=>etvo_error_prio,
       li_element           TYPE REF TO if_ixml_element,
       li_insert_objects    TYPE REF TO if_ixml_element.
 
@@ -55548,7 +55548,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
   METHOD set_ecatt_impl_detail.
 
     DATA:
-      ls_impl_details   TYPE etvoimpl_det,
+      ls_impl_details   TYPE zif_abapgit_ecatt=>etvoimpl_det,
       li_element        TYPE REF TO if_ixml_element,
       li_insert_objects TYPE REF TO if_ixml_element.
 
@@ -59998,5 +59998,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T11:10:58.956Z
+* abapmerge - 2018-08-06T11:33:32.519Z
 ****************************************************
