@@ -15659,8 +15659,7 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
 
     DATA: lt_repos     TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
           lv_repo_list TYPE string,
-          lv_index     TYPE i,
-          lo_repo      TYPE REF TO zcl_abapgit_repo_online.
+          lv_index     TYPE i.
 
     FIELD-SYMBOLS: <lo_repo> LIKE LINE OF lt_repos.
     lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
@@ -19417,8 +19416,6 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD x_to_bitbyte.
-
-    DATA: lv_b TYPE n.
 
     CLEAR rv_bitbyte.
 
@@ -24929,7 +24926,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     DATA: lv_new   TYPE string,
           lv_old   TYPE string,
-          lv_merge TYPE string,
           lv_mark  TYPE string,
           lv_bg    TYPE string.
 
@@ -27014,14 +27010,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
   METHOD render.
 
-    DATA: lo_repo    TYPE REF TO zcl_abapgit_repo_online,
-          ls_per     TYPE zcl_abapgit_persist_background=>ty_background,
-          lv_nothing TYPE string,
-          lv_push    TYPE string,
-          lv_pull    TYPE string,
-          lv_afixed  TYPE string,
-          lv_aauto   TYPE string,
-          lv_auser   TYPE string.
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
+          ls_per  TYPE zcl_abapgit_persist_background=>ty_background.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_key ).
     ls_per = read_persist( lo_repo ).
     CREATE OBJECT ro_html.
@@ -54583,7 +54573,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_char        TYPE ty_char,
-          lv_request     TYPE trkorr,
           ls_description LIKE LINE OF ls_char-cls_attributet,
           lo_char        TYPE REF TO cl_cls_attribute,
           lx_pak_error   TYPE REF TO cx_root,
@@ -58513,7 +58502,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects INTO ls_object
-      WITH key type COMPONENTS
+      WITH KEY type COMPONENTS
         type = zif_abapgit_definitions=>gc_type-tree
         sha1 = iv_tree.
     IF sy-subrc <> 0.
@@ -58752,7 +58741,6 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     DATA: lv_string TYPE string,
           lv_word   TYPE string,
-          lv_length TYPE i,
           lv_trash  TYPE string ##NEEDED,
           lt_string TYPE TABLE OF string.
 
@@ -59082,7 +59070,6 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD encode_tag.
 
     DATA: lv_string TYPE string,
-          lv_tmp    TYPE string,
           lv_time   TYPE zcl_abapgit_time=>ty_unixtime.
 
     lv_time = zcl_abapgit_time=>get( ).
@@ -60199,7 +60186,7 @@ FORM output.
   TRY.
       zcl_abapgit_gui=>get_instance( )->focus( ).
     CATCH zcx_abapgit_exception INTO lx_error.
-      message lx_error type 'S' DISPLAY LIKE 'E'.
+      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
   ENDTRY.
 ENDFORM.
 
@@ -60251,5 +60238,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T12:57:51.814Z
+* abapmerge - 2018-08-07T14:04:38.596Z
 ****************************************************
