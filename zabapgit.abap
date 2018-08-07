@@ -40848,7 +40848,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
+CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
   METHOD validate_font.
 
     DATA: lv_tdfamily TYPE tfo01-tdfamily.
@@ -40927,6 +40927,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
     IF sy-subrc = 0.
       <lv_spras> = ls_header-masterlang.
     ENDIF.
+
+    tadir_insert( iv_package ).
 
     CALL FUNCTION 'SSF_SAVE_STYLE'
       EXPORTING
@@ -60141,5 +60143,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T05:21:52.927Z
+* abapmerge - 2018-08-07T05:24:01.796Z
 ****************************************************
