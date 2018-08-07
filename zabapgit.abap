@@ -13378,8 +13378,13 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       lo_repo = get( ls_repo-key ).
 
       lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
-      APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+
+      CLEAR lt_packages.
+      IF lo_repo->get_local_settings( )-ignore_subpackages = abap_false.
+        APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+      ENDIF.
       APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+
       READ TABLE lt_packages TRANSPORTING NO FIELDS
         WITH KEY table_line = iv_package.
       IF sy-subrc = 0.
@@ -60204,5 +60209,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T05:32:03.360Z
+* abapmerge - 2018-08-07T07:32:58.191Z
 ****************************************************
