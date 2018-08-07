@@ -1052,9 +1052,12 @@ INTERFACE zif_abapgit_definitions.
       type    TYPE zif_abapgit_definitions=>ty_type,
       data    TYPE xstring,
       adler32 TYPE ty_adler32,
+      index   TYPE i,
     END OF ty_object .
   TYPES:
-    ty_objects_tt TYPE STANDARD TABLE OF ty_object WITH DEFAULT KEY .
+    ty_objects_tt TYPE STANDARD TABLE OF ty_object WITH DEFAULT KEY
+      WITH NON-UNIQUE SORTED KEY sha COMPONENTS sha1
+      WITH NON-UNIQUE SORTED KEY type COMPONENTS type sha1.
   TYPES:
     BEGIN OF ty_tadir,
       pgmid    TYPE tadir-pgmid,
@@ -15709,8 +15712,9 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
     DEFINE _from_source.
       READ TABLE mt_objects ASSIGNING <ls_object>
-        WITH KEY type = zif_abapgit_definitions=>gc_type-blob
-        sha1 = <ls_source>-sha1.
+        WITH KEY type COMPONENTS
+          type = zif_abapgit_definitions=>gc_type-blob
+          sha1 = <ls_source>-sha1.
       ASSERT sy-subrc = 0.
 
       ms_merge-stage->add( iv_path     = <ls_file>-path
@@ -15795,13 +15799,17 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-path = <ls_file>-path.
         <ls_conflict>-filename = <ls_file>-name.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object> WITH KEY type = zif_abapgit_definitions=>gc_type-blob
-                                                             sha1 = <ls_source>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>gc_type-blob
+            sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object> WITH KEY type = zif_abapgit_definitions=>gc_type-blob
-                                                             sha1 = <ls_target>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>gc_type-blob
+            sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
 * added in source and target, but different, merge conflict must be resolved
@@ -15833,13 +15841,17 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-path = <ls_file>-path.
         <ls_conflict>-filename = <ls_file>-name.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object> WITH KEY type = zif_abapgit_definitions=>gc_type-blob
-                                                             sha1 = <ls_source>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>gc_type-blob
+            sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object> WITH KEY type = zif_abapgit_definitions=>gc_type-blob
-                                                             sha1 = <ls_target>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>gc_type-blob
+            sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
         ms_merge-conflict = |{ <ls_file>-name } merge conflict, changed in source and target branch|.
@@ -15904,7 +15916,9 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
     LOOP AT lt_visit INTO lv_commit.
       READ TABLE mt_objects ASSIGNING <ls_object>
-        WITH KEY type = zif_abapgit_definitions=>gc_type-commit sha1 = lv_commit.
+        WITH KEY type COMPONENTS
+          type = zif_abapgit_definitions=>gc_type-commit
+          sha1 = lv_commit.
       ASSERT sy-subrc = 0.
 
       ls_commit = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
@@ -58061,7 +58075,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     DATA: ls_object LIKE LINE OF it_objects,
           ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    READ TABLE it_objects INTO ls_object WITH KEY sha1 = iv_branch type = zif_abapgit_definitions=>gc_type-commit.
+    READ TABLE it_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_definitions=>gc_type-commit
+        sha1 = iv_branch .
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'commit not found' ).
     ENDIF.
@@ -58090,7 +58107,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         ev_branch      = ev_branch
         eo_branch_list = eo_branch_list ).
 
-    READ TABLE et_objects INTO ls_object WITH KEY sha1 = ev_branch type = zif_abapgit_definitions=>gc_type-commit.
+    READ TABLE et_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_definitions=>gc_type-commit
+        sha1 = ev_branch .
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Commit/branch not found' ).
     ENDIF.
@@ -58215,6 +58235,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     ls_object-sha1 = lv_new_tag_sha1.
     ls_object-type = zif_abapgit_definitions=>gc_type-tag.
     ls_object-data = lv_tag.
+    ls_object-index = 1.
     APPEND ls_object TO lt_objects.
 
     lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
@@ -58229,11 +58250,12 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD receive_pack_push.
 
-    DATA: lv_time   TYPE zcl_abapgit_time=>ty_unixtime,
-          lv_commit TYPE xstring,
-          lv_pack   TYPE xstring,
-          ls_object LIKE LINE OF et_new_objects,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+    DATA: lv_time    TYPE zcl_abapgit_time=>ty_unixtime,
+          lv_commit  TYPE xstring,
+          lv_pack    TYPE xstring,
+          ls_object  LIKE LINE OF lt_objects,
+          ls_commit  TYPE zcl_abapgit_git_pack=>ty_commit.
+    DATA: uindex     TYPE sy-index.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
@@ -58268,7 +58290,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       CLEAR ls_object.
       ls_object-sha1 = <ls_tree>-sha1.
 
-      READ TABLE et_new_objects WITH KEY type = zif_abapgit_definitions=>gc_type-tree sha1 = ls_object-sha1
+      READ TABLE et_new_objects
+        WITH KEY type COMPONENTS
+          type = zif_abapgit_definitions=>gc_type-tree
+          sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
 * two identical trees added at the same time, only add one to the pack
@@ -58277,6 +58302,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
       ls_object-type = zif_abapgit_definitions=>gc_type-tree.
       ls_object-data = <ls_tree>-data.
+      uindex = uindex + 1.
+      ls_object-index = uindex.
       APPEND ls_object TO et_new_objects.
     ENDLOOP.
 
@@ -58286,9 +58313,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         iv_type = zif_abapgit_definitions=>gc_type-blob
         iv_data = <ls_blob>-data ).
 
-      READ TABLE et_new_objects WITH KEY
-        type = zif_abapgit_definitions=>gc_type-blob
-        sha1 = ls_object-sha1
+      READ TABLE et_new_objects
+        WITH KEY type COMPONENTS
+          type = zif_abapgit_definitions=>gc_type-blob
+          sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
 * two identical files added at the same time, only add one blob to the pack
@@ -58298,6 +58326,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       ls_object-type = zif_abapgit_definitions=>gc_type-blob.
       ASSERT NOT <ls_blob>-data IS INITIAL.
       ls_object-data = <ls_blob>-data.
+      uindex = uindex + 1.
+      ls_object-index = uindex.
       APPEND ls_object TO et_new_objects.
     ENDLOOP.
 
@@ -58326,7 +58356,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_objects,
                    <ls_blob> LIKE LINE OF it_objects,
                    <ls_node> LIKE LINE OF lt_nodes.
-    READ TABLE it_objects ASSIGNING <ls_tree> WITH KEY sha1 = iv_sha1 type = zif_abapgit_definitions=>gc_type-tree.
+    READ TABLE it_objects ASSIGNING <ls_tree>
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_definitions=>gc_type-tree
+        sha1 = iv_sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
     ENDIF.
@@ -58336,7 +58369,9 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     LOOP AT lt_nodes ASSIGNING <ls_node>.
       IF <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-file.
         READ TABLE it_objects ASSIGNING <ls_blob>
-          WITH KEY sha1 = <ls_node>-sha1 type = zif_abapgit_definitions=>gc_type-blob.
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>gc_type-blob
+            sha1 = <ls_node>-sha1.
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
         ENDIF.
@@ -58368,8 +58403,9 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects INTO ls_object
-      WITH KEY sha1 = iv_tree
-      type = zif_abapgit_definitions=>gc_type-tree.
+      WITH key type COMPONENTS
+        type = zif_abapgit_definitions=>gc_type-tree
+        sha1 = iv_tree.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'tree not found' ).
     ENDIF.
@@ -58415,6 +58451,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_xstring        TYPE xstring,
           lv_expected       TYPE i,
           ls_object         LIKE LINE OF rt_objects.
+    DATA: uindex            TYPE sy-index.
+
     lv_data = iv_data.
 
 * header
@@ -58434,6 +58472,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_objects = zcl_abapgit_convert=>xstring_to_int( lv_xstring ).
     lv_data = lv_data+4.
     DO lv_objects TIMES.
+
+      uindex = sy-index.
 
       lv_x = lv_data(1).
       lv_type = get_type( lv_x ).
@@ -58506,6 +58546,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       ENDIF.
       ls_object-type = lv_type.
       ls_object-data = lv_decompressed.
+      ls_object-index = uindex.
       APPEND ls_object TO rt_objects.
     ENDDO.
 
@@ -58571,10 +58612,18 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     DATA: ls_object   LIKE LINE OF ct_objects,
           lo_progress TYPE REF TO zcl_abapgit_progress,
           lt_deltas   LIKE ct_objects.
-    LOOP AT ct_objects INTO ls_object WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
-      DELETE ct_objects INDEX sy-tabix.
-      APPEND ls_object TO lt_deltas.
+    LOOP AT ct_objects INTO ls_object
+      USING KEY type
+      WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
+      INSERT ls_object INTO TABLE lt_deltas.
     ENDLOOP.
+
+    DELETE ct_objects
+      USING KEY type
+      WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
+
+    "Restore correct Delta Order
+    SORT lt_deltas BY index.
 
     CREATE OBJECT lo_progress
       EXPORTING
@@ -58722,7 +58771,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_delta = is_object-data.
 
 * find base
-    READ TABLE ct_objects ASSIGNING <ls_object> WITH KEY sha1 = is_object-sha1.
+    READ TABLE ct_objects ASSIGNING <ls_object>
+      WITH KEY sha COMPONENTS sha1 = is_object-sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Base not found, { is_object-sha1 }| ).
     ELSEIF <ls_object>-type = zif_abapgit_definitions=>gc_type-ref_d.
@@ -58796,6 +58846,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ls_object-sha1 = lv_sha1.
     ls_object-type = <ls_object>-type.
     ls_object-data = lv_result.
+    ls_object-index = <ls_object>-index. "Retain sort index
     APPEND ls_object TO ct_objects.
 
   ENDMETHOD.
@@ -60090,5 +60141,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-06T18:07:55.988Z
+* abapmerge - 2018-08-07T05:21:52.927Z
 ****************************************************
