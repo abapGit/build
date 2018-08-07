@@ -2955,6 +2955,10 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
         RAISING
           cx_ecatt_apl_xml.
 
+  PRIVATE SECTION.
+    CONSTANTS:
+      co_xml TYPE int4 VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
+
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_script_download
@@ -56621,7 +56625,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
     TRY.
         CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
           EXPORTING
-            im_type = if_apl_ecatt_xml=>co_xml
+            im_type = co_xml
           RECEIVING
             re_xml  = lo_xml.
 
@@ -56656,7 +56660,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 
     CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
       EXPORTING
-        im_type = if_apl_ecatt_xml=>co_xml
+        im_type = co_xml
       RECEIVING
         re_xml  = lo_xml.
 
@@ -60247,5 +60251,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T11:48:15.181Z
+* abapmerge - 2018-08-07T12:57:51.814Z
 ****************************************************
