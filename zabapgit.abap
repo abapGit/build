@@ -17635,7 +17635,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
@@ -17824,7 +17824,8 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects,
                    <ls_tag>    LIKE LINE OF mt_tags.
 
-    LOOP AT it_objects ASSIGNING <ls_object> WHERE type = zif_abapgit_definitions=>gc_type-tag.
+    LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
+        WHERE type = zif_abapgit_definitions=>gc_type-tag.
 
       ls_raw = zcl_abapgit_git_pack=>decode_tag( <ls_object>-data ).
 
@@ -17852,7 +17853,8 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
           ls_raw    TYPE zcl_abapgit_git_pack=>ty_commit.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects.
-    LOOP AT it_objects ASSIGNING <ls_object> WHERE type = zif_abapgit_definitions=>gc_type-commit.
+    LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
+        WHERE type = zif_abapgit_definitions=>gc_type-commit.
       ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
 
       CLEAR ls_commit.
@@ -60202,5 +60204,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T05:29:13.945Z
+* abapmerge - 2018-08-07T05:32:03.360Z
 ****************************************************
