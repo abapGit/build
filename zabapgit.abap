@@ -55455,7 +55455,9 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        get_params_from_dom_new( lo_params ).
+        CALL METHOD ('GET_PARAMS_FROM_DOM_NEW') " doesn't exist in 702
+          EXPORTING
+            im_params = lo_params.
       CATCH cx_ecatt_apl INTO lx_ex.
         lv_exc_occ = 'X'.
     ENDTRY.
@@ -56617,7 +56619,11 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
            ev_xml_stream_size.
 
     TRY.
-        lo_xml = cl_apl_ecatt_xml=>create( im_type = if_apl_ecatt_xml=>co_xml ).
+        CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
+          EXPORTING
+            im_type = if_apl_ecatt_xml=>co_xml
+          RECEIVING
+            re_xml  = lo_xml.
 
         lo_xml->set_attributes( im_dom = ii_template_over_all ).
 
@@ -56648,7 +56654,11 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 
     lv_xstr = iv_xml_stream.
 
-    lo_xml = cl_apl_ecatt_xml=>create( im_type = if_apl_ecatt_xml=>co_xml ).
+    CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
+      EXPORTING
+        im_type = if_apl_ecatt_xml=>co_xml
+      RECEIVING
+        re_xml  = lo_xml.
 
 * whitespace stripping needs a namespace
 * remove white spaces only at the time of upload
@@ -56663,7 +56673,10 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 * MD: Workaround, because nodes starting with "XML" are not allowed
     lv_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns(
                           'XMLREF_TYP' ).                   "#EC NOTEXT
-    lv_count = lv_nc_xmlref_typ->get_length( ).
+    CALL METHOD lv_nc_xmlref_typ->('GET_LENGTH')  " downport
+      RECEIVING
+        rval = lv_count.
+
     WHILE lv_index LT lv_count.
       lv_n_xmlref_typ = lv_nc_xmlref_typ->get_item( lv_index ).
       lv_n_xmlref_typ->set_name( 'X-MLREF_TYP' ).
@@ -60234,5 +60247,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T10:05:04.835Z
+* abapmerge - 2018-08-07T11:48:15.181Z
 ****************************************************
