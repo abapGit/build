@@ -26512,12 +26512,17 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     MOVE-CORRESPONDING <ls_result> TO ls_info.
 
-    lo_test = cl_ci_tests=>get_test_ref( <ls_result>-test ).
+    TRY.
+        lo_test ?= cl_ci_tests=>get_test_ref( <ls_result>-test ).
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Jump to object not supported in your NW release|  ).
+    ENDTRY.
+
     lo_result = lo_test->get_result_node( <ls_result>-kind ).
 
     lo_result->set_info( ls_info ).
     lo_result->if_ci_test~navigate( ).
-
   ENDMETHOD.
   METHOD render_content.
 
@@ -55385,15 +55390,19 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
                    <lg_params>   TYPE data,
-                   <lv_d_akh>    TYPE data.
+                   <lv_d_akh>    TYPE data,
+                   <lv_i_akh>    TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
 
         ASSIGN COMPONENT 'D_AKH' OF STRUCTURE ch_object
                TO <lv_d_akh>. " doesn't exist in 702
-        IF sy-subrc = 0.
-          ch_object-i_akh = <lv_d_akh>.
+        ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
+               TO <lv_i_akh>. " doesn't exist in 702
+        IF  <lv_d_akh> IS ASSIGNED
+        AND <lv_i_akh> IS ASSIGNED.
+          <lv_i_akh> = <lv_d_akh>.
         ENDIF.
 
         super->upload(
@@ -55410,7 +55419,9 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        get_attributes_from_dom_new( CHANGING ch_object = ch_object ).
+        CALL METHOD ('GET_ATTRIBUTES_FROM_DOM_NEW') " doesn't exit in 702
+          CHANGING
+            ch_object = ch_object.
       CATCH cx_ecatt_apl INTO lx_ex.
         lv_exc_occ = 'X'.
     ENDTRY.
@@ -55864,7 +55875,7 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
     " downport
@@ -55928,11 +55939,21 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_sp           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_sp> TYPE any.
+    FIELD-SYMBOLS: <ecatt_sp> TYPE any,
+                   <lv_d_akh> TYPE data,
+                   <lv_i_akh> TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
-        ch_object-i_akh      = ch_object-d_akh.
+
+        ASSIGN COMPONENT 'D_AKH' OF STRUCTURE ch_object
+               TO <lv_d_akh>. " doesn't exist in 702
+        ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
+               TO <lv_i_akh>. " doesn't exist in 702
+        IF  <lv_d_akh> IS ASSIGNED
+        AND <lv_i_akh> IS ASSIGNED.
+          <lv_i_akh> = <lv_d_akh>.
+        ENDIF.
 
         super->upload(
           CHANGING
@@ -55949,7 +55970,9 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        get_attributes_from_dom_new( CHANGING ch_object = ch_object ).
+        CALL METHOD ('GET_ATTRIBUTES_FROM_DOM_NEW') " doesn't exist in 720
+          CHANGING
+            ch_object = ch_object.
       CATCH cx_ecatt_apl INTO lx_ecatt.
         lv_exc_occ = 'X'.
     ENDTRY.
@@ -56638,8 +56661,8 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
         ex_dom = ri_template_over_all ).
 
 * MD: Workaround, because nodes starting with "XML" are not allowed
-    lv_nc_xmlref_typ = ri_template_over_all->get_elements_by_tag_name_ns(
-                      'XMLREF_TYP' ).                       "#EC NOTEXT
+    lv_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns(
+                          'XMLREF_TYP' ).                   "#EC NOTEXT
     lv_count = lv_nc_xmlref_typ->get_length( ).
     WHILE lv_index LT lv_count.
       lv_n_xmlref_typ = lv_nc_xmlref_typ->get_item( lv_index ).
@@ -56760,7 +56783,7 @@ CLASS zcl_abapgit_ecatt_config_upl IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_CONFIG_DOWNL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -56786,7 +56809,9 @@ CLASS ZCL_ABAPGIT_ECATT_CONFIG_DOWNL IMPLEMENTATION.
 
     set_attributes_to_template( ).
     ecatt_config ?= ecatt_object.
-    set_ecatt_objects_to_template( ).
+
+    CALL METHOD ('SET_ECATT_OBJECTS_TO_TEMPLATE'). " doesn't exist in 702
+
 * MS180406
     set_var_mode_to_dom( ).
 * ENDMS180406
@@ -60209,5 +60234,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T07:32:58.191Z
+* abapmerge - 2018-08-07T08:28:07.902Z
 ****************************************************
