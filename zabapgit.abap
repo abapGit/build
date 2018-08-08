@@ -2314,30 +2314,38 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
 
   PUBLIC SECTION.
 
+    TYPES:
+      BEGIN OF ty_pull_result,
+        files   TYPE zif_abapgit_definitions=>ty_files_tt,
+        objects TYPE zif_abapgit_definitions=>ty_objects_tt,
+        branch  TYPE zif_abapgit_definitions=>ty_sha1,
+      END OF ty_pull_result .
+    TYPES:
+      BEGIN OF ty_push_result,
+        new_files     TYPE zif_abapgit_definitions=>ty_files_tt,
+        branch        TYPE zif_abapgit_definitions=>ty_sha1,
+        updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+        new_objects   TYPE zif_abapgit_definitions=>ty_objects_tt,
+      END OF ty_push_result .
+
     CLASS-METHODS pull
       IMPORTING
-        !iv_url         TYPE string
-        !iv_branch_name TYPE string
-      EXPORTING
-        !et_files       TYPE zif_abapgit_definitions=>ty_files_tt
-        !et_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
-        !eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
+        !iv_url          TYPE string
+        !iv_branch_name  TYPE string
+      RETURNING
+        VALUE(rs_result) TYPE ty_pull_result
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS push
       IMPORTING
-        !is_comment       TYPE zif_abapgit_definitions=>ty_comment
-        !io_stage         TYPE REF TO zcl_abapgit_stage
-        !it_old_objects   TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_parent        TYPE zif_abapgit_definitions=>ty_sha1
-        !iv_url           TYPE string
-        !iv_branch_name   TYPE string
-      EXPORTING
-        !et_new_files     TYPE zif_abapgit_definitions=>ty_files_tt
-        !ev_branch        TYPE zif_abapgit_definitions=>ty_sha1
-        !et_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-        !et_new_objects   TYPE zif_abapgit_definitions=>ty_objects_tt
+        !is_comment      TYPE zif_abapgit_definitions=>ty_comment
+        !io_stage        TYPE REF TO zcl_abapgit_stage
+        !it_old_objects  TYPE zif_abapgit_definitions=>ty_objects_tt
+        !iv_parent       TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_url          TYPE string
+        !iv_branch_name  TYPE string
+      RETURNING
+        VALUE(rs_result) TYPE ty_push_result
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_branch
@@ -13779,6 +13787,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD refresh.
 
     DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
+          ls_pull      TYPE zcl_abapgit_git_porcelain=>ty_pull_result,
           lx_exception TYPE REF TO zcx_abapgit_exception.
 
     super->refresh( iv_drop_cache ).
@@ -13791,14 +13800,13 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     lo_progress->show( iv_current = 1
                        iv_text    = 'Fetch remote files' ) ##NO_TEXT.
 
-    zcl_abapgit_git_porcelain=>pull(
-      EXPORTING
-        iv_url         = get_url( )
-        iv_branch_name = get_branch_name( )
-      IMPORTING
-        et_files       = mt_remote
-        et_objects     = mt_objects
-        ev_branch      = mv_branch ).
+    ls_pull = zcl_abapgit_git_porcelain=>pull(
+      iv_url         = get_url( )
+      iv_branch_name = get_branch_name( ) ).
+
+    mt_remote  = ls_pull-files.
+    mt_objects = ls_pull-objects.
+    mv_branch  = ls_pull-branch.
 
     mv_initialized = abap_true.
 
@@ -13865,11 +13873,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
 * assumption: PUSH is done on top of the currently selected branch
 
-    DATA: lv_branch        TYPE zif_abapgit_definitions=>ty_sha1,
-          lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_new_files     TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_new_objects   TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_text          TYPE string.
+    DATA: ls_push TYPE zcl_abapgit_git_porcelain=>ty_push_result,
+          lv_text TYPE string.
     IF ms_data-branch_name CP 'refs/tags*'.
       lv_text = |You're working on a tag. Currently it's not |
              && |possible to push on tags. Consider creating a branch instead|.
@@ -13883,26 +13888,20 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     handle_stage_ignore( io_stage ).
 
-    zcl_abapgit_git_porcelain=>push(
-      EXPORTING
-        is_comment       = is_comment
-        io_stage         = io_stage
-        iv_branch_name   = get_branch_name( )
-        iv_url           = get_url( )
-        iv_parent        = get_sha1_remote( )
-        it_old_objects   = get_objects( )
-      IMPORTING
-        ev_branch        = lv_branch
-        et_new_files     = lt_new_files
-        et_new_objects   = lt_new_objects
-        et_updated_files = lt_updated_files ).
+    ls_push = zcl_abapgit_git_porcelain=>push(
+      is_comment     = is_comment
+      io_stage       = io_stage
+      iv_branch_name = get_branch_name( )
+      iv_url         = get_url( )
+      iv_parent      = get_sha1_remote( )
+      it_old_objects = get_objects( ) ).
 
-    set_objects( lt_new_objects ).
-    set_files_remote( lt_new_files ).
+    set_objects( ls_push-new_objects ).
+    set_files_remote( ls_push-new_files ).
 
-    mv_branch = lv_branch.
+    mv_branch = ls_push-branch.
 
-    update_local_checksums( lt_updated_files ).
+    update_local_checksums( ls_push-updated_files ).
 
     reset_status( ).
     CLEAR: mv_code_inspector_successful.
@@ -31957,7 +31956,7 @@ CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -32104,18 +32103,31 @@ CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
           lv_scan_error TYPE seox_boolean.
     ls_clskey-clsname = iv_name.
 
-* todo, downport to 702, see https://github.com/larshp/abapGit/issues/933
-    CREATE OBJECT lo_update TYPE ('CL_OO_CLASS_SECTION_SOURCE')
-      EXPORTING
-        clskey                        = ls_clskey
-        exposure                      = iv_exposure
-        state                         = 'A'
-        source                        = it_source
-        suppress_constrctr_generation = seox_true
-      EXCEPTIONS
-        class_not_existing            = 1
-        read_source_error             = 2
-        OTHERS                        = 3.
+    TRY.
+        CREATE OBJECT lo_update TYPE ('CL_OO_CLASS_SECTION_SOURCE')
+          EXPORTING
+            clskey                        = ls_clskey
+            exposure                      = iv_exposure
+            state                         = 'A'
+            source                        = it_source
+            suppress_constrctr_generation = seox_true
+          EXCEPTIONS
+            class_not_existing            = 1
+            read_source_error             = 2
+            OTHERS                        = 3.
+      CATCH cx_sy_dyn_call_param_not_found.
+* downport to 702, see https://github.com/larshp/abapGit/issues/933
+* this will READ REPORT instead of using it_source, which should be okay
+        CREATE OBJECT lo_update TYPE cl_oo_class_section_source
+          EXPORTING
+            clskey             = ls_clskey
+            exposure           = iv_exposure
+            state              = 'A'
+          EXCEPTIONS
+            class_not_existing = 1
+            read_source_error  = 2
+            OTHERS             = 3.
+    ENDTRY.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error instantiating CL_OO_CLASS_SECTION_SOURCE' ).
     ENDIF.
@@ -58191,35 +58203,29 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD pull.
 
-    DATA: ls_object LIKE LINE OF et_objects,
+    DATA: ls_object LIKE LINE OF rs_result-objects,
           ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    CLEAR et_files.
-    CLEAR et_objects.
-    CLEAR ev_branch.
-    CLEAR eo_branch_list.
-
     zcl_abapgit_git_transport=>upload_pack(
       EXPORTING
         iv_url         = iv_url
         iv_branch_name = iv_branch_name
       IMPORTING
-        et_objects     = et_objects
-        ev_branch      = ev_branch
-        eo_branch_list = eo_branch_list ).
+        et_objects     = rs_result-objects
+        ev_branch      = rs_result-branch ).
 
-    READ TABLE et_objects INTO ls_object
+    READ TABLE rs_result-objects INTO ls_object
       WITH KEY type COMPONENTS
         type = zif_abapgit_definitions=>gc_type-commit
-        sha1 = ev_branch .
+        sha1 = rs_result-branch.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Commit/branch not found' ).
     ENDIF.
     ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
 
-    walk( EXPORTING it_objects = et_objects
+    walk( EXPORTING it_objects = rs_result-objects
                     iv_sha1 = ls_commit-tree
                     iv_path = '/'
-          CHANGING ct_files = et_files ).
+          CHANGING ct_files = rs_result-files ).
 
   ENDMETHOD.
   METHOD push.
@@ -58232,10 +58238,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
           lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
 
     FIELD-SYMBOLS: <ls_stage>   LIKE LINE OF lt_stage,
-                   <ls_updated> LIKE LINE OF et_updated_files,
+                   <ls_updated> LIKE LINE OF rs_result-updated_files,
                    <ls_exp>     LIKE LINE OF lt_expanded.
-    CLEAR et_updated_files.
-
     lt_expanded = full_tree( it_objects = it_old_objects
                              iv_branch  = iv_parent ).
 
@@ -58243,7 +58247,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     LOOP AT lt_stage ASSIGNING <ls_stage>.
 
       " Save file ref to updated files table
-      APPEND INITIAL LINE TO et_updated_files ASSIGNING <ls_updated>.
+      APPEND INITIAL LINE TO rs_result-updated_files ASSIGNING <ls_updated>.
       MOVE-CORRESPONDING <ls_stage>-file TO <ls_updated>.
 
       CASE <ls_stage>-method.
@@ -58294,15 +58298,15 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         iv_parent2     = io_stage->get_merge_source( )
         it_blobs       = lt_blobs
       IMPORTING
-        ev_new_commit  = ev_branch
-        et_new_objects = et_new_objects
+        ev_new_commit  = rs_result-branch
+        et_new_objects = rs_result-new_objects
         ev_new_tree    = lv_new_tree ).
 
-    APPEND LINES OF it_old_objects TO et_new_objects.
-    walk( EXPORTING it_objects = et_new_objects
+    APPEND LINES OF it_old_objects TO rs_result-new_objects.
+    walk( EXPORTING it_objects = rs_result-new_objects
                     iv_sha1 = lv_new_tree
                     iv_path = '/'
-          CHANGING ct_files = et_new_files ).
+          CHANGING ct_files = rs_result-new_files ).
 
   ENDMETHOD.
   METHOD receive_pack_create_tag.
@@ -58350,11 +58354,11 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD receive_pack_push.
 
-    DATA: lv_time    TYPE zcl_abapgit_time=>ty_unixtime,
-          lv_commit  TYPE xstring,
-          lv_pack    TYPE xstring,
-          ls_object  LIKE LINE OF et_new_objects,
-          ls_commit  TYPE zcl_abapgit_git_pack=>ty_commit.
+    DATA: lv_time   TYPE zcl_abapgit_time=>ty_unixtime,
+          lv_commit TYPE xstring,
+          lv_pack   TYPE xstring,
+          ls_object LIKE LINE OF et_new_objects,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
     DATA: uindex     TYPE sy-index.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
@@ -60239,5 +60243,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-08T12:50:17.503Z
+* abapmerge - 2018-08-08T13:01:06.999Z
 ****************************************************
