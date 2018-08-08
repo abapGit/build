@@ -13904,6 +13904,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     update_local_checksums( lt_updated_files ).
 
+    reset_status( ).
     CLEAR: mv_code_inspector_successful.
 
   ENDMETHOD.
@@ -60238,5 +60239,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-07T14:04:38.596Z
+* abapmerge - 2018-08-08T05:16:35.730Z
 ****************************************************
