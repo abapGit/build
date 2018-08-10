@@ -13442,6 +13442,10 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       lo_repo = get( ls_repo-key ).
 
       lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
+      IF lo_package->exists( ) eq ABAP_FALSE.
+        " Skip dangling repository
+        CONTINUE.
+      ENDIF.
 
       CLEAR lt_packages.
       IF lo_repo->get_local_settings( )-ignore_subpackages = abap_false.
@@ -60320,5 +60324,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-10T05:03:32.110Z
+* abapmerge - 2018-08-10T05:04:51.084Z
 ****************************************************
