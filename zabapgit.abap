@@ -26747,7 +26747,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     ro_html->add( '<canvas id="gitGraph"></canvas>' ).
 
     ro_html->add( '<script type="text/javascript" src="https://cdnjs.' &&
-      'cloudflare.com/ajax/libs/gitgraph.js/1.2.3/gitgraph.min.js">' &&
+      'cloudflare.com/ajax/libs/gitgraph.js/1.12.0/gitgraph.min.js">' &&
       '</script>' ) ##NO_TEXT.
 
     ro_html->add( '<script type="text/javascript">' ).
@@ -44674,7 +44674,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_prog IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
@@ -44690,6 +44690,12 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
                             iv_language = <ls_tpool>-language
                             it_tpool    = lt_tpool ).
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_program_locked.
+
+    rv_is_program_locked = exists_a_lock_entry_for( iv_lock_object = 'ESRDIRE'
+                                                    iv_argument    = |{ ms_item-obj_name }| ).
 
   ENDMETHOD.
   METHOD serialize_texts.
@@ -44818,27 +44824,6 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
       iv_timestamp = iv_timestamp ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'PROG'
-        in_new_window = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    serialize_program( io_xml   = io_xml
-                       is_item  = ms_item
-                       io_files = mo_files ).
-
-    " Texts serializing (translations)
-    serialize_texts( io_xml ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~is_locked.
 
     IF is_program_locked( )                     = abap_true
@@ -44851,13 +44836,29 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD is_program_locked.
+  METHOD zif_abapgit_object~jump.
 
-    rv_is_program_locked = exists_a_lock_entry_for( iv_lock_object = 'ESRDIRE'
-                                                    iv_argument    = |{ ms_item-obj_name }| ).
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = 'PROG'
+        in_new_window = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
 
+* see SAP note 1025291, run report DELETE_TADIR_FOR_EIMP_INCLUDE to clean bad TADIR entries
+    ASSERT NOT ms_item-obj_name CP '*=E'.
+
+    serialize_program( io_xml   = io_xml
+                       is_item  = ms_item
+                       io_files = mo_files ).
+
+    " Texts serializing (translations)
+    serialize_texts( io_xml ).
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -60363,5 +60364,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-13T15:38:38.919Z
+* abapmerge - 2018-08-13T16:35:03.678Z
 ****************************************************
