@@ -420,6 +420,7 @@ INTERFACE zif_abapgit_version DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
+INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
@@ -945,6 +946,15 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_git_tag .
   TYPES:
     ty_git_tag_list_tt TYPE STANDARD TABLE OF ty_git_tag WITH DEFAULT KEY .
+
+  TYPES:
+    BEGIN OF ty_hotkey,
+      sequence TYPE string,
+      action   TYPE string,
+    END OF ty_hotkey,
+    tty_hotkey TYPE STANDARD TABLE OF ty_hotkey
+                    WITH NON-UNIQUE DEFAULT KEY.
+
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -1218,6 +1228,7 @@ INTERFACE zif_abapgit_definitions.
            link_hints_enabled         TYPE abap_bool,
            link_hint_key              TYPE char01,
            link_hint_background_color TYPE string,
+           hotkeys                    TYPE tty_hotkey,
          END OF ty_s_user_settings.
 
   CONSTANTS:
@@ -2090,6 +2101,24 @@ INTERFACE zif_abapgit_git_operations
       !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
     RAISING
       zcx_abapgit_exception .
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_gui_page_hotkey
+ .
+
+  TYPES:
+    BEGIN OF ty_hotkey_action,
+      name           TYPE string,
+      action         TYPE string,
+      default_hotkey TYPE string,
+    END OF ty_hotkey_action,
+    tty_hotkey_action TYPE STANDARD TABLE OF ty_hotkey_action
+                           WITH NON-UNIQUE DEFAULT KEY.
+
+  CLASS-METHODS
+    get_hotkey_actions
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_repo_srv
@@ -7166,6 +7195,20 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
     METHODS redirect
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
+    METHODS link_hints
+      IMPORTING
+        io_html TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS hotkeys
+      IMPORTING
+        io_html TYPE REF TO zcl_abapgit_html.
+
+    METHODS get_relevant_hotkeys
+      RETURNING
+        VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_db DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -7173,6 +7216,7 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor .
 
@@ -7208,6 +7252,8 @@ CLASS zcl_abapgit_gui_page_db_dis DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     METHODS: constructor
       IMPORTING is_key TYPE zif_abapgit_persistence=>ty_content.
 
@@ -7228,10 +7274,11 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor
       IMPORTING
-        !is_key TYPE zif_abapgit_persistence=>ty_content .
+        is_key TYPE zif_abapgit_persistence=>ty_content .
 
     METHODS zif_abapgit_gui_page~on_event
         REDEFINITION .
@@ -7265,10 +7312,11 @@ CLASS zcl_abapgit_gui_page_bkg DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor
       IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key .
+        iv_key TYPE zif_abapgit_persistence=>ty_repo-key .
 
     METHODS zif_abapgit_gui_page~on_event
         REDEFINITION .
@@ -7322,6 +7370,7 @@ CLASS zcl_abapgit_gui_page_bkg_run DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor .
 
@@ -7341,6 +7390,8 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     METHODS:
       constructor
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
@@ -7397,6 +7448,8 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
     INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     METHODS:
       constructor
         IMPORTING
@@ -7410,6 +7463,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
 
       zif_abapgit_gui_page~render
         REDEFINITION.
+
   PROTECTED SECTION.
     DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
@@ -7459,6 +7513,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     CONSTANTS:
       BEGIN OF c_action,
@@ -7468,10 +7523,10 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
 
     METHODS constructor
       IMPORTING
-        !io_repo  TYPE REF TO zcl_abapgit_repo_online
-        !io_stage TYPE REF TO zcl_abapgit_stage
+        io_repo  TYPE REF TO zcl_abapgit_repo_online
+        io_stage TYPE REF TO zcl_abapgit_stage
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
     METHODS zif_abapgit_gui_page~on_event
         REDEFINITION .
@@ -7514,6 +7569,7 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor .
   PROTECTED SECTION.
@@ -7534,6 +7590,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     CONSTANTS:
       BEGIN OF c_fstate,
@@ -7556,9 +7613,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
 
     METHODS:
       constructor
-        IMPORTING iv_key           TYPE zif_abapgit_persistence=>ty_repo-key
-                  is_file          TYPE zif_abapgit_definitions=>ty_file OPTIONAL
-                  is_object        TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        IMPORTING iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
+                  is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
+                  is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         RAISING   zcx_abapgit_exception,
       zif_abapgit_gui_page~on_event REDEFINITION.
   PROTECTED SECTION.
@@ -7605,7 +7662,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
                 is_status TYPE zif_abapgit_definitions=>ty_result
       RAISING   zcx_abapgit_exception.
     METHODS build_menu
-      RETURNING VALUE(ro_menu)   TYPE REF TO zcl_abapgit_html_toolbar.
+      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
     METHODS is_binary
       IMPORTING iv_d1         TYPE xstring
                 iv_d2         TYPE xstring
@@ -7616,6 +7673,7 @@ CLASS zcl_abapgit_gui_page_explore DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     CONSTANTS c_explore_url TYPE string
       VALUE 'https://dotabap.github.io/explore.html'.
@@ -7631,6 +7689,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
     METHODS:
       constructor
         RAISING zcx_abapgit_exception,
@@ -7673,12 +7732,13 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor
       IMPORTING
-        !io_repo   TYPE REF TO zcl_abapgit_repo_online
-        !iv_source TYPE string
-        !iv_target TYPE string
+        io_repo   TYPE REF TO zcl_abapgit_repo_online
+        iv_source TYPE string
+        iv_target TYPE string
       RAISING
         zcx_abapgit_exception .
 
@@ -7709,14 +7769,15 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor
       IMPORTING
-        !io_repo       TYPE REF TO zcl_abapgit_repo_online
-        !io_merge_page TYPE REF TO zcl_abapgit_gui_page_merge
-        !io_merge      TYPE REF TO zcl_abapgit_merge
+        io_repo       TYPE REF TO zcl_abapgit_repo_online
+        io_merge_page TYPE REF TO zcl_abapgit_gui_page_merge
+        io_merge      TYPE REF TO zcl_abapgit_merge
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
     METHODS zif_abapgit_gui_page~on_event
         REDEFINITION .
@@ -7817,6 +7878,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     METHODS constructor .
 
@@ -7938,6 +8000,8 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     METHODS:
       constructor
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo,
@@ -7989,6 +8053,8 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     CONSTANTS:
       BEGIN OF c_action,
         save_settings TYPE string VALUE 'save_settings',
@@ -8047,12 +8113,35 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception.
+    METHODS render_hotkeys
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_possible_hotkey_actions
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_hotkey_actions_from_pages
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_default_hotkeys
+      RETURNING
+        VALUE(rt_default_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     CONSTANTS: BEGIN OF c_action,
                  stage_all    TYPE string VALUE 'stage_all',
                  stage_commit TYPE string VALUE 'stage_commit',
@@ -8118,6 +8207,8 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
     INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
+
     METHODS:
       constructor
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo.
@@ -8133,6 +8224,7 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
 
   PUBLIC SECTION.
+    INTERFACES: zif_abapgit_gui_page_hotkey.
 
     CONSTANTS: BEGIN OF c_action,
                  commit_post     TYPE string VALUE 'commit_post',
@@ -8237,6 +8329,7 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_gui_page .
+    INTERFACES zif_abapgit_gui_page_hotkey.
 
     ALIASES render
       FOR zif_abapgit_gui_page~render .
@@ -8313,6 +8406,7 @@ CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_gui_page.
+    INTERFACES zif_abapgit_gui_page_hotkey.
     ALIASES render FOR zif_abapgit_gui_page~render.
 
   PRIVATE SECTION.
@@ -10932,15 +11026,19 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           iv_link_hint_key TYPE char01,
       get_link_hint_key
         RETURNING
-          VALUE(rv_link_hint_key) TYPE char01
-        RAISING
-          zcx_abapgit_exception,
+          VALUE(rv_link_hint_key) TYPE char01,
       get_link_hint_background_color
         RETURNING
           VALUE(rv_background_color) TYPE string,
       set_link_hint_background_color
         IMPORTING
-          iv_background_color TYPE string.
+          iv_background_color TYPE string,
+      set_hotkeys
+        IMPORTING
+          it_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey,
+      get_hotkeys
+        RETURNING
+          VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -13116,6 +13214,13 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_link_hint_background_color.
     ms_user_settings-link_hint_background_color = iv_background_color.
+  ENDMETHOD.
+  METHOD set_hotkeys.
+    ms_user_settings-hotkeys = it_hotkeys.
+  ENDMETHOD.
+
+  METHOD get_hotkeys.
+    rt_hotkeys = ms_user_settings-hotkeys.
   ENDMETHOD.
 
 ENDCLASS.
@@ -22220,6 +22325,9 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '</ul></p>' ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
     ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
   ENDMETHOD.
@@ -22753,6 +22861,10 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.  "lif_gui_page~render
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD get_page_background.
@@ -23069,7 +23181,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -23375,8 +23487,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SYNTAX CHECK'.
@@ -23406,6 +23523,9 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.  "render_content
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
@@ -23680,6 +23800,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
 
   ENDMETHOD.  "scripts
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA lo_stage TYPE REF TO zcl_abapgit_stage.
@@ -23714,8 +23837,12 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
   METHOD build_settings.
 
-    DATA: lv_i_param_value         TYPE i.
-    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
+    DATA: lv_i_param_value TYPE i,
+          column           TYPE string,
+          lt_key_bindings  TYPE zif_abapgit_definitions=>tty_hotkey.
+
+    FIELD-SYMBOLS: <ls_post_field>  TYPE ihttpnvp,
+                   <ls_key_binding> TYPE zif_abapgit_definitions=>ty_hotkey.
     CREATE OBJECT mo_settings.
     READ TABLE it_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_url'.
     IF sy-subrc <> 0.
@@ -23810,12 +23937,89 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ELSE.
       mo_settings->set_commitmsg_body_size( zcl_abapgit_settings=>c_commitmsg_body_size_dft ).
     ENDIF.
+    LOOP AT it_post_fields ASSIGNING <ls_post_field> WHERE name CP 'key*'.
+
+      FIND FIRST OCCURRENCE OF REGEX `key_(.*)_`
+           IN <ls_post_field>-name
+           SUBMATCHES column.
+
+      CASE column.
+        WHEN 'sequence'.
+          INSERT INITIAL LINE INTO TABLE lt_key_bindings ASSIGNING <ls_key_binding>.
+          <ls_key_binding>-sequence = <ls_post_field>-value.
+        WHEN 'action'.
+          <ls_key_binding>-action = <ls_post_field>-value.
+      ENDCASE.
+    ENDLOOP.
+
+    DELETE lt_key_bindings WHERE sequence IS INITIAL
+                           OR    action IS INITIAL.
+
+    mo_settings->set_hotkeys( lt_key_bindings ).
 
   ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SETTINGS'.
   ENDMETHOD.  " constructor.
+  METHOD get_default_hotkeys.
+
+    DATA: lt_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
+          ls_hotkey  LIKE LINE OF rt_default_hotkeys.
+
+    FIELD-SYMBOLS: <ls_action> LIKE LINE OF lt_actions.
+
+    lt_actions = get_hotkey_actions_from_pages( ).
+
+    LOOP AT lt_actions ASSIGNING <ls_action>.
+      ls_hotkey-action   = <ls_action>-action.
+      ls_hotkey-sequence = <ls_action>-default_hotkey.
+      INSERT ls_hotkey INTO TABLE rt_default_hotkeys.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_hotkey_actions_from_pages.
+
+    DATA: lt_hotkey_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
+          lo_interface      TYPE REF TO cl_oo_interface,
+          lt_classes        TYPE seo_relkeys.
+
+    FIELD-SYMBOLS: <ls_class> TYPE seorelkey.
+
+    TRY.
+        lo_interface ?= cl_oo_class=>get_instance( |ZIF_ABAPGIT_GUI_PAGE_HOTKEY| ).
+
+      CATCH cx_class_not_existent.
+        " hotkeys are only available with installed abapGit repository
+        RETURN.
+    ENDTRY.
+
+    lt_classes = lo_interface->get_implementing_classes( ).
+
+    LOOP AT lt_classes ASSIGNING <ls_class>.
+
+      CALL METHOD (<ls_class>-clsname)=>zif_abapgit_gui_page_hotkey~get_hotkey_actions
+        RECEIVING
+          rt_hotkey_actions = lt_hotkey_actions.
+
+      INSERT LINES OF lt_hotkey_actions INTO TABLE rt_hotkey_actions.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_possible_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    rt_hotkey_actions = get_hotkey_actions_from_pages( ).
+
+    " insert empty row at the beginning, so that we can unset a hotkey
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    SORT rt_hotkey_actions.
+    DELETE ADJACENT DUPLICATES FROM rt_hotkey_actions.
+
+  ENDMETHOD.
   METHOD parse_post.
 
     DATA lv_serialized_post_data TYPE string.
@@ -23893,6 +24097,8 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( render_adt_jump_enabled( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_link_hints( ) ).
+    ro_html->add( |<hr>| ).
+    ro_html->add( render_hotkeys( ) ).
     ro_html->add( render_section_end( ) ).
     ro_html->add( render_form_end( ) ).
 
@@ -23936,6 +24142,105 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD render_hotkeys.
+
+    DATA: lv_index    TYPE i,
+          lt_hotkeys  TYPE zif_abapgit_definitions=>tty_hotkey,
+          lv_selected TYPE string,
+          lt_actions  TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action.
+
+    FIELD-SYMBOLS: <ls_key_binding> LIKE LINE OF lt_hotkeys,
+                   <ls_action>      LIKE LINE OF lt_actions.
+
+    lt_hotkeys = mo_settings->get_hotkeys( ).
+
+    IF lines( lt_hotkeys ) = 0.
+      lt_hotkeys = get_default_hotkeys( ).
+    ENDIF.
+
+    DO 3 TIMES.
+      APPEND INITIAL LINE TO lt_hotkeys.
+    ENDDO.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |<h2>Hotkeys</h2>| ).
+    ro_html->add( |(Only available with installed abapGit repo)| ).
+    ro_html->add( |<br/>| ).
+    ro_html->add( |<br/>| ).
+
+    ro_html->add( '<table class="repo_tab" id="key_bindings" style="max-width: 300px;">' ).
+    ro_html->add( '<tr><th>key</th><th>action</th></tr>' ).
+
+    lt_actions = get_possible_hotkey_actions( ).
+
+    LOOP AT lt_hotkeys ASSIGNING <ls_key_binding>.
+
+      lv_index = sy-tabix.
+
+      ro_html->add( '<tr>' ).
+      ro_html->add( |<td><input name="key_sequence_{ lv_index }" maxlength=1 type="text" | &&
+                    |value="{ <ls_key_binding>-sequence }"></td>| ).
+
+      ro_html->add( |<td><select name="key_action_{ lv_index }">| ).
+
+      LOOP AT lt_actions ASSIGNING <ls_action>.
+
+        IF <ls_key_binding>-action = <ls_action>-action.
+          lv_selected = 'selected'.
+        ELSE.
+          CLEAR: lv_selected.
+        ENDIF.
+
+        ro_html->add( |<option value="{ <ls_action>-action }" |
+                   && |{ lv_selected }>|
+                   && |{ <ls_action>-name }</option>| ).
+
+      ENDLOOP.
+
+      ro_html->add( '</select></td>' ).
+      ro_html->add( '</tr>' ).
+
+    ENDLOOP.
+    ro_html->add( '</select></td>' ).
+    ro_html->add( '</tr>' ).
+
+    ro_html->add( '</table>' ).
+
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+
+  ENDMETHOD.
+  METHOD render_link_hints.
+
+    DATA: lv_checked               TYPE string,
+          lv_link_hint_key         TYPE char01,
+          lv_link_background_color TYPE string.
+
+    IF mo_settings->get_link_hints_enabled( ) = abap_true.
+      lv_checked = 'checked'.
+    ENDIF.
+
+    lv_link_hint_key = mo_settings->get_link_hint_key( ).
+    lv_link_background_color = mo_settings->get_link_hint_background_color( ).
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |<h2>Vimium like link hints</h2>| ).
+    ro_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
+                   && lv_checked && ` > Enable Vimium like link hints` ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
+               && |> Single key to activate links| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<input type="text" name="link_hint_background_color" size="20" maxlength="20"|
+               && | value="{ lv_link_background_color }"|
+               && |> Background Color (HTML colors e.g. lightgreen or #42f47a)| ).
+
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+
+  ENDMETHOD.
   METHOD render_max_lines.
     CREATE OBJECT ro_html.
 
@@ -23972,38 +24277,6 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( |<br>| ).
 
   ENDMETHOD.
-  METHOD validate_settings.
-
-    IF ( mo_settings->get_proxy_url( ) IS NOT INITIAL AND  mo_settings->get_proxy_port( ) IS INITIAL ) OR
-                 ( mo_settings->get_proxy_url( ) IS INITIAL AND  mo_settings->get_proxy_port( ) IS NOT INITIAL ).
-      MESSAGE 'If specifying proxy, specify both URL and port' TYPE 'W'.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
-* todo, check input values eg INT
-
-    DATA:
-      lt_post_fields TYPE tihttpnvp.
-
-    CASE iv_action.
-      WHEN c_action-save_settings.
-        lt_post_fields = parse_post( it_postdata ).
-
-        build_settings( lt_post_fields ).
-        validate_settings( ).
-
-        IF mv_error = abap_true.
-          MESSAGE 'Error when saving settings. Open an issue at https://github.com/larshp/abapGit' TYPE 'E'.
-        ELSE.
-          persist_settings( ).
-        ENDIF.
-
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
-    ENDCASE.
-
-  ENDMETHOD.
-
   METHOD render_section_begin.
 
     CREATE OBJECT ro_html.
@@ -24034,38 +24307,40 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
-  METHOD render_link_hints.
+  METHOD validate_settings.
 
-    DATA: lv_checked               TYPE string,
-          lv_link_hint_key         TYPE char01,
-          lv_link_background_color TYPE string.
-
-    IF mo_settings->get_link_hints_enabled( ) = abap_true.
-      lv_checked = 'checked'.
+    IF ( mo_settings->get_proxy_url( ) IS NOT INITIAL AND  mo_settings->get_proxy_port( ) IS INITIAL ) OR
+                 ( mo_settings->get_proxy_url( ) IS INITIAL AND  mo_settings->get_proxy_port( ) IS NOT INITIAL ).
+      MESSAGE 'If specifying proxy, specify both URL and port' TYPE 'W'.
     ENDIF.
 
-    lv_link_hint_key = mo_settings->get_link_hint_key( ).
-    lv_link_background_color = mo_settings->get_link_hint_background_color( ).
-
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Vimium like link hints</h2>| ).
-    ro_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
-                   && lv_checked && ` > Enable Vimium like link hints` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
-               && |> Single key to activate links| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input type="text" name="link_hint_background_color" size="20" maxlength="20"|
-               && | value="{ lv_link_background_color }"|
-               && |> Background Color (HTML colors e.g. lightgreen or #42f47a)| ).
-
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page~on_event.
+* todo, check input values eg INT
 
+    DATA:
+      lt_post_fields TYPE tihttpnvp.
+
+    CASE iv_action.
+      WHEN c_action-save_settings.
+        lt_post_fields = parse_post( it_postdata ).
+
+        build_settings( lt_post_fields ).
+        validate_settings( ).
+
+        IF mv_error = abap_true.
+          MESSAGE 'Error when saving settings. Open an issue at https://github.com/larshp/abapGit' TYPE 'E'.
+        ELSE.
+          persist_settings( ).
+        ENDIF.
+
+        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+    ENDCASE.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   METHOD constructor.
@@ -24303,6 +24578,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ENDIF.
 
     mo_repo->set_local_settings( ls_settings ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
@@ -24732,8 +25010,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
   METHOD apply_merged_content.
 
     CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
@@ -24747,7 +25029,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
           lv_new_file_content TYPE xstring.
 
     FIELD-SYMBOLS: <lv_postdata_line> LIKE LINE OF it_postdata,
-                   <ls_conflict>   TYPE zif_abapgit_definitions=>ty_merge_conflict.
+                   <ls_conflict>      TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
     LOOP AT it_postdata ASSIGNING <lv_postdata_line>.
       lv_string = |{ lv_string }{ <lv_postdata_line> }|.
@@ -25000,10 +25282,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   ENDMETHOD.  "render_lines
   METHOD render_line_split.
 
-    DATA: lv_new   TYPE string,
-          lv_old   TYPE string,
-          lv_mark  TYPE string,
-          lv_bg    TYPE string.
+    DATA: lv_new  TYPE string,
+          lv_old  TYPE string,
+          lv_mark TYPE string,
+          lv_bg   TYPE string.
 
     CREATE OBJECT ro_html.
 
@@ -25168,8 +25450,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -25338,8 +25624,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -25625,6 +25915,47 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+    DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
+
+    ls_hotkey_action-name           = |Main: Settings|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_settings.
+    ls_hotkey_action-default_hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Repo overview|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_repo_overview.
+    ls_hotkey_action-default_hotkey = |o|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Refresh|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_refresh.
+    ls_hotkey_action-default_hotkey = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Pull|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-git_pull.
+    ls_hotkey_action-default_hotkey = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: + Online|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_newonline.
+    ls_hotkey_action-default_hotkey = |n|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Uninstall|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_purge.
+    ls_hotkey_action-default_hotkey = |u|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Show diff|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_diff.
+    ls_hotkey_action-default_hotkey = |d|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
@@ -25634,8 +25965,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD render_content.
     ASSERT 1 = 1. " Dummy
   ENDMETHOD. "render_content.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD append_diff.
 
     DATA:
@@ -26161,6 +26495,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD constructor.
@@ -26227,6 +26565,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
       '"<br>Frontend time: " + new Date(), "debug_info");' ).
 
   ENDMETHOD.  "scripts
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD constructor.
@@ -26475,6 +26816,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html = super->scripts( ).
 
     ro_html->add( 'setInitialFocus("comment");' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
@@ -26733,8 +27077,12 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ro_html = super->zif_abapgit_gui_page~render( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
     DATA: lv_tag TYPE string.
 
@@ -26960,6 +27308,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD constructor.
@@ -27000,6 +27353,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
       CATCH zcx_abapgit_exception INTO lx_error.
         APPEND lx_error->get_text( ) TO mt_text.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
@@ -27220,6 +27576,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
@@ -27230,7 +27589,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD footer.
 
     CREATE OBJECT ro_html.
@@ -27281,23 +27640,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
-    DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
-          lv_link_hint_key    TYPE char01,
-          lv_background_color TYPE string.
-
     CREATE OBJECT ro_html.
 
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-    lv_link_hint_key = lo_settings->get_link_hint_key( ).
-    lv_background_color = lo_settings->get_link_hint_background_color( ).
-
-    IF lo_settings->get_link_hints_enabled( ) = abap_true
-    AND lv_link_hint_key IS NOT INITIAL.
-      ro_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
-      ro_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
-      ro_html->add( |enableArrowListNavigation();| ).
-    ENDIF.
+    link_hints( ro_html ).
+    hotkeys( ro_html ).
 
   ENDMETHOD. "scripts
   METHOD title.
@@ -27364,6 +27710,113 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.  " lif_gui_page~render.
+
+  METHOD link_hints.
+
+    DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
+          lv_link_hint_key    TYPE char01,
+          lv_background_color TYPE string.
+
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    lv_link_hint_key = lo_settings->get_link_hint_key( ).
+    lv_background_color = lo_settings->get_link_hint_background_color( ).
+
+    IF lo_settings->get_link_hints_enabled( ) = abap_true
+    AND lv_link_hint_key IS NOT INITIAL.
+
+      io_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
+      io_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
+      io_html->add( |enableArrowListNavigation();| ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD hotkeys.
+
+    DATA: lv_json    TYPE string,
+          lt_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey.
+
+    FIELD-SYMBOLS: <ls_hotkey> TYPE zif_abapgit_definitions=>ty_hotkey.
+
+    lt_hotkeys = get_relevant_hotkeys( ).
+
+    IF lines( lt_hotkeys ) = 0.
+      RETURN.
+    ENDIF.
+
+    lv_json = `{`.
+
+    LOOP AT lt_hotkeys ASSIGNING <ls_hotkey>.
+
+      IF sy-tabix > 1.
+        lv_json = lv_json && |,|.
+      ENDIF.
+
+      lv_json = lv_json && |  "{ <ls_hotkey>-sequence }" : "{ <ls_hotkey>-action }" |.
+
+    ENDLOOP.
+
+    lv_json = lv_json && `}`.
+
+    io_html->add( |setKeyBindings({ lv_json });| ).
+
+  ENDMETHOD.
+  METHOD get_relevant_hotkeys.
+
+    DATA: lo_settings                    TYPE REF TO zcl_abapgit_settings,
+          lv_class_name                  TYPE abap_abstypename,
+          lt_hotkey_actions_of_curr_page TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
+          lv_save_tabix                  TYPE syst-tabix,
+          ls_hotkey                      LIKE LINE OF rt_hotkeys.
+
+    FIELD-SYMBOLS: <ls_hotkey>              TYPE zif_abapgit_definitions=>ty_hotkey,
+                   <ls_hotkey_of_curr_page> TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
+
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    rt_hotkeys = lo_settings->get_hotkeys( ).
+
+    lv_class_name = cl_abap_classdescr=>get_class_name( me ).
+
+    TRY.
+        CALL METHOD (lv_class_name)=>zif_abapgit_gui_page_hotkey~get_hotkey_actions
+          RECEIVING
+            rt_hotkey_actions = lt_hotkey_actions_of_curr_page.
+
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
+
+    IF lines( rt_hotkeys ) = 0.
+      " when no use defined hotkeys exist, we use the default
+      LOOP AT lt_hotkey_actions_of_curr_page ASSIGNING <ls_hotkey_of_curr_page>.
+
+        ls_hotkey-action   = <ls_hotkey_of_curr_page>-action.
+        ls_hotkey-sequence = <ls_hotkey_of_curr_page>-default_hotkey.
+        INSERT ls_hotkey INTO TABLE rt_hotkeys.
+
+      ENDLOOP.
+
+    ELSE.
+
+      LOOP AT rt_hotkeys ASSIGNING <ls_hotkey>.
+
+        lv_save_tabix = sy-tabix.
+
+        READ TABLE lt_hotkey_actions_of_curr_page TRANSPORTING NO FIELDS
+                                                  WITH KEY action = <ls_hotkey>-action.
+        IF sy-subrc <> 0.
+          " We only offer hotkeys which are supported by the current page
+          DELETE rt_hotkeys INDEX lv_save_tabix.
+        ENDIF.
+
+      ENDLOOP.
+
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_branch_span.
@@ -29365,7 +29818,58 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '}'.
         _inline ''.
+        _inline 'function Hotkeys(oKeyMap){'.
+        _inline '  this.oKeyMap = oKeyMap;'.
+        _inline '}'.
         _inline ''.
+        _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
+        _inline ''.
+        _inline '  var result = "";'.
+        _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
+        _inline ''.
+        _inline '  [].forEach.call(aSapEvents, function(sapEvent){'.
+        _inline '      if (new RegExp(sSapEvent + "$" ).test(sapEvent.href)'.
+        _inline '      || (new RegExp(sSapEvent + "\\?" ).test(sapEvent.href))) {'.
+        _inline '        result = sapEvent.href.replace("sapevent:","");'.
+        _inline '      }'.
+        _inline '    });'.
+        _inline ''.
+        _inline '  return result;'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
+        _inline ''.
+        _inline '  if (oEvent.defaultPrevented) {'.
+        _inline '      return;'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
+        _inline ''.
+        _inline '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {'.
+        _inline '    return'.
+        _inline '  }'.
+        _inline ''.
+        _inline '  var '.
+        _inline '    sKey = oEvent.key || oEvent.keyCode,'.
+        _inline '    oHotkey = this.oKeyMap[sKey];'.
+        _inline ''.
+        _inline '  if (oHotkey) {'.
+        _inline '    var sSapEvent = this.getSapEvent(oHotkey);'.
+        _inline '    if (sSapEvent) {'.
+        _inline '      submitSapeventForm({}, sSapEvent, "post");'.
+        _inline '      oEvent.preventDefault();'.
+        _inline '    }'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline 'function setKeyBindings(oKeyMap){'.
+        _inline ''.
+        _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
+        _inline ''.
+        _inline '  document.addEventListener(''keydown'', oHotkeys.onkeydown.bind(oHotkeys));'.
+        _inline ''.
+        _inline '}'.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
     ENDCASE.
@@ -29871,6 +30375,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
@@ -29937,6 +30444,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
            && |<table class="tag"><tr><td class="label">Key:</td>|
            && |  <td>{ is_key-value }</td></tr></table>|.
   ENDMETHOD. "render_record_banner
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   METHOD constructor.
@@ -30073,6 +30583,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.            "render_content
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
@@ -60374,5 +60887,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-13T16:36:59.798Z
+* abapmerge - 2018-08-16T04:33:16.669Z
 ****************************************************
