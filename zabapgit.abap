@@ -1594,22 +1594,22 @@ INTERFACE zif_abapgit_popups
       zcx_abapgit_exception ##NO_TEXT.
   METHODS popup_to_confirm
     IMPORTING
-      !titlebar              TYPE clike
-      !text_question         TYPE clike
-      !text_button_1         TYPE clike DEFAULT 'Yes'
-      !icon_button_1         TYPE icon-name DEFAULT space
-      !text_button_2         TYPE clike DEFAULT 'No'
-      !icon_button_2         TYPE icon-name DEFAULT space
-      !default_button        TYPE char1 DEFAULT '1'
-      !display_cancel_button TYPE char1 DEFAULT abap_true
+      !iv_titlebar              TYPE clike
+      !iv_text_question         TYPE clike
+      !iv_text_button_1         TYPE clike DEFAULT 'Yes'
+      !iv_icon_button_1         TYPE icon-name DEFAULT space
+      !iv_text_button_2         TYPE clike DEFAULT 'No'
+      !iv_icon_button_2         TYPE icon-name DEFAULT space
+      !iv_default_button        TYPE char1 DEFAULT '1'
+      !iv_display_cancel_button TYPE char1 DEFAULT abap_true
     RETURNING
       VALUE(rv_answer)       TYPE char1
     RAISING
       zcx_abapgit_exception .
   METHODS popup_to_inform
     IMPORTING
-      !titlebar     TYPE clike
-      !text_message TYPE clike
+      !iv_titlebar     TYPE clike
+      !iv_text_message TYPE clike
     RAISING
       zcx_abapgit_exception .
   METHODS popup_to_create_package
@@ -1632,8 +1632,8 @@ INTERFACE zif_abapgit_popups
   METHODS popup_to_select_from_list
     IMPORTING
       !it_list               TYPE STANDARD TABLE
-      !i_header_text         TYPE csequence
-      !i_select_column_text  TYPE csequence
+      !iv_header_text         TYPE csequence
+      !iv_select_column_text  TYPE csequence
       !it_columns_to_display TYPE stringtab
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
@@ -5487,8 +5487,8 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                  cs_tstc    TYPE tstc,
 
       split_parameters_comp
-        IMPORTING iv_type  TYPE any
-                  iv_param TYPE any
+        IMPORTING ig_type  TYPE any
+                  ig_param TYPE any
         CHANGING  cg_value TYPE any,
 
       serialize_texts
@@ -5763,16 +5763,16 @@ CLASS zcl_abapgit_object_wdyn DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RETURNING VALUE(rs_delta) TYPE svrs2_xversionable_object
         RAISING   zcx_abapgit_exception,
       add_fm_param_exporting
-        IMPORTING i_name   TYPE string
-                  i_value  TYPE any
+        IMPORTING iv_name   TYPE string
+                  ig_value  TYPE any
         CHANGING  ct_param TYPE abap_func_parmbind_tab,
       add_fm_param_tables
-        IMPORTING i_name   TYPE string
+        IMPORTING iv_name   TYPE string
         CHANGING  ct_value TYPE ANY TABLE
                   ct_param TYPE abap_func_parmbind_tab,
       add_fm_exception
-        IMPORTING i_name       TYPE string
-                  i_value      TYPE i
+        IMPORTING iv_name       TYPE string
+                  iv_value      TYPE i
         CHANGING  ct_exception TYPE abap_func_excpbind_tab.
 
 ENDCLASS.
@@ -20017,9 +20017,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     li_popups->popup_to_select_from_list(
       EXPORTING
         it_list               = ct_overwrite
-        i_header_text         = |The following Objects have been modified locally.|
+        iv_header_text         = |The following Objects have been modified locally.|
                             && | Select the Objects which should be overwritten.|
-        i_select_column_text  = 'Overwrite?'
+        iv_select_column_text  = 'Overwrite?'
         it_columns_to_display = lt_columns
       IMPORTING
         et_list               = lt_selected ).
@@ -20053,14 +20053,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         INTO lv_question SEPARATED BY space.                "#EC NOTEXT
 
       lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-        titlebar              = 'Warning'
-        text_question         = lv_question
-        text_button_1         = 'Ok'
-        icon_button_1         = 'ICON_DELETE'
-        text_button_2         = 'Cancel'
-        icon_button_2         = 'ICON_CANCEL'
-        default_button        = '2'
-        display_cancel_button = abap_false ).               "#EC NOTEXT
+        iv_titlebar              = 'Warning'
+        iv_text_question         = lv_question
+        iv_text_button_1         = 'Ok'
+        iv_icon_button_1         = 'ICON_DELETE'
+        iv_text_button_2         = 'Cancel'
+        iv_icon_button_2         = 'ICON_CANCEL'
+        iv_default_button        = '2'
+        iv_display_cancel_button = abap_false ).               "#EC NOTEXT
 
       IF lv_answer = '2'.
         RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20091,14 +20091,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
         } ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
 
       lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-        titlebar              = 'Uninstall'
-        text_question         = lv_question
-        text_button_1         = 'Delete'
-        icon_button_1         = 'ICON_DELETE'
-        text_button_2         = 'Cancel'
-        icon_button_2         = 'ICON_CANCEL'
-        default_button        = '2'
-        display_cancel_button = abap_false ).               "#EC NOTEXT
+        iv_titlebar              = 'Uninstall'
+        iv_text_question         = lv_question
+        iv_text_button_1         = 'Delete'
+        iv_icon_button_1         = 'ICON_DELETE'
+        iv_text_button_2         = 'Cancel'
+        iv_icon_button_2         = 'ICON_CANCEL'
+        iv_default_button        = '2'
+        iv_display_cancel_button = abap_false ).               "#EC NOTEXT
 
       IF lv_answer = '2'.
         RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20146,14 +20146,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     ENDIF.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = 'Warning'
-      text_question         = lv_question
-      text_button_1         = 'OK'
-      icon_button_1         = 'ICON_DELETE'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = 'Warning'
+      iv_text_question         = lv_question
+      iv_text_button_1         = 'OK'
+      iv_icon_button_1         = 'ICON_DELETE'
+      iv_text_button_2         = 'Cancel'
+      iv_icon_button_2         = 'ICON_CANCEL'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20217,14 +20217,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     DATA: lv_answer TYPE c LENGTH 1.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = 'Make repository OFF-line'
-      text_question         = 'This will detach the repo from remote and make it OFF-line'
-      text_button_1         = 'Make OFF-line'
-      icon_button_1         = 'ICON_WF_UNLINK'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = 'Make repository OFF-line'
+      iv_text_question         = 'This will detach the repo from remote and make it OFF-line'
+      iv_text_button_1         = 'Make OFF-line'
+      iv_icon_button_1         = 'ICON_WF_UNLINK'
+      iv_text_button_2         = 'Cancel'
+      iv_icon_button_2         = 'ICON_CANCEL'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20247,14 +20247,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       }. All objects will safely remain in the system.|.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = 'Remove'
-      text_question         = lv_question
-      text_button_1         = 'Remove'
-      icon_button_1         = 'ICON_WF_UNLINK'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = 'Remove'
+      iv_text_question         = lv_question
+      iv_text_button_1         = 'Remove'
+      iv_icon_button_1         = 'ICON_WF_UNLINK'
+      iv_text_button_2         = 'Cancel'
+      iv_icon_button_2         = 'ICON_CANCEL'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20439,14 +20439,14 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
 * todo, separate UI and logic
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = 'Warning'
-      text_question         = 'Reset local objects?'
-      text_button_1         = 'Ok'
-      icon_button_1         = 'ICON_OKAY'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = 'Warning'
+      iv_text_question         = 'Reset local objects?'
+      iv_text_button_1         = 'Ok'
+      iv_icon_button_1         = 'ICON_OKAY'
+      iv_text_button_2         = 'Cancel'
+      iv_icon_button_2         = 'ICON_CANCEL'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -20463,8 +20463,8 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       li_popups->popup_to_select_from_list(
         EXPORTING
           it_list              = lt_unnecessary_local_objs
-          i_header_text        = |Which unnecessary objects should be deleted?|
-          i_select_column_text = 'Delete?'
+          iv_header_text        = |Which unnecessary objects should be deleted?|
+          iv_select_column_text = 'Delete?'
           it_columns_to_display = lt_columns
         IMPORTING
           et_list              = lt_selected ).
@@ -20544,12 +20544,12 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           lv_answer TYPE c LENGTH 1.
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = iv_title
-      text_question         = iv_text
-      text_button_1         = 'Continue'
-      text_button_2         = 'Cancel'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = iv_title
+      iv_text_question         = iv_text
+      iv_text_button_1         = 'Continue'
+      iv_text_button_2         = 'Cancel'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer <> '1'.
       RETURN.
@@ -20582,8 +20582,8 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     IF is_installed( ) = abap_true.
       lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
       zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
-        titlebar              = lc_title
-        text_message          = lv_text ).
+        iv_titlebar              = lc_title
+        iv_text_message          = lv_text ).
       RETURN.
     ENDIF.
 
@@ -21182,14 +21182,14 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     CALL FUNCTION 'POPUP_TO_CONFIRM'
       EXPORTING
-        titlebar              = titlebar
-        text_question         = text_question
-        text_button_1         = text_button_1
-        icon_button_1         = icon_button_1
-        text_button_2         = text_button_2
-        icon_button_2         = icon_button_2
-        default_button        = default_button
-        display_cancel_button = display_cancel_button
+        titlebar              = iv_titlebar
+        text_question         = iv_text_question
+        text_button_1         = iv_text_button_1
+        icon_button_1         = iv_icon_button_1
+        text_button_2         = iv_text_button_2
+        icon_button_2         = iv_icon_button_2
+        default_button        = iv_default_button
+        display_cancel_button = iv_display_cancel_button
       IMPORTING
         answer                = rv_answer
       EXCEPTIONS
@@ -21281,14 +21281,14 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     DATA: lv_line1 TYPE char70,
           lv_line2 TYPE char70.
 
-    lv_line1 = text_message.
-    IF strlen( text_message ) > 70.
-      lv_line2 = text_message+70.
+    lv_line1 = iv_text_message.
+    IF strlen( iv_text_message ) > 70.
+      lv_line2 = iv_text_message+70.
     ENDIF.
 
     CALL FUNCTION 'POPUP_TO_INFORM'
       EXPORTING
-        titel = titlebar
+        titel = iv_titlebar
         txt1  = lv_line1
         txt2  = lv_line2.
 
@@ -21331,7 +21331,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
         CREATE OBJECT lo_table_header
           EXPORTING
-            text = i_header_text.
+            text = iv_header_text.
 
         go_select_list_popup->set_top_of_list( lo_table_header ).
 
@@ -21345,9 +21345,9 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
             lo_column ?= ls_column-r_column.
             lo_column->set_cell_type( if_salv_c_cell_type=>checkbox_hotspot ).
             lo_column->set_output_length( 20 ).
-            lo_column->set_short_text( |{ i_select_column_text }| ).
-            lo_column->set_medium_text( |{ i_select_column_text }| ).
-            lo_column->set_long_text( |{ i_select_column_text }| ).
+            lo_column->set_short_text( |{ iv_select_column_text }| ).
+            lo_column->set_medium_text( |{ iv_select_column_text }| ).
+            lo_column->set_long_text( |{ iv_select_column_text }| ).
             CONTINUE.
           ENDIF.
 
@@ -30460,14 +30460,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
     ASSERT is_key-type IS NOT INITIAL.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      titlebar              = 'Warning'
-      text_question         = 'Delete?'
-      text_button_1         = 'Ok'
-      icon_button_1         = 'ICON_DELETE'
-      text_button_2         = 'Cancel'
-      icon_button_2         = 'ICON_CANCEL'
-      default_button        = '2'
-      display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_titlebar              = 'Warning'
+      iv_text_question         = 'Delete?'
+      iv_text_button_1         = 'Ok'
+      iv_icon_button_1         = 'ICON_DELETE'
+      iv_text_button_2         = 'Cancel'
+      iv_icon_button_2         = 'ICON_CANCEL'
+      iv_default_button        = '2'
+      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -36587,8 +36587,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     DATA: ls_exception LIKE LINE OF ct_exception.
 
-    ls_exception-name = i_name.
-    ls_exception-value = i_value.
+    ls_exception-name = iv_name.
+    ls_exception-value = iv_value.
 
     INSERT ls_exception INTO TABLE ct_exception.
 
@@ -36598,8 +36598,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     DATA: ls_param LIKE LINE OF ct_param.
 
     ls_param-kind = abap_func_exporting.
-    ls_param-name = i_name.
-    GET REFERENCE OF i_value INTO ls_param-value.
+    ls_param-name = iv_name.
+    GET REFERENCE OF ig_value INTO ls_param-value.
 
     INSERT ls_param INTO TABLE ct_param.
 
@@ -36609,7 +36609,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     DATA: ls_param LIKE LINE OF ct_param.
 
     ls_param-kind = abap_func_tables.
-    ls_param-name = i_name.
+    ls_param-name = iv_name.
     GET REFERENCE OF ct_value INTO ls_param-value.
 
     INSERT ls_param INTO TABLE ct_param.
@@ -36928,75 +36928,75 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 *   Calling FM dynamically because version 702 has less parameters
 
 *   FM parameters
-    add_fm_param_exporting( EXPORTING i_name     = 'CONTROLLER_KEY'
-                                      i_value    = is_key
+    add_fm_param_exporting( EXPORTING iv_name     = 'CONTROLLER_KEY'
+                                      ig_value    = is_key
                             CHANGING  ct_param = lt_fm_param ).
-    add_fm_param_exporting( EXPORTING i_name     = 'GET_ALL_TRANSLATIONS'
-                                      i_value    = abap_false
+    add_fm_param_exporting( EXPORTING iv_name     = 'GET_ALL_TRANSLATIONS'
+                                      ig_value    = abap_false
                             CHANGING  ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'DEFINITION'
+    add_fm_param_tables( EXPORTING iv_name = 'DEFINITION'
                          CHANGING  ct_value = lt_definition
                                    ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'DESCRIPTIONS'
+    add_fm_param_tables( EXPORTING iv_name = 'DESCRIPTIONS'
                          CHANGING ct_value = rs_controller-descriptions
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_USAGES'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_USAGES'
                          CHANGING ct_value = rs_controller-controller_usages
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_COMPONENTS'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_COMPONENTS'
                          CHANGING ct_value = lt_components
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_COMPONENT_SOURCES'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_COMPONENT_SOURCES'
                          CHANGING ct_value = lt_sources
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_COMPONENT_TEXTS'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_COMPONENT_TEXTS'
                          CHANGING ct_value = rs_controller-controller_component_texts
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_PARAMETERS'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_PARAMETERS'
                          CHANGING ct_value = rs_controller-controller_parameters
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_PARAMETER_TEXTS'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_PARAMETER_TEXTS'
                          CHANGING ct_value = rs_controller-controller_parameter_texts
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTEXT_NODES'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTEXT_NODES'
                          CHANGING ct_value = rs_controller-context_nodes
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTEXT_ATTRIBUTES'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTEXT_ATTRIBUTES'
                          CHANGING ct_value = rs_controller-context_attributes
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'CONTEXT_MAPPINGS'
+    add_fm_param_tables( EXPORTING iv_name = 'CONTEXT_MAPPINGS'
                          CHANGING ct_value = rs_controller-context_mappings
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'FIELDGROUPS'
+    add_fm_param_tables( EXPORTING iv_name = 'FIELDGROUPS'
                          CHANGING ct_value = rs_controller-fieldgroups
                                   ct_param = lt_fm_param ).
 *   Version 702 doesn't have these two attributes so we
 *   use them dynamically for downward compatibility
     ASSIGN COMPONENT 'CONTROLLER_EXCEPTIONS' OF STRUCTURE rs_controller TO <lt_ctrl_exceptions>.
     IF sy-subrc = 0.
-      add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_EXCEPTIONS'
+      add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_EXCEPTIONS'
                            CHANGING ct_value = <lt_ctrl_exceptions>
                                     ct_param = lt_fm_param ).
     ENDIF.
     ASSIGN COMPONENT 'CONTROLLER_EXCEPTION_TEXTS' OF STRUCTURE rs_controller TO <lt_ctrl_exception_texts>.
     IF sy-subrc = 0.
-      add_fm_param_tables( EXPORTING i_name = 'CONTROLLER_EXCEPTION_TEXTS'
+      add_fm_param_tables( EXPORTING iv_name = 'CONTROLLER_EXCEPTION_TEXTS'
                            CHANGING ct_value = <lt_ctrl_exception_texts>
                                     ct_param = lt_fm_param ).
     ENDIF.
-    add_fm_param_tables( EXPORTING i_name = 'PSMODILOG'
+    add_fm_param_tables( EXPORTING iv_name = 'PSMODILOG'
                          CHANGING ct_value = lt_psmodilog
                                   ct_param = lt_fm_param ).
-    add_fm_param_tables( EXPORTING i_name = 'PSMODISRC'
+    add_fm_param_tables( EXPORTING iv_name = 'PSMODISRC'
                          CHANGING ct_value = lt_psmodisrc
                                   ct_param = lt_fm_param ).
 
 *   FM exceptions
-    add_fm_exception( EXPORTING i_name = 'NOT_EXISTING'
-                                i_value = 1
+    add_fm_exception( EXPORTING iv_name = 'NOT_EXISTING'
+                                iv_value = 1
                       CHANGING ct_exception = lt_fm_exception ).
-    add_fm_exception( EXPORTING i_name = 'OTHERS'
-                                i_value = 2
+    add_fm_exception( EXPORTING iv_name = 'OTHERS'
+                                iv_value = 2
                       CHANGING ct_exception = lt_fm_exception ).
 
     CALL FUNCTION 'WDYC_GET_OBJECT'
@@ -37709,8 +37709,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
           lt_pages_info     TYPE ty_pages_tt,
           ls_pagekey        TYPE o2pagkey,
           ls_local_page     TYPE zcl_abapgit_object_wapa=>ty_page,
-          lv_remote_content TYPE o2pageline_table,
-          lv_local_content  TYPE o2pageline_table,
+          lt_remote_content TYPE o2pageline_table,
+          lt_local_content  TYPE o2pageline_table,
           lt_local_pages    TYPE o2pagelist.
 
     FIELD-SYMBOLS: <ls_remote_page>       LIKE LINE OF lt_pages_info.
@@ -37794,19 +37794,19 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '/' IN lv_extra WITH '_-'.
       REPLACE ALL OCCURRENCES OF '/' IN lv_ext WITH '_-'.
 
-      lv_remote_content = to_page_content( mo_files->read_raw( iv_extra = lv_extra
+      lt_remote_content = to_page_content( mo_files->read_raw( iv_extra = lv_extra
                                                                iv_ext   = lv_ext ) ).
-      lv_local_content = to_page_content( get_page_content( lo_page ) ).
+      lt_local_content = to_page_content( get_page_content( lo_page ) ).
 
       IF ls_local_page = <ls_remote_page>
-      AND lv_local_content = lv_remote_content.
+      AND lt_local_content = lt_remote_content.
         " no changes -> nothing to do
         CONTINUE.
       ENDIF.
 
       IF <ls_remote_page>-attributes-pagetype <> so2_controller.
 
-        lo_page->set_page( lv_remote_content ).
+        lo_page->set_page( lt_remote_content ).
 
         lo_page->set_event_handlers( <ls_remote_page>-event_handlers ).
         lo_page->set_parameters( <ls_remote_page>-parameters ).
@@ -39548,14 +39548,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     CLEAR cs_rsstcd-s_vari.
 
     IF cs_tstcp-param(1) = '\'.             " OO-Transaktion ohne FR
-      split_parameters_comp( EXPORTING iv_type = c_oo_program
-                                       iv_param = cs_tstcp-param
+      split_parameters_comp( EXPORTING ig_type = c_oo_program
+                                       ig_param = cs_tstcp-param
                              CHANGING  cg_value = cs_tstc-pgmna ).
-      split_parameters_comp( EXPORTING iv_type = c_oo_class
-                                       iv_param = cs_tstcp-param
+      split_parameters_comp( EXPORTING ig_type = c_oo_class
+                                       ig_param = cs_tstcp-param
                              CHANGING  cg_value = cs_rsstcd-classname ).
-      split_parameters_comp( EXPORTING iv_type = c_oo_method
-                                       iv_param = cs_tstcp-param
+      split_parameters_comp( EXPORTING ig_type = c_oo_method
+                                       ig_param = cs_tstcp-param
                              CHANGING  cg_value = cs_rsstcd-method ).
 
       IF NOT cs_tstc-pgmna IS INITIAL.
@@ -39669,9 +39669,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD split_parameters_comp.
     DATA: lv_off TYPE i.
 
-    IF iv_param CS iv_type.
-      lv_off = sy-fdpos + strlen( iv_type ).
-      cg_value = iv_param+lv_off.
+    IF ig_param CS ig_type.
+      lv_off = sy-fdpos + strlen( ig_type ).
+      cg_value = ig_param+lv_off.
       IF cg_value CA '\'.
         CLEAR cg_value+sy-fdpos.
       ENDIF.
@@ -60887,5 +60887,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-16T04:33:16.669Z
+* abapmerge - 2018-08-16T04:34:32.102Z
 ****************************************************
