@@ -26030,6 +26030,11 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ls_hotkey_action-default_hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-name           = |Main: Switch branch|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_branch_switch.
+    ls_hotkey_action-default_hotkey = |b|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
     ls_hotkey_action-name           = |Main: Repo overview|.
     ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_repo_overview.
     ls_hotkey_action-default_hotkey = |o|.
@@ -61019,5 +61024,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-17T07:56:54.605Z
+* abapmerge - 2018-08-17T08:48:54.624Z
 ****************************************************
