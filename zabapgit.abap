@@ -21490,15 +21490,17 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
           lx_error      TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Name'
-               CHANGING ct_fields     = lt_fields ).
+    add_field( EXPORTING iv_tabname    = 'ABAPTXT255'
+                         iv_fieldname  = 'LINE'
+                         iv_fieldtext  = 'Name'
+                         iv_obligatory = abap_true
+               CHANGING  ct_fields     = lt_fields ).
 
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'DEVCLASS'
-                         iv_fieldtext = 'Package'
-               CHANGING ct_fields     = lt_fields ).
+    add_field( EXPORTING iv_tabname    = 'TDEVC'
+                         iv_fieldname  = 'DEVCLASS'
+                         iv_fieldtext  = 'Package'
+                         iv_obligatory = abap_true
+               CHANGING  ct_fields     = lt_fields ).
 
     WHILE lv_finished = abap_false.
 
@@ -61000,5 +61002,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-17T07:27:44.590Z
+* abapmerge - 2018-08-17T07:29:35.476Z
 ****************************************************
