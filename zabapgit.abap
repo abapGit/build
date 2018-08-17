@@ -26022,6 +26022,11 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     ls_hotkey_action-name           = |Main: Settings|.
     ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_settings.
+    ls_hotkey_action-default_hotkey = |x|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Main: Stage|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_stage.
     ls_hotkey_action-default_hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
@@ -27180,6 +27185,18 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Code Inspector: Stage|.
+    ls_hotkey_action-action         = c_actions-stage.
+    ls_hotkey_action-default_hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Code Inspector: Re-Run|.
+    ls_hotkey_action-action         = c_actions-rerun.
+    ls_hotkey_action-default_hotkey = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -27935,7 +27952,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                && '<div class="float-right">'
                && zcl_abapgit_html=>a(
                     iv_txt   = '&#x274c;'
-                    iv_typ   = zif_abapgit_definitions=>gc_action_type-onclick
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
                     iv_act   = 'displayNews()'
                     iv_class = 'close-btn' )
                && '</div></div>' ).
@@ -61002,5 +61019,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-17T07:29:35.476Z
+* abapmerge - 2018-08-17T07:56:54.605Z
 ****************************************************
