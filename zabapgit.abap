@@ -1232,29 +1232,29 @@ INTERFACE zif_abapgit_definitions.
          END OF ty_s_user_settings.
 
   CONSTANTS:
-    BEGIN OF gc_type,
+    BEGIN OF c_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
       tree   TYPE zif_abapgit_definitions=>ty_type VALUE 'tree', "#EC NOTEXT
       ref_d  TYPE zif_abapgit_definitions=>ty_type VALUE 'ref_d', "#EC NOTEXT
       tag    TYPE zif_abapgit_definitions=>ty_type VALUE 'tag', "#EC NOTEXT
       blob   TYPE zif_abapgit_definitions=>ty_type VALUE 'blob', "#EC NOTEXT
-    END OF gc_type .
+    END OF c_type .
   CONSTANTS:
-    BEGIN OF gc_state, " https://git-scm.com/docs/git-status
+    BEGIN OF c_state, " https://git-scm.com/docs/git-status
       unchanged TYPE char1 VALUE '',
       added     TYPE char1 VALUE 'A',
       modified  TYPE char1 VALUE 'M',
       deleted   TYPE char1 VALUE 'D', "For future use
       mixed     TYPE char1 VALUE '*',
-    END OF gc_state .
+    END OF c_state .
   CONSTANTS:
-    BEGIN OF gc_chmod,
+    BEGIN OF c_chmod,
       file       TYPE ty_chmod VALUE '100644',
       executable TYPE ty_chmod VALUE '100755',
       dir        TYPE ty_chmod VALUE '40000 ',
-    END OF gc_chmod .
+    END OF c_chmod .
   CONSTANTS:
-    BEGIN OF gc_event_state,
+    BEGIN OF c_event_state,
       not_handled         VALUE 0,
       re_render           VALUE 1,
       new_page            VALUE 2,
@@ -1263,29 +1263,29 @@ INTERFACE zif_abapgit_definitions.
       new_page_w_bookmark VALUE 5,
       go_back_to_bookmark VALUE 6,
       new_page_replacing  VALUE 7,
-    END OF gc_event_state .
+    END OF c_event_state .
   CONSTANTS:
-    BEGIN OF gc_html_opt,
+    BEGIN OF c_html_opt,
       strong   TYPE c VALUE 'E',
       cancel   TYPE c VALUE 'C',
       crossout TYPE c VALUE 'X',
-    END OF gc_html_opt .
+    END OF c_html_opt .
   CONSTANTS:
-    BEGIN OF gc_action_type,
+    BEGIN OF c_action_type,
       sapevent  TYPE c VALUE 'E',
       url       TYPE c VALUE 'U',
       onclick   TYPE c VALUE 'C',
       separator TYPE c VALUE 'S',
       dummy     TYPE c VALUE '_',
-    END OF gc_action_type .
-  CONSTANTS gc_crlf TYPE abap_cr_lf VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
-  CONSTANTS gc_newline TYPE abap_char1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
-  CONSTANTS gc_english TYPE spras VALUE 'E' ##NO_TEXT.
-  CONSTANTS gc_root_dir TYPE string VALUE '/' ##NO_TEXT.
-  CONSTANTS gc_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
-  CONSTANTS gc_author_regex TYPE string VALUE '^([\\\w\s\.\,\#@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
+    END OF c_action_type .
+  CONSTANTS c_crlf TYPE abap_cr_lf VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
+  CONSTANTS c_newline TYPE abap_char1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
+  CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
+  CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
+  CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
+  CONSTANTS c_author_regex TYPE string VALUE '^([\\\w\s\.\,\#@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
   CONSTANTS:
-    BEGIN OF gc_action,
+    BEGIN OF c_action,
       repo_refresh             TYPE string VALUE 'repo_refresh',
       repo_remove              TYPE string VALUE 'repo_remove',
       repo_settings            TYPE string VALUE 'repo_settings',
@@ -1342,13 +1342,13 @@ INTERFACE zif_abapgit_definitions.
 
       jump                     TYPE string VALUE 'jump',
       jump_pkg                 TYPE string VALUE 'jump_pkg',
-    END OF gc_action .
+    END OF c_action .
   CONSTANTS:
-    BEGIN OF gc_version,
+    BEGIN OF c_version,
       active   TYPE r3state VALUE 'A',
       inactive TYPE r3state VALUE 'I',
-    END OF gc_version .
-  CONSTANTS gc_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
+    END OF c_version .
+  CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_object.
@@ -2322,10 +2322,10 @@ CLASS zcl_abapgit_background_push_fi DEFINITION
   PROTECTED SECTION.
 
     CONSTANTS:
-      BEGIN OF gc_settings,
+      BEGIN OF c_settings,
         name  TYPE string VALUE 'NAME',
         email TYPE string VALUE 'EMAIL',
-      END OF gc_settings .
+      END OF c_settings .
     DATA mo_log TYPE REF TO zcl_abapgit_log .
 
     METHODS build_comment
@@ -5547,13 +5547,13 @@ CLASS zcl_abapgit_object_ucsa DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
       clear_dynamic_fields
         CHANGING
-          cs_complete_comm_assembly TYPE any,
+          cg_complete_comm_assembly TYPE any,
 
       clear_field
         IMPORTING
           iv_fieldname TYPE csequence
         CHANGING
-          cs_header    TYPE any.
+          cg_header    TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_vcls DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -7078,11 +7078,11 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING   zcx_abapgit_exception.
 
     METHODS handle_action
-      IMPORTING action      TYPE c
-                frame       TYPE c OPTIONAL
-                getdata     TYPE c OPTIONAL
-                postdata    TYPE cnht_post_data_tab OPTIONAL
-                query_table TYPE cnht_query_table OPTIONAL.
+      IMPORTING iv_action      TYPE c
+                iv_frame       TYPE c OPTIONAL
+                iv_getdata     TYPE c OPTIONAL
+                it_postdata    TYPE cnht_post_data_tab OPTIONAL
+                it_query_table TYPE cnht_query_table OPTIONAL.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
@@ -7136,8 +7136,8 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS render_item_state
-      IMPORTING iv1            TYPE char1
-                iv2            TYPE char1
+      IMPORTING iv_lstate            TYPE char1
+                iv_rstate            TYPE char1
       RETURNING VALUE(rv_html) TYPE string.
 
     CLASS-METHODS render_branch_span
@@ -7229,9 +7229,9 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
   PRIVATE SECTION.
 
     CONSTANTS:
-      BEGIN OF gc_action,
+      BEGIN OF c_action,
         delete TYPE string VALUE 'delete',
-      END OF gc_action .
+      END OF c_action .
 
     CLASS-METHODS delete
       IMPORTING
@@ -7908,13 +7908,13 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       tty_overview TYPE STANDARD TABLE OF ty_overview
                    WITH NON-UNIQUE DEFAULT KEY.
     CONSTANTS:
-      BEGIN OF gc_action,
+      BEGIN OF c_action,
         delete          TYPE string VALUE 'delete',
         select          TYPE string VALUE 'select',
         change_order_by TYPE string VALUE 'change_order_by',
         direction       TYPE string VALUE 'direction',
         apply_filter    TYPE string VALUE 'apply_filter',
-      END OF gc_action .
+      END OF c_action .
 
     DATA:
       mv_order_by         TYPE string,
@@ -8424,7 +8424,7 @@ CLASS zcl_abapgit_html DEFINITION
     CLASS-METHODS class_constructor .
     METHODS add
       IMPORTING
-        !iv_chunk TYPE any .
+        !ig_chunk TYPE any .
     METHODS render
       IMPORTING
         !iv_no_indent_jscss TYPE abap_bool OPTIONAL
@@ -8437,7 +8437,7 @@ CLASS zcl_abapgit_html DEFINITION
       IMPORTING
         !iv_txt   TYPE string
         !iv_act   TYPE string
-        !iv_typ   TYPE char1 DEFAULT zif_abapgit_definitions=>gc_action_type-sapevent
+        !iv_typ   TYPE char1 DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
         !iv_opt   TYPE clike OPTIONAL
         !iv_class TYPE string OPTIONAL
         !iv_id    TYPE string OPTIONAL
@@ -8451,7 +8451,7 @@ CLASS zcl_abapgit_html DEFINITION
       IMPORTING
         !iv_txt       TYPE string
         !iv_act       TYPE string
-        !iv_typ       TYPE char1 DEFAULT zif_abapgit_definitions=>gc_action_type-sapevent
+        !iv_typ       TYPE char1 DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
         !iv_opt       TYPE clike OPTIONAL
         !iv_class     TYPE string OPTIONAL
         !iv_id        TYPE string OPTIONAL
@@ -8615,7 +8615,7 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         IMPORTING
           iv_txt TYPE string
           io_sub TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-          iv_typ TYPE c         DEFAULT zif_abapgit_definitions=>gc_action_type-sapevent
+          iv_typ TYPE c         DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
           iv_act TYPE string    OPTIONAL
           iv_ico TYPE string    OPTIONAL
           iv_cur TYPE abap_bool OPTIONAL
@@ -10447,7 +10447,7 @@ CLASS zcl_abapgit_objects DEFINITION
            END OF ty_obj_serializer_map,
            tty_obj_serializer_map
         TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item.
-    CLASS-DATA st_obj_serializer_map TYPE tty_obj_serializer_map.
+    CLASS-DATA gt_obj_serializer_map TYPE tty_obj_serializer_map.
 
     CLASS-METHODS files_to_deserialize
       IMPORTING
@@ -10520,7 +10520,7 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS compare_remote_to_local
       IMPORTING
-        !io_object TYPE REF TO zif_abapgit_object
+        !ii_object TYPE REF TO zif_abapgit_object
         !it_remote TYPE zif_abapgit_definitions=>ty_files_tt
         !is_result TYPE zif_abapgit_definitions=>ty_result
       RAISING
@@ -12413,7 +12413,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
       <ls_file>-data = lv_data.
 
-      <ls_file>-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+      <ls_file>-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                iv_data = <ls_file>-data ).
 
     ENDLOOP.
@@ -12438,7 +12438,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
           AND NOT lstate IS INITIAL.
 
         CASE ls_object_status-lstate.
-          WHEN zif_abapgit_definitions=>gc_state-added OR zif_abapgit_definitions=>gc_state-modified.
+          WHEN zif_abapgit_definitions=>c_state-added OR zif_abapgit_definitions=>c_state-modified.
             IF ls_transport_object-delflag = abap_true.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
               } should be added/modified, but has deletion flag in transport| ).
@@ -12458,7 +12458,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
               iv_path     = ls_local_file-file-path
               iv_filename = ls_local_file-file-filename
               iv_data     = ls_local_file-file-data ).
-          WHEN zif_abapgit_definitions=>gc_state-deleted.
+          WHEN zif_abapgit_definitions=>c_state-deleted.
             IF ls_transport_object-delflag = abap_false.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
               } should be removed, but has NO deletion flag in transport| ).
@@ -12953,8 +12953,8 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
           iv_path     = <ls_remote>-path
           iv_filename = <ls_remote>-filename ) = abap_true.
         DELETE cs_files-remote INDEX lv_index.
-      ELSEIF <ls_remote>-path     = zif_abapgit_definitions=>gc_root_dir
-         AND <ls_remote>-filename = zif_abapgit_definitions=>gc_dot_abapgit.
+      ELSEIF <ls_remote>-path     = zif_abapgit_definitions=>c_root_dir
+         AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
         " Remove .abapgit from remotes - it cannot be removed or ignored
         DELETE cs_files-remote INDEX lv_index.
       ENDIF.
@@ -13849,7 +13849,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
 
     LOOP AT lt_status ASSIGNING <ls_status>
-                      WHERE lstate = zif_abapgit_definitions=>gc_state-added.
+                      WHERE lstate = zif_abapgit_definitions=>c_state-added.
 
       READ TABLE lt_tadir ASSIGNING <ls_tadir>
                           WITH KEY pgmid    = 'R3TR'
@@ -13897,8 +13897,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     IF lv_add = abap_true.
       io_stage->add(
-        iv_path     = zif_abapgit_definitions=>gc_root_dir
-        iv_filename = zif_abapgit_definitions=>gc_dot_abapgit
+        iv_path     = zif_abapgit_definitions=>c_root_dir
+        iv_filename = zif_abapgit_definitions=>c_dot_abapgit
         iv_data     = lo_dot_abapgit->serialize( ) ).
 
       set_dot_abapgit( lo_dot_abapgit ).
@@ -13927,8 +13927,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
-      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
+      AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
+      AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
 
     SORT lt_local BY item.
     SORT lt_remote BY path filename.
@@ -14315,8 +14315,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
     READ TABLE mt_remote ASSIGNING <ls_remote>
-      WITH KEY path = zif_abapgit_definitions=>gc_root_dir
-      filename = zif_abapgit_definitions=>gc_dot_abapgit.
+      WITH KEY path = zif_abapgit_definitions=>c_root_dir
+      filename = zif_abapgit_definitions=>c_dot_abapgit.
     IF sy-subrc = 0.
       ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
       set_dot_abapgit( ro_dot ).
@@ -14352,10 +14352,10 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDIF.
 
     APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file-path     = zif_abapgit_definitions=>gc_root_dir.
-    <ls_return>-file-filename = zif_abapgit_definitions=>gc_dot_abapgit.
+    <ls_return>-file-path     = zif_abapgit_definitions=>c_root_dir.
+    <ls_return>-file-filename = zif_abapgit_definitions=>c_dot_abapgit.
     <ls_return>-file-data     = get_dot_abapgit( )->serialize( ).
-    <ls_return>-file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+    <ls_return>-file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                         iv_data = <ls_return>-file-data ).
 
     lt_cache = mt_local.
@@ -14477,8 +14477,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>gc_root_dir
-      AND       file-filename = zif_abapgit_definitions=>gc_dot_abapgit ).
+      AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
+      AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
 
     SORT lt_local BY item.
 
@@ -14772,7 +14772,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
     DATA ls_objtype_map LIKE LINE OF gt_objtype_map.
 
     super->constructor( is_item = is_item
-                        iv_language = zif_abapgit_definitions=>gc_english ).
+                        iv_language = zif_abapgit_definitions=>c_english ).
 
 *    determine the responsible plugin
     READ TABLE gt_objtype_map INTO ls_objtype_map
@@ -14863,7 +14863,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       rv_user = zcl_abapgit_objects_super=>c_user_unknown.
     ELSE.
       li_obj = create_object( is_item     = is_item
-                              iv_language = zif_abapgit_definitions=>gc_english ).
+                              iv_language = zif_abapgit_definitions=>c_english ).
       rv_user = li_obj->changed_by( ).
     ENDIF.
 
@@ -14933,7 +14933,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
 
     IF is_result-filename CS '.XML' AND lv_count = 2.
-      IF io_object->exists( ) = abap_false.
+      IF ii_object->exists( ) = abap_false.
         RETURN.
       ENDIF.
 
@@ -14944,7 +14944,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         CREATE OBJECT lo_remote_version
           EXPORTING
             iv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data ).
-        li_comparison_result = io_object->compare_to_remote_version( lo_remote_version ).
+        li_comparison_result = ii_object->compare_to_remote_version( lo_remote_version ).
         li_comparison_result->show_confirmation_dialog( ).
 
         IF li_comparison_result->is_result_complete_halt( ) = abap_true.
@@ -14958,8 +14958,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     DATA: lv_message            TYPE string,
           lv_class_name         TYPE string,
-          ls_obj_serializer_map LIKE LINE OF st_obj_serializer_map.
-    READ TABLE st_obj_serializer_map
+          ls_obj_serializer_map LIKE LINE OF gt_obj_serializer_map.
+    READ TABLE gt_obj_serializer_map
       INTO ls_obj_serializer_map WITH KEY item = is_item.
     IF sy-subrc = 0.
       lv_class_name = ls_obj_serializer_map-metadata-class.
@@ -14970,7 +14970,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 *        Thus, buffer the metadata afterwards
       ls_obj_serializer_map-item      = is_item.
       ls_obj_serializer_map-metadata  = is_metadata.
-      INSERT ls_obj_serializer_map INTO TABLE st_obj_serializer_map.
+      INSERT ls_obj_serializer_map INTO TABLE gt_obj_serializer_map.
 
       lv_class_name = is_metadata-class.
     ELSE.
@@ -15031,7 +15031,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
         lt_items = map_tadir_to_items( lt_tadir ).
 
-        check_objects_locked( iv_language = zif_abapgit_definitions=>gc_english
+        check_objects_locked( iv_language = zif_abapgit_definitions=>c_english
                               it_items    = lt_items ).
 
         LOOP AT lt_tadir ASSIGNING <ls_tadir>.
@@ -15061,7 +15061,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DATA: li_obj TYPE REF TO zif_abapgit_object.
     IF is_supported( is_item ) = abap_true.
       li_obj = create_object( is_item     = is_item
-                              iv_language = zif_abapgit_definitions=>gc_english ).
+                              iv_language = zif_abapgit_definitions=>c_english ).
 
       li_obj->delete( ).
 
@@ -15158,7 +15158,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
                               is_metadata = lo_xml->get_metadata( ) ).
 
       compare_remote_to_local(
-        io_object = li_obj
+        ii_object = li_obj
         it_remote = lt_remote
         is_result = <ls_result> ).
 
@@ -15250,7 +15250,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DATA: li_obj TYPE REF TO zif_abapgit_object.
     TRY.
         li_obj = create_object( is_item = is_item
-                                iv_language = zif_abapgit_definitions=>gc_english ).
+                                iv_language = zif_abapgit_definitions=>c_english ).
         rv_bool = li_obj->exists( ).
       CATCH zcx_abapgit_exception.
 * ignore all errors and assume the object exists
@@ -15270,7 +15270,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name filename.
 
     DELETE rt_results WHERE obj_type IS INITIAL.
-    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>gc_state-added AND rstate IS INITIAL.
+    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
 
     rt_results = prioritize_deser( rt_results ).
 
@@ -15289,14 +15289,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     rv_changed = create_object(
       is_item     = is_item
-      iv_language = zif_abapgit_definitions=>gc_english )->has_changed_since( iv_timestamp ).
+      iv_language = zif_abapgit_definitions=>c_english )->has_changed_since( iv_timestamp ).
 
   ENDMETHOD.  "has_changed_since
   METHOD is_supported.
 
     TRY.
         create_object( is_item        = is_item
-                       iv_language    = zif_abapgit_definitions=>gc_english
+                       iv_language    = zif_abapgit_definitions=>c_english
                        iv_native_only = iv_native_only ).
         rv_bool = abap_true.
       CATCH zcx_abapgit_exception.
@@ -15310,7 +15310,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lv_adt_jump_enabled TYPE abap_bool.
 
     li_obj = create_object( is_item     = is_item
-                            iv_language = zif_abapgit_definitions=>gc_english ).
+                            iv_language = zif_abapgit_definitions=>c_english ).
 
     lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
 
@@ -15430,7 +15430,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     LOOP AT rt_files ASSIGNING <ls_file>.
       <ls_file>-sha1 = zcl_abapgit_hash=>sha1(
-        iv_type = zif_abapgit_definitions=>gc_type-blob
+        iv_type = zif_abapgit_definitions=>c_type-blob
         iv_data = <ls_file>-data ).
     ENDLOOP.
 
@@ -15517,8 +15517,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     LOOP AT it_results ASSIGNING <ls_result>
         WHERE NOT obj_type IS INITIAL.
       IF <ls_result>-lstate IS NOT INITIAL
-          AND <ls_result>-lstate <> zif_abapgit_definitions=>gc_state-deleted
-          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>gc_state-added
+          AND <ls_result>-lstate <> zif_abapgit_definitions=>c_state-deleted
+          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>c_state-added
           AND <ls_result>-rstate IS INITIAL ).
 * current object has been modified locally, add to table
         CLEAR ls_overwrite.
@@ -15898,7 +15898,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     DEFINE _from_source.
       READ TABLE mt_objects ASSIGNING <ls_object>
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>gc_type-blob
+          type = zif_abapgit_definitions=>c_type-blob
           sha1 = <ls_source>-sha1.
       ASSERT sy-subrc = 0.
 
@@ -15986,14 +15986,14 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>gc_type-blob
+            type = zif_abapgit_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>gc_type-blob
+            type = zif_abapgit_definitions=>c_type-blob
             sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
@@ -16028,14 +16028,14 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>gc_type-blob
+            type = zif_abapgit_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>gc_type-blob
+            type = zif_abapgit_definitions=>c_type-blob
             sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
@@ -16102,7 +16102,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     LOOP AT lt_visit INTO lv_commit.
       READ TABLE mt_objects ASSIGNING <ls_object>
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>gc_type-commit
+          type = zif_abapgit_definitions=>c_type-commit
           sha1 = lv_commit.
       ASSERT sy-subrc = 0.
 
@@ -16581,10 +16581,10 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     IF sy-subrc = 0.
       IF ls_file_sig-sha1 <> is_local-file-sha1.
-        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
+        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
       ENDIF.
       IF ls_file_sig-sha1 <> is_remote-sha1.
-        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
       ENDIF.
       rs_result-match = boolc( rs_result-lstate IS INITIAL
         AND rs_result-rstate IS INITIAL ).
@@ -16595,8 +16595,8 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       " the user will presumably decide what to do after checking the actual diff
       rs_result-match = boolc( is_local-file-sha1 = is_remote-sha1 ).
       IF rs_result-match = abap_false.
-        rs_result-lstate = zif_abapgit_definitions=>gc_state-modified.
-        rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
+        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
       ENDIF.
     ENDIF.
 
@@ -16614,7 +16614,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     " Match
     rs_result-match    = abap_false.
-    rs_result-lstate   = zif_abapgit_definitions=>gc_state-added.
+    rs_result-lstate   = zif_abapgit_definitions=>c_state-added.
 
   ENDMETHOD.  "build_new_local
   METHOD build_new_remote.
@@ -16626,7 +16626,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rs_result-path     = is_remote-path.
     rs_result-filename = is_remote-filename.
     rs_result-match    = abap_false.
-    rs_result-rstate   = zif_abapgit_definitions=>gc_state-added.
+    rs_result-rstate   = zif_abapgit_definitions=>c_state-added.
 
     identify_object( EXPORTING iv_filename = is_remote-filename
                                iv_path     = is_remote-path
@@ -16657,14 +16657,14 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
           rs_result-match = abap_true.
           CLEAR rs_result-rstate.
         ELSE.
-          rs_result-rstate = zif_abapgit_definitions=>gc_state-modified.
+          rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
         ENDIF.
 
         " Item is in state and in cache but with no package - it was deleted
         " OR devclass is the same as repo package (see #532)
         IF ls_item-devclass IS INITIAL OR ls_item-devclass = iv_devclass.
           rs_result-match  = abap_false.
-          rs_result-lstate = zif_abapgit_definitions=>gc_state-deleted.
+          rs_result-lstate = zif_abapgit_definitions=>c_state-deleted.
         ENDIF.
       ENDIF.
 
@@ -17180,9 +17180,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_signature.
 
-    rs_signature-path     = zif_abapgit_definitions=>gc_root_dir.
-    rs_signature-filename = zif_abapgit_definitions=>gc_dot_abapgit.
-    rs_signature-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+    rs_signature-path     = zif_abapgit_definitions=>c_root_dir.
+    rs_signature-filename = zif_abapgit_definitions=>c_dot_abapgit.
+    rs_signature-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                     iv_data = serialize( ) ).
 
   ENDMETHOD. "get_signature
@@ -17199,7 +17199,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     lv_name = iv_path && iv_filename.
 
     CONCATENATE ms_data-starting_folder '*' INTO lv_starting.
-    CONCATENATE '/' zif_abapgit_definitions=>gc_dot_abapgit INTO lv_dot.
+    CONCATENATE '/' zif_abapgit_definitions=>c_dot_abapgit INTO lv_dot.
 
     LOOP AT ms_data-ignore INTO lv_ignore.
       FIND ALL OCCURRENCES OF '/' IN lv_name MATCH COUNT lv_count.
@@ -17999,7 +17999,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       IMPORTING
         et_objects     = rt_objects ).
 
-    DELETE rt_objects WHERE type = zif_abapgit_definitions=>gc_type-blob.
+    DELETE rt_objects WHERE type = zif_abapgit_definitions=>c_type-blob.
 
   ENDMETHOD.
   METHOD parse_annotated_tags.
@@ -18010,7 +18010,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
                    <ls_tag>    LIKE LINE OF mt_tags.
 
     LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
-        WHERE type = zif_abapgit_definitions=>gc_type-tag.
+        WHERE type = zif_abapgit_definitions=>c_type-tag.
 
       ls_raw = zcl_abapgit_git_pack=>decode_tag( <ls_object>-data ).
 
@@ -18039,7 +18039,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects.
     LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
-        WHERE type = zif_abapgit_definitions=>gc_type-commit.
+        WHERE type = zif_abapgit_definitions=>c_type-commit.
       ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
 
       CLEAR ls_commit.
@@ -18047,7 +18047,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       ls_commit-parent1 = ls_raw-parent.
       ls_commit-parent2 = ls_raw-parent2.
 
-      SPLIT ls_raw-body AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_body.
+      SPLIT ls_raw-body AT zif_abapgit_definitions=>c_newline INTO TABLE lt_body.
 
       READ TABLE lt_body WITH KEY table_line = ' -----END PGP SIGNATURE-----' TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -18058,7 +18058,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       READ TABLE lt_body INDEX 1 INTO ls_commit-message.  "#EC CI_SUBRC
 
 * unix time stamps are in same time zone, so ignore the zone,
-      FIND REGEX zif_abapgit_definitions=>gc_author_regex IN ls_raw-author
+      FIND REGEX zif_abapgit_definitions=>c_author_regex IN ls_raw-author
         SUBMATCHES
         ls_commit-author
         ls_commit-email
@@ -18595,7 +18595,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
     ELSEIF cv_prev IS INITIAL.
       cv_prev = iv_cur.
     ELSE.
-      cv_prev = zif_abapgit_definitions=>gc_state-mixed.
+      cv_prev = zif_abapgit_definitions=>c_state-mixed.
     ENDIF.
 
   ENDMETHOD.
@@ -19484,8 +19484,8 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
     lv_new = zcl_abapgit_convert=>xstring_to_string_utf8( iv_new ).
     lv_old = zcl_abapgit_convert=>xstring_to_string_utf8( iv_old ).
 
-    SPLIT lv_new AT zif_abapgit_definitions=>gc_newline INTO TABLE et_new.
-    SPLIT lv_old AT zif_abapgit_definitions=>gc_newline INTO TABLE et_old.
+    SPLIT lv_new AT zif_abapgit_definitions=>c_newline INTO TABLE et_new.
+    SPLIT lv_old AT zif_abapgit_definitions=>c_newline INTO TABLE et_old.
 
   ENDMETHOD.
 ENDCLASS.
@@ -20331,7 +20331,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     IF NOT is_commit-body IS INITIAL.
       CONCATENATE ls_comment-comment '' is_commit-body
-        INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>gc_newline.
+        INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>c_newline.
     ENDIF.
 
     io_repo->push( is_comment = ls_comment
@@ -21670,9 +21670,9 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
-    ASSERT iv_typ = zif_abapgit_definitions=>gc_action_type-separator  " sep doesn't have action
-      OR iv_typ = zif_abapgit_definitions=>gc_action_type-onclick      " click may have no action (assigned in JS)
-      OR iv_typ = zif_abapgit_definitions=>gc_action_type-dummy        " dummy may have no action
+    ASSERT iv_typ = zif_abapgit_definitions=>c_action_type-separator  " sep doesn't have action
+      OR iv_typ = zif_abapgit_definitions=>c_action_type-onclick      " click may have no action (assigned in JS)
+      OR iv_typ = zif_abapgit_definitions=>c_action_type-dummy        " dummy may have no action
       OR iv_act IS INITIAL AND io_sub IS NOT INITIAL
       OR iv_act IS NOT INITIAL AND io_sub IS INITIAL. " Only one supplied
 
@@ -21731,7 +21731,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
     ro_html->add( |<div class="{ lv_class }">| ).
     ro_html->add( '<ul><li>' ).
     ro_html->add_a( iv_txt = iv_label
-                    iv_typ = zif_abapgit_definitions=>gc_action_type-sapevent
+                    iv_typ = zif_abapgit_definitions=>c_action_type-sapevent
                     iv_act = iv_action ).
     ro_html->add( '<div class="minizone"></div>' ).
     ro_html->add( render_items( iv_sort = iv_sort ) ).
@@ -21773,7 +21773,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
     LOOP AT mt_items ASSIGNING <ls_item>.
       CLEAR: lv_class, lv_icon.
 
-      IF <ls_item>-typ = zif_abapgit_definitions=>gc_action_type-separator.
+      IF <ls_item>-typ = zif_abapgit_definitions=>c_action_type-separator.
         ro_html->add( |<li class="separator">{ <ls_item>-txt }</li>| ).
         CONTINUE.
       ENDIF.
@@ -21807,7 +21807,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
                         iv_opt   = <ls_item>-opt ).
       ELSE.
         ro_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
-                        iv_typ   = zif_abapgit_definitions=>gc_action_type-dummy
+                        iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
                         iv_act   = ''
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt ).
@@ -22034,13 +22034,13 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     lv_class = iv_class.
 
-    IF iv_opt CA zif_abapgit_definitions=>gc_html_opt-strong.
+    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-strong.
       lv_class = lv_class && ' emphasis' ##NO_TEXT.
     ENDIF.
-    IF iv_opt CA zif_abapgit_definitions=>gc_html_opt-cancel.
+    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-cancel.
       lv_class = lv_class && ' attention' ##NO_TEXT.
     ENDIF.
-    IF iv_opt CA zif_abapgit_definitions=>gc_html_opt-crossout.
+    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-crossout.
       lv_class = lv_class && ' crossout grey' ##NO_TEXT.
     ENDIF.
     IF lv_class IS NOT INITIAL.
@@ -22049,16 +22049,16 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
     lv_href  = ' href="#"'. " Default, dummy
-    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_definitions=>gc_action_type-dummy.
+    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_definitions=>c_action_type-dummy.
       CASE iv_typ.
-        WHEN zif_abapgit_definitions=>gc_action_type-url.
+        WHEN zif_abapgit_definitions=>c_action_type-url.
           lv_href  = | href="{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>gc_action_type-sapevent.
+        WHEN zif_abapgit_definitions=>c_action_type-sapevent.
           lv_href  = | href="sapevent:{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>gc_action_type-onclick.
+        WHEN zif_abapgit_definitions=>c_action_type-onclick.
           lv_href  = ' href="#"'.
           lv_click = | onclick="{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>gc_action_type-dummy.
+        WHEN zif_abapgit_definitions=>c_action_type-dummy.
           lv_href  = ' href="#"'.
       ENDCASE.
     ENDIF.
@@ -22083,18 +22083,18 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lt_tab> TYPE string_table.
 
-    DESCRIBE FIELD iv_chunk TYPE lv_type. " Describe is faster than RTTI classes
+    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
 
     CASE lv_type.
       WHEN 'C' OR 'g'.  " Char or string
-        APPEND iv_chunk TO mt_buffer.
+        APPEND ig_chunk TO mt_buffer.
       WHEN 'h'.         " Table
-        ASSIGN iv_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
+        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
         APPEND LINES OF <lt_tab> TO mt_buffer.
       WHEN 'r'.         " Object ref
-        ASSERT iv_chunk IS BOUND. " Dev mistake
+        ASSERT ig_chunk IS BOUND. " Dev mistake
         TRY.
-            lo_html ?= iv_chunk.
+            lo_html ?= ig_chunk.
           CATCH cx_sy_move_cast_error.
             ASSERT 1 = 0. " Dev mistake
         ENDTRY.
@@ -22214,7 +22214,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
     ENDLOOP.
 
-    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY zif_abapgit_definitions=>gc_newline.
+    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.                    "render
   METHOD study_line.
@@ -22287,17 +22287,17 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '<p><ul>' ).
 
     ro_html->add( `<li>To clone a remote repo (e.g. from github) click ` ).
-    ro_html->add_a( iv_txt = '+ Online' iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ).
+    ro_html->add_a( iv_txt = '+ Online' iv_act = zif_abapgit_definitions=>c_action-repo_newonline ).
     ro_html->add( ' from the top menu. This will copy a remote repo to your system.</li>' ).
 
     ro_html->add( `<li>To add a local package as a repo click ` ).
-    ro_html->add_a( iv_txt = '+ Offline' iv_act = zif_abapgit_definitions=>gc_action-repo_newoffline ).
+    ro_html->add_a( iv_txt = '+ Offline' iv_act = zif_abapgit_definitions=>c_action-repo_newoffline ).
     ro_html->add( ' from the top menu. This will track a repo which already exist in' ).
     ro_html->add( ' the system with abapGit. You''ll be able to attach it to remote origin' ).
     ro_html->add( ' or just serialize as a zip file</li>' ).
 
     ro_html->add( `<li>Go ` ).
-    ro_html->add_a( iv_txt = 'Explore' iv_act = zif_abapgit_definitions=>gc_action-go_explore ).
+    ro_html->add_a( iv_txt = 'Explore' iv_act = zif_abapgit_definitions=>c_action-go_explore ).
     ro_html->add( ' to find projects using abapGit</li>' ).
 
     ro_html->add( '</ul></p>' ).
@@ -22317,7 +22317,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
       ro_html->add( 'abapGit installed in package&nbsp;' ).
       ro_html->add( zcl_abapgit_services_abapgit=>c_package_abapgit ).
     ELSE.
-      ro_html->add_a( iv_txt = 'install abapGit repo' iv_act = zif_abapgit_definitions=>gc_action-abapgit_install ).
+      ro_html->add_a( iv_txt = 'install abapGit repo' iv_act = zif_abapgit_definitions=>c_action-abapgit_install ).
       ro_html->add( ' - To keep abapGit up-to-date (or also to contribute) you need to' ).
       ro_html->add( 'install it as a repository.' ).
     ENDIF.
@@ -22329,7 +22329,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
+    ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
@@ -22383,9 +22383,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
           lo_tb_branch   TYPE REF TO zcl_abapgit_html_toolbar,
           lo_tb_tag      TYPE REF TO zcl_abapgit_html_toolbar,
           lv_key         TYPE zif_abapgit_persistence=>ty_value,
-          lv_wp_opt      LIKE zif_abapgit_definitions=>gc_html_opt-crossout,
-          lv_crossout    LIKE zif_abapgit_definitions=>gc_html_opt-crossout,
-          lv_pull_opt    LIKE zif_abapgit_definitions=>gc_html_opt-crossout.
+          lv_wp_opt      LIKE zif_abapgit_definitions=>c_html_opt-crossout,
+          lv_crossout    LIKE zif_abapgit_definitions=>c_html_opt-crossout,
+          lv_pull_opt    LIKE zif_abapgit_definitions=>c_html_opt-crossout.
 
     CREATE OBJECT ro_toolbar.
     CREATE OBJECT lo_tb_branch.
@@ -22395,87 +22395,87 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     lv_key = mo_repo->get_key( ).
 
     IF mo_repo->get_local_settings( )-write_protected = abap_true.
-      lv_wp_opt   = zif_abapgit_definitions=>gc_html_opt-crossout.
-      lv_pull_opt = zif_abapgit_definitions=>gc_html_opt-crossout.
+      lv_wp_opt   = zif_abapgit_definitions=>c_html_opt-crossout.
+      lv_pull_opt = zif_abapgit_definitions=>c_html_opt-crossout.
     ELSE.
-      lv_pull_opt = zif_abapgit_definitions=>gc_html_opt-strong.
+      lv_pull_opt = zif_abapgit_definitions=>c_html_opt-strong.
     ENDIF.
 
     " Build branch drop-down ========================
     IF mo_repo->is_offline( ) = abap_false. " Online ?
       lo_tb_branch->add( iv_txt = 'Overview'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-go_branch_overview }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-go_branch_overview }?{ lv_key }| ).
       lo_tb_branch->add( iv_txt = 'Switch'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-git_branch_switch }?{ lv_key }|
+                         iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?{ lv_key }|
                          iv_opt = lv_wp_opt ).
       lo_tb_branch->add( iv_txt = 'Create'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-git_branch_create }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_create }?{ lv_key }| ).
       lo_tb_branch->add( iv_txt = 'Delete'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-git_branch_delete }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_delete }?{ lv_key }| ).
 
       lo_tb_tag->add( iv_txt = 'Overview'
-                      iv_act = |{ zif_abapgit_definitions=>gc_action-go_tag_overview }?{ lv_key }| ).
+                      iv_act = |{ zif_abapgit_definitions=>c_action-go_tag_overview }?{ lv_key }| ).
       lo_tb_tag->add( iv_txt = 'Switch'
-                      iv_act = |{ zif_abapgit_definitions=>gc_action-git_tag_switch }?{ lv_key }|
+                      iv_act = |{ zif_abapgit_definitions=>c_action-git_tag_switch }?{ lv_key }|
                       iv_opt = lv_wp_opt ).
       lo_tb_tag->add( iv_txt = 'Create'
-                      iv_act = |{ zif_abapgit_definitions=>gc_action-git_tag_create }?{ lv_key }| ).
+                      iv_act = |{ zif_abapgit_definitions=>c_action-git_tag_create }?{ lv_key }| ).
       lo_tb_tag->add( iv_txt = 'Delete'
-                      iv_act = |{ zif_abapgit_definitions=>gc_action-git_tag_delete }?{ lv_key }| ).
+                      iv_act = |{ zif_abapgit_definitions=>c_action-git_tag_delete }?{ lv_key }| ).
 
     ENDIF.
 
     " Build advanced drop-down ========================
     IF mo_repo->is_offline( ) = abap_false. " Online ?
       lo_tb_advanced->add( iv_txt = 'Reset local'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-git_reset }?{ lv_key }|
+                           iv_act = |{ zif_abapgit_definitions=>c_action-git_reset }?{ lv_key }|
                            iv_opt = lv_wp_opt ).
       lo_tb_advanced->add( iv_txt = 'Background mode'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-go_background }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>c_action-go_background }?{ lv_key }| ).
       lo_tb_advanced->add( iv_txt = 'Change remote'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remote_change }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_change }?{ lv_key }| ).
       lo_tb_advanced->add( iv_txt = 'Make off-line'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remote_detach }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_detach }?{ lv_key }| ).
       lo_tb_advanced->add( iv_txt = 'Force stage'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-go_stage }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?{ lv_key }| ).
 
       CLEAR lv_crossout.
       IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
-        lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
+        lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
       ENDIF.
       lo_tb_advanced->add( iv_txt = 'Transport to Branch'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_transport_to_branch }?{ lv_key }|
+                           iv_act = |{ zif_abapgit_definitions=>c_action-repo_transport_to_branch }?{ lv_key }|
                            iv_opt = lv_crossout ).
 
     ELSE.
       lo_tb_advanced->add( iv_txt = 'Make on-line'
-                           iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remote_attach }?{ lv_key }| ).
+                           iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_attach }?{ lv_key }| ).
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Syntax Check'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_syntax_check }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_syntax_check }?{ lv_key }| ).
     lo_tb_advanced->add( iv_txt = 'Run Code Inspector'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_code_inspector }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?{ lv_key }| ).
     lo_tb_advanced->add( iv_txt = 'Repo settings'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_settings }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?{ lv_key }| ).
 
     CLEAR lv_crossout.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
-      lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
+      lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Update local checksums'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_refresh_checksums }?{ lv_key }|
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh_checksums }?{ lv_key }|
                          iv_opt = lv_crossout ).
 
     lo_tb_advanced->add( iv_txt = 'Remove'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_remove }?{ lv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_remove }?{ lv_key }| ).
 
     CLEAR lv_crossout.
     IF mo_repo->get_local_settings( )-write_protected = abap_true
         OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
-      lv_crossout = zif_abapgit_definitions=>gc_html_opt-crossout.
+      lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Uninstall'
-                         iv_act = |{ zif_abapgit_definitions=>gc_action-repo_purge }?{ lv_key }|
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_purge }?{ lv_key }|
                          iv_opt = lv_crossout ).
 
     " Build main toolbar ==============================
@@ -22483,18 +22483,18 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       TRY.
           IF iv_rstate IS NOT INITIAL. " Something new at remote
             ro_toolbar->add( iv_txt = 'Pull'
-                             iv_act = |{ zif_abapgit_definitions=>gc_action-git_pull }?{ lv_key }|
+                             iv_act = |{ zif_abapgit_definitions=>c_action-git_pull }?{ lv_key }|
                              iv_opt = lv_pull_opt ).
           ENDIF.
           IF iv_lstate IS NOT INITIAL. " Something new at local
             ro_toolbar->add( iv_txt = 'Stage'
-                             iv_act = |{ zif_abapgit_definitions=>gc_action-go_stage }?{ lv_key }|
-                             iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                             iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?{ lv_key }|
+                             iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
           ENDIF.
           IF iv_rstate IS NOT INITIAL OR iv_lstate IS NOT INITIAL. " Any changes
             ro_toolbar->add( iv_txt = 'Show diff'
-                             iv_act = |{ zif_abapgit_definitions=>gc_action-go_diff }?key={ lv_key }|
-                             iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                             iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ lv_key }|
+                             iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
           ENDIF.
         CATCH zcx_abapgit_exception ##NO_HANDLER.
           " authorization error or repository does not exist
@@ -22506,17 +22506,17 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
                        io_sub = lo_tb_tag ) ##NO_TEXT.
     ELSE.
       ro_toolbar->add( iv_txt = 'Import ZIP'
-                       iv_act = |{ zif_abapgit_definitions=>gc_action-zip_import }?{ lv_key }|
-                       iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                       iv_act = |{ zif_abapgit_definitions=>c_action-zip_import }?{ lv_key }|
+                       iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
       ro_toolbar->add( iv_txt = 'Export ZIP'
-                       iv_act = |{ zif_abapgit_definitions=>gc_action-zip_export }?{ lv_key }|
-                       iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                       iv_act = |{ zif_abapgit_definitions=>c_action-zip_export }?{ lv_key }|
+                       iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
     ENDIF.
 
     ro_toolbar->add( iv_txt = 'Advanced'
                      io_sub = lo_tb_advanced ) ##NO_TEXT.
     ro_toolbar->add( iv_txt = 'Refresh'
-                     iv_act = |{ zif_abapgit_definitions=>gc_action-repo_refresh }?{ lv_key }| ).
+                     iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh }?{ lv_key }| ).
     ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'settings/grey70' )
                      io_sub = build_grid_menu( ) ).
 
@@ -22529,7 +22529,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
                                                     iv_obj_name = is_item-obj_name ).
 
     rv_html = zcl_abapgit_html=>a( iv_txt = |{ is_item-obj_name }|
-                                   iv_act = |{ zif_abapgit_definitions=>gc_action-jump }?{ lv_encode }| ).
+                                   iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
 
   ENDMETHOD.  "build_obj_jump_link
   METHOD constructor.
@@ -22673,8 +22673,8 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
       ro_html->add( '<div>' ).
       ro_html->add( |<span class="grey">{ is_item-changes } changes</span>| ).
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv1 = is_item-lstate
-                                                          iv2 = is_item-rstate ) ).
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
+                                                          iv_rstate = is_item-rstate ) ).
       ro_html->add( '</div>' ).
 
     ELSEIF is_item-changes > 0.
@@ -22687,9 +22687,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
         ro_html->add( '<div>' ).
         ro_html->add_a( iv_txt = |view diff ({ is_item-changes })|
-                        iv_act = |{ zif_abapgit_definitions=>gc_action-go_diff }?{ lv_difflink }| ).
-        ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv1 = is_item-lstate
-                                                            iv2 = is_item-rstate ) ).
+                        iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
+        ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
+                                                            iv_rstate = is_item-rstate ) ).
         ro_html->add( '</div>' ).
 
       ELSE.
@@ -22701,9 +22701,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
               iv_key  = mo_repo->get_key( )
               ig_file = ls_file ).
             ro_html->add_a( iv_txt = 'view diff'
-                            iv_act = |{ zif_abapgit_definitions=>gc_action-go_diff }?{ lv_difflink }| ).
-            ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv1 = ls_file-lstate
-                                                                iv2 = ls_file-rstate ) ).
+                            iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
+            ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = ls_file-lstate
+                                                                iv_rstate = ls_file-rstate ) ).
           ELSE.
             ro_html->add( '&nbsp;' ).
           ENDIF.
@@ -22750,21 +22750,21 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     CASE iv_action.
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
         mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->toggle_hide_files( ).
-        ev_state        = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-change_dir.        " Change dir
         lv_path         = zcl_abapgit_html_action_utils=>dir_decode( iv_getdata ).
         mv_cur_dir      = zcl_abapgit_path=>change_dir( iv_cur_dir = mv_cur_dir iv_cd = lv_path ).
-        ev_state        = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-toggle_folders.    " Toggle folder view
         mv_show_folders = boolc( mv_show_folders <> abap_true ).
         mv_cur_dir      = '/'. " Root
-        ev_state        = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-toggle_changes.    " Toggle changes only view
         mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->toggle_changes_only( ).
-        ev_state        = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-display_more.      " Increase MAX lines limit
         mv_max_lines    = mv_max_lines + mv_max_setting.
-        ev_state        = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD. "lif_gui_page~on_event
@@ -22848,7 +22848,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
           ro_html->add( |Only { lv_max_str } shown in list. Display {
             zcl_abapgit_html=>a( iv_txt = lv_add_str iv_act = c_actions-display_more )
             } more. (Set in Advanced > {
-            zcl_abapgit_html=>a( iv_txt = 'Settings' iv_act = zif_abapgit_definitions=>gc_action-go_settings )
+            zcl_abapgit_html=>a( iv_txt = 'Settings' iv_act = zif_abapgit_definitions=>c_action-go_settings )
             } )| ).
           ro_html->add( '</div>' ).
         ENDIF.
@@ -22988,195 +22988,195 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     CASE iv_action.
         " General PAGE routing
-      WHEN zif_abapgit_definitions=>gc_action-go_main.                          " Go Main page
+      WHEN zif_abapgit_definitions=>c_action-go_main.                          " Go Main page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_main.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_explore.                     " Go Explore page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_explore.                     " Go Explore page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_explore.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_repo_overview.               " Go Repository overview
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_repo_overview.               " Go Repository overview
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_over.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_db.                          " Go DB util page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_debuginfo.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_debuginfo.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_debuginfo.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_settings.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_settings.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_settings.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_background_run.              " Go background run page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_background_run.              " Go background run page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_bkg_run.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_background.                   " Go Background page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_background.                   " Go Background page
         ei_page  = get_page_background( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_diff.                         " Go Diff page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_diff.                         " Go Diff page
         ei_page  = get_page_diff(
           iv_getdata   = iv_getdata
           iv_prev_page = iv_prev_page ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page_w_bookmark.
-      WHEN zif_abapgit_definitions=>gc_action-go_stage.                        " Go Staging page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
+      WHEN zif_abapgit_definitions=>c_action-go_stage.                        " Go Staging page
         ei_page  = get_page_stage( iv_getdata ).
         IF iv_prev_page = 'PAGE_DIFF'.
-          ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
         ELSE.
-          ev_state = zif_abapgit_definitions=>gc_event_state-new_page_w_bookmark.
+          ev_state = zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
         ENDIF.
-      WHEN zif_abapgit_definitions=>gc_action-go_branch_overview.              " Go repo branch overview
+      WHEN zif_abapgit_definitions=>c_action-go_branch_overview.              " Go repo branch overview
         ei_page  = get_page_branch_overview( iv_getdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_playground.                   " Create playground page
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_playground.                   " Create playground page
         ei_page  = get_page_playground( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-go_tutorial.                     " Go to tutorial
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_tutorial.                     " Go to tutorial
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( '' ).        " Clear show_id
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.          " Assume we are on main page
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.          " Assume we are on main page
 
         " SAP GUI actions
-      WHEN zif_abapgit_definitions=>gc_action-jump.                          " Open object editor
+      WHEN zif_abapgit_definitions=>c_action-jump.                          " Open object editor
         zcl_abapgit_html_action_utils=>jump_decode(
           EXPORTING iv_string   = iv_getdata
           IMPORTING ev_obj_type = ls_item-obj_type
                     ev_obj_name = ls_item-obj_name ).
         zcl_abapgit_objects=>jump( ls_item ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>gc_action-jump_pkg.                      " Open SE80
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-jump_pkg.                      " Open SE80
         zcl_abapgit_services_repo=>open_se80( |{ iv_getdata }| ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
         " DB actions
-      WHEN zif_abapgit_definitions=>gc_action-db_edit.
+      WHEN zif_abapgit_definitions=>c_action-db_edit.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db_edit
           EXPORTING
             is_key = zcl_abapgit_html_action_utils=>dbkey_decode( iv_getdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
         IF iv_prev_page = 'PAGE_DB_DIS'.
-          ev_state = zif_abapgit_definitions=>gc_event_state-new_page_replacing.
+          ev_state = zif_abapgit_definitions=>c_event_state-new_page_replacing.
         ENDIF.
-      WHEN zif_abapgit_definitions=>gc_action-db_display.
+      WHEN zif_abapgit_definitions=>c_action-db_display.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db_dis
           EXPORTING
             is_key = zcl_abapgit_html_action_utils=>dbkey_decode( iv_getdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
         " ABAPGIT services actions
-      WHEN zif_abapgit_definitions=>gc_action-abapgit_home.                    " Go abapGit homepage
+      WHEN zif_abapgit_definitions=>c_action-abapgit_home.                    " Go abapGit homepage
         zcl_abapgit_services_abapgit=>open_abapgit_homepage( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
-      WHEN zif_abapgit_definitions=>gc_action-abapgit_install.                 " Install abapGit
+      WHEN zif_abapgit_definitions=>c_action-abapgit_install.                 " Install abapGit
         zcl_abapgit_services_abapgit=>install_abapgit( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
         " REPOSITORY services actions
-      WHEN zif_abapgit_definitions=>gc_action-repo_newoffline.                 " New offline repo
+      WHEN zif_abapgit_definitions=>c_action-repo_newoffline.                 " New offline repo
         zcl_abapgit_services_repo=>new_offline( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_refresh.                    " Repo refresh
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_refresh.                    " Repo refresh
         zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_syntax_check.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_syntax
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-repo_code_inspector.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-repo_code_inspector.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_code_insp
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-repo_purge.                      " Repo remove & purge all objects
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo remove & purge all objects
         zcl_abapgit_services_repo=>purge( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_remove.                     " Repo remove
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_newonline.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_newonline.
         zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN 'install'.    " 'install' is for explore page
         zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_refresh_checksums.          " Rebuil local checksums
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuil local checksums
         zcl_abapgit_services_repo=>refresh_local_checksums( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_toggle_fav.                 " Toggle repo as favorite
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_toggle_fav.                 " Toggle repo as favorite
         zcl_abapgit_services_repo=>toggle_favorite( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_transport_to_branch.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_transport_to_branch.
         zcl_abapgit_services_repo=>transport_to_branch( iv_repository_key = lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_settings.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_settings.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_sett
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
         " ZIP services actions
-      WHEN zif_abapgit_definitions=>gc_action-zip_import.                      " Import repo from ZIP
+      WHEN zif_abapgit_definitions=>c_action-zip_import.                      " Import repo from ZIP
         zcl_abapgit_zip=>import( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-zip_export.                      " Export repo as ZIP
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
         zcl_abapgit_zip=>export( zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ) ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>gc_action-zip_package.                     " Export package as ZIP
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-zip_package.                     " Export package as ZIP
         zcl_abapgit_zip=>export_package( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>gc_action-zip_transport.                   " Export transport as ZIP
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-zip_transport.                   " Export transport as ZIP
         zcl_abapgit_transport=>zip( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>gc_action-zip_object.                      " Export object as ZIP
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-zip_object.                      " Export object as ZIP
         zcl_abapgit_zip=>export_object( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
         " Remote ORIGIN manipulations
-      WHEN zif_abapgit_definitions=>gc_action-repo_remote_attach.            " Remote attach
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_attach.            " Remote attach
         zcl_abapgit_services_repo=>remote_attach( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_remote_detach.            " Remote detach
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_detach.            " Remote detach
         zcl_abapgit_services_repo=>remote_detach( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-repo_remote_change.            " Remote change
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_change.            " Remote change
         zcl_abapgit_services_repo=>remote_change( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
         " GIT actions
-      WHEN zif_abapgit_definitions=>gc_action-git_pull.                      " GIT Pull
+      WHEN zif_abapgit_definitions=>c_action-git_pull.                      " GIT Pull
         zcl_abapgit_services_git=>pull( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_reset.                     " GIT Reset
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_reset.                     " GIT Reset
         zcl_abapgit_services_git=>reset( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_branch_create.             " GIT Create new branch
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_create.             " GIT Create new branch
         zcl_abapgit_services_git=>create_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_branch_delete.             " GIT Delete remote branch
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete.             " GIT Delete remote branch
         zcl_abapgit_services_git=>delete_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_branch_switch.             " GIT Switch branch
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_switch.             " GIT Switch branch
         zcl_abapgit_services_git=>switch_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-go_tag_overview.               " GIT Tag overview
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-go_tag_overview.               " GIT Tag overview
         zcl_abapgit_services_git=>tag_overview( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_tag_create.                " GIT Tag create
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_tag_create.                " GIT Tag create
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_tag
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
-      WHEN zif_abapgit_definitions=>gc_action-git_tag_delete.                " GIT Tag create
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.                " GIT Tag create
         zcl_abapgit_services_git=>delete_tag( lv_key ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
-      WHEN zif_abapgit_definitions=>gc_action-git_tag_switch.                " GIT Switch Tag
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_tag_switch.                " GIT Switch Tag
         zcl_abapgit_services_git=>switch_tag( lv_key ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
         "Others
       WHEN OTHERS.
-        ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
+        ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
     ENDCASE.
 
   ENDMETHOD.
@@ -23268,8 +23268,8 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     CLEAR eg_fields.
 
     CONCATENATE LINES OF it_postdata INTO lv_string.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
 
     zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'SHA1'
@@ -23293,7 +23293,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
     ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
+    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -23428,12 +23428,12 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Create'
-                     iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_definitions=>gc_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_definitions=>c_html_opt-cancel ) ##NO_TEXT.
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -23474,16 +23474,16 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
         create_tag( it_postdata ).
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
 
       WHEN c_action-change_tag_type.
 
         parse_change_tag_type_request( it_postdata ).
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
       WHEN c_action-commit_cancel.
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -23534,7 +23534,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     IF lines( ms_files-local ) > 0.
       ro_menu->add( iv_txt = |All diffs|
-                    iv_act = |{ zif_abapgit_definitions=>gc_action-go_diff }?key={ mo_repo->get_key( ) }| ).
+                    iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }| ).
     ENDIF.
 
   ENDMETHOD. "build_menu
@@ -23641,11 +23641,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     " Action buttons
     ro_html->add( '<td class="indent5em">' ).
     ro_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
-                    iv_typ   = zif_abapgit_definitions=>gc_action_type-onclick
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
                     iv_id    = 'commitButton'
                     iv_style = 'display: none'
                     iv_txt   = 'Commit (<span id="fileCounter"></span>)'
-                    iv_opt   = zif_abapgit_definitions=>gc_html_opt-strong ) ##NO_TEXT.
+                    iv_opt   = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
     ro_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
                     iv_txt = lv_add_all_txt ) ##NO_TEXT.
@@ -23697,7 +23697,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
         lv_filename = zcl_abapgit_html=>a(
           iv_txt = lv_filename
-          iv_act = |{ zif_abapgit_definitions=>gc_action-go_diff }?{ lv_param }| ).
+          iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_param }| ).
         ro_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ro_html->add( |<td class="name">{ lv_filename }</td>| ).
         ro_html->add( |<td class="user">{ iv_changed_by }</td>| ).
@@ -23830,7 +23830,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         io_repo  = mo_repo
         io_stage = lo_stage.
 
-    ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+    ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
   ENDMETHOD.
 ENDCLASS.
@@ -23838,7 +23838,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
   METHOD build_settings.
 
     DATA: lv_i_param_value TYPE i,
-          column           TYPE string,
+          lv_column           TYPE string,
           lt_key_bindings  TYPE zif_abapgit_definitions=>tty_hotkey.
 
     FIELD-SYMBOLS: <ls_post_field>  TYPE ihttpnvp,
@@ -23941,9 +23941,9 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
 
       FIND FIRST OCCURRENCE OF REGEX `key_(.*)_`
            IN <ls_post_field>-name
-           SUBMATCHES column.
+           SUBMATCHES lv_column.
 
-      CASE column.
+      CASE lv_column.
         WHEN 'sequence'.
           INSERT INITIAL LINE INTO TABLE lt_key_bindings ASSIGNING <ls_key_binding>.
           <ls_key_binding>-sequence = <ls_post_field>-value.
@@ -24337,7 +24337,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
           persist_settings( ).
         ENDIF.
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -24588,7 +24588,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     CASE iv_action.
       WHEN c_action-save_settings.
         save( it_postdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -24717,13 +24717,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_change_order_by.
 
-    FIELD-SYMBOLS: <ls_postdata> TYPE cnht_post_data_line.
+    FIELD-SYMBOLS: <lv_postdata> TYPE cnht_post_data_line.
 
-    READ TABLE it_postdata ASSIGNING <ls_postdata>
+    READ TABLE it_postdata ASSIGNING <lv_postdata>
                            INDEX 1.
     IF sy-subrc = 0.
       FIND FIRST OCCURRENCE OF REGEX `orderBy=(.*)`
-           IN <ls_postdata>
+           IN <lv_postdata>
            SUBMATCHES mv_order_by.
     ENDIF.
 
@@ -24734,15 +24734,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     DATA: lv_direction TYPE string.
 
-    FIELD-SYMBOLS: <ls_postdata> TYPE cnht_post_data_line.
+    FIELD-SYMBOLS: <lv_postdata> TYPE cnht_post_data_line.
 
     CLEAR: mv_order_descending.
 
-    READ TABLE it_postdata ASSIGNING <ls_postdata>
+    READ TABLE it_postdata ASSIGNING <lv_postdata>
                            INDEX 1.
     IF sy-subrc = 0.
       FIND FIRST OCCURRENCE OF REGEX `direction=(.*)`
-           IN <ls_postdata>
+           IN <lv_postdata>
            SUBMATCHES lv_direction.
     ENDIF.
 
@@ -24753,13 +24753,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_filter.
 
-    FIELD-SYMBOLS: <ls_postdata> LIKE LINE OF it_postdata.
+    FIELD-SYMBOLS: <lv_postdata> LIKE LINE OF it_postdata.
 
-    READ TABLE it_postdata ASSIGNING <ls_postdata>
+    READ TABLE it_postdata ASSIGNING <lv_postdata>
                            INDEX 1.
     IF sy-subrc = 0.
       FIND FIRST OCCURRENCE OF REGEX `filter=(.*)`
-           IN <ls_postdata>
+           IN <lv_postdata>
            SUBMATCHES mv_filter.
     ENDIF.
 
@@ -24781,7 +24781,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ro_html->add( |<div class="form-container">| ).
 
     ro_html->add( |<form id="commit_form" class="grey70"|
-               && | method="post" action="sapevent:{ gc_action-apply_filter }">| ).
+               && | method="post" action="sapevent:{ c_action-apply_filter }">| ).
 
     render_header_bar( ro_html ).
 
@@ -24904,7 +24904,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
       io_html->add( |<tr{ lv_trclass }>| ).
       io_html->add( |<td>| ).
-      io_html->add_a( iv_act = |{ zif_abapgit_definitions=>gc_action-repo_toggle_fav }?{ <ls_overview>-key }|
+      io_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?{ <ls_overview>-key }|
                       iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_favorite_icon
                                                        iv_class = 'pad-sides'
                                                        iv_hint  = 'Click to toggle favorite' ) ).
@@ -24913,7 +24913,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
       io_html->add( |<td>{ <ls_overview>-key }</td>| ).
       io_html->add( |<td>{ zcl_abapgit_html=>a( iv_txt = <ls_overview>-name
-                                                iv_act = |{ gc_action-select }?{ <ls_overview>-key }| ) }</td>| ).
+                                                iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
       io_html->add( |<td>{ <ls_overview>-url }</td>| ).
       io_html->add( |<td>{ <ls_overview>-package }</td>| ).
       io_html->add( |<td>{ <ls_overview>-branch }</td>| ).
@@ -24979,7 +24979,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     DATA: lv_key  TYPE zif_abapgit_persistence=>ty_value.
 
     CASE iv_action.
-      WHEN gc_action-select.
+      WHEN c_action-select.
 
         lv_key = iv_getdata.
 
@@ -24990,22 +24990,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
 
-      WHEN gc_action-change_order_by.
+      WHEN c_action-change_order_by.
 
         parse_change_order_by( it_postdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
-      WHEN gc_action-direction.
+      WHEN c_action-direction.
 
         parse_direction( it_postdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
-      WHEN gc_action-apply_filter.
+      WHEN c_action-apply_filter.
 
         parse_filter( it_postdata ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
     ENDCASE.
 
@@ -25034,20 +25034,20 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     LOOP AT it_postdata ASSIGNING <lv_postdata_line>.
       lv_string = |{ lv_string }{ <lv_postdata_line> }|.
     ENDLOOP.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
 
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
     zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'MERGE_CONTENT'
                                                         it_field = lt_fields
                                               CHANGING cg_field = ls_filedata ).
     ls_filedata-merge_content = cl_http_utility=>unescape_url( escaped = ls_filedata-merge_content ).
-    REPLACE ALL OCCURRENCES OF lc_replace IN ls_filedata-merge_content WITH zif_abapgit_definitions=>gc_newline.
+    REPLACE ALL OCCURRENCES OF lc_replace IN ls_filedata-merge_content WITH zif_abapgit_definitions=>c_newline.
 
     lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string = ls_filedata-merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
-    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                         iv_data = lv_new_file_content ).
     <ls_conflict>-result_data = lv_new_file_content.
     mo_merge->resolve_conflict( is_conflict = <ls_conflict> ).
@@ -25177,8 +25177,8 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
         ro_html->add( '<th>Merge - ' ).                     "#EC NOTEXT
         ro_html->add_a( iv_act = 'submitFormById(''merge_form'');' "#EC NOTEXT
                         iv_txt = 'Apply'
-                        iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                        iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                        iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                        iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
         ro_html->add( '</th> ' ).                           "#EC NOTEXT
         ro_html->add( '</tr>' ).                            "#EC NOTEXT
         ro_html->add( '</thead>' ).                         "#EC NOTEXT
@@ -25332,8 +25332,8 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''target_form'');' "#EC NOTEXT
                       iv_txt = 'Apply'
-                      iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                      iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                      iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
       ro_html->add( '</th> ' ).                             "#EC NOTEXT
       ro_html->add( '</form>' ).                            "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
@@ -25341,8 +25341,8 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       ro_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) &&' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''source_form'');' "#EC NOTEXT
                       iv_txt = 'Apply'
-                      iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                      iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ).
+                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                      iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
       ro_html->add( '</th> ' ).                             "#EC NOTEXT
       ro_html->add( '</form>' ).                            "#EC NOTEXT
       ro_html->add( '</tr>' ).                              "#EC NOTEXT
@@ -25437,15 +25437,15 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
         ENDIF.
 
         IF mv_current_conflict_index IS NOT INITIAL.
-          ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+          ev_state = zif_abapgit_definitions=>c_event_state-re_render.
         ELSE.
           ei_page = mo_merge_page.
-          ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+          ev_state = zif_abapgit_definitions=>c_event_state-go_back.
         ENDIF.
 
       WHEN c_actions-toggle_mode.
         toggle_merge_mode( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
     ENDCASE.
 
@@ -25610,7 +25610,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
 
         ENDIF.
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
       WHEN c_actions-res_conflicts.
 
@@ -25619,7 +25619,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
             io_repo       = mo_repo
             io_merge_page = me
             io_merge      = mo_merge.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
     ENDCASE.
 
@@ -25640,35 +25640,35 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     CREATE OBJECT lo_helpsub.
 
     lo_advsub->add( iv_txt = 'Repository overview'
-                    iv_act = zif_abapgit_definitions=>gc_action-go_repo_overview ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-go_repo_overview ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Database util'
-                    iv_act = zif_abapgit_definitions=>gc_action-go_db ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-go_db ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Package to zip'
-                    iv_act = zif_abapgit_definitions=>gc_action-zip_package ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-zip_package ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Transport to zip'
-                    iv_act = zif_abapgit_definitions=>gc_action-zip_transport ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-zip_transport ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Object to files'
-                    iv_act = zif_abapgit_definitions=>gc_action-zip_object ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-zip_object ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Test changed by'
                     iv_act = c_actions-changed_by ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Page playground'
-                    iv_act = zif_abapgit_definitions=>gc_action-go_playground ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-go_playground ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Debug info'
-                    iv_act = zif_abapgit_definitions=>gc_action-go_debuginfo ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Settings'
-                    iv_act = zif_abapgit_definitions=>gc_action-go_settings ) ##NO_TEXT.
+                    iv_act = zif_abapgit_definitions=>c_action-go_settings ) ##NO_TEXT.
 
     lo_helpsub->add( iv_txt = 'Tutorial'
-                     iv_act = zif_abapgit_definitions=>gc_action-go_tutorial ) ##NO_TEXT.
+                     iv_act = zif_abapgit_definitions=>c_action-go_tutorial ) ##NO_TEXT.
     lo_helpsub->add( iv_txt = 'Documentation'
                      iv_act = c_actions-documentation ) ##NO_TEXT.
 
     ro_menu->add( iv_txt = '+ Online'
-                  iv_act = zif_abapgit_definitions=>gc_action-repo_newonline ) ##NO_TEXT.
+                  iv_act = zif_abapgit_definitions=>c_action-repo_newonline ) ##NO_TEXT.
     ro_menu->add( iv_txt = '+ Offline'
-                  iv_act = zif_abapgit_definitions=>gc_action-repo_newoffline ) ##NO_TEXT.
+                  iv_act = zif_abapgit_definitions=>c_action-repo_newoffline ) ##NO_TEXT.
     ro_menu->add( iv_txt = 'Explore'
-                  iv_act = zif_abapgit_definitions=>gc_action-go_explore ) ##NO_TEXT.
+                  iv_act = zif_abapgit_definitions=>c_action-go_explore ) ##NO_TEXT.
 
     ro_menu->add( iv_txt = 'Advanced'
                   io_sub = lo_advsub ) ##NO_TEXT.
@@ -25804,7 +25804,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
       ro_html->add( lo_favbar->render( iv_sort = abap_true ) ).
     ELSE.
       ro_html->add( |<span class="grey">No favorites so far. For more info please check {
-                    zcl_abapgit_html=>a( iv_txt = 'tutorial' iv_act = zif_abapgit_definitions=>gc_action-go_tutorial )
+                    zcl_abapgit_html=>a( iv_txt = 'tutorial' iv_act = zif_abapgit_definitions=>c_action-go_tutorial )
                     }</span>| ).
     ENDIF.
     ro_html->add( '</td>' ).
@@ -25887,7 +25887,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
           ei_page      = ei_page
           ev_state     = ev_state ).
 
-      IF ev_state <> zif_abapgit_definitions=>gc_event_state-not_handled.
+      IF ev_state <> zif_abapgit_definitions=>c_event_state-not_handled.
         RETURN.
       ENDIF.
     ENDIF.
@@ -25901,17 +25901,17 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
             zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-changed_by.
         test_changed_by( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
       WHEN c_actions-documentation.
         zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
       WHEN c_actions-overview.
         CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
         ei_page = li_repo_overview.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -25920,37 +25920,37 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
 
     ls_hotkey_action-name           = |Main: Settings|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_settings.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_settings.
     ls_hotkey_action-default_hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: Repo overview|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_repo_overview.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_repo_overview.
     ls_hotkey_action-default_hotkey = |o|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: Refresh|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_refresh.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_refresh.
     ls_hotkey_action-default_hotkey = |r|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: Pull|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-git_pull.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_pull.
     ls_hotkey_action-default_hotkey = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: + Online|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_newonline.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_newonline.
     ls_hotkey_action-default_hotkey = |n|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: Uninstall|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-repo_purge.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_purge.
     ls_hotkey_action-default_hotkey = |u|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Main: Show diff|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>gc_action-go_diff.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_diff.
     ls_hotkey_action-default_hotkey = |d|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
@@ -26076,10 +26076,10 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
       " File types
       IF lines( lt_types ) > 1.
-        lo_sub->add( iv_txt = 'TYPE' iv_typ = zif_abapgit_definitions=>gc_action_type-separator ).
+        lo_sub->add( iv_txt = 'TYPE' iv_typ = zif_abapgit_definitions=>c_action_type-separator ).
         LOOP AT lt_types ASSIGNING <lv_i>.
           lo_sub->add( iv_txt = <lv_i>
-                       iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
+                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
                        iv_aux = 'type'
                        iv_chk = abap_true ).
         ENDLOOP.
@@ -26087,10 +26087,10 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
       " Changed by
       IF lines( lt_users ) > 1.
-        lo_sub->add( iv_txt = 'CHANGED BY' iv_typ = zif_abapgit_definitions=>gc_action_type-separator ).
+        lo_sub->add( iv_txt = 'CHANGED BY' iv_typ = zif_abapgit_definitions=>c_action_type-separator ).
         LOOP AT lt_users ASSIGNING <lv_i>.
           lo_sub->add( iv_txt = <lv_i>
-                       iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
+                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
                        iv_aux = 'changed-by'
                        iv_chk = abap_true ).
         ENDLOOP.
@@ -26297,8 +26297,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ). "#EC NOTEXT
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
-      iv1 = is_diff-lstate
-      iv2 = is_diff-rstate ) ).
+      iv_lstate = is_diff-lstate
+      iv_rstate = is_diff-rstate ) ).
 
     IF is_diff-fstate = c_fstate-both AND mv_unified = abap_true.
       ro_html->add( '<span class="attention pad-sides">Attention: Unified mode'
@@ -26491,7 +26491,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     CASE iv_action.
       WHEN c_actions-toggle_unified. " Toggle file diplay
         mv_unified = zcl_abapgit_persistence_user=>get_instance( )->toggle_diff_unified( ).
-        ev_state   = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state   = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -26590,8 +26590,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     CLEAR eg_fields.
 
     CONCATENATE LINES OF it_postdata INTO lv_string.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>gc_newline IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
 
     zcl_abapgit_html_action_utils=>get_field(
@@ -26633,7 +26633,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>gc_newline.
+    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -26747,12 +26747,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Commit'
-                     iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_definitions=>gc_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_definitions=>c_html_opt-cancel ) ##NO_TEXT.
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -26838,10 +26838,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
                                   io_repo     = mo_repo
                                   io_stage    = mo_stage ).
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back_to_bookmark.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back_to_bookmark.
 
       WHEN c_action-commit_cancel.
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -26858,7 +26858,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
                   iv_cur = abap_false ) ##NO_TEXT.
 
     IF is_stage_allowed( ) = abap_false.
-      lv_opt = zif_abapgit_definitions=>gc_html_opt-crossout.
+      lv_opt = zif_abapgit_definitions=>c_html_opt-crossout.
     ENDIF.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -26977,7 +26977,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
       ro_html->add( '<div>' ).
       ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
                       iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }|
-                      iv_typ = zif_abapgit_definitions=>gc_action_type-sapevent ).
+                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
       ro_html->add( '</div>' ).
 
       CASE <ls_result>-kind.
@@ -27022,12 +27022,12 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
           CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_stage
             EXPORTING
               io_repo = lo_repo_online.
-          ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
         ELSE.
 
           ei_page = me.
-          ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+          ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
         ENDIF.
 
@@ -27041,12 +27041,12 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
             EXPORTING
               io_repo  = lo_repo_online
               io_stage = mo_stage.
-          ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
 
         ELSE.
 
           ei_page = me.
-          ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+          ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
         ENDIF.
 
@@ -27055,7 +27055,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
         run_code_inspector( ).
 
         ei_page = me.
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
 
       WHEN OTHERS.
 
@@ -27066,7 +27066,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
 *        zcl_abapgit_objects=>jump( ls_item ).
 
-        ev_state = zif_abapgit_definitions=>gc_event_state-no_more_act.
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
     ENDCASE.
 
@@ -27287,15 +27287,15 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     CASE iv_action.
       WHEN c_actions-refresh.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-uncompress.
         mv_compress = abap_false.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-compress.
         mv_compress = abap_true.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-merge.
         ls_merge = decode_merge( it_postdata ).
         CREATE OBJECT lo_merge
@@ -27304,7 +27304,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
             iv_source = ls_merge-source
             iv_target = ls_merge-target.
         ei_page = lo_merge.
-        ev_state = zif_abapgit_definitions=>gc_event_state-new_page.
+        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -27368,7 +27368,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     CREATE OBJECT ro_menu.
 
     ro_menu->add( iv_txt = 'Run background logic'
-                  iv_act = zif_abapgit_definitions=>gc_action-go_background_run ) ##NO_TEXT.
+                  iv_act = zif_abapgit_definitions=>c_action-go_background_run ) ##NO_TEXT.
 
   ENDMETHOD.
   METHOD constructor.
@@ -27500,7 +27500,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     lt_methods = zcl_abapgit_background=>list_methods( ).
 
     ro_html->add( '<u>Method</u><br>' ) ##NO_TEXT.
-    ro_html->add( |<form method="get" action="sapevent:{ zif_abapgit_definitions=>gc_action-bg_update }">| ).
+    ro_html->add( |<form method="get" action="sapevent:{ zif_abapgit_definitions=>c_action-bg_update }">| ).
 
     IF is_per-method IS INITIAL.
       lv_checked = ' checked' ##NO_TEXT.
@@ -27582,9 +27582,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
-      WHEN zif_abapgit_definitions=>gc_action-bg_update.
+      WHEN zif_abapgit_definitions=>c_action-bg_update.
         update( decode( iv_getdata ) ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -27656,7 +27656,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( |<td class="logo">{
                   zcl_abapgit_html=>a( iv_txt = '<img src="img/logo" alt="logo">'
                                        iv_id  = 'abapGitLogo'
-                                       iv_act = zif_abapgit_definitions=>gc_action-abapgit_home )
+                                       iv_act = zif_abapgit_definitions=>c_action-abapgit_home )
                   }</td>| ).                                "#EC NOTEXT
 
     ro_html->add( |<td><span class="page_title"> &#x25BA; {
@@ -27674,7 +27674,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
   ENDMETHOD.                    "render page title
   METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zif_abapgit_definitions=>gc_event_state-not_handled.
+    ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
   ENDMETHOD. "lif_gui_page~on_event
   METHOD zif_abapgit_gui_page~render.
 
@@ -27836,7 +27836,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ro_html->add( |<span class="{ lv_class }">| ).
     ro_html->add_icon( iv_name = 'git-branch/darkgrey' iv_hint = 'Current branch' ).
     IF iv_interactive = abap_true.
-      ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>gc_action-git_branch_switch }?{ io_repo->get_key( ) }|
+      ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?{ io_repo->get_key( ) }|
                       iv_txt = lv_text ).
     ELSE.
       ro_html->add( lv_text ).
@@ -27871,27 +27871,27 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     DO 2 TIMES.
       CASE sy-index.
         WHEN 1.
-          ASSIGN iv1 TO <lv_state>.
+          ASSIGN iv_lstate TO <lv_state>.
           lv_system = 'Local:'.
         WHEN 2.
-          ASSIGN iv2 TO <lv_state>.
+          ASSIGN iv_rstate TO <lv_state>.
           lv_system = 'Remote:'.
       ENDCASE.
 
       CASE <lv_state>.
-        WHEN zif_abapgit_definitions=>gc_state-unchanged.  "None or unchanged
-          IF iv1 = zif_abapgit_definitions=>gc_state-added OR iv2 = zif_abapgit_definitions=>gc_state-added.
+        WHEN zif_abapgit_definitions=>c_state-unchanged.  "None or unchanged
+          IF iv_lstate = zif_abapgit_definitions=>c_state-added OR iv_rstate = zif_abapgit_definitions=>c_state-added.
             rv_html = rv_html && |<span class="none" title="{ lv_system } Not exists">X</span>|.
           ELSE.
             rv_html = rv_html && |<span class="none" title="{ lv_system } No changes">&nbsp;</span>|.
           ENDIF.
-        WHEN zif_abapgit_definitions=>gc_state-modified.   "Changed
+        WHEN zif_abapgit_definitions=>c_state-modified.   "Changed
           rv_html = rv_html && |<span class="changed" title="{ lv_system } Modified">M</span>|.
-        WHEN zif_abapgit_definitions=>gc_state-added.      "Added new
+        WHEN zif_abapgit_definitions=>c_state-added.      "Added new
           rv_html = rv_html && |<span class="added" title="{ lv_system } Added new">A</span>|.
-        WHEN zif_abapgit_definitions=>gc_state-mixed.      "Multiple changes (multifile)
+        WHEN zif_abapgit_definitions=>c_state-mixed.      "Multiple changes (multifile)
           rv_html = rv_html && |<span class="mixed" title="{ lv_system } Multiple changes">&#x25A0;</span>|.
-        WHEN zif_abapgit_definitions=>gc_state-deleted.    "Deleted
+        WHEN zif_abapgit_definitions=>c_state-deleted.    "Deleted
           rv_html = rv_html && |<span class="deleted" title="{ lv_system } Deleted">D</span>|.
       ENDCASE.
     ENDDO.
@@ -27933,7 +27933,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                && '<div class="float-right">'
                && zcl_abapgit_html=>a(
                     iv_txt   = '&#x274c;'
-                    iv_typ   = zif_abapgit_definitions=>gc_action_type-onclick
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
                     iv_act   = 'displayNews()'
                     iv_class = 'close-btn' )
                && '</div></div>' ).
@@ -28003,7 +28003,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         lv_icon = 'arrow-up/grey80'.
       ENDIF.
       ro_html->add_a( iv_act = 'displayNews()'
-                      iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
+                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
                       iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
                                                        iv_class = 'pad-sides'
                                                       iv_hint  = 'Display changelog' ) ).
@@ -28018,7 +28018,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ELSE.
       lv_icon = 'star/grey' ##NO_TEXT.
     ENDIF.
-    ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>gc_action-repo_toggle_fav }?{ io_repo->get_key( ) }|
+    ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?{ io_repo->get_key( ) }|
                     iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
                                                      iv_class = 'pad-sides'
                                                      iv_hint  = 'Click to toggle favorite' ) ).
@@ -28054,7 +28054,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       ro_html->add_icon( iv_name = 'package/darkgrey' iv_hint = 'SAP package' ).
       ro_html->add( '<span>' ).
       ro_html->add_a( iv_txt = io_repo->get_package( )
-                      iv_act = |{ zif_abapgit_definitions=>gc_action-jump_pkg }?{ io_repo->get_package( ) }| ).
+                      iv_act = |{ zif_abapgit_definitions=>c_action-jump_pkg }?{ io_repo->get_package( ) }| ).
       ro_html->add( '</span>' ).
     ENDIF.
 
@@ -29874,7 +29874,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
     ENDCASE.
 
-    CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>gc_newline.
+    CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
 
     CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
       EXPORTING
@@ -30162,7 +30162,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD go_home.
 
-    on_event( action = |{ zif_abapgit_definitions=>gc_action-go_main }| ). " doesn't accept strings directly
+    on_event( action = |{ zif_abapgit_definitions=>c_action-go_main }| ). " doesn't accept strings directly
 
   ENDMETHOD.                "go_home
   METHOD handle_action.
@@ -30175,10 +30175,10 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         IF mi_cur_page IS BOUND.
           mi_cur_page->on_event(
             EXPORTING
-              iv_action    = action
+              iv_action    = iv_action
               iv_prev_page = get_current_page_name( )
-              iv_getdata   = getdata
-              it_postdata  = postdata
+              iv_getdata   = iv_getdata
+              it_postdata  = it_postdata
             IMPORTING
               ei_page      = li_page
               ev_state     = lv_state ).
@@ -30187,32 +30187,32 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         IF lv_state IS INITIAL.
           mo_router->on_event(
             EXPORTING
-              iv_action    = action
+              iv_action    = iv_action
               iv_prev_page = get_current_page_name( )
-              iv_getdata   = getdata
-              it_postdata  = postdata
+              iv_getdata   = iv_getdata
+              it_postdata  = it_postdata
             IMPORTING
               ei_page      = li_page
               ev_state     = lv_state ).
         ENDIF.
 
         CASE lv_state.
-          WHEN zif_abapgit_definitions=>gc_event_state-re_render.
+          WHEN zif_abapgit_definitions=>c_event_state-re_render.
             render( ).
-          WHEN zif_abapgit_definitions=>gc_event_state-new_page.
+          WHEN zif_abapgit_definitions=>c_event_state-new_page.
             call_page( li_page ).
-          WHEN zif_abapgit_definitions=>gc_event_state-new_page_w_bookmark.
+          WHEN zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
             call_page( ii_page = li_page iv_with_bookmark = abap_true ).
-          WHEN zif_abapgit_definitions=>gc_event_state-new_page_replacing.
+          WHEN zif_abapgit_definitions=>c_event_state-new_page_replacing.
             call_page( ii_page = li_page iv_replacing = abap_true ).
-          WHEN zif_abapgit_definitions=>gc_event_state-go_back.
+          WHEN zif_abapgit_definitions=>c_event_state-go_back.
             back( ).
-          WHEN zif_abapgit_definitions=>gc_event_state-go_back_to_bookmark.
+          WHEN zif_abapgit_definitions=>c_event_state-go_back_to_bookmark.
             back( abap_true ).
-          WHEN zif_abapgit_definitions=>gc_event_state-no_more_act.
+          WHEN zif_abapgit_definitions=>c_event_state-no_more_act.
             " Do nothing, handling completed
           WHEN OTHERS.
-            zcx_abapgit_exception=>raise( |Unknown action: { action }| ).
+            zcx_abapgit_exception=>raise( |Unknown action: { iv_action }| ).
         ENDCASE.
 
       CATCH zcx_abapgit_exception INTO lx_exception.
@@ -30226,11 +30226,11 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD on_event.
 
     handle_action(
-      action      = action
-      frame       = frame
-      getdata     = getdata
-      postdata    = postdata
-      query_table = query_table ).
+      iv_action      = action
+      iv_frame       = frame
+      iv_getdata     = getdata
+      it_postdata    = postdata
+      it_query_table = query_table ).
 
   ENDMETHOD.                    "on_event
   METHOD render.
@@ -30341,8 +30341,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     CREATE OBJECT lo_toolbar.
     lo_toolbar->add( iv_act = 'submitFormById(''db_form'');'
                      iv_txt = 'Save'
-                     iv_typ = zif_abapgit_definitions=>gc_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>gc_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
 
     ro_html->add( '<div class="db_entry">' ).
 
@@ -30386,7 +30386,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
       WHEN c_action-update.
         ls_db = dbcontent_decode( it_postdata ).
         update( ls_db ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-go_back.
+        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -30423,7 +30423,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
     CREATE OBJECT lo_toolbar.
-    lo_toolbar->add( iv_act = |{ zif_abapgit_definitions=>gc_action-db_edit }?{ lv_action }|
+    lo_toolbar->add( iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }|
                      iv_txt = 'Edit' ) ##NO_TEXT.
 
     ro_html->add( '<div class="db_entry">' ).
@@ -30440,7 +30440,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
   METHOD render_record_banner.
     rv_html = |<table class="tag"><tr><td class="label">Type:</td>|
            && | <td>{ is_key-type }</td></tr></table>|
-           && zif_abapgit_definitions=>gc_newline
+           && zif_abapgit_definitions=>c_newline
            && |<table class="tag"><tr><td class="label">Key:</td>|
            && |  <td>{ is_key-value }</td></tr></table>|.
   ENDMETHOD. "render_record_banner
@@ -30564,9 +30564,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
       lv_action  = zcl_abapgit_html_action_utils=>dbkey_encode( <ls_data> ).
 
       CREATE OBJECT lo_toolbar.
-      lo_toolbar->add( iv_txt = 'Display' iv_act = |{ zif_abapgit_definitions=>gc_action-db_display }?{ lv_action }| ).
-      lo_toolbar->add( iv_txt = 'Edit'    iv_act = |{ zif_abapgit_definitions=>gc_action-db_edit }?{ lv_action }| ).
-      lo_toolbar->add( iv_txt = 'Delete'  iv_act = |{ gc_action-delete }?{ lv_action }| ).
+      lo_toolbar->add( iv_txt = 'Display' iv_act = |{ zif_abapgit_definitions=>c_action-db_display }?{ lv_action }| ).
+      lo_toolbar->add( iv_txt = 'Edit'    iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }| ).
+      lo_toolbar->add( iv_txt = 'Delete'  iv_act = |{ c_action-delete }?{ lv_action }| ).
 
       ro_html->add( |<tr{ lv_trclass }>| ).
       ro_html->add( |<td>{ <ls_data>-type }</td>| ).
@@ -30591,10 +30591,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
 
     CASE iv_action.
-      WHEN gc_action-delete.
+      WHEN c_action-delete.
         ls_db = zcl_abapgit_html_action_utils=>dbkey_decode( iv_getdata ).
         delete( ls_db ).
-        ev_state = zif_abapgit_definitions=>gc_event_state-re_render.
+        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -30606,7 +30606,7 @@ CLASS ZCL_ABAPGIT_TEST_SERIALIZE IMPLEMENTATION.
 
     lt_files = zcl_abapgit_objects=>serialize(
       is_item     = is_item
-      iv_language = zif_abapgit_definitions=>gc_english ).
+      iv_language = zif_abapgit_definitions=>c_english ).
 
     cl_abap_unit_assert=>assert_not_initial( lt_files ).
 
@@ -31864,18 +31864,18 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
           ls_user_settings    TYPE zif_abapgit_definitions=>ty_s_user_settings,
           li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
-    FIELD-SYMBOLS: <ls_user>                     LIKE LINE OF lt_abapgit_users,
+    FIELD-SYMBOLS: <lv_user>                     LIKE LINE OF lt_abapgit_users,
                    <ls_setting_to_migrate>       TYPE zcl_abapgit_persist_migrate=>ty_settings_to_migrate,
-                   <user_specific_setting_value> TYPE data.
+                   <lg_user_specific_setting_val> TYPE data.
 
     " distribute settings to all abapGit users
     SELECT value FROM (zcl_abapgit_persistence_db=>c_tabname)
                  INTO TABLE lt_abapgit_users
                  WHERE type = zcl_abapgit_persistence_db=>c_type_user.
 
-    LOOP AT lt_abapgit_users ASSIGNING <ls_user>.
+    LOOP AT lt_abapgit_users ASSIGNING <lv_user>.
 
-      li_user_persistence = zcl_abapgit_persistence_user=>get_instance( <ls_user> ).
+      li_user_persistence = zcl_abapgit_persistence_user=>get_instance( <lv_user> ).
 
       ls_user_settings = li_user_persistence->get_settings( ).
 
@@ -31883,10 +31883,10 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
 
         ASSIGN COMPONENT <ls_setting_to_migrate>-name
                OF STRUCTURE ls_user_settings
-               TO <user_specific_setting_value>.
+               TO <lg_user_specific_setting_val>.
         ASSERT sy-subrc = 0.
 
-        <user_specific_setting_value> = <ls_setting_to_migrate>-value.
+        <lg_user_specific_setting_val> = <ls_setting_to_migrate>-value.
 
       ENDLOOP.
 
@@ -31916,7 +31916,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
     ls_dd25v-viewname   = zcl_abapgit_persistence_db=>c_lock.
     ls_dd25v-aggtype    = 'E'.
     ls_dd25v-roottab    = zcl_abapgit_persistence_db=>c_tabname.
-    ls_dd25v-ddlanguage = zif_abapgit_definitions=>gc_english.
+    ls_dd25v-ddlanguage = zif_abapgit_definitions=>c_english.
     ls_dd25v-ddtext     = c_text.
 
     APPEND INITIAL LINE TO lt_dd26e ASSIGNING <ls_dd26e>.
@@ -31997,20 +31997,20 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
   ENDMETHOD.
   METHOD migrate_setting.
 
-    DATA: lo_element            TYPE REF TO if_ixml_element,
+    DATA: li_element            TYPE REF TO if_ixml_element,
           ls_setting_to_migrate LIKE LINE OF ct_settings_to_migrate.
 
-    lo_element = ci_document->find_from_name( iv_name  ).
-    IF lo_element IS BOUND.
+    li_element = ci_document->find_from_name( iv_name  ).
+    IF li_element IS BOUND.
 
       " The element is present in the global config.
       " Therefore we have to migrate it
 
       ls_setting_to_migrate-name = iv_name.
-      ls_setting_to_migrate-value = lo_element->get_value( ).
+      ls_setting_to_migrate-value = li_element->get_value( ).
       INSERT ls_setting_to_migrate INTO TABLE ct_settings_to_migrate.
 
-      lo_element->remove_node( ).
+      li_element->remove_node( ).
 
     ENDIF.
 
@@ -32085,7 +32085,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_dd03p> LIKE LINE OF lt_dd03p.
 
     ls_dd02v-tabname    = zcl_abapgit_persistence_db=>c_tabname.
-    ls_dd02v-ddlanguage = zif_abapgit_definitions=>gc_english.
+    ls_dd02v-ddlanguage = zif_abapgit_definitions=>c_english.
     ls_dd02v-tabclass   = 'TRANSP'.
     ls_dd02v-ddtext     = c_text.
     ls_dd02v-contflag   = 'L'.
@@ -35304,9 +35304,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     DATA: lv_source TYPE string,
           ls_file   TYPE zif_abapgit_definitions=>ty_file.
-    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>gc_newline.
+    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>c_newline.
 * when editing files via eg. GitHub web interface it adds a newline at end of file
-    lv_source = lv_source && zif_abapgit_definitions=>gc_newline.
+    lv_source = lv_source && zif_abapgit_definitions=>c_newline.
 
     ls_file-path = '/'.
     ls_file-filename = filename( iv_extra = iv_extra
@@ -35428,7 +35428,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     lv_abap = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
-    SPLIT lv_abap AT zif_abapgit_definitions=>gc_newline INTO TABLE rt_abap.
+    SPLIT lv_abap AT zif_abapgit_definitions=>c_newline INTO TABLE rt_abap.
 
   ENDMETHOD.
   METHOD read_file.
@@ -37490,7 +37490,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |WAPA - error from get_page_content| ).
     ENDIF.
 
-    CONCATENATE LINES OF lt_content INTO lv_string SEPARATED BY zif_abapgit_definitions=>gc_newline RESPECTING BLANKS.
+    CONCATENATE LINES OF lt_content INTO lv_string SEPARATED BY zif_abapgit_definitions=>c_newline RESPECTING BLANKS.
 
     rv_content = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
@@ -37574,7 +37574,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
     DATA: lv_string TYPE string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_content ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>gc_newline INTO TABLE rt_content.
+    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE rt_content.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -38930,40 +38930,40 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD clear_dynamic_fields.
 
     FIELD-SYMBOLS: <lg_header> TYPE any.
-    ASSIGN COMPONENT 'HEADER' OF STRUCTURE cs_complete_comm_assembly
+    ASSIGN COMPONENT 'HEADER' OF STRUCTURE cg_complete_comm_assembly
            TO <lg_header>.
     ASSERT sy-subrc = 0.
 
     clear_field(
       EXPORTING iv_fieldname = 'CREATEDBY'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
     clear_field(
       EXPORTING iv_fieldname = 'CREATEDON'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
     clear_field(
       EXPORTING iv_fieldname = 'CREATEDAT'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
     clear_field(
       EXPORTING iv_fieldname = 'CHANGEDBY'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
     clear_field(
       EXPORTING iv_fieldname = 'CHANGEDON'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
     clear_field(
       EXPORTING iv_fieldname = 'CHANGEDAT'
-      CHANGING  cs_header    = <lg_header> ).
+      CHANGING  cg_header    = <lg_header> ).
 
   ENDMETHOD.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE any.
 
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_header
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cg_header
            TO <lg_field>.
     ASSERT sy-subrc = 0.
     CLEAR <lg_field>.
@@ -39002,7 +39002,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
 
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~DELETE')
           EXPORTING
-            version = zif_abapgit_definitions=>gc_version-active.
+            version = zif_abapgit_definitions=>c_version-active.
 
       CATCH cx_root INTO lx_root.
         lv_text = lx_root->get_text( ).
@@ -39040,7 +39040,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~SAVE')
           EXPORTING
             sa      = <lg_complete_comm_assembly>
-            version = zif_abapgit_definitions=>gc_version-active.
+            version = zif_abapgit_definitions=>c_version-active.
 
         tadir_insert( iv_package ).
 
@@ -39066,7 +39066,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
 
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~LOAD')
           EXPORTING
-            version  = zif_abapgit_definitions=>gc_version-active
+            version  = zif_abapgit_definitions=>c_version-active
             language = sy-langu.
 
       CATCH cx_root.
@@ -39126,12 +39126,12 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
 
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~LOAD')
           EXPORTING
-            version  = zif_abapgit_definitions=>gc_version-active
+            version  = zif_abapgit_definitions=>c_version-active
             language = sy-langu
           IMPORTING
             sa       = <lg_complete_comm_assembly>.
 
-        clear_dynamic_fields( CHANGING cs_complete_comm_assembly = <lg_complete_comm_assembly> ).
+        clear_dynamic_fields( CHANGING cg_complete_comm_assembly = <lg_complete_comm_assembly> ).
 
         io_xml->add( iv_name = 'UCSA'
                      ig_data = <lg_complete_comm_assembly> ).
@@ -58354,14 +58354,14 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
 
-    rv_text = zif_abapgit_definitions=>gc_tag_prefix && iv_text.
+    rv_text = zif_abapgit_definitions=>c_tag_prefix && iv_text.
 
   ENDMETHOD.
   METHOD remove_tag_prefix.
 
     rv_text = iv_text.
 
-    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>gc_tag_prefix
+    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_tag_prefix
             IN rv_text
             WITH ''.
 
@@ -58535,7 +58535,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
               zcl_abapgit_git_utils=>get_null( ) &&
               ` ` &&
               lv_cap_list &&
-              zif_abapgit_definitions=>gc_newline.          "#EC NOTEXT
+              zif_abapgit_definitions=>c_newline.          "#EC NOTEXT
     lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
 
     lv_buffer = lv_cmd_pkt && '0000'.
@@ -58602,22 +58602,22 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       IF sy-tabix = 1.
         lv_capa = 'side-band-64k no-progress multi_ack' ##NO_TEXT.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && ` ` && lv_capa && zif_abapgit_definitions=>gc_newline. "#EC NOTEXT
+          && ` ` && lv_capa && zif_abapgit_definitions=>c_newline. "#EC NOTEXT
       ELSE.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && zif_abapgit_definitions=>gc_newline.           "#EC NOTEXT
+          && zif_abapgit_definitions=>c_newline.           "#EC NOTEXT
       ENDIF.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
     ENDLOOP.
 
     IF iv_deepen = abap_true.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
-        && zif_abapgit_definitions=>gc_newline ).           "#EC NOTEXT
+        && zif_abapgit_definitions=>c_newline ).           "#EC NOTEXT
     ENDIF.
 
     lv_buffer = lv_buffer
              && '0000'
-             && '0009done' && zif_abapgit_definitions=>gc_newline.
+             && '0009done' && zif_abapgit_definitions=>c_newline.
 
     lv_xstring = lo_client->send_receive_close(
       zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ) ).
@@ -58633,7 +58633,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
+CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   METHOD build_trees.
 
     DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
@@ -58666,7 +58666,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         lv_len = strlen( <ls_folder>-path ).
         IF strlen( <ls_sub>-path ) > lv_len AND <ls_sub>-path(lv_len) = <ls_folder>-path.
           APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-          <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-dir.
+          <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-dir.
 
 * extract folder name, this can probably be done easier using regular expressions
           <ls_node>-name = <ls_sub>-path+lv_len.
@@ -58680,7 +58680,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       CLEAR ls_tree.
       ls_tree-path = <ls_folder>-path.
       ls_tree-data = zcl_abapgit_git_pack=>encode_tree( lt_nodes ).
-      ls_tree-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-tree iv_data = ls_tree-data ).
+      ls_tree-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-tree iv_data = ls_tree-data ).
       APPEND ls_tree TO rt_trees.
 
       <ls_folder>-sha1 = ls_tree-sha1.
@@ -58833,7 +58833,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
           ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>gc_type-commit
+        type = zif_abapgit_definitions=>c_type-commit
         sha1 = iv_branch .
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'commit not found' ).
@@ -58859,7 +58859,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     READ TABLE rs_result-objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>gc_type-commit
+        type = zif_abapgit_definitions=>c_type-commit
         sha1 = rs_result-branch.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Commit/branch not found' ).
@@ -58906,10 +58906,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
             APPEND INITIAL LINE TO lt_expanded ASSIGNING <ls_exp>.
             <ls_exp>-name  = <ls_stage>-file-filename.
             <ls_exp>-path  = <ls_stage>-file-path.
-            <ls_exp>-chmod = zif_abapgit_definitions=>gc_chmod-file.
+            <ls_exp>-chmod = zif_abapgit_definitions=>c_chmod-file.
           ENDIF.
 
-          lv_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-blob
+          lv_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                             iv_data = <ls_stage>-file-data ).
           IF <ls_exp>-sha1 <> lv_sha1.
             <ls_exp>-sha1 = lv_sha1.
@@ -58964,24 +58964,24 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
 * new tag
     ls_tag-object       = is_tag-sha1.
-    ls_tag-type         = zif_abapgit_definitions=>gc_type-commit.
+    ls_tag-type         = zif_abapgit_definitions=>c_type-commit.
     ls_tag-tag          = is_tag-name.
     ls_tag-tagger_name  = is_tag-tagger_name.
     ls_tag-tagger_email = is_tag-tagger_email.
     ls_tag-message      = is_tag-message
-                      && |{ zif_abapgit_definitions=>gc_newline }|
-                      && |{ zif_abapgit_definitions=>gc_newline }|
+                      && |{ zif_abapgit_definitions=>c_newline }|
+                      && |{ zif_abapgit_definitions=>c_newline }|
                       && is_tag-body.
 
     lv_tag = zcl_abapgit_git_pack=>encode_tag( ls_tag ).
 
     lv_new_tag_sha1 = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>gc_type-tag
+      iv_type = zif_abapgit_definitions=>c_type-tag
       iv_data = lv_tag ).
 
     CLEAR ls_object.
     ls_object-sha1 = lv_new_tag_sha1.
-    ls_object-type = zif_abapgit_definitions=>gc_type-tag.
+    ls_object-type = zif_abapgit_definitions=>c_type-tag.
     ls_object-data = lv_tag.
     ls_object-index = 1.
     APPEND ls_object TO lt_objects.
@@ -59003,7 +59003,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
           lv_pack   TYPE xstring,
           ls_object LIKE LINE OF et_new_objects,
           ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    DATA: uindex     TYPE sy-index.
+    DATA: lv_uindex     TYPE sy-index.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
@@ -59029,8 +59029,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
 
     CLEAR ls_object.
-    ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>gc_type-commit iv_data = lv_commit ).
-    ls_object-type = zif_abapgit_definitions=>gc_type-commit.
+    ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-commit iv_data = lv_commit ).
+    ls_object-type = zif_abapgit_definitions=>c_type-commit.
     ls_object-data = lv_commit.
     APPEND ls_object TO et_new_objects.
 
@@ -59040,7 +59040,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
       READ TABLE et_new_objects
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>gc_type-tree
+          type = zif_abapgit_definitions=>c_type-tree
           sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -59048,22 +59048,22 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      ls_object-type = zif_abapgit_definitions=>gc_type-tree.
+      ls_object-type = zif_abapgit_definitions=>c_type-tree.
       ls_object-data = <ls_tree>-data.
-      uindex = uindex + 1.
-      ls_object-index = uindex.
+      lv_uindex = lv_uindex + 1.
+      ls_object-index = lv_uindex.
       APPEND ls_object TO et_new_objects.
     ENDLOOP.
 
     LOOP AT it_blobs ASSIGNING <ls_blob>.
       CLEAR ls_object.
       ls_object-sha1 = zcl_abapgit_hash=>sha1(
-        iv_type = zif_abapgit_definitions=>gc_type-blob
+        iv_type = zif_abapgit_definitions=>c_type-blob
         iv_data = <ls_blob>-data ).
 
       READ TABLE et_new_objects
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>gc_type-blob
+          type = zif_abapgit_definitions=>c_type-blob
           sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -59071,18 +59071,18 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      ls_object-type = zif_abapgit_definitions=>gc_type-blob.
+      ls_object-type = zif_abapgit_definitions=>c_type-blob.
       ASSERT NOT <ls_blob>-data IS INITIAL.
       ls_object-data = <ls_blob>-data.
-      uindex = uindex + 1.
-      ls_object-index = uindex.
+      lv_uindex = lv_uindex + 1.
+      ls_object-index = lv_uindex.
       APPEND ls_object TO et_new_objects.
     ENDLOOP.
 
     lv_pack = zcl_abapgit_git_pack=>encode( et_new_objects ).
 
     ev_new_commit = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>gc_type-commit
+      iv_type = zif_abapgit_definitions=>c_type-commit
       iv_data = lv_commit ).
 
     zcl_abapgit_git_transport=>receive_pack(
@@ -59106,7 +59106,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects ASSIGNING <ls_tree>
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>gc_type-tree
+        type = zif_abapgit_definitions=>c_type-tree
         sha1 = iv_sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
@@ -59115,10 +59115,10 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
 
     LOOP AT lt_nodes ASSIGNING <ls_node>.
-      IF <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-file.
+      IF <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-file.
         READ TABLE it_objects ASSIGNING <ls_blob>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>gc_type-blob
+            type = zif_abapgit_definitions=>c_type-blob
             sha1 = <ls_node>-sha1.
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
@@ -59133,7 +59133,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>gc_chmod-dir.
+    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>c_chmod-dir.
       CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
       walk( EXPORTING it_objects = it_objects
                       iv_sha1 = <ls_node>-sha1
@@ -59152,7 +59152,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>gc_type-tree
+        type = zif_abapgit_definitions=>c_type-tree
         sha1 = iv_tree.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'tree not found' ).
@@ -59161,14 +59161,14 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     LOOP AT lt_nodes ASSIGNING <ls_node>.
       CASE <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>gc_chmod-file
-            OR zif_abapgit_definitions=>gc_chmod-executable.
+        WHEN zif_abapgit_definitions=>c_chmod-file
+            OR zif_abapgit_definitions=>c_chmod-executable.
           APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
           <ls_exp>-path  = iv_base.
           <ls_exp>-name  = <ls_node>-name.
           <ls_exp>-sha1  = <ls_node>-sha1.
           <ls_exp>-chmod = <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>gc_chmod-dir.
+        WHEN zif_abapgit_definitions=>c_chmod-dir.
           lt_expanded = walk_tree(
             it_objects = it_objects
             iv_tree    = <ls_node>-sha1
@@ -59199,7 +59199,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_xstring        TYPE xstring,
           lv_expected       TYPE i,
           ls_object         LIKE LINE OF rt_objects.
-    DATA: uindex            TYPE sy-index.
+    DATA: lv_uindex            TYPE sy-index.
 
     lv_data = iv_data.
 
@@ -59221,7 +59221,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_data = lv_data+4.
     DO lv_objects TIMES.
 
-      uindex = sy-index.
+      lv_uindex = sy-index.
 
       lv_x = lv_data(1).
       lv_type = get_type( lv_x ).
@@ -59229,7 +59229,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       get_length( IMPORTING ev_length = lv_expected
                   CHANGING cv_data = lv_data ).
 
-      IF lv_type = zif_abapgit_definitions=>gc_type-ref_d.
+      IF lv_type = zif_abapgit_definitions=>c_type-ref_d.
         lv_ref_delta = lv_data(20).
         lv_data = lv_data+20.
       ENDIF.
@@ -59284,7 +59284,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       ls_object-adler32 = lv_data(4).
       lv_data = lv_data+4. " skip adler checksum
 
-      IF lv_type = zif_abapgit_definitions=>gc_type-ref_d.
+      IF lv_type = zif_abapgit_definitions=>c_type-ref_d.
         ls_object-sha1 = lv_ref_delta.
         TRANSLATE ls_object-sha1 TO LOWER CASE.
       ELSE.
@@ -59294,7 +59294,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       ENDIF.
       ls_object-type = lv_type.
       ls_object-data = lv_decompressed.
-      ls_object-index = uindex.
+      ls_object-index = lv_uindex.
       APPEND ls_object TO rt_objects.
     ENDDO.
 
@@ -59320,7 +59320,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_string> LIKE LINE OF lt_string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_string.
+    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE lt_string.
 
     LOOP AT lt_string ASSIGNING <lv_string>.
       lv_length = strlen( <lv_string> ) + 1.
@@ -59362,13 +59362,13 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lt_deltas   LIKE ct_objects.
     LOOP AT ct_objects INTO ls_object
       USING KEY type
-      WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
+      WHERE type = zif_abapgit_definitions=>c_type-ref_d.
       INSERT ls_object INTO TABLE lt_deltas.
     ENDLOOP.
 
     DELETE ct_objects
       USING KEY type
-      WHERE type = zif_abapgit_definitions=>gc_type-ref_d.
+      WHERE type = zif_abapgit_definitions=>c_type-ref_d.
 
     "Restore correct Delta Order
     SORT lt_deltas BY index.
@@ -59396,7 +59396,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_string> LIKE LINE OF lt_string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_string.
+    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE lt_string.
 
     LOOP AT lt_string ASSIGNING <lv_string>.
 
@@ -59431,7 +59431,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           ELSE.
 
             IF rs_tag-body IS NOT INITIAL.
-              rs_tag-body = rs_tag-body && zif_abapgit_definitions=>gc_newline.
+              rs_tag-body = rs_tag-body && zif_abapgit_definitions=>c_newline.
             ENDIF.
 
             rs_tag-body = rs_tag-body && <lv_string>.
@@ -59472,9 +59472,9 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CLEAR ls_node.
       ls_node-chmod = lv_chmod.
-      IF ls_node-chmod <> zif_abapgit_definitions=>gc_chmod-dir
-          AND ls_node-chmod <> zif_abapgit_definitions=>gc_chmod-file
-          AND ls_node-chmod <> zif_abapgit_definitions=>gc_chmod-executable.
+      IF ls_node-chmod <> zif_abapgit_definitions=>c_chmod-dir
+          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-file
+          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-executable.
         zcx_abapgit_exception=>raise( 'Unknown chmod' ).
       ENDIF.
 
@@ -59522,7 +59522,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       WITH KEY sha COMPONENTS sha1 = is_object-sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Base not found, { is_object-sha1 }| ).
-    ELSEIF <ls_object>-type = zif_abapgit_definitions=>gc_type-ref_d.
+    ELSEIF <ls_object>-type = zif_abapgit_definitions=>c_type-ref_d.
 * sanity check
       zcx_abapgit_exception=>raise( 'Delta, base eq delta' ).
     ENDIF.
@@ -59683,7 +59683,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_string = ''.
 
     CONCATENATE 'tree' lv_tree_lower INTO lv_tmp SEPARATED BY space. "#EC NOTEXT
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>gc_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
     IF NOT is_commit-parent IS INITIAL.
       lv_parent_lower = is_commit-parent.
@@ -59691,7 +59691,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.                     "#EC NOTEXT
-      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>gc_newline INTO lv_string.
+      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
     ENDIF.
 
     IF NOT is_commit-parent2 IS INITIAL.
@@ -59700,18 +59700,18 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.                     "#EC NOTEXT
-      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>gc_newline INTO lv_string.
+      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
     ENDIF.
 
     CONCATENATE 'author' is_commit-author
       INTO lv_tmp SEPARATED BY space.                       "#EC NOTEXT
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>gc_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
     CONCATENATE 'committer' is_commit-committer
       INTO lv_tmp SEPARATED BY space.                       "#EC NOTEXT
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>gc_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
-    CONCATENATE lv_string zif_abapgit_definitions=>gc_newline is_commit-body INTO lv_string.
+    CONCATENATE lv_string zif_abapgit_definitions=>c_newline is_commit-body INTO lv_string.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
@@ -59723,12 +59723,12 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_time = zcl_abapgit_time=>get( ).
 
-    lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>gc_newline }|
-             && |type { is_tag-type }{ zif_abapgit_definitions=>gc_newline }|
-             && |tag { zcl_abapgit_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>gc_newline }|
+    lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>c_newline }|
+             && |type { is_tag-type }{ zif_abapgit_definitions=>c_newline }|
+             && |tag { zcl_abapgit_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>c_newline }|
              && |tagger { is_tag-tagger_name } <{ is_tag-tagger_email }> { lv_time }|
-             && |{ zif_abapgit_definitions=>gc_newline }|
-             && |{ zif_abapgit_definitions=>gc_newline }|
+             && |{ zif_abapgit_definitions=>c_newline }|
+             && |{ zif_abapgit_definitions=>c_newline }|
              && |{ is_tag-message }|.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
@@ -59782,22 +59782,22 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_type.
 
-    CONSTANTS: c_mask TYPE x VALUE 112.
-    DATA: xtype TYPE x.
+    CONSTANTS: lc_mask TYPE x VALUE 112.
+    DATA: lv_xtype TYPE x.
 
-    xtype = iv_x BIT-AND c_mask.
+    lv_xtype = iv_x BIT-AND lc_mask.
 
-    CASE xtype.
+    CASE lv_xtype.
       WHEN 16.
-        rv_type = zif_abapgit_definitions=>gc_type-commit.
+        rv_type = zif_abapgit_definitions=>c_type-commit.
       WHEN 32.
-        rv_type = zif_abapgit_definitions=>gc_type-tree.
+        rv_type = zif_abapgit_definitions=>c_type-tree.
       WHEN 48.
-        rv_type = zif_abapgit_definitions=>gc_type-blob.
+        rv_type = zif_abapgit_definitions=>c_type-blob.
       WHEN 64.
-        rv_type = zif_abapgit_definitions=>gc_type-tag.
+        rv_type = zif_abapgit_definitions=>c_type-tag.
       WHEN 112.
-        rv_type = zif_abapgit_definitions=>gc_type-ref_d.
+        rv_type = zif_abapgit_definitions=>c_type-ref_d.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Todo, unknown type' ).
     ENDCASE.
@@ -59816,7 +59816,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
                    <ls_node> LIKE LINE OF it_nodes.
     LOOP AT it_nodes ASSIGNING <ls_node>.
       APPEND INITIAL LINE TO lt_sort ASSIGNING <ls_sort>.
-      IF <ls_node>-chmod = zif_abapgit_definitions=>gc_chmod-dir.
+      IF <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-dir.
         CONCATENATE <ls_node>-name '/' INTO <ls_sort>-sort.
       ELSE.
         <ls_sort>-sort = <ls_node>-name.
@@ -59840,15 +59840,15 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_length TYPE i,
           lv_hex    TYPE x LENGTH 1.
     CASE iv_type.
-      WHEN zif_abapgit_definitions=>gc_type-commit.
+      WHEN zif_abapgit_definitions=>c_type-commit.
         lv_type = 16.
-      WHEN zif_abapgit_definitions=>gc_type-tree.
+      WHEN zif_abapgit_definitions=>c_type-tree.
         lv_type = 32.
-      WHEN zif_abapgit_definitions=>gc_type-blob.
+      WHEN zif_abapgit_definitions=>c_type-blob.
         lv_type = 48.
-      WHEN zif_abapgit_definitions=>gc_type-tag.
+      WHEN zif_abapgit_definitions=>c_type-tag.
         lv_type = 64.
-      WHEN zif_abapgit_definitions=>gc_type-ref_d.
+      WHEN zif_abapgit_definitions=>c_type-ref_d.
         lv_type = 112.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Unexpected object type while encoding pack' ).
@@ -60002,7 +60002,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
     DATA: lv_annotated_tag_with_suffix TYPE string.
 
-    FIELD-SYMBOLS: <ls_result> TYPE LINE OF stringtab.
+    FIELD-SYMBOLS: <lv_result> TYPE LINE OF stringtab.
 
     rv_type = zif_abapgit_definitions=>c_git_branch_type-other.
 
@@ -60015,9 +60015,9 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
       lv_annotated_tag_with_suffix = iv_branch_name && '^{}'.
 
-      READ TABLE it_result ASSIGNING <ls_result>
+      READ TABLE it_result ASSIGNING <lv_result>
                            INDEX iv_current_row_index + 1.
-      IF sy-subrc = 0 AND <ls_result> CP '*' && lv_annotated_tag_with_suffix.
+      IF sy-subrc = 0 AND <lv_result> CP '*' && lv_annotated_tag_with_suffix.
         rv_type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
       ELSE.
         rv_type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
@@ -60060,7 +60060,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
     CLEAR: et_list, ev_head_symref.
 
-    SPLIT iv_data AT zif_abapgit_definitions=>gc_newline INTO TABLE lt_result.
+    SPLIT iv_data AT zif_abapgit_definitions=>c_newline INTO TABLE lt_result.
 
     LOOP AT lt_result INTO lv_data.
 
@@ -60133,7 +60133,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
     ELSE.
       rv_comment = 'BG: Multiple objects' ##NO_TEXT.
       LOOP AT lt_objects INTO lv_str.
-        CONCATENATE rv_comment zif_abapgit_definitions=>gc_newline lv_str INTO rv_comment.
+        CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
       ENDLOOP.
     ENDIF.
 
@@ -60188,16 +60188,16 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   METHOD zif_abapgit_background~get_settings.
 
     DATA: ls_setting LIKE LINE OF ct_settings.
-    READ TABLE ct_settings WITH KEY key = gc_settings-name INTO ls_setting.
+    READ TABLE ct_settings WITH KEY key = c_settings-name INTO ls_setting.
     IF sy-subrc <> 0.
-      ls_setting-key = gc_settings-name.
+      ls_setting-key = c_settings-name.
       ls_setting-value = 'foobar'.
       APPEND ls_setting TO ct_settings.
     ENDIF.
 
-    READ TABLE ct_settings WITH KEY key = gc_settings-email INTO ls_setting.
+    READ TABLE ct_settings WITH KEY key = c_settings-email INTO ls_setting.
     IF sy-subrc <> 0.
-      ls_setting-key = gc_settings-email.
+      ls_setting-key = c_settings-email.
       ls_setting-value = 'foobar@localhost'.
       APPEND ls_setting TO ct_settings.
     ENDIF.
@@ -60218,10 +60218,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    READ TABLE it_settings WITH KEY key = gc_settings-name INTO ls_setting. "#EC CI_SUBRC
+    READ TABLE it_settings WITH KEY key = c_settings-name INTO ls_setting. "#EC CI_SUBRC
     lv_name = ls_setting-value.
 
-    READ TABLE it_settings WITH KEY key = gc_settings-email INTO ls_setting. "#EC CI_SUBRC
+    READ TABLE it_settings WITH KEY key = c_settings-email INTO ls_setting. "#EC CI_SUBRC
     lv_email = ls_setting-value.
 
     push_fixed(
@@ -60251,7 +60251,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
     ELSE.
       rv_comment = 'BG: Multiple objects' ##NO_TEXT.
       LOOP AT lt_objects INTO lv_str.
-        CONCATENATE rv_comment zif_abapgit_definitions=>gc_newline lv_str INTO rv_comment.
+        CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
       ENDLOOP.
     ENDIF.
 
@@ -60887,5 +60887,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-16T04:34:32.102Z
+* abapmerge - 2018-08-17T07:25:33.268Z
 ****************************************************
