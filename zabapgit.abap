@@ -7139,8 +7139,8 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS render_item_state
-      IMPORTING iv_lstate            TYPE char1
-                iv_rstate            TYPE char1
+      IMPORTING iv_lstate      TYPE char1
+                iv_rstate      TYPE char1
       RETURNING VALUE(rv_html) TYPE string.
 
     CLASS-METHODS render_branch_span
@@ -27888,7 +27888,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
   ENDMETHOD.  " lif_gui_page~render.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
 
     DATA: lv_text  TYPE string,
@@ -27958,9 +27958,11 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                && zcl_abapgit_html=>a(
                     iv_txt   = '&#x274c;'
                     iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
-                    iv_act   = 'displayNews()'
+                    iv_act   = 'closeHotkeyOverview()'
                     iv_class = 'close-btn' )
                && '</div></div>' ).
+
+    ro_html->add( |<div class="paddings">Close window with ? or upper right corner X</div>| ).
 
     " Generate hotkeys
     ro_html->add( |<div class="newslist">| ).
@@ -29681,6 +29683,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// News announcement'.
         _inline 'function displayNews() {'.
         _inline '  var div = document.getElementById("news");'.
+        _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
+        _inline '}'.
+        _inline ''.
+        _inline '// Hotkey Overview '.
+        _inline 'function closeHotkeyOverview() {'.
+        _inline '  var div = document.getElementById("hotkeys");'.
         _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
         _inline '}'.
         _inline ''.
@@ -61024,5 +61032,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-17T08:48:54.624Z
+* abapmerge - 2018-08-17T11:35:49.956Z
 ****************************************************
