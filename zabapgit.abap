@@ -7170,7 +7170,13 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_page.
+    INTERFACES:
+      zif_abapgit_gui_page.
+
+    CLASS-METHODS:
+      get_hotkey_actions
+        RETURNING
+          VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action.
 
   PROTECTED SECTION.
 
@@ -22363,6 +22369,10 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
 
     ENDLOOP.
 
+    " the global shortcuts are defined in the base class
+    lt_hotkey_actions = zcl_abapgit_gui_page=>get_hotkey_actions( ).
+    INSERT LINES OF lt_hotkey_actions INTO TABLE rt_hotkey_actions.
+
     SORT rt_hotkey_actions.
     DELETE ADJACENT DUPLICATES FROM rt_hotkey_actions.
 
@@ -22372,7 +22382,8 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     DATA: lo_settings                    TYPE REF TO zcl_abapgit_settings,
           lv_class_name                  TYPE abap_abstypename,
           lt_hotkey_actions_of_curr_page TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
-          lv_save_tabix                  TYPE syst-tabix.
+          lv_save_tabix                  TYPE syst-tabix,
+          lt_hotkey_actions              TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action.
 
     FIELD-SYMBOLS: <ls_hotkey>              TYPE zif_abapgit_definitions=>ty_hotkey.
 
@@ -22391,6 +22402,10 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
         RETURN.
     ENDTRY.
 
+    " these are the global shortcuts
+    lt_hotkey_actions = zcl_abapgit_gui_page=>get_hotkey_actions( ).
+    INSERT LINES OF lt_hotkey_actions INTO TABLE lt_hotkey_actions_of_curr_page.
+
     LOOP AT rt_hotkeys ASSIGNING <ls_hotkey>.
 
       lv_save_tabix = sy-tabix.
@@ -22399,7 +22414,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
                                                 WITH TABLE KEY action
                                                 COMPONENTS action = <ls_hotkey>-action.
       IF sy-subrc <> 0.
-        " We only offer hotkeys which are supported by the current page
+        " We only offer hotkeys which are supported by the current page or globally
         DELETE rt_hotkeys INDEX lv_save_tabix.
       ENDIF.
 
@@ -27712,24 +27727,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
-  METHOD footer.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<div id="footer">' ).                    "#EC NOTEXT
-
-    ro_html->add( '<img src="img/logo" alt="logo">' ).      "#EC NOTEXT
-    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
-
-    ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
-    ro_html->add( |<td><span class="version">{ zif_abapgit_version=>gc_abap_version }</span></td>| ). "#EC NOTEXT
-    ro_html->add( '<td id="debug-output" class="w40"></td>' ). "#EC NOTEXT
-
-    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
-
-  ENDMETHOD. "footer
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD add_hotkeys.
 
     DATA: lv_json    TYPE string,
@@ -27754,6 +27752,35 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     lv_json = lv_json && `}`.
 
     io_html->add( |setKeyBindings({ lv_json });| ).
+
+  ENDMETHOD.
+  METHOD footer.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<div id="footer">' ).                    "#EC NOTEXT
+
+    ro_html->add( '<img src="img/logo" alt="logo">' ).      "#EC NOTEXT
+    ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
+
+    ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
+    ro_html->add( |<td><span class="version">{ zif_abapgit_version=>gc_abap_version }</span></td>| ). "#EC NOTEXT
+    ro_html->add( '<td id="debug-output" class="w40"></td>' ). "#EC NOTEXT
+
+    ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
+    ro_html->add( '</div>' ).                               "#EC NOTEXT
+
+  ENDMETHOD. "footer
+  METHOD get_hotkey_actions.
+
+    " these are the global shortcuts active on all pages
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Global: Show hotkeys|.
+    ls_hotkey_action-action         = |showHotkeys|.
+    ls_hotkey_action-default_hotkey = |?|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
   METHOD html_head.
@@ -29958,7 +29985,45 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '}'.
         _inline ''.
         _inline 'function Hotkeys(oKeyMap){'.
+        _inline ''.
+        _inline '  var that = this;  '.
         _inline '  this.oKeyMap = oKeyMap || {};'.
+        _inline ''.
+        _inline '  // these are the hotkeys provided by the backend'.
+        _inline '  Object.keys(this.oKeyMap).forEach(function(sKey){'.
+        _inline ''.
+        _inline '    var action = that.oKeyMap[sKey]; '.
+        _inline '    '.
+        _inline '    // We replace the actions with callback functions to unify'.
+        _inline '    // the hotkey execution'.
+        _inline '    that.oKeyMap[sKey] = function(oEvent) {'.
+        _inline ''.
+        _inline '      // We have either a js function'.
+        _inline '      if (that[action]) {'.
+        _inline '        that[action].call(that);'.
+        _inline '        return;'.
+        _inline '      }'.
+        _inline '      '.
+        _inline '      // Or a SAP event'.
+        _inline '      var sUiSapEvent = that.getSapEvent(action);'.
+        _inline '      if (sUiSapEvent) {'.
+        _inline '        submitSapeventForm({}, sUiSapEvent, "post");'.
+        _inline '        oEvent.preventDefault();'.
+        _inline '        return;'.
+        _inline '      }'.
+        _inline ''.
+        _inline '    }'.
+        _inline ''.
+        _inline '  });'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline 'Hotkeys.prototype.showHotkeys = function() {'.
+        _inline '  var elHotkeys = document.querySelector(''#hotkeys'');'.
+        _inline '  '.
+        _inline '  if (elHotkeys) {'.
+        _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? '''' : ''none'';'.
+        _inline '  }'.
         _inline '}'.
         _inline ''.
         _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
@@ -29991,20 +30056,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var '.
         _inline '    sKey = oEvent.key || oEvent.keyCode,'.
-        _inline '    oHotkey = this.oKeyMap[sKey];'.
+        _inline '    fnHotkey = this.oKeyMap[sKey];'.
         _inline ''.
-        _inline '  if (oHotkey) {'.
-        _inline '    var sSapEvent = this.getSapEvent(oHotkey);'.
-        _inline '    if (sSapEvent) {'.
-        _inline '      submitSapeventForm({}, sSapEvent, "post");'.
-        _inline '      oEvent.preventDefault();'.
-        _inline '    }'.
-        _inline '  } else if (sKey === "?" ) {'.
-        _inline '    var elHotkeys = document.querySelector(''#hotkeys'');'.
-        _inline '    '.
-        _inline '    if (elHotkeys) {'.
-        _inline '      elHotkeys.style.display = (elHotkeys.style.display) ? '''' : ''none'';'.
-        _inline '    }'.
+        _inline '  if (fnHotkey) {'.
+        _inline '    fnHotkey.call(this, oEvent);'.
         _inline '  }'.
         _inline '}'.
         _inline ''.
@@ -61032,5 +61087,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-17T11:35:49.956Z
+* abapmerge - 2018-08-18T04:58:19.055Z
 ****************************************************
