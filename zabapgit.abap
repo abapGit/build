@@ -2067,14 +2067,21 @@ INTERFACE zif_abapgit_exit.
     allow_sap_objects
       RETURNING VALUE(rv_allowed) TYPE abap_bool,
     change_proxy_url
-      IMPORTING iv_repo_url TYPE csequence
+      IMPORTING iv_repo_url  TYPE csequence
       CHANGING  cv_proxy_url TYPE string,
     change_proxy_port
-      IMPORTING iv_repo_url  TYPE csequence
+      IMPORTING iv_repo_url   TYPE csequence
       CHANGING  cv_proxy_port TYPE string,
     change_proxy_authentication
-      IMPORTING iv_repo_url            TYPE csequence
+      IMPORTING iv_repo_url             TYPE csequence
       CHANGING  cv_proxy_authentication TYPE abap_bool,
+    create_http_client
+      IMPORTING
+        iv_url           TYPE string
+      RETURNING
+        VALUE(ri_client) TYPE REF TO if_http_client
+      RAISING
+        zcx_abapgit_exception,
     http_client
       IMPORTING
         ii_client TYPE REF TO if_http_client,
@@ -17135,6 +17142,14 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
             iv_repo_url = iv_repo_url
           CHANGING
             cv_proxy_url = cv_proxy_url ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~create_http_client.
+
+    TRY.
+        ri_client = gi_exit->create_http_client( iv_url ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
     ENDTRY.
 
@@ -57892,7 +57907,7 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
+CLASS zcl_abapgit_http IMPLEMENTATION.
   METHOD acquire_login_details.
 
     DATA: lv_default_user TYPE string,
@@ -57970,30 +57985,36 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
           lv_text                TYPE string.
     CREATE OBJECT lo_proxy_configuration.
 
-    cl_http_client=>create_by_url(
-      EXPORTING
-        url                = zcl_abapgit_url=>host( iv_url )
-        ssl_id             = 'ANONYM'
-        proxy_host         = lo_proxy_configuration->get_proxy_url( iv_url )
-        proxy_service      = lo_proxy_configuration->get_proxy_port( iv_url )
-      IMPORTING
-        client             = li_client
-      EXCEPTIONS
-        argument_not_found = 1
-        plugin_not_active  = 2
-        internal_error     = 3
-        OTHERS             = 4 ).
-    IF sy-subrc <> 0.
-      CASE sy-subrc.
-        WHEN 1.
-          " make sure:
-          " a) SSL is setup properly in STRUST
-          lv_text = 'HTTPS ARGUMENT_NOT_FOUND | STRUST/SSL Setup correct?'.
-        WHEN OTHERS.
-          lv_text = 'While creating HTTP Client'.           "#EC NOTEXT
+    li_client = zcl_abapgit_exit=>get_instance( )->create_http_client( iv_url ).
 
-      ENDCASE.
-      zcx_abapgit_exception=>raise( lv_text ).
+    IF li_client IS NOT BOUND.
+
+      cl_http_client=>create_by_url(
+        EXPORTING
+          url                = zcl_abapgit_url=>host( iv_url )
+          ssl_id             = 'ANONYM'
+          proxy_host         = lo_proxy_configuration->get_proxy_url( iv_url )
+          proxy_service      = lo_proxy_configuration->get_proxy_port( iv_url )
+        IMPORTING
+          client             = li_client
+        EXCEPTIONS
+          argument_not_found = 1
+          plugin_not_active  = 2
+          internal_error     = 3
+          OTHERS             = 4 ).
+      IF sy-subrc <> 0.
+        CASE sy-subrc.
+          WHEN 1.
+            " make sure:
+            " a) SSL is setup properly in STRUST
+            lv_text = 'HTTPS ARGUMENT_NOT_FOUND | STRUST/SSL Setup correct?'.
+          WHEN OTHERS.
+            lv_text = 'While creating HTTP Client'.         "#EC NOTEXT
+
+        ENDCASE.
+        zcx_abapgit_exception=>raise( lv_text ).
+      ENDIF.
+
     ENDIF.
 
     IF lo_proxy_configuration->get_proxy_authentication( iv_url ) = abap_true.
@@ -61096,5 +61117,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-20T16:28:37.951Z
+* abapmerge - 2018-08-20T16:30:08.498Z
 ****************************************************
