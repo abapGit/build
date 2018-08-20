@@ -7173,6 +7173,11 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
     INTERFACES:
       zif_abapgit_gui_page.
 
+    CONSTANTS:
+      BEGIN OF c_global_page_action,
+        showhotkeys TYPE string VALUE `showHotkeys` ##NO_TEXT,
+      END OF c_global_page_action.
+
     CLASS-METHODS:
       get_hotkey_actions
         RETURNING
@@ -7197,7 +7202,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
-
     METHODS html_head
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -27727,7 +27731,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD add_hotkeys.
 
     DATA: lv_json    TYPE string,
@@ -27778,7 +27782,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
     ls_hotkey_action-name           = |Global: Show hotkeys|.
-    ls_hotkey_action-action         = |showHotkeys|.
+    ls_hotkey_action-action         = c_global_page_action-showhotkeys.
     ls_hotkey_action-default_hotkey = |?|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
@@ -27989,7 +27993,12 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                     iv_class = 'close-btn' )
                && '</div></div>' ).
 
-    ro_html->add( |<div class="paddings">Close window with ? or upper right corner X</div>| ).
+    READ TABLE lt_hotkeys ASSIGNING <ls_hotkey>
+                          WITH KEY action = zcl_abapgit_gui_page=>c_global_page_action-showhotkeys.
+    IF sy-subrc = 0.
+      ro_html->add( |<div class="paddings">Close window with '{ <ls_hotkey>-sequence }' |
+                 && |or upper right corner X</div>| ).
+    ENDIF.
 
     " Generate hotkeys
     ro_html->add( |<div class="newslist">| ).
@@ -61087,5 +61096,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-20T03:59:27.589Z
+* abapmerge - 2018-08-20T16:28:37.951Z
 ****************************************************
