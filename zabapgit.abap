@@ -6102,9 +6102,11 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
     TYPES:
       ty_function_tt TYPE STANDARD TABLE OF ty_function WITH DEFAULT KEY .
 
+    TYPES: ty_sobj_name_tt TYPE STANDARD TABLE OF sobj_name  WITH DEFAULT KEY .
+
     METHODS update_where_used
       IMPORTING
-        !it_includes TYPE rso_t_objnm .
+        !it_includes TYPE ty_sobj_name_tt .
     METHODS main_name
       RETURNING
         VALUE(rv_program) TYPE program
@@ -6117,7 +6119,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS includes
       RETURNING
-        VALUE(rt_includes) TYPE rso_t_objnm
+        VALUE(rt_includes) TYPE ty_sobj_name_tt
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_functions
@@ -6723,6 +6725,9 @@ CLASS zcl_abapgit_persistence_db DEFINITION
   PRIVATE SECTION.
 
     CLASS-DATA go_db TYPE REF TO zcl_abapgit_persistence_db .
+    DATA: gv_update_function TYPE funcname.
+
+    METHODS get_update_function RETURNING VALUE(r_funcname) TYPE funcname.
 
     METHODS validate_and_unprettify_xml
       IMPORTING
@@ -31887,7 +31892,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
@@ -31932,6 +31937,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
   ENDMETHOD.
   METHOD lock.
+    DATA: lv_dummy_update_function TYPE funcname.
 
     CALL FUNCTION 'ENQUEUE_EZABAPGIT'
       EXPORTING
@@ -31946,8 +31952,10 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Could not aquire lock { iv_type } { iv_value }| ).
     ENDIF.
 
+    lv_dummy_update_function = get_update_function( ).
+
 * trigger dummy update task to automatically release locks at commit
-    CALL FUNCTION 'BANK_OBJ_WORKL_RELEASE_LOCKS'
+    CALL FUNCTION lv_dummy_update_function
       IN UPDATE TASK.
 
   ENDMETHOD.
@@ -32003,6 +32011,24 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       iv_ignore_errors = abap_false ).
 
   ENDMETHOD.  " validate_and_unprettify_xml
+
+  METHOD get_update_function.
+    IF gv_update_function IS INITIAL.
+      gv_update_function = 'CALL_V1_PING'.
+      CALL FUNCTION 'FUNCTION_EXISTS'
+        EXPORTING
+          funcname = gv_update_function
+        EXCEPTIONS
+          OTHERS   = 2.
+
+      IF sy-subrc <> 0.
+        gv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
+      ENDIF.
+    ENDIF.
+    r_funcname = gv_update_function.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
   METHOD get_instance.
@@ -48420,7 +48446,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     DATA: lo_xml       TYPE REF TO zcl_abapgit_xml_input,
           ls_progdir   TYPE ty_progdir,
-          lt_includes  TYPE rso_t_objnm,
+          lt_includes  TYPE ty_sobj_name_tt,
           lt_tpool     TYPE textpool_table,
           lt_tpool_ext TYPE zif_abapgit_definitions=>ty_tpool_tt,
           lt_source    TYPE TABLE OF abaptxt255.
@@ -48551,7 +48577,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_abap_version.
 
-    DATA: lt_includes TYPE rso_t_objnm,
+    DATA: lt_includes TYPE ty_sobj_name_tt,
           ls_progdir  TYPE ty_progdir,
           lo_xml      TYPE REF TO zcl_abapgit_xml_input.
 
@@ -48682,7 +48708,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_any_include_locked.
 
-    DATA: lt_includes TYPE rso_t_objnm.
+    DATA: lt_includes TYPE ty_sobj_name_tt.
     FIELD-SYMBOLS: <lv_include> TYPE sobj_name.
 
     TRY.
@@ -48814,7 +48840,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_includes.
 
-    DATA: lt_includes TYPE rso_t_objnm.
+    DATA: lt_includes TYPE ty_sobj_name_tt.
 
     FIELD-SYMBOLS: <lv_include> LIKE LINE OF lt_includes.
     lt_includes = includes( ).
@@ -48832,7 +48858,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_xml.
 
-    DATA: lt_includes TYPE rso_t_objnm,
+    DATA: lt_includes TYPE ty_sobj_name_tt,
           lv_areat    TYPE tlibt-areat.
     SELECT SINGLE areat INTO lv_areat
       FROM tlibt
@@ -48888,7 +48914,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     DATA: lt_stamps   TYPE STANDARD TABLE OF ty_stamps WITH DEFAULT KEY,
           lv_program  TYPE program,
-          lt_includes TYPE rso_t_objnm.
+          lt_includes TYPE ty_sobj_name_tt.
 
     FIELD-SYMBOLS: <ls_stamp>   LIKE LINE OF lt_stamps,
                    <lv_include> LIKE LINE OF lt_includes.
@@ -48948,7 +48974,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_area     TYPE rs38l-area,
-          lt_includes TYPE rso_t_objnm.
+          lt_includes TYPE ty_sobj_name_tt.
     lt_includes = includes( ).
 
     lv_area = ms_item-obj_name.
@@ -49024,7 +49050,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA: lt_functab  TYPE ty_rs38l_incl_tt,
-          lt_includes TYPE rso_t_objnm.
+          lt_includes TYPE ty_sobj_name_tt.
 
     FIELD-SYMBOLS: <ls_func>         LIKE LINE OF lt_functab,
                    <lv_include_name> LIKE LINE OF lt_includes.
@@ -61040,5 +61066,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-21T08:36:09.366Z
+* abapmerge - 2018-08-21T08:37:32.859Z
 ****************************************************
