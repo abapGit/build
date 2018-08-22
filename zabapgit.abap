@@ -7028,9 +7028,7 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING   zcx_abapgit_exception.
 
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
-      IMPORTING action frame getdata postdata query_table.  "#EC NEEDED
-
-    METHODS focus.
+      IMPORTING action frame getdata postdata query_table.
 
   PRIVATE SECTION.
 
@@ -30354,11 +30352,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     startup( ).
 
   ENDMETHOD.            "constructor
-  METHOD focus.
 
-    cl_gui_control=>set_focus( mo_html_viewer ).
-
-  ENDMETHOD.
   METHOD get_current_page_name.
     IF mi_cur_page IS BOUND.
       rv_page_name =
@@ -61011,11 +61005,6 @@ FORM output.
     TABLES
       p_exclude = lt_ucomm.
 
-  TRY.
-      zcl_abapgit_gui=>get_instance( )->focus( ).
-    CATCH zcx_abapgit_exception INTO lx_error.
-      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDTRY.
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
@@ -61066,5 +61055,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-21T08:37:32.859Z
+* abapmerge - 2018-08-22T04:31:51.100Z
 ****************************************************
