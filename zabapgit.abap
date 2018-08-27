@@ -46784,7 +46784,14 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_argument TYPE seqg3-garg.
+
+    lv_argument   = |{ ms_item-obj_name }|.
+    OVERLAY lv_argument WITH '                     '.
+    lv_argument = lv_argument && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = |ES_MSGSI|
+                                            iv_argument    = lv_argument ).
 
   ENDMETHOD.
   METHOD serialize_longtexts.
@@ -61159,5 +61166,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-22T04:47:01.075Z
+* abapmerge - 2018-08-27T07:55:06.783Z
 ****************************************************
