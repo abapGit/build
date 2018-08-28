@@ -467,6 +467,7 @@ CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
@@ -1230,6 +1231,10 @@ INTERFACE zif_abapgit_definitions.
            link_hint_background_color TYPE string,
            hotkeys                    TYPE tty_hotkey,
          END OF ty_s_user_settings.
+
+  TYPES:
+          tty_dokil TYPE STANDARD TABLE OF dokil
+                         WITH NON-UNIQUE DEFAULT KEY.
 
   CONSTANTS:
     BEGIN OF c_type,
@@ -3994,8 +3999,18 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
         RETURNING VALUE(rv_exists_a_lock_entry) TYPE abap_bool
         RAISING   zcx_abapgit_exception,
       set_default_package
-        IMPORTING
-          iv_package TYPE devclass.
+        IMPORTING iv_package TYPE devclass,
+      serialize_longtexts
+        IMPORTING io_xml         TYPE REF TO zcl_abapgit_xml_output
+                  iv_longtext_id TYPE dokil-id OPTIONAL
+                  it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+        RAISING   zcx_abapgit_exception,
+      deserialize_longtexts
+        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
+        RAISING   zcx_abapgit_exception,
+      delete_longtexts
+        IMPORTING iv_longtext_id TYPE dokil-id
+        RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
 
@@ -4366,6 +4381,7 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
            END OF ty_dd07_texts,
            tt_dd01_texts TYPE STANDARD TABLE OF ty_dd01_texts,
            tt_dd07_texts TYPE STANDARD TABLE OF ty_dd07_texts.
+    CONSTANTS: c_longtext_id_doma TYPE dokil-id VALUE 'DO'.
 
     METHODS:
       serialize_texts
@@ -4424,6 +4440,7 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
              scrtext_l  TYPE dd04t-scrtext_l,
            END OF ty_dd04_texts,
            tt_dd04_texts TYPE STANDARD TABLE OF ty_dd04_texts.
+    CONSTANTS: c_longtext_id_dtel TYPE dokil-id VALUE 'DE'.
 
     METHODS:
       serialize_texts
@@ -5005,12 +5022,9 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       deserialize_texts
         IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
         RAISING   zcx_abapgit_exception,
-      serialize_longtexts
+      serialize_longtexts_msag
         IMPORTING it_t100 TYPE zcl_abapgit_object_msag=>tty_t100
                   io_xml  TYPE REF TO zcl_abapgit_xml_output
-        RAISING   zcx_abapgit_exception,
-      deserialize_longtexts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
@@ -5463,6 +5477,8 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
+  PRIVATE SECTION.
+    CONSTANTS: c_longtext_id_tabl TYPE dokil-id VALUE 'TB'.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_tobj DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -6241,6 +6257,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
              textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
            END OF ty_tpool_i18n,
            tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n.
+    CONSTANTS: c_longtext_id_prog TYPE dokil-id VALUE 'RE'.
 
     METHODS:
       serialize_texts
@@ -10236,6 +10253,50 @@ CLASS zcl_abapgit_injector DEFINITION
         IMPORTING
           iv_package      TYPE devclass
           ii_syntax_check TYPE REF TO zif_abapgit_code_inspector.
+
+ENDCLASS.
+CLASS zcl_abapgit_longtexts DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      serialize
+        IMPORTING
+          iv_object_name TYPE sobj_name
+          iv_longtext_id TYPE dokil-id
+          iv_language    TYPE sy-langu
+          it_dokil       TYPE zif_abapgit_definitions=>tty_dokil
+          io_xml         TYPE REF TO zcl_abapgit_xml_output
+        RAISING
+          zcx_abapgit_exception,
+
+      deserialize
+        IMPORTING
+          io_xml TYPE REF TO zcl_abapgit_xml_input
+        RAISING
+          zcx_abapgit_exception,
+
+      delete
+        IMPORTING
+          iv_object_name TYPE sobj_name
+          iv_longtext_id TYPE dokil-id
+          iv_language    TYPE sy-langu
+        RAISING
+          zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_longtext,
+        dokil TYPE dokil,
+        head  TYPE thead,
+        lines TYPE tline_tab,
+      END OF ty_longtext,
+      tty_longtexts TYPE STANDARD TABLE OF ty_longtext
+                         WITH NON-UNIQUE DEFAULT KEY.
+    CONSTANTS:
+      c_longtexts_name    TYPE string   VALUE 'LONGTEXTS' ##NO_TEXT,
+      c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
 
 ENDCLASS.
 CLASS zcl_abapgit_merge DEFINITION
@@ -16310,6 +16371,125 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
       iv_branch  = ms_merge-common-commit ).
 
     calculate_result( ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_longtexts IMPLEMENTATION.
+  METHOD delete.
+
+    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
+    FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
+
+    SELECT * FROM dokil
+             INTO TABLE lt_dokil
+             WHERE id     = iv_longtext_id
+             AND   object = iv_longtext_id
+             AND   langu  = iv_language.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
+
+      CALL FUNCTION 'DOCU_DEL'
+        EXPORTING
+          id       = <ls_dokil>-id
+          langu    = <ls_dokil>-langu
+          object   = <ls_dokil>-object
+          typ      = <ls_dokil>-typ
+        EXCEPTIONS
+          ret_code = 1
+          OTHERS   = 2.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD deserialize.
+
+    DATA: lt_longtexts TYPE tty_longtexts.
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = c_longtexts_name
+      CHANGING
+        cg_data = lt_longtexts ).
+
+    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
+
+      CALL FUNCTION 'DOCU_UPDATE'
+        EXPORTING
+          head    = <ls_longtext>-head
+          state   = c_docu_state_active
+          typ     = <ls_longtext>-dokil-typ
+          version = <ls_longtext>-dokil-version
+        TABLES
+          line    = <ls_longtext>-lines.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD serialize.
+
+    DATA: ls_longtext  TYPE ty_longtext,
+          lt_longtexts TYPE tty_longtexts.
+    DATA: lt_dokil       TYPE zif_abapgit_definitions=>tty_dokil,
+          lv_longtext_id TYPE dokil-id.
+
+    FIELD-SYMBOLS: <ls_dokil> LIKE LINE OF lt_dokil.
+    IF lines( it_dokil ) > 0.
+
+      lt_dokil = it_dokil.
+
+    ELSEIF iv_longtext_id IS NOT INITIAL.
+
+      SELECT * FROM dokil
+              INTO TABLE lt_dokil
+              WHERE id     = iv_longtext_id
+              AND   object = iv_object_name
+              AND   langu  = iv_language.
+
+    ELSE.
+
+      zcx_abapgit_exception=>raise( |serialize_longtexts parameter error| ).
+
+    ENDIF.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>
+                     WHERE txtlines > 0.
+
+      CLEAR: ls_longtext.
+
+      ls_longtext-dokil = <ls_dokil>.
+
+      CALL FUNCTION 'DOCU_READ'
+        EXPORTING
+          id      = <ls_dokil>-id
+          langu   = <ls_dokil>-langu
+          object  = <ls_dokil>-object
+          typ     = <ls_dokil>-typ
+          version = <ls_dokil>-version
+        IMPORTING
+          head    = ls_longtext-head
+        TABLES
+          line    = ls_longtext-lines.
+
+      CLEAR: ls_longtext-head-tdfuser,
+             ls_longtext-head-tdfreles,
+             ls_longtext-head-tdfdate,
+             ls_longtext-head-tdftime,
+             ls_longtext-head-tdluser,
+             ls_longtext-head-tdlreles,
+             ls_longtext-head-tdldate,
+             ls_longtext-head-tdltime.
+
+      INSERT ls_longtext INTO TABLE lt_longtexts.
+
+    ENDLOOP.
+
+    io_xml->add( iv_name = c_longtexts_name
+                 ig_data = lt_longtexts ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -25168,7 +25348,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD apply_merged_content.
 
     CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
@@ -25323,7 +25503,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
 
         "Table for Div-Table and textarea
         ro_html->add( '<div class="diff_content">' ).       "#EC NOTEXT
-        ro_html->add( '<table>' ).                          "#EC NOTEXT
+        ro_html->add( '<table class="w100">' ).                          "#EC NOTEXT
         ro_html->add( '<thead class="header">' ).           "#EC NOTEXT
         ro_html->add( '<tr>' ).                             "#EC NOTEXT
         ro_html->add( '<th>Code</th>' ).                    "#EC NOTEXT
@@ -25352,9 +25532,9 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
         ro_html->add( '</td>' ).                            "#EC NOTEXT
         ro_html->add( '<td>' ).                             "#EC NOTEXT
         ro_html->add( '<div class="form-container">' ).
-        ro_html->add( |<form id="merge_form" class="aligned-form" accept-charset="UTF-8"| ).
+        ro_html->add( |<form id="merge_form" class="aligned-form w100" accept-charset="UTF-8"| ).
         ro_html->add( |method="post" action="sapevent:apply_merge">| ).
-        ro_html->add( |<textarea id="merge_content" name="merge_content" | ).
+        ro_html->add( |<textarea id="merge_content" name="merge_content" class="w100" | ).
         ro_html->add( |rows="{ lines( is_diff-o_diff->get( ) ) }">{ lv_target_content }</textarea>| ).
         ro_html->add( '<input type="submit" class="hidden-submit">' ).
         ro_html->add( '</form>' ).                          "#EC NOTEXT
@@ -25556,6 +25736,9 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_definitions=>ty_merge_conflict.
@@ -25603,10 +25786,6 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
   METHOD build_menu.
@@ -28737,6 +28916,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  border-top: 1px solid #DDD;'.
         _inline '  border-bottom: 1px solid #DDD;'.
         _inline '}'.
+        _inline ''.
+        _inline 'div.diff_content tbody tr td{'.
+        _inline '  width: 50%;'.
+        _inline '  vertical-align: top'.
+        _inline '}'.
+        _inline ''.
         _inline 'div.diff_head span.state-block {'.
         _inline '  margin-left: 0.5em;'.
         _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
@@ -33687,7 +33872,6 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_objects_super IMPLEMENTATION.
-
   METHOD set_default_package.
 
     " In certain cases we need to set the package package via ABAP memory
@@ -33751,6 +33935,18 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD delete_longtexts.
+
+    zcl_abapgit_longtexts=>delete( iv_longtext_id = iv_longtext_id
+                                   iv_object_name = ms_item-obj_name
+                                   iv_language    = mv_language ).
+
+  ENDMETHOD.
+  METHOD deserialize_longtexts.
+
+    zcl_abapgit_longtexts=>deserialize( io_xml ).
 
   ENDMETHOD.
   METHOD exists_a_lock_entry_for.
@@ -33931,6 +34127,15 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
         resource_failure      = 3
         OTHERS                = 4
         ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+
+  ENDMETHOD.
+  METHOD serialize_longtexts.
+
+    zcl_abapgit_longtexts=>serialize( iv_object_name = ms_item-obj_name
+                                      iv_longtext_id = iv_longtext_id
+                                      iv_language    = mv_language
+                                      it_dokil       = it_dokil
+                                      io_xml         = io_xml ).
 
   ENDMETHOD.
   METHOD tadir_insert.
@@ -40729,6 +40934,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL' ).
     ENDIF.
 
+    delete_longtexts( c_longtext_id_tabl ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -40834,6 +41041,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
                                            iv_name = lv_tname ).
 
     ENDLOOP.
+
+    deserialize_longtexts( io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -41093,6 +41302,9 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
                  iv_name = 'DD35V_TALE' ).
     io_xml->add( iv_name = 'DD36M'
                  ig_data = lt_dd36m ).
+
+    serialize_longtexts( io_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_tabl ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -45457,7 +45669,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
@@ -45544,6 +45756,8 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from RS_DELETE_PROGRAM: { sy-subrc }| ).
     ENDIF.
 
+    delete_longtexts( c_longtext_id_prog ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -45585,6 +45799,8 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
     " Texts deserializing (translations)
     deserialize_texts( io_xml ).
+
+    deserialize_longtexts( io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -45640,6 +45856,9 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
     " Texts serializing (translations)
     serialize_texts( io_xml ).
+
+    serialize_longtexts( io_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_prog ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -46701,8 +46920,8 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     io_xml->add( ig_data = lt_source
                  iv_name = 'T100' ).
 
-    serialize_longtexts( it_t100 = lt_source
-                         io_xml  = io_xml ).
+    serialize_longtexts_msag( it_t100 = lt_source
+                              io_xml  = io_xml ).
 
     serialize_texts( io_xml ).
 
@@ -46808,18 +47027,14 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
                                             iv_argument    = lv_argument ).
 
   ENDMETHOD.
-  METHOD serialize_longtexts.
+  METHOD serialize_longtexts_msag.
 
-    DATA: lv_object    TYPE dokhl-object,
-          lt_objects   TYPE STANDARD TABLE OF dokhl-object
-                            WITH NON-UNIQUE DEFAULT KEY,
-          lt_dokil     TYPE STANDARD TABLE OF dokil
-                            WITH NON-UNIQUE DEFAULT KEY,
-          ls_longtext  TYPE ty_longtext,
-          lt_longtexts TYPE tty_longtexts.
+    DATA: lv_object  TYPE dokhl-object,
+          lt_objects TYPE STANDARD TABLE OF dokhl-object
+                          WITH NON-UNIQUE DEFAULT KEY,
+          lt_dokil   TYPE zif_abapgit_definitions=>tty_dokil.
 
-    FIELD-SYMBOLS: <ls_t100>  TYPE t100,
-                   <ls_dokil> LIKE LINE OF lt_dokil.
+    FIELD-SYMBOLS: <ls_t100>  TYPE t100.
 
     IF lines( it_t100 ) = 0.
       RETURN.
@@ -46838,67 +47053,11 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
              WHERE id     = 'NA'
              AND   object = lt_objects-table_line.
 
-    LOOP AT lt_dokil ASSIGNING <ls_dokil>
-                     WHERE txtlines > 0.
-
-      CLEAR: ls_longtext.
-
-      ls_longtext-dokil = <ls_dokil>.
-
-      CALL FUNCTION 'DOCU_READ'
-        EXPORTING
-          id      = <ls_dokil>-id
-          langu   = <ls_dokil>-langu
-          object  = <ls_dokil>-object
-          typ     = <ls_dokil>-typ
-          version = <ls_dokil>-version
-        IMPORTING
-          head    = ls_longtext-head
-        TABLES
-          line    = ls_longtext-lines.
-
-      CLEAR: ls_longtext-head-tdfuser,
-             ls_longtext-head-tdfreles,
-             ls_longtext-head-tdfdate,
-             ls_longtext-head-tdftime,
-             ls_longtext-head-tdluser,
-             ls_longtext-head-tdlreles,
-             ls_longtext-head-tdldate,
-             ls_longtext-head-tdltime.
-
-      INSERT ls_longtext INTO TABLE lt_longtexts.
-
-    ENDLOOP.
-
-    io_xml->add( iv_name = 'LONGTEXTS'
-                 ig_data = lt_longtexts ).
+    serialize_longtexts( io_xml   = io_xml
+                         it_dokil = lt_dokil ).
 
   ENDMETHOD.
-  METHOD deserialize_longtexts.
 
-    DATA: lt_longtexts TYPE tty_longtexts.
-    FIELD-SYMBOLS: <ls_longtext> TYPE zcl_abapgit_object_msag=>ty_longtext.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = 'LONGTEXTS'
-      CHANGING
-        cg_data = lt_longtexts ).
-
-    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
-
-      CALL FUNCTION 'DOCU_UPDATE'
-        EXPORTING
-          head    = <ls_longtext>-head
-          state   = 'A'
-          typ     = <ls_longtext>-dokil-typ
-          version = <ls_longtext>-dokil-version
-        TABLES
-          line    = <ls_longtext>-lines.
-
-    ENDLOOP.
-
-  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -52112,6 +52271,8 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DTEL' ).
     ENDIF.
 
+    delete_longtexts( c_longtext_id_dtel ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -52144,6 +52305,8 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     deserialize_texts( io_xml   = io_xml
                        is_dd04v = ls_dd04v ).
+
+    deserialize_longtexts( io_xml ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -52250,6 +52413,9 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
                  ig_data = ls_tpara ).
 
     serialize_texts( io_xml ).
+
+    serialize_longtexts( io_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_dtel ).
 
   ENDMETHOD.
 
@@ -52591,6 +52757,8 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
     ENDTRY.
 
+    delete_longtexts( c_longtext_id_doma ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -52632,6 +52800,8 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     deserialize_texts( io_xml   = io_xml
                        is_dd01v = ls_dd01v
                        it_dd07v = lt_dd07v ).
+
+    deserialize_longtexts( io_xml ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -52720,6 +52890,9 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
                  ig_data = lt_dd07v ).
 
     serialize_texts( io_xml ).
+
+    serialize_longtexts( io_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_doma ).
 
   ENDMETHOD.
 
@@ -61180,5 +61353,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-28T06:30:50.676Z
+* abapmerge - 2018-08-28T06:32:11.404Z
 ****************************************************
