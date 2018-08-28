@@ -28333,6 +28333,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  font-family: Arial,Helvetica,sans-serif;'.
         _inline '  font-size:   12pt;'.
         _inline '  background:  #E8E8E8;'.
+        _inline '  overflow-x:  hidden;'.
         _inline '}'.
         _inline ''.
         _inline 'a, a:visited {'.
@@ -61179,5 +61180,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-27T08:06:41.930Z
+* abapmerge - 2018-08-28T06:30:50.676Z
 ****************************************************
