@@ -29418,6 +29418,22 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  };'.
         _inline '}'.
         _inline ''.
+        _inline '// String includes polyfill, taken from https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/String/includes'.
+        _inline 'if (!String.prototype.includes) {'.
+        _inline '  String.prototype.includes = function(search, start) {'.
+        _inline '    ''use strict'';'.
+        _inline '    if (typeof start !== ''number'') {'.
+        _inline '      start = 0;'.
+        _inline '    }'.
+        _inline '    '.
+        _inline '    if (start + search.length > this.length) {'.
+        _inline '      return false;'.
+        _inline '    } else {'.
+        _inline '      return this.indexOf(search, start) !== -1;'.
+        _inline '    }'.
+        _inline '  };'.
+        _inline '}'.
+        _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Common functions'.
         _inline ' **********************************************************/'.
@@ -30256,17 +30272,25 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
         _inline ''.
-        _inline '  var result = "";'.
+        _inline '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {'.
+        _inline '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)'.
+        _inline '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {'.
+        _inline '      return oSapEvent.href.replace("sapevent:","");'.
+        _inline '    }'.
+        _inline '  };'.
+        _inline ''.
         _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
         _inline ''.
-        _inline '  [].forEach.call(aSapEvents, function(sapEvent){'.
-        _inline '      if (new RegExp(sSapEvent + "$" ).test(sapEvent.href)'.
-        _inline '      || (new RegExp(sSapEvent + "\\?" ).test(sapEvent.href))) {'.
-        _inline '        result = sapEvent.href.replace("sapevent:","");'.
-        _inline '      }'.
-        _inline '    });'.
+        _inline '  var aFilteredAndNormalizedSapEvents = '.
+        _inline '        [].map.call(aSapEvents, function(oSapEvent){'.
+        _inline '          return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
+        _inline '        })'.
+        _inline '        .filter(function(elem){'.
+        _inline '          // remove false positives'.
+        _inline '          return (elem && !elem.includes("sapevent:"));'.
+        _inline '        });'.
         _inline ''.
-        _inline '  return result;'.
+        _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
         _inline ''.
         _inline '}'.
         _inline ''.
@@ -61353,5 +61377,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-28T13:04:15.623Z
+* abapmerge - 2018-08-29T10:37:02.361Z
 ****************************************************
