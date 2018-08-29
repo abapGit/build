@@ -1347,6 +1347,8 @@ INTERFACE zif_abapgit_definitions.
 
       jump                     TYPE string VALUE 'jump',
       jump_pkg                 TYPE string VALUE 'jump_pkg',
+
+      url                      TYPE string VALUE 'url',
     END OF c_action .
   CONSTANTS:
     BEGIN OF c_version,
@@ -7258,6 +7260,12 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
     METHODS render_hotkey_overview
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS call_browser
+      IMPORTING
+        iv_url TYPE csequence
       RAISING
         zcx_abapgit_exception.
 
@@ -24926,7 +24934,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD add_direction_option.
 
     DATA: lv_selected TYPE string.
@@ -25247,7 +25255,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       io_html->add( |<td>{ <ls_overview>-key }</td>| ).
       io_html->add( |<td>{ zcl_abapgit_html=>a( iv_txt = <ls_overview>-name
                                                 iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
-      io_html->add( |<td>{ <ls_overview>-url }</td>| ).
+
+      IF <ls_overview>-type = abap_false.
+        io_html->add( |<td>{ io_html->a( iv_txt = <ls_overview>-url
+                                         iv_act = |{ zif_abapgit_definitions=>c_action-url }?|
+                                               && |{ <ls_overview>-url }| ) }</td>| ).
+      ELSE.
+        io_html->add( |<td> </td>| ).
+      ENDIF.
+
       io_html->add( |<td>{ <ls_overview>-package }</td>| ).
       io_html->add( |<td>{ <ls_overview>-branch }</td>| ).
       io_html->add( |<td>{ <ls_overview>-created_by }</td>| ).
@@ -25339,6 +25355,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
         parse_filter( it_postdata ).
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+
+      WHEN OTHERS.
+
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
 
     ENDCASE.
 
@@ -26244,6 +26272,16 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
         CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
         ei_page = li_repo_overview.
         ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+      WHEN OTHERS.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
     ENDCASE.
 
   ENDMETHOD.
@@ -28093,7 +28131,19 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
   ENDMETHOD.                    "render page title
   METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+
+    CASE iv_action.
+      WHEN zif_abapgit_definitions=>c_action-url.
+
+        call_browser( iv_getdata ).
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+
+      WHEN  OTHERS.
+
+        ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+
+    ENDCASE.
+
   ENDMETHOD. "lif_gui_page~on_event
   METHOD zif_abapgit_gui_page~render.
 
@@ -28130,6 +28180,30 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.  " lif_gui_page~render.
+
+  METHOD call_browser.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        document               = |{ iv_url }|
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
@@ -28369,7 +28443,12 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( |<span class="name">{ io_repo->get_name( ) }</span>| ).
     IF io_repo->is_offline( ) = abap_false.
       lo_repo_online ?= io_repo.
-      ro_html->add( |<span class="url">{ lo_repo_online->get_url( ) }</span>| ).
+
+      ro_html->add_a( iv_txt   = lo_repo_online->get_url( )
+                      iv_act   = |{ zif_abapgit_definitions=>c_action-url }?|
+                              && |{ lo_repo_online->get_url( ) }|
+                      iv_class = |url| ).
+
     ENDIF.
 
     " News
@@ -28383,7 +28462,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
                       iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
                                                        iv_class = 'pad-sides'
-                                                      iv_hint  = 'Display changelog' ) ).
+                                                       iv_hint  = 'Display changelog' ) ).
     ENDIF.
     ro_html->add( '</td>' ).
 
@@ -28646,6 +28725,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  font-weight: bold;'.
         _inline '  color: #333;'.
         _inline '  font-size: 14pt;'.
+        _inline '}'.
+        _inline '.repo_name a.url {'.
+        _inline '  color: #ccc;'.
+        _inline '  font-size: 12pt;'.
+        _inline '  margin-left: 0.5em;'.
         _inline '}'.
         _inline '.repo_name span.url {'.
         _inline '  color: #ccc;'.
@@ -29042,6 +29126,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'div.db_list {'.
         _inline '  background-color: #fff;'.
         _inline '  padding: 0.5em;'.
+        _inline '  overflow-x: auto;'.
         _inline '}'.
         _inline ''.
         _inline 'table.db_tab pre {'.
@@ -35276,7 +35361,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
           lt_cts_key          TYPE STANDARD TABLE OF e071k WITH DEFAULT KEY.
 
     FIELD-SYMBOLS <ls_object_method> LIKE LINE OF mt_object_method.
-    ls_cts_object_entry-pgmid    = rs_c_pgmid_r3tr.
+    ls_cts_object_entry-pgmid    = seok_pgmid_r3tr.
     ls_cts_object_entry-object   = ms_item-obj_type.
     ls_cts_object_entry-obj_name = ms_item-obj_name.
     INSERT ls_cts_object_entry INTO TABLE lt_cts_object_entry.
@@ -35315,7 +35400,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
     IF sy-subrc = 0.
       lv_client = sy-mandt.
 
-      ls_cts_object_entry-pgmid    = rs_c_pgmid_r3tr.
+      ls_cts_object_entry-pgmid    = seok_pgmid_r3tr.
       ls_cts_object_entry-object   = ms_item-obj_type.
       ls_cts_object_entry-obj_name = ms_item-obj_name.
       INSERT ls_cts_object_entry INTO TABLE lt_cts_object_entry.
@@ -35664,9 +35749,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       IF ls_objkey-value = '*'.
-        lv_is_asterix = rs_c_true.
+        lv_is_asterix = abap_true.
       ENDIF.
-      IF lv_is_asterix = rs_c_true.
+      IF lv_is_asterix = abap_true.
         CONTINUE.
       ENDIF.
       IF NOT lv_where_statement IS INITIAL.
@@ -61377,5 +61462,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-29T10:37:02.361Z
+* abapmerge - 2018-08-29T10:38:51.272Z
 ****************************************************
