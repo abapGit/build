@@ -43703,6 +43703,8 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
       CHANGING
         cg_data = ls_area_attributes ).
 
+    tadir_insert( iv_package ).
+
     TRY.
         CALL METHOD ('\PROGRAM=SAPLSHMA\CLASS=LCL_SHMA_HELPER')=>('INSERT_AREA')
           EXPORTING
@@ -50169,6 +50171,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
           ls_dd25v TYPE dd25v,
           lt_dd26e TYPE TABLE OF dd26e,
           lt_dd27p TYPE TABLE OF dd27p.
+
+    FIELD-SYMBOLS: <ls_dd27p> LIKE LINE OF lt_dd27p.
+
     lv_name = ms_item-obj_name.
 
     CALL FUNCTION 'DDIF_ENQU_GET'
@@ -50194,6 +50199,22 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     CLEAR: ls_dd25v-as4user,
            ls_dd25v-as4date,
            ls_dd25v-as4time.
+
+    LOOP AT lt_dd27p ASSIGNING <ls_dd27p>.
+      "taken from table
+      CLEAR <ls_dd27p>-headlen.
+      CLEAR <ls_dd27p>-scrlen1.
+      CLEAR <ls_dd27p>-scrlen2.
+      CLEAR <ls_dd27p>-scrlen3.
+      CLEAR <ls_dd27p>-intlen.
+      CLEAR <ls_dd27p>-outputlen.
+      CLEAR <ls_dd27p>-flength.
+      CLEAR <ls_dd27p>-ddtext.
+      CLEAR <ls_dd27p>-reptext.
+      CLEAR <ls_dd27p>-scrtext_s.
+      CLEAR <ls_dd27p>-scrtext_m.
+      CLEAR <ls_dd27p>-scrtext_l.
+    ENDLOOP.
 
     io_xml->add( iv_name = 'DD25V'
                  ig_data = ls_dd25v ).
@@ -61451,5 +61472,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-31T05:21:44.301Z
+* abapmerge - 2018-08-31T05:22:45.963Z
 ****************************************************
