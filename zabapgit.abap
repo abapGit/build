@@ -10276,7 +10276,6 @@ CLASS zcl_abapgit_longtexts DEFINITION
         IMPORTING
           iv_object_name TYPE sobj_name
           iv_longtext_id TYPE dokil-id
-          iv_language    TYPE sy-langu
           it_dokil       TYPE zif_abapgit_definitions=>tty_dokil
           io_xml         TYPE REF TO zcl_abapgit_xml_output
         RAISING
@@ -10284,7 +10283,8 @@ CLASS zcl_abapgit_longtexts DEFINITION
 
       deserialize
         IMPORTING
-          io_xml TYPE REF TO zcl_abapgit_xml_input
+          io_xml             TYPE REF TO zcl_abapgit_xml_input
+          iv_master_language TYPE langu
         RAISING
           zcx_abapgit_exception,
 
@@ -10292,7 +10292,6 @@ CLASS zcl_abapgit_longtexts DEFINITION
         IMPORTING
           iv_object_name TYPE sobj_name
           iv_longtext_id TYPE dokil-id
-          iv_language    TYPE sy-langu
         RAISING
           zcx_abapgit_exception.
 
@@ -16385,7 +16384,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_longtexts IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD delete.
 
     DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
@@ -16394,8 +16393,7 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
     SELECT * FROM dokil
              INTO TABLE lt_dokil
              WHERE id     = iv_longtext_id
-             AND   object = iv_longtext_id
-             AND   langu  = iv_language.
+             AND   object = iv_longtext_id.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -16418,7 +16416,8 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize.
 
-    DATA: lt_longtexts TYPE tty_longtexts.
+    DATA: lt_longtexts     TYPE tty_longtexts,
+          lv_no_masterlang TYPE dokil-masterlang.
     FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
 
     io_xml->read(
@@ -16429,14 +16428,17 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
 
     LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
 
+      lv_no_masterlang = boolc( iv_master_language <> <ls_longtext>-dokil-langu ).
+
       CALL FUNCTION 'DOCU_UPDATE'
         EXPORTING
-          head    = <ls_longtext>-head
-          state   = c_docu_state_active
-          typ     = <ls_longtext>-dokil-typ
-          version = <ls_longtext>-dokil-version
+          head          = <ls_longtext>-head
+          state         = c_docu_state_active
+          typ           = <ls_longtext>-dokil-typ
+          version       = <ls_longtext>-dokil-version
+          no_masterlang = lv_no_masterlang
         TABLES
-          line    = <ls_longtext>-lines.
+          line          = <ls_longtext>-lines.
 
     ENDLOOP.
 
@@ -16458,8 +16460,7 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
       SELECT * FROM dokil
               INTO TABLE lt_dokil
               WHERE id     = iv_longtext_id
-              AND   object = iv_object_name
-              AND   langu  = iv_language.
+              AND   object = iv_object_name.
 
     ELSE.
 
@@ -34052,13 +34053,13 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD delete_longtexts.
 
     zcl_abapgit_longtexts=>delete( iv_longtext_id = iv_longtext_id
-                                   iv_object_name = ms_item-obj_name
-                                   iv_language    = mv_language ).
+                                   iv_object_name = ms_item-obj_name ).
 
   ENDMETHOD.
   METHOD deserialize_longtexts.
 
-    zcl_abapgit_longtexts=>deserialize( io_xml ).
+    zcl_abapgit_longtexts=>deserialize( io_xml             = io_xml
+                                        iv_master_language = mv_language ).
 
   ENDMETHOD.
   METHOD exists_a_lock_entry_for.
@@ -34245,7 +34246,6 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
     zcl_abapgit_longtexts=>serialize( iv_object_name = ms_item-obj_name
                                       iv_longtext_id = iv_longtext_id
-                                      iv_language    = mv_language
                                       it_dokil       = it_dokil
                                       io_xml         = io_xml ).
 
@@ -61488,5 +61488,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-08-31T16:06:35.281Z
+* abapmerge - 2018-09-03T16:42:29.890Z
 ****************************************************
