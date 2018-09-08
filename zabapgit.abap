@@ -59678,7 +59678,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       ENDIF.
 
       ls_object-type = zif_abapgit_definitions=>c_type-blob.
-      ASSERT NOT <ls_blob>-data IS INITIAL.
+*       ASSERT NOT <ls_blob>-data IS INITIAL. "#1857 allow empty files - some more checks needed?
       ls_object-data = <ls_blob>-data.
       lv_uindex = lv_uindex + 1.
       ls_object-index = lv_uindex.
@@ -61488,5 +61488,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-05T17:56:26.891Z
+* abapmerge - 2018-09-08T06:04:18.561Z
 ****************************************************
