@@ -2362,6 +2362,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     METHODS constructor
       IMPORTING
         !iv_data TYPE string
@@ -2374,7 +2375,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
-    METHODS get_head   " For potential future use
+    METHODS get_head     " For potential future use
       RETURNING
         VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
       RAISING
@@ -2387,11 +2388,11 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS get_tags_only   " For potential future use
+    METHODS get_tags_only     " For potential future use
       RETURNING
         VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS is_ignored
       IMPORTING
         !iv_branch_name  TYPE clike
@@ -2404,11 +2405,11 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rv_display_name) TYPE string .
     CLASS-METHODS get_type
       IMPORTING
-        !iv_branch_name      TYPE clike
-        it_result            TYPE stringtab OPTIONAL
-        iv_current_row_index TYPE sytabix OPTIONAL
+        !iv_branch_name       TYPE clike
+        !it_result            TYPE stringtab OPTIONAL
+        !iv_current_row_index TYPE sytabix OPTIONAL
       RETURNING
-        VALUE(rv_type)       TYPE zif_abapgit_definitions=>ty_git_branch_type .
+        VALUE(rv_type)        TYPE zif_abapgit_definitions=>ty_git_branch_type .
     CLASS-METHODS complete_heads_branch_name
       IMPORTING
         !iv_branch_name TYPE clike
@@ -2423,14 +2424,19 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
 
     DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
     DATA mv_head_symref TYPE string .
+
+    CLASS-METHODS skip_first_pkt
+      IMPORTING
+        !iv_data       TYPE string
+      RETURNING
+        VALUE(rv_data) TYPE string .
     METHODS find_tag_by_name
       IMPORTING
-        iv_branch_name   TYPE string
+        !iv_branch_name  TYPE string
       RETURNING
         VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS parse_branch_list
       IMPORTING
         !iv_data        TYPE string
@@ -34971,8 +34977,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         not_found       = 1
         unknown_version = 2
         OTHERS          = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_FETCH' ).
+    IF sy-subrc > 1.
+      zcx_abapgit_exception=>raise( |error from RS_CUA_INTERNAL_FETCH, { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -60528,7 +60534,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD find_by_name.
 
     IF iv_branch_name IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Branch name empty' ).
+      zcx_abapgit_exception=>raise( 'Branch name empty' ) ##NO_TEXT.
     ENDIF.
 
     IF iv_branch_name CP |refs/tags/*|.
@@ -60555,9 +60561,9 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
     IF sy-subrc <> 0.
 
       READ TABLE mt_branches INTO rs_branch
-      WITH KEY name = iv_branch_name.
+        WITH KEY name = iv_branch_name.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Branch not found' ).
+        zcx_abapgit_exception=>raise( 'Branch not found' ) ##NO_TEXT.
       ENDIF.
 
     ENDIF.
@@ -60666,26 +60672,24 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
     CLEAR: et_list, ev_head_symref.
 
-    SPLIT iv_data AT zif_abapgit_definitions=>c_newline INTO TABLE lt_result.
+    lv_data = skip_first_pkt( iv_data ).
+    SPLIT lv_data AT zif_abapgit_definitions=>c_newline INTO TABLE lt_result.
 
     LOOP AT lt_result INTO lv_data.
-
       lv_current_row_index = sy-tabix.
 
-      IF sy-tabix = 1.
-        CONTINUE. " current loop
-      ELSEIF sy-tabix = 2 AND strlen( lv_data ) > 49.
+      IF sy-tabix = 1 AND strlen( lv_data ) > 49.
         lv_hash = lv_data+8.
         lv_name = lv_data+49.
         lv_char = zcl_abapgit_git_utils=>get_null( ).
 
         SPLIT lv_name AT lv_char INTO lv_name lv_head_params.
         ev_head_symref = parse_head_params( lv_head_params ).
-      ELSEIF sy-tabix > 2 AND strlen( lv_data ) > 45.
+      ELSEIF sy-tabix > 1 AND strlen( lv_data ) > 45.
         lv_hash = lv_data+4.
         lv_name = lv_data+45.
-      ELSEIF sy-tabix = 2 AND strlen( lv_data ) = 8 AND lv_data(8) = '00000000'.
-        zcx_abapgit_exception=>raise( 'No branches, create branch manually by adding file' ).
+      ELSEIF sy-tabix = 1 AND strlen( lv_data ) = 8 AND lv_data(8) = '00000000'.
+        zcx_abapgit_exception=>raise( 'No branches, create branch manually by adding file' ) ##NO_TEXT.
       ELSE.
         CONTINUE.
       ENDIF.
@@ -60709,13 +60713,27 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD parse_head_params.
 
     DATA: ls_match    TYPE match_result,
-          ls_submatch TYPE submatch_result.
+          ls_submatch LIKE LINE OF ls_match-submatches.
 
     FIND FIRST OCCURRENCE OF REGEX '\ssymref=HEAD:([^\s]+)' IN iv_data RESULTS ls_match.
     READ TABLE ls_match-submatches INTO ls_submatch INDEX 1.
     IF sy-subrc IS INITIAL.
       rv_head_symref = iv_data+ls_submatch-offset(ls_submatch-length).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD skip_first_pkt.
+
+    DATA: lv_hex    TYPE x LENGTH 1,
+          lv_length TYPE i.
+
+* channel
+    ASSERT iv_data(2) = '00'.
+
+    lv_hex = to_upper( iv_data+2(2) ).
+    lv_length = lv_hex + 2.
+
+    rv_data = iv_data+lv_length.
 
   ENDMETHOD.
 ENDCLASS.
@@ -61488,5 +61506,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-08T06:04:18.561Z
+* abapmerge - 2018-09-08T06:05:13.717Z
 ****************************************************
