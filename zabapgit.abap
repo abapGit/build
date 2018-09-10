@@ -9909,10 +9909,10 @@ CLASS zcl_abapgit_branch_overview DEFINITION
         zcx_abapgit_exception .
     METHODS _sort_commits CHANGING ct_commits TYPE ty_commits.
     METHODS _get_1st_child_commit
-      IMPORTING itr_commit_sha1s    TYPE tyt_commit_sha1_range
-      EXPORTING etr_commit_sha1s    TYPE tyt_commit_sha1_range
-                e_1st_commit        TYPE zif_abapgit_definitions=>ty_commit
-      CHANGING  ct_commits          TYPE ty_commits.
+      IMPORTING itr_commit_sha1s TYPE tyt_commit_sha1_range
+      EXPORTING etr_commit_sha1s TYPE tyt_commit_sha1_range
+                e_1st_commit     TYPE zif_abapgit_definitions=>ty_commit
+      CHANGING  ct_commits       TYPE ty_commits.
 
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector DEFINITION
@@ -18598,6 +18598,8 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     DATA: ltr_commit_sha1s           LIKE itr_commit_sha1s.
     FIELD-SYMBOLS: <lsr_commit_sha1> LIKE LINE OF itr_commit_sha1s.
     FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
+
+    CLEAR: e_1st_commit.
 
 * get all reachable next commits
     ltr_commit_sha1s = itr_commit_sha1s.
@@ -62459,5 +62461,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-10T14:13:43.526Z
+* abapmerge - 2018-09-10T16:40:30.731Z
 ****************************************************
