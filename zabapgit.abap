@@ -9911,8 +9911,9 @@ CLASS zcl_abapgit_branch_overview DEFINITION
     METHODS _get_1st_child_commit
       IMPORTING itr_commit_sha1s    TYPE tyt_commit_sha1_range
       EXPORTING etr_commit_sha1s    TYPE tyt_commit_sha1_range
-      CHANGING  ct_commits          TYPE ty_commits
-      RETURNING VALUE(e_1st_commit) TYPE zif_abapgit_definitions=>ty_commit.
+                e_1st_commit        TYPE zif_abapgit_definitions=>ty_commit
+      CHANGING  ct_commits          TYPE ty_commits.
+
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector DEFINITION
   CREATE PROTECTED
@@ -18651,8 +18652,8 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
       DO.
         _get_1st_child_commit( EXPORTING itr_commit_sha1s = ltr_parents
                                IMPORTING etr_commit_sha1s = ltr_parents
-                               CHANGING  ct_commits       = ct_commits
-                               RECEIVING e_1st_commit     = lv_next_commit ).
+                                         e_1st_commit     = lv_next_commit
+                               CHANGING  ct_commits       = ct_commits ).
         IF lv_next_commit IS INITIAL.
           EXIT. "DO
         ENDIF.
@@ -62449,5 +62450,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-09T19:07:11.529Z
+* abapmerge - 2018-09-10T14:12:14.077Z
 ****************************************************
