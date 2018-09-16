@@ -6995,9 +6995,10 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
 
     TYPES:
       BEGIN OF ty_rule,
-        regex TYPE REF TO cl_abap_regex,
-        token TYPE char1,
-        style TYPE string,
+        regex             TYPE REF TO cl_abap_regex,
+        token             TYPE char1,
+        style             TYPE string,
+        relevant_submatch TYPE i,
       END OF ty_rule.
 
     CONSTANTS c_token_none TYPE c VALUE '.'.
@@ -7006,9 +7007,10 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
 
     METHODS add_rule
       IMPORTING
-        iv_regex TYPE string
-        iv_token TYPE c
-        iv_style TYPE string.
+        iv_regex    TYPE string
+        iv_token    TYPE c
+        iv_style    TYPE string
+        iv_submatch TYPE i OPTIONAL.
 
     METHODS parse_line
       IMPORTING iv_line    TYPE string
@@ -7031,7 +7033,6 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
       IMPORTING iv_line        TYPE string
                 iv_class       TYPE string
       RETURNING VALUE(rv_line) TYPE string.
-
 ENDCLASS.
 CLASS zcl_abapgit_syntax_abap DEFINITION
   INHERITING FROM zcl_abapgit_syntax_highlighter
@@ -7094,9 +7095,11 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
       END OF c_token .
     CONSTANTS:
       BEGIN OF c_regex,
-        xml_tag  TYPE string VALUE '[<>]',                  "#EC NOTEXT
-        attr     TYPE string VALUE '\s[-a-z:_0-9]+\s*(?==)', "#EC NOTEXT
-        attr_val TYPE string VALUE '["''][^''"]*[''"]',     "#EC NOTEXT
+        "for XML tags, we will use a submatch
+        " main pattern includes quoted strings so we can ignore < and > in attr values
+        xml_tag  TYPE string VALUE '(?:"[^"]*")|(?:''[^'']*'')|([<>])',    "#EC NOTEXT
+        attr     TYPE string VALUE '(?:^|\s)[-a-z:_0-9]+\s*(?==)', "#EC NOTEXT
+        attr_val TYPE string VALUE '("[^"]*")|(''[^'']*'')',     "#EC NOTEXT
       END OF c_regex .
 
     METHODS constructor .
@@ -32313,9 +32316,10 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
 
     " Initialize instances of regular expressions
 
-    add_rule( iv_regex = c_regex-xml_tag
-              iv_token = c_token-xml_tag
-              iv_style = c_css-xml_tag ).
+    add_rule( iv_regex    = c_regex-xml_tag
+              iv_token    = c_token-xml_tag
+              iv_style    = c_css-xml_tag
+              iv_submatch = 1 ).
 
     add_rule( iv_regex = c_regex-attr
               iv_token = c_token-attr
@@ -32381,9 +32385,22 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
       ASSIGN <ls_match> TO <ls_prev>.
     ENDLOOP.
 
+    "if the last XML tag is not closed, extend it to the end of the tag
+    IF    lv_prev_token = c_token-xml_tag
+      AND <ls_prev> IS ASSIGNED
+      AND <ls_prev>-length  = 1
+      AND <ls_prev>-text_tag = '<'.
+
+      FIND REGEX '<\s*[^\s]*' IN iv_line+<ls_prev>-offset MATCH LENGTH <ls_prev>-length.
+      IF sy-subrc <> 0.
+        <ls_prev>-length = 1.
+      ENDIF.
+
+    ENDIF.
+
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
   METHOD add_rule.
 
     DATA ls_rule LIKE LINE OF mt_rules.
@@ -32393,8 +32410,9 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
         pattern     = iv_regex
         ignore_case = abap_true.
 
-    ls_rule-token = iv_token.
-    ls_rule-style = iv_style.
+    ls_rule-token         = iv_token.
+    ls_rule-style         = iv_style.
+    ls_rule-relevant_submatch = iv_submatch.
     APPEND ls_rule TO mt_rules.
 
   ENDMETHOD.
@@ -32488,7 +32506,8 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
 
     FIELD-SYMBOLS:
       <ls_regex>  LIKE LINE OF mt_rules,
-      <ls_result> TYPE match_result.
+      <ls_result> TYPE match_result,
+      <ls_submatch>  LIKE LINE OF <ls_result>-submatches.
     CLEAR et_matches.
 
     " Process syntax-dependent regex table and find all matches
@@ -32500,10 +32519,21 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       " Save matches into custom table with predefined tokens
       LOOP AT lt_result ASSIGNING <ls_result>.
         CLEAR: ls_match.
-        ls_match-token  = <ls_regex>-token.
-        ls_match-offset = <ls_result>-offset.
-        ls_match-length = <ls_result>-length.
-        APPEND ls_match TO et_matches.
+        IF <ls_regex>-relevant_submatch = 0.
+          ls_match-token  = <ls_regex>-token.
+          ls_match-offset = <ls_result>-offset.
+          ls_match-length = <ls_result>-length.
+          APPEND ls_match TO et_matches.
+        ELSE.
+          READ TABLE <ls_result>-submatches ASSIGNING <ls_submatch> INDEX <ls_regex>-relevant_submatch.
+          "submatch might be empty if only discarted parts matched
+          IF sy-subrc = 0 and <ls_submatch>-offset >= 0 and <ls_submatch>-length > 0.
+            ls_match-token  = <ls_regex>-token.
+            ls_match-offset = <ls_submatch>-offset.
+            ls_match-length = <ls_submatch>-length.
+            APPEND ls_match TO et_matches.
+          ENDIF.
+        ENDIF.
       ENDLOOP.
     ENDLOOP.
 
@@ -62789,5 +62819,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-16T14:45:50.203Z
+* abapmerge - 2018-09-16T16:26:59.857Z
 ****************************************************
