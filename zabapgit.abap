@@ -4019,8 +4019,11 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
 
     CLASS-METHODS:
       jump_adt
-        IMPORTING i_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
-                  i_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type
+        IMPORTING i_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
+                  i_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
+                  i_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+                  i_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+                  i_line_number  TYPE i OPTIONAL
         RAISING   zcx_abapgit_exception.
 
     CONSTANTS: c_user_unknown TYPE xubname VALUE 'UNKNOWN'.
@@ -4077,6 +4080,18 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
                   io_adt                        TYPE REF TO object
         RETURNING VALUE(r_is_adt_jump_possible) TYPE abap_bool
         RAISING   zcx_abapgit_exception.
+    CLASS-METHODS:
+      get_adt_objects_and_names
+        IMPORTING
+          i_obj_name       TYPE zif_abapgit_definitions=>ty_item-obj_name
+          i_obj_type       TYPE zif_abapgit_definitions=>ty_item-obj_type
+        EXPORTING
+          eo_adt_uri_mapper TYPE REF TO object
+          eo_adt_objectref  TYPE REF TO object
+          e_program         TYPE progname
+          e_include         TYPE progname
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -7595,6 +7610,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         commit TYPE string VALUE 'commit' ##NO_TEXT,
         rerun  TYPE string VALUE 'rerun' ##NO_TEXT,
       END OF c_actions.
+    CONSTANTS: c_object_separator type char1 VALUE '|'.
 
     DATA:
       mt_result TYPE scit_alvlist,
@@ -7620,7 +7636,9 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
           VALUE(rv_is_stage_allowed) TYPE abap_bool,
       jump
         IMPORTING
-          is_item TYPE zif_abapgit_definitions=>ty_item
+          is_item       TYPE zif_abapgit_definitions=>ty_item
+          is_sub_item   TYPE zif_abapgit_definitions=>ty_item
+          i_line_number type i
         RAISING
           zcx_abapgit_exception.
 
@@ -10696,7 +10714,8 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS jump
       IMPORTING
-        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+        !i_line_number TYPE i OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS changed_by
@@ -15635,8 +15654,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     IF lv_adt_jump_enabled = abap_true.
       TRY.
           zcl_abapgit_objects_super=>jump_adt(
-            i_obj_name = is_item-obj_name
-            i_obj_type = is_item-obj_type ).
+            i_obj_name    = is_item-obj_name
+            i_obj_type    = is_item-obj_type
+            i_line_number = i_line_number ).
         CATCH zcx_abapgit_exception.
           li_obj->jump( ).
       ENDTRY.
@@ -27976,13 +27996,32 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
           lo_result             TYPE REF TO cl_ci_result_root,
           lv_check_variant_name TYPE sci_chkv,
           lv_package            TYPE devclass.
+    DATA: lv_adt_jump_enabled   TYPE abap_bool.
+    DATA: lv_line_number        TYPE i.
+    DATA: ls_item               TYPE zif_abapgit_definitions=>ty_item.
+    DATA: ls_sub_item           TYPE zif_abapgit_definitions=>ty_item.
 
     FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
 
-    READ TABLE mt_result WITH KEY objtype = is_item-obj_type
-                                  objname = is_item-obj_name
-                         ASSIGNING <ls_result>.
-    ASSERT sy-subrc = 0.
+    IF is_sub_item IS NOT INITIAL.
+      READ TABLE mt_result WITH KEY objtype  = is_item-obj_type
+                                    objname  = is_item-obj_name
+                                    sobjtype = is_sub_item-obj_type
+                                    sobjname = is_sub_item-obj_name
+                                    line     = i_line_number
+                           ASSIGNING <ls_result>.
+    ELSE.
+      READ TABLE mt_result WITH KEY objtype = is_item-obj_type
+                                    objname = is_item-obj_name
+                                    line    = i_line_number
+                           ASSIGNING <ls_result>.
+    ENDIF.
+    ASSERT <ls_result> IS ASSIGNED.
+    ls_item-obj_name = <ls_result>-objname.
+    ls_item-obj_type = <ls_result>-objtype.
+
+    ls_sub_item-obj_name = <ls_result>-sobjname.
+    ls_sub_item-obj_type = <ls_result>-sobjtype.
 
     lv_package = mo_repo->get_package( ).
     lv_check_variant_name = mo_repo->get_local_settings( )-code_inspector_check_variant.
@@ -27993,7 +28032,23 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
 
-    MOVE-CORRESPONDING <ls_result> TO ls_info.
+    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+
+    TRY.
+        IF lv_adt_jump_enabled = abap_true.
+
+          lv_line_number = <ls_result>-line.
+
+          zcl_abapgit_objects_super=>jump_adt( i_obj_name     = ls_item-obj_name
+                                               i_obj_type     = ls_item-obj_type
+                                               i_sub_obj_name = ls_sub_item-obj_name
+                                               i_sub_obj_type = ls_sub_item-obj_type
+                                               i_line_number  = lv_line_number ).
+          RETURN.
+
+        ENDIF.
+      CATCH zcx_abapgit_exception.
+    ENDTRY.
 
     TRY.
         lo_test ?= cl_ci_tests=>get_test_ref( <ls_result>-test ).
@@ -28003,6 +28058,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ENDTRY.
 
     lo_result = lo_test->get_result_node( <ls_result>-kind ).
+    MOVE-CORRESPONDING <ls_result> TO ls_info.
 
     lo_result->set_info( ls_info ).
     lo_result->if_ci_test~navigate( ).
@@ -28038,9 +28094,23 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     LOOP AT mt_result ASSIGNING <ls_result>.
 
       ro_html->add( '<div>' ).
-      ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
-                      iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+      IF <ls_result>-sobjname IS INITIAL or
+         ( <ls_result>-sobjname = <ls_result>-objname and
+           <ls_result>-sobjtype = <ls_result>-sobjtype ).
+        ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
+                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
+                                 |{ c_object_separator }{ c_object_separator }{ <ls_result>-line }|
+                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+
+      ELSE.
+        ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }| &&
+                                 | < { <ls_result>-sobjtype } { <ls_result>-sobjname }|
+                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
+                                 |{ c_object_separator }{ <ls_result>-sobjtype }{ <ls_result>-sobjname }| &&
+                                 |{ c_object_separator }{ <ls_result>-line }|
+                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+
+      ENDIF.
       ro_html->add( '</div>' ).
 
       CASE <ls_result>-kind.
@@ -28069,10 +28139,30 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     mt_result = mo_repo->run_code_inspector( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Code Inspector: Stage|.
+    ls_hotkey_action-action         = c_actions-stage.
+    ls_hotkey_action-default_hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Code Inspector: Re-Run|.
+    ls_hotkey_action-action         = c_actions-rerun.
+    ls_hotkey_action-default_hotkey = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
-    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
-          ls_item        TYPE zif_abapgit_definitions=>ty_item.
+    DATA: lo_repo_online   TYPE REF TO zcl_abapgit_repo_online,
+          ls_item          TYPE zif_abapgit_definitions=>ty_item,
+          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item.
+    DATA: lv_main_object   TYPE string.
+    DATA: lv_sub_object    TYPE string.
+    DATA: lv_line_number_s TYPE string.
+    DATA: lv_line_number   TYPE i.
     CASE iv_action.
       WHEN c_actions-stage.
 
@@ -28124,13 +28214,20 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
         RETURN.
 
       WHEN OTHERS.
+        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
+        ls_item-obj_type = lv_main_object(4).
+        ls_item-obj_name = lv_main_object+4(*).
 
-        ls_item-obj_type = iv_action(4).
-        ls_item-obj_name = iv_action+4(*).
+        IF lv_sub_object IS NOT INITIAL.
+          ls_sub_item-obj_type = lv_sub_object(4).
+          ls_sub_item-obj_name = lv_sub_object+4(*).
+        ENDIF.
 
-        jump( ls_item ).
+        lv_line_number = lv_line_number_s.
 
-*        zcl_abapgit_objects=>jump( ls_item ).
+        jump( is_item       = ls_item
+              is_sub_item   = ls_sub_item
+              i_line_number = lv_line_number ).
 
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
@@ -28143,22 +28240,6 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ro_html = super->zif_abapgit_gui_page~render( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Code Inspector: Stage|.
-    ls_hotkey_action-action         = c_actions-stage.
-    ls_hotkey_action-default_hotkey = |s|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Code Inspector: Re-Run|.
-    ls_hotkey_action-action         = c_actions-rerun.
-    ls_hotkey_action-default_hotkey = |r|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
@@ -35030,15 +35111,73 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD jump_adt.
 
-    DATA: lv_adt_link       TYPE string,
-          lv_obj_type       TYPE trobjtype,
-          lv_obj_name       TYPE trobj_name,
-          lo_object         TYPE REF TO cl_wb_object,
-          lo_adt            TYPE REF TO object,
-          lo_adt_uri_mapper TYPE REF TO object,
-          lo_adt_objref     TYPE REF TO object ##needed.
-
+    DATA: lv_adt_link       TYPE string.
+    DATA: lo_adt_uri_mapper TYPE REF TO object ##needed.
+    DATA: lo_adt_objref     TYPE REF TO object ##needed.
+    DATA: lo_adt_sub_objref TYPE REF TO object ##needed.
+    DATA: lv_program        TYPE progname.
+    DATA: lv_include        TYPE progname.
     FIELD-SYMBOLS: <lv_uri> TYPE string.
+    get_adt_objects_and_names(
+      EXPORTING
+        i_obj_name        = i_obj_name
+        i_obj_type        = i_obj_type
+      IMPORTING
+        eo_adt_uri_mapper = lo_adt_uri_mapper
+        eo_adt_objectref  = lo_adt_objref
+        e_program         = lv_program
+        e_include         = lv_include ).
+
+    TRY.
+        IF i_sub_obj_name IS NOT INITIAL.
+
+          IF ( lv_program <> i_obj_name AND lv_include IS INITIAL ) OR
+             ( lv_program = lv_include AND i_sub_obj_name IS NOT INITIAL ).
+            lv_include = i_sub_obj_name.
+          ENDIF.
+
+          CALL METHOD lo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_INCLUDE_TO_OBJREF')
+            EXPORTING
+              program     = lv_program
+              include     = lv_include
+              line        = i_line_number
+              line_offset = 0
+              end_line    = i_line_number
+              end_offset  = 1
+            RECEIVING
+              result      = lo_adt_sub_objref.
+          IF lo_adt_sub_objref IS NOT INITIAL.
+            lo_adt_objref = lo_adt_sub_objref.
+          ENDIF.
+
+        ENDIF.
+
+        ASSIGN ('LO_ADT_OBJREF->REF_DATA-URI') TO <lv_uri>.
+        ASSERT sy-subrc = 0.
+
+        CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
+
+        cl_gui_frontend_services=>execute( EXPORTING  document = lv_adt_link
+                                           EXCEPTIONS OTHERS   = 1 ).
+
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+        ENDIF.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD get_adt_objects_and_names.
+
+    DATA lv_obj_type       TYPE trobjtype.
+    DATA lv_obj_name       TYPE trobj_name.
+    DATA lo_object         TYPE REF TO cl_wb_object.
+    DATA lo_adt            TYPE REF TO object.
+    FIELD-SYMBOLS <lv_uri> TYPE string.
+
     lv_obj_name = i_obj_name.
     lv_obj_type = i_obj_type.
 
@@ -35066,25 +35205,23 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
         CALL METHOD lo_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER')
           RECEIVING
-            result = lo_adt_uri_mapper.
+            result = eo_adt_uri_mapper.
 
-        CALL METHOD lo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_WB_OBJECT_TO_OBJREF')
+        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_WB_OBJECT_TO_OBJREF')
           EXPORTING
             wb_object = lo_object
           RECEIVING
-            result    = lo_adt_objref.
+            result    = eo_adt_objectref.
 
-        ASSIGN ('LO_ADT_OBJREF->REF_DATA-URI') TO <lv_uri>.
+        ASSIGN ('EO_ADT_OBJECTREF->REF_DATA-URI') TO <lv_uri>.
         ASSERT sy-subrc = 0.
 
-        CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
-
-        cl_gui_frontend_services=>execute( EXPORTING  document = lv_adt_link
-                                           EXCEPTIONS OTHERS   = 1 ).
-
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-        ENDIF.
+        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_OBJREF_TO_INCLUDE')
+          EXPORTING
+            uri     = <lv_uri>
+          IMPORTING
+            program = e_program
+            include = e_include.
 
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
@@ -62462,5 +62599,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-15T13:11:46.727Z
+* abapmerge - 2018-09-16T08:06:45.845Z
 ****************************************************
