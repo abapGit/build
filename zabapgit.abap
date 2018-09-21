@@ -8387,6 +8387,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     CONSTANTS: BEGIN OF c_action,
                  stage_all    TYPE string VALUE 'stage_all',
                  stage_commit TYPE string VALUE 'stage_commit',
+                 stage_filter TYPE string VALUE 'stage_filter',
                END OF c_action.
 
     METHODS:
@@ -8414,7 +8415,8 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
-    DATA mv_seed TYPE string .    " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .   " Unique page id to bind JS sessionStorage
+    DATA mv_filter_value TYPE string.
 
     METHODS find_changed_by
       IMPORTING
@@ -24607,7 +24609,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     " Filter bar
     ro_html->add( '<td class="right">' ).
     ro_html->add( '<input class="stage-filter" id="objectSearch"' &&
-                  ' type="search" placeholder="Filter objects">' ).
+                  ' type="search" placeholder="Filter objects"' &&
+                  | value={ mv_filter_value }>| ).
     ro_html->add( '</td>' ).
 
     ro_html->add( '</tr>' ).
@@ -24767,7 +24770,9 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
-    DATA lo_stage TYPE REF TO zcl_abapgit_stage.
+    DATA: lo_stage  TYPE REF TO zcl_abapgit_stage,
+          lv_string TYPE string,
+          lt_fields TYPE tihttpnvp.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local.
     CREATE OBJECT lo_stage.
@@ -24800,6 +24805,18 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
             io_repo  = mo_repo
             io_stage = lo_stage.
         ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+
+      WHEN c_action-stage_filter.
+
+        CONCATENATE LINES OF it_postdata INTO lv_string.
+
+        lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
+
+        zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = 'filterValue'
+                                                            it_field = lt_fields
+                                                  CHANGING  cg_field = mv_filter_value ).
+
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
       WHEN zif_abapgit_definitions=>c_action-go_patch.                         " Go Patch page
 
@@ -30705,7 +30722,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.pageSeed        = params.seed;'.
         _inline '  this.formAction      = params.formAction;'.
         _inline '  this.choiseCount     = 0;'.
-        _inline '  this.lastSearchValue = "";'.
+        _inline '  this.lastFilterValue = "";'.
         _inline ''.
         _inline '  // DOM nodes'.
         _inline '  this.dom = {'.
@@ -30743,8 +30760,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'StageHelper.prototype.setHooks = function() {'.
         _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
         _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
-        _inline '  this.dom.objectSearch.oninput    = this.onSearch.bind(this);'.
-        _inline '  this.dom.objectSearch.onkeypress = this.onSearch.bind(this);'.
+        _inline '  this.dom.objectSearch.oninput    = this.onFilter.bind(this);'.
+        _inline '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);'.
         _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
         _inline '  window.onload                    = this.onPageLoad.bind(this);'.
         _inline '}'.
@@ -30767,7 +30784,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var data = this.collectData();'.
         _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Re-store table state on entering the page'.
         _inline 'StageHelper.prototype.onPageLoad = function() {'.
@@ -30779,8 +30796,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  });'.
         _inline ''.
         _inline '  this.updateMenu();'.
+        _inline '  if (this.dom.objectSearch.value) {'.
+        _inline '    this.applyFilterValue(this.dom.objectSearch.value);'.
+        _inline '  }'.
         _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Table event handler, change status'.
         _inline 'StageHelper.prototype.onTableClick = function (event) {'.
@@ -30817,15 +30837,22 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline '// Search object'.
-        _inline 'StageHelper.prototype.onSearch = function (e) {'.
+        _inline 'StageHelper.prototype.onFilter = function (e) {'.
         _inline '  if ( // Enter hit or clear, IE SUCKS !'.
-        _inline '       e.type === "input" && !e.target.value && this.lastSearchValue'.
+        _inline '       e.type === "input" && !e.target.value && this.lastFilterValue'.
         _inline '    || e.type === "keypress" && e.which === 13 ) { '.
         _inline ''.
-        _inline '    this.lastSearchValue = e.target.value;'.
-        _inline '    this.iterateStageTab(true, this.applyFilterToRow, e.target.value);'.
+        _inline '    this.applyFilterValue(e.target.value);'.
+        _inline '    submitSapeventForm({ ''filterValue'': e.target.value }, "stage_filter", "post");'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
+        _inline ''.
+        _inline 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {'.
+        _inline ''.
+        _inline '  this.lastFilterValue = sFilterValue;'.
+        _inline '  this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
+        _inline ''.
+        _inline '};'.
         _inline ''.
         _inline '// Apply filter to a single stage line - hide or show'.
         _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
@@ -63070,5 +63097,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-21T07:20:47.796Z
+* abapmerge - 2018-09-21T07:22:17.045Z
 ****************************************************
