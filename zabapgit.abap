@@ -17950,7 +17950,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ms_data-requirements = it_requirements.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
+CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
     TYPES: BEGIN OF ty_ddls_name.
@@ -18009,6 +18009,11 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           <ls_tadir>-korrnum = '8100'.
         WHEN 'DOMA'.
           <ls_tadir>-korrnum = '9000'.
+* AUTH after DCLS
+        WHEN 'DCLS'.
+          <ls_tadir>-korrnum = '7100'.
+        WHEN 'AUTH'.
+          <ls_tadir>-korrnum = '7000'.
         WHEN 'PROG'.
 * delete includes after main programs
           SELECT COUNT(*) FROM reposrc
@@ -63097,5 +63102,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-21T09:11:32.920Z
+* abapmerge - 2018-09-24T04:04:42.027Z
 ****************************************************
