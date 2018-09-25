@@ -1104,7 +1104,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES:
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
   TYPES:
-    ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
+    ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY.
   TYPES:
     BEGIN OF ty_tpool.
           INCLUDE TYPE textpool.
@@ -1119,6 +1119,14 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_sotr .
   TYPES:
     ty_sotr_tt TYPE STANDARD TABLE OF ty_sotr WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_obj_attribute,
+      cmpname   TYPE seocmpname,
+      attkeyfld TYPE seokeyfld,
+      attbusobj TYPE seobusobj,
+    END OF ty_obj_attribute,
+    ty_obj_attribute_tt TYPE STANDARD TABLE OF ty_obj_attribute WITH DEFAULT KEY
+                             WITH NON-UNIQUE SORTED KEY cmpname COMPONENTS cmpname.
   TYPES:
     BEGIN OF ty_transport_to_branch,
       branch_name TYPE string,
@@ -1423,6 +1431,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
       IMPORTING
         iv_package    TYPE devclass
         iv_overwrite  TYPE seox_boolean DEFAULT seox_true
+        it_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt OPTIONAL
       CHANGING
         cg_properties TYPE any
       RAISING
@@ -1544,8 +1553,12 @@ INTERFACE zif_abapgit_oo_object_fnc.
       IMPORTING
         iv_classname         TYPE seoclsname
       RETURNING
-        VALUE(rv_superclass) TYPE seoclsname.
-
+        VALUE(rv_superclass) TYPE seoclsname,
+    read_attributes
+      IMPORTING
+        iv_object_name       TYPE seoclsname
+      RETURNING
+        VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 ENDINTERFACE.
 INTERFACE zif_abapgit_popups
   .
@@ -6464,6 +6477,13 @@ ENDCLASS.
 CLASS zcl_abapgit_oo_base DEFINITION ABSTRACT.
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_oo_object_fnc.
+
+  PROTECTED SECTION.
+    CLASS-METHODS:
+      convert_attrib_to_vseoattrib
+        IMPORTING iv_clsname           TYPE seoclsname
+                  it_attributes        TYPE zif_abapgit_definitions=>ty_obj_attribute_tt
+        RETURNING VALUE(rt_vseoattrib) TYPE seoo_attributes_r.
 
   PRIVATE SECTION.
     DATA mv_skip_test_classes TYPE abap_bool.
@@ -34389,12 +34409,23 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 ENDCLASS.
 CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create.
+    DATA: lt_vseoattrib TYPE seoo_attributes_r.
+    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
+
+    ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
+    ASSERT sy-subrc = 0.
+
+    lt_vseoattrib = convert_attrib_to_vseoattrib(
+                      iv_clsname    = <lv_clsname>
+                      it_attributes = it_attributes ).
+
     CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
       EXPORTING
         devclass        = iv_package
         overwrite       = iv_overwrite
       CHANGING
         interface       = cg_properties
+        attributes      = lt_vseoattrib
       EXCEPTIONS
         existing        = 1
         is_class        = 2
@@ -34462,7 +34493,7 @@ CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
+CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -34712,7 +34743,17 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
+    DATA: lt_vseoattrib TYPE seoo_attributes_r.
+    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
+
 * same as in super class, but with "version = seoc_version_active"
+
+    ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
+    ASSERT sy-subrc = 0.
+
+    lt_vseoattrib = convert_attrib_to_vseoattrib(
+                      iv_clsname    = <lv_clsname>
+                      it_attributes = it_attributes ).
 
     CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
       EXPORTING
@@ -34721,6 +34762,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
         version         = seoc_version_active
       CHANGING
         class           = cg_properties
+        attributes      = lt_vseoattrib
       EXCEPTIONS
         existing        = 1
         is_interface    = 2
@@ -34845,12 +34887,23 @@ CLASS ZCL_ABAPGIT_OO_CLASS_NEW IMPLEMENTATION.
 ENDCLASS.
 CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create.
+    DATA: lt_vseoattrib TYPE seoo_attributes_r.
+    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
+
+    ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
+    ASSERT sy-subrc = 0.
+
+    lt_vseoattrib = convert_attrib_to_vseoattrib(
+                      iv_clsname    = <lv_clsname>
+                      it_attributes = it_attributes ).
+
     CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
       EXPORTING
         devclass        = iv_package
         overwrite       = iv_overwrite
       CHANGING
         class           = cg_properties
+        attributes      = lt_vseoattrib
       EXCEPTIONS
         existing        = 1
         is_interface    = 2
@@ -35110,7 +35163,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
+CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   METHOD deserialize_abap_source_new.
     DATA: lo_factory  TYPE REF TO object,
           lo_source   TYPE REF TO object,
@@ -35325,6 +35378,28 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~update_descriptions.
     DELETE FROM seocompotx WHERE clsname = is_key-clsname. "#EC CI_SUBRC
     INSERT seocompotx FROM TABLE it_descriptions.         "#EC CI_SUBRC
+  ENDMETHOD.
+
+  METHOD zif_abapgit_oo_object_fnc~read_attributes.
+    SELECT cmpname attbusobj attkeyfld
+      FROM seocompodf
+      INTO CORRESPONDING FIELDS OF TABLE rt_attributes
+      WHERE clsname = iv_object_name
+        AND ( attbusobj <> space OR attkeyfld <> space )
+        AND version = '1'
+      ORDER BY PRIMARY KEY.
+  ENDMETHOD.
+  METHOD convert_attrib_to_vseoattrib.
+    FIELD-SYMBOLS: <ls_attribute>  LIKE LINE OF it_attributes,
+                   <ls_vseoattrib> LIKE LINE OF rt_vseoattrib.
+
+    LOOP AT it_attributes ASSIGNING <ls_attribute>.
+      INSERT INITIAL LINE INTO TABLE rt_vseoattrib ASSIGNING <ls_vseoattrib>.
+      MOVE-CORRESPONDING <ls_attribute> TO <ls_vseoattrib>.
+      <ls_vseoattrib>-clsname = iv_clsname.
+      UNASSIGN <ls_vseoattrib>.
+    ENDLOOP.
+    UNASSIGN <ls_attribute>.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_objects_super IMPLEMENTATION.
@@ -57048,7 +57123,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_local_macros          TYPE seop_source_string,
           lt_test_classes          TYPE seop_source_string,
           lt_descriptions          TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
-          ls_class_key             TYPE seoclskey.
+          ls_class_key             TYPE seoclskey,
+          lt_attributes            TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
     lt_source = mo_files->read_abap( ).
 
     lt_local_definitions = mo_files->read_abap( iv_extra = 'locals_def'
@@ -57066,11 +57142,15 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ls_class_key-clsname = ms_item-obj_name.
 
     io_xml->read( EXPORTING iv_name = 'VSEOCLASS'
-                  CHANGING cg_data = ls_vseoclass ).
+                  CHANGING  cg_data = ls_vseoclass ).
+
+    io_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
+                  CHANGING  cg_data = lt_attributes ).
 
     mi_object_oriented_object_fct->create(
       EXPORTING
         iv_package    = iv_package
+        it_attributes = lt_attributes
       CHANGING
         cg_properties = ls_vseoclass ).
 
@@ -57324,7 +57404,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
           ls_clskey       TYPE seoclskey,
           lt_sotr         TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          lt_lines        TYPE tlinetab.
+          lt_lines        TYPE tlinetab,
+          lt_attributes   TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 
     ls_clskey-clsname = ms_item-obj_name.
 
@@ -57385,6 +57466,12 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     IF lines( lt_descriptions ) > 0.
       io_xml->add( iv_name = 'DESCRIPTIONS'
                    ig_data = lt_descriptions ).
+    ENDIF.
+
+    lt_attributes = mi_object_oriented_object_fct->read_attributes( ls_clskey-clsname ).
+    IF lines( lt_attributes ) > 0.
+      io_xml->add( iv_name = 'ATTRIBUTES'
+                   ig_data = lt_attributes ).
     ENDIF.
 
   ENDMETHOD.
@@ -63265,5 +63352,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-25T14:05:04.890Z
+* abapmerge - 2018-09-25T14:13:06.155Z
 ****************************************************
