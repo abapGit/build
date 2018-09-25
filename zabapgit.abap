@@ -914,7 +914,7 @@ INTERFACE zif_abapgit_definitions.
            ty_file_signature WITH UNIQUE KEY path filename .
   TYPES:
     BEGIN OF ty_file.
-      INCLUDE TYPE ty_file_signature.
+          INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
          END OF ty_file .
   TYPES:
@@ -1000,7 +1000,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES: ty_yes_no TYPE c LENGTH 1.
 
   TYPES: BEGIN OF ty_overwrite.
-      INCLUDE TYPE ty_item.
+          INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
          END OF ty_overwrite.
 
@@ -1107,7 +1107,7 @@ INTERFACE zif_abapgit_definitions.
     ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_tpool.
-      INCLUDE TYPE textpool.
+          INCLUDE TYPE textpool.
   TYPES:   split TYPE c LENGTH 8.
   TYPES: END OF ty_tpool .
   TYPES:
@@ -2838,6 +2838,12 @@ CLASS zcl_abapgit_git_transport DEFINITION
                  receive TYPE string VALUE 'receive',       "#EC NOTEXT
                  upload  TYPE string VALUE 'upload',        "#EC NOTEXT
                END OF c_service.
+    CONSTANTS: BEGIN OF c_smart_response_check,
+                 BEGIN OF get_refs,
+                   content_regex TYPE string VALUE '^[0-9a-f]{4}#',
+                   content_type  TYPE string VALUE 'application/x-git-<service>-pack-advertisement',
+                 END OF get_refs,
+               END OF c_smart_response_check.
 
     CLASS-METHODS branch_list
       IMPORTING iv_url         TYPE string
@@ -5553,6 +5559,21 @@ CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+    METHODS:
+      constructor
+        IMPORTING
+          is_item     TYPE zif_abapgit_definitions=>ty_item
+          iv_language TYPE spras.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_objectname TYPE tobj-objct.
+
+    METHODS:
+      delete_documentation
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_sxci DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -10427,15 +10448,17 @@ CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
       set_digest
         IMPORTING io_digest TYPE REF TO zcl_abapgit_http_digest,
       send_receive_close
-        IMPORTING
-                  iv_data        TYPE xstring
-        RETURNING
-                  VALUE(rv_data) TYPE xstring
+        IMPORTING iv_data        TYPE xstring
+        RETURNING VALUE(rv_data) TYPE xstring
         RAISING   zcx_abapgit_exception,
       get_cdata
         RETURNING VALUE(rv_value) TYPE string,
       check_http_200
         RAISING zcx_abapgit_exception,
+      check_smart_response
+        IMPORTING iv_expected_content_type TYPE string
+                  iv_content_regex         TYPE string
+        RAISING   zcx_abapgit_exception,
       send_receive
         RAISING zcx_abapgit_exception,
       set_headers
@@ -16985,11 +17008,12 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
+CLASS zcl_abapgit_http_client IMPLEMENTATION.
   METHOD check_http_200.
 
     DATA: lv_code TYPE i,
           lv_text TYPE string.
+
     mi_client->response->get_status(
       IMPORTING
         code   = lv_code ).
@@ -17012,6 +17036,27 @@ CLASS ZCL_ABAPGIT_HTTP_CLIENT IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.                                                "http_200
+  METHOD check_smart_response.
+
+    DATA: lv_content_type TYPE string.
+    DATA: lv_data         TYPE string.
+
+    IF iv_expected_content_type IS NOT INITIAL.
+      lv_content_type = mi_client->response->get_content_type( ).
+      IF lv_content_type <> iv_expected_content_type.
+        zcx_abapgit_exception=>raise( 'Wrong Content-Type sent by server - no fallback to the dumb protocol!' ).
+      ENDIF.
+    ENDIF.
+
+    IF iv_content_regex IS NOT INITIAL.
+      lv_data = mi_client->response->get_cdata( ).
+      FIND REGEX iv_content_regex IN lv_data.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Wrong Content sent by server' ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD close.
     mi_client->close( ).
   ENDMETHOD.
@@ -37874,7 +37919,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
         undefined_name          = 5
         OTHERS                  = 6 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from cl_o2_api_xsltdesc=>create_new_from_string' ).
+      zcx_abapgit_exception=>raise( |error from cl_o2_api_xsltdesc=>create_new_from_string, { sy-subrc }| ).
     ENDIF.
 
     lo_xslt->activate( ).
@@ -43026,6 +43071,15 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
 ENDCLASS.
 CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+    mv_objectname = ms_item-obj_name.
+
+  ENDMETHOD.
+
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
@@ -43103,7 +43157,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
 
-    DATA: lv_objectname TYPE e071-obj_name,
+    DATA: lv_objectname TYPE trobj_name,
           ls_tobj       TYPE tobj,
           ls_tobjt      TYPE tobjt,
           ls_tobjvorflg TYPE tobjvorflg,
@@ -43128,7 +43182,8 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
-    lv_objectname = ms_item-obj_name.
+    lv_objectname = mv_objectname.
+
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname      = lv_objectname
@@ -43148,21 +43203,100 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_object TYPE tobj-objct.
-    lv_object = ms_item-obj_name.
-    CALL FUNCTION 'SUSR_DELETE_OBJECT'
+    " FM SUSR_DELETE_OBJECT calls the UI. Therefore we reimplement it here.
+
+    CONSTANTS:
+      co_act_delete TYPE activ_auth VALUE '06'.
+
+    DATA:
+      lv_act_head TYPE cl_suso_gen=>td_act,
+      lv_dummy    TYPE string,
+      lo_suso     TYPE REF TO cl_suso_gen,
+      lv_failed   TYPE abap_bool.
+
+    CREATE OBJECT lo_suso.
+
+    lv_failed = lo_suso->suso_load_from_db( mv_objectname ).
+
+    IF lv_failed = abap_true.
+      " Object & does not exist; choose an existing object
+      MESSAGE s111(01) WITH mv_objectname INTO lv_dummy.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    lo_suso->get_suso_edit_mode( EXPORTING id_object      = mv_objectname
+                                           id_planed_act  = co_act_delete
+                                 IMPORTING ed_mode_head   = lv_act_head ).
+    IF lv_act_head <> co_act_delete.
+      zcx_abapgit_exception=>raise( |AUTH { mv_objectname }: Delete not allowed| ).
+    ENDIF.
+
+    IF lo_suso->suso_collect_in_cts( mv_objectname ) IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    delete_documentation( ).
+
+    DELETE FROM tobj  WHERE objct  = mv_objectname.
+    DELETE FROM tobjt WHERE object = mv_objectname.
+    DELETE FROM tactz WHERE brobj  = mv_objectname.
+
+    CALL FUNCTION 'SUPV_DELETE_OBJECT_ASSIGNMENTS'
       EXPORTING
-        object = lv_object.
+        object_name  = mv_objectname
+        all_releases = abap_true.
+
+    CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
+      EXPORTING
+        object    = mv_objectname
+        type      = 'SUSO'
+        operation = 'DELETE'.
 
   ENDMETHOD.
 
+  METHOD delete_documentation.
+
+    DATA:
+      lv_docu_obj TYPE dokhl-object,
+      lv_dummy    TYPE sy-langu.
+
+    lv_docu_obj  = mv_objectname.
+
+    SELECT SINGLE langu
+           FROM dokil INTO lv_dummy
+           WHERE id   = 'UO'                            "#EC CI_GENBUFF
+           AND object = lv_docu_obj.
+
+    IF sy-subrc = 0.
+
+      CALL FUNCTION 'DOKU_DELETE_ALL'
+        EXPORTING
+          doku_id                        = 'UO'
+          doku_object                    = lv_docu_obj
+          suppress_transport             = space
+        EXCEPTIONS
+          header_without_text            = 1
+          index_without_header           = 2
+          no_authority_for_devclass_xxxx = 3
+          no_docu_found                  = 4
+          object_is_already_enqueued     = 5
+          object_is_enqueued_by_corr     = 6
+          techn_enqueue_problem          = 7
+          user_break                     = 8
+          OTHERS                         = 9.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    DATA: lv_object TYPE tobj-objct.
-    lv_object = ms_item-obj_name.
     CALL FUNCTION 'SUSR_SHOW_OBJECT'
       EXPORTING
-        object = lv_object.
+        object = mv_objectname.
 
   ENDMETHOD.
 
@@ -60576,9 +60710,18 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branch_list.
 
     DATA: lv_data TYPE string.
+    DATA: lv_expected_content_type TYPE string.
+
     eo_client = zcl_abapgit_http=>create_by_url(
       iv_url     = iv_url
       iv_service = iv_service ).
+
+    lv_expected_content_type = c_smart_response_check-get_refs-content_type.
+    REPLACE '<service>' IN lv_expected_content_type WITH iv_service.
+
+    eo_client->check_smart_response(
+        iv_expected_content_type = lv_expected_content_type
+        iv_content_regex         = c_smart_response_check-get_refs-content_regex ).
 
     lv_data = eo_client->get_cdata( ).
 
@@ -60667,7 +60810,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
               zcl_abapgit_git_utils=>get_null( ) &&
               ` ` &&
               lv_cap_list &&
-              zif_abapgit_definitions=>c_newline.          "#EC NOTEXT
+              zif_abapgit_definitions=>c_newline.           "#EC NOTEXT
     lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
 
     lv_buffer = lv_cmd_pkt && '0000'.
@@ -60737,14 +60880,14 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
           && ` ` && lv_capa && zif_abapgit_definitions=>c_newline. "#EC NOTEXT
       ELSE.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && zif_abapgit_definitions=>c_newline.           "#EC NOTEXT
+          && zif_abapgit_definitions=>c_newline.            "#EC NOTEXT
       ENDIF.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
     ENDLOOP.
 
     IF iv_deepen = abap_true.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
-        && zif_abapgit_definitions=>c_newline ).           "#EC NOTEXT
+        && zif_abapgit_definitions=>c_newline ).            "#EC NOTEXT
     ENDIF.
 
     lv_buffer = lv_buffer
@@ -63102,5 +63245,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-24T04:04:42.027Z
+* abapmerge - 2018-09-25T14:03:17.782Z
 ****************************************************
