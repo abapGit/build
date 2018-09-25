@@ -526,6 +526,7 @@ CLASS zcl_abapgit_gui_page_explore DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
@@ -7644,8 +7645,33 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
         IMPORTING iv_string        TYPE string
         RETURNING VALUE(rv_string) TYPE string.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
+  PUBLIC SECTION.
+    METHODS:
+       zif_abapgit_gui_page~on_event
+        REDEFINITION.
+
+  PROTECTED SECTION.
+    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
+    DATA:
+      mt_result TYPE scit_alvlist.
+
+    METHODS:
+      render_result IMPORTING ro_html   TYPE REF TO zcl_abapgit_html
+                              iv_result TYPE scir_alvlist,
+      jump
+        IMPORTING
+          is_item       TYPE zif_abapgit_definitions=>ty_item
+          is_sub_item   TYPE zif_abapgit_definitions=>ty_item
+          i_line_number type i
+        RAISING
+          zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CONSTANTS: c_object_separator TYPE char1 VALUE '|'.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
-    INHERITING FROM zcl_abapgit_gui_page.
+    INHERITING FROM zcl_abapgit_gui_page_codi_base.
 
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_gui_page_hotkey.
@@ -7665,10 +7691,9 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         REDEFINITION.
 
   PROTECTED SECTION.
-    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS:
-      render_content REDEFINITION.
+      render_content   REDEFINITION.
 
   PRIVATE SECTION.
     CONSTANTS:
@@ -7677,10 +7702,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         commit TYPE string VALUE 'commit' ##NO_TEXT,
         rerun  TYPE string VALUE 'rerun' ##NO_TEXT,
       END OF c_actions.
-    CONSTANTS: c_object_separator type char1 VALUE '|'.
-
     DATA:
-      mt_result TYPE scit_alvlist,
       mo_stage  TYPE REF TO zcl_abapgit_stage.
 
     METHODS:
@@ -7700,14 +7722,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
 
       is_stage_allowed
         RETURNING
-          VALUE(rv_is_stage_allowed) TYPE abap_bool,
-      jump
-        IMPORTING
-          is_item       TYPE zif_abapgit_definitions=>ty_item
-          is_sub_item   TYPE zif_abapgit_definitions=>ty_item
-          i_line_number type i
-        RAISING
-          zcx_abapgit_exception.
+          VALUE(rv_is_stage_allowed) TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_commit DEFINITION
@@ -8494,7 +8509,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
-    INHERITING FROM zcl_abapgit_gui_page.
+    INHERITING FROM zcl_abapgit_gui_page_codi_base.
 
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_gui_page_hotkey.
@@ -8504,7 +8519,6 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo.
 
   PROTECTED SECTION.
-    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
 
     METHODS:
       render_content REDEFINITION.
@@ -24515,23 +24529,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.  " constructor.
   METHOD render_content.
 
-    DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector,
-          lt_result       TYPE scit_alvlist,
-          ls_result       LIKE LINE OF lt_result.
+    DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF mt_result.
 
     li_syntax_check = zcl_abapgit_factory=>get_syntax_check( iv_package = mo_repo->get_package( ) ).
 
-    lt_result = li_syntax_check->run( ).
+    mt_result = li_syntax_check->run( ).
 
     CREATE OBJECT ro_html.
     ro_html->add( '<div class="toc">' ).
 
-    IF lines( lt_result ) = 0.
+    IF lines( mt_result ) = 0.
       ro_html->add( 'No errors' ).
     ENDIF.
 
-    LOOP AT lt_result INTO ls_result.
-      ro_html->add( |{ ls_result-objtype } { ls_result-objname } { ls_result-kind } { ls_result-text }<br>| ).
+    LOOP AT mt_result ASSIGNING <ls_result>.
+      render_result( ro_html   = ro_html iv_result = <ls_result> ).
     ENDLOOP.
 
     ro_html->add( '</div>' ).
@@ -28280,67 +28293,86 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
-  METHOD build_menu.
+CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
 
-    DATA: lv_opt TYPE c LENGTH 1.
+  METHOD render_result.
+    DATA: lv_class TYPE string,
+          lv_line  TYPE string.
 
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add( iv_txt = 'Re-Run'
-                  iv_act = c_actions-rerun
-                  iv_cur = abap_false ) ##NO_TEXT.
-
-    IF is_stage_allowed( ) = abap_false.
-      lv_opt = zif_abapgit_definitions=>c_html_opt-crossout.
-    ENDIF.
-
-    IF mo_repo->is_offline( ) = abap_true.
-      RETURN.
-    ENDIF.
-
-    IF mo_stage IS BOUND.
-
-      " Staging info already available, we can directly
-      " offer to commit
-
-      ro_menu->add( iv_txt = 'Commit'
-                    iv_act = c_actions-commit
-                    iv_cur = abap_false
-                    iv_opt = lv_opt ) ##NO_TEXT.
+    ro_html->add( '<div>' ).
+    IF iv_result-sobjname IS INITIAL OR
+       ( iv_result-sobjname = iv_result-objname AND
+         iv_result-sobjtype = iv_result-sobjtype ).
+      ro_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }|
+                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
+                               |{ c_object_separator }{ c_object_separator }{ iv_result-line }|
+                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
 
     ELSE.
-
-      ro_menu->add( iv_txt = 'Stage'
-                    iv_act = c_actions-stage
-                    iv_cur = abap_false
-                    iv_opt = lv_opt ) ##NO_TEXT.
+      ro_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }| &&
+                               | < { iv_result-sobjtype } { iv_result-sobjname }|
+                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
+                               |{ c_object_separator }{ iv_result-sobjtype }{ iv_result-sobjname }| &&
+                               |{ c_object_separator }{ iv_result-line }|
+                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
 
     ENDIF.
+    ro_html->add( '</div>' ).
+
+    CASE iv_result-kind.
+      WHEN 'E'.
+        lv_class = 'error'.
+      WHEN 'W'.
+        lv_class = 'warning'.
+      WHEN OTHERS.
+        lv_class = 'grey'.
+    ENDCASE.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+      EXPORTING
+        input  = iv_result-line
+      IMPORTING
+        output = lv_line.
+
+    ro_html->add( |<div class="{ lv_class }">Line { lv_line }: { iv_result-text }</div><br>| ).
 
   ENDMETHOD.
-  METHOD constructor.
-    super->constructor( ).
-    mo_repo ?= io_repo.
-    mo_stage = io_stage.
-    ms_control-page_title = 'Code Inspector'.
-    run_code_inspector( ).
-  ENDMETHOD.  " constructor.
-  METHOD has_inspection_errors.
 
-    READ TABLE mt_result TRANSPORTING NO FIELDS
-                         WITH KEY kind = 'E'.
-    rv_has_inspection_errors = boolc( sy-subrc = 0 ).
+  METHOD zif_abapgit_gui_page~on_event.
+    DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
+          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
+          lv_main_object   TYPE string,
+          lv_sub_object    TYPE string,
+          lv_line_number_s TYPE string,
+          lv_line_number   TYPE i.
+    CASE iv_action.
+
+      WHEN zif_abapgit_definitions=>c_action-abapgit_home.
+        RETURN.
+
+      WHEN OTHERS.
+        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
+        ls_item-obj_type = lv_main_object(4).
+        ls_item-obj_name = lv_main_object+4(*).
+
+        IF lv_sub_object IS NOT INITIAL.
+          ls_sub_item-obj_type = lv_sub_object(4).
+          ls_sub_item-obj_name = lv_sub_object+4(*).
+        ENDIF.
+
+        lv_line_number = lv_line_number_s.
+
+        jump( is_item       = ls_item
+              is_sub_item   = ls_sub_item
+              i_line_number = lv_line_number ).
+
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+
+    ENDCASE.
 
   ENDMETHOD.
-  METHOD is_stage_allowed.
 
-    rv_is_stage_allowed =  boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
-                                           AND has_inspection_errors( ) = abap_true ) ).
-
-  ENDMETHOD.
   METHOD jump.
-
     DATA: lo_test               TYPE REF TO cl_ci_test_root,
           li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
           ls_info               TYPE scir_rest,
@@ -28413,7 +28445,70 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     lo_result->set_info( ls_info ).
     lo_result->if_ci_test~navigate( ).
+
   ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+  METHOD build_menu.
+
+    DATA: lv_opt TYPE c LENGTH 1.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add( iv_txt = 'Re-Run'
+                  iv_act = c_actions-rerun
+                  iv_cur = abap_false ) ##NO_TEXT.
+
+    IF is_stage_allowed( ) = abap_false.
+      lv_opt = zif_abapgit_definitions=>c_html_opt-crossout.
+    ENDIF.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF mo_stage IS BOUND.
+
+      " Staging info already available, we can directly
+      " offer to commit
+
+      ro_menu->add( iv_txt = 'Commit'
+                    iv_act = c_actions-commit
+                    iv_cur = abap_false
+                    iv_opt = lv_opt ) ##NO_TEXT.
+
+    ELSE.
+
+      ro_menu->add( iv_txt = 'Stage'
+                    iv_act = c_actions-stage
+                    iv_cur = abap_false
+                    iv_opt = lv_opt ) ##NO_TEXT.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+    super->constructor( ).
+    mo_repo ?= io_repo.
+    mo_stage = io_stage.
+    ms_control-page_title = 'Code Inspector'.
+    run_code_inspector( ).
+  ENDMETHOD.  " constructor.
+  METHOD has_inspection_errors.
+
+    READ TABLE mt_result TRANSPORTING NO FIELDS
+                         WITH KEY kind = 'E'.
+    rv_has_inspection_errors = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD is_stage_allowed.
+
+    rv_is_stage_allowed =  boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
+                                           AND has_inspection_errors( ) = abap_true ) ).
+
+  ENDMETHOD.
+
   METHOD render_content.
 
     DATA: lv_check_variant TYPE sci_chkv,
@@ -28443,48 +28538,13 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ro_html->add( |<br/>| ).
 
     LOOP AT mt_result ASSIGNING <ls_result>.
-
-      ro_html->add( '<div>' ).
-      IF <ls_result>-sobjname IS INITIAL or
-         ( <ls_result>-sobjname = <ls_result>-objname and
-           <ls_result>-sobjtype = <ls_result>-sobjtype ).
-        ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
-                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
-                                 |{ c_object_separator }{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
-
-      ELSE.
-        ro_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }| &&
-                                 | < { <ls_result>-sobjtype } { <ls_result>-sobjname }|
-                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
-                                 |{ c_object_separator }{ <ls_result>-sobjtype }{ <ls_result>-sobjname }| &&
-                                 |{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
-
-      ENDIF.
-      ro_html->add( '</div>' ).
-
-      CASE <ls_result>-kind.
-        WHEN 'E'.
-          lv_class = 'error'.
-        WHEN 'W'.
-          lv_class = 'warning'.
-        WHEN OTHERS.
-          lv_class = 'grey'.
-      ENDCASE.
-
-      CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
-        EXPORTING
-          input  = <ls_result>-line
-        IMPORTING
-          output = lv_line.
-
-      ro_html->add( |<div class="{ lv_class }">Line { lv_line }: { <ls_result>-text }</div><br>| ).
+      render_result( ro_html = ro_html iv_result = <ls_result> ).
     ENDLOOP.
 
     ro_html->add( '</div>' ).
 
   ENDMETHOD.  "render_content
+
   METHOD run_code_inspector.
 
     mt_result = mo_repo->run_code_inspector( ).
@@ -28506,7 +28566,6 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
-
     DATA: lo_repo_online   TYPE REF TO zcl_abapgit_repo_online,
           ls_item          TYPE zif_abapgit_definitions=>ty_item,
           ls_sub_item      TYPE zif_abapgit_definitions=>ty_item.
@@ -28514,6 +28573,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     DATA: lv_sub_object    TYPE string.
     DATA: lv_line_number_s TYPE string.
     DATA: lv_line_number   TYPE i.
+
     CASE iv_action.
       WHEN c_actions-stage.
 
@@ -28560,28 +28620,16 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
         ei_page = me.
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
-
-      WHEN zif_abapgit_definitions=>c_action-abapgit_home.
-        RETURN.
-
       WHEN OTHERS.
-        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
-        ls_item-obj_type = lv_main_object(4).
-        ls_item-obj_name = lv_main_object+4(*).
-
-        IF lv_sub_object IS NOT INITIAL.
-          ls_sub_item-obj_type = lv_sub_object(4).
-          ls_sub_item-obj_name = lv_sub_object+4(*).
-        ENDIF.
-
-        lv_line_number = lv_line_number_s.
-
-        jump( is_item       = ls_item
-              is_sub_item   = ls_sub_item
-              i_line_number = lv_line_number ).
-
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
-
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action             = iv_action
+            iv_prev_page          = iv_prev_page
+            iv_getdata            = iv_getdata
+            it_postdata           = it_postdata
+          IMPORTING
+            ei_page               = ei_page
+            ev_state              = ev_state ).
     ENDCASE.
 
   ENDMETHOD.
@@ -63352,5 +63400,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-25T14:13:06.155Z
+* abapmerge - 2018-09-25T14:24:50.145Z
 ****************************************************
