@@ -418,6 +418,7 @@ CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
 INTERFACE zif_abapgit_version DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
+INTERFACE zif_abapgit_stage_logic DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
@@ -2253,6 +2254,18 @@ INTERFACE zif_abapgit_sap_package.
     get_transport_type
       RETURNING VALUE(rv_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
       RAISING   zcx_abapgit_exception.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_stage_logic
+  .
+
+  METHODS get
+    IMPORTING
+      !io_repo        TYPE REF TO zcl_abapgit_repo_online
+    RETURNING
+      VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
+    RAISING
+      zcx_abapgit_exception .
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_tadir
@@ -10294,82 +10307,86 @@ CLASS zcl_abapgit_exit DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_factory DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_injector.
+
+  FRIENDS ZCL_ABAPGIT_injector .
 
   PUBLIC SECTION.
 
-    CLASS-METHODS:
-      get_tadir
-        RETURNING
-          VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir,
-
-      get_sap_package
-        IMPORTING
-          iv_package            TYPE devclass
-        RETURNING
-          VALUE(ri_sap_package) TYPE REF TO zif_abapgit_sap_package,
-
-      get_code_inspector
-        IMPORTING
-          iv_package               TYPE devclass
-          iv_check_variant_name    TYPE sci_chkv
-        RETURNING
-          VALUE(ri_code_inspector) TYPE REF TO zif_abapgit_code_inspector
-        RAISING
-          zcx_abapgit_exception,
-
-      get_syntax_check
-        IMPORTING
-          iv_package             TYPE devclass
-        RETURNING
-          VALUE(ri_syntax_check) TYPE REF TO zif_abapgit_code_inspector
-        RAISING
-          zcx_abapgit_exception,
-
-      get_branch_overview
-        IMPORTING
-          io_repo                   TYPE REF TO zcl_abapgit_repo_online
-        RETURNING
-          VALUE(ri_branch_overview) TYPE REF TO zif_abapgit_branch_overview
-        RAISING
-          zcx_abapgit_exception.
+    CLASS-METHODS get_tadir
+      RETURNING
+        VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir .
+    CLASS-METHODS get_sap_package
+      IMPORTING
+        !iv_package           TYPE devclass
+      RETURNING
+        VALUE(ri_sap_package) TYPE REF TO zif_abapgit_sap_package .
+    CLASS-METHODS get_code_inspector
+      IMPORTING
+        !iv_package              TYPE devclass
+        !iv_check_variant_name   TYPE sci_chkv
+      RETURNING
+        VALUE(ri_code_inspector) TYPE REF TO zif_abapgit_code_inspector
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_syntax_check
+      IMPORTING
+        !iv_package            TYPE devclass
+      RETURNING
+        VALUE(ri_syntax_check) TYPE REF TO zif_abapgit_code_inspector
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_branch_overview
+      IMPORTING
+        !io_repo                  TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(ri_branch_overview) TYPE REF TO zif_abapgit_branch_overview
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_stage_logic
+      RETURNING
+        VALUE(ri_logic) TYPE REF TO zif_abapgit_stage_logic .
   PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_sap_package,
         package  TYPE devclass,
         instance TYPE REF TO zif_abapgit_sap_package,
-      END OF ty_sap_package,
+      END OF ty_sap_package .
+    TYPES:
       tty_sap_package TYPE HASHED TABLE OF ty_sap_package
-                      WITH UNIQUE KEY package,
-
+                        WITH UNIQUE KEY package .
+    TYPES:
       BEGIN OF ty_code_inspector,
         package            TYPE devclass,
         check_variant_name TYPE sci_chkv,
         instance           TYPE REF TO zif_abapgit_code_inspector,
-      END OF ty_code_inspector,
+      END OF ty_code_inspector .
+    TYPES:
       tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
-                         WITH UNIQUE KEY package check_variant_name,
+                           WITH UNIQUE KEY package check_variant_name .
+    TYPES:
       BEGIN OF ty_syntax_check,
         package  TYPE devclass,
         instance TYPE REF TO zif_abapgit_code_inspector,
-      END OF ty_syntax_check,
+      END OF ty_syntax_check .
+    TYPES:
       tty_syntax_check TYPE HASHED TABLE OF ty_syntax_check
-                       WITH UNIQUE KEY package,
-
+                         WITH UNIQUE KEY package .
+    TYPES:
       BEGIN OF ty_branch_overview,
         repo_key TYPE zif_abapgit_persistence=>ty_value,
         instance TYPE REF TO zif_abapgit_branch_overview,
-      END OF ty_branch_overview,
+      END OF ty_branch_overview .
+    TYPES:
       tty_branch_overview TYPE HASHED TABLE OF ty_branch_overview
-                         WITH UNIQUE KEY repo_key.
+                           WITH UNIQUE KEY repo_key .
 
-    CLASS-DATA:
-      gi_tadir           TYPE REF TO zif_abapgit_tadir,
-      gt_sap_package     TYPE tty_sap_package,
-      gt_code_inspector  TYPE tty_code_inspector,
-      gt_syntax_check    TYPE tty_syntax_check,
-      gi_branch_overview TYPE REF TO zif_abapgit_branch_overview.
-
+    CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
+    CLASS-DATA gt_sap_package TYPE tty_sap_package .
+    CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
+    CLASS-DATA gt_syntax_check TYPE tty_syntax_check .
+    CLASS-DATA gi_branch_overview TYPE REF TO zif_abapgit_branch_overview .
+    CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -10511,27 +10528,26 @@ CLASS zcl_abapgit_injector DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS:
-      set_tadir
-        IMPORTING
-          !ii_tadir TYPE REF TO zif_abapgit_tadir,
-
-      set_sap_package
-        IMPORTING
-          iv_package     TYPE devclass
-          ii_sap_package TYPE REF TO zif_abapgit_sap_package,
-
-      set_code_inspector
-        IMPORTING
-          iv_package            TYPE devclass
-          iv_check_variant_name TYPE sci_chkv OPTIONAL
-          ii_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
-
-      set_syntax_check
-        IMPORTING
-          iv_package      TYPE devclass
-          ii_syntax_check TYPE REF TO zif_abapgit_code_inspector.
-
+    CLASS-METHODS set_tadir
+      IMPORTING
+        !ii_tadir TYPE REF TO zif_abapgit_tadir .
+    CLASS-METHODS set_sap_package
+      IMPORTING
+        !iv_package     TYPE devclass
+        !ii_sap_package TYPE REF TO zif_abapgit_sap_package .
+    CLASS-METHODS set_code_inspector
+      IMPORTING
+        !iv_package            TYPE devclass
+        !iv_check_variant_name TYPE sci_chkv OPTIONAL
+        !ii_code_inspector     TYPE REF TO zif_abapgit_code_inspector .
+    CLASS-METHODS set_syntax_check
+      IMPORTING
+        !iv_package      TYPE devclass
+        !ii_syntax_check TYPE REF TO zif_abapgit_code_inspector .
+    CLASS-METHODS set_stage_logic
+      IMPORTING
+        !ii_logic TYPE REF TO zif_abapgit_stage_logic .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_longtexts DEFINITION
   FINAL
@@ -11578,18 +11594,13 @@ CLASS zcl_abapgit_stage DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_stage_logic DEFINITION
-  FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE
+
+  FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
 
-    CLASS-METHODS get
-      IMPORTING
-        !io_repo        TYPE REF TO zcl_abapgit_repo_online
-      RETURNING
-        VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
-      RAISING
-        zcx_abapgit_exception .
+    INTERFACES zif_abapgit_stage_logic .
   PRIVATE SECTION.
     CLASS-METHODS:
       remove_ignored
@@ -12910,7 +12921,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
 
     CREATE OBJECT lo_stage.
 
-    ls_stage_objects = zcl_abapgit_stage_logic=>get( io_repository ).
+    ls_stage_objects = zcl_abapgit_factory=>get_stage_logic( )->get( io_repository ).
 
     lt_object_statuses = io_repository->status( ).
 
@@ -13095,9 +13106,9 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
     DATA: last_package    TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab.
 
-    FIELD-SYMBOLS: <ls_tdevc> LIKE LINE OF lt_tdevc,
-                   <ls_tadir> LIKE LINE OF rt_tadir,
-                   <lv_package>  TYPE devclass.
+    FIELD-SYMBOLS: <ls_tdevc>   LIKE LINE OF lt_tdevc,
+                   <ls_tadir>   LIKE LINE OF rt_tadir,
+                   <lv_package> TYPE devclass.
 
     "Determine Packages to Read
     DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
@@ -13180,7 +13191,15 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       CASE <ls_tadir>-object.
         WHEN 'SICF'.
 * replace the internal GUID with a hash of the path
-          <ls_tadir>-obj_name+15 = zcl_abapgit_object_sicf=>read_sicf_url( <ls_tadir>-obj_name ).
+          TRY.
+              CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
+                EXPORTING
+                  iv_obj_name = <ls_tadir>-obj_name
+                RECEIVING
+                  rv_hash     = <ls_tadir>-obj_name+15.
+            CATCH cx_sy_dyn_call_illegal_method.
+* SICF might not be supported in some systems, assume this code is not called
+          ENDTRY.
       ENDCASE.
     ENDLOOP.
 
@@ -13280,9 +13299,16 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD zif_abapgit_tadir~read_single.
 
     IF iv_object = 'SICF'.
-      rs_tadir = zcl_abapgit_object_sicf=>read_tadir_sicf(
-        iv_pgmid    = iv_pgmid
-        iv_obj_name = iv_obj_name ).
+      TRY.
+          CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_tadir
+            EXPORTING
+              iv_pgmid    = iv_pgmid
+              iv_obj_name = iv_obj_name
+            RECEIVING
+              rs_tadir    = rs_tadir.
+        CATCH cx_sy_dyn_call_illegal_method.
+* SICF might not be supported in some systems, assume this code is not called
+      ENDTRY.
     ELSE.
       SELECT SINGLE * FROM tadir INTO CORRESPONDING FIELDS OF rs_tadir
         WHERE pgmid = iv_pgmid
@@ -13325,15 +13351,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
-  METHOD get.
-
-    rs_files-local  = io_repo->get_files_local( ).
-    rs_files-remote = io_repo->get_files_remote( ).
-    remove_identical( CHANGING cs_files = rs_files ).
-    remove_ignored( EXPORTING io_repo  = io_repo
-                    CHANGING  cs_files = rs_files ).
-
-  ENDMETHOD.
   METHOD remove_identical.
 
     DATA: lv_index  TYPE i,
@@ -13377,6 +13394,15 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
       ENDIF.
 
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_stage_logic~get.
+
+    rs_files-local  = io_repo->get_files_local( ).
+    rs_files-remote = io_repo->get_files_remote( ).
+    remove_identical( CHANGING cs_files = rs_files ).
+    remove_ignored( EXPORTING io_repo  = io_repo
+                    CHANGING  cs_files = rs_files ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -16965,36 +16991,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_injector IMPLEMENTATION.
-
-  METHOD set_tadir.
-
-    zcl_abapgit_factory=>gi_tadir = ii_tadir.
-
-  ENDMETHOD.
-
-  METHOD set_sap_package.
-
-    DATA: ls_sap_package TYPE zcl_abapgit_factory=>ty_sap_package.
-    FIELD-SYMBOLS: <ls_sap_package> TYPE zcl_abapgit_factory=>ty_sap_package.
-
-    READ TABLE zcl_abapgit_factory=>gt_sap_package
-         ASSIGNING <ls_sap_package>
-         WITH TABLE KEY package = iv_package.
-
-    IF sy-subrc <> 0.
-
-      ls_sap_package-package = iv_package.
-      INSERT ls_sap_package
-             INTO TABLE zcl_abapgit_factory=>gt_sap_package
-             ASSIGNING <ls_sap_package>.
-
-    ENDIF.
-
-    <ls_sap_package>-instance = ii_sap_package.
-
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   METHOD set_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF zcl_abapgit_factory=>gt_code_inspector.
@@ -17018,7 +17015,32 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
     <ls_code_inspector>-instance = ii_code_inspector.
 
   ENDMETHOD.
+  METHOD set_sap_package.
 
+    DATA: ls_sap_package TYPE zcl_abapgit_factory=>ty_sap_package.
+    FIELD-SYMBOLS: <ls_sap_package> TYPE zcl_abapgit_factory=>ty_sap_package.
+
+    READ TABLE zcl_abapgit_factory=>gt_sap_package
+         ASSIGNING <ls_sap_package>
+         WITH TABLE KEY package = iv_package.
+
+    IF sy-subrc <> 0.
+
+      ls_sap_package-package = iv_package.
+      INSERT ls_sap_package
+             INTO TABLE zcl_abapgit_factory=>gt_sap_package
+             ASSIGNING <ls_sap_package>.
+
+    ENDIF.
+
+    <ls_sap_package>-instance = ii_sap_package.
+
+  ENDMETHOD.
+  METHOD set_stage_logic.
+
+    zcl_abapgit_factory=>gi_stage_logic = ii_logic.
+
+  ENDMETHOD.
   METHOD set_syntax_check.
 
     DATA: ls_syntax_check LIKE LINE OF zcl_abapgit_factory=>gt_syntax_check.
@@ -17040,7 +17062,11 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
     <ls_syntax_check>-instance = ii_syntax_check.
 
   ENDMETHOD.
+  METHOD set_tadir.
 
+    zcl_abapgit_factory=>gi_tadir = ii_tadir.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_http_client IMPLEMENTATION.
   METHOD check_http_200.
@@ -17670,42 +17696,19 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.  "status
 ENDCLASS.
-CLASS zcl_abapgit_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+  METHOD get_branch_overview.
 
-  METHOD get_tadir.
-
-    IF gi_tadir IS INITIAL.
-      CREATE OBJECT gi_tadir TYPE zcl_abapgit_tadir.
-    ENDIF.
-
-    ri_tadir = gi_tadir.
-
-  ENDMETHOD.
-
-  METHOD get_sap_package.
-
-    DATA: ls_sap_package TYPE ty_sap_package.
-    FIELD-SYMBOLS: <ls_sap_package> TYPE ty_sap_package.
-
-    READ TABLE gt_sap_package ASSIGNING <ls_sap_package>
-                              WITH TABLE KEY package = iv_package.
-    IF sy-subrc <> 0.
-
-      ls_sap_package-package = iv_package.
-      CREATE OBJECT ls_sap_package-instance TYPE zcl_abapgit_sap_package
+    IF gi_branch_overview IS INITIAL.
+      CREATE OBJECT gi_branch_overview
+        TYPE zcl_abapgit_branch_overview
         EXPORTING
-          iv_package = iv_package.
-
-      INSERT ls_sap_package
-             INTO TABLE gt_sap_package
-             ASSIGNING <ls_sap_package>.
-
+          io_repo = io_repo.
     ENDIF.
 
-    ri_sap_package = <ls_sap_package>-instance.
+    ri_branch_overview = gi_branch_overview.
 
   ENDMETHOD.
-
   METHOD get_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF gt_code_inspector.
@@ -17732,7 +17735,39 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_code_inspector = <ls_code_inspector>-instance.
 
   ENDMETHOD.
+  METHOD get_sap_package.
 
+    DATA: ls_sap_package TYPE ty_sap_package.
+    FIELD-SYMBOLS: <ls_sap_package> TYPE ty_sap_package.
+
+    READ TABLE gt_sap_package ASSIGNING <ls_sap_package>
+                              WITH TABLE KEY package = iv_package.
+    IF sy-subrc <> 0.
+
+      ls_sap_package-package = iv_package.
+      CREATE OBJECT ls_sap_package-instance TYPE zcl_abapgit_sap_package
+        EXPORTING
+          iv_package = iv_package.
+
+      INSERT ls_sap_package
+             INTO TABLE gt_sap_package
+             ASSIGNING <ls_sap_package>.
+
+    ENDIF.
+
+    ri_sap_package = <ls_sap_package>-instance.
+
+  ENDMETHOD.
+  METHOD get_stage_logic.
+
+    IF gi_stage_logic IS INITIAL.
+      CREATE OBJECT gi_stage_logic
+        TYPE zcl_abapgit_stage_logic.
+    ENDIF.
+
+    ri_logic = gi_stage_logic.
+
+  ENDMETHOD.
   METHOD get_syntax_check.
 
     DATA: ls_syntax_check LIKE LINE OF gt_syntax_check.
@@ -17756,15 +17791,15 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_syntax_check = <ls_syntax_check>-instance.
 
   ENDMETHOD.
+  METHOD get_tadir.
 
-  METHOD get_branch_overview.
+    IF gi_tadir IS INITIAL.
+      CREATE OBJECT gi_tadir TYPE zcl_abapgit_tadir.
+    ENDIF.
 
-    CREATE OBJECT ri_branch_overview
-      TYPE zcl_abapgit_branch_overview
-      EXPORTING
-        io_repo = io_repo.
+    ri_tadir = gi_tadir.
+
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
@@ -24554,7 +24589,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -24573,7 +24608,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     ms_control-page_title = 'STAGE'.
     mo_repo               = io_repo.
-    ms_files              = zcl_abapgit_stage_logic=>get( mo_repo ).
+    ms_files              = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
     mv_seed               = iv_seed.
 
     IF mv_seed IS INITIAL. " Generate based on time unless obtained from diff page
@@ -24601,6 +24636,33 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         CATCH zcx_abapgit_exception.
       ENDTRY.
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_page_patch.
+
+    DATA: lo_page   TYPE REF TO zcl_abapgit_gui_page_diff,
+          lv_key    TYPE zif_abapgit_persistence=>ty_repo-key,
+          ls_file   TYPE zif_abapgit_definitions=>ty_file,
+          ls_object TYPE zif_abapgit_definitions=>ty_item,
+          lo_stage  TYPE REF TO zcl_abapgit_stage.
+
+    zcl_abapgit_html_action_utils=>file_obj_decode(
+      EXPORTING
+        iv_string = iv_getdata
+      IMPORTING
+        ev_key    = lv_key
+        eg_file   = ls_file
+        eg_object = ls_object ).
+
+    CREATE OBJECT lo_stage.
+
+    CREATE OBJECT lo_page
+      EXPORTING
+        iv_key        = lv_key
+        iv_patch_mode = abap_true
+        io_stage      = lo_stage.
+
+    ri_page = lo_page.
 
   ENDMETHOD.
   METHOD process_stage_list.
@@ -24911,33 +24973,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
-
-  ENDMETHOD.
-  METHOD get_page_patch.
-
-    DATA: lo_page   TYPE REF TO zcl_abapgit_gui_page_diff,
-          lv_key    TYPE zif_abapgit_persistence=>ty_repo-key,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file,
-          ls_object TYPE zif_abapgit_definitions=>ty_item,
-          lo_stage  TYPE REF TO zcl_abapgit_stage.
-
-    zcl_abapgit_html_action_utils=>file_obj_decode(
-      EXPORTING
-        iv_string = iv_getdata
-      IMPORTING
-        ev_key    = lv_key
-        eg_file   = ls_file
-        eg_object = ls_object ).
-
-    CREATE OBJECT lo_stage.
-
-    CREATE OBJECT lo_page
-      EXPORTING
-        iv_key        = lv_key
-        iv_patch_mode = abap_true
-        io_stage      = lo_stage.
-
-    ri_page = lo_page.
 
   ENDMETHOD.
 ENDCLASS.
@@ -44985,6 +45020,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_sicf_url.
 
+* note: this method is called dynamically from some places
+
     DATA: lv_name    TYPE icfname,
           lv_url     TYPE string,
           lv_parguid TYPE icfparguid.
@@ -45009,6 +45046,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD read_tadir_sicf.
+
+* note: this method is called dynamically from some places
 
     DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_hash     TYPE text25,
@@ -62664,7 +62703,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_local>  LIKE LINE OF ls_files-local,
                    <ls_remote> LIKE LINE OF ls_files-remote.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
     ASSERT lines( ls_files-local ) > 0
         OR lines( ls_files-remote ) > 0.
 
@@ -62729,7 +62768,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
           lv_email   TYPE string.
 
     mo_log = io_log.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
       io_log->add_info( 'Nothing to stage' ).
@@ -62811,7 +62850,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_changed> LIKE LINE OF lt_changed,
                    <ls_remote>  LIKE LINE OF ls_files-remote,
                    <ls_local>   LIKE LINE OF ls_files-local.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     LOOP AT ls_files-local ASSIGNING <ls_local>.
       lv_changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
@@ -62927,7 +62966,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
     DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
     mo_log = io_log.
-    ls_files = zcl_abapgit_stage_logic=>get( io_repo ).
+    ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
       io_log->add_info( 'Nothing to stage' ) ##NO_TEXT.
@@ -63400,5 +63439,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-25T14:24:50.145Z
+* abapmerge - 2018-09-27T13:04:41.277Z
 ****************************************************
