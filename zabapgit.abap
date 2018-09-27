@@ -36561,7 +36561,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
 * loop dynpros and skip generated selection screens
     LOOP AT lt_d020s ASSIGNING <ls_d020s>
-        WHERE type <> 'S' AND type <> 'W' AND type <> 'J'.
+        WHERE type <> 'S' AND type <> 'W' AND type <> 'J'
+        AND NOT dnum IS INITIAL.
 
       CALL FUNCTION 'RPY_DYNPRO_READ'
         EXPORTING
@@ -36579,7 +36580,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
           permission_error     = 3
           OTHERS               = 4.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error while reading dynpro' ).
+        zcx_abapgit_exception=>raise( |Error while reading dynpro: { sy-subrc }| ).
       ENDIF.
 
       LOOP AT lt_fields_to_containers ASSIGNING <ls_field>.
@@ -63439,5 +63440,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-27T13:04:41.277Z
+* abapmerge - 2018-09-27T13:06:23.823Z
 ****************************************************
