@@ -58035,7 +58035,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
 
     DELETE FROM authx WHERE fieldname = mv_fieldname.
     IF sy-subrc <> 0.
-      MESSAGE e507(0m) INTO DATA(dummy).
+      MESSAGE e507(0m) INTO lv_dummy.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -63440,5 +63440,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-27T13:06:23.823Z
+* abapmerge - 2018-09-27T15:49:51.825Z
 ****************************************************
