@@ -38575,6 +38575,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
         handle_function( ls_webi ).
         handle_soap( ls_webi ).
 
+        tadir_insert( iv_package ).
+
         mi_vi->if_ws_md_lockable_object~save( ).
         mi_vi->if_ws_md_lockable_object~unlock( ).
       CATCH cx_ws_md_exception INTO lx_root.
@@ -55978,6 +55980,8 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_persistence.
 
+    DATA: lx_error TYPE REF TO cx_root.
+
     TRY.
         IF mo_persistence IS NOT BOUND.
 
@@ -55986,8 +55990,9 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
 
         ENDIF.
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( `DDLX not supported` ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
     ri_persistence = mo_persistence.
@@ -56003,7 +56008,6 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
 
     DATA: lv_object_key TYPE seu_objkey,
           li_data_model TYPE REF TO if_wb_object_data_model,
-          lv_text       TYPE string,
           lx_error      TYPE REF TO cx_root.
     lv_object_key = ms_item-obj_name.
 
@@ -56014,8 +56018,8 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
                                     p_version    = swbm_version_active ).
 
       CATCH cx_root INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -56023,7 +56027,6 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
 
     DATA: li_data_model TYPE REF TO if_wb_object_data_model,
           lr_data       TYPE REF TO data,
-          lv_text       TYPE string,
           lx_error      TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
@@ -56058,8 +56061,8 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         get_persistence( )->save( li_data_model ).
 
       CATCH cx_root INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -56088,6 +56091,12 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     TRY.
@@ -56105,7 +56114,6 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
           li_data_model  TYPE REF TO if_wb_object_data_model,
           li_persistence TYPE REF TO if_wb_object_persist,
           lr_data        TYPE REF TO data,
-          lv_text        TYPE string,
           lx_error       TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
@@ -56147,25 +56155,18 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
                      ig_data = <lg_data> ).
 
       CATCH cx_root INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
-                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
-
-  ENDMETHOD.
-
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   METHOD open_adt_stob.
 
-    DATA: lr_data                   TYPE REF TO data.
-    DATA: lo_ddl                    TYPE REF TO object.
+    DATA: lr_data  TYPE REF TO data,
+          lo_ddl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lt_ddnames>     TYPE STANDARD TABLE.
     FIELD-SYMBOLS: <lt_entity_view> TYPE STANDARD TABLE.
@@ -56210,15 +56211,17 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
         ENDIF.
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lo_ddl   TYPE REF TO object,
-          lr_data  TYPE REF TO data.
+          lr_data  TYPE REF TO data,
+          lx_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any.
@@ -56240,7 +56243,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         IF sy-subrc = 0.
           rv_user = <lg_field>.
         ENDIF.
-      CATCH cx_root.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
     IF rv_user IS INITIAL.
@@ -56253,7 +56258,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_ddl TYPE REF TO object.
+    DATA: lo_ddl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
     CALL METHOD ('CL_DD_DDL_HANDLER_FACTORY')=>('CREATE')
       RECEIVING
         handler = lo_ddl.
@@ -56262,15 +56268,17 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         CALL METHOD lo_ddl->('IF_DD_DDL_HANDLER~DELETE')
           EXPORTING
             name = ms_item-obj_name.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DDLS error deleting' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_ddl  TYPE REF TO object,
-          lr_data TYPE REF TO data.
+    DATA: lo_ddl   TYPE REF TO object,
+          lr_data  TYPE REF TO data,
+          lx_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any.
@@ -56300,8 +56308,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
             objectname = ms_item-obj_name
             devclass   = iv_package
             prid       = 0.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DDLS error writing TADIR' ).
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -56366,7 +56376,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
     DATA: lo_ddl       TYPE REF TO object,
           lr_data      TYPE REF TO data,
-          lt_clr_comps TYPE STANDARD TABLE OF fieldname WITH DEFAULT KEY.
+          lt_clr_comps TYPE STANDARD TABLE OF fieldname WITH DEFAULT KEY,
+          lx_error     TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any,
@@ -56385,8 +56396,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
             get_state    = 'A'
           IMPORTING
             ddddlsrcv_wa = <lg_data>.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DDLS error reading' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
     APPEND 'AS4USER' TO lt_clr_comps.
@@ -56432,7 +56444,8 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_dcl TYPE REF TO object.
+    DATA: lo_dcl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
 
     TRY.
         CALL METHOD ('CL_ACM_DCL_HANDLER_FACTORY')=>('CREATE')
@@ -56443,15 +56456,17 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
           EXPORTING
             iv_dclname = ms_item-obj_name.
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DCLS error' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lr_data TYPE REF TO data,
-          lo_dcl  TYPE REF TO object.
+    DATA: lr_data  TYPE REF TO data,
+          lo_dcl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any.
@@ -56483,8 +56498,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
 
         tadir_insert( iv_package ).
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DCLS error' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -56492,7 +56508,8 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_dcl TYPE REF TO object.
+    DATA: lo_dcl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
 
     TRY.
         CALL METHOD ('CL_ACM_DCL_HANDLER_FACTORY')=>('CREATE')
@@ -56505,8 +56522,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
           RECEIVING
             rv_exists     = rv_bool.
 
-      CATCH cx_root.
-        rv_bool = abap_false.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -56533,8 +56551,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lr_data TYPE REF TO data,
-          lo_dcl  TYPE REF TO object.
+    DATA: lr_data  TYPE REF TO data,
+          lo_dcl   TYPE REF TO object,
+          lx_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <lg_data>  TYPE any,
                    <lg_field> TYPE any.
@@ -56582,8 +56601,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
         io_xml->add( iv_name = 'DCLS'
                      ig_data = <lg_data> ).
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'DCLS error' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -63437,5 +63457,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-29T06:55:16.729Z
+* abapmerge - 2018-09-29T06:57:12.250Z
 ****************************************************
