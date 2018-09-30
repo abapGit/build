@@ -31604,7 +31604,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  var '.
-        _inline '    sKey = oEvent.key || oEvent.keyCode,'.
+        _inline '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),'.
         _inline '    fnHotkey = this.oKeyMap[sKey];'.
         _inline ''.
         _inline '  if (fnHotkey) {'.
@@ -31616,7 +31616,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
         _inline ''.
-        _inline '  document.addEventListener(''keydown'', oHotkeys.onkeydown.bind(oHotkeys));'.
+        _inline '  document.addEventListener(''keypress'', oHotkeys.onkeydown.bind(oHotkeys));'.
         _inline ''.
         _inline '}'.
         _inline ''.
@@ -63457,5 +63457,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-29T06:57:12.250Z
+* abapmerge - 2018-09-30T07:05:34.969Z
 ****************************************************
