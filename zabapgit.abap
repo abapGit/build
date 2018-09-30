@@ -38312,7 +38312,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
+CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -38338,12 +38338,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'todo, WEBI BAPI' ).
     ENDIF.
 
-    IF lines( is_webi-pvepfunction ) <> 1.
-      zcx_abapgit_exception=>raise( 'todo, WEBI, function name' ).
-    ENDIF.
-
 * field ls_endpoint-endpointname does not exist in 702
     READ TABLE is_webi-pvepfunction INDEX 1 ASSIGNING <ls_function>.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |WEBI { ms_item-obj_name }: couldn't detect endpoint name| ).
+    ENDIF.
+
     li_endpoint->set_data(
       data_version = '1'
       data         = <ls_function>-function ).
@@ -38696,6 +38696,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD add_fm_exception.
 
@@ -63457,5 +63458,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-30T07:05:34.969Z
+* abapmerge - 2018-09-30T10:14:35.284Z
 ****************************************************
