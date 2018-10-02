@@ -1311,7 +1311,7 @@ INTERFACE zif_abapgit_definitions.
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
   CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
   CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
-  CONSTANTS c_author_regex TYPE string VALUE '^([\\\w\s\.\,\#@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
+  CONSTANTS c_author_regex TYPE string VALUE '^([\\\w\s\.\*\,\#@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF c_action,
       repo_refresh             TYPE string VALUE 'repo_refresh',
@@ -10074,19 +10074,27 @@ CLASS zcl_abapgit_code_inspector DEFINITION
       ty_tdevc_tt TYPE STANDARD TABLE OF tdevc WITH DEFAULT KEY .
 
     DATA:
-      mv_package TYPE devclass.
+      mv_package            TYPE devclass,
+      mv_check_variant_name TYPE sci_chkv.
 
     METHODS:
       create_variant
         RETURNING
           VALUE(ro_variant) TYPE REF TO cl_ci_checkvariant
         RAISING
+          zcx_abapgit_exception,
+
+      cleanup
+        IMPORTING
+          io_set TYPE REF TO cl_ci_objectset
+        RAISING
           zcx_abapgit_exception.
 
   PRIVATE SECTION.
     DATA:
-      mv_check_variant_name TYPE sci_chkv,
-      mo_inspection         TYPE REF TO cl_ci_inspection.
+      mo_inspection      TYPE REF TO cl_ci_inspection,
+      mv_objectset_name  TYPE sci_objs,
+      mv_inspection_name TYPE sci_insp.
 
     METHODS:
       find_all_subpackages
@@ -10110,7 +10118,9 @@ CLASS zcl_abapgit_code_inspector DEFINITION
           io_set               TYPE REF TO cl_ci_objectset
           io_variant           TYPE REF TO cl_ci_checkvariant
         RETURNING
-          VALUE(ro_inspection) TYPE REF TO cl_ci_inspection.
+          VALUE(ro_inspection) TYPE REF TO cl_ci_inspection
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
@@ -11627,9 +11637,24 @@ CLASS zcl_abapgit_syntax_check DEFINITION
   INHERITING FROM zcl_abapgit_code_inspector
   FRIENDS ZCL_ABAPGIT_factory.
 
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          iv_package            TYPE devclass
+          iv_check_variant_name TYPE sci_chkv OPTIONAL
+        RAISING
+          zcx_abapgit_exception.
+
   PROTECTED SECTION.
     METHODS:
-      create_variant REDEFINITION.
+      create_variant REDEFINITION,
+
+      cleanup REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mo_variant TYPE REF TO cl_ci_checkvariant.
 
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
@@ -13331,7 +13356,22 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
+
+  METHOD constructor.
+
+    DATA: lv_check_variant_name TYPE sci_chkv.
+
+    " we supply a dummy name for the check variant,
+    " because we have to persists it to be able to run in parallel.
+    " Afterwards it's deleted.
+
+    lv_check_variant_name = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|.
+
+    super->constructor( iv_package            = iv_package
+                        iv_check_variant_name = lv_check_variant_name ).
+
+  ENDMETHOD.
   METHOD create_variant.
 
     DATA: lt_variant TYPE sci_tstvar,
@@ -13340,8 +13380,9 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
     cl_ci_checkvariant=>create(
       EXPORTING
         p_user              = sy-uname
+        p_name              = mv_check_variant_name
       RECEIVING
-        p_ref               = ro_variant
+        p_ref               = mo_variant
       EXCEPTIONS
         chkv_already_exists = 1
         locked              = 2
@@ -13353,7 +13394,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
     ls_variant-testname = 'CL_CI_TEST_SYNTAX_CHECK'.
     INSERT ls_variant INTO TABLE lt_variant.
 
-    ro_variant->set_variant(
+    mo_variant->set_variant(
       EXPORTING
         p_variant    = lt_variant
       EXCEPTIONS
@@ -13361,7 +13402,38 @@ CLASS ZCL_ABAPGIT_SYNTAX_CHECK IMPLEMENTATION.
         OTHERS       = 2 ).
     ASSERT sy-subrc = 0.
 
+    mo_variant->save(
+      EXPORTING
+        p_variant         = mo_variant->variant
+      EXCEPTIONS
+        empty_variant     = 1
+        transport_error   = 2
+        not_authorized    = 3
+        OTHERS            = 4 ).
+    ASSERT sy-subrc = 0.
+
+    ro_variant = mo_variant.
+
   ENDMETHOD.
+
+  METHOD cleanup.
+
+    super->cleanup( io_set ).
+
+    mo_variant->delete(
+      EXCEPTIONS
+        exists_in_insp   = 1
+        locked           = 2
+        error_in_enqueue = 3
+        not_authorized   = 4
+        transport_error  = 5
+        OTHERS           = 6 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't delete variant. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   METHOD remove_identical.
@@ -18497,10 +18569,41 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
+  METHOD cleanup.
+
+    mo_inspection->delete(
+      EXCEPTIONS
+        locked              = 1
+        error_in_enqueue    = 2
+        not_authorized      = 3
+        exceptn_appl_exists = 4
+        OTHERS              = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't delete inspection. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    io_set->delete(
+      EXCEPTIONS
+        exists_in_insp   = 1
+        locked           = 2
+        error_in_enqueue = 3
+        not_authorized   = 4
+        exists_in_objs   = 5
+        OTHERS           = 6 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't delete objectset. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
 
     mv_package = iv_package.
     mv_check_variant_name = iv_check_variant_name.
+
+    " We create the inspection and objectset with dummy names.
+    " Because we want to persist them so we can run it in parallel.
+    " Both are deleted afterwards.
+    mv_inspection_name = mv_objectset_name = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|.
 
   ENDMETHOD.
   METHOD create_inspection.
@@ -18508,7 +18611,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     cl_ci_inspection=>create(
       EXPORTING
         p_user           = sy-uname
-        p_name           = ''
+        p_name           = mv_inspection_name
       RECEIVING
         p_ref            = ro_inspection
       EXCEPTIONS
@@ -18521,6 +18624,17 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     ro_inspection->set(
       p_chkv = io_variant
       p_objs = io_set ).
+
+    ro_inspection->save(
+      EXCEPTIONS
+        missing_information = 1
+        insp_no_name        = 2
+        not_enqueued        = 3
+        OTHERS              = 4 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Failed to save inspection. Subrc = { sy-subrc }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD create_objectset.
@@ -18540,7 +18654,8 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
       AND delflag = abap_false
       AND pgmid = 'R3TR'.                               "#EC CI_GENBUFF
 
-    ro_set = cl_ci_objectset=>save_from_list( lt_objs ).
+    ro_set = cl_ci_objectset=>save_from_list( p_name    = mv_objectset_name
+                                              p_objects = lt_objs ).
 
   ENDMETHOD.
   METHOD create_variant.
@@ -18591,6 +18706,8 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
   METHOD run_inspection.
 
     io_inspection->run(
+      EXPORTING
+        p_howtorun            = 'L'
       EXCEPTIONS
         invalid_check_version = 1
         OTHERS                = 2 ).
@@ -18601,22 +18718,6 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
         p_list = rt_list ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_code_inspector~run.
-
-    DATA: lo_set     TYPE REF TO cl_ci_objectset,
-          lo_variant TYPE REF TO cl_ci_checkvariant.
-
-    lo_set = create_objectset( ).
-    lo_variant = create_variant( ).
-
-    mo_inspection = create_inspection(
-      io_set     = lo_set
-      io_variant = lo_variant ).
-
-    rt_list = run_inspection( mo_inspection ).
-
-  ENDMETHOD.
-
   METHOD validate_check_variant.
 
     cl_ci_checkvariant=>get_ref(
@@ -18633,11 +18734,38 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_code_inspector~get_inspection.
     ro_inspection = mo_inspection.
   ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~run.
 
+    DATA: lo_set     TYPE REF TO cl_ci_objectset,
+          lo_variant TYPE REF TO cl_ci_checkvariant,
+          lx_error   TYPE REF TO zcx_abapgit_exception.
+
+    TRY.
+        lo_set = create_objectset( ).
+        lo_variant = create_variant( ).
+
+        mo_inspection = create_inspection(
+          io_set     = lo_set
+          io_variant = lo_variant ).
+
+        rt_list = run_inspection( mo_inspection ).
+
+        cleanup( lo_set ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+
+        " ensure cleanup
+        cleanup( lo_set ).
+
+        RAISE EXCEPTION TYPE zcx_abapgit_exception
+          EXPORTING
+            previous = lx_error.
+
+    ENDTRY.
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
 
@@ -36521,6 +36649,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_d020s>       LIKE LINE OF lt_d020s,
                    <lv_outputstyle> TYPE scrpostyle,
+                   <ls_container>   LIKE LINE OF lt_containers,
                    <ls_field>       LIKE LINE OF lt_fields_to_containers,
                    <ls_dynpro>      LIKE LINE OF rt_dynpro.
     CALL FUNCTION 'RS_SCREEN_LIST'
@@ -36566,6 +36695,15 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         ASSIGN COMPONENT 'OUTPUTSTYLE' OF STRUCTURE <ls_field> TO <lv_outputstyle>.
         IF sy-subrc = 0 AND <lv_outputstyle> = '  '.
           CLEAR <lv_outputstyle>.
+        ENDIF.
+      ENDLOOP.
+
+      LOOP AT lt_containers ASSIGNING <ls_container>.
+        IF <ls_container>-c_resize_v = abap_false.
+          CLEAR <ls_container>-c_line_min.
+        ENDIF.
+        IF <ls_container>-c_resize_h = abap_false.
+          CLEAR <ls_container>-c_coln_min.
         ENDIF.
       ENDLOOP.
 
@@ -63458,5 +63596,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-09-30T10:14:35.284Z
+* abapmerge - 2018-10-02T05:56:01.290Z
 ****************************************************
