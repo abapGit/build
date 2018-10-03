@@ -14822,7 +14822,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     deserialize_checks( ).
 
     IF is_checks-requirements-met = 'N' AND is_checks-requirements-decision IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Requirements not met and undecided ').
+      zcx_abapgit_exception=>raise( 'Requirements not met and undecided' ).
     ENDIF.
 
     IF is_checks-transport-required = abap_true AND is_checks-transport-transport IS INITIAL.
@@ -24958,7 +24958,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         iv_changed_by = ls_changed_by-name ) ).
 
       AT LAST.
-        ro_html->add('</tbody>').
+        ro_html->add( '</tbody>' ).
       ENDAT.
     ENDLOOP.
 
@@ -24981,7 +24981,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         is_file    = <ls_remote> ) ).
 
       AT LAST.
-        ro_html->add('</tbody>').
+        ro_html->add( '</tbody>' ).
       ENDAT.
     ENDLOOP.
 
@@ -28357,8 +28357,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     ro_html->add( '<table class="stage_tab">' ).
     ro_html->add( '<thead>' ).
-    ro_html->add( '<tr>').
-    ro_html->add( '<th colspan="2">Staged files</th>').
+    ro_html->add( '<tr>' ).
+    ro_html->add( '<th colspan="2">Staged files</th>' ).
     ro_html->add( '</tr>' ).
     ro_html->add( '</thead>' ).
 
@@ -63596,5 +63596,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-02T05:56:01.290Z
+* abapmerge - 2018-10-03T02:56:16.899Z
 ****************************************************
