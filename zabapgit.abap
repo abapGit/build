@@ -36763,6 +36763,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     IF sy-subrc = 2.
       zcx_abapgit_exception=>raise( 'error from screen_list' ).
     ENDIF.
+    
+    SORT lt_d020s BY dnum ASCENDING.
 
 * loop dynpros and skip generated selection screens
     LOOP AT lt_d020s ASSIGNING <ls_d020s>
@@ -64293,5 +64295,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-07T08:58:20.797Z
+* abapmerge - 2018-10-07T08:59:58.526Z
 ****************************************************
