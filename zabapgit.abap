@@ -13242,13 +13242,13 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
           ls_exclude      LIKE LINE OF lt_excludes.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
     DATA: last_package    TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab.
+    DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
 
     FIELD-SYMBOLS: <ls_tdevc>   LIKE LINE OF lt_tdevc,
                    <ls_tadir>   LIKE LINE OF rt_tadir,
                    <lv_package> TYPE devclass.
 
     "Determine Packages to Read
-    DATA: lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
     IF iv_ignore_subpackages = abap_false.
       lt_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
     ENDIF.
@@ -14215,7 +14215,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       lo_repo = get( ls_repo-key ).
 
       lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
-      IF lo_package->exists( ) eq ABAP_FALSE.
+      IF lo_package->exists( ) EQ abap_false.
         " Skip dangling repository
         CONTINUE.
       ENDIF.
@@ -15511,16 +15511,17 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
-    IF is_item IS INITIAL.
-* eg. ".abapgit.xml" file
-      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
-    ELSE.
+
+    IF is_item IS NOT INITIAL.
       li_obj = create_object( is_item     = is_item
                               iv_language = zif_abapgit_definitions=>c_english ).
       rv_user = li_obj->changed_by( ).
     ENDIF.
 
-    ASSERT NOT rv_user IS INITIAL.
+    IF rv_user IS INITIAL.
+* eg. ".abapgit.xml" file
+      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    ENDIF.
 
 * todo, fallback to looking at transports if rv_user = 'UNKNOWN'?
 
@@ -20862,7 +20863,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   METHOD clean_up.
 
     IF mo_text_control IS BOUND.
@@ -20992,7 +20993,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
 
     CLEAR: mt_tags.
 
-    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo = io_repo )->get_tags( ).
+    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo )->get_tags( ).
 
     IF lines( lt_tags ) = 0.
       zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
@@ -21080,7 +21081,7 @@ CLASS zcl_abapgit_tag_popups IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
                    <ls_tag> LIKE LINE OF lt_tags.
 
-    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo = io_repo )->get_tags( ).
+    lt_tags = zcl_abapgit_factory=>get_branch_overview( io_repo )->get_tags( ).
 
     IF lines( lt_tags ) = 0.
       zcx_abapgit_exception=>raise( `There are no tags for this repository` ).
@@ -21583,7 +21584,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch,
-          lo_popups type REF TO zif_abapgit_popups.
+          lo_popups TYPE REF TO zif_abapgit_popups.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     lo_popups = zcl_abapgit_ui_factory=>get_popups( ).
@@ -24133,7 +24134,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD get_page_background.
 
     CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_bkg
@@ -24373,7 +24374,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         zcl_abapgit_services_repo=>toggle_favorite( lv_key ).
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_transport_to_branch.
-        zcl_abapgit_services_repo=>transport_to_branch( iv_repository_key = lv_key ).
+        zcl_abapgit_services_repo=>transport_to_branch( lv_key ).
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_settings.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_sett
@@ -24771,7 +24772,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF mt_result.
 
-    li_syntax_check = zcl_abapgit_factory=>get_syntax_check( iv_package = mo_repo->get_package( ) ).
+    li_syntax_check = zcl_abapgit_factory=>get_syntax_check( mo_repo->get_package( ) ).
 
     mt_result = li_syntax_check->run( ).
 
@@ -24788,7 +24789,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -26385,13 +26386,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ls_filedata-merge_content = cl_http_utility=>unescape_url( escaped = ls_filedata-merge_content ).
     REPLACE ALL OCCURRENCES OF lc_replace IN ls_filedata-merge_content WITH zif_abapgit_definitions=>c_newline.
 
-    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string = ls_filedata-merge_content ).
+    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( ls_filedata-merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
     <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                         iv_data = lv_new_file_content ).
     <ls_conflict>-result_data = lv_new_file_content.
-    mo_merge->resolve_conflict( is_conflict = <ls_conflict> ).
+    mo_merge->resolve_conflict( <ls_conflict> ).
 
   ENDMETHOD.
   METHOD build_menu.
@@ -26759,19 +26760,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
         CASE iv_action.
           WHEN c_actions-apply_merge.
-            apply_merged_content( it_postdata = it_postdata ).
+            apply_merged_content( it_postdata ).
 
           WHEN c_actions-apply_source.
             READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
             <ls_conflict>-result_sha1 = <ls_conflict>-source_sha1.
             <ls_conflict>-result_data = <ls_conflict>-source_data.
-            mo_merge->resolve_conflict( is_conflict = <ls_conflict> ).
+            mo_merge->resolve_conflict( <ls_conflict> ).
 
           WHEN c_actions-apply_target.
             READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
             <ls_conflict>-result_sha1 = <ls_conflict>-target_sha1.
             <ls_conflict>-result_data = <ls_conflict>-target_data.
-            mo_merge->resolve_conflict( is_conflict = <ls_conflict> ).
+            mo_merge->resolve_conflict( <ls_conflict> ).
 
         ENDCASE.
 
@@ -26795,7 +26796,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -26822,7 +26823,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     mo_merge->run( ).
 
     ms_control-page_title = 'MERGE'.
-    ms_control-page_menu  = build_menu( iv_with_conflict = mo_merge->has_conflicts( ) ).
+    ms_control-page_menu  = build_menu( mo_merge->has_conflicts( ) ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -26855,7 +26856,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     ls_merge = mo_merge->get_result( ).
 
     "If now exists no conflicts anymore, conflicts button should disappear
-    ms_control-page_menu  = build_menu( iv_with_conflict = mo_merge->has_conflicts( ) ).
+    ms_control-page_menu = build_menu( mo_merge->has_conflicts( ) ).
 
     CREATE OBJECT ro_html.
 
@@ -26922,6 +26923,9 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.  "render_content
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
@@ -26964,10 +26968,6 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
@@ -27329,7 +27329,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_to_stage.
 
     DATA: lo_repo              TYPE REF TO zcl_abapgit_repo_online,
@@ -27640,12 +27640,41 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ms_control-page_menu  = build_menu( ).
 
   ENDMETHOD.
+  METHOD get_diff_line.
+
+    DATA: lt_diff       TYPE zif_abapgit_definitions=>ty_diffs_tt,
+          lv_line_index TYPE sytabix.
+
+    FIELD-SYMBOLS: <ls_diff> LIKE LINE OF lt_diff.
+
+    lv_line_index = iv_line_index.
+    lt_diff = io_diff->get( ).
+
+    READ TABLE lt_diff INTO rs_diff
+                       INDEX lv_line_index.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Invalid line index { lv_line_index }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_diff_object.
+
+    FIELD-SYMBOLS: <ls_diff_file> LIKE LINE OF mt_diff_files.
+
+    READ TABLE mt_diff_files ASSIGNING <ls_diff_file>
+                             WITH KEY filename = iv_filename.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Invalid filename { iv_filename }| ).
+    ENDIF.
+
+    ro_diff = <ls_diff_file>-o_diff.
+
+  ENDMETHOD.
   METHOD get_patch_data.
 
     CLEAR: ev_filename, ev_line_index.
 
-    IF  iv_action <> c_patch_action-add
-    AND iv_action <> c_patch_action-remove.
+    IF iv_action <> c_patch_action-add AND iv_action <> c_patch_action-remove.
       zcx_abapgit_exception=>raise( |Invalid action { iv_action }| ).
     ENDIF.
 
@@ -28157,38 +28186,6 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-
-  METHOD get_diff_object.
-
-    FIELD-SYMBOLS: <ls_diff_file> LIKE LINE OF mt_diff_files.
-
-    READ TABLE mt_diff_files ASSIGNING <ls_diff_file>
-                             WITH KEY filename = iv_filename.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Invalid filename { iv_filename }| ).
-    ENDIF.
-
-    ro_diff = <ls_diff_file>-o_diff.
-
-  ENDMETHOD.
-  METHOD get_diff_line.
-
-    DATA: lt_diff       TYPE zif_abapgit_definitions=>ty_diffs_tt,
-          lv_line_index TYPE sytabix.
-
-    FIELD-SYMBOLS: <ls_diff> LIKE LINE OF lt_diff.
-
-    lv_line_index = iv_line_index.
-    lt_diff = io_diff->get( ).
-
-    READ TABLE lt_diff INTO rs_diff
-                       INDEX lv_line_index.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Invalid line index { lv_line_index }| ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD constructor.
@@ -29396,7 +29393,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD add_hotkeys.
 
     DATA: lv_json    TYPE string,
@@ -29421,6 +29418,28 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     lv_json = lv_json && `}`.
 
     io_html->add( |setKeyBindings({ lv_json });| ).
+
+  ENDMETHOD.
+  METHOD call_browser.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        document               = |{ iv_url }|
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD footer.
@@ -29553,13 +29572,13 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
         call_browser( iv_getdata ).
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
-      WHEN  OTHERS.
+      WHEN OTHERS.
 
         ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
 
     ENDCASE.
 
-  ENDMETHOD. "lif_gui_page~on_event
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
     DATA lo_script TYPE REF TO zcl_abapgit_html.
@@ -29595,30 +29614,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.  " lif_gui_page~render.
-
-  METHOD call_browser.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING
-        document               = |{ iv_url }|
-      EXCEPTIONS
-        cntl_error             = 1
-        error_no_gui           = 2
-        bad_parameter          = 3
-        file_not_found         = 4
-        path_not_found         = 5
-        file_extension_unknown = 6
-        error_execute_failed   = 7
-        synchronous_failed     = 8
-        not_supported_by_gui   = 9
-        OTHERS                 = 10 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
@@ -32776,7 +32771,7 @@ CLASS ZCL_ABAPGIT_TEST_SERIALIZE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -32853,10 +32848,10 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
     ENDLOOP.
 
     "if the last XML tag is not closed, extend it to the end of the tag
-    IF    lv_prev_token = c_token-xml_tag
-      AND <ls_prev> IS ASSIGNED
-      AND <ls_prev>-length  = 1
-      AND <ls_prev>-text_tag = '<'.
+    IF lv_prev_token = c_token-xml_tag
+        AND <ls_prev> IS ASSIGNED
+        AND <ls_prev>-length  = 1
+        AND <ls_prev>-text_tag = '<'.
 
       FIND REGEX '<\s*[^\s]*' IN iv_line+<ls_prev>-offset MATCH LENGTH <ls_prev>-length.
       IF sy-subrc <> 0.
@@ -32867,7 +32862,7 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
   METHOD add_rule.
 
     DATA ls_rule LIKE LINE OF mt_rules.
@@ -32972,9 +32967,9 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
       ls_match   TYPE ty_match.
 
     FIELD-SYMBOLS:
-      <ls_regex>  LIKE LINE OF mt_rules,
-      <ls_result> TYPE match_result,
-      <ls_submatch>  LIKE LINE OF <ls_result>-submatches.
+      <ls_regex>    LIKE LINE OF mt_rules,
+      <ls_result>   TYPE match_result,
+      <ls_submatch> LIKE LINE OF <ls_result>-submatches.
     CLEAR et_matches.
 
     " Process syntax-dependent regex table and find all matches
@@ -32994,7 +32989,7 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
         ELSE.
           READ TABLE <ls_result>-submatches ASSIGNING <ls_submatch> INDEX <ls_regex>-relevant_submatch.
           "submatch might be empty if only discarted parts matched
-          IF sy-subrc = 0 and <ls_submatch>-offset >= 0 and <ls_submatch>-length > 0.
+          IF sy-subrc = 0 AND <ls_submatch>-offset >= 0 AND <ls_submatch>-length > 0.
             ls_match-token  = <ls_regex>-token.
             ls_match-offset = <ls_submatch>-offset.
             ls_match-length = <ls_submatch>-length.
@@ -33869,7 +33864,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
@@ -33901,6 +33896,22 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       CREATE OBJECT go_db.
     ENDIF.
     ro_db = go_db.
+
+  ENDMETHOD.
+  METHOD get_update_function.
+    IF gv_update_function IS INITIAL.
+      gv_update_function = 'CALL_V1_PING'.
+      CALL FUNCTION 'FUNCTION_EXISTS'
+        EXPORTING
+          funcname = gv_update_function
+        EXCEPTIONS
+          OTHERS   = 2.
+
+      IF sy-subrc <> 0.
+        gv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
+      ENDIF.
+    ENDIF.
+    r_funcname = gv_update_function.
 
   ENDMETHOD.
   METHOD list.
@@ -33957,7 +33968,7 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
 
     SELECT SINGLE data_str FROM (c_tabname) INTO rv_data
       WHERE type = iv_type
-      AND value = iv_value.                               "#EC CI_SUBRC
+      AND value = iv_value.
     IF sy-subrc <> 0.
       RAISE EXCEPTION TYPE zcx_abapgit_not_found.
     ENDIF.
@@ -33988,24 +33999,6 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       iv_ignore_errors = abap_false ).
 
   ENDMETHOD.  " validate_and_unprettify_xml
-
-  METHOD get_update_function.
-    IF gv_update_function IS INITIAL.
-      gv_update_function = 'CALL_V1_PING'.
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname = gv_update_function
-        EXCEPTIONS
-          OTHERS   = 2.
-
-      IF sy-subrc <> 0.
-        gv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
-      ENDIF.
-    ENDIF.
-    r_funcname = gv_update_function.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
   METHOD get_instance.
@@ -41413,15 +41406,15 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_long_texts.
 
+    TYPES BEGIN OF language_type.
+    TYPES language TYPE dm40t-sprache.
+    TYPES END OF language_type.
+
     DATA BEGIN OF ls_udmo_long_text.
     DATA language TYPE dm40t-sprache.
     DATA header   TYPE thead.
     DATA content TYPE xstring.
     DATA END OF ls_udmo_long_text.
-
-    TYPES BEGIN OF language_type.
-    TYPES language TYPE dm40t-sprache.
-    TYPES END OF language_type.
 
     DATA lt_udmo_long_texts LIKE STANDARD TABLE OF ls_udmo_long_text.
     DATA lt_udmo_languages TYPE STANDARD TABLE OF language_type.
@@ -41563,7 +41556,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       INTO TABLE lt_udmo_entities
       WHERE dmoid EQ me->mv_data_model
       AND as4local EQ me->mv_activation_state.
-    LOOP AT lt_udmo_entities ASSIGNING <udmo_entity> .
+    LOOP AT lt_udmo_entities ASSIGNING <udmo_entity>.
 
       " You are reminded that administrative information, such as last changed by user, date, time is not serialised.
       CLEAR <udmo_entity>-lstuser.
@@ -41587,27 +41580,28 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     " The model has a long description also in a master language, with other long descriptions
     " maintained as translations using SE63 Translation Editor. All of these long texts are held in DOK*
+
+    TYPES BEGIN OF ls_language_type.
+    TYPES language TYPE dm40t-sprache.
+    TYPES END OF ls_language_type.
+
     DATA BEGIN OF ls_udmo_long_text.
     DATA language TYPE dm40t-sprache.
     DATA header   TYPE thead.
     DATA content TYPE xstring.
     DATA END OF ls_udmo_long_text.
 
-    TYPES BEGIN OF ls_language_type.
-    TYPES language TYPE dm40t-sprache.
-    TYPES END OF ls_language_type.
-
     DATA lt_udmo_long_texts LIKE STANDARD TABLE OF ls_udmo_long_text.
     DATA lt_udmo_languages TYPE STANDARD TABLE OF ls_language_type.
     DATA ls_udmo_language  LIKE LINE OF lt_udmo_languages.
-    DATA: lv_error_status  TYPE lxestatprc .
+    DATA: lv_error_status  TYPE lxestatprc.
     " In which languages are the short texts are maintained.
     SELECT sprache AS language
-    FROM dm40t
-    INTO TABLE lt_udmo_languages
-    WHERE dmoid    EQ me->mv_data_model
-    AND   as4local EQ me->mv_activation_state
-    ORDER BY sprache ASCENDING.                         "#EC CI_NOFIRST
+      FROM dm40t
+      INTO TABLE lt_udmo_languages
+      WHERE dmoid    EQ me->mv_data_model
+      AND   as4local EQ me->mv_activation_state
+      ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " For every language for which a short text is maintained,
     LOOP AT lt_udmo_languages INTO ls_udmo_language.
@@ -49357,7 +49351,58 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_msag IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
+  METHOD delete_documentation.
+    DATA: lv_key_s TYPE dokhl-object.
+
+    CLEAR lv_key_s.
+    CALL FUNCTION 'DOCU_OBJECT_NAME_CONCATENATE'
+      EXPORTING
+        docu_id  = 'NA'
+        element  = iv_message_id
+        addition = '   '
+      IMPORTING
+        object   = lv_key_s
+      EXCEPTIONS
+        OTHERS   = 0.
+
+    CALL FUNCTION 'DOKU_DELETE_ALL'
+      EXPORTING
+        doku_id                        = 'NA'
+        doku_object                    = lv_key_s
+        generic_use                    = 'X'
+        suppress_authority             = space
+        suppress_enqueue               = space
+        suppress_transport             = space
+      EXCEPTIONS
+        header_without_text            = 01
+        index_without_header           = 02
+        no_authority_for_devclass_xxxx = 03
+        no_docu_found                  = 04
+        object_is_already_enqueued     = 05
+        object_is_enqueued_by_corr     = 06
+        user_break                     = 07.
+
+  ENDMETHOD.
+  METHOD delete_msgid.
+
+    delete_documentation( iv_message_id ).
+
+    DELETE FROM t100a WHERE arbgb = iv_message_id.
+    IF sy-subrc = 0 OR sy-subrc = 4.
+      CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
+        EXPORTING
+          object    = iv_message_id
+          operation = 'DELETE'
+          program   = space
+          type      = 'CN'.
+      DELETE FROM t100o WHERE arbgb = iv_message_id.
+      DELETE FROM t100t WHERE arbgb = iv_message_id.    "#EC CI_NOFIRST
+      DELETE FROM t100u WHERE arbgb = iv_message_id.
+      DELETE FROM t100x WHERE arbgb = iv_message_id.
+      DELETE FROM t100 WHERE arbgb = iv_message_id.
+    ENDIF.
+  ENDMETHOD.
   METHOD deserialize_texts.
 
     DATA: lv_msg_id     TYPE rglif-message_id,
@@ -49388,12 +49433,19 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
       MOVE-CORRESPONDING <ls_t100_text> TO ls_t100.
       ls_t100-arbgb = lv_msg_id.
-      MODIFY t100 FROM ls_t100.                           "#EC CI_SUBRC
+      MODIFY t100 FROM ls_t100.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'MSAG: Table T100 modify failed' ).
       ENDIF.
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD free_access_permission.
+    CALL FUNCTION 'RS_ACCESS_PERMISSION'
+      EXPORTING
+        mode         = 'FREE'
+        object       = i_message_id
+        object_class = 'T100'.
   ENDMETHOD.
   METHOD serialize_longtexts_msag.
 
@@ -49580,7 +49632,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     LOOP AT lt_t100 ASSIGNING <ls_t100>.
       DELETE lt_before WHERE msgnr = <ls_t100>-msgnr.
-      MODIFY t100 FROM <ls_t100>.                         "#EC CI_SUBRC
+      MODIFY t100 FROM <ls_t100>.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'MSAG: Table T100 modify failed' ).
       ENDIF.
@@ -49589,7 +49641,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       ls_t100u-name    = sy-uname.
       ls_t100u-datum   = sy-datum.
       ls_t100u-selfdef = '3'.
-      MODIFY t100u FROM ls_t100u.                         "#EC CI_SUBRC
+      MODIFY t100u FROM ls_t100u.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'MSAG: Table T100U modify failed' ).
       ENDIF.
@@ -49600,7 +49652,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     ls_t100a-respuser = sy-uname.
     ls_t100a-ldate = sy-datum.
     ls_t100a-ltime = sy-uzeit.
-    MODIFY t100a FROM ls_t100a.                           "#EC CI_SUBRC
+    MODIFY t100a FROM ls_t100a.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'MSAG: Table T100A modify failed' ).
     ENDIF.
@@ -49608,7 +49660,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     ls_t100t-sprsl = mv_language.
     ls_t100t-arbgb = ls_t100a-arbgb.
     ls_t100t-stext = ls_t100a-stext.
-    MODIFY t100t FROM ls_t100t.                           "#EC CI_SUBRC
+    MODIFY t100t FROM ls_t100t.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'MSAG: Table T100T modify failed' ).
     ENDIF.
@@ -49623,7 +49675,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     deserialize_longtexts( io_xml ).
 
-    deserialize_texts( io_xml = io_xml ).
+    deserialize_texts( io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -49696,66 +49748,6 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.
-
-  METHOD delete_msgid.
-
-    delete_documentation( iv_message_id ).
-
-    DELETE FROM t100a WHERE arbgb = iv_message_id.
-    IF sy-subrc = 0 OR sy-subrc = 4.
-      CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
-        EXPORTING
-          object    = iv_message_id
-          operation = 'DELETE'
-          program   = space
-          type      = 'CN'.
-      DELETE FROM t100o WHERE arbgb = iv_message_id.
-      DELETE FROM t100t WHERE arbgb = iv_message_id.    "#EC CI_NOFIRST
-      DELETE FROM t100u WHERE arbgb = iv_message_id.
-      DELETE FROM t100x WHERE arbgb = iv_message_id.
-      DELETE FROM t100 WHERE arbgb = iv_message_id.
-    ENDIF.
-  ENDMETHOD.
-  METHOD free_access_permission.
-    CALL FUNCTION 'RS_ACCESS_PERMISSION'
-      EXPORTING
-        mode         = 'FREE'
-        object       = i_message_id
-        object_class = 'T100'.
-  ENDMETHOD.
-  METHOD delete_documentation.
-    DATA: lv_key_s TYPE dokhl-object.
-
-    CLEAR lv_key_s.
-    CALL FUNCTION 'DOCU_OBJECT_NAME_CONCATENATE'
-      EXPORTING
-        docu_id  = 'NA'
-        element  = iv_message_id
-        addition = '   '
-      IMPORTING
-        object   = lv_key_s
-      EXCEPTIONS
-        OTHERS   = 0.
-
-    CALL FUNCTION 'DOKU_DELETE_ALL'
-      EXPORTING
-        doku_id                        = 'NA'
-        doku_object                    = lv_key_s
-        generic_use                    = 'X'
-        suppress_authority             = space
-        suppress_enqueue               = space
-        suppress_transport             = space
-      EXCEPTIONS
-        header_without_text            = 01
-        index_without_header           = 02
-        no_authority_for_devclass_xxxx = 03
-        no_docu_found                  = 04
-        object_is_already_enqueued     = 05
-        object_is_enqueued_by_corr     = 06
-        user_break                     = 07.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -51986,7 +51978,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'DYNPROS'
                   CHANGING cg_data = lt_dynpros ).
-    deserialize_dynpros( it_dynpros = lt_dynpros ).
+    deserialize_dynpros( lt_dynpros ).
 
     io_xml->read( EXPORTING iv_name = 'CUA'
                   CHANGING cg_data = ls_cua ).
@@ -59152,7 +59144,7 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -59340,14 +59332,13 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
                TO <lv_d_akh>. " doesn't exist in 702
         ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
                TO <lv_i_akh>. " doesn't exist in 702
-        IF  <lv_d_akh> IS ASSIGNED
-        AND <lv_i_akh> IS ASSIGNED.
+        IF <lv_d_akh> IS ASSIGNED AND <lv_i_akh> IS ASSIGNED.
           <lv_i_akh> = <lv_d_akh>.
         ENDIF.
 
         super->upload(
           CHANGING
-            ch_object       = ch_object ).
+            ch_object = ch_object ).
 
         upload_data_from_stream( ch_object-filename ).
       CATCH cx_ecatt_apl INTO lx_ex.
@@ -59817,7 +59808,7 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
     " downport
@@ -59892,14 +59883,13 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
                TO <lv_d_akh>. " doesn't exist in 702
         ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
                TO <lv_i_akh>. " doesn't exist in 702
-        IF  <lv_d_akh> IS ASSIGNED
-        AND <lv_i_akh> IS ASSIGNED.
+        IF <lv_d_akh> IS ASSIGNED AND <lv_i_akh> IS ASSIGNED.
           <lv_i_akh> = <lv_d_akh>.
         ENDIF.
 
         super->upload(
           CHANGING
-            ch_object       = ch_object ).
+            ch_object = ch_object ).
 
         upload_data_from_stream( ch_object-filename ).
 
@@ -61940,7 +61930,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   METHOD build_trees.
 
     DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
@@ -62141,7 +62131,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
         type = zif_abapgit_definitions=>c_type-commit
-        sha1 = iv_branch .
+        sha1 = iv_branch.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'commit not found' ).
     ENDIF.
@@ -64277,5 +64267,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-11T08:18:06.188Z
+* abapmerge - 2018-10-12T05:57:52.114Z
 ****************************************************
