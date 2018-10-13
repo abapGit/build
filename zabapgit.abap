@@ -5662,6 +5662,9 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PRIVATE SECTION.
 
+    TYPES: tty_param_values TYPE STANDARD TABLE OF rsparam
+                                 WITH NON-UNIQUE DEFAULT KEY.
+
     CONSTANTS: c_oo_program(9)    VALUE '\PROGRAM=',
                c_oo_class(7)      VALUE '\CLASS=',
                c_oo_method(8)     VALUE '\METHOD=',
@@ -5692,7 +5695,19 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
       deserialize_texts
         IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
-        RAISING   zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception,
+
+      deserialize_oo_transaction
+        IMPORTING
+          iv_package      TYPE devclass
+          is_tstc         TYPE tstc
+          is_tstcc        TYPE tstcc
+          is_tstct        TYPE tstct
+          is_tstcp        TYPE tstcp
+          it_param_values TYPE zcl_abapgit_object_tran=>tty_param_values
+          is_rsstcd       TYPE rsstcd
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ttyp DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -15965,6 +15980,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     li_obj = create_object( is_item     = is_item
                             iv_language = zif_abapgit_definitions=>c_english ).
+
+    IF li_obj->exists( ) = abap_false.
+      zcx_abapgit_exception=>raise( |Object { is_item-obj_type } { is_item-obj_name } doesn't exist| ).
+    ENDIF.
 
     lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
 
@@ -31053,7 +31072,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'window.onTagTypeChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ ''type'': sValue }, "change_tag_type", "post");'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Repo Overview Logic'.
@@ -31062,12 +31081,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'window.onOrderByChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ ''orderBy'': sValue }, "change_order_by", "post");'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'window.onDirectionChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ ''direction'': sValue }, "direction", "post");'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * STAGE PAGE Logic'.
@@ -31635,7 +31654,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
         _inline '    iTooltipCounter += 1;'.
-        _inline '    this.fnRenderTooltip(oTooltip, iTooltipCounter)'.
+        _inline '    this.fnRenderTooltip(oTooltip, iTooltipCounter);'.
         _inline '  }.bind(this));'.
         _inline ''.
         _inline '};'.
@@ -31699,7 +31718,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.fnActivateDropDownMenu(oTooltip);'.
         _inline '  oTooltip.parentElement.focus();'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'LinkHints.prototype.onkeypress = function(oEvent){'.
         _inline ''.
@@ -31732,7 +31751,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  }'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Vimium like link hints'.
         _inline 'function setLinkHints(sLinkHintKey, sColor) {'.
@@ -31779,7 +31798,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '        return;'.
         _inline '      }'.
         _inline ''.
-        _inline '    }'.
+        _inline '    };'.
         _inline ''.
         _inline '  }.bind(this));'.
         _inline ''.
@@ -31791,7 +31810,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  if (elHotkeys) {'.
         _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? '''' : ''none'';'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
         _inline ''.
@@ -31815,7 +31834,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
         _inline ''.
@@ -31826,7 +31845,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
         _inline ''.
         _inline '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {'.
-        _inline '    return'.
+        _inline '    return;'.
         _inline '  }'.
         _inline ''.
         _inline '  var '.
@@ -31836,7 +31855,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  if (fnHotkey) {'.
         _inline '    fnHotkey.call(this, oEvent);'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'function setKeyBindings(oKeyMap){'.
         _inline ''.
@@ -31862,17 +31881,17 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    REMOVE: ''remove'','.
         _inline '    PATCH: ''patch'','.
         _inline '    PATCH_ACTIVE: ''patch-active'''.
-        _inline '  }'.
+        _inline '  };'.
         _inline ''.
         _inline '  this.ID = {'.
         _inline '    STAGE: ''stage'','.
         _inline '    PATCH_ADD_ALL: ''patch_add_all'','.
         _inline '    PATCH_REMOVE_ALL: ''patch_remove_all'''.
-        _inline '  }'.
+        _inline '  };'.
         _inline '  '.
         _inline '  this.ACTION = {'.
         _inline '    PATCH_STAGE: ''patch_stage'''.
-        _inline '  }'.
+        _inline '  };'.
         _inline ''.
         _inline '  this.ADD_REMOVE = new CSSPatchClassCombination(this.CSS_CLASS.ADD, this.CSS_CLASS.REMOVE);'.
         _inline '  this.REMOVE_ADD = new CSSPatchClassCombination(this.CSS_CLASS.REMOVE, this.CSS_CLASS.ADD);'.
@@ -31884,7 +31903,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.registerClickHandlerSingleLine();'.
         _inline '  this.registerClickHandlerAllFile();'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerSingleLine = function(){'.
         _inline ''.
@@ -31893,7 +31912,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.registerClickHandlerForPatchLink(this.ADD_REMOVE);'.
         _inline '  this.registerClickHandlerForPatchLink(this.REMOVE_ADD);'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerAllFile = function(){'.
         _inline ''.
@@ -31902,7 +31921,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_ADD_ALL, this.ADD_REMOVE);'.
         _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_REMOVE_ALL, this.REMOVE_ADD);'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerForPatchLink = function(oClassCombination) {'.
         _inline '  // register onclick handler. When a link is clicked it is '.
@@ -31921,7 +31940,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  }.bind(this));'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.togglePatchActive = function(oEvent, elClicked, elCorrespondingLink){ '.
         _inline ''.
@@ -31931,7 +31950,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  oEvent.preventDefault();'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline ''.
         _inline 'Patch.prototype.togglePatchActiveForClassLink = function(oEvent, elClicked, oClassCombination) {'.
@@ -31940,7 +31959,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var elCorrespondingLink = document.querySelector(''#'' + this.escapeDots(sCorrespondingLinkId));'.
         _inline ''.
         _inline '  this.togglePatchActive(oEvent, elClicked, elCorrespondingLink);'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.getCorrespodingLinkId = function(sClickedLinkId, oClassCombination){'.
         _inline ''.
@@ -31953,11 +31972,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var oRegexPatchClassPrefix = new RegExp(''^'' + oClassCombination.sClassLinkClicked );'.
         _inline '  return sClickedLinkId.replace(oRegexPatchClassPrefix, oClassCombination.sClassCorrespondingLink);'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.escapeDots = function(sFileName){'.
         _inline '  return sFileName.replace(/\./g,''\\.'');'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.patchLinkClickAll = function(oClassCombination) {'.
         _inline '  return function(oEvent) {'.
@@ -31972,7 +31991,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    oEvent.preventDefault();'.
         _inline ''.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerForPatchLinkAll = function(sSelector, oClassCombination){'.
         _inline ''.
@@ -31982,7 +32001,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    elem.addEventListener(''click'', this.patchLinkClickAll(oClassCombination).bind(this));'.
         _inline '  }.bind(this));'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerStagePatch = function registerStagePatch(){'.
         _inline ''.
@@ -31994,7 +32013,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    this.stagePatch();'.
         _inline '  }.bind(this);'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.stagePatch = function() {'.
         _inline ''.
@@ -32005,13 +32024,13 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  submitSapeventForm({''add'': aAddPatch, ''remove'': aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
         _inline ''.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.collectActiveElementsForSelector = function(sSelector){'.
         _inline ''.
         _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
         _inline '    .filter(function(elem){'.
-        _inline '      return elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)'.
+        _inline '      return elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE);'.
         _inline '    }.bind(this))'.
         _inline '    .map(function(elem){'.
         _inline '      return elem.id;'.
@@ -42429,7 +42448,239 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
+CLASS zcl_abapgit_object_tran IMPLEMENTATION.
+  METHOD deserialize_oo_transaction.
+
+    " You should remember that we don't use batch input just for fun,
+    " but because FM RPY_TRANSACTION_INSERT doesn't support OO transactions.
+
+    DATA: ls_bcdata  TYPE bdcdata,
+          lt_bcdata  TYPE STANDARD TABLE OF bdcdata,
+          lt_message TYPE STANDARD TABLE OF bdcmsgcoll.
+
+    FIELD-SYMBOLS: <ls_message> TYPE bdcmsgcoll.
+
+    ls_bcdata-program  = 'SAPLSEUK'.
+    ls_bcdata-dynpro   = '0390'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'TSTC-TCODE'.
+    ls_bcdata-fval     = is_tstc-tcode.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    IF zif_abapgit_object~exists( ) = abap_true.
+
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam = 'BDC_OKCODE'.
+      ls_bcdata-fval = '=CHNG'.
+      APPEND ls_bcdata TO lt_bcdata.
+
+    ELSE.
+
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam = 'BDC_OKCODE'.
+      ls_bcdata-fval = '=ADD'.
+      APPEND ls_bcdata TO lt_bcdata.
+
+    ENDIF.
+
+    ls_bcdata-program  = 'SAPLSEUK'.
+    ls_bcdata-dynpro   = '0300'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'TSTCT-TTEXT'.
+    ls_bcdata-fval     = is_tstct-ttext.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'RSSTCD-S_CLASS'.
+    ls_bcdata-fval     = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=ENTR'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    ls_bcdata-program  = 'SAPLSEUK'.
+    ls_bcdata-dynpro   = '0360'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'RSSTCD-S_TRFRAME'.
+    ls_bcdata-fval     = is_rsstcd-s_trframe.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'RSSTCD-S_UPDTASK'.
+    ls_bcdata-fval     = is_rsstcd-s_updtask.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=TR_FRAMEWORK'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    ls_bcdata-program  = 'SAPLSEUK'.
+    ls_bcdata-dynpro   = '0360'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'RSSTCD-CLASSNAME'.
+    ls_bcdata-fval     = is_rsstcd-classname.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'RSSTCD-METHOD'.
+    ls_bcdata-fval     = is_rsstcd-method.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    IF is_rsstcd-s_local IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'RSSTCD-S_LOCAL'.
+      ls_bcdata-fval     = is_rsstcd-s_local.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    IF is_rsstcd-s_updlok IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'RSSTCD-S_UPDLOK'.
+      ls_bcdata-fval     = is_rsstcd-s_updlok.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'TSTC-PGMNA'.
+    ls_bcdata-fval     = is_tstc-pgmna.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    IF is_tstcc-s_webgui = '2'.
+
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'G_IAC_EWT'.
+      ls_bcdata-fval     = abap_true.
+      APPEND ls_bcdata TO lt_bcdata.
+
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam = 'BDC_OKCODE'.
+      ls_bcdata-fval = 'MAKE_PROFI                                                            '.
+      APPEND ls_bcdata TO lt_bcdata.
+
+      ls_bcdata-program  = 'SAPLSEUK'.
+      ls_bcdata-dynpro   = '0360'.
+      ls_bcdata-dynbegin = 'X'.
+      APPEND ls_bcdata TO lt_bcdata.
+
+    ELSEIF is_tstcc-s_webgui IS NOT INITIAL.
+
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'TSTCC-S_WEBGUI'.
+      ls_bcdata-fval     = is_tstcc-s_webgui.
+      APPEND ls_bcdata TO lt_bcdata.
+
+    ENDIF.
+
+    IF is_tstcc-s_pervas IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'TSTCC-S_PERVAS'.
+      ls_bcdata-fval     = is_tstcc-s_pervas.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    IF is_tstcc-s_service IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'TSTCC-S_SERVICE'.
+      ls_bcdata-fval     = is_tstcc-s_service.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    IF is_tstcc-s_platin IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'TSTCC-S_PLATIN'.
+      ls_bcdata-fval     = is_tstcc-s_platin.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    IF is_tstcc-s_win32 IS NOT INITIAL.
+      CLEAR ls_bcdata.
+      ls_bcdata-fnam     = 'TSTCC-S_WIN32'.
+      ls_bcdata-fval     = is_tstcc-s_win32.
+      APPEND ls_bcdata TO lt_bcdata.
+    ENDIF.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=WB_SAVE'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    ls_bcdata-program  = 'SAPLSTRD'.
+    ls_bcdata-dynpro   = '0100'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam     = 'KO007-L_DEVCLASS'.
+    ls_bcdata-fval     = iv_package.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=ADD'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    ls_bcdata-program  = 'BDC_OKCODE'.
+    ls_bcdata-dynpro   = '0360'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=WB_BACK'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    ls_bcdata-program  = 'BDC_OKCODE'.
+    ls_bcdata-dynpro   = '0360'.
+    ls_bcdata-dynbegin = 'X'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CLEAR ls_bcdata.
+    ls_bcdata-fnam = 'BDC_OKCODE'.
+    ls_bcdata-fval = '=WB_BACK'.
+    APPEND ls_bcdata TO lt_bcdata.
+
+    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+      EXPORTING
+        tcode     = 'SE93'
+        mode_val  = 'N'
+      TABLES
+        using_tab = lt_bcdata
+        mess_tab  = lt_message
+      EXCEPTIONS
+        OTHERS    = 1.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error deserializing { ms_item-obj_type } { ms_item-obj_name }| ).
+    ENDIF.
+
+    LOOP AT lt_message ASSIGNING <ls_message>
+                       WHERE msgtyp CA 'EAX'.
+
+      MESSAGE ID     <ls_message>-msgid
+              TYPE   <ls_message>-msgtyp
+              NUMBER <ls_message>-msgnr
+              WITH   <ls_message>-msgv1 <ls_message>-msgv2 <ls_message>-msgv3 <ls_message>-msgv4
+              INTO sy-msgli.
+      zcx_abapgit_exception=>raise_t100( ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD deserialize_texts.
 
     DATA lt_tpool_i18n TYPE TABLE OF tstct.
@@ -42640,11 +42891,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     CONSTANTS: lc_hex_tra TYPE x VALUE '00',
 *               c_hex_men TYPE x VALUE '01',
                lc_hex_par TYPE x VALUE '02',
-               lc_hex_rep TYPE x VALUE '80'.
+               lc_hex_rep TYPE x VALUE '80',
 *               c_hex_rpv TYPE x VALUE '10',
-*               c_hex_obj TYPE x VALUE '08',
-*               c_hex_chk TYPE x VALUE '04',
-*               c_hex_enq TYPE x VALUE '20'.
+               lc_hex_obj TYPE x VALUE '08'.
 
     DATA: lv_dynpro       TYPE d020s-dnum,
           ls_tstc         TYPE tstc,
@@ -42652,7 +42901,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
           ls_tstct        TYPE tstct,
           ls_tstcc        TYPE tstcc,
           ls_tstcp        TYPE tstcp,
-          lt_param_values TYPE TABLE OF rsparam,
+          lt_param_values TYPE tty_param_values,
           ls_rsstcd       TYPE rsstcd.
     IF zif_abapgit_object~exists( ) = abap_true.
       zif_abapgit_object~delete( ).
@@ -42676,6 +42925,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
         lv_type = ststc_c_type_report.
       WHEN lc_hex_par.
         lv_type = ststc_c_type_parameters.
+      WHEN lc_hex_obj.
+        lv_type = ststc_c_type_object.
 * todo, or ststc_c_type_variant?
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Transaction, unknown CINFO' ).
@@ -42690,37 +42941,52 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
           cs_tstc    = ls_tstc ).
     ENDIF.
 
-    CALL FUNCTION 'RPY_TRANSACTION_INSERT'
-      EXPORTING
-        transaction             = ls_tstc-tcode
-        program                 = ls_tstc-pgmna
-        dynpro                  = lv_dynpro
-        language                = mv_language
-        development_class       = iv_package
-        transaction_type        = lv_type
-        shorttext               = ls_tstct-ttext
-        called_transaction      = ls_rsstcd-call_tcode
-        called_transaction_skip = ls_rsstcd-st_skip_1
-        variant                 = ls_rsstcd-variant
-        cl_independend          = ls_rsstcd-s_ind_vari
-        html_enabled            = ls_tstcc-s_webgui
-        java_enabled            = ls_tstcc-s_platin
-        wingui_enabled          = ls_tstcc-s_win32
-      TABLES
-        param_values            = lt_param_values
-      EXCEPTIONS
-        cancelled               = 1
-        already_exist           = 2
-        permission_error        = 3
-        name_not_allowed        = 4
-        name_conflict           = 5
-        illegal_type            = 6
-        object_inconsistent     = 7
-        db_access_error         = 8
-        OTHERS                  = 9.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from RPY_TRANSACTION_INSERT' ).
-    ENDIF.
+    CASE lv_type.
+      WHEN ststc_c_type_object.
+
+        deserialize_oo_transaction( iv_package      = iv_package
+                                    is_tstc         = ls_tstc
+                                    is_tstcc        = ls_tstcc
+                                    is_tstct        = ls_tstct
+                                    is_tstcp        = ls_tstcp
+                                    it_param_values = lt_param_values
+                                    is_rsstcd       = ls_rsstcd ).
+
+      WHEN OTHERS.
+
+        CALL FUNCTION 'RPY_TRANSACTION_INSERT'
+          EXPORTING
+            transaction             = ls_tstc-tcode
+            program                 = ls_tstc-pgmna
+            dynpro                  = lv_dynpro
+            language                = mv_language
+            development_class       = iv_package
+            transaction_type        = lv_type
+            shorttext               = ls_tstct-ttext
+            called_transaction      = ls_rsstcd-call_tcode
+            called_transaction_skip = ls_rsstcd-st_skip_1
+            variant                 = ls_rsstcd-variant
+            cl_independend          = ls_rsstcd-s_ind_vari
+            html_enabled            = ls_tstcc-s_webgui
+            java_enabled            = ls_tstcc-s_platin
+            wingui_enabled          = ls_tstcc-s_win32
+          TABLES
+            param_values            = lt_param_values
+          EXCEPTIONS
+            cancelled               = 1
+            already_exist           = 2
+            permission_error        = 3
+            name_not_allowed        = 4
+            name_conflict           = 5
+            illegal_type            = 6
+            object_inconsistent     = 7
+            db_access_error         = 8
+            OTHERS                  = 9.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'Error from RPY_TRANSACTION_INSERT' ).
+        ENDIF.
+
+    ENDCASE.
 
     " Texts deserializing (translations)
     deserialize_texts( io_xml ).
@@ -42739,6 +43005,17 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_object TYPE eqegraarg.
+
+    lv_object = |TN{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = lv_object ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -42829,19 +43106,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     serialize_texts( io_xml ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_object TYPE eqegraarg.
-
-    lv_object = |TN{ ms_item-obj_name }|.
-    OVERLAY lv_object WITH '                                          '.
-    lv_object = lv_object && '*'.
-
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                            iv_argument    = lv_object ).
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
@@ -64267,5 +64531,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-12T05:57:52.114Z
+* abapmerge - 2018-10-13T08:02:25.233Z
 ****************************************************
