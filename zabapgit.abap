@@ -12601,7 +12601,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     rv_xstr = lo_zip->save( ).
 
-  ENDMETHOD.                    "encode_files
+  ENDMETHOD.
   METHOD export.
 
     DATA: lo_log     TYPE REF TO zcl_abapgit_log,
@@ -12625,7 +12625,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     file_download( iv_package = io_repo->get_package( )
                    iv_xstr    = encode_files( lt_zip ) ).
 
-  ENDMETHOD.                    "export_key
+  ENDMETHOD.
   METHOD export_object.
 
     DATA: ls_tadir    TYPE zif_abapgit_definitions=>ty_tadir,
@@ -12713,7 +12713,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.  "export_package
+  ENDMETHOD.
   METHOD export_package.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_offline,
@@ -12737,7 +12737,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     export( lo_repo ).
 
-  ENDMETHOD.  "export_package
+  ENDMETHOD.
   METHOD filename.
 
     IF iv_str CA '/'.
@@ -12755,7 +12755,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     ENDIF.
     TRANSLATE ev_filename TO LOWER CASE.
 
-  ENDMETHOD.                    "filename
+  ENDMETHOD.
   METHOD file_download.
 
     DATA: lt_rawdata  TYPE solix_tab,
@@ -12829,7 +12829,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from gui_download' ).
     ENDIF.
 
-  ENDMETHOD.                    "file_download
+  ENDMETHOD.
   METHOD file_upload.
 
     DATA: lt_data       TYPE TABLE OF x255,
@@ -12899,7 +12899,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
     rv_xstr = rv_xstr(lv_length).
 
-  ENDMETHOD.                    "file_upload
+  ENDMETHOD.
   METHOD import.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline.
@@ -12908,7 +12908,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
-  ENDMETHOD.                    "import
+  ENDMETHOD.
   METHOD normalize_path.
 * removes first folder from path if needed
 
@@ -12949,7 +12949,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
-  ENDMETHOD.                    "normalize_path
+  ENDMETHOD.
   METHOD unzip_file.
 
     DATA: lo_zip  TYPE REF TO cl_abap_zip,
@@ -13000,7 +13000,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     normalize_path( CHANGING ct_files = rt_files ).
 
-  ENDMETHOD.                    "decode_files
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
   METHOD constructor.
@@ -13355,7 +13355,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
 
-  ENDMETHOD.                    "build
+  ENDMETHOD.
   METHOD check_exists.
 
     DATA: lv_exists   TYPE abap_bool,
@@ -13385,7 +13385,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-  ENDMETHOD.                    "check_exists
+  ENDMETHOD.
   METHOD exists.
 
     IF is_item IS INITIAL.
@@ -13613,7 +13613,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
             iv_method   = c_method-add
             iv_data     = iv_data ).
 
-  ENDMETHOD.        "add
+  ENDMETHOD.
   METHOD append.
 
     DATA: ls_stage LIKE LINE OF mt_stage.
@@ -13634,16 +13634,16 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
       INSERT ls_stage INTO TABLE mt_stage.
     ENDIF.
 
-  ENDMETHOD.        "append
+  ENDMETHOD.
   METHOD constructor.
     mv_merge_source = iv_merge_source.
   ENDMETHOD.
   METHOD count.
     rv_count = lines( mt_stage ).
-  ENDMETHOD.        "count
+  ENDMETHOD.
   METHOD get_all.
     rt_stage = mt_stage.
-  ENDMETHOD.        "get_all
+  ENDMETHOD.
   METHOD get_merge_source.
     rv_source = mv_merge_source.
   ENDMETHOD.
@@ -13651,7 +13651,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
     append( iv_path     = iv_path
             iv_filename = iv_filename
             iv_method   = c_method-ignore ).
-  ENDMETHOD.        "ignore
+  ENDMETHOD.
   METHOD method_description.
 
     CASE iv_method.
@@ -13665,17 +13665,17 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'unknown staging method type' ).
     ENDCASE.
 
-  ENDMETHOD.        "method_description
+  ENDMETHOD.
   METHOD reset.
     DELETE mt_stage WHERE file-path     = iv_path
                     AND   file-filename = iv_filename.
     ASSERT sy-subrc = 0.
-  ENDMETHOD.        "reset
+  ENDMETHOD.
   METHOD rm.
     append( iv_path     = iv_path
             iv_filename = iv_filename
             iv_method   = c_method-rm ).
-  ENDMETHOD.        "rm
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   METHOD has_sadl_superclass.
@@ -14060,7 +14060,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
     create( ls_package ).
 
-  ENDMETHOD.                    "create
+  ENDMETHOD.
   METHOD zif_abapgit_sap_package~exists.
 
     cl_package_factory=>load_package(
@@ -14172,7 +14172,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     APPEND io_repo TO mt_list.
 
-  ENDMETHOD.                    "add
+  ENDMETHOD.
   METHOD constructor.
 
   ENDMETHOD.
@@ -14218,7 +14218,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     mv_init = abap_true.
 
-  ENDMETHOD.                    "refresh
+  ENDMETHOD.
   METHOD validate_sub_super_packages.
     DATA:
       ls_repo     LIKE LINE OF it_repos,
@@ -14465,7 +14465,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     mv_initialized = abap_false.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD deserialize.
 
     initialize( ).
@@ -14476,25 +14476,25 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     COMMIT WORK AND WAIT.
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD get_branch_name.
     rv_name = ms_data-branch_name.
-  ENDMETHOD.                    "get_branch_name
+  ENDMETHOD.
   METHOD get_files_remote.
     initialize( ).
 
     rt_files = mt_remote.
-  ENDMETHOD.                    "get_files
+  ENDMETHOD.
   METHOD get_objects.
     initialize( ).
 
     rt_objects = mt_objects.
-  ENDMETHOD.                    "get_objects
+  ENDMETHOD.
   METHOD get_sha1_remote.
     initialize( ).
 
     rv_sha1 = mv_branch.
-  ENDMETHOD.                    "get_sha1_remote
+  ENDMETHOD.
   METHOD get_unnecessary_local_objs.
 
     DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -14539,7 +14539,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_url.
     rv_url = ms_data-url.
-  ENDMETHOD.                    "get_url
+  ENDMETHOD.
   METHOD handle_stage_ignore.
 
     DATA: lv_add         TYPE abap_bool,
@@ -14627,7 +14627,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
     reset_status( ).
 
-  ENDMETHOD.  " rebuild_local_checksums.
+  ENDMETHOD.
   METHOD refresh.
 
     DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
@@ -14654,10 +14654,10 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     mv_initialized = abap_true.
 
-  ENDMETHOD.                    "refresh
+  ENDMETHOD.
   METHOD reset_status.
     CLEAR mt_status.
-  ENDMETHOD.  " reset_status.
+  ENDMETHOD.
   METHOD set_branch_name.
 
     IF ms_data-local_settings-write_protected = abap_true.
@@ -14691,7 +14691,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     ENDIF.
     rt_results = mt_status.
 
-  ENDMETHOD.                    "status
+  ENDMETHOD.
   METHOD zif_abapgit_git_operations~create_branch.
 
     DATA: lv_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
@@ -14800,7 +14800,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       ENDAT.
     ENDLOOP.
 
-  ENDMETHOD. "build_folders
+  ENDMETHOD.
   METHOD build_repo_items_offline.
 
     DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -14819,7 +14819,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       <ls_repo_item>-sortkey  = c_sortkey-default.      " Default sort key
     ENDLOOP.
 
-  ENDMETHOD.  "build_repo_items_offline
+  ENDMETHOD.
   METHOD build_repo_items_online.
 
     DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
@@ -14867,19 +14867,19 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       ENDAT.
     ENDLOOP.
 
-  ENDMETHOD. "build_repo_items_online
+  ENDMETHOD.
   METHOD constructor.
     mo_repo = io_repo.
     CREATE OBJECT mo_log.
-  ENDMETHOD.  "constructor
+  ENDMETHOD.
   METHOD filter_changes.
 
     DELETE ct_repo_items WHERE changes = 0.
 
-  ENDMETHOD. "filter_changes
+  ENDMETHOD.
   METHOD get_log.
     ro_log = mo_log.
-  ENDMETHOD. "get_log
+  ENDMETHOD.
   METHOD list.
 
     mo_log->clear( ).
@@ -14906,7 +14906,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       obj_type ASCENDING
       obj_name ASCENDING.
 
-  ENDMETHOD.  "list
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD constructor.
@@ -14915,7 +14915,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     ms_data = is_data.
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD delete.
 
     zcl_abapgit_persist_factory=>get_repo( )->delete( ms_data-key ).
@@ -15098,7 +15098,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_key.
     rv_key = ms_data-key.
-  ENDMETHOD.                    "get_key
+  ENDMETHOD.
   METHOD get_local_checksums.
     rt_checksums = ms_data-local_checksums.
   ENDMETHOD.
@@ -15125,10 +15125,10 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
     ENDIF.
 
-  ENDMETHOD.                    "get_name
+  ENDMETHOD.
   METHOD get_package.
     rv_package = ms_data-package.
-  ENDMETHOD.                    "get_package
+  ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
   ENDMETHOD.
@@ -15164,7 +15164,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     set( it_checksums = lt_checksums ).
 
-  ENDMETHOD.  " rebuild_local_checksums.
+  ENDMETHOD.
   METHOD refresh.
 
     mv_do_local_refresh = abap_true.
@@ -15173,7 +15173,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       CLEAR: mv_last_serialization, mt_local.
     ENDIF.
 
-  ENDMETHOD.                    "refresh
+  ENDMETHOD.
   METHOD run_code_inspector.
 
     DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
@@ -15375,7 +15375,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     SORT lt_checksums BY item.
     set( it_checksums = lt_checksums ).
 
-  ENDMETHOD.  " update_local_checksums
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -15434,7 +15434,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP. "at plugins
 
-  ENDMETHOD.                    "class_constructor
+  ENDMETHOD.
   METHOD constructor.
 
     DATA ls_objtype_map LIKE LINE OF gt_objtype_map.
@@ -15457,7 +15457,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
         EXPORTING
           classname = 'LCL_OBJECTS_BRIDGE'.
     ENDIF.
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -15473,7 +15473,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
     ENDTRY.
 
-  ENDMETHOD.                    "lif_object~delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lx_plugin        TYPE REF TO cx_static_check.
@@ -15486,24 +15486,24 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
       CATCH cx_static_check INTO lx_plugin.
         zcx_abapgit_exception=>raise( lx_plugin->get_text( ) ).
     ENDTRY.
-  ENDMETHOD.                    "lif_object~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~EXISTS')
       RECEIVING
         rv_bool = rv_bool.
 
-  ENDMETHOD.                    "lif_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
       RECEIVING
         rs_metadata = rs_metadata.
 
-  ENDMETHOD.                    "lif_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
-  ENDMETHOD.  "lif_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -15513,14 +15513,14 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~JUMP').
 
-  ENDMETHOD.                    "lif_object~jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     CALL METHOD mo_plugin->('WRAP_SERIALIZE')
       EXPORTING
         io_xml = io_xml.
 
-  ENDMETHOD.                    "lif_object~serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
@@ -15589,7 +15589,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name. "#EC NOTEXT
 
-  ENDMETHOD.                    "class_name
+  ENDMETHOD.
   METHOD compare_remote_to_local.
 * this method is used for comparing local with remote objects
 * before pull, this is useful eg. when overwriting a TABL object.
@@ -15673,7 +15673,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         ENDIF.
     ENDTRY.
 
-  ENDMETHOD.                    "create_object
+  ENDMETHOD.
   METHOD delete.
 
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
@@ -15724,7 +15724,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD delete_obj.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -15745,7 +15745,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.                    "delete
+  ENDMETHOD.
   METHOD deserialize.
 
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
@@ -15868,7 +15868,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
-  ENDMETHOD.                    "deserialize
+  ENDMETHOD.
   METHOD deserialize_checks.
 
     DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
@@ -15926,7 +15926,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         rv_bool = abap_true.
     ENDTRY.
 
-  ENDMETHOD.                    "exists
+  ENDMETHOD.
   METHOD files_to_deserialize.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -15960,7 +15960,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       is_item     = is_item
       iv_language = zif_abapgit_definitions=>c_english )->has_changed_since( iv_timestamp ).
 
-  ENDMETHOD.  "has_changed_since
+  ENDMETHOD.
   METHOD is_supported.
 
     TRY.
@@ -15972,7 +15972,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         rv_bool = abap_false.
     ENDTRY.
 
-  ENDMETHOD.                    "is_supported
+  ENDMETHOD.
   METHOD jump.
 
     DATA: li_obj              TYPE REF TO zif_abapgit_object,
@@ -16000,7 +16000,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       li_obj->jump( ).
     ENDIF.
 
-  ENDMETHOD.                    "jump
+  ENDMETHOD.
   METHOD map_results_to_items.
 
     DATA: ls_item LIKE LINE OF rt_items.
@@ -16069,7 +16069,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
-  ENDMETHOD.                    "prioritize_deser
+  ENDMETHOD.
   METHOD serialize.
 
     DATA: li_obj   TYPE REF TO zif_abapgit_object,
@@ -16153,7 +16153,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           with_tcode_index       = abap_true.
     ENDLOOP.
 
-  ENDMETHOD.                    "update_package_tree
+  ENDMETHOD.
   METHOD warning_overwrite_adjust.
 
     DATA: lt_overwrite LIKE it_overwrite,
@@ -16464,7 +16464,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       rv_result = 0.
     ENDIF.
 
-  ENDMETHOD.                    "compare_versions
+  ENDMETHOD.
   METHOD constructor.
 
     DATA: lt_lines    TYPE string_table,
@@ -16485,7 +16485,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
     READ TABLE mt_log INTO ls_log_line INDEX 1.
     mv_latest_version = ls_log_line-version. " Empty if not found
 
-  ENDMETHOD.                    "constructor
+  ENDMETHOD.
   METHOD create.
     " TODO REFACTOR !
 
@@ -16535,27 +16535,27 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
         iv_version = ro_instance->latest_version( ) ).
     ENDIF.
 
-  ENDMETHOD.                    "create
+  ENDMETHOD.
   METHOD get_log.
     rt_log = me->mt_log.
-  ENDMETHOD.                    "get_log
+  ENDMETHOD.
   METHOD has_important.
     READ TABLE mt_log WITH KEY is_important = abap_true TRANSPORTING NO FIELDS.
     rv_boolean = boolc( sy-subrc IS INITIAL ).
-  ENDMETHOD.                    "has_important_news
+  ENDMETHOD.
   METHOD has_news.
     rv_boolean = boolc( lines( mt_log ) > 0 ).
-  ENDMETHOD.                    "has_news
+  ENDMETHOD.
   METHOD has_unseen.
     rv_boolean = boolc( compare_versions(
       iv_a = mv_latest_version
       iv_b = mv_lastseen_version ) > 0 ).
-  ENDMETHOD.                    "has_unseen
+  ENDMETHOD.
   METHOD has_updates.
     rv_boolean = boolc( compare_versions(
       iv_a = mv_latest_version
       iv_b = mv_current_version ) > 0 ).
-  ENDMETHOD.                    "has_updates
+  ENDMETHOD.
   METHOD is_relevant.
 
     " News announcement restricted to abapGit only
@@ -16566,7 +16566,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   ENDMETHOD.
   METHOD latest_version.
     rv_version = me->mv_latest_version.
-  ENDMETHOD.                    "latest_version
+  ENDMETHOD.
   METHOD normalize_version.
 
     " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
@@ -16575,7 +16575,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
     FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
       IN iv_version SUBMATCHES rv_version.
 
-  ENDMETHOD.                    "normalize_version
+  ENDMETHOD.
   METHOD parse.
 
     DATA: lv_tail                TYPE i,
@@ -16615,7 +16615,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       APPEND ls_log TO rt_log.
     ENDLOOP.
 
-  ENDMETHOD.                    "parse
+  ENDMETHOD.
   METHOD parse_line.
 
     CONSTANTS: lc_header_pattern TYPE string
@@ -16641,7 +16641,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
     rs_log-text = iv_line.
 
-  ENDMETHOD.                    "parse_line
+  ENDMETHOD.
   METHOD version_to_numeric.
 
     DATA: lv_major   TYPE numc4,
@@ -16653,7 +16653,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
     " Calculated value of version number, empty version will become 0 which is OK
     rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
 
-  ENDMETHOD.                    "convert_version_to_numeric
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   METHOD local_dot_abapgit.
@@ -16726,7 +16726,7 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
     " local .abapgit.xml state, issue #630
     local_dot_abapgit( ).
 
-  ENDMETHOD.  " run.
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   METHOD all_files.
@@ -17299,7 +17299,7 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
     ENDCASE.
 
-  ENDMETHOD.                                                "http_200
+  ENDMETHOD.
   METHOD check_smart_response.
 
     DATA: lv_content_type TYPE string.
@@ -17361,7 +17361,7 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
       zcx_abapgit_exception=>raise( lv_text ).
     ENDIF.
 
-  ENDMETHOD.  "send_receive
+  ENDMETHOD.
   METHOD send_receive_close.
 
 * do not use set_cdata as it modifies the Content-Type header field
@@ -17406,7 +17406,7 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
       mo_digest->run( mi_client ).
     ENDIF.
 
-  ENDMETHOD.                    "set_headers
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   METHOD get_instance.
@@ -17493,7 +17493,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.                    "class_to_path
+  ENDMETHOD.
   METHOD path_to_package.
 
     DATA: lv_length TYPE i,
@@ -17588,7 +17588,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.  "build_existing
+  ENDMETHOD.
   METHOD build_new_local.
 
     " Item
@@ -17604,7 +17604,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rs_result-match    = abap_false.
     rs_result-lstate   = zif_abapgit_definitions=>c_state-added.
 
-  ENDMETHOD.  "build_new_local
+  ENDMETHOD.
   METHOD build_new_remote.
 
     DATA: ls_item     LIKE LINE OF it_items,
@@ -17660,7 +17660,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       ASSERT 1 = 1. " No action, just follow defaults
     ENDIF.
 
-  ENDMETHOD.  "build_new_remote
+  ENDMETHOD.
   METHOD calculate_status.
 
     DATA: lt_remote       LIKE it_remote,
@@ -17753,7 +17753,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       obj_name ASCENDING
       filename ASCENDING.
 
-  ENDMETHOD.  "calculate_status.
+  ENDMETHOD.
   METHOD identify_object.
 
     DATA: lv_name TYPE tadir-obj_name,
@@ -17783,7 +17783,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     es_item-obj_name = lv_name.
     ev_is_xml        = boolc( lv_ext = 'XML' AND strlen( lv_type ) = 4 ).
 
-  ENDMETHOD.  "identify_object.
+  ENDMETHOD.
   METHOD run_checks.
 
     DATA: lv_path     TYPE string,
@@ -17864,7 +17864,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       MOVE-CORRESPONDING <ls_res1> TO ls_file.
     ENDLOOP.
 
-  ENDMETHOD.                    "check
+  ENDMETHOD.
   METHOD status.
 
     DATA: lv_index       LIKE sy-tabix,
@@ -17898,7 +17898,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       io_dot     = lo_dot_abapgit
       iv_top     = io_repo->get_package( ) ).
 
-  ENDMETHOD.  "status
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_branch_overview.
@@ -18190,7 +18190,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     rs_signature-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
                                                     iv_data = serialize( ) ).
 
-  ENDMETHOD. "get_signature
+  ENDMETHOD.
   METHOD get_starting_folder.
     rv_path = ms_data-starting_folder.
   ENDMETHOD.
@@ -18504,7 +18504,7 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
       lv_plus = lv_plus + 1.
     ENDDO.
 
-  ENDMETHOD.                    "resolve_ddic
+  ENDMETHOD.
   METHOD resolve_packages.
 
     DATA: lt_subpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
@@ -21359,7 +21359,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->refresh( ).
 
-  ENDMETHOD.  "refresh
+  ENDMETHOD.
   METHOD refresh_local_checksums.
 
     DATA: lv_answer   TYPE c,
@@ -21655,7 +21655,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     COMMIT WORK.
 
-  ENDMETHOD.                    "pull
+  ENDMETHOD.
   METHOD reset.
 
     DATA: lo_repo                   TYPE REF TO zcl_abapgit_repo_online,
@@ -22391,7 +22391,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from POPUP_TO_CONFIRM' ).
     ENDIF.
 
-  ENDMETHOD.  "popup_to_confirm
+  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_package.
     CALL FUNCTION 'FUNCTION_EXISTS'
       EXPORTING
@@ -22416,7 +22416,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ELSE.
       ev_create = abap_false.
     ENDIF.
-  ENDMETHOD.  " popup_to_create_package
+  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_transp_branch.
     DATA: lt_fields             TYPE TABLE OF sval,
           lv_transports_as_text TYPE string,
@@ -22468,7 +22468,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         txt1  = lv_line1
         txt2  = lv_line2.
 
-  ENDMETHOD.  " popup_to_inform.
+  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_select_from_list.
 
     DATA:
@@ -22677,7 +22677,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     ENDWHILE.
 
-  ENDMETHOD.                    "repo_new_offline
+  ENDMETHOD.
   METHOD zif_abapgit_popups~repo_popup.
 
     DATA: lv_returncode TYPE c,
@@ -22894,10 +22894,10 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
     APPEND ls_item TO mt_items.
 
-  ENDMETHOD.  "add
+  ENDMETHOD.
   METHOD constructor.
     mv_id = iv_id.
-  ENDMETHOD. "constructor
+  ENDMETHOD.
   METHOD count.
     rv_count = lines( mt_items ).
   ENDMETHOD.
@@ -22916,7 +22916,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
     ro_html->add( render_items( iv_sort = iv_sort ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render
+  ENDMETHOD.
   METHOD render_as_droplist.
 
     DATA: lv_class TYPE string.
@@ -22941,7 +22941,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
     ro_html->add( '</li></ul>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD. "render_as_droplist
+  ENDMETHOD.
   METHOD render_items.
 
     DATA: lv_class     TYPE string,
@@ -23022,7 +23022,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
     ro_html->add( '</ul>' ).
 
-  ENDMETHOD.  "render_items
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   METHOD add_field.
@@ -23046,7 +23046,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     APPEND ls_field TO ct_field.
 
-  ENDMETHOD.  "add_field
+  ENDMETHOD.
   METHOD dbkey_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23056,7 +23056,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     get_field( EXPORTING iv_name = 'TYPE'  it_field = lt_fields CHANGING cg_field = rs_key-type ).
     get_field( EXPORTING iv_name = 'VALUE' it_field = lt_fields CHANGING cg_field = rs_key-value ).
 
-  ENDMETHOD.                    "dbkey_decode
+  ENDMETHOD.
   METHOD dbkey_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23066,7 +23066,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
-  ENDMETHOD.                    "dbkey_encode
+  ENDMETHOD.
   METHOD dir_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23074,14 +23074,14 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     lt_fields = parse_fields( iv_string ).
     get_field( EXPORTING iv_name = 'PATH' it_field = lt_fields CHANGING cg_field = rv_path ).
 
-  ENDMETHOD.                    "dir_decode
+  ENDMETHOD.
   METHOD dir_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
     add_field( EXPORTING iv_name = 'PATH' ig_field = iv_path CHANGING ct_field = lt_fields ).
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
-  ENDMETHOD.                    "dir_encode
+  ENDMETHOD.
   METHOD field_keys_to_upper.
 
     FIELD-SYMBOLS <ls_field> LIKE LINE OF ct_fields.
@@ -23100,7 +23100,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
-  ENDMETHOD.                    "file_encode
+  ENDMETHOD.
   METHOD file_obj_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23122,7 +23122,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
       get_field( EXPORTING iv_name = 'OBJ_NAME' it_field = lt_fields CHANGING cg_field = eg_object ).
     ENDIF.
 
-  ENDMETHOD.                    "file_decode
+  ENDMETHOD.
   METHOD get_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_field,
@@ -23143,7 +23143,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
         ASSERT 0 = 1.
     ENDCASE.
 
-  ENDMETHOD.  "get_field
+  ENDMETHOD.
   METHOD jump_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23153,7 +23153,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     get_field( EXPORTING iv_name = 'TYPE' it_field = lt_fields CHANGING cg_field = ev_obj_type ).
     get_field( EXPORTING iv_name = 'NAME' it_field = lt_fields CHANGING cg_field = ev_obj_name ).
 
-  ENDMETHOD.                    "jump_decode
+  ENDMETHOD.
   METHOD jump_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23162,7 +23162,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
-  ENDMETHOD.                    "jump_encode
+  ENDMETHOD.
   METHOD obj_encode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23172,7 +23172,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
 
-  ENDMETHOD.                    "obj_encode
+  ENDMETHOD.
   METHOD parse_fields.
 
     DATA: lt_substrings TYPE stringtab,
@@ -23203,7 +23203,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     rt_fields = parse_fields( iv_string ).
     field_keys_to_upper( CHANGING ct_fields = rt_fields ).
 
-  ENDMETHOD.  " parse_fields.
+  ENDMETHOD.
   METHOD stage_decode.
 
     DATA: lt_fields TYPE tihttpnvp.
@@ -23215,7 +23215,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     ASSERT NOT ev_key IS INITIAL.
 
-  ENDMETHOD.  " stage_decode.
+  ENDMETHOD.
   METHOD unescape.
 * do not use cl_http_utility as it does strange things with the encoding
     rv_string = iv_string.
@@ -23278,7 +23278,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ lv_span }</a>|.
 
-  ENDMETHOD. "a
+  ENDMETHOD.
   METHOD add.
 
     DATA: lv_type TYPE c,
@@ -23306,7 +23306,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
         ASSERT 1 = 0. " Dev mistake
     ENDCASE.
 
-  ENDMETHOD.  " add
+  ENDMETHOD.
   METHOD add_a.
 
     add( a( iv_txt   = iv_txt
@@ -23317,20 +23317,20 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
             iv_id    = iv_id
             iv_style = iv_style ) ).
 
-  ENDMETHOD.                    "add_a
+  ENDMETHOD.
   METHOD add_icon.
 
     add( icon( iv_name  = iv_name
                iv_class = iv_class
                iv_hint  = iv_hint ) ).
 
-  ENDMETHOD.                    "add_icon
+  ENDMETHOD.
   METHOD class_constructor.
     CREATE OBJECT go_single_tags_re
       EXPORTING
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
-  ENDMETHOD. "class_constructor
+  ENDMETHOD.
   METHOD icon.
 
     DATA: lv_hint  TYPE string,
@@ -23352,7 +23352,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     rv_str = |<i class="octicon octicon-{ lv_name }{ lv_color }{ lv_class }"{ lv_hint }></i>|.
 
-  ENDMETHOD. "icon
+  ENDMETHOD.
   METHOD indent_line.
 
     DATA: ls_study TYPE ty_study_result,
@@ -23398,10 +23398,10 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
     ENDIF.
 
-  ENDMETHOD. "indent_line
+  ENDMETHOD.
   METHOD is_empty.
     rv_yes = boolc( lines( mt_buffer ) = 0 ).
-  ENDMETHOD. "is_empty
+  ENDMETHOD.
   METHOD render.
 
     DATA: ls_context TYPE ty_indent_context,
@@ -23419,7 +23419,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY zif_abapgit_definitions=>c_newline.
 
-  ENDMETHOD.                    "render
+  ENDMETHOD.
   METHOD study_line.
 
     DATA: lv_line TYPE string,
@@ -23476,7 +23476,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD. "study_line
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
 
@@ -23641,7 +23641,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     rv_html = zcl_abapgit_html=>a( iv_txt = lv_path
                                    iv_act = |{ c_actions-change_dir }?{ lv_encode }| ).
 
-  ENDMETHOD.  "build_dir_jump_link
+  ENDMETHOD.
   METHOD build_grid_menu.
 
     CREATE OBJECT ro_toolbar.
@@ -23663,7 +23663,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       iv_chk = mv_show_folders
       iv_act = c_actions-toggle_folders ).
 
-  ENDMETHOD. "build_grid_menu
+  ENDMETHOD.
   METHOD build_head_menu.
 
     DATA: lo_tb_advanced TYPE REF TO zcl_abapgit_html_toolbar,
@@ -23807,7 +23807,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'settings/grey70' )
                      io_sub = build_grid_menu( ) ).
 
-  ENDMETHOD.  "build_head_menu
+  ENDMETHOD.
   METHOD build_obj_jump_link.
 
     DATA: lv_encode TYPE string.
@@ -23818,7 +23818,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     rv_html = zcl_abapgit_html=>a( iv_txt = |{ is_item-obj_name }|
                                    iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
 
-  ENDMETHOD.  "build_obj_jump_link
+  ENDMETHOD.
   METHOD constructor.
 
     DATA lo_settings TYPE REF TO zcl_abapgit_settings.
@@ -23835,7 +23835,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     mv_max_lines    = lo_settings->get_max_lines( ).
     mv_max_setting  = mv_max_lines.
 
-  ENDMETHOD. "constructor
+  ENDMETHOD.
   METHOD get_item_class.
 
     DATA lt_class TYPE TABLE OF string.
@@ -23852,7 +23852,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       rv_html = | class="{ concat_lines_of( table = lt_class sep = ` ` ) }"|.
     ENDIF.
 
-  ENDMETHOD. "get_item_class
+  ENDMETHOD.
   METHOD get_item_icon.
 
     CASE is_item-obj_type.
@@ -23870,7 +23870,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       rv_html = zcl_abapgit_html=>icon( 'file-directory/darkgrey' ).
     ENDIF.
 
-  ENDMETHOD. "get_item_icon
+  ENDMETHOD.
   METHOD render_empty_package.
 
     DATA: lv_text TYPE string.
@@ -23885,7 +23885,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
            && |  <center>{ lv_text }</center>|
            && |</td></tr>|.
 
-  ENDMETHOD. "render_empty_package
+  ENDMETHOD.
   METHOD render_head_line.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
@@ -23906,7 +23906,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ro_html->add( '</tr></table>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD. "render_head_line
+  ENDMETHOD.
   METHOD render_item.
 
     DATA: lv_link TYPE string.
@@ -23948,7 +23948,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
     ro_html->add( '</tr>' ).
 
-  ENDMETHOD.  "render_item
+  ENDMETHOD.
   METHOD render_item_command.
 
     DATA: lv_difflink TYPE string,
@@ -24001,7 +24001,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.  "render_item_command
+  ENDMETHOD.
   METHOD render_item_files.
 
     DATA: ls_file     LIKE LINE OF is_item-files.
@@ -24016,7 +24016,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       ro_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
     ENDLOOP.
 
-  ENDMETHOD.  "render_item_files
+  ENDMETHOD.
   METHOD render_parent_dir.
 
     CREATE OBJECT ro_html.
@@ -24029,7 +24029,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ENDIF.
     ro_html->add( '</tr>' ).
 
-  ENDMETHOD. "render_parent_dir
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA: lv_path TYPE string.
@@ -24054,7 +24054,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
         ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
-  ENDMETHOD. "lif_gui_page~on_event
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
     DATA: lt_repo_items TYPE zif_abapgit_definitions=>tt_repo_items,
@@ -24147,7 +24147,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
         ro_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
     ENDTRY.
 
-  ENDMETHOD.  "lif_gui_page~render
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -24592,7 +24592,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ro_html->add( render_form( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_form.
 
     CONSTANTS: lc_body_col_max TYPE i VALUE 150.
@@ -24705,7 +24705,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ro_html->add( '</form>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.    "render_form
+  ENDMETHOD.
   METHOD render_menu.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
@@ -24726,7 +24726,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ro_html->add( lo_toolbar->render( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.      "render_menu
+  ENDMETHOD.
   METHOD render_text_input.
 
     DATA lv_attrs TYPE string.
@@ -24746,14 +24746,14 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  " render_text_input
+  ENDMETHOD.
   METHOD scripts.
 
     ro_html = super->scripts( ).
 
     ro_html->add( 'setInitialFocus("name");' ).
 
-  ENDMETHOD.    "scripts
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
@@ -24785,7 +24785,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_title = 'SYNTAX CHECK'.
     mo_repo = io_repo.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
@@ -24823,7 +24823,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                     iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }| ).
     ENDIF.
 
-  ENDMETHOD. "build_menu
+  ENDMETHOD.
   METHOD constructor.
 
     DATA lv_ts TYPE timestamp.
@@ -24936,7 +24936,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
 
-  ENDMETHOD.        "process_stage_list
+  ENDMETHOD.
   METHOD render_actions.
 
     DATA: lv_local_count TYPE i,
@@ -24985,7 +24985,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '</tr>' ).
     ro_html->add( '</table>' ).
 
-  ENDMETHOD.      "render_actions
+  ENDMETHOD.
   METHOD render_content.
 
     CREATE OBJECT ro_html.
@@ -25038,7 +25038,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     ro_html->add( '</tr>' ).
 
-  ENDMETHOD.  "render_file
+  ENDMETHOD.
   METHOD render_list.
 
     DATA: lt_changed_by TYPE ty_changed_by_tt,
@@ -25106,7 +25106,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     ro_html->add( '</table>' ).
 
-  ENDMETHOD.      "render_lines
+  ENDMETHOD.
   METHOD scripts.
 
     ro_html = super->scripts( ).
@@ -25126,7 +25126,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '}' ).
     ro_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
 
-  ENDMETHOD.  "scripts
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
     DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
@@ -25322,7 +25322,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SETTINGS'.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD get_default_hotkeys.
 
     DATA: lt_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
@@ -25431,7 +25431,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( render_section_end( ) ).
     ro_html->add( render_form_end( ) ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_development_internals.
 
     DATA: lv_critical_tests TYPE string,
@@ -25688,7 +25688,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_title = 'REPO SETTINGS'.
     mo_repo = io_repo.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD parse_post.
 
     DATA lv_serialized_post_data TYPE string.
@@ -26007,7 +26007,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         OTHERS              = 2.
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
     DATA: ls_overview LIKE LINE OF rt_overview,
@@ -26131,7 +26131,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ro_html->add( |</div>| ).
 
-  ENDMETHOD.            "render_content
+  ENDMETHOD.
   METHOD render_header_bar.
 
     io_html->add( |<div class="row">| ).
@@ -26315,7 +26315,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
 
-  ENDMETHOD.  " render_text_input
+  ENDMETHOD.
   METHOD scripts.
 
     ro_html = super->scripts( ).
@@ -26470,7 +26470,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ENDIF.
     ENDDO.
 
-  ENDMETHOD.  " is_binary.
+  ENDMETHOD.
   METHOD render_beacon.
 
     DATA: lv_beacon  TYPE string.
@@ -26491,7 +26491,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ro_html->add( '</tr>' ).
     ro_html->add( '</thead>' ).
 
-  ENDMETHOD.  " render_beacon.
+  ENDMETHOD.
   METHOD render_content.
 
     resolve_diff( ).
@@ -26504,7 +26504,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ro_html->add( render_diff( ms_diff_file ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_diff.
 
     DATA: lv_target_content TYPE string.
@@ -26580,7 +26580,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
-  ENDMETHOD.  " render_diff
+  ENDMETHOD.
   METHOD render_diff_head.
 
     DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count.
@@ -26640,7 +26640,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.  "render_lines
+  ENDMETHOD.
   METHOD render_line_split.
 
     DATA: lv_new  TYPE string,
@@ -26681,7 +26681,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ro_html->add( lv_new ). " Source
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
-  ENDMETHOD. "render_line_split
+  ENDMETHOD.
   METHOD render_table_head.
 
     CREATE OBJECT ro_html.
@@ -26719,7 +26719,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ENDIF.
 
-  ENDMETHOD.  " render_table_head.
+  ENDMETHOD.
   METHOD resolve_diff.
 
     DATA: lv_offs TYPE i.
@@ -26941,7 +26941,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
     ro_html->add( '</b>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -27340,10 +27340,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-redirect_url = c_explore_url.
-  ENDMETHOD.  "constructor
+  ENDMETHOD.
   METHOD render_content.
     ASSERT 1 = 1. " Dummy
-  ENDMETHOD. "render_content.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -28210,7 +28210,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'DEBUG INFO'.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD render_content.
 
     CREATE OBJECT ro_html.
@@ -28220,7 +28220,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( render_supported_object_types( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_debug_info.
 
     DATA: lt_ver_tab     TYPE filetable,
@@ -28244,7 +28244,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( |<p>LCL_TIME:        { zcl_abapgit_time=>get( ) }</p>| ).
     ro_html->add( |<p>SY time:         { sy-datum } { sy-uzeit } { sy-tzone }</p>| ).
 
-  ENDMETHOD. "render_debug_info
+  ENDMETHOD.
   METHOD render_supported_object_types.
 
     DATA: lv_list  TYPE string,
@@ -28270,7 +28270,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
       '"<br>Frontend time: " + new Date(), "debug_info");' ).
 
-  ENDMETHOD.  "scripts
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -28753,7 +28753,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     mo_stage = io_stage.
     ms_control-page_title = 'Code Inspector'.
     run_code_inspector( ).
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD has_inspection_errors.
 
     READ TABLE mt_result TRANSPORTING NO FIELDS
@@ -28802,7 +28802,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
 
   METHOD run_code_inspector.
 
@@ -29091,7 +29091,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ro_html->add( body( ) ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_merge.
 
     CREATE OBJECT ro_html.
@@ -29141,7 +29141,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'BACKGROUND_RUN'.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: lv_text LIKE LINE OF mt_text.
@@ -29156,7 +29156,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
     ENDLOOP.
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD run.
 
     DATA: lx_error TYPE REF TO zcx_abapgit_exception,
@@ -29477,7 +29477,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
-  ENDMETHOD. "footer
+  ENDMETHOD.
   METHOD get_hotkey_actions.
 
     " these are the global shortcuts active on all pages
@@ -29507,7 +29507,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
-  ENDMETHOD.                    "html_head
+  ENDMETHOD.
   METHOD link_hints.
 
     DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
@@ -29555,7 +29555,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     link_hints( ro_html ).
     add_hotkeys( ro_html ).
 
-  ENDMETHOD. "scripts
+  ENDMETHOD.
   METHOD title.
 
     CREATE OBJECT ro_html.
@@ -29582,7 +29582,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
-  ENDMETHOD.                    "render page title
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     CASE iv_action.
@@ -29632,7 +29632,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
-  ENDMETHOD.  " lif_gui_page~render.
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
@@ -29659,7 +29659,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ENDIF.
     ro_html->add( '</span>' ).
 
-  ENDMETHOD.  "render_branch_span
+  ENDMETHOD.
   METHOD render_error.
 
     DATA lv_error TYPE string.
@@ -29676,7 +29676,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( |{ zcl_abapgit_html=>icon( 'alert/red' ) } Error: { lv_error }| ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD. "render_error
+  ENDMETHOD.
   METHOD render_hotkey_overview.
 
     DATA: lv_display  TYPE string,
@@ -29778,7 +29778,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     rv_html = rv_html && '</span>'.
 
-  ENDMETHOD. "render_item_state
+  ENDMETHOD.
   METHOD render_js_error_banner.
     CREATE OBJECT ro_html.
     ro_html->add( '<div id="js-error-banner" class="dummydiv error">' ).
@@ -29786,7 +29786,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                   ' If this does not disappear soon,' &&
                   ' then there is a JS init error, please log an issue' ).
     ro_html->add( '</div>' ).
-  ENDMETHOD. "render_js_error_stub
+  ENDMETHOD.
   METHOD render_news.
 
     DATA: lv_text    TYPE string,
@@ -29845,7 +29845,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     ro_html->add( '</div>' ).
 
-  ENDMETHOD. "render_news
+  ENDMETHOD.
   METHOD render_repo_top.
 
     DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
@@ -29975,7 +29975,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_name }| ).
     ENDIF.
 
-  ENDMETHOD.  " get_asset.
+  ENDMETHOD.
   METHOD get_images.
 
     FIELD-SYMBOLS <ls_image> LIKE LINE OF rt_images.
@@ -29994,7 +29994,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       ASSERT sy-subrc = 0. " Image data error
     ENDLOOP.
 
-  ENDMETHOD.  " get_images.
+  ENDMETHOD.
   METHOD get_inline_asset.
 
 * used by abapmerge
@@ -32067,7 +32067,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         OTHERS = 1.
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.  " get_inline_asset.
+  ENDMETHOD.
   METHOD get_inline_images.
 
     DATA ls_image TYPE zif_abapgit_definitions=>ty_web_asset.
@@ -32156,7 +32156,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       && 'cpUAAAAASUVORK5CYII='.
     APPEND ls_image TO rt_images.
 
-  ENDMETHOD.  " get_inline_images.
+  ENDMETHOD.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -32208,7 +32208,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       EXCEPTIONS
         failed       = 1 ##FM_SUBRC_OK.
 
-  ENDMETHOD.  " get_mime_asset.
+  ENDMETHOD.
   METHOD get_webfont_link.
 
     rv_link = '<link rel="stylesheet"'
@@ -32216,7 +32216,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
            && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
            && '">'.                                         "#EC NOTEXT
 
-  ENDMETHOD.  " get_webfont_link
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
@@ -32248,7 +32248,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     mi_cur_page = ls_stack-page. " last page always stays
     render( ).
 
-  ENDMETHOD.                "back
+  ENDMETHOD.
   METHOD cache_asset.
 
     DATA: lv_xstr  TYPE xstring,
@@ -32295,14 +32295,14 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     ASSERT sy-subrc = 0. " Image data error
 
-  ENDMETHOD.  " cache_asset.
+  ENDMETHOD.
   METHOD cache_html.
 
     rv_url = cache_asset( iv_text    = iv_text
                           iv_type    = 'text'
                           iv_subtype = 'html' ).
 
-  ENDMETHOD.                    "cache_html
+  ENDMETHOD.
   METHOD call_page.
 
     DATA: ls_stack TYPE ty_page_stack.
@@ -32316,12 +32316,12 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     mi_cur_page = ii_page.
     render( ).
 
-  ENDMETHOD.                "call_page
+  ENDMETHOD.
   METHOD constructor.
 
     startup( ).
 
-  ENDMETHOD.            "constructor
+  ENDMETHOD.
 
   METHOD get_current_page_name.
     IF mi_cur_page IS BOUND.
@@ -32331,7 +32331,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       SHIFT rv_page_name LEFT DELETING LEADING 'LCL_GUI_'.
     ENDIF." ELSE - return is empty => initial page
 
-  ENDMETHOD.  "get_current_page_name
+  ENDMETHOD.
   METHOD get_instance.
     IF go_gui IS INITIAL.
       CREATE OBJECT go_gui.
@@ -32342,7 +32342,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     on_event( action = |{ zif_abapgit_definitions=>c_action-go_main }| ). " doesn't accept strings directly
 
-  ENDMETHOD.                "go_home
+  ENDMETHOD.
   METHOD handle_action.
 
     DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
@@ -32400,7 +32400,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         " Do nothing = gc_event_state-no_more_act
     ENDTRY.
 
-  ENDMETHOD.  "handle_action
+  ENDMETHOD.
   METHOD on_event.
 
     handle_action(
@@ -32410,7 +32410,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       it_postdata    = postdata
       it_query_table = query_table ).
 
-  ENDMETHOD.                    "on_event
+  ENDMETHOD.
   METHOD render.
 
     DATA: lv_url  TYPE w3url,
@@ -32421,7 +32421,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     mo_html_viewer->show_url( lv_url ).
 
-  ENDMETHOD.                    "render
+  ENDMETHOD.
   METHOD startup.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -32464,7 +32464,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     mo_html_viewer->set_registered_events( lt_events ).
     SET HANDLER me->on_event FOR mo_html_viewer.
 
-  ENDMETHOD.                    "startup
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   METHOD constructor.
@@ -32614,14 +32614,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
     ro_html->add( |<pre class="syntax-hl">{ lv_data }</pre>| ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.  "render_content
+  ENDMETHOD.
   METHOD render_record_banner.
     rv_html = |<table class="tag"><tr><td class="label">Type:</td>|
            && | <td>{ is_key-type }</td></tr></table>|
            && zif_abapgit_definitions=>c_newline
            && |<table class="tag"><tr><td class="label">Key:</td>|
            && |  <td>{ is_key-value }</td></tr></table>|.
-  ENDMETHOD. "render_record_banner
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -32630,7 +32630,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'DATABASE PERSISTENCY'.
-  ENDMETHOD.  " constructor.
+  ENDMETHOD.
   METHOD delete.
 
     DATA: lv_answer TYPE c LENGTH 1.
@@ -32657,7 +32657,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 
     COMMIT WORK.
 
-  ENDMETHOD.  " delete
+  ENDMETHOD.
   METHOD explain_content.
 
     DATA: ls_result TYPE match_result,
@@ -32705,7 +32705,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
                           format = cl_abap_format=>e_html_attr ).
         rv_text = |<pre>{ rv_text }</pre>|.
     ENDCASE.
-  ENDMETHOD.  "explain_content
+  ENDMETHOD.
   METHOD render_content.
 
     DATA: lt_data    TYPE zif_abapgit_persistence=>tt_content,
@@ -32760,7 +32760,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
     ro_html->add( '</table>' ).
     ro_html->add( '</div>' ).
 
-  ENDMETHOD.            "render_content
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -33327,7 +33327,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
     lt_repo_config = read( )-repo_config.
     READ TABLE lt_repo_config INTO rs_repo_config WITH KEY url = lv_key.
 
-  ENDMETHOD.  "read_repo_config
+  ENDMETHOD.
   METHOD to_xml.
     CALL TRANSFORMATION id
       SOURCE user = is_user
@@ -33365,7 +33365,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
     COMMIT WORK AND WAIT.
 
-  ENDMETHOD.  "update_repo_config
+  ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_changes_only.
 
     rv_changes_only = read( )-changes_only.
@@ -34009,7 +34009,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'DB update failed' ).
     ENDIF.
 
-  ENDMETHOD.  "update
+  ENDMETHOD.
   METHOD validate_and_unprettify_xml.
 
     rv_xml = zcl_abapgit_xml_pretty=>print(
@@ -34017,7 +34017,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       iv_unpretty      = abap_true
       iv_ignore_errors = abap_false ).
 
-  ENDMETHOD.  " validate_and_unprettify_xml
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
   METHOD get_instance.
@@ -34468,7 +34468,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
     READ TABLE mt_jobs WITH KEY key = iv_key TRANSPORTING NO FIELDS.
     rv_yes = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.  "exists
+  ENDMETHOD.
   METHOD from_xml.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
@@ -41755,7 +41755,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     IF sy-subrc NE 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
-  ENDMETHOD.                    "zif_abapgit_object~delete
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
 * You are reminded that this method checks for
@@ -41791,7 +41791,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     ENDTRY.
 
     " You are reminded that data models are not relevant for activation.
-  ENDMETHOD.                    "zif_abapgit_object~deserialize
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     "  See Function Module SDU_MODEL_EXISTS
@@ -41802,10 +41802,10 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
-  ENDMETHOD.                    "zif_abapgit_object~exists
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.                    "zif_abapgit_object~get_metadata
+  ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
 
     DATA lv_date TYPE dats.
@@ -41819,7 +41819,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       iv_timestamp = iv_timestamp
       iv_date      = lv_date
       iv_time      = lv_time ).
-  ENDMETHOD.  "zif_abapgit_object~has_changed_since
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for(
@@ -41867,7 +41867,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         resource_failure      = 3
         OTHERS                = 4
         ##fm_subrc_ok.                                                   "#EC CI_SUBRC
-  ENDMETHOD.                    "zif_abapgit_object~jump
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
@@ -41878,7 +41878,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     me->serialize_short_texts( io_xml ).
     me->serialize_long_texts( io_xml ).
 
-  ENDMETHOD.                    "zif_abapgit_object~serialize
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD clear_dynamic_fields.
@@ -61283,7 +61283,7 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
           password = lv_pass ).
     ENDCASE.
 
-  ENDMETHOD.  "acquire_login_details
+  ENDMETHOD.
   METHOD check_auth_requested.
 
     DATA: lv_code TYPE i.
@@ -61295,7 +61295,7 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
       rv_auth_requested = abap_true.
     ENDIF.
 
-  ENDMETHOD.  "check_auth_requested
+  ENDMETHOD.
   METHOD create_by_url.
 
     DATA: lv_uri                 TYPE string,
@@ -64241,7 +64241,7 @@ CLASS lcl_password_dialog DEFINITION FINAL.
       IMPORTING
         iv_repo_url TYPE string.
 
-ENDCLASS. "lcl_password_dialog DEFINITION
+ENDCLASS.
 
 CLASS lcl_password_dialog IMPLEMENTATION.
 
@@ -64264,14 +64264,14 @@ CLASS lcl_password_dialog IMPLEMENTATION.
 
     CLEAR: p_url, p_user, p_pass.
 
-  ENDMETHOD.  "popup
+  ENDMETHOD.
 
   METHOD on_screen_init.
     s_title = 'Login'     ##NO_TEXT.
     s_url   = 'Repo URL'  ##NO_TEXT.
     s_user  = 'User'      ##NO_TEXT.
     s_pass  = 'Password'  ##NO_TEXT.
-  ENDMETHOD.  "on_screen_init
+  ENDMETHOD.
 
   METHOD on_screen_output.
     DATA lt_ucomm TYPE TABLE OF sy-ucomm.
@@ -64306,7 +64306,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
       SET CURSOR FIELD 'P_PASS'.
     ENDIF.
 
-  ENDMETHOD.  "on_screen_output
+  ENDMETHOD.
 
   METHOD on_screen_event.
     ASSERT sy-dynnr = c_dynnr.
@@ -64326,7 +64326,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
         LEAVE TO SCREEN 0.
     ENDCASE.
 
-  ENDMETHOD.  "on_screen_event
+  ENDMETHOD.
   METHOD enrich_title_by_hostname.
 
     DATA lv_host TYPE string.
@@ -64339,7 +64339,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS. " lcl_password_dialog IMPLEMENTATION
+ENDCLASS.
 * create class ZCL_ABAPGIT_AUTH_EXIT implementing ZIF_ABAPGIT_AUTH in following include,
 * if using the development version of abapGit create a global class instead
 * place the object in a different package than ZABAPGIT
@@ -64531,5 +64531,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-13T08:02:25.233Z
+* abapmerge - 2018-10-18T05:28:50.294Z
 ****************************************************
