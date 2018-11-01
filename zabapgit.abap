@@ -45199,7 +45199,7 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
+CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   METHOD code_item_section_handling.
     CONSTANTS: node_item TYPE string VALUE 'item' ##NO_TEXT.
     CONSTANTS: node_text TYPE string VALUE '#text' ##NO_TEXT.
@@ -45298,7 +45298,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_range_node_codes.
 
-    DATA: range_node_code TYPE sstr_sr_string_range.
+    DATA: range_node_code TYPE LINE OF ty_string_range.
 
     IF me->range_node_codes IS INITIAL.
       range_node_code-sign   = 'I'.
@@ -64844,5 +64844,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-01T05:24:59.467Z
+* abapmerge - 2018-11-01T06:18:24.752Z
 ****************************************************
