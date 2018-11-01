@@ -44787,6 +44787,11 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   METHOD zif_abapgit_object~is_locked.
     rv_is_locked = abap_false.
   ENDMETHOD.
+
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
@@ -64834,5 +64839,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-10-31T15:12:58.080Z
+* abapmerge - 2018-11-01T03:38:58.674Z
 ****************************************************
