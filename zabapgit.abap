@@ -16442,6 +16442,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     DATA: lv_argument TYPE seqg3-garg.
@@ -64839,5 +64842,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-01T03:38:58.674Z
+* abapmerge - 2018-11-01T03:40:36.597Z
 ****************************************************
