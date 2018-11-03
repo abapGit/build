@@ -440,6 +440,7 @@ INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
 INTERFACE zif_abapgit_object_enhs DEFERRED.
 INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_gui_functions DEFERRED.
 INTERFACE zif_abapgit_comparison_result DEFERRED.
 INTERFACE zif_abapgit_2fa_authenticator DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
@@ -533,6 +534,7 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
@@ -816,6 +818,15 @@ INTERFACE zif_abapgit_comparison_result.
     show_confirmation_dialog,
     is_result_complete_halt
       RETURNING VALUE(rv_response) TYPE abap_bool.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_gui_functions
+  .
+
+  METHODS:
+    gui_is_available
+      RETURNING
+        VALUE(rv_gui_is_available) TYPE abap_bool.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_object_enho.
@@ -7492,6 +7503,14 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
         zcx_abapgit_exception.
 
 ENDCLASS.
+CLASS zcl_abapgit_gui_functions DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_gui_functions.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -9505,12 +9524,17 @@ CLASS zcl_abapgit_ui_factory DEFINITION
 
       get_tag_popups
         RETURNING
-          VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups.
+          VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups,
+
+      get_gui_functions
+        RETURNING
+          VALUE(ri_gui_functions) TYPE REF TO zif_abapgit_gui_functions.
 
   PRIVATE SECTION.
     CLASS-DATA:
-      mi_popups     TYPE REF TO zif_abapgit_popups,
-      mi_tag_popups TYPE REF TO zif_abapgit_tag_popups.
+      gi_popups        TYPE REF TO zif_abapgit_popups,
+      gi_tag_popups    TYPE REF TO zif_abapgit_tag_popups,
+      gi_gui_functions TYPE REF TO zif_abapgit_gui_functions.
 
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
@@ -9524,7 +9548,11 @@ CLASS zcl_abapgit_ui_injector DEFINITION
 
       set_tag_popups
         IMPORTING
-          ii_tag_popups TYPE REF TO zif_abapgit_tag_popups.
+          ii_tag_popups TYPE REF TO zif_abapgit_tag_popups,
+
+      set_gui_functions
+        IMPORTING
+          ii_gui_functions TYPE REF TO zif_abapgit_gui_functions.
 
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
@@ -20911,40 +20939,50 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
+  METHOD set_gui_functions.
 
+    zcl_abapgit_ui_factory=>gi_gui_functions = ii_gui_functions.
+
+  ENDMETHOD.
   METHOD set_popups.
 
-    zcl_abapgit_ui_factory=>mi_popups = ii_popups.
+    zcl_abapgit_ui_factory=>gi_popups = ii_popups.
 
   ENDMETHOD.
-
   METHOD set_tag_popups.
 
-    zcl_abapgit_ui_factory=>mi_tag_popups = ii_tag_popups.
+    zcl_abapgit_ui_factory=>gi_tag_popups = ii_tag_popups.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 
   METHOD get_popups.
 
-    IF mi_popups IS INITIAL.
-      CREATE OBJECT mi_popups TYPE zcl_abapgit_popups.
+    IF gi_popups IS INITIAL.
+      CREATE OBJECT gi_popups TYPE zcl_abapgit_popups.
     ENDIF.
 
-    ri_popups = mi_popups.
+    ri_popups = gi_popups.
 
   ENDMETHOD.
-
   METHOD get_tag_popups.
 
-    IF mi_tag_popups IS INITIAL.
-      CREATE OBJECT mi_tag_popups TYPE zcl_abapgit_tag_popups.
+    IF gi_tag_popups IS INITIAL.
+      CREATE OBJECT gi_tag_popups TYPE zcl_abapgit_tag_popups.
     ENDIF.
 
-    ri_tag_popups = mi_tag_popups.
+    ri_tag_popups = gi_tag_popups.
+
+  ENDMETHOD.
+  METHOD get_gui_functions.
+
+    IF gi_gui_functions IS INITIAL.
+      CREATE OBJECT gi_gui_functions TYPE zcl_abapgit_gui_functions.
+    ENDIF.
+
+    ri_gui_functions = gi_gui_functions.
 
   ENDMETHOD.
 
@@ -29712,6 +29750,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
+
+  METHOD zif_abapgit_gui_functions~gui_is_available.
+
+    CALL FUNCTION 'GUI_IS_AVAILABLE'
+      IMPORTING
+        return = rv_gui_is_available.
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
 
@@ -38120,13 +38169,12 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_old.
 
-    DATA: lv_popup TYPE abap_bool.
+    DATA: lv_popup TYPE abap_bool,
+          li_gui   TYPE REF TO zif_abapgit_gui_functions.
 
     IF gt_objects IS NOT INITIAL.
 
-      CALL FUNCTION 'GUI_IS_AVAILABLE'
-        IMPORTING
-          return = lv_popup.
+      lv_popup = zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ).
 
       CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
         EXPORTING
@@ -53804,7 +53852,7 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
 
         ENDLOOP.
 
-        lo_wdyn->if_enh_object~save( ).
+        lo_wdyn->if_enh_object~save( run_dark = abap_true ).
         lo_wdyn->if_enh_object~unlock( ).
 
       CATCH cx_root.
@@ -53875,7 +53923,7 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
 * lo_wdyconf->set_enhancement_data( )
         ASSERT 0 = 1.
 
-        lo_wdyconf->if_enh_object~save( ).
+        lo_wdyconf->if_enh_object~save( run_dark = abap_true ).
         lo_wdyconf->if_enh_object~unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
@@ -53986,7 +54034,7 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
           io_xml  = io_xml
           io_clif = lo_enh_intf ).
 
-        lo_enh_intf->if_enh_object~save( ).
+        lo_enh_intf->if_enh_object~save( run_dark = abap_true ).
         lo_enh_intf->if_enh_object~unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO interface' ).
@@ -54202,7 +54250,7 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
 
         ENDLOOP.
 
-        lo_fugrdata->if_enh_object~save( ).
+        lo_fugrdata->if_enh_object~save( run_dark = abap_true ).
         lo_fugrdata->if_enh_object~unlock( ).
 
       CATCH cx_enh_root.
@@ -54473,7 +54521,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
           io_xml  = io_xml
           io_clif = lo_enh_class ).
 
-        lo_enh_class->if_enh_object~save( ).
+        lo_enh_class->if_enh_object~save( run_dark = abap_true ).
         lo_enh_class->if_enh_object~unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO class' ).
@@ -54566,7 +54614,7 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
         LOOP AT lt_impl ASSIGNING <ls_impl>.
           lo_badi->add_implementation( <ls_impl> ).
         ENDLOOP.
-        lo_badi->if_enh_object~save( ).
+        lo_badi->if_enh_object~save( run_dark = abap_true ).
         lo_badi->if_enh_object~unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO badi' ).
@@ -54736,7 +54784,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
           enhancement_id = lv_enh_id
           lock           = abap_true ).
         li_enh_object->delete( ).
-        li_enh_object->save( ).
+        li_enh_object->save( run_dark = abap_true ).
         li_enh_object->unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'Error deleting ENHO' ).
@@ -64850,5 +64898,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-03T07:42:17.911Z
+* abapmerge - 2018-11-03T07:44:09.163Z
 ****************************************************
