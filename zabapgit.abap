@@ -49609,7 +49609,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
         request_language_denied  = 9
         OTHERS                   = 10.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from RS_ACCESS_PERMISSION. SUBRC={ sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     SELECT COUNT(*) FROM cross WHERE ( type = 'P' OR
@@ -64898,5 +64898,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-03T07:44:09.163Z
+* abapmerge - 2018-11-03T11:50:32.698Z
 ****************************************************
