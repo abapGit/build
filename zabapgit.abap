@@ -5296,6 +5296,9 @@ CLASS zcl_abapgit_object_scp1 DEFINITION
     METHODS load
       CHANGING
         !cs_scp1 TYPE ty_scp1 .
+    METHODS call_delete_fms
+      IMPORTING i_profile_id TYPE scpr_id
+      RAISING   zcx_abapgit_exception.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -10260,10 +10263,21 @@ CLASS zcl_abapgit_code_inspector DEFINITION
           zcx_abapgit_exception.
 
   PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF co_run_mode,
+        run_with_popup   TYPE sychar01 VALUE 'P',
+        run_after_popup  TYPE sychar01 VALUE 'A',
+        run_via_rfc      TYPE sychar01 VALUE 'R',
+        run_in_batch     TYPE sychar01 VALUE 'B',
+        run_loc_parallel TYPE sychar01 VALUE 'L',
+        run_direct       TYPE sychar01 VALUE 'L',
+      END OF co_run_mode.
+
     DATA:
       mo_inspection      TYPE REF TO cl_ci_inspection,
       mv_objectset_name  TYPE sci_objs,
-      mv_inspection_name TYPE sci_insp.
+      mv_inspection_name TYPE sci_insp,
+      mv_run_mode        TYPE sychar01.
 
     METHODS:
       find_all_subpackages
@@ -10280,7 +10294,9 @@ CLASS zcl_abapgit_code_inspector DEFINITION
         IMPORTING
           io_inspection  TYPE REF TO cl_ci_inspection
         RETURNING
-          VALUE(rt_list) TYPE scit_alvlist,
+          VALUE(rt_list) TYPE scit_alvlist
+        RAISING
+          zcx_abapgit_exception,
 
       create_inspection
         IMPORTING
@@ -13559,7 +13575,10 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
         error_in_enqueue    = 3
         not_authorized      = 4
         OTHERS              = 5 ).
-    ASSERT sy-subrc = 0.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't create variant. Subrc = { sy-subrc }| ).
+    ENDIF.
 
     ls_variant-testname = 'CL_CI_TEST_SYNTAX_CHECK'.
     INSERT ls_variant INTO TABLE lt_variant.
@@ -13570,7 +13589,10 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
       EXCEPTIONS
         not_enqueued = 1
         OTHERS       = 2 ).
-    ASSERT sy-subrc = 0.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't set variant. Subrc = { sy-subrc }| ).
+    ENDIF.
 
     mo_variant->save(
       EXPORTING
@@ -13580,7 +13602,10 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
         transport_error   = 2
         not_authorized    = 3
         OTHERS            = 4 ).
-    ASSERT sy-subrc = 0.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't save variant. Subrc = { sy-subrc }| ).
+    ENDIF.
 
     ro_variant = mo_variant.
 
@@ -13590,16 +13615,21 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
 
     super->cleanup( io_set ).
 
-    mo_variant->delete(
-      EXCEPTIONS
-        exists_in_insp   = 1
-        locked           = 2
-        error_in_enqueue = 3
-        not_authorized   = 4
-        transport_error  = 5
-        OTHERS           = 6 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Couldn't delete variant. Subrc = { sy-subrc }| ).
+    IF mo_variant IS BOUND.
+
+      mo_variant->delete(
+        EXCEPTIONS
+          exists_in_insp   = 1
+          locked           = 2
+          error_in_enqueue = 3
+          not_authorized   = 4
+          transport_error  = 5
+          OTHERS           = 6 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Couldn't delete variant. Subrc = { sy-subrc }| ).
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
@@ -18785,15 +18815,20 @@ ENDCLASS.
 CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
   METHOD cleanup.
 
-    mo_inspection->delete(
-      EXCEPTIONS
-        locked              = 1
-        error_in_enqueue    = 2
-        not_authorized      = 3
-        exceptn_appl_exists = 4
-        OTHERS              = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Couldn't delete inspection. Subrc = { sy-subrc }| ).
+    IF mo_inspection IS BOUND.
+
+      mo_inspection->delete(
+        EXCEPTIONS
+          locked              = 1
+          error_in_enqueue    = 2
+          not_authorized      = 3
+          exceptn_appl_exists = 4
+          OTHERS              = 5 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Couldn't delete inspection. Subrc = { sy-subrc }| ).
+      ENDIF.
+
     ENDIF.
 
     io_set->delete(
@@ -18804,6 +18839,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
         not_authorized   = 4
         exists_in_objs   = 5
         OTHERS           = 6 ).
+
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Couldn't delete objectset. Subrc = { sy-subrc }| ).
     ENDIF.
@@ -18819,6 +18855,13 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     " Both are deleted afterwards.
     mv_inspection_name = mv_objectset_name = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|.
 
+    " We have to disable parallelization in batch because of lock errors.
+    IF sy-batch = abap_true.
+      mv_run_mode = co_run_mode-run_via_rfc.
+    ELSE.
+      mv_run_mode = co_run_mode-run_loc_parallel.
+    ENDIF.
+
   ENDMETHOD.
   METHOD create_inspection.
 
@@ -18833,7 +18876,10 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
         error_in_enqueue = 2
         not_authorized   = 3
         OTHERS           = 4 ).
-    ASSERT sy-subrc = 0.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Failed to create inspection. Subrc = { sy-subrc }| ).
+    ENDIF.
 
     ro_inspection->set(
       p_chkv = io_variant
@@ -18921,11 +18967,14 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
     io_inspection->run(
       EXPORTING
-        p_howtorun            = 'L'
+        p_howtorun            = mv_run_mode
       EXCEPTIONS
         invalid_check_version = 1
         OTHERS                = 2 ).
-    ASSERT sy-subrc = 0.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Code inspector run failed. Subrc = { sy-subrc }| ).
+    ENDIF.
 
     io_inspection->plain_list(
       IMPORTING
@@ -18959,6 +19008,12 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
     TRY.
         lo_set = create_objectset( ).
+
+        IF lines( lo_set->iobjlst-objects ) = 0.
+          " no objects, nothing to check
+          RETURN.
+        ENDIF.
+
         lo_variant = create_variant( ).
 
         mo_inspection = create_inspection(
@@ -18973,12 +19028,11 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
         " ensure cleanup
         cleanup( lo_set ).
-
-        RAISE EXCEPTION TYPE zcx_abapgit_exception
-          EXPORTING
-            previous = lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
+                                      ix_previous = lx_error ).
 
     ENDTRY.
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
@@ -48690,26 +48744,70 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_id TYPE scpr_id.
-
-    lv_id = ms_item-obj_name.
+    DATA: profile_id     TYPE scpr_id.
+    profile_id = ms_item-obj_name.
 
     enqueue( ).
-
-* todo, this gives a popup
-    CALL FUNCTION 'SCPR_CTRL_DELETE'
-      EXPORTING
-        profid             = lv_id
-      EXCEPTIONS
-        user_abort         = 1
-        profile_dont_exist = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error while deleting SCP1, { sy-subrc }| ).
-    ENDIF.
-
+    call_delete_fms( profile_id ).
     dequeue( ).
 
   ENDMETHOD.
+
+  METHOD call_delete_fms.
+
+    CONSTANTS version_new      TYPE c VALUE 'N' ##NO_TEXT. "Include SCPRINTCONST version_new
+    CONSTANTS operation_delete TYPE c VALUE 'D' ##NO_TEXT.
+    DATA profile_type          TYPE scprattr-type.
+    DATA fatherprofiles        TYPE standard table of scproprof WITH DEFAULT KEY.
+    DATA fatherprofile         TYPE scproprof.
+
+    CALL FUNCTION 'SCPR_DB_ATTR_GET_DETAIL'
+      EXPORTING
+        profid   = i_profile_id
+        version  = version_new
+      IMPORTING
+        proftype = profile_type
+      EXCEPTIONS
+        OTHERS   = 0.
+
+    CALL FUNCTION 'SCPR_PRSET_DB_USED_IN'
+      EXPORTING
+        profid   = i_profile_id
+        version  = version_new
+      TABLES
+        profiles = fatherprofiles.
+
+    fatherprofile-id       = i_profile_id.
+    APPEND fatherprofile TO fatherprofiles.
+    CALL FUNCTION 'SCPR_CT_TRANSPORT_ENTRIES'
+      TABLES
+        profids                  = fatherprofiles
+      EXCEPTIONS
+        error_in_transport_layer = 1
+        user_abort               = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error while deleting SCP1 - TRANSPORT, { sy-subrc }| ).
+    ENDIF.
+
+    CALL FUNCTION 'SCPR_PRSET_DB_DELETE_ALL'
+      EXPORTING
+        profid      = i_profile_id
+        proftype    = profile_type
+      TABLES
+        fatherprofs = fatherprofiles
+      EXCEPTIONS
+        user_abort  = 1.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error while deleting SCP1 - DB_DELETE, { sy-subrc }| ).
+    ENDIF.
+
+    CALL FUNCTION 'SCPR_MEM_SCPR_ACTIONS_ADD'
+      EXPORTING
+        bcset_id  = i_profile_id
+        operation = operation_delete.
+
+  ENDMETHOD.
+
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_scp1 TYPE ty_scp1.
@@ -49671,7 +49769,16 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+
+    DATA: lv_argument TYPE seqg3-garg.
+
+    lv_argument = |PA{ ms_item-obj_name }|.
+    OVERLAY lv_argument WITH '                                          '.
+    lv_argument = lv_argument && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = lv_argument ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -64898,5 +65005,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-03T11:50:32.698Z
+* abapmerge - 2018-11-05T11:49:22.828Z
 ****************************************************
