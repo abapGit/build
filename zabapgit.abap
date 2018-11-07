@@ -7071,7 +7071,7 @@ CLASS zcl_abapgit_persistence_db DEFINITION
     CLASS-DATA go_db TYPE REF TO zcl_abapgit_persistence_db .
     DATA: gv_update_function TYPE funcname.
 
-    METHODS get_update_function RETURNING VALUE(r_funcname) TYPE funcname.
+    METHODS get_update_function RETURNING VALUE(rv_funcname) TYPE funcname.
 
     METHODS validate_and_unprettify_xml
       IMPORTING
@@ -7834,13 +7834,13 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
       mt_result TYPE scit_alvlist.
 
     METHODS:
-      render_result IMPORTING ro_html   TYPE REF TO zcl_abapgit_html
+      render_result IMPORTING io_html   TYPE REF TO zcl_abapgit_html
                               iv_result TYPE scir_alvlist,
       jump
         IMPORTING
           is_item       TYPE zif_abapgit_definitions=>ty_item
           is_sub_item   TYPE zif_abapgit_definitions=>ty_item
-          i_line_number type i
+          i_line_number TYPE i
         RAISING
           zcx_abapgit_exception.
   PRIVATE SECTION.
@@ -10193,10 +10193,11 @@ CLASS zcl_abapgit_branch_overview DEFINITION
 
   PRIVATE SECTION.
 
-    TYPES: tyt_commit_sha1_range TYPE RANGE OF zif_abapgit_definitions=>ty_sha1.
+    TYPES:
+      tyt_commit_sha1_range TYPE RANGE OF zif_abapgit_definitions=>ty_sha1 .
 
     DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
-    DATA mt_commits  TYPE ty_commits .
+    DATA mt_commits TYPE ty_commits .
     DATA mt_tags TYPE zif_abapgit_definitions=>ty_git_tag_list_tt .
 
     CLASS-METHODS parse_commits
@@ -10230,15 +10231,20 @@ CLASS zcl_abapgit_branch_overview DEFINITION
     METHODS determine_tags
       RAISING
         zcx_abapgit_exception .
-    METHODS _sort_commits CHANGING ct_commits TYPE ty_commits.
+    METHODS _sort_commits
+      CHANGING
+        !ct_commits TYPE ty_commits .
     METHODS _get_1st_child_commit
-      IMPORTING itr_commit_sha1s TYPE tyt_commit_sha1_range
-      EXPORTING etr_commit_sha1s TYPE tyt_commit_sha1_range
-                e_1st_commit     TYPE zif_abapgit_definitions=>ty_commit
-      CHANGING  ct_commits       TYPE ty_commits.
+      IMPORTING
+        !it_commit_sha1s TYPE tyt_commit_sha1_range
+      EXPORTING
+        !et_commit_sha1s TYPE tyt_commit_sha1_range
+        !es_1st_commit   TYPE zif_abapgit_definitions=>ty_commit
+      CHANGING
+        !ct_commits      TYPE ty_commits .
     METHODS _reverse_sort_order
-      CHANGING ct_commits TYPE ty_commits.
-
+      CHANGING
+        !ct_commits TYPE ty_commits .
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector DEFINITION
   CREATE PROTECTED
@@ -10745,9 +10751,9 @@ CLASS zcl_abapgit_folder_logic DEFINITION
   PROTECTED SECTION.
     METHODS get_parent
       IMPORTING
-        !iv_package     TYPE devclass
+        !iv_package      TYPE devclass
       RETURNING
-        VALUE(r_parent) TYPE devclass.
+        VALUE(rv_parent) TYPE devclass.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_devclass_info,
@@ -11110,8 +11116,8 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS jump
       IMPORTING
-        !is_item       TYPE zif_abapgit_definitions=>ty_item
-        !i_line_number TYPE i OPTIONAL
+        !is_item        TYPE zif_abapgit_definitions=>ty_item
+        !iv_line_number TYPE i OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS changed_by
@@ -15609,7 +15615,7 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
     rv_active = abap_true.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -16048,6 +16054,20 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       iv_language = zif_abapgit_definitions=>c_english )->has_changed_since( iv_timestamp ).
 
   ENDMETHOD.
+  METHOD is_active.
+
+    DATA: object TYPE REF TO zif_abapgit_object.
+
+    object = create_object( is_item     = is_item
+                            iv_language = sy-langu ).
+
+    TRY.
+        rv_active = object->is_active( ).
+      CATCH cx_sy_dyn_call_illegal_method
+            cx_sy_ref_is_initial.
+        rv_active = abap_true.
+    ENDTRY.
+  ENDMETHOD.
   METHOD is_supported.
 
     TRY.
@@ -16079,7 +16099,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           zcl_abapgit_objects_super=>jump_adt(
             i_obj_name    = is_item-obj_name
             i_obj_type    = is_item-obj_type
-            i_line_number = i_line_number ).
+            i_line_number = iv_line_number ).
         CATCH zcx_abapgit_exception.
           li_obj->jump( ).
       ENDTRY.
@@ -16364,20 +16384,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     rt_overwrite = lt_overwrite_uniqe.
 
-  ENDMETHOD.
-  METHOD is_active.
-
-    DATA: object TYPE REF TO zif_abapgit_object.
-
-    object = create_object( is_item     = is_item
-                            iv_language = sy-langu ).
-
-    TRY.
-        rv_active = object->is_active( ).
-      CATCH cx_sy_dyn_call_illegal_method
-            cx_sy_ref_is_initial.
-        rv_active = abap_true.
-    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
@@ -17521,7 +17527,6 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   METHOD get_instance.
     CREATE OBJECT ro_instance.
   ENDMETHOD.
-
   METHOD get_parent.
     DATA: st_parent LIKE LINE OF mt_parent.
 
@@ -17529,15 +17534,14 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
     READ TABLE mt_parent INTO st_parent
       WITH TABLE KEY devclass = iv_package.
     IF sy-subrc <> 0.
-      r_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
+      rv_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
       st_parent-devclass = iv_package.
-      st_parent-parentcl = r_parent.
+      st_parent-parentcl = rv_parent.
       INSERT st_parent INTO TABLE mt_parent.
     ELSE.
-      r_parent = st_parent-parentcl.
+      rv_parent = st_parent-parentcl.
     ENDIF.
   ENDMETHOD.
-
   METHOD package_to_path.
 
     DATA: lv_len          TYPE i,
@@ -19045,8 +19049,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
@@ -19172,18 +19175,6 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
 
     " switch back to initial -> latest
     _reverse_sort_order( CHANGING ct_commits = mt_commits ).
-
-  ENDMETHOD.
-
-  METHOD _reverse_sort_order.
-    DATA: lt_commits           TYPE ty_commits.
-    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
-
-    LOOP AT ct_commits ASSIGNING <ls_commit>.
-      INSERT <ls_commit> INTO lt_commits INDEX 1.
-    ENDLOOP.
-    ct_commits = lt_commits.
-    FREE lt_commits.
 
   ENDMETHOD.
   METHOD determine_tags.
@@ -19420,15 +19411,15 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD _get_1st_child_commit.
 
     DATA: lt_1stchild_commits        TYPE ty_commits.
-    DATA: lsr_parent                 LIKE LINE OF itr_commit_sha1s.
-    DATA: ltr_commit_sha1s           LIKE itr_commit_sha1s.
-    FIELD-SYMBOLS: <lsr_commit_sha1> LIKE LINE OF itr_commit_sha1s.
+    DATA: lsr_parent                 LIKE LINE OF it_commit_sha1s.
+    DATA: ltr_commit_sha1s           LIKE it_commit_sha1s.
+    FIELD-SYMBOLS: <lsr_commit_sha1> LIKE LINE OF it_commit_sha1s.
     FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
 
-    CLEAR: e_1st_commit.
+    CLEAR: es_1st_commit.
 
 * get all reachable next commits
-    ltr_commit_sha1s = itr_commit_sha1s.
+    ltr_commit_sha1s = it_commit_sha1s.
     LOOP AT ct_commits ASSIGNING <ls_child_commit> WHERE parent1 IN ltr_commit_sha1s
                                                       OR parent2 IN ltr_commit_sha1s.
       INSERT <ls_child_commit> INTO TABLE lt_1stchild_commits.
@@ -19436,22 +19427,33 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
 
 * return oldest one
     SORT lt_1stchild_commits BY time ASCENDING.
-    READ TABLE lt_1stchild_commits INTO e_1st_commit INDEX 1.
+    READ TABLE lt_1stchild_commits INTO es_1st_commit INDEX 1.
 
 * remove from available commits
-    DELETE ct_commits WHERE sha1 = e_1st_commit-sha1.
+    DELETE ct_commits WHERE sha1 = es_1st_commit-sha1.
 
 * set relevant parent commit sha1s
     IF lines( lt_1stchild_commits ) = 1.
-      CLEAR etr_commit_sha1s.
+      CLEAR et_commit_sha1s.
     ELSE.
-      etr_commit_sha1s = itr_commit_sha1s.
+      et_commit_sha1s = it_commit_sha1s.
     ENDIF.
 
     lsr_parent-sign   = 'I'.
     lsr_parent-option = 'EQ'.
-    lsr_parent-low    = e_1st_commit-sha1.
-    INSERT lsr_parent INTO TABLE etr_commit_sha1s.
+    lsr_parent-low    = es_1st_commit-sha1.
+    INSERT lsr_parent INTO TABLE et_commit_sha1s.
+
+  ENDMETHOD.
+  METHOD _reverse_sort_order.
+    DATA: lt_commits           TYPE ty_commits.
+    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
+
+    LOOP AT ct_commits ASSIGNING <ls_commit>.
+      INSERT <ls_commit> INTO lt_commits INDEX 1.
+    ENDLOOP.
+    ct_commits = lt_commits.
+    FREE lt_commits.
 
   ENDMETHOD.
   METHOD _sort_commits.
@@ -19478,10 +19480,10 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
       DELETE ct_commits WHERE sha1 = <ls_initial_commit>-sha1.
 
       DO.
-        _get_1st_child_commit( EXPORTING itr_commit_sha1s = ltr_parents
-                               IMPORTING etr_commit_sha1s = ltr_parents
-                                         e_1st_commit     = lv_next_commit
-                               CHANGING  ct_commits       = ct_commits ).
+        _get_1st_child_commit( EXPORTING it_commit_sha1s = ltr_parents
+                               IMPORTING et_commit_sha1s = ltr_parents
+                                         es_1st_commit   = lv_next_commit
+                               CHANGING  ct_commits      = ct_commits ).
         IF lv_next_commit IS INITIAL.
           EXIT. "DO
         ENDIF.
@@ -25098,7 +25100,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     ENDIF.
 
     LOOP AT mt_result ASSIGNING <ls_result>.
-      render_result( ro_html   = ro_html iv_result = <ls_result> ).
+      render_result( io_html   = ro_html
+                     iv_result = <ls_result> ).
     ENDLOOP.
 
     ro_html->add( '</div>' ).
@@ -28847,85 +28850,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
-
-  METHOD render_result.
-    DATA: lv_class TYPE string,
-          lv_line  TYPE string.
-
-    ro_html->add( '<div>' ).
-    IF iv_result-sobjname IS INITIAL OR
-       ( iv_result-sobjname = iv_result-objname AND
-         iv_result-sobjtype = iv_result-sobjtype ).
-      ro_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }|
-                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
-                               |{ c_object_separator }{ c_object_separator }{ iv_result-line }|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
-
-    ELSE.
-      ro_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }| &&
-                               | < { iv_result-sobjtype } { iv_result-sobjname }|
-                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
-                               |{ c_object_separator }{ iv_result-sobjtype }{ iv_result-sobjname }| &&
-                               |{ c_object_separator }{ iv_result-line }|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
-
-    ENDIF.
-    ro_html->add( '</div>' ).
-
-    CASE iv_result-kind.
-      WHEN 'E'.
-        lv_class = 'error'.
-      WHEN 'W'.
-        lv_class = 'warning'.
-      WHEN OTHERS.
-        lv_class = 'grey'.
-    ENDCASE.
-
-    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
-      EXPORTING
-        input  = iv_result-line
-      IMPORTING
-        output = lv_line.
-
-    ro_html->add( |<div class="{ lv_class }">Line { lv_line }: { iv_result-text }</div><br>| ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_gui_page~on_event.
-    DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
-          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
-          lv_main_object   TYPE string,
-          lv_sub_object    TYPE string,
-          lv_line_number_s TYPE string,
-          lv_line_number   TYPE i.
-    CASE iv_action.
-
-      WHEN zif_abapgit_definitions=>c_action-abapgit_home.
-        RETURN.
-
-      WHEN OTHERS.
-        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
-        ls_item-obj_type = lv_main_object(4).
-        ls_item-obj_name = lv_main_object+4(*).
-
-        IF lv_sub_object IS NOT INITIAL.
-          ls_sub_item-obj_type = lv_sub_object(4).
-          ls_sub_item-obj_name = lv_sub_object+4(*).
-        ENDIF.
-
-        lv_line_number = lv_line_number_s.
-
-        jump( is_item       = ls_item
-              is_sub_item   = ls_sub_item
-              i_line_number = lv_line_number ).
-
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
-
-    ENDCASE.
-
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   METHOD jump.
     DATA: lo_test               TYPE REF TO cl_ci_test_root,
           li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
@@ -29001,9 +28926,83 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
     lo_result->if_ci_test~navigate( ).
 
   ENDMETHOD.
+  METHOD render_result.
+    DATA: lv_class TYPE string,
+          lv_line  TYPE string.
 
+    io_html->add( '<div>' ).
+    IF iv_result-sobjname IS INITIAL OR
+       ( iv_result-sobjname = iv_result-objname AND
+         iv_result-sobjtype = iv_result-sobjtype ).
+      io_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }|
+                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
+                               |{ c_object_separator }{ c_object_separator }{ iv_result-line }|
+                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+
+    ELSE.
+      io_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }| &&
+                               | < { iv_result-sobjtype } { iv_result-sobjname }|
+                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
+                               |{ c_object_separator }{ iv_result-sobjtype }{ iv_result-sobjname }| &&
+                               |{ c_object_separator }{ iv_result-line }|
+                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+
+    ENDIF.
+    io_html->add( '</div>' ).
+
+    CASE iv_result-kind.
+      WHEN 'E'.
+        lv_class = 'error'.
+      WHEN 'W'.
+        lv_class = 'warning'.
+      WHEN OTHERS.
+        lv_class = 'grey'.
+    ENDCASE.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+      EXPORTING
+        input  = iv_result-line
+      IMPORTING
+        output = lv_line.
+
+    io_html->add( |<div class="{ lv_class }">Line { lv_line }: { iv_result-text }</div><br>| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page~on_event.
+    DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
+          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
+          lv_main_object   TYPE string,
+          lv_sub_object    TYPE string,
+          lv_line_number_s TYPE string,
+          lv_line_number   TYPE i.
+    CASE iv_action.
+
+      WHEN zif_abapgit_definitions=>c_action-abapgit_home.
+        RETURN.
+
+      WHEN OTHERS.
+        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
+        ls_item-obj_type = lv_main_object(4).
+        ls_item-obj_name = lv_main_object+4(*).
+
+        IF lv_sub_object IS NOT INITIAL.
+          ls_sub_item-obj_type = lv_sub_object(4).
+          ls_sub_item-obj_name = lv_sub_object+4(*).
+        ENDIF.
+
+        lv_line_number = lv_line_number_s.
+
+        jump( is_item       = ls_item
+              is_sub_item   = ls_sub_item
+              i_line_number = lv_line_number ).
+
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+
+    ENDCASE.
+
+  ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD build_menu.
 
     DATA: lv_opt TYPE c LENGTH 1.
@@ -29062,7 +29061,6 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
                                            AND has_inspection_errors( ) = abap_true ) ).
 
   ENDMETHOD.
-
   METHOD render_content.
 
     DATA: lv_check_variant TYPE sci_chkv,
@@ -29092,13 +29090,13 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ro_html->add( |<br/>| ).
 
     LOOP AT mt_result ASSIGNING <ls_result>.
-      render_result( ro_html = ro_html iv_result = <ls_result> ).
+      render_result( io_html   = ro_html
+                     iv_result = <ls_result> ).
     ENDLOOP.
 
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
-
   METHOD run_code_inspector.
 
     mt_result = mo_repo->run_code_inspector( ).
@@ -34238,7 +34236,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
         gv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
       ENDIF.
     ENDIF.
-    r_funcname = gv_update_function.
+    rv_funcname = gv_update_function.
 
   ENDMETHOD.
   METHOD list.
@@ -65130,5 +65128,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-07T07:19:07.537Z
+* abapmerge - 2018-11-07T08:01:55.454Z
 ****************************************************
