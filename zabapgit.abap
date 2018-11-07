@@ -4085,58 +4085,75 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
 
   PROTECTED SECTION.
 
-    DATA: ms_item     TYPE zif_abapgit_definitions=>ty_item,
-          mv_language TYPE spras.
+    DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
+    DATA mv_language TYPE spras .
 
-    METHODS:
-      check_timestamp
-        IMPORTING
-          iv_timestamp      TYPE timestamp
-          iv_date           TYPE datum
-          iv_time           TYPE uzeit
-        RETURNING
-          VALUE(rv_changed) TYPE abap_bool,
-      get_metadata
-        RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
-      corr_insert
-        IMPORTING iv_package TYPE devclass
-        RAISING   zcx_abapgit_exception,
-      tadir_insert
-        IMPORTING iv_package TYPE devclass
-        RAISING   zcx_abapgit_exception,
-      jump_se11
-        IMPORTING iv_radio TYPE string
-                  iv_field TYPE string
-        RAISING   zcx_abapgit_exception,
-      exists_a_lock_entry_for
-        IMPORTING iv_lock_object                TYPE string
-                  iv_argument                   TYPE seqg3-garg OPTIONAL
-        RETURNING VALUE(rv_exists_a_lock_entry) TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      set_default_package
-        IMPORTING iv_package TYPE devclass,
-      serialize_longtexts
-        IMPORTING io_xml         TYPE REF TO zcl_abapgit_xml_output
-                  iv_longtext_id TYPE dokil-id OPTIONAL
-                  it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
-        RAISING   zcx_abapgit_exception,
-      deserialize_longtexts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
-        RAISING   zcx_abapgit_exception,
-      delete_longtexts
-        IMPORTING iv_longtext_id TYPE dokil-id
-        RAISING   zcx_abapgit_exception,
-      is_active
-        RETURNING VALUE(e_active) TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
-
+    METHODS check_timestamp
+      IMPORTING
+        !iv_timestamp     TYPE timestamp
+        !iv_date          TYPE datum
+        !iv_time          TYPE uzeit
+      RETURNING
+        VALUE(rv_changed) TYPE abap_bool .
+    METHODS get_metadata
+      RETURNING
+        VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
+    METHODS corr_insert
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    METHODS tadir_insert
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    METHODS jump_se11
+      IMPORTING
+        !iv_radio TYPE string
+        !iv_field TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS exists_a_lock_entry_for
+      IMPORTING
+        !iv_lock_object               TYPE string
+        !iv_argument                  TYPE seqg3-garg OPTIONAL
+      RETURNING
+        VALUE(rv_exists_a_lock_entry) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_default_package
+      IMPORTING
+        !iv_package TYPE devclass .
+    METHODS serialize_longtexts
+      IMPORTING
+        !io_xml         TYPE REF TO zcl_abapgit_xml_output
+        !iv_longtext_id TYPE dokil-id OPTIONAL
+        !it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_longtexts
+      IMPORTING
+        !io_xml TYPE REF TO zcl_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
+    METHODS delete_longtexts
+      IMPORTING
+        !iv_longtext_id TYPE dokil-id
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_active
+      RETURNING
+        VALUE(rv_active) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 
     CLASS-METHODS:
       is_adt_jump_possible
-        IMPORTING io_object                     TYPE REF TO cl_wb_object
-                  io_adt                        TYPE REF TO object
-        RETURNING VALUE(r_is_adt_jump_possible) TYPE abap_bool
+        IMPORTING io_object                      TYPE REF TO cl_wb_object
+                  io_adt                         TYPE REF TO object
+        RETURNING VALUE(rv_is_adt_jump_possible) TYPE abap_bool
         RAISING   zcx_abapgit_exception.
     CLASS-METHODS:
       get_adt_objects_and_names
@@ -4150,7 +4167,6 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
           ev_include        TYPE progname
         RAISING
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -13377,20 +13393,20 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                              it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
-    DATA: lt_tadir               TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tdevc               TYPE STANDARD TABLE OF tdevc,
-          lv_path                TYPE string,
-          lo_skip_objects        TYPE REF TO zcl_abapgit_skip_objects,
-          lt_excludes            TYPE RANGE OF trobjtype,
-          lt_srcsystem           TYPE RANGE OF tadir-srcsystem,
-          ls_srcsystem           LIKE LINE OF lt_srcsystem,
-          ls_exclude             LIKE LINE OF lt_excludes,
-          lo_folder_logic        TYPE REF TO zcl_abapgit_folder_logic,
-          last_package           TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
-          lt_packages            TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tdevc        TYPE STANDARD TABLE OF tdevc,
+          lv_path         TYPE string,
+          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
+          lt_excludes     TYPE RANGE OF trobjtype,
+          lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
+          ls_srcsystem    LIKE LINE OF lt_srcsystem,
+          ls_exclude      LIKE LINE OF lt_excludes,
+          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic,
+          lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
+          lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
 
     FIELD-SYMBOLS: <ls_tdevc>   LIKE LINE OF lt_tdevc,
                    <ls_tadir>   LIKE LINE OF rt_tadir,
@@ -13453,9 +13469,9 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     LOOP AT rt_tadir ASSIGNING <ls_tadir>.
 
-      IF last_package <> <ls_tadir>-devclass.
+      IF lv_last_package <> <ls_tadir>-devclass.
         "Change in Package
-        last_package = <ls_tadir>-devclass.
+        lv_last_package = <ls_tadir>-devclass.
 
         IF NOT io_dot IS INITIAL.
           "Reuse given Folder Logic Instance
@@ -14826,7 +14842,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
 ENDCLASS.
-CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -14875,8 +14891,8 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_repo_items_offline.
 
-    DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    DATA: item     TYPE zif_abapgit_definitions=>ty_item.
+    DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          ls_item  TYPE zif_abapgit_definitions=>ty_item.
 
     FIELD-SYMBOLS: <ls_repo_item> LIKE LINE OF rt_repo_items,
                    <ls_tadir>     LIKE LINE OF lt_tadir.
@@ -14885,13 +14901,12 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       io_dot     = mo_repo->get_dot_abapgit( ) ).
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-*      CATCH zcx_abapgit_exception.    "
       APPEND INITIAL LINE TO rt_repo_items ASSIGNING <ls_repo_item>.
       <ls_repo_item>-obj_type = <ls_tadir>-object.
       <ls_repo_item>-obj_name = <ls_tadir>-obj_name.
       <ls_repo_item>-path     = <ls_tadir>-path.
-      MOVE-CORRESPONDING <ls_repo_item> TO item.
-      <ls_repo_item>-inactive = boolc( zcl_abapgit_objects=>is_active( item ) = abap_false ).
+      MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
+      <ls_repo_item>-inactive = boolc( zcl_abapgit_objects=>is_active( ls_item ) = abap_false ).
       IF <ls_repo_item>-inactive = abap_true.
         <ls_repo_item>-sortkey = c_sortkey-inactive.
       ELSE.
@@ -16051,13 +16066,13 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_active.
 
-    DATA: object TYPE REF TO zif_abapgit_object.
+    DATA: li_object TYPE REF TO zif_abapgit_object.
 
-    object = create_object( is_item     = is_item
-                            iv_language = sy-langu ).
+    li_object = create_object( is_item     = is_item
+                               iv_language = sy-langu ).
 
     TRY.
-        rv_active = object->is_active( ).
+        rv_active = li_object->is_active( ).
       CATCH cx_sy_dyn_call_illegal_method
             cx_sy_ref_is_initial.
         rv_active = abap_true.
@@ -17523,18 +17538,18 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
     CREATE OBJECT ro_instance.
   ENDMETHOD.
   METHOD get_parent.
-    DATA: st_parent LIKE LINE OF mt_parent.
+    DATA: ls_parent LIKE LINE OF mt_parent.
 
     "Determine Parent Package
-    READ TABLE mt_parent INTO st_parent
+    READ TABLE mt_parent INTO ls_parent
       WITH TABLE KEY devclass = iv_package.
     IF sy-subrc <> 0.
       rv_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
-      st_parent-devclass = iv_package.
-      st_parent-parentcl = rv_parent.
-      INSERT st_parent INTO TABLE mt_parent.
+      ls_parent-devclass = iv_package.
+      ls_parent-parentcl = rv_parent.
+      INSERT ls_parent INTO TABLE mt_parent.
     ELSE.
-      rv_parent = st_parent-parentcl.
+      rv_parent = ls_parent-parentcl.
     ENDIF.
   ENDMETHOD.
   METHOD package_to_path.
@@ -19113,11 +19128,11 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_merges.
 
-    DATA: BEGIN OF deleted_branch_info,
+    DATA: BEGIN OF ls_deleted_branch_info,
             created TYPE flag,
             index   TYPE string,
             name    TYPE string,
-          END OF deleted_branch_info.
+          END OF ls_deleted_branch_info.
 
     FIELD-SYMBOLS: <ls_merged_branch_commit> TYPE zif_abapgit_definitions=>ty_commit,
                    <ls_merged_branch_parent> TYPE zif_abapgit_definitions=>ty_commit,
@@ -19135,20 +19150,20 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
         <ls_commit>-merge = <ls_merged_branch_commit>-branch.
 
 * orphaned, branch has been deleted after merge
-        deleted_branch_info-created = abap_false.
+        ls_deleted_branch_info-created = abap_false.
 
         WHILE <ls_merged_branch_commit>-branch IS INITIAL.
-          IF deleted_branch_info-created = abap_false.
+          IF ls_deleted_branch_info-created = abap_false.
 
-            deleted_branch_info-created = abap_true.
-            deleted_branch_info-index = deleted_branch_info-index + 1.
-            deleted_branch_info-name = c_deleted_branch_name_prefix && deleted_branch_info-index && '__'.
-            CONDENSE deleted_branch_info-name NO-GAPS.
+            ls_deleted_branch_info-created = abap_true.
+            ls_deleted_branch_info-index = ls_deleted_branch_info-index + 1.
+            ls_deleted_branch_info-name = c_deleted_branch_name_prefix && ls_deleted_branch_info-index && '__'.
+            CONDENSE ls_deleted_branch_info-name NO-GAPS.
 
-            <ls_commit>-merge = deleted_branch_info-name.
+            <ls_commit>-merge = ls_deleted_branch_info-name.
 
           ENDIF.
-          <ls_merged_branch_commit>-branch = deleted_branch_info-name.
+          <ls_merged_branch_commit>-branch = ls_deleted_branch_info-name.
 
           READ TABLE mt_commits ASSIGNING <ls_merged_branch_parent>
                                 WITH KEY sha1 = <ls_merged_branch_commit>-parent1.
@@ -19161,7 +19176,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
         IF <ls_merged_branch_parent> IS ASSIGNED.
           APPEND INITIAL LINE TO <ls_merged_branch_parent>-create ASSIGNING <ls_create>.
-          <ls_create>-name = deleted_branch_info-name.
+          <ls_create>-name = ls_deleted_branch_info-name.
           <ls_create>-parent = <ls_commit>-branch.
         ENDIF.
 
@@ -19405,18 +19420,19 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD _get_1st_child_commit.
 
-    DATA: lt_1stchild_commits        TYPE ty_commits.
-    DATA: lsr_parent                 LIKE LINE OF it_commit_sha1s.
-    DATA: ltr_commit_sha1s           LIKE it_commit_sha1s.
-    FIELD-SYMBOLS: <lsr_commit_sha1> LIKE LINE OF it_commit_sha1s.
-    FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    DATA: lt_1stchild_commits TYPE ty_commits,
+          ls_parent           LIKE LINE OF it_commit_sha1s,
+          lt_commit_sha1s     LIKE it_commit_sha1s.
+
+    FIELD-SYMBOLS: <ls_commit_sha1>  LIKE LINE OF it_commit_sha1s,
+                   <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
 
     CLEAR: es_1st_commit.
 
 * get all reachable next commits
-    ltr_commit_sha1s = it_commit_sha1s.
-    LOOP AT ct_commits ASSIGNING <ls_child_commit> WHERE parent1 IN ltr_commit_sha1s
-                                                      OR parent2 IN ltr_commit_sha1s.
+    lt_commit_sha1s = it_commit_sha1s.
+    LOOP AT ct_commits ASSIGNING <ls_child_commit> WHERE parent1 IN lt_commit_sha1s
+                                                      OR parent2 IN lt_commit_sha1s.
       INSERT <ls_child_commit> INTO TABLE lt_1stchild_commits.
     ENDLOOP.
 
@@ -19434,10 +19450,10 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       et_commit_sha1s = it_commit_sha1s.
     ENDIF.
 
-    lsr_parent-sign   = 'I'.
-    lsr_parent-option = 'EQ'.
-    lsr_parent-low    = es_1st_commit-sha1.
-    INSERT lsr_parent INTO TABLE et_commit_sha1s.
+    ls_parent-sign   = 'I'.
+    ls_parent-option = 'EQ'.
+    ls_parent-low    = es_1st_commit-sha1.
+    INSERT ls_parent INTO TABLE et_commit_sha1s.
 
   ENDMETHOD.
   METHOD _reverse_sort_order.
@@ -19453,20 +19469,21 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD _sort_commits.
 
-    DATA: lt_sorted_commits            TYPE ty_commits.
-    DATA: lv_next_commit               TYPE zif_abapgit_definitions=>ty_commit.
-    DATA: ltr_parents                  TYPE tyt_commit_sha1_range.
-    DATA: lsr_parent                   LIKE LINE OF ltr_parents.
+    DATA: lt_sorted_commits TYPE ty_commits,
+          lv_next_commit    TYPE zif_abapgit_definitions=>ty_commit,
+          lt_parents        TYPE tyt_commit_sha1_range,
+          ls_parent         LIKE LINE OF lt_parents.
+
     FIELD-SYMBOLS: <ls_initial_commit> TYPE zif_abapgit_definitions=>ty_commit.
 
 * find initial commit
     READ TABLE ct_commits ASSIGNING <ls_initial_commit> WITH KEY parent1 = space.
     IF sy-subrc = 0.
 
-      lsr_parent-sign   = 'I'.
-      lsr_parent-option = 'EQ'.
-      lsr_parent-low    = <ls_initial_commit>-sha1.
-      INSERT lsr_parent INTO TABLE ltr_parents.
+      ls_parent-sign   = 'I'.
+      ls_parent-option = 'EQ'.
+      ls_parent-low    = <ls_initial_commit>-sha1.
+      INSERT ls_parent INTO TABLE lt_parents.
 
 * first commit
       INSERT <ls_initial_commit> INTO TABLE lt_sorted_commits.
@@ -19475,8 +19492,8 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       DELETE ct_commits WHERE sha1 = <ls_initial_commit>-sha1.
 
       DO.
-        _get_1st_child_commit( EXPORTING it_commit_sha1s = ltr_parents
-                               IMPORTING et_commit_sha1s = ltr_parents
+        _get_1st_child_commit( EXPORTING it_commit_sha1s = lt_parents
+                               IMPORTING et_commit_sha1s = lt_parents
                                          es_1st_commit   = lv_next_commit
                                CHANGING  ct_commits      = ct_commits ).
         IF lv_next_commit IS INITIAL.
@@ -21000,34 +21017,34 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD bitbyte_to_int.
 
-    DATA: bitbyte TYPE string,
-          len     TYPE i,
-          offset  TYPE i.
+    DATA: lv_bitbyte TYPE string,
+          lv_len     TYPE i,
+          lv_offset  TYPE i.
 
-    bitbyte = iv_bits.
-    SHIFT bitbyte LEFT DELETING LEADING '0 '.
-    len     = strlen( bitbyte ).
-    offset  = len - 1.
+    lv_bitbyte = iv_bits.
+    SHIFT lv_bitbyte LEFT DELETING LEADING '0 '.
+    lv_len     = strlen( lv_bitbyte ).
+    lv_offset  = lv_len - 1.
 
     rv_int = 0.
-    DO len TIMES.
+    DO lv_len TIMES.
 
       IF sy-index = 1.
 
         "Intialize
-        CASE bitbyte+offset(1).
+        CASE lv_bitbyte+lv_offset(1).
           WHEN '1'.
             rv_int = 1.
         ENDCASE.
 
       ELSE.
-        CASE bitbyte+offset(1).
+        CASE lv_bitbyte+lv_offset(1).
           WHEN '1'.
             rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
         ENDCASE.
       ENDIF.
 
-      offset = offset - 1. "Move Cursor
+      lv_offset = lv_offset - 1. "Move Cursor
 
     ENDDO.
 
@@ -22145,8 +22162,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_popups IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -22159,6 +22175,183 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     <ls_field>-field_attr = iv_field_attr.
     <ls_field>-field_obl  = iv_obligatory.
 
+  ENDMETHOD.
+  METHOD create_new_table.
+
+    " create and populate a table on the fly derived from
+    " it_data with a select column
+
+    DATA: lr_struct        TYPE REF TO data,
+          lt_components    TYPE cl_abap_structdescr=>component_table,
+          lo_struct_descr  TYPE REF TO cl_abap_structdescr,
+          lo_struct_descr2 TYPE REF TO cl_abap_structdescr.
+
+    FIELD-SYMBOLS: <lt_table>     TYPE STANDARD TABLE,
+                   <ls_component> TYPE abap_componentdescr,
+                   <lg_line>      TYPE data,
+                   <lg_data>      TYPE any.
+
+    go_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
+    lo_struct_descr ?= go_table_descr->get_table_line_type( ).
+    lt_components = lo_struct_descr->get_components( ).
+
+    INSERT INITIAL LINE INTO lt_components ASSIGNING <ls_component> INDEX 1.
+    ASSERT sy-subrc = 0.
+
+    <ls_component>-name = c_fieldname_selected.
+    <ls_component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
+
+    lo_struct_descr2 = cl_abap_structdescr=>create( lt_components ).
+    go_table_descr = cl_abap_tabledescr=>create( lo_struct_descr2 ).
+
+    CREATE DATA gr_table TYPE HANDLE go_table_descr.
+    ASSIGN gr_table->* TO <lt_table>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_struct TYPE HANDLE lo_struct_descr2.
+    ASSIGN lr_struct->* TO <lg_line>.
+    ASSERT sy-subrc = 0.
+
+    LOOP AT it_list ASSIGNING <lg_data>.
+      CLEAR <lg_line>.
+      MOVE-CORRESPONDING <lg_data> TO <lg_line>.
+      INSERT <lg_line> INTO TABLE <lt_table>.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD extract_field_values.
+
+    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_fields.
+
+    CLEAR: ev_url,
+           ev_package,
+           ev_branch.
+
+    READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_url = <ls_field>-value.
+
+    READ TABLE it_fields INDEX 2 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_package = <ls_field>-value.
+    TRANSLATE ev_package TO UPPER CASE.
+
+    READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_branch = <ls_field>-value.
+
+  ENDMETHOD.
+  METHOD get_selected_rows.
+
+    DATA: lv_condition TYPE string,
+          lr_exporting TYPE REF TO data.
+
+    FIELD-SYMBOLS: <lg_exporting> TYPE any,
+                   <lt_table>     TYPE STANDARD TABLE,
+                   <lg_line>      TYPE any.
+
+    lv_condition = |{ c_fieldname_selected } = ABAP_TRUE|.
+
+    ASSIGN gr_table->* TO <lt_table>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_exporting LIKE LINE OF et_list.
+    ASSIGN lr_exporting->* TO <lg_exporting>.
+
+    LOOP AT <lt_table> ASSIGNING <lg_line> WHERE (lv_condition).
+      CLEAR <lg_exporting>.
+      MOVE-CORRESPONDING <lg_line> TO <lg_exporting>.
+      APPEND <lg_exporting> TO et_list.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD on_select_list_function_click.
+
+    FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
+                   <lg_line>     TYPE any,
+                   <lv_selected> TYPE flag.
+
+    ASSIGN gr_table->* TO <lt_table>.
+    ASSERT sy-subrc = 0.
+
+    CASE e_salv_function.
+      WHEN 'O.K.'.
+        gv_cancel = abap_false.
+        go_select_list_popup->close_screen( ).
+
+      WHEN 'ABR'.
+        "Canceled: clear list to overwrite nothing
+        CLEAR <lt_table>.
+        gv_cancel = abap_true.
+        go_select_list_popup->close_screen( ).
+
+      WHEN 'SALL'.
+
+        LOOP AT <lt_table> ASSIGNING <lg_line>.
+
+          ASSIGN COMPONENT c_fieldname_selected
+                 OF STRUCTURE <lg_line>
+                 TO <lv_selected>.
+          ASSERT sy-subrc = 0.
+
+          <lv_selected> = abap_true.
+
+        ENDLOOP.
+
+        go_select_list_popup->refresh( ).
+
+      WHEN 'DSEL'.
+
+        LOOP AT <lt_table> ASSIGNING <lg_line>.
+
+          ASSIGN COMPONENT c_fieldname_selected
+                 OF STRUCTURE <lg_line>
+                 TO <lv_selected>.
+          ASSERT sy-subrc = 0.
+
+          <lv_selected> = abap_false.
+
+        ENDLOOP.
+
+        go_select_list_popup->refresh( ).
+
+      WHEN OTHERS.
+        CLEAR <lt_table>.
+        go_select_list_popup->close_screen( ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD on_select_list_link_click.
+
+    DATA: lv_line TYPE sytabix.
+
+    FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
+                   <lg_line>     TYPE any,
+                   <lv_selected> TYPE flag.
+
+    ASSIGN gr_table->* TO <lt_table>.
+    ASSERT sy-subrc = 0.
+
+    lv_line = row.
+
+    READ TABLE <lt_table> ASSIGNING <lg_line>
+                       INDEX lv_line.
+    IF sy-subrc = 0.
+
+      ASSIGN COMPONENT c_fieldname_selected
+             OF STRUCTURE <lg_line>
+             TO <lv_selected>.
+      ASSERT sy-subrc = 0.
+
+      IF <lv_selected> = abap_true.
+        <lv_selected> = abap_false.
+      ELSE.
+        <lv_selected> = abap_true.
+      ENDIF.
+
+    ENDIF.
+
+    go_select_list_popup->refresh( ).
   ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
 
@@ -22352,183 +22545,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         ev_cancel = abap_true.
     ENDTRY.
 
-  ENDMETHOD.
-  METHOD create_new_table.
-
-    " create and populate a table on the fly derived from
-    " it_data with a select column
-
-    DATA: lr_struct       TYPE REF TO data,
-          lt_components   TYPE cl_abap_structdescr=>component_table,
-          lo_struct_descr TYPE REF TO cl_abap_structdescr,
-          struct_descr    TYPE REF TO cl_abap_structdescr.
-
-    FIELD-SYMBOLS: <lt_table>     TYPE STANDARD TABLE,
-                   <ls_component> TYPE abap_componentdescr,
-                   <lg_line>      TYPE data,
-                   <lg_data>      TYPE any.
-
-    go_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
-    lo_struct_descr ?= go_table_descr->get_table_line_type( ).
-    lt_components = lo_struct_descr->get_components( ).
-
-    INSERT INITIAL LINE INTO lt_components ASSIGNING <ls_component> INDEX 1.
-    ASSERT sy-subrc = 0.
-
-    <ls_component>-name = c_fieldname_selected.
-    <ls_component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
-
-    struct_descr = cl_abap_structdescr=>create( lt_components ).
-    go_table_descr = cl_abap_tabledescr=>create( struct_descr ).
-
-    CREATE DATA gr_table TYPE HANDLE go_table_descr.
-    ASSIGN gr_table->* TO <lt_table>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_struct TYPE HANDLE struct_descr.
-    ASSIGN lr_struct->* TO <lg_line>.
-    ASSERT sy-subrc = 0.
-
-    LOOP AT it_list ASSIGNING <lg_data>.
-      CLEAR <lg_line>.
-      MOVE-CORRESPONDING <lg_data> TO <lg_line>.
-      INSERT <lg_line> INTO TABLE <lt_table>.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD extract_field_values.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_fields.
-
-    CLEAR: ev_url,
-           ev_package,
-           ev_branch.
-
-    READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_url = <ls_field>-value.
-
-    READ TABLE it_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_package = <ls_field>-value.
-    TRANSLATE ev_package TO UPPER CASE.
-
-    READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_branch = <ls_field>-value.
-
-  ENDMETHOD.
-  METHOD get_selected_rows.
-
-    DATA: lv_condition TYPE string,
-          lr_exporting TYPE REF TO data.
-
-    FIELD-SYMBOLS: <lg_exporting> TYPE any,
-                   <lt_table>     TYPE STANDARD TABLE,
-                   <lg_line>      TYPE any.
-
-    lv_condition = |{ c_fieldname_selected } = ABAP_TRUE|.
-
-    ASSIGN gr_table->* TO <lt_table>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_exporting LIKE LINE OF et_list.
-    ASSIGN lr_exporting->* TO <lg_exporting>.
-
-    LOOP AT <lt_table> ASSIGNING <lg_line> WHERE (lv_condition).
-      CLEAR <lg_exporting>.
-      MOVE-CORRESPONDING <lg_line> TO <lg_exporting>.
-      APPEND <lg_exporting> TO et_list.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD on_select_list_function_click.
-
-    FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
-                   <lg_line>     TYPE any,
-                   <lv_selected> TYPE flag.
-
-    ASSIGN gr_table->* TO <lt_table>.
-    ASSERT sy-subrc = 0.
-
-    CASE e_salv_function.
-      WHEN 'O.K.'.
-        gv_cancel = abap_false.
-        go_select_list_popup->close_screen( ).
-
-      WHEN 'ABR'.
-        "Canceled: clear list to overwrite nothing
-        CLEAR <lt_table>.
-        gv_cancel = abap_true.
-        go_select_list_popup->close_screen( ).
-
-      WHEN 'SALL'.
-
-        LOOP AT <lt_table> ASSIGNING <lg_line>.
-
-          ASSIGN COMPONENT c_fieldname_selected
-                 OF STRUCTURE <lg_line>
-                 TO <lv_selected>.
-          ASSERT sy-subrc = 0.
-
-          <lv_selected> = abap_true.
-
-        ENDLOOP.
-
-        go_select_list_popup->refresh( ).
-
-      WHEN 'DSEL'.
-
-        LOOP AT <lt_table> ASSIGNING <lg_line>.
-
-          ASSIGN COMPONENT c_fieldname_selected
-                 OF STRUCTURE <lg_line>
-                 TO <lv_selected>.
-          ASSERT sy-subrc = 0.
-
-          <lv_selected> = abap_false.
-
-        ENDLOOP.
-
-        go_select_list_popup->refresh( ).
-
-      WHEN OTHERS.
-        CLEAR <lt_table>.
-        go_select_list_popup->close_screen( ).
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD on_select_list_link_click.
-
-    DATA: lv_line TYPE sytabix.
-
-    FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
-                   <lg_line>     TYPE any,
-                   <lv_selected> TYPE flag.
-
-    ASSIGN gr_table->* TO <lt_table>.
-    ASSERT sy-subrc = 0.
-
-    lv_line = row.
-
-    READ TABLE <lt_table> ASSIGNING <lg_line>
-                       INDEX lv_line.
-    IF sy-subrc = 0.
-
-      ASSIGN COMPONENT c_fieldname_selected
-             OF STRUCTURE <lg_line>
-             TO <lv_selected>.
-      ASSERT sy-subrc = 0.
-
-      IF <lv_selected> = abap_true.
-        <lv_selected> = abap_false.
-      ELSE.
-        <lv_selected> = abap_true.
-      ENDIF.
-
-    ENDIF.
-
-    go_select_list_popup->refresh( ).
   ENDMETHOD.
   METHOD zif_abapgit_popups~package_popup_callback.
 
@@ -23138,7 +23154,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -36177,15 +36192,15 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_active.
 
-    DATA: messages    TYPE STANDARD TABLE OF sprot_u WITH DEFAULT KEY,
-          e071_tadirs TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
-          e071_tadir  TYPE e071.
+    DATA: lt_messages    TYPE STANDARD TABLE OF sprot_u WITH DEFAULT KEY,
+          lt_e071_tadirs TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
+          ls_e071_tadir  LIKE LINE OF lt_e071_tadirs.
 
     ms_item-inactive = abap_false.
 
-    e071_tadir-object   = ms_item-obj_type.
-    e071_tadir-obj_name = ms_item-obj_name.
-    INSERT e071_tadir INTO TABLE e071_tadirs.
+    ls_e071_tadir-object   = ms_item-obj_type.
+    ls_e071_tadir-obj_name = ms_item-obj_name.
+    INSERT ls_e071_tadir INTO TABLE lt_e071_tadirs.
 
     CALL FUNCTION 'RS_INACTIVE_OBJECTS_WARNING'
       EXPORTING
@@ -36194,14 +36209,14 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
         suppress_dictionary_check = abap_false
         phased_activation         = abap_false
       TABLES
-        p_e071                    = e071_tadirs
-        p_xmsg                    = messages.
+        p_e071                    = lt_e071_tadirs
+        p_xmsg                    = lt_messages.
 
-    IF messages IS NOT INITIAL.
+    IF lt_messages IS NOT INITIAL.
       ms_item-inactive = abap_true.
     ENDIF.
 
-    e_active = boolc( ms_item-inactive = abap_false ).
+    rv_active = boolc( ms_item-inactive = abap_false ).
   ENDMETHOD.
   METHOD is_adt_jump_possible.
 
@@ -36235,9 +36250,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
             result     = lv_vit_wb_request.
 
         IF lv_vit_wb_request = abap_true.
-          r_is_adt_jump_possible = abap_false.
+          rv_is_adt_jump_possible = abap_false.
         ELSE.
-          r_is_adt_jump_possible = abap_true.
+          rv_is_adt_jump_possible = abap_true.
         ENDIF.
 
       CATCH cx_root.
@@ -38717,7 +38732,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -38768,7 +38783,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_extension_index TYPE ty_extension_index,
-          rc                 TYPE sy-subrc.
+          lv_rc              TYPE sy-subrc.
 
     io_xml->read(
       EXPORTING
@@ -38802,7 +38817,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
         name        = mv_name
         id          = mv_id
       IMPORTING
-        rc          = rc
+        rc          = lv_rc
       EXCEPTIONS
         not_found   = 1
         put_failure = 2
@@ -38812,7 +38827,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from DDIF_INDX_ACTIVATE { sy-subrc }| ).
     ENDIF.
 
-    IF rc <> 0.
+    IF lv_rc <> 0.
       zcx_abapgit_exception=>raise( |Cannot activate extension index { mv_id } of table { mv_name }| ).
     ENDIF.
 
@@ -38839,6 +38854,12 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -38886,13 +38907,6 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     io_xml->add( iv_name = 'XINX'
                  ig_data = ls_extension_index ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_webi IMPLEMENTATION.
@@ -41632,7 +41646,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD access_free.
 
     " Release the lock on the object.
@@ -41905,25 +41919,26 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   METHOD serialize_entities.
 
     DATA lt_udmo_entities TYPE STANDARD TABLE OF dm41s WITH DEFAULT KEY.
-    FIELD-SYMBOLS <udmo_entity> TYPE dm41s.
+    FIELD-SYMBOLS <ls_udmo_entity> TYPE dm41s.
 
     SELECT * FROM dm41s
       INTO TABLE lt_udmo_entities
       WHERE dmoid EQ me->mv_data_model
       AND as4local EQ me->mv_activation_state.
-    LOOP AT lt_udmo_entities ASSIGNING <udmo_entity>.
+    LOOP AT lt_udmo_entities ASSIGNING <ls_udmo_entity>.
 
       " You are reminded that administrative information, such as last changed by user, date, time is not serialised.
-      CLEAR <udmo_entity>-lstuser.
-      CLEAR <udmo_entity>-lstdate.
-      CLEAR <udmo_entity>-lsttime.
-      CLEAR <udmo_entity>-fstuser.
-      CLEAR <udmo_entity>-fstdate.
-      CLEAR <udmo_entity>-fsttime.
+      CLEAR <ls_udmo_entity>-lstuser.
+      CLEAR <ls_udmo_entity>-lstdate.
+      CLEAR <ls_udmo_entity>-lsttime.
+      CLEAR <ls_udmo_entity>-fstuser.
+      CLEAR <ls_udmo_entity>-fstdate.
+      CLEAR <ls_udmo_entity>-fsttime.
+
     ENDLOOP.
 
     " You are reminded that descriptions in other languages do not have to be in existence, although they may.
-    IF lines( lt_udmo_entities ) GT 0.
+    IF lines( lt_udmo_entities ) > 0.
       io_xml->add( iv_name = 'UDMO_ENTITIES'
                    ig_data = lt_udmo_entities ).
     ENDIF.
@@ -42156,6 +42171,9 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       iv_date      = lv_date
       iv_time      = lv_time ).
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for(
@@ -42216,9 +42234,6 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     me->serialize_short_texts( io_xml ).
     me->serialize_long_texts( io_xml ).
 
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
@@ -48743,33 +48758,33 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD call_delete_fms.
 
-    CONSTANTS version_new      TYPE c VALUE 'N' ##NO_TEXT. "Include SCPRINTCONST version_new
-    CONSTANTS operation_delete TYPE c VALUE 'D' ##NO_TEXT.
-    DATA profile_type          TYPE scprattr-type.
-    DATA fatherprofiles        TYPE standard table of scproprof WITH DEFAULT KEY.
-    DATA fatherprofile         TYPE scproprof.
+    CONSTANTS lc_version_new      TYPE c VALUE 'N' ##NO_TEXT. "Include SCPRINTCONST version_new
+    CONSTANTS lc_operation_delete TYPE c VALUE 'D' ##NO_TEXT.
+    DATA lv_profile_type          TYPE scprattr-type.
+    DATA lt_fatherprofiles        TYPE STANDARD TABLE OF scproprof WITH DEFAULT KEY.
+    DATA ls_fatherprofile         TYPE scproprof.
 
     CALL FUNCTION 'SCPR_DB_ATTR_GET_DETAIL'
       EXPORTING
         profid   = iv_profile_id
-        version  = version_new
+        version  = lc_version_new
       IMPORTING
-        proftype = profile_type
+        proftype = lv_profile_type
       EXCEPTIONS
         OTHERS   = 0.
 
     CALL FUNCTION 'SCPR_PRSET_DB_USED_IN'
       EXPORTING
         profid   = iv_profile_id
-        version  = version_new
+        version  = lc_version_new
       TABLES
-        profiles = fatherprofiles.
+        profiles = lt_fatherprofiles.
 
-    fatherprofile-id = iv_profile_id.
-    APPEND fatherprofile TO fatherprofiles.
+    ls_fatherprofile-id = iv_profile_id.
+    APPEND ls_fatherprofile TO lt_fatherprofiles.
     CALL FUNCTION 'SCPR_CT_TRANSPORT_ENTRIES'
       TABLES
-        profids                  = fatherprofiles
+        profids                  = lt_fatherprofiles
       EXCEPTIONS
         error_in_transport_layer = 1
         user_abort               = 2.
@@ -48780,9 +48795,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
     CALL FUNCTION 'SCPR_PRSET_DB_DELETE_ALL'
       EXPORTING
         profid      = iv_profile_id
-        proftype    = profile_type
+        proftype    = lv_profile_type
       TABLES
-        fatherprofs = fatherprofiles
+        fatherprofs = lt_fatherprofiles
       EXCEPTIONS
         user_abort  = 1.
     IF sy-subrc <> 0.
@@ -48792,7 +48807,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
     CALL FUNCTION 'SCPR_MEM_SCPR_ACTIONS_ADD'
       EXPORTING
         bcset_id  = iv_profile_id
-        operation = operation_delete.
+        operation = lc_operation_delete.
 
   ENDMETHOD.
   METHOD dequeue.
@@ -48914,11 +48929,12 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: profile_id     TYPE scpr_id.
-    profile_id = ms_item-obj_name.
+    DATA: lv_profile_id TYPE scpr_id.
+
+    lv_profile_id = ms_item-obj_name.
 
     enqueue( ).
-    call_delete_fms( profile_id ).
+    call_delete_fms( lv_profile_id ).
     dequeue( ).
 
   ENDMETHOD.
@@ -60664,7 +60680,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_sp           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_object> TYPE any.
+    FIELD-SYMBOLS: <lg_ecatt_object> TYPE any.
 
     TRY.
         li_section = template_over_all->find_from_name_ns( 'START_PROFILE' ).
@@ -60680,10 +60696,10 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
             IMPORTING
               xml_as_string = lv_start_profile.
 
-          ASSIGN ('ECATT_OBJECT') TO <ecatt_object>.
+          ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_object>.
           ASSERT sy-subrc = 0.
 
-          lo_ecatt_sp = <ecatt_object>.
+          lo_ecatt_sp = <lg_ecatt_object>.
 
           CALL METHOD lo_ecatt_sp->('SET_SP_ATTRIBUTES')
             EXPORTING
@@ -60714,9 +60730,9 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_sp           TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_sp> TYPE any,
-                   <lv_d_akh> TYPE data,
-                   <lv_i_akh> TYPE data.
+    FIELD-SYMBOLS: <lg_ecatt_sp> TYPE any,
+                   <lv_d_akh>    TYPE data,
+                   <lv_i_akh>    TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
@@ -60751,10 +60767,10 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
         lv_exc_occ = 'X'.
     ENDTRY.
 
-    ASSIGN me->ecatt_object TO <ecatt_sp>.
+    ASSIGN me->ecatt_object TO <lg_ecatt_sp>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_sp = <ecatt_sp>.
+    lo_ecatt_sp = <lg_ecatt_sp>.
 
     TRY.
         get_ecatt_sp( ).
@@ -60823,7 +60839,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
   METHOD download.
 
     " We inherit from CL_APL_ECATT_DOWNLOAD because CL_APL_ECATT_SP_DOWNLOAD
@@ -60879,7 +60895,6 @@ CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
     rv_xml_stream_size = mv_xml_stream_size.
 
   ENDMETHOD.
-
   METHOD set_sp_data_to_template.
 
     " downport
@@ -60890,16 +60905,16 @@ CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
           lv_sp_xml                  TYPE etxml_line_str,
           lo_ecatt_sp                TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ecatt_object> TYPE data.
+    FIELD-SYMBOLS: <lg_ecatt_object> TYPE data.
 
     li_start_profile_data_node = template_over_all->create_simple_element(
                                    name = 'START_PROFILE'
                                    parent = root_node ).
 
-    ASSIGN ('ECATT_OBJECT') TO <ecatt_object>.
+    ASSIGN ('ECATT_OBJECT') TO <lg_ecatt_object>.
     ASSERT sy-subrc = 0.
 
-    lo_ecatt_sp = <ecatt_object>.
+    lo_ecatt_sp = <lg_ecatt_object>.
 
     TRY.
         CALL METHOD lo_ecatt_sp->('GET_SP_ATTRIBUTES')
@@ -60918,7 +60933,6 @@ CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
     li_start_profile_data_node->append_child( new_child = li_element ).
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
@@ -65109,5 +65123,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-07T11:07:06.187Z
+* abapmerge - 2018-11-07T11:51:58.185Z
 ****************************************************
