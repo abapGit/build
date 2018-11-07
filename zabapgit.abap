@@ -483,6 +483,8 @@ CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_adhoc_code_insp DEFINITION DEFERRED.
+CLASS zcl_abapgit_abap_unit_tests DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
@@ -10141,6 +10143,27 @@ CLASS zcl_abapgit_xml_pretty DEFINITION
       RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
+CLASS zcl_abapgit_abap_unit_tests DEFINITION
+  CREATE PRIVATE
+  PUBLIC
+  FRIENDS ZCL_ABAPGIT_factory.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_code_inspector.
+
+    METHODS:
+      constructor
+        IMPORTING
+          iv_package TYPE devclass
+        RAISING
+          zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA:
+      mo_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
+
+ENDCLASS.
 CLASS zcl_abapgit_auth DEFINITION FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -10306,6 +10329,33 @@ CLASS zcl_abapgit_code_inspector DEFINITION
           VALUE(ro_inspection) TYPE REF TO cl_ci_inspection
         RAISING
           zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_adhoc_code_insp DEFINITION
+  CREATE PRIVATE
+  PUBLIC
+  INHERITING FROM zcl_abapgit_code_inspector
+  FRIENDS ZCL_ABAPGIT_factory.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          iv_package   TYPE devclass
+          iv_test_name TYPE sci_tstval-testname
+        RAISING
+          zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+    METHODS:
+      create_variant REDEFINITION,
+
+      cleanup REDEFINITION.
+
+  PRIVATE SECTION.
+    DATA:
+      mo_variant   TYPE REF TO cl_ci_checkvariant,
+      mv_test_name TYPE sci_tstval-testname.
 
 ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
@@ -10543,6 +10593,21 @@ CLASS zcl_abapgit_factory DEFINITION
         VALUE(ri_syntax_check) TYPE REF TO zif_abapgit_code_inspector
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS get_adhoc_code_inspector
+      IMPORTING
+        !iv_package                    TYPE devclass
+        iv_test_name                   TYPE sci_tstval-testname
+      RETURNING
+        VALUE(ri_adhoc_code_inspector) TYPE REF TO zif_abapgit_code_inspector
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_abap_unit_tests
+      IMPORTING
+        !iv_package               TYPE devclass
+      RETURNING
+        VALUE(ri_abap_unit_tests) TYPE REF TO zif_abapgit_code_inspector
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS get_branch_overview
       IMPORTING
         !io_repo                  TYPE REF TO zcl_abapgit_repo_online
@@ -10595,6 +10660,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gt_syntax_check TYPE tty_syntax_check .
     CLASS-DATA gi_branch_overview TYPE REF TO zif_abapgit_branch_overview .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
+    CLASS-DATA gi_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -11824,27 +11890,23 @@ CLASS zcl_abapgit_stage_logic DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
-  INHERITING FROM zcl_abapgit_code_inspector
+  CREATE PRIVATE
+  PUBLIC
   FRIENDS ZCL_ABAPGIT_factory.
-
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_code_inspector.
+
     METHODS:
       constructor
         IMPORTING
-          iv_package            TYPE devclass
-          iv_check_variant_name TYPE sci_chkv OPTIONAL
+          iv_package TYPE devclass
         RAISING
           zcx_abapgit_exception.
 
-  PROTECTED SECTION.
-    METHODS:
-      create_variant REDEFINITION,
-
-      cleanup REDEFINITION.
-
   PRIVATE SECTION.
     DATA:
-      mo_variant TYPE REF TO cl_ci_checkvariant.
+      mo_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
 
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
@@ -13543,97 +13605,23 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
-
   METHOD constructor.
 
-    DATA: lv_check_variant_name TYPE sci_chkv.
-
-    " we supply a dummy name for the check variant,
-    " because we have to persists it to be able to run in parallel.
-    " Afterwards it's deleted.
-
-    lv_check_variant_name = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|.
-
-    super->constructor( iv_package            = iv_package
-                        iv_check_variant_name = lv_check_variant_name ).
+    mo_adhoc_code_inspector = zcl_abapgit_factory=>get_adhoc_code_inspector(
+                                iv_package   = iv_package
+                                iv_test_name = 'CL_CI_TEST_SYNTAX_CHECK' ).
 
   ENDMETHOD.
-  METHOD create_variant.
+  METHOD zif_abapgit_code_inspector~get_inspection.
 
-    DATA: lt_variant TYPE sci_tstvar,
-          ls_variant LIKE LINE OF lt_variant.
-
-    cl_ci_checkvariant=>create(
-      EXPORTING
-        p_user              = sy-uname
-        p_name              = mv_check_variant_name
-      RECEIVING
-        p_ref               = mo_variant
-      EXCEPTIONS
-        chkv_already_exists = 1
-        locked              = 2
-        error_in_enqueue    = 3
-        not_authorized      = 4
-        OTHERS              = 5 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Couldn't create variant. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-    ls_variant-testname = 'CL_CI_TEST_SYNTAX_CHECK'.
-    INSERT ls_variant INTO TABLE lt_variant.
-
-    mo_variant->set_variant(
-      EXPORTING
-        p_variant    = lt_variant
-      EXCEPTIONS
-        not_enqueued = 1
-        OTHERS       = 2 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Couldn't set variant. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-    mo_variant->save(
-      EXPORTING
-        p_variant         = mo_variant->variant
-      EXCEPTIONS
-        empty_variant     = 1
-        transport_error   = 2
-        not_authorized    = 3
-        OTHERS            = 4 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Couldn't save variant. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-    ro_variant = mo_variant.
+    ro_inspection = mo_adhoc_code_inspector->get_inspection( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~run.
 
-  METHOD cleanup.
-
-    super->cleanup( io_set ).
-
-    IF mo_variant IS BOUND.
-
-      mo_variant->delete(
-        EXCEPTIONS
-          exists_in_insp   = 1
-          locked           = 2
-          error_in_enqueue = 3
-          not_authorized   = 4
-          transport_error  = 5
-          OTHERS           = 6 ).
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Couldn't delete variant. Subrc = { sy-subrc }| ).
-      ENDIF.
-
-    ENDIF.
+    rt_list = mo_adhoc_code_inspector->run( ).
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   METHOD remove_identical.
@@ -18025,7 +18013,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_factory IMPLEMENTATION.
   METHOD get_branch_overview.
 
     IF gi_branch_overview IS INITIAL.
@@ -18127,6 +18115,31 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
     ENDIF.
 
     ri_tadir = gi_tadir.
+
+  ENDMETHOD.
+  METHOD get_adhoc_code_inspector.
+
+    IF gi_adhoc_code_inspector IS BOUND.
+      ri_adhoc_code_inspector = gi_adhoc_code_inspector.
+    ELSE.
+      CREATE OBJECT ri_adhoc_code_inspector
+        TYPE zcl_abapgit_adhoc_code_insp
+        EXPORTING
+          iv_package   = iv_package
+          iv_test_name = iv_test_name.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_abap_unit_tests.
+
+    IF gi_adhoc_code_inspector IS BOUND.
+      ri_abap_unit_tests = gi_adhoc_code_inspector.
+    ELSE.
+      CREATE OBJECT ri_abap_unit_tests
+        TYPE zcl_abapgit_abap_unit_tests
+        EXPORTING
+          iv_package = iv_package.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -19495,6 +19508,121 @@ CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
       CATCH cx_sy_create_object_error.
         rv_allowed = abap_true.
     ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_adhoc_code_insp IMPLEMENTATION.
+  METHOD cleanup.
+
+    super->cleanup( io_set ).
+
+    IF mo_variant IS BOUND.
+
+      mo_variant->delete(
+        EXCEPTIONS
+          exists_in_insp   = 1
+          locked           = 2
+          error_in_enqueue = 3
+          not_authorized   = 4
+          transport_error  = 5
+          OTHERS           = 6 ).
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Couldn't delete variant. Subrc = { sy-subrc }| ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    DATA: lv_check_variant_name TYPE sci_chkv.
+
+    IF iv_test_name IS INITIAL.
+      zcx_abapgit_exception=>raise( |Please supply a test name| ).
+    ENDIF.
+
+    " we supply a dummy name for the check variant,
+    " because we have to persists it to be able to run in parallel.
+    " Afterwards it's deleted.
+
+    lv_check_variant_name = |{ sy-uname }_{ sy-datum }_{ sy-uzeit }|.
+
+    super->constructor( iv_package            = iv_package
+                        iv_check_variant_name = lv_check_variant_name ).
+
+    mv_test_name = iv_test_name.
+
+  ENDMETHOD.
+  METHOD create_variant.
+
+    DATA: lt_variant TYPE sci_tstvar,
+          ls_variant LIKE LINE OF lt_variant.
+
+    cl_ci_checkvariant=>create(
+      EXPORTING
+        p_user              = sy-uname
+        p_name              = mv_check_variant_name
+      RECEIVING
+        p_ref               = mo_variant
+      EXCEPTIONS
+        chkv_already_exists = 1
+        locked              = 2
+        error_in_enqueue    = 3
+        not_authorized      = 4
+        OTHERS              = 5 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't create variant. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    ls_variant-testname = mv_test_name.
+    INSERT ls_variant INTO TABLE lt_variant.
+
+    mo_variant->set_variant(
+      EXPORTING
+        p_variant    = lt_variant
+      EXCEPTIONS
+        not_enqueued = 1
+        OTHERS       = 2 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't set variant. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    mo_variant->save(
+      EXPORTING
+        p_variant         = mo_variant->variant
+      EXCEPTIONS
+        empty_variant     = 1
+        transport_error   = 2
+        not_authorized    = 3
+        OTHERS            = 4 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Couldn't save variant. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    ro_variant = mo_variant.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_abap_unit_tests IMPLEMENTATION.
+  METHOD constructor.
+
+    mo_adhoc_code_inspector = zcl_abapgit_factory=>get_adhoc_code_inspector(
+                                iv_package   = iv_package
+                                iv_test_name = 'CL_SAUNIT_LEGACY_CI_CHECK' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~get_inspection.
+
+    ro_inspection = mo_adhoc_code_inspector->get_inspection( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~run.
+
+    rt_list = mo_adhoc_code_inspector->run( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -65005,5 +65133,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-06T15:45:49.186Z
+* abapmerge - 2018-11-07T06:19:12.496Z
 ****************************************************
