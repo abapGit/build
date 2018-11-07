@@ -10145,7 +10145,6 @@ CLASS zcl_abapgit_xml_pretty DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_abap_unit_tests DEFINITION
   CREATE PRIVATE
-  PUBLIC
   FRIENDS ZCL_ABAPGIT_factory.
 
   PUBLIC SECTION.
@@ -10333,7 +10332,6 @@ CLASS zcl_abapgit_code_inspector DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_adhoc_code_insp DEFINITION
   CREATE PRIVATE
-  PUBLIC
   INHERITING FROM zcl_abapgit_code_inspector
   FRIENDS ZCL_ABAPGIT_factory.
 
@@ -11891,7 +11889,6 @@ CLASS zcl_abapgit_stage_logic DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
   CREATE PRIVATE
-  PUBLIC
   FRIENDS ZCL_ABAPGIT_factory.
   PUBLIC SECTION.
     INTERFACES:
@@ -65133,5 +65130,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-07T06:19:12.496Z
+* abapmerge - 2018-11-07T07:19:07.537Z
 ****************************************************
