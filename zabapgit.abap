@@ -13395,8 +13395,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
-    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tdevc        TYPE STANDARD TABLE OF tdevc,
+    DATA: lt_tdevc        TYPE STANDARD TABLE OF tdevc,
           lv_path         TYPE string,
           lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
           lt_excludes     TYPE RANGE OF trobjtype,
@@ -13505,8 +13504,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_exists.
 
-    DATA: lv_exists   TYPE abap_bool,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
           ls_item     TYPE zif_abapgit_definitions=>ty_item.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
@@ -14717,9 +14715,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD refresh.
 
-    DATA: lo_progress  TYPE REF TO zcl_abapgit_progress,
-          ls_pull      TYPE zcl_abapgit_git_porcelain=>ty_pull_result,
-          lx_exception TYPE REF TO zcx_abapgit_exception.
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
+          ls_pull     TYPE zcl_abapgit_git_porcelain=>ty_pull_result.
 
     super->refresh( iv_drop_cache ).
     reset_status( ).
@@ -17260,9 +17257,8 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD serialize.
 
     DATA: ls_longtext  TYPE ty_longtext,
-          lt_longtexts TYPE tty_longtexts.
-    DATA: lt_dokil       TYPE zif_abapgit_definitions=>tty_dokil,
-          lv_longtext_id TYPE dokil-id.
+          lt_longtexts TYPE tty_longtexts,
+          lt_dokil     TYPE zif_abapgit_definitions=>tty_dokil.
 
     FIELD-SYMBOLS: <ls_dokil> LIKE LINE OF lt_dokil.
     IF lines( it_dokil ) > 0.
@@ -29070,9 +29066,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
-    DATA: lv_check_variant TYPE sci_chkv,
-          lv_class         TYPE string,
-          lv_line          TYPE string.
+    DATA: lv_check_variant TYPE sci_chkv.
+
     FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
 
     CREATE OBJECT ro_html.
@@ -29125,13 +29120,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
-    DATA: lo_repo_online   TYPE REF TO zcl_abapgit_repo_online,
-          ls_item          TYPE zif_abapgit_definitions=>ty_item,
-          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item.
-    DATA: lv_main_object   TYPE string.
-    DATA: lv_sub_object    TYPE string.
-    DATA: lv_line_number_s TYPE string.
-    DATA: lv_line_number   TYPE i.
+
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
 
     CASE iv_action.
       WHEN c_actions-stage.
@@ -36717,56 +36707,126 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_objects_program IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
+  METHOD add_tpool.
 
-  METHOD is_text_locked.
-
-    DATA: lv_object TYPE eqegraarg.
-
-    lv_object = |*{ iv_program }|.
-
-    rv_is_text_locked = exists_a_lock_entry_for( iv_lock_object = 'EABAPTEXTE'
-                                                 iv_argument    = lv_object ).
-
-  ENDMETHOD.
-
-  METHOD is_cua_locked.
-
-    DATA: lv_object TYPE eqegraarg,
-          ls_cua    TYPE zcl_abapgit_objects_program=>ty_cua.
-
-    lv_object = |CU{ iv_program }|.
-    OVERLAY lv_object WITH '                                          '.
-    lv_object = lv_object && '*'.
-
-    rv_is_cua_locked = exists_a_lock_entry_for( iv_lock_object = 'ESCUAPAINT'
-                                                iv_argument    = lv_object ).
-
-  ENDMETHOD.
-
-  METHOD is_any_dynpro_locked.
-
-    DATA: lt_dynpros TYPE zcl_abapgit_objects_program=>ty_dynpro_tt,
-          lv_object  TYPE seqg3-garg.
-
-    FIELD-SYMBOLS: <ls_dynpro> TYPE zcl_abapgit_objects_program=>ty_dynpro.
-
-    lt_dynpros = serialize_dynpros( iv_program ).
-
-    LOOP AT lt_dynpros ASSIGNING <ls_dynpro>.
-
-      lv_object = |{ <ls_dynpro>-header-screen }{ <ls_dynpro>-header-program }|.
-
-      IF exists_a_lock_entry_for( iv_lock_object = 'ESCRP'
-                                  iv_argument    = lv_object ) = abap_true.
-        rv_is_any_dynpro_locked = abap_true.
-        EXIT.
+    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
+                   <ls_tpool_out> LIKE LINE OF rt_tpool.
+    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
+      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
+      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
+      IF <ls_tpool_out>-id = 'S'.
+        <ls_tpool_out>-split = <ls_tpool_out>-entry.
+        <ls_tpool_out>-entry = <ls_tpool_out>-entry+8.
       ENDIF.
-
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD auto_correct_cua_adm.
+    " issue #1807 automatic correction of CUA interfaces saved incorrectly in the past (ADM was not saved in the XML)
+    FIELD-SYMBOLS:
+      <ls_pfk> TYPE rsmpe_pfk,
+      <ls_act> TYPE rsmpe_act,
+      <ls_men> TYPE rsmpe_men.
 
+    IF cs_adm IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    LOOP AT is_cua-act ASSIGNING <ls_act>.
+      IF <ls_act>-code+6(14) IS INITIAL AND <ls_act>-code(6) CO '0123456789'.
+        cs_adm-actcode = <ls_act>-code.
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT is_cua-men ASSIGNING <ls_men>.
+      IF <ls_men>-code+6(14) IS INITIAL AND <ls_men>-code(6) CO '0123456789'.
+        cs_adm-mencode = <ls_men>-code.
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT is_cua-pfk ASSIGNING <ls_pfk>.
+      IF <ls_pfk>-code+6(14) IS INITIAL AND <ls_pfk>-code(6) CO '0123456789'.
+        cs_adm-pfkcode = <ls_pfk>-code.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD check_prog_changed_since.
+
+    DATA: lv_date    TYPE dats,
+          lv_time    TYPE tims,
+          lt_screens TYPE STANDARD TABLE OF d020s,
+          lt_eudb    TYPE STANDARD TABLE OF eudb.
+
+    FIELD-SYMBOLS: <ls_screen> LIKE LINE OF lt_screens,
+                   <ls_eudb>   LIKE LINE OF lt_eudb.
+
+    SELECT SINGLE udat utime FROM reposrc " Program
+      INTO (lv_date, lv_time)
+      WHERE progname = iv_program
+      AND   r3state = 'A'.
+
+    rv_changed = check_timestamp(
+      iv_timestamp = iv_timestamp
+      iv_date      = lv_date
+      iv_time      = lv_time ).
+    IF rv_changed = abap_true.
+      RETURN.
+    ENDIF.
+
+    SELECT SINGLE udat utime FROM repotext " Program text pool
+      INTO (lv_date, lv_time)
+      WHERE progname = iv_program
+      AND   r3state = 'A'.
+
+    IF sy-subrc = 0. " Text not found ? Assuming no changes, see #404
+      rv_changed = check_timestamp(
+        iv_timestamp = iv_timestamp
+        iv_date      = lv_date
+        iv_time      = lv_time ).
+      IF rv_changed = abap_true.
+        RETURN.
+      ENDIF.
+    ENDIF.
+
+    IF iv_skip_gui = abap_true.
+      RETURN.
+    ENDIF.
+
+    SELECT dgen tgen FROM d020s           " Screens
+      INTO CORRESPONDING FIELDS OF TABLE lt_screens
+      WHERE prog = iv_program
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
+
+    LOOP AT lt_screens ASSIGNING <ls_screen>.
+      rv_changed = check_timestamp(
+        iv_timestamp = iv_timestamp
+        iv_date      = <ls_screen>-dgen
+        iv_time      = <ls_screen>-tgen ).
+      IF rv_changed = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    SELECT vdatum vzeit FROM eudb         " GUI
+      INTO CORRESPONDING FIELDS OF TABLE lt_eudb
+      WHERE relid = 'CU'
+      AND   name  = iv_program
+      AND   srtf2 = 0
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
+
+    LOOP AT lt_eudb ASSIGNING <ls_eudb>.
+      rv_changed = check_timestamp(
+        iv_timestamp = iv_timestamp
+        iv_date      = <ls_eudb>-vdatum
+        iv_time      = <ls_eudb>-vzeit ).
+      IF rv_changed = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD condense_flow.
 
     DATA: lv_spaces LIKE LINE OF et_spaces.
@@ -36786,107 +36846,120 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD deserialize_cua.
 
-  METHOD uncondense_flow.
+    DATA: ls_tr_key TYPE trkey,
+          ls_adm    TYPE rsmpe_adm.
+    IF lines( is_cua-sta ) = 0
+        AND lines( is_cua-fun ) = 0
+        AND lines( is_cua-men ) = 0
+        AND lines( is_cua-mtx ) = 0
+        AND lines( is_cua-act ) = 0
+        AND lines( is_cua-but ) = 0
+        AND lines( is_cua-pfk ) = 0
+        AND lines( is_cua-set ) = 0
+        AND lines( is_cua-doc ) = 0
+        AND lines( is_cua-tit ) = 0
+        AND lines( is_cua-biv ) = 0.
+      RETURN.
+    ENDIF.
 
-    DATA: lv_spaces LIKE LINE OF it_spaces.
+    SELECT SINGLE devclass INTO ls_tr_key-devclass
+      FROM tadir
+      WHERE pgmid = 'R3TR'
+      AND object = ms_item-obj_type
+      AND obj_name = ms_item-obj_name.                  "#EC CI_GENBUFF
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'not found in tadir' ).
+    ENDIF.
 
-    FIELD-SYMBOLS: <ls_flow>   LIKE LINE OF it_flow,
-                   <ls_output> LIKE LINE OF rt_flow.
-    LOOP AT it_flow ASSIGNING <ls_flow>.
-      APPEND INITIAL LINE TO rt_flow ASSIGNING <ls_output>.
-      <ls_output>-line = <ls_flow>-line.
+    ls_tr_key-obj_type = ms_item-obj_type.
+    ls_tr_key-obj_name = ms_item-obj_name.
+    ls_tr_key-sub_type = 'CUAD'.
+    ls_tr_key-sub_name = iv_program_name.
+    ls_adm = is_cua-adm.
+    auto_correct_cua_adm( EXPORTING is_cua = is_cua CHANGING cs_adm = ls_adm ).
 
-      READ TABLE it_spaces INDEX sy-tabix INTO lv_spaces.
-      IF sy-subrc = 0.
-        SHIFT <ls_output>-line RIGHT BY lv_spaces PLACES IN CHARACTER MODE.
+    sy-tcode = 'SE41' ##write_ok. " evil hack, workaround to handle fixes in note 2159455
+    CALL FUNCTION 'RS_CUA_INTERNAL_WRITE'
+      EXPORTING
+        program   = iv_program_name
+        language  = mv_language
+        tr_key    = ls_tr_key
+        adm       = ls_adm
+        state     = 'I'
+      TABLES
+        sta       = is_cua-sta
+        fun       = is_cua-fun
+        men       = is_cua-men
+        mtx       = is_cua-mtx
+        act       = is_cua-act
+        but       = is_cua-but
+        pfk       = is_cua-pfk
+        set       = is_cua-set
+        doc       = is_cua-doc
+        tit       = is_cua-tit
+        biv       = is_cua-biv
+      EXCEPTIONS
+        not_found = 1
+        OTHERS    = 2.
+    IF sy-subrc <> 0.
+* if moving code from SAPlink, see https://github.com/larshp/abapGit/issues/562
+      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_WRITE' ).
+    ENDIF.
+
+    zcl_abapgit_objects_activation=>add(
+      iv_type = 'CUAD'
+      iv_name = iv_program_name ).
+
+  ENDMETHOD.
+  METHOD deserialize_dynpros.
+
+    DATA: lv_name   TYPE dwinactiv-obj_name,
+          ls_dynpro LIKE LINE OF it_dynpros.
+* ls_dynpro is changed by the function module, a field-symbol will cause
+* the program to dump since it_dynpros cannot be changed
+    LOOP AT it_dynpros INTO ls_dynpro.
+
+      ls_dynpro-flow_logic = uncondense_flow(
+        it_flow = ls_dynpro-flow_logic
+        it_spaces = ls_dynpro-spaces ).
+
+      CALL FUNCTION 'RPY_DYNPRO_INSERT'
+        EXPORTING
+          header                 = ls_dynpro-header
+          suppress_exist_checks  = abap_true
+        TABLES
+          containers             = ls_dynpro-containers
+          fields_to_containers   = ls_dynpro-fields
+          flow_logic             = ls_dynpro-flow_logic
+        EXCEPTIONS
+          cancelled              = 1
+          already_exists         = 2
+          program_not_exists     = 3
+          not_executed           = 4
+          missing_required_field = 5
+          illegal_field_value    = 6
+          field_not_allowed      = 7
+          not_generated          = 8
+          illegal_field_position = 9
+          OTHERS                 = 10.
+      IF sy-subrc <> 2 AND sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |error from RPY_DYNPRO_INSERT: { sy-subrc }| ).
       ENDIF.
+* todo, RPY_DYNPRO_UPDATE?
+
+      CONCATENATE ls_dynpro-header-program ls_dynpro-header-screen
+        INTO lv_name RESPECTING BLANKS.
+      ASSERT NOT lv_name IS INITIAL.
+
+      zcl_abapgit_objects_activation=>add(
+        iv_type = 'DYNP'
+        iv_name = lv_name ).
+
     ENDLOOP.
 
   ENDMETHOD.
-
-  METHOD serialize_program.
-
-    DATA: ls_progdir      TYPE ty_progdir,
-          lv_program_name TYPE programm,
-          lt_dynpros      TYPE ty_dynpro_tt,
-          ls_cua          TYPE ty_cua,
-          lt_source       TYPE TABLE OF abaptxt255,
-          lt_tpool        TYPE textpool_table,
-          ls_tpool        LIKE LINE OF lt_tpool,
-          lo_xml          TYPE REF TO zcl_abapgit_xml_output.
-
-    IF iv_program IS INITIAL.
-      lv_program_name = is_item-obj_name.
-    ELSE.
-      lv_program_name = iv_program.
-    ENDIF.
-
-    zcl_abapgit_language=>set_current_language( mv_language ).
-
-    CALL FUNCTION 'RPY_PROGRAM_READ'
-      EXPORTING
-        program_name     = lv_program_name
-        with_lowercase   = abap_true
-      TABLES
-        source_extended  = lt_source
-        textelements     = lt_tpool
-      EXCEPTIONS
-        cancelled        = 1
-        not_found        = 2
-        permission_error = 3
-        OTHERS           = 4.
-
-    IF sy-subrc = 2.
-      zcl_abapgit_language=>restore_login_language( ).
-      RETURN.
-    ELSEIF sy-subrc <> 0.
-      zcl_abapgit_language=>restore_login_language( ).
-      zcx_abapgit_exception=>raise( 'Error reading program' ).
-    ENDIF.
-
-    zcl_abapgit_language=>restore_login_language( ).
-
-    ls_progdir = read_progdir( lv_program_name ).
-
-    IF io_xml IS BOUND.
-      lo_xml = io_xml.
-    ELSE.
-      CREATE OBJECT lo_xml.
-    ENDIF.
-
-    lo_xml->add( iv_name = 'PROGDIR'
-                 ig_data = ls_progdir ).
-    IF ls_progdir-subc = '1' OR ls_progdir-subc = 'M'.
-      lt_dynpros = serialize_dynpros( lv_program_name ).
-      lo_xml->add( iv_name = 'DYNPROS'
-                   ig_data = lt_dynpros ).
-
-      ls_cua = serialize_cua( lv_program_name ).
-      IF NOT ls_cua IS INITIAL.
-        lo_xml->add( iv_name = 'CUA'
-                     ig_data = ls_cua ).
-      ENDIF.
-    ENDIF.
-
-    READ TABLE lt_tpool WITH KEY id = 'R' INTO ls_tpool.
-    IF sy-subrc = 0 AND ls_tpool-key = '' AND ls_tpool-length = 0.
-      DELETE lt_tpool INDEX sy-tabix.
-    ENDIF.
-
-    lo_xml->add( iv_name = 'TPOOL'
-                 ig_data = add_tpool( lt_tpool ) ).
-
-    IF NOT io_xml IS BOUND.
-      io_files->add_xml( iv_extra = iv_extra
-                         io_xml   = lo_xml ).
-    ENDIF.
-
-    io_files->add_abap( iv_extra = iv_extra
-                        it_abap  = lt_source ).
-
-  ENDMETHOD.
-
   METHOD deserialize_program.
 
     DATA: lv_exists      TYPE sap_bool,
@@ -37049,7 +37122,105 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       iv_name = is_progdir-name ).
 
   ENDMETHOD.
+  METHOD deserialize_textpool.
 
+    DATA lv_language TYPE langu.
+    DATA lv_state    TYPE c.
+    DATA lv_delete   TYPE abap_bool.
+
+    IF iv_language IS INITIAL.
+      lv_language = mv_language.
+    ELSE.
+      lv_language = iv_language.
+    ENDIF.
+
+    IF lv_language = mv_language.
+      lv_state = 'I'. "Textpool in master language needs to be activated
+    ELSE.
+      lv_state = 'A'. "Translations are always active
+    ENDIF.
+
+    IF it_tpool IS INITIAL.
+      IF iv_is_include = abap_false OR lv_state = 'A'.
+        DELETE TEXTPOOL iv_program "Remove initial description from textpool if
+          LANGUAGE iv_program      "original program does not have a textpool
+          STATE lv_state.
+
+        lv_delete = abap_true.
+      ELSE.
+        INSERT TEXTPOOL iv_program "In case of includes: Deletion of textpool in
+          FROM it_tpool            "master language cannot be activated because
+          LANGUAGE lv_language     "this woul activate the deletion of the textpool
+          STATE lv_state.          "of the mail program -> insert empty textpool
+      ENDIF.
+    ELSE.
+      IF lines( it_tpool ) = 1 AND lv_language = mv_language.
+        READ TABLE it_tpool WITH KEY id = 'R' TRANSPORTING NO FIELDS.
+        IF sy-subrc = 0.
+          RETURN. "No action because description in master language is already there
+        ENDIF.
+      ENDIF.
+
+      INSERT TEXTPOOL iv_program
+        FROM it_tpool
+        LANGUAGE lv_language
+        STATE lv_state.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
+      ENDIF.
+    ENDIF.
+
+    IF lv_state = 'I'. "Textpool in master language needs to be activated
+      zcl_abapgit_objects_activation=>add(
+        iv_type   = 'REPT'
+        iv_name   = iv_program
+        iv_delete = lv_delete ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD is_any_dynpro_locked.
+
+    DATA: lt_dynpros TYPE zcl_abapgit_objects_program=>ty_dynpro_tt,
+          lv_object  TYPE seqg3-garg.
+
+    FIELD-SYMBOLS: <ls_dynpro> TYPE zcl_abapgit_objects_program=>ty_dynpro.
+
+    lt_dynpros = serialize_dynpros( iv_program ).
+
+    LOOP AT lt_dynpros ASSIGNING <ls_dynpro>.
+
+      lv_object = |{ <ls_dynpro>-header-screen }{ <ls_dynpro>-header-program }|.
+
+      IF exists_a_lock_entry_for( iv_lock_object = 'ESCRP'
+                                  iv_argument    = lv_object ) = abap_true.
+        rv_is_any_dynpro_locked = abap_true.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_cua_locked.
+
+    DATA: lv_object TYPE eqegraarg.
+
+    lv_object = |CU{ iv_program }|.
+    OVERLAY lv_object WITH '                                          '.
+    lv_object = lv_object && '*'.
+
+    rv_is_cua_locked = exists_a_lock_entry_for( iv_lock_object = 'ESCUAPAINT'
+                                                iv_argument    = lv_object ).
+
+  ENDMETHOD.
+  METHOD is_text_locked.
+
+    DATA: lv_object TYPE eqegraarg.
+
+    lv_object = |*{ iv_program }|.
+
+    rv_is_text_locked = exists_a_lock_entry_for( iv_lock_object = 'EABAPTEXTE'
+                                                 iv_argument    = lv_object ).
+
+  ENDMETHOD.
   METHOD read_progdir.
 
     DATA: ls_sapdir TYPE progdir.
@@ -37075,7 +37246,21 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
            rs_progdir-itime.
 
   ENDMETHOD.
+  METHOD read_tpool.
 
+    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
+                   <ls_tpool_out> LIKE LINE OF rt_tpool.
+    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
+      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
+      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
+      IF <ls_tpool_out>-id = 'S'.
+        CONCATENATE <ls_tpool_in>-split <ls_tpool_in>-entry
+          INTO <ls_tpool_out>-entry
+          RESPECTING BLANKS.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD serialize_cua.
 
     CALL FUNCTION 'RS_CUA_INTERNAL_FETCH'
@@ -37106,7 +37291,6 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD serialize_dynpros.
 
     DATA: ls_header               TYPE rpy_dyhead,
@@ -37189,315 +37373,104 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD deserialize_dynpros.
+  METHOD serialize_program.
 
-    DATA: lv_name   TYPE dwinactiv-obj_name,
-          ls_dynpro LIKE LINE OF it_dynpros.
-* ls_dynpro is changed by the function module, a field-symbol will cause
-* the program to dump since it_dynpros cannot be changed
-    LOOP AT it_dynpros INTO ls_dynpro.
+    DATA: ls_progdir      TYPE ty_progdir,
+          lv_program_name TYPE programm,
+          lt_dynpros      TYPE ty_dynpro_tt,
+          ls_cua          TYPE ty_cua,
+          lt_source       TYPE TABLE OF abaptxt255,
+          lt_tpool        TYPE textpool_table,
+          ls_tpool        LIKE LINE OF lt_tpool,
+          lo_xml          TYPE REF TO zcl_abapgit_xml_output.
 
-      ls_dynpro-flow_logic = uncondense_flow(
-        it_flow = ls_dynpro-flow_logic
-        it_spaces = ls_dynpro-spaces ).
-
-      CALL FUNCTION 'RPY_DYNPRO_INSERT'
-        EXPORTING
-          header                 = ls_dynpro-header
-          suppress_exist_checks  = abap_true
-        TABLES
-          containers             = ls_dynpro-containers
-          fields_to_containers   = ls_dynpro-fields
-          flow_logic             = ls_dynpro-flow_logic
-        EXCEPTIONS
-          cancelled              = 1
-          already_exists         = 2
-          program_not_exists     = 3
-          not_executed           = 4
-          missing_required_field = 5
-          illegal_field_value    = 6
-          field_not_allowed      = 7
-          not_generated          = 8
-          illegal_field_position = 9
-          OTHERS                 = 10.
-      IF sy-subrc <> 2 AND sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from RPY_DYNPRO_INSERT: { sy-subrc }| ).
-      ENDIF.
-* todo, RPY_DYNPRO_UPDATE?
-
-      CONCATENATE ls_dynpro-header-program ls_dynpro-header-screen
-        INTO lv_name RESPECTING BLANKS.
-      ASSERT NOT lv_name IS INITIAL.
-
-      zcl_abapgit_objects_activation=>add(
-        iv_type = 'DYNP'
-        iv_name = lv_name ).
-
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD add_tpool.
-
-    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
-                   <ls_tpool_out> LIKE LINE OF rt_tpool.
-    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
-      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
-      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
-      IF <ls_tpool_out>-id = 'S'.
-        <ls_tpool_out>-split = <ls_tpool_out>-entry.
-        <ls_tpool_out>-entry = <ls_tpool_out>-entry+8.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD read_tpool.
-
-    FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
-                   <ls_tpool_out> LIKE LINE OF rt_tpool.
-    LOOP AT it_tpool ASSIGNING <ls_tpool_in>.
-      APPEND INITIAL LINE TO rt_tpool ASSIGNING <ls_tpool_out>.
-      MOVE-CORRESPONDING <ls_tpool_in> TO <ls_tpool_out>.
-      IF <ls_tpool_out>-id = 'S'.
-        CONCATENATE <ls_tpool_in>-split <ls_tpool_in>-entry
-          INTO <ls_tpool_out>-entry
-          RESPECTING BLANKS.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD deserialize_textpool.
-
-    DATA lv_language TYPE langu.
-    DATA lv_state    TYPE c.
-    DATA lv_delete   TYPE abap_bool.
-
-    IF iv_language IS INITIAL.
-      lv_language = mv_language.
+    IF iv_program IS INITIAL.
+      lv_program_name = is_item-obj_name.
     ELSE.
-      lv_language = iv_language.
+      lv_program_name = iv_program.
     ENDIF.
 
-    IF lv_language = mv_language.
-      lv_state = 'I'. "Textpool in master language needs to be activated
-    ELSE.
-      lv_state = 'A'. "Translations are always active
-    ENDIF.
+    zcl_abapgit_language=>set_current_language( mv_language ).
 
-    IF it_tpool IS INITIAL.
-      IF iv_is_include = abap_false OR lv_state = 'A'.
-        DELETE TEXTPOOL iv_program "Remove initial description from textpool if
-          LANGUAGE iv_program      "original program does not have a textpool
-          STATE lv_state.
-
-        lv_delete = abap_true.
-      ELSE.
-        INSERT TEXTPOOL iv_program "In case of includes: Deletion of textpool in
-          FROM it_tpool            "master language cannot be activated because
-          LANGUAGE lv_language     "this woul activate the deletion of the textpool
-          STATE lv_state.          "of the mail program -> insert empty textpool
-      ENDIF.
-    ELSE.
-      IF lines( it_tpool ) = 1 AND lv_language = mv_language.
-        READ TABLE it_tpool WITH KEY id = 'R' TRANSPORTING NO FIELDS.
-        IF sy-subrc = 0.
-          RETURN. "No action because description in master language is already there
-        ENDIF.
-      ENDIF.
-
-      INSERT TEXTPOOL iv_program
-        FROM it_tpool
-        LANGUAGE lv_language
-        STATE lv_state.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
-      ENDIF.
-    ENDIF.
-
-    IF lv_state = 'I'. "Textpool in master language needs to be activated
-      zcl_abapgit_objects_activation=>add(
-        iv_type   = 'REPT'
-        iv_name   = iv_program
-        iv_delete = lv_delete ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD deserialize_cua.
-
-    DATA: ls_tr_key TYPE trkey,
-          ls_adm    TYPE rsmpe_adm.
-    IF lines( is_cua-sta ) = 0
-        AND lines( is_cua-fun ) = 0
-        AND lines( is_cua-men ) = 0
-        AND lines( is_cua-mtx ) = 0
-        AND lines( is_cua-act ) = 0
-        AND lines( is_cua-but ) = 0
-        AND lines( is_cua-pfk ) = 0
-        AND lines( is_cua-set ) = 0
-        AND lines( is_cua-doc ) = 0
-        AND lines( is_cua-tit ) = 0
-        AND lines( is_cua-biv ) = 0.
-      RETURN.
-    ENDIF.
-
-    SELECT SINGLE devclass INTO ls_tr_key-devclass
-      FROM tadir
-      WHERE pgmid = 'R3TR'
-      AND object = ms_item-obj_type
-      AND obj_name = ms_item-obj_name.                  "#EC CI_GENBUFF
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'not found in tadir' ).
-    ENDIF.
-
-    ls_tr_key-obj_type = ms_item-obj_type.
-    ls_tr_key-obj_name = ms_item-obj_name.
-    ls_tr_key-sub_type = 'CUAD'.
-    ls_tr_key-sub_name = iv_program_name.
-    ls_adm = is_cua-adm.
-    auto_correct_cua_adm( EXPORTING is_cua = is_cua CHANGING cs_adm = ls_adm ).
-
-    sy-tcode = 'SE41' ##write_ok. " evil hack, workaround to handle fixes in note 2159455
-    CALL FUNCTION 'RS_CUA_INTERNAL_WRITE'
+    CALL FUNCTION 'RPY_PROGRAM_READ'
       EXPORTING
-        program   = iv_program_name
-        language  = mv_language
-        tr_key    = ls_tr_key
-        adm       = ls_adm
-        state     = 'I'
+        program_name     = lv_program_name
+        with_lowercase   = abap_true
       TABLES
-        sta       = is_cua-sta
-        fun       = is_cua-fun
-        men       = is_cua-men
-        mtx       = is_cua-mtx
-        act       = is_cua-act
-        but       = is_cua-but
-        pfk       = is_cua-pfk
-        set       = is_cua-set
-        doc       = is_cua-doc
-        tit       = is_cua-tit
-        biv       = is_cua-biv
+        source_extended  = lt_source
+        textelements     = lt_tpool
       EXCEPTIONS
-        not_found = 1
-        OTHERS    = 2.
-    IF sy-subrc <> 0.
-* if moving code from SAPlink, see https://github.com/larshp/abapGit/issues/562
-      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_WRITE' ).
+        cancelled        = 1
+        not_found        = 2
+        permission_error = 3
+        OTHERS           = 4.
+
+    IF sy-subrc = 2.
+      zcl_abapgit_language=>restore_login_language( ).
+      RETURN.
+    ELSEIF sy-subrc <> 0.
+      zcl_abapgit_language=>restore_login_language( ).
+      zcx_abapgit_exception=>raise( 'Error reading program' ).
     ENDIF.
 
-    zcl_abapgit_objects_activation=>add(
-      iv_type = 'CUAD'
-      iv_name = iv_program_name ).
+    zcl_abapgit_language=>restore_login_language( ).
+
+    ls_progdir = read_progdir( lv_program_name ).
+
+    IF io_xml IS BOUND.
+      lo_xml = io_xml.
+    ELSE.
+      CREATE OBJECT lo_xml.
+    ENDIF.
+
+    lo_xml->add( iv_name = 'PROGDIR'
+                 ig_data = ls_progdir ).
+    IF ls_progdir-subc = '1' OR ls_progdir-subc = 'M'.
+      lt_dynpros = serialize_dynpros( lv_program_name ).
+      lo_xml->add( iv_name = 'DYNPROS'
+                   ig_data = lt_dynpros ).
+
+      ls_cua = serialize_cua( lv_program_name ).
+      IF NOT ls_cua IS INITIAL.
+        lo_xml->add( iv_name = 'CUA'
+                     ig_data = ls_cua ).
+      ENDIF.
+    ENDIF.
+
+    READ TABLE lt_tpool WITH KEY id = 'R' INTO ls_tpool.
+    IF sy-subrc = 0 AND ls_tpool-key = '' AND ls_tpool-length = 0.
+      DELETE lt_tpool INDEX sy-tabix.
+    ENDIF.
+
+    lo_xml->add( iv_name = 'TPOOL'
+                 ig_data = add_tpool( lt_tpool ) ).
+
+    IF NOT io_xml IS BOUND.
+      io_files->add_xml( iv_extra = iv_extra
+                         io_xml   = lo_xml ).
+    ENDIF.
+
+    io_files->add_abap( iv_extra = iv_extra
+                        it_abap  = lt_source ).
 
   ENDMETHOD.
+  METHOD uncondense_flow.
 
-  METHOD check_prog_changed_since.
+    DATA: lv_spaces LIKE LINE OF it_spaces.
 
-    DATA: lv_date    TYPE dats,
-          lv_time    TYPE tims,
-          lt_screens TYPE STANDARD TABLE OF d020s,
-          lt_eudb    TYPE STANDARD TABLE OF eudb.
+    FIELD-SYMBOLS: <ls_flow>   LIKE LINE OF it_flow,
+                   <ls_output> LIKE LINE OF rt_flow.
+    LOOP AT it_flow ASSIGNING <ls_flow>.
+      APPEND INITIAL LINE TO rt_flow ASSIGNING <ls_output>.
+      <ls_output>-line = <ls_flow>-line.
 
-    FIELD-SYMBOLS: <ls_screen> LIKE LINE OF lt_screens,
-                   <ls_eudb>   LIKE LINE OF lt_eudb.
-
-    SELECT SINGLE udat utime FROM reposrc " Program
-      INTO (lv_date, lv_time)
-      WHERE progname = iv_program
-      AND   r3state = 'A'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT SINGLE udat utime FROM repotext " Program text pool
-      INTO (lv_date, lv_time)
-      WHERE progname = iv_program
-      AND   r3state = 'A'.
-
-    IF sy-subrc = 0. " Text not found ? Assuming no changes, see #404
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = lv_date
-        iv_time      = lv_time ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDIF.
-
-    IF iv_skip_gui = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT dgen tgen FROM d020s           " Screens
-      INTO CORRESPONDING FIELDS OF TABLE lt_screens
-      WHERE prog = iv_program
-      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-
-    LOOP AT lt_screens ASSIGNING <ls_screen>.
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = <ls_screen>-dgen
-        iv_time      = <ls_screen>-tgen ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-    SELECT vdatum vzeit FROM eudb         " GUI
-      INTO CORRESPONDING FIELDS OF TABLE lt_eudb
-      WHERE relid = 'CU'
-      AND   name  = iv_program
-      AND   srtf2 = 0
-      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-
-    LOOP AT lt_eudb ASSIGNING <ls_eudb>.
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = <ls_eudb>-vdatum
-        iv_time      = <ls_eudb>-vzeit ).
-      IF rv_changed = abap_true.
-        RETURN.
+      READ TABLE it_spaces INDEX sy-tabix INTO lv_spaces.
+      IF sy-subrc = 0.
+        SHIFT <ls_output>-line RIGHT BY lv_spaces PLACES IN CHARACTER MODE.
       ENDIF.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD auto_correct_cua_adm.
-    " issue #1807 automatic correction of CUA interfaces saved incorrectly in the past (ADM was not saved in the XML)
-    FIELD-SYMBOLS:
-      <ls_pfk> TYPE rsmpe_pfk,
-      <ls_act> TYPE rsmpe_act,
-      <ls_men> TYPE rsmpe_men.
-
-    IF cs_adm IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    LOOP AT is_cua-act ASSIGNING <ls_act>.
-      IF <ls_act>-code+6(14) IS INITIAL AND <ls_act>-code(6) CO '0123456789'.
-        cs_adm-actcode = <ls_act>-code.
-      ENDIF.
-    ENDLOOP.
-
-    LOOP AT is_cua-men ASSIGNING <ls_men>.
-      IF <ls_men>-code+6(14) IS INITIAL AND <ls_men>-code(6) CO '0123456789'.
-        cs_adm-mencode = <ls_men>-code.
-      ENDIF.
-    ENDLOOP.
-
-    LOOP AT is_cua-pfk ASSIGNING <ls_pfk>.
-      IF <ls_pfk>-code+6(14) IS INITIAL AND <ls_pfk>-code(6) CO '0123456789'.
-        cs_adm-pfkcode = <ls_pfk>-code.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD after_import.
@@ -38353,8 +38326,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_old.
 
-    DATA: lv_popup TYPE abap_bool,
-          li_gui   TYPE REF TO zif_abapgit_gui_functions.
+    DATA: lv_popup TYPE abap_bool.
 
     IF gt_objects IS NOT INITIAL.
 
@@ -41785,7 +41757,6 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     DATA END OF ls_udmo_long_text.
 
     DATA lt_udmo_long_texts LIKE STANDARD TABLE OF ls_udmo_long_text.
-    DATA lt_udmo_languages TYPE STANDARD TABLE OF language_type.
     DATA ls_header TYPE thead.
 
     io_xml->read( EXPORTING iv_name = 'UDMO_LONG_TEXTS'
@@ -54854,93 +54825,7 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_enho IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~changed_by.
-
-    DATA: lv_enh_id   TYPE enhname,
-          li_enho     TYPE REF TO zif_abapgit_object_enho,
-          lt_log      TYPE enh_log_it,
-          li_log_obj  TYPE REF TO if_enh_log,
-          ls_enhlog   TYPE enhlog,
-          lv_lines    TYPE i,
-          lt_enhlog   TYPE STANDARD TABLE OF enhlog WITH DEFAULT KEY,
-          li_enh_tool TYPE REF TO if_enh_tool.
-    lv_enh_id = ms_item-obj_name.
-    TRY.
-        li_enh_tool = cl_enh_factory=>get_enhancement(
-          enhancement_id   = lv_enh_id
-          bypassing_buffer = abap_true ).
-      CATCH cx_enh_root.
-        rv_user = c_user_unknown.
-        RETURN.
-    ENDTRY.
-
-    lt_log = li_enh_tool->get_log( ).
-
-    LOOP AT lt_log INTO li_log_obj.
-      ls_enhlog = li_log_obj->get_enhlog( ).
-      APPEND ls_enhlog TO lt_enhlog.
-    ENDLOOP.
-
-    lv_lines = lines( lt_enhlog ).
-    READ TABLE lt_enhlog INTO ls_enhlog INDEX lv_lines.
-    IF sy-subrc = 0.
-      rv_user = ls_enhlog-loguser.
-    ELSE.
-      rv_user = c_user_unknown.
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_enh_id TYPE enhname.
-    lv_enh_id = ms_item-obj_name.
-    TRY.
-        cl_enh_factory=>get_enhancement(
-          enhancement_id   = lv_enh_id
-          bypassing_buffer = abap_true ).
-        rv_bool = abap_true.
-      CATCH cx_enh_root.
-        rv_bool = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lv_enh_id   TYPE enhname,
-          li_enho     TYPE REF TO zif_abapgit_object_enho,
-          li_enh_tool TYPE REF TO if_enh_tool.
-    IF zif_abapgit_object~exists( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    lv_enh_id = ms_item-obj_name.
-    TRY.
-        li_enh_tool = cl_enh_factory=>get_enhancement(
-          enhancement_id   = lv_enh_id
-          bypassing_buffer = abap_true ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
-    ENDTRY.
-
-    li_enho = factory( li_enh_tool->get_tool( ) ).
-
-    li_enho->serialize( io_xml      = io_xml
-                        ii_enh_tool = li_enh_tool ).
-
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   METHOD factory.
 
     CASE iv_tool.
@@ -54984,7 +54869,61 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
 
+    DATA: lv_enh_id   TYPE enhname,
+          lt_log      TYPE enh_log_it,
+          li_log_obj  TYPE REF TO if_enh_log,
+          ls_enhlog   TYPE enhlog,
+          lv_lines    TYPE i,
+          lt_enhlog   TYPE STANDARD TABLE OF enhlog WITH DEFAULT KEY,
+          li_enh_tool TYPE REF TO if_enh_tool.
+    lv_enh_id = ms_item-obj_name.
+    TRY.
+        li_enh_tool = cl_enh_factory=>get_enhancement(
+          enhancement_id   = lv_enh_id
+          bypassing_buffer = abap_true ).
+      CATCH cx_enh_root.
+        rv_user = c_user_unknown.
+        RETURN.
+    ENDTRY.
+
+    lt_log = li_enh_tool->get_log( ).
+
+    LOOP AT lt_log INTO li_log_obj.
+      ls_enhlog = li_log_obj->get_enhlog( ).
+      APPEND ls_enhlog TO lt_enhlog.
+    ENDLOOP.
+
+    lv_lines = lines( lt_enhlog ).
+    READ TABLE lt_enhlog INTO ls_enhlog INDEX lv_lines.
+    IF sy-subrc = 0.
+      rv_user = ls_enhlog-loguser.
+    ELSE.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lv_enh_id     TYPE enhname,
+          li_enh_object TYPE REF TO if_enh_object.
+    lv_enh_id = ms_item-obj_name.
+    TRY.
+        li_enh_object = cl_enh_factory=>get_enhancement(
+          enhancement_id = lv_enh_id
+          lock           = abap_true ).
+        li_enh_object->delete( ).
+        li_enh_object->save( run_dark = abap_true ).
+        li_enh_object->unlock( ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'Error deleting ENHO' ).
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_tool TYPE enhtooltype,
@@ -55004,40 +54943,29 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_enh_id     TYPE enhname,
-          li_enh_object TYPE REF TO if_enh_object.
+    DATA: lv_enh_id TYPE enhname.
     lv_enh_id = ms_item-obj_name.
     TRY.
-        li_enh_object = cl_enh_factory=>get_enhancement(
-          enhancement_id = lv_enh_id
-          lock           = abap_true ).
-        li_enh_object->delete( ).
-        li_enh_object->save( run_dark = abap_true ).
-        li_enh_object->unlock( ).
+        cl_enh_factory=>get_enhancement(
+          enhancement_id   = lv_enh_id
+          bypassing_buffer = abap_true ).
+        rv_bool = abap_true.
       CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'Error deleting ENHO' ).
+        rv_bool = abap_false.
     ENDTRY.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENHO'
-        in_new_window = abap_true.
-
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
   ENDMETHOD.
-
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     DATA: lv_object TYPE seqg3-garg.
@@ -55050,8 +54978,39 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
                                             iv_argument    = lv_object ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = 'ENHO'
+        in_new_window = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lv_enh_id   TYPE enhname,
+          li_enho     TYPE REF TO zif_abapgit_object_enho,
+          li_enh_tool TYPE REF TO if_enh_tool.
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    lv_enh_id = ms_item-obj_name.
+    TRY.
+        li_enh_tool = cl_enh_factory=>get_enhancement(
+          enhancement_id   = lv_enh_id
+          bypassing_buffer = abap_true ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
+    ENDTRY.
+
+    li_enho = factory( li_enh_tool->get_tool( ) ).
+
+    li_enho->serialize( io_xml      = io_xml
+                        ii_enh_tool = li_enh_tool ).
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
@@ -60955,8 +60914,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     " Downport
 
-    DATA: lv_partyp TYPE string,
-          lx_ecatt  TYPE REF TO cx_ecatt_apl.
+    DATA: lx_ecatt TYPE REF TO cx_ecatt_apl.
 
     load_help = im_load_help.
     typ = im_object_type.
@@ -64060,7 +64018,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
       rv_name = iv_branch_name.
@@ -64267,7 +64225,6 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD skip_first_pkt.
 
-    CONSTANTS: lc_lf TYPE x LENGTH 1 VALUE '0A'.
     DATA: lv_hex    TYPE x LENGTH 1,
           lv_length TYPE i,
           lv_0a_pos TYPE i.
@@ -65062,8 +65019,7 @@ FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
 ENDFORM.                    "package_popup
 
 FORM output.
-  DATA: lt_ucomm TYPE TABLE OF sy-ucomm,
-        lx_error TYPE REF TO zcx_abapgit_exception.
+  DATA: lt_ucomm TYPE TABLE OF sy-ucomm.
 
   PERFORM set_pf_status IN PROGRAM rsdbrunt IF FOUND.
 
@@ -65125,5 +65081,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-08T05:28:03.517Z
+* abapmerge - 2018-11-08T15:36:41.886Z
 ****************************************************
