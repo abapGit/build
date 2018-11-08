@@ -5598,13 +5598,12 @@ CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS handle_attrib_leading_spaces IMPORTING iv_name                TYPE string
                                                    ii_node                TYPE REF TO if_ixml_node
                                          CHANGING  cv_within_code_section TYPE abap_bool.
-    METHODS get_range_node_codes RETURNING VALUE(e_range_node_codes) TYPE ty_string_range.
+    METHODS get_range_node_codes RETURNING VALUE(rt_range_node_codes) TYPE ty_string_range.
     METHODS code_item_section_handling IMPORTING iv_name                TYPE string
                                                  ii_node                TYPE REF TO if_ixml_node
                                        EXPORTING ei_code_item_element   TYPE REF TO if_ixml_element
                                        CHANGING  cv_within_code_section TYPE abap_bool
                                        RAISING   zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_ssst DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -45537,65 +45536,65 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_range_node_codes.
 
-    DATA: range_node_code TYPE LINE OF ty_string_range.
+    DATA: ls_range_node_code TYPE LINE OF ty_string_range.
 
     IF me->range_node_codes IS INITIAL.
-      range_node_code-sign   = 'I'.
-      range_node_code-option = 'EQ'.
-      range_node_code-low    = 'CODE'.
-      INSERT range_node_code INTO TABLE me->range_node_codes.
-      range_node_code-low    = 'GTYPES'.
-      INSERT range_node_code INTO TABLE me->range_node_codes.
-      range_node_code-low    = 'GCODING'.
-      INSERT range_node_code INTO TABLE me->range_node_codes.
-      range_node_code-low    = 'FCODING'.
-      INSERT range_node_code INTO TABLE me->range_node_codes.
+      ls_range_node_code-sign   = 'I'.
+      ls_range_node_code-option = 'EQ'.
+      ls_range_node_code-low    = 'CODE'.
+      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      ls_range_node_code-low    = 'GTYPES'.
+      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      ls_range_node_code-low    = 'GCODING'.
+      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      ls_range_node_code-low    = 'FCODING'.
+      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
     ENDIF.
 
-    e_range_node_codes = me->range_node_codes.
+    rt_range_node_codes = me->range_node_codes.
 
   ENDMETHOD.
   METHOD handle_attrib_leading_spaces.
 
-    DATA element        TYPE REF TO if_ixml_element.
-    DATA leading_spaces TYPE string.
-    DATA coding_line    TYPE string.
+    DATA li_element        TYPE REF TO if_ixml_element.
+    DATA lv_leading_spaces TYPE string.
+    DATA lv_coding_line    TYPE string.
 
     TRY.
         code_item_section_handling( EXPORTING iv_name                = iv_name
                                               ii_node                = ii_node
-                                    IMPORTING ei_code_item_element   = element
+                                    IMPORTING ei_code_item_element   = li_element
                                     CHANGING  cv_within_code_section = cv_within_code_section ).
 
-        leading_spaces = element->get_attribute_ns( name = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces ).
+        lv_leading_spaces = li_element->get_attribute_ns( name = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces ).
 
-        coding_line = element->get_value( ).
-        SHIFT coding_line RIGHT BY leading_spaces PLACES.
-        element->set_value( coding_line ).
+        lv_coding_line = li_element->get_value( ).
+        SHIFT lv_coding_line RIGHT BY lv_leading_spaces PLACES.
+        li_element->set_value( lv_coding_line ).
       CATCH zcx_abapgit_exception ##no_handler.
     ENDTRY.
 
   ENDMETHOD.
   METHOD set_attribute_leading_spaces.
 
-    DATA: element             TYPE REF TO if_ixml_element.
-    DATA: code_line           TYPE string.
-    DATA: offset              TYPE i.
+    DATA: li_element             TYPE REF TO if_ixml_element.
+    DATA: lv_code_line           TYPE string.
+    DATA: lv_offset              TYPE i.
 
     TRY.
         code_item_section_handling( EXPORTING iv_name                = iv_name
                                               ii_node                = ii_node
-                                    IMPORTING ei_code_item_element   = element
+                                    IMPORTING ei_code_item_element   = li_element
                                     CHANGING  cv_within_code_section = cv_within_code_section ).
 
-        code_line = ii_node->get_value( ).
+        lv_code_line = ii_node->get_value( ).
         "find 1st non space char
-        FIND FIRST OCCURRENCE OF REGEX '\S' IN code_line MATCH OFFSET offset.
-        IF sy-subrc = 0 AND offset > 0.
+        FIND FIRST OCCURRENCE OF REGEX '\S' IN lv_code_line MATCH OFFSET lv_offset.
+        IF sy-subrc = 0 AND lv_offset > 0.
           TRY.
-              element ?= ii_node.
-              element->set_attribute( name  = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces
-                                      value = |{ offset }| ).
+              li_element ?= ii_node.
+              li_element->set_attribute( name  = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces
+                                      value = |{ lv_offset }| ).
 
             CATCH cx_sy_move_cast_error ##no_handler.
           ENDTRY.
@@ -45638,15 +45637,15 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 * see function module FB_UPLOAD_FORM
 
-    DATA: li_node     TYPE REF TO if_ixml_node,
-          lv_formname TYPE tdsfname,
-          lv_name     TYPE string,
-          li_iterator TYPE REF TO if_ixml_node_iterator,
-          lo_sf       TYPE REF TO cl_ssf_fb_smart_form,
-          lo_res      TYPE REF TO cl_ssf_fb_smart_form,
-          lx_error    TYPE REF TO cx_ssf_fb,
-          lv_text     TYPE string.
-    DATA: within_code_section TYPE abap_bool.
+    DATA: li_node                TYPE REF TO if_ixml_node,
+          lv_formname            TYPE tdsfname,
+          lv_name                TYPE string,
+          li_iterator            TYPE REF TO if_ixml_node_iterator,
+          lo_sf                  TYPE REF TO cl_ssf_fb_smart_form,
+          lo_res                 TYPE REF TO cl_ssf_fb_smart_form,
+          lx_error               TYPE REF TO cx_ssf_fb,
+          lv_text                TYPE string,
+          lv_within_code_section TYPE abap_bool.
 
     CREATE OBJECT lo_sf.
 
@@ -45669,7 +45668,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
 
       handle_attrib_leading_spaces( EXPORTING iv_name                = lv_name
                                               ii_node                = li_node
-                                    CHANGING  cv_within_code_section = within_code_section ).
+                                    CHANGING  cv_within_code_section = lv_within_code_section ).
 
       li_node = li_iterator->get_next( ).
     ENDWHILE.
@@ -45719,16 +45718,18 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
-    DATA: ssfo_formname TYPE tdsfname.
+    DATA: lv_ssfo_formname TYPE tdsfname.
 
-    ssfo_formname = ms_item-obj_name.
+    lv_ssfo_formname = ms_item-obj_name.
+
     CALL FUNCTION 'SSF_STATUS_INFO'
       EXPORTING
-        i_formname = ssfo_formname
+        i_formname = lv_ssfo_formname
       IMPORTING
         o_inactive = ms_item-inactive.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -45797,15 +45798,15 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 * see function module FB_DOWNLOAD_FORM
 
-    DATA: lo_sf       TYPE REF TO cl_ssf_fb_smart_form,
-          lv_name     TYPE string,
-          li_node     TYPE REF TO if_ixml_node,
-          li_element  TYPE REF TO if_ixml_element,
-          li_iterator TYPE REF TO if_ixml_node_iterator,
-          lv_formname TYPE tdsfname,
-          li_ixml     TYPE REF TO if_ixml,
-          li_xml_doc  TYPE REF TO if_ixml_document.
-    DATA: within_code_section TYPE abap_bool.
+    DATA: lo_sf                  TYPE REF TO cl_ssf_fb_smart_form,
+          lv_name                TYPE string,
+          li_node                TYPE REF TO if_ixml_node,
+          li_element             TYPE REF TO if_ixml_element,
+          li_iterator            TYPE REF TO if_ixml_node_iterator,
+          lv_formname            TYPE tdsfname,
+          li_ixml                TYPE REF TO if_ixml,
+          li_xml_doc             TYPE REF TO if_ixml_document,
+          lv_within_code_section TYPE abap_bool.
 
     li_ixml = cl_ixml=>create( ).
     li_xml_doc = li_ixml->create_document( ).
@@ -45839,7 +45840,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
       ENDIF.
       set_attribute_leading_spaces( EXPORTING iv_name                = lv_name
                                               ii_node                = li_node
-                                    CHANGING  cv_within_code_section = within_code_section ).
+                                    CHANGING  cv_within_code_section = lv_within_code_section ).
 
       li_node = li_iterator->get_next( ).
     ENDWHILE.
@@ -65123,5 +65124,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-07T11:51:58.185Z
+* abapmerge - 2018-11-08T05:16:46.934Z
 ****************************************************
