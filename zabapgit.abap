@@ -3335,31 +3335,24 @@ CLASS zcl_abapgit_ecatt_data_downl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      download REDEFINITION,
 
-      set_generate_xml_no_download
-        IMPORTING
-          iv_generate_xml_no_download TYPE abap_bool,
+    METHODS get_xml_stream
+      RETURNING
+        VALUE(rv_xml_stream) TYPE xstring .
+    METHODS get_xml_stream_size
+      RETURNING
+        VALUE(rv_xml_stream_size) TYPE int4 .
 
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
-
+    METHODS download
+        REDEFINITION .
   PROTECTED SECTION.
     METHODS:
       download_data REDEFINITION.
 
   PRIVATE SECTION.
-    DATA:
-      mv_generate_xml_no_download TYPE abap_bool,
-      mv_xml_stream               TYPE xstring,
-      mv_xml_stream_size          TYPE int4.
 
+    DATA mv_xml_stream TYPE xstring .
+    DATA mv_xml_stream_size TYPE int4 .
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_data_upload DEFINITION
   INHERITING FROM cl_apl_ecatt_data_upload
@@ -12025,6 +12018,7 @@ CLASS zcl_abapgit_tadir DEFINITION
   PUBLIC SECTION.
     INTERFACES zif_abapgit_tadir .
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS exists
       IMPORTING
@@ -13501,8 +13495,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
           lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
           lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
 
-    FIELD-SYMBOLS: <ls_tdevc>   LIKE LINE OF lt_tdevc,
-                   <ls_tadir>   LIKE LINE OF rt_tadir,
+    FIELD-SYMBOLS: <ls_tadir>   LIKE LINE OF rt_tadir,
                    <lv_package> TYPE devclass.
 
     "Determine Packages to Read
@@ -19629,8 +19622,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
           ls_parent           LIKE LINE OF it_commit_sha1s,
           lt_commit_sha1s     LIKE it_commit_sha1s.
 
-    FIELD-SYMBOLS: <ls_commit_sha1>  LIKE LINE OF it_commit_sha1s,
-                   <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
 
     CLEAR: es_1st_commit.
 
@@ -25384,7 +25376,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -25433,12 +25425,11 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
   METHOD find_transports.
     DATA: li_cts_api TYPE REF TO zif_abapgit_cts_api,
           ls_new     LIKE LINE OF rt_transports.
-    FIELD-SYMBOLS: <ls_local> LIKE LINE OF it_local,
-                   <ls_new>   LIKE LINE OF rt_transports.
+
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF it_local.
 
     li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
 
@@ -25474,17 +25465,13 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     DATA: lo_page   TYPE REF TO zcl_abapgit_gui_page_diff,
           lv_key    TYPE zif_abapgit_persistence=>ty_repo-key,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file,
-          ls_object TYPE zif_abapgit_definitions=>ty_item,
           lo_stage  TYPE REF TO zcl_abapgit_stage.
 
     zcl_abapgit_html_action_utils=>file_obj_decode(
       EXPORTING
         iv_string = iv_getdata
       IMPORTING
-        ev_key    = lv_key
-        eg_file   = ls_file
-        eg_object = ls_object ).
+        ev_key    = lv_key ).
 
     CREATE OBJECT lo_stage.
 
@@ -27980,7 +27967,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_to_stage.
 
     DATA: lo_repo              TYPE REF TO zcl_abapgit_repo_online,
-          lt_local             TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lt_diff              TYPE zif_abapgit_definitions=>ty_diffs_tt,
           lv_something_patched TYPE abap_bool,
           lv_patch             TYPE xstring,
@@ -27988,8 +27974,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_diff_file> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
 
-    lo_repo  ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_repo_key ).
-    lt_local  = lo_repo->get_files_local( ).
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_repo_key ).
 
     LOOP AT mt_diff_files ASSIGNING <ls_diff_file>.
 
@@ -28291,9 +28276,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     DATA: lt_diff       TYPE zif_abapgit_definitions=>ty_diffs_tt,
           lv_line_index TYPE sytabix.
-
-    FIELD-SYMBOLS: <ls_diff> LIKE LINE OF lt_diff.
-
     lv_line_index = iv_line_index.
     lt_diff = io_diff->get( ).
 
@@ -29183,7 +29165,6 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   METHOD jump.
     DATA: lo_test               TYPE REF TO cl_ci_test_root,
-          li_code_inspector     TYPE REF TO zif_abapgit_code_inspector,
           ls_info               TYPE scir_rest,
           lo_result             TYPE REF TO cl_ci_result_root,
           lv_check_variant_name TYPE sci_chkv,
@@ -29217,10 +29198,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
 
     lv_package = mo_repo->get_package( ).
     lv_check_variant_name = mo_repo->get_local_settings( )-code_inspector_check_variant.
-
-    li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
-        iv_package            = lv_package
-        iv_check_variant_name = lv_check_variant_name ).
 
     " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
 
@@ -46778,7 +46755,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
         no_authority              = 26
         OTHERS                    = 27 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'SICF - error from change_node' ).
+      zcx_abapgit_exception=>raise( |SICF - error from change_node. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -46798,7 +46775,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
         no_authority          = 5
         OTHERS                = 6 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'SICF - error from service_from_url' ).
+      zcx_abapgit_exception=>raise( |SICF - error from service_from_url. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -46890,7 +46867,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
         no_authority      = 4
         OTHERS            = 5 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'SICF - error from get_info_from_serv' ).
+      zcx_abapgit_exception=>raise( |SICF - error from get_info_from_serv. Subrc = { sy-subrc }| ).
     ENDIF.
 
     ASSERT lines( lt_serv_info ) = 1.
@@ -47042,7 +47019,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
         no_authority                = 11
         OTHERS                      = 12 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'SICF - error from delete_node' ).
+      zcx_abapgit_exception=>raise( |SICF - error from delete_node. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -47103,9 +47080,18 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
-    rv_is_locked = abap_false.
+    DATA: lv_argument TYPE seqg3-garg.
+
+    lv_argument = ms_item-obj_name(15).
+    lv_argument+15(1) = '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESICFSER'
+                                            iv_argument    = lv_argument ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -47173,9 +47159,6 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     io_xml->add( iv_name = 'ICFHANDLER_TABLE'
                  ig_data = lt_icfhandler ).
 
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_shma IMPLEMENTATION.
@@ -53602,16 +53585,39 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+    DATA: lv_spot_name TYPE enhspotcompositename,
+          lv_message   TYPE string,
+          lx_root      TYPE REF TO cx_root,
+          li_spot_ref  TYPE REF TO if_enh_spot_composite.
 
+    lv_spot_name = ms_item-obj_name.
+
+    TRY.
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
+          lock = 'X'
+          name = lv_spot_name ).
+
+        IF li_spot_ref IS BOUND.
+          li_spot_ref->if_enh_object~delete(
+            nevertheless_delete = 'X'
+            run_dark            = 'X' ).
+        ENDIF.
+        li_spot_ref->if_enh_object~unlock( ).
+      CATCH cx_enh_root INTO lx_root.
+        lv_message = `Error occured while deleting ENSC: `
+          && lx_root->get_text( ) ##NO_TEXT.
+        zcx_abapgit_exception=>raise( lv_message ).
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_spot_name  TYPE enhspotcompositename,
@@ -53672,7 +53678,45 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
+    DATA: lv_spot_name TYPE enhspotcompositename.
+    lv_spot_name = ms_item-obj_name.
+
+    TRY.
+        cl_enh_factory=>get_enhancement_spot_comp(
+          lock = ''
+          name = lv_spot_name ).
+        rv_bool = abap_true.
+      CATCH cx_enh_root.
+        rv_bool = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = 'ENSC'
+        in_new_window = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_spot_name  TYPE enhspotcompositename,
@@ -53713,78 +53757,6 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_spot_name TYPE enhspotcompositename,
-          li_spot_ref  TYPE REF TO if_enh_spot_composite.
-    lv_spot_name = ms_item-obj_name.
-
-    TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
-          lock = ''
-          name = lv_spot_name ).
-        rv_bool = abap_true.
-      CATCH cx_enh_root.
-        rv_bool = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~delete.
-    DATA: lv_spot_name TYPE enhspotcompositename,
-          lv_message   TYPE string,
-          lx_root      TYPE REF TO cx_root,
-          li_spot_ref  TYPE REF TO if_enh_spot_composite.
-
-    lv_spot_name = ms_item-obj_name.
-
-    TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
-          lock = 'X'
-          name = lv_spot_name ).
-
-        IF li_spot_ref IS BOUND.
-          li_spot_ref->if_enh_object~delete(
-            nevertheless_delete = 'X'
-            run_dark            = 'X' ).
-        ENDIF.
-        li_spot_ref->if_enh_object~unlock( ).
-      CATCH cx_enh_root INTO lx_root.
-        lv_message = `Error occured while deleting ENSC: `
-          && lx_root->get_text( ) ##NO_TEXT.
-        zcx_abapgit_exception=>raise( lv_message ).
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENSC'
-        in_new_window = abap_true.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
@@ -54150,12 +54122,19 @@ CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
+  METHOD factory.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
+    CASE iv_tool.
+      WHEN cl_enh_tool_badi_def=>tooltype.
+        CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enhs_badi_d.
+      WHEN cl_enh_tool_hook_def=>tool_type.
+        CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enhs_hook_d.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |ENHS: Unsupported tool { iv_tool }| ).
+    ENDCASE.
+
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_spot_name TYPE enhspotname,
@@ -54172,7 +54151,30 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
 
+    DATA: lv_spot_name  TYPE enhspotname,
+          li_enh_object TYPE REF TO if_enh_object.
+
+    lv_spot_name  = ms_item-obj_name.
+
+    TRY.
+        li_enh_object ?= cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
+                                                               lock      = abap_true ).
+
+        li_enh_object->delete( nevertheless_delete = abap_true
+                               run_dark            = abap_true ).
+
+        li_enh_object->unlock( ).
+
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_parent    TYPE enhspotcompositename,
@@ -54180,8 +54182,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
           lv_tool      TYPE enhspottooltype,
           lv_package   LIKE iv_package,
           li_spot_ref  TYPE REF TO if_enh_spot_tool,
-          li_enhs      TYPE REF TO zif_abapgit_object_enhs,
-          lx_root      TYPE REF TO cx_root.
+          li_enhs      TYPE REF TO zif_abapgit_object_enhs.
 
     IF zif_abapgit_object~exists( ) = abap_true.
       zif_abapgit_object~delete( ).
@@ -54205,7 +54206,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
           CHANGING
             devclass       = lv_package ).
 
-      CATCH cx_enh_root INTO lx_root.
+      CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
     ENDTRY.
 
@@ -54216,7 +54217,47 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
                           ii_enh_spot_tool = li_spot_ref ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
+    DATA: lv_spot_name TYPE enhspotname,
+          li_spot_ref  TYPE REF TO if_enh_spot_tool.
+
+    lv_spot_name = ms_item-obj_name.
+
+    TRY.
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot( lv_spot_name ).
+
+        rv_bool = abap_true.
+
+      CATCH cx_enh_root.
+        rv_bool = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = 'ENHS'
+        in_new_window = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_spot_name TYPE enhspotname,
@@ -54238,88 +54279,6 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     li_enhs->serialize( io_xml           = io_xml
                         ii_enh_spot_tool = li_spot_ref ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_spot_name TYPE enhspotname,
-          li_spot_ref  TYPE REF TO if_enh_spot_tool.
-
-    lv_spot_name = ms_item-obj_name.
-
-    TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot( lv_spot_name ).
-
-        rv_bool = abap_true.
-
-      CATCH cx_enh_root.
-        rv_bool = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_spot_name  TYPE enhspotname,
-          li_enh_object TYPE REF TO if_enh_object,
-          lx_root       TYPE REF TO cx_root.
-
-    lv_spot_name  = ms_item-obj_name.
-
-    TRY.
-        li_enh_object ?= cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
-                                                               lock      = abap_true ).
-
-        li_enh_object->delete( nevertheless_delete = abap_true
-                               run_dark            = abap_true ).
-
-        li_enh_object->unlock( ).
-
-      CATCH cx_enh_root INTO lx_root.
-        zcx_abapgit_exception=>raise( 'Error from CL_ENH_FACTORY' ).
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENHS'
-        in_new_window = abap_true.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-
-  METHOD factory.
-
-    CASE iv_tool.
-      WHEN cl_enh_tool_badi_def=>tooltype.
-        CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enhs_badi_d.
-      WHEN cl_enh_tool_hook_def=>tool_type.
-        CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enhs_hook_d.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |ENHS: Unsupported tool { iv_tool }| ).
-    ENDCASE.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
@@ -60860,13 +60819,10 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
   METHOD download.
 
     " Downport
-
-    DATA: lv_partyp TYPE string.
 
     load_help = im_load_help.
     typ = im_object_type.
@@ -60882,8 +60838,6 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
       CATCH cx_ecatt INTO ex_ecatt.
         RETURN.
     ENDTRY.
-
-    lv_partyp = cl_apl_ecatt_const=>params_type_par.
 
 * build_schema( ).
 * set_attributes_to_schema( ).
@@ -60956,7 +60910,6 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
   METHOD get_ecatt_sp.
@@ -61018,7 +60971,6 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
           lv_exists             TYPE etonoff,
           lv_exc_occ            TYPE etonoff,
           ls_tadir              TYPE tadir,
-          lv_exception_occurred TYPE etonoff,
           lo_ecatt_sp           TYPE REF TO object.
 
     FIELD-SYMBOLS: <lg_ecatt_sp> TYPE any,
@@ -61097,7 +61049,6 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
     TRY.
         ecatt_object->close_object( im_suppress_events ='X' ).
       CATCH cx_ecatt_apl INTO lx_ecatt.
-        lv_exception_occurred = 'X'.
     ENDTRY.
 *end
 *     get devclass from existing object
@@ -61138,8 +61089,6 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
 
     " Downport
 
-    DATA: lv_partyp TYPE string.
-
     load_help = im_load_help.
     typ = im_object_type.
 
@@ -61154,8 +61103,6 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
       CATCH cx_ecatt INTO ex_ecatt.
         RETURN.
     ENDTRY.
-
-    lv_partyp = cl_apl_ecatt_const=>params_type_par.
 
     set_attributes_to_template( ).
 
@@ -61244,8 +61191,6 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     " Downport
 
-    DATA: lx_ecatt TYPE REF TO cx_ecatt_apl.
-
     load_help = im_load_help.
     typ = im_object_type.
 
@@ -61276,7 +61221,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 *   set_params_to_schema( ).
       TRY.
           get_general_params_data( ecatt_script->params ).
-        CATCH cx_ecatt_apl INTO lx_ecatt.                "#EC NOHANDLER
+        CATCH cx_ecatt_apl.                              "#EC NOHANDLER
 *         proceed with download and report errors later
       ENDTRY.
 
@@ -61295,7 +61240,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
               ENDIF.
             ENDIF.
-          CATCH cx_ecatt_apl INTO lx_ecatt.              "#EC NOHANDLER
+          CATCH cx_ecatt_apl.                            "#EC NOHANDLER
 *         proceed with download and report errors later
         ENDTRY.
       ENDLOOP.
@@ -61645,7 +61590,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
   METHOD build_xml_of_object.
 
     " downport of CL_APL_ECATT_DOWNLOAD=>BUILD_XML_OF_OBJECT
@@ -61686,10 +61631,8 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
   METHOD download_data.
 
     DATA:
-      lv_xtab  TYPE etxml_xline_tabtype,
       lo_xml   TYPE REF TO cl_apl_ecatt_xml,
-      lv_size  TYPE int4,
-      lx_ecatt TYPE REF TO cx_ecatt_apl_xml.
+      lv_size  TYPE int4.
 
     CLEAR: ev_xml_stream,
            ev_xml_stream_size.
@@ -61705,22 +61648,19 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 
         lo_xml->get_attributes(
           IMPORTING
-            ex_xtab         = lv_xtab
             ex_size_xstring = lv_size
             ex_xml          = ev_xml_stream ).
 
         ev_xml_stream_size = lv_size.
 
-      CATCH cx_ecatt_apl_xml INTO lx_ecatt.
+      CATCH cx_ecatt_apl_xml.
         RETURN.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD upload_data_from_stream.
 
     DATA:
-      lt_eing          TYPE etxml_xline_tabtype,
       lo_xml           TYPE REF TO cl_apl_ecatt_xml,
       lv_xstr          TYPE xstring,
       lv_nc_xmlref_typ TYPE REF TO if_ixml_node_collection,
@@ -61759,11 +61699,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
       lv_index = lv_index + 1.
     ENDWHILE.
 
-    FREE: lt_eing.
-    CLEAR: lo_xml, lv_xstr.
-
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
   METHOD upload_data_from_stream.
@@ -61850,11 +61786,6 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
   METHOD get_xml_stream_size.
 
     rv_xml_stream_size = mv_xml_stream_size.
-
-  ENDMETHOD.
-  METHOD set_generate_xml_no_download.
-
-    mv_generate_xml_no_download = iv_generate_xml_no_download.
 
   ENDMETHOD.
 ENDCLASS.
@@ -65411,5 +65342,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-09T08:13:15.160Z
+* abapmerge - 2018-11-09T10:57:42.909Z
 ****************************************************
