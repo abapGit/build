@@ -427,6 +427,7 @@ INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
+INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
@@ -480,6 +481,7 @@ CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_cts_api DEFINITION DEFERRED.
 CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
@@ -906,6 +908,48 @@ INTERFACE zif_abapgit_code_inspector
       RETURNING
         VALUE(ro_inspection) TYPE REF TO cl_ci_inspection.
 
+ENDINTERFACE.
+"! Change transport system API
+INTERFACE zif_abapgit_cts_api.
+  METHODS:
+    "! Returns the transport request / task the object is currently locked in
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter iv_object_name | Object name
+    "! @parameter iv_resolve_task_to_request | Return the transport request number if the object is locked in a task
+    "! @parameter rv_transport | Transport request / task
+    "! @raising zcx_abapgit_exception | Object is not locked in a transport
+    get_current_transport_for_obj IMPORTING iv_program_id              TYPE pgmid DEFAULT 'R3TR'
+                                            iv_object_type             TYPE trobjtype
+                                            iv_object_name             TYPE sobj_name
+                                            iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_true
+                                  RETURNING VALUE(rv_transport)        TYPE trkorr
+                                  RAISING   zcx_abapgit_exception,
+    "! Check if the object is currently locked in a transport
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter iv_object_name | Object name
+    "! @parameter rv_locked | Object is locked
+    "! @raising zcx_abapgit_exception | Object type is not lockable
+    is_object_locked_in_transport IMPORTING iv_program_id    TYPE pgmid DEFAULT 'R3TR'
+                                            iv_object_type   TYPE trobjtype
+                                            iv_object_name   TYPE sobj_name
+                                  RETURNING VALUE(rv_locked) TYPE abap_bool
+                                  RAISING   zcx_abapgit_exception,
+    "! Check if the object type is lockable
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter rv_lockable | Lockable
+    is_object_type_lockable IMPORTING iv_program_id      TYPE pgmid DEFAULT 'R3TR'
+                                      iv_object_type     TYPE trobjtype
+                            RETURNING VALUE(rv_lockable) TYPE abap_bool,
+    "! Check if change recording is possible for the given package
+    "! @parameter iv_package | Package
+    "! @parameter rv_possible | Change recording is possible
+    "! @raising zcx_abapgit_exception | Package could not be loaded
+    is_chrec_possible_for_package IMPORTING iv_package         TYPE devclass
+                                  RETURNING VALUE(rv_possible) TYPE abap_bool
+                                  RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
 INTERFACE zif_abapgit_definitions.
 
@@ -1388,6 +1432,7 @@ INTERFACE zif_abapgit_definitions.
 
       jump                     TYPE string VALUE 'jump',
       jump_pkg                 TYPE string VALUE 'jump_pkg',
+      jump_transport           TYPE string VALUE 'jump_transport',
 
       url                      TYPE string VALUE 'url',
     END OF c_action .
@@ -3098,38 +3143,50 @@ CLASS zcl_abapgit_2fa_github_auth DEFINITION
         zcx_abapgit_2fa_comm_error .
 ENDCLASS.
 CLASS zcl_abapgit_http DEFINITION
-  FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CONSTANTS: BEGIN OF c_scheme,
-                 digest TYPE string VALUE 'Digest',
-               END OF c_scheme.
 
-    CLASS-METHODS:
-      get_agent
-        RETURNING VALUE(rv_agent) TYPE string,
-      create_by_url
-        IMPORTING iv_url           TYPE string
-                  iv_service       TYPE string
-        RETURNING VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
-        RAISING   zcx_abapgit_exception.
+    CONSTANTS:
+      BEGIN OF c_scheme,
+        digest TYPE string VALUE 'Digest',
+      END OF c_scheme .
+
+    CLASS-METHODS get_agent
+      RETURNING
+        VALUE(rv_agent) TYPE string .
+    CLASS-METHODS create_by_url
+      IMPORTING
+        !iv_url          TYPE string
+        !iv_service      TYPE string
+      RETURNING
+        VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+
+    CLASS-METHODS check_auth_requested
+      IMPORTING
+        !ii_client               TYPE REF TO if_http_client
+      RETURNING
+        VALUE(rv_auth_requested) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS is_local_system
+      IMPORTING
+        !iv_url        TYPE string
+      RETURNING
+        VALUE(rv_bool) TYPE abap_bool .
+    CLASS-METHODS acquire_login_details
+      IMPORTING
+        !ii_client       TYPE REF TO if_http_client
+        !io_client       TYPE REF TO zcl_abapgit_http_client
+        !iv_url          TYPE string
+      RETURNING
+        VALUE(rv_scheme) TYPE string
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
-    CLASS-METHODS:
-      check_auth_requested
-        IMPORTING ii_client                TYPE REF TO if_http_client
-        RETURNING VALUE(rv_auth_requested) TYPE abap_bool
-        RAISING   zcx_abapgit_exception,
-      is_local_system
-        IMPORTING iv_url         TYPE string
-        RETURNING VALUE(rv_bool) TYPE abap_bool,
-      acquire_login_details
-        IMPORTING ii_client        TYPE REF TO if_http_client
-                  io_client        TYPE REF TO zcl_abapgit_http_client
-                  iv_url           TYPE string
-        RETURNING VALUE(rv_scheme) TYPE string
-        RAISING   zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_http_digest DEFINITION
   CREATE PUBLIC .
@@ -8655,6 +8712,12 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       END OF ty_changed_by .
     TYPES:
       ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item.
+    TYPES:
+      BEGIN OF ty_transport,
+        item      TYPE zif_abapgit_definitions=>ty_item,
+        transport TYPE trkorr,
+      END OF ty_transport,
+      ty_transport_tt TYPE SORTED TABLE OF ty_transport WITH UNIQUE KEY item.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
@@ -8666,6 +8729,11 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !it_local            TYPE zif_abapgit_definitions=>ty_files_item_tt
       RETURNING
         VALUE(rt_changed_by) TYPE ty_changed_by_tt .
+    METHODS find_transports
+      IMPORTING
+        it_local             TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RETURNING
+        VALUE(rt_transports) TYPE ty_transport_tt.
     METHODS render_list
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -8675,6 +8743,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !is_file       TYPE zif_abapgit_definitions=>ty_file
         !is_item       TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !iv_changed_by TYPE xubname OPTIONAL
+        !iv_transport  TYPE trkorr OPTIONAL
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_actions
@@ -8812,6 +8881,9 @@ CLASS zcl_abapgit_gui_router DEFINITION
     METHODS get_page_playground
       RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
       RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
+
+    CLASS-METHODS jump_display_transport
+      IMPORTING iv_getdata TYPE clike.
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_repo DEFINITION
   FINAL
@@ -8864,8 +8936,9 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         RETURNING VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
         RAISING   zcx_abapgit_exception,
       render_item
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_repo_item
+                  iv_render_transports TYPE abap_bool
+        RETURNING VALUE(ro_html)       TYPE REF TO zcl_abapgit_html
         RAISING   zcx_abapgit_exception,
       render_item_files
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
@@ -8877,6 +8950,9 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
         RETURNING VALUE(rv_html) TYPE string,
       get_item_icon
+        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
+        RETURNING VALUE(rv_html) TYPE string,
+      render_item_lock_column
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
         RETURNING VALUE(rv_html) TYPE string,
       render_empty_package
@@ -10372,6 +10448,18 @@ CLASS zcl_abapgit_adhoc_code_insp DEFINITION
       mv_test_name TYPE sci_tstval-testname.
 
 ENDCLASS.
+"! Change transport system API
+CLASS zcl_abapgit_cts_api DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_cts_api.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
   CREATE PRIVATE .
 
@@ -10632,6 +10720,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_stage_logic
       RETURNING
         VALUE(ri_logic) TYPE REF TO zif_abapgit_stage_logic .
+    CLASS-METHODS get_cts_api
+      RETURNING
+        VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api.
   PRIVATE SECTION.
 
     TYPES:
@@ -10674,6 +10765,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gt_syntax_check TYPE tty_syntax_check .
     CLASS-DATA gi_branch_overview TYPE REF TO zif_abapgit_branch_overview .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
+    CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api.
     CLASS-DATA gi_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
@@ -10835,6 +10927,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_stage_logic
       IMPORTING
         !ii_logic TYPE REF TO zif_abapgit_stage_logic .
+    CLASS-METHODS set_cts_api
+      IMPORTING
+        ii_cts_api TYPE REF TO zif_abapgit_cts_api.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_longtexts DEFINITION
@@ -17315,7 +17410,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
+CLASS zcl_abapgit_injector IMPLEMENTATION.
   METHOD set_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF zcl_abapgit_factory=>gt_code_inspector.
@@ -17390,6 +17485,10 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
 
     zcl_abapgit_factory=>gi_tadir = ii_tadir.
 
+  ENDMETHOD.
+
+  METHOD set_cts_api.
+    zcl_abapgit_factory=>gi_cts_api = ii_cts_api.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_http_client IMPLEMENTATION.
@@ -18123,6 +18222,15 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_tadir = gi_tadir.
 
   ENDMETHOD.
+
+  METHOD get_cts_api.
+    IF gi_cts_api IS NOT BOUND.
+      CREATE OBJECT gi_cts_api TYPE zcl_abapgit_cts_api.
+    ENDIF.
+
+    ri_cts_api = gi_cts_api.
+  ENDMETHOD.
+
   METHOD get_adhoc_code_inspector.
 
     IF gi_adhoc_code_inspector IS BOUND.
@@ -18829,6 +18937,108 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
 
     ms_save = get( ).
 
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_cts_api IMPLEMENTATION.
+  METHOD zif_abapgit_cts_api~get_current_transport_for_obj.
+    DATA: lv_object_lockable   TYPE abap_bool,
+          lv_locked            TYPE abap_bool,
+          lv_transport_request TYPE trkorr,
+          lv_task              TYPE trkorr,
+          lv_tr_object_name    TYPE trobj_name.
+
+    lv_tr_object_name = iv_object_name.
+
+    CALL FUNCTION 'TR_CHECK_OBJECT_LOCK'
+      EXPORTING
+        wi_pgmid             = iv_program_id
+        wi_object            = iv_object_type
+        wi_objname           = lv_tr_object_name
+      IMPORTING
+        we_lockable_object   = lv_object_lockable
+        we_locked            = lv_locked
+        we_lock_order        = lv_transport_request
+        we_lock_task         = lv_task
+      EXCEPTIONS
+        empty_key            = 1
+        no_systemname        = 2
+        no_systemtype        = 3
+        unallowed_lock_order = 4
+        OTHERS               = 5.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    IF lv_locked = abap_false.
+      zcx_abapgit_exception=>raise( |Object { iv_program_id }-{ iv_object_type }-{ iv_object_name } is not locked| ).
+    ENDIF.
+
+    IF lv_object_lockable = abap_false.
+      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
+    ENDIF.
+
+    IF lv_task IS NOT INITIAL AND lv_task <> lv_transport_request AND iv_resolve_task_to_request = abap_false.
+      rv_transport = lv_task.
+    ELSE.
+      rv_transport = lv_transport_request.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_object_locked_in_transport.
+    DATA: ls_object_key        TYPE e071,
+          lv_type_check_result TYPE c LENGTH 1,
+          ls_lock_key          TYPE tlock_int,
+          lv_lock_flag         TYPE c LENGTH 1.
+
+    ls_object_key-pgmid = iv_program_id.
+    ls_object_key-object = iv_object_type.
+    ls_object_key-obj_name = iv_object_name.
+
+    CALL FUNCTION 'TR_CHECK_TYPE'
+      EXPORTING
+        wi_e071     = ls_object_key
+      IMPORTING
+        pe_result   = lv_type_check_result
+        we_lock_key = ls_lock_key.
+
+    IF lv_type_check_result <> 'L'.
+      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
+    ENDIF.
+
+    CALL FUNCTION 'TRINT_CHECK_LOCKS'
+      EXPORTING
+        wi_lock_key = ls_lock_key
+      IMPORTING
+        we_lockflag = lv_lock_flag
+      EXCEPTIONS
+        empty_key   = 1
+        OTHERS      = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |TRINT_CHECK_LOCKS: { sy-subrc }| ).
+    ENDIF.
+
+    rv_locked = boolc( lv_lock_flag <> space ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_object_type_lockable.
+    DATA: ls_object_key        TYPE e071,
+          lv_type_check_result TYPE c LENGTH 1.
+
+    ls_object_key-pgmid = iv_program_id.
+    ls_object_key-object = iv_object_type.
+    ls_object_key-obj_name = '*'.
+
+    CALL FUNCTION 'TR_CHECK_TYPE'
+      EXPORTING
+        wi_e071   = ls_object_key
+      IMPORTING
+        pe_result = lv_type_check_result.
+
+    rv_lockable = boolc( lv_type_check_result = 'L' ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_chrec_possible_for_package.
+    rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
@@ -23136,13 +23346,13 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    IF ev_value_1 IS REQUESTED.
+    IF ev_value_1 IS SUPPLIED.
       READ TABLE ct_fields INDEX 1 ASSIGNING <ls_field>.
       ASSERT sy-subrc = 0.
       ev_value_1 = <ls_field>-value.
     ENDIF.
 
-    IF ev_value_2 IS REQUESTED.
+    IF ev_value_2 IS SUPPLIED.
       READ TABLE ct_fields INDEX 2 ASSIGNING <ls_field>.
       ASSERT sy-subrc = 0.
       ev_value_2 = <ls_field>-value.
@@ -23919,7 +24129,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   METHOD build_dir_jump_link.
 
     DATA: lv_path   TYPE string,
@@ -24210,18 +24420,29 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_item.
 
-    DATA: lv_link TYPE string.
+    DATA: lv_link    TYPE string,
+          lv_colspan TYPE i.
 
     CREATE OBJECT ro_html.
+
+    IF iv_render_transports = abap_false.
+      lv_colspan = 2.
+    ELSE.
+      lv_colspan = 3.
+    ENDIF.
+
     ro_html->add( |<tr{ get_item_class( is_item ) }>| ).
 
     IF is_item-obj_name IS INITIAL AND is_item-is_dir = abap_false.
-      ro_html->add( '<td colspan="2"></td>'
+      ro_html->add( |<td colspan="{ lv_colspan }"></td>|
                  && '<td class="object">'
                  && '<i class="grey">non-code and meta files</i>'
                  && '</td>' ).
     ELSE.
       ro_html->add( |<td class="icon">{ get_item_icon( is_item ) }</td>| ).
+      IF iv_render_transports = abap_true.
+        ro_html->add( render_item_lock_column( is_item ) ).
+      ENDIF.
 
       IF is_item-is_dir = abap_true. " Subdir
         lv_link = build_dir_jump_link( is_item-path ).
@@ -24331,6 +24552,38 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ro_html->add( '</tr>' ).
 
   ENDMETHOD.
+
+  METHOD render_item_lock_column.
+    DATA: li_cts_api          TYPE REF TO zif_abapgit_cts_api,
+          lv_transport        TYPE trkorr,
+          lv_transport_string TYPE string,
+          lv_icon_html        TYPE string.
+
+    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+    TRY.
+        IF is_item-obj_type IS INITIAL OR is_item-obj_name IS INITIAL OR
+           li_cts_api->is_object_type_lockable( is_item-obj_type ) = abap_false OR
+           li_cts_api->is_object_locked_in_transport( iv_object_type = is_item-obj_type
+                                                      iv_object_name = is_item-obj_name ) = abap_false.
+          rv_html = |<td class="icon"></td>|.
+        ELSE.
+          lv_transport = li_cts_api->get_current_transport_for_obj( iv_object_type             = is_item-obj_type
+                                                                    iv_object_name             = is_item-obj_name
+                                                                    iv_resolve_task_to_request = abap_false ).
+          lv_transport_string = lv_transport.
+          lv_icon_html = zcl_abapgit_html=>a( iv_txt = zcl_abapgit_html=>icon( iv_name = 'lock/darkgrey'
+                                                                               iv_hint = lv_transport_string )
+                                              iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?| &&
+                                                       lv_transport ).
+          rv_html = |<td class="icon">| &&
+                    |{ lv_icon_html }| &&
+                    |</td>|.
+        ENDIF.
+      CATCH zcx_abapgit_exception.
+        ASSERT 1 = 2.
+    ENDTRY.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -24361,15 +24614,16 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
-    DATA: lt_repo_items TYPE zif_abapgit_definitions=>tt_repo_items,
-          lo_browser    TYPE REF TO zcl_abapgit_repo_content_list,
-          lx_error      TYPE REF TO zcx_abapgit_exception,
-          lv_lstate     TYPE char1,
-          lv_rstate     TYPE char1,
-          lv_max        TYPE abap_bool,
-          lv_max_str    TYPE string,
-          lv_add_str    TYPE string,
-          lo_log        TYPE REF TO zcl_abapgit_log.
+    DATA: lt_repo_items        TYPE zif_abapgit_definitions=>tt_repo_items,
+          lo_browser           TYPE REF TO zcl_abapgit_repo_content_list,
+          lx_error             TYPE REF TO zcx_abapgit_exception,
+          lv_lstate            TYPE char1,
+          lv_rstate            TYPE char1,
+          lv_max               TYPE abap_bool,
+          lv_max_str           TYPE string,
+          lv_add_str           TYPE string,
+          lo_log               TYPE REF TO zcl_abapgit_log,
+          lv_render_transports TYPE abap_bool.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
@@ -24379,6 +24633,9 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     TRY.
+
+        lv_render_transports = zcl_abapgit_factory=>get_cts_api(
+          )->is_chrec_possible_for_package( mo_repo->get_package( ) ).
 
         CREATE OBJECT lo_browser
           EXPORTING
@@ -24422,7 +24679,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
               lv_max = abap_true.
               EXIT. " current loop
             ENDIF.
-            ro_html->add( render_item( <ls_item> ) ).
+            ro_html->add( render_item( is_item = <ls_item> iv_render_transports = lv_render_transports ) ).
           ENDLOOP.
         ENDIF.
 
@@ -24453,7 +24710,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD get_page_background.
 
     CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_bkg
@@ -24632,6 +24889,9 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-jump_pkg.                      " Open SE80
         zcl_abapgit_services_repo=>open_se80( |{ iv_getdata }| ).
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-jump_transport.
+        jump_display_transport( iv_getdata ).
+        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
 
         " DB actions
       WHEN zif_abapgit_definitions=>c_action-db_edit.
@@ -24766,6 +25026,16 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
     ENDCASE.
 
+  ENDMETHOD.
+
+  METHOD jump_display_transport.
+    DATA: lv_transport TYPE trkorr.
+
+    lv_transport = iv_getdata.
+
+    CALL FUNCTION 'TR_DISPLAY_REQUEST'
+      EXPORTING
+        i_trkorr = lv_transport.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
@@ -25114,7 +25384,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -25162,6 +25432,43 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       ENDTRY.
     ENDLOOP.
 
+  ENDMETHOD.
+
+  METHOD find_transports.
+    DATA: li_cts_api TYPE REF TO zif_abapgit_cts_api,
+          ls_new     LIKE LINE OF rt_transports.
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF it_local,
+                   <ls_new>   LIKE LINE OF rt_transports.
+
+    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+    TRY.
+        LOOP AT it_local ASSIGNING <ls_local> WHERE item IS NOT INITIAL.
+          IF <ls_local>-item-obj_type IS NOT INITIAL AND
+             <ls_local>-item-obj_name IS NOT INITIAL AND
+             <ls_local>-item-devclass IS NOT INITIAL.
+
+            IF li_cts_api->is_chrec_possible_for_package( <ls_local>-item-devclass ) = abap_false.
+              EXIT. " Assume all other objects are also in packages without change recording
+
+            ELSEIF li_cts_api->is_object_type_lockable( <ls_local>-item-obj_type ) = abap_true AND
+                   li_cts_api->is_object_locked_in_transport( iv_object_type = <ls_local>-item-obj_type
+                                                              iv_object_name = <ls_local>-item-obj_name ) = abap_true.
+
+              ls_new-item = <ls_local>-item.
+
+              ls_new-transport = li_cts_api->get_current_transport_for_obj(
+                iv_object_type             = <ls_local>-item-obj_type
+                iv_object_name             = <ls_local>-item-obj_name
+                iv_resolve_task_to_request = abap_false ).
+
+              INSERT ls_new INTO TABLE rt_transports.
+            ENDIF.
+          ENDIF.
+        ENDLOOP.
+      CATCH zcx_abapgit_exception.
+        ASSERT 1 = 2.
+    ENDTRY.
   ENDMETHOD.
   METHOD get_page_patch.
 
@@ -25305,10 +25612,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_file.
 
-    DATA: lv_param    TYPE string,
-          lv_filename TYPE string.
+    DATA: lv_param            TYPE string,
+          lv_filename         TYPE string,
+          lv_transport_string TYPE string,
+          lv_transport_html   TYPE string.
 
     CREATE OBJECT ro_html.
+
+    lv_transport_string = iv_transport.
 
     lv_filename = is_file-path && is_file-filename.
 * make sure whitespace is preserved in the DOM
@@ -25325,13 +25636,21 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         lv_filename = zcl_abapgit_html=>a(
           iv_txt = lv_filename
           iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_param }| ).
+
+        IF iv_transport IS NOT INITIAL.
+          lv_transport_html = zcl_abapgit_html=>a(
+            iv_txt = lv_transport_string
+            iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?{ iv_transport }| ).
+        ENDIF.
         ro_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ro_html->add( |<td class="name">{ lv_filename }</td>| ).
         ro_html->add( |<td class="user">{ iv_changed_by }</td>| ).
+        ro_html->add( |<td class="transport">{ lv_transport_html }</td>| ).
       WHEN 'remote'.
         ro_html->add( '<td class="type">-</td>' ).  " Dummy for object type
         ro_html->add( |<td class="name">{ lv_filename }</td>| ).
         ro_html->add( '<td></td>' ).                " Dummy for changed-by
+        ro_html->add( '<td></td>' ).                " Dummy for transport
     ENDCASE.
 
     ro_html->add( |<td class="status">?</td>| ).
@@ -25343,7 +25662,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD render_list.
 
     DATA: lt_changed_by TYPE ty_changed_by_tt,
-          ls_changed_by LIKE LINE OF lt_changed_by.
+          ls_changed_by LIKE LINE OF lt_changed_by,
+          lt_transports TYPE ty_transport_tt,
+          ls_transport  LIKE LINE OF lt_transports.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF ms_files-remote,
                    <ls_local>  LIKE LINE OF ms_files-local.
@@ -25353,6 +25674,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '<table id="stageTab" class="stage_tab w100">' ).
 
     lt_changed_by = find_changed_by( ms_files-local ).
+    lt_transports = find_transports( ms_files-local ).
 
     " Local changes
     LOOP AT ms_files-local ASSIGNING <ls_local>.
@@ -25361,6 +25683,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ro_html->add( '<th>Type</th>' ).
         ro_html->add( '<th>Files to add (click to see diff)</th>' ).
         ro_html->add( '<th>Changed by</th>' ).
+        ro_html->add( '<th>Transport</th>' ).
         ro_html->add( '<th></th>' ). " Status
         ro_html->add( '<th class="cmd">' ).
         ro_html->add( '<a>add</a>&#x2193; <a>reset</a>&#x2193;' ).
@@ -25370,12 +25693,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       ENDAT.
 
       READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
+      READ TABLE lt_transports INTO ls_transport WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
 
       ro_html->add( render_file(
         iv_context = 'local'
         is_file       = <ls_local>-file
         is_item       = <ls_local>-item
-        iv_changed_by = ls_changed_by-name ) ).
+        iv_changed_by = ls_changed_by-name
+        iv_transport  = ls_transport-transport ) ).
+
+      CLEAR ls_transport.
 
       AT LAST.
         ro_html->add( '</tbody>' ).
@@ -31243,7 +31570,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '        };'.
         _inline ''.
         _inline '    if (this.prototype) {'.
-        _inline '      fNOP.prototype = this.prototype; '.
+        _inline '      fNOP.prototype = this.prototype;'.
         _inline '    }'.
         _inline '    fBound.prototype = new fNOP();'.
         _inline ''.
@@ -31258,7 +31585,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    if (typeof start !== ''number'') {'.
         _inline '      start = 0;'.
         _inline '    }'.
-        _inline '    '.
+        _inline ''.
         _inline '    if (start + search.length > this.length) {'.
         _inline '      return false;'.
         _inline '    } else {'.
@@ -31283,7 +31610,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var form = document.createElement("form");'.
         _inline '  form.setAttribute("method", method || "post");'.
         _inline '  form.setAttribute("action", "sapevent:" + action);'.
-        _inline '  '.
+        _inline ''.
         _inline '  for(var key in params) {'.
         _inline '    var hiddenField = document.createElement("input");'.
         _inline '    hiddenField.setAttribute("type", "hidden");'.
@@ -31352,8 +31679,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var keys = Object.keys(totals);'.
         _inline '  for (var i = keys.length - 1; i >= 0; i--) {'.
-        _inline '    console.log(prefix '.
-        _inline '      + " " + keys[i] + ": " '.
+        _inline '    console.log(prefix'.
+        _inline '      + " " + keys[i] + ": "'.
         _inline '      + totals[keys[i]].time.toFixed(3) + "ms"'.
         _inline '      + " (" + totals[keys[i]].count.toFixed() +")");'.
         _inline '  }'.
@@ -31409,10 +31736,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
         _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
         _inline '  };'.
-        _inline '  '.
+        _inline ''.
         _inline '  // Table columns (autodetection)'.
         _inline '  this.colIndex      = this.detectColumns();'.
-        _inline '  this.filterTargets = ["name", "user"];'.
+        _inline '  this.filterTargets = ["name", "user", "transport"];'.
         _inline ''.
         _inline '  // Constants'.
         _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
@@ -31423,7 +31750,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    reset:  "?",'.
         _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1; }'.
         _inline '  };'.
-        _inline '  '.
+        _inline ''.
         _inline '  this.TEMPLATES = {'.
         _inline '    cmdReset:  "<a>reset</a>",'.
         _inline '    cmdLocal:  "<a>add</a>",'.
@@ -31494,10 +31821,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  } else return;'.
         _inline ''.
         _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
-        _inline '  '.
+        _inline ''.
         _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
         _inline '  var targetRow = td.parentNode;'.
-        _inline '  '.
+        _inline ''.
         _inline '  if (td.tagName === "TD") {'.
         _inline '    this.updateRow(targetRow, status);'.
         _inline '  } else { // TH'.
@@ -31517,7 +31844,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'StageHelper.prototype.onFilter = function (e) {'.
         _inline '  if ( // Enter hit or clear, IE SUCKS !'.
         _inline '       e.type === "input" && !e.target.value && this.lastFilterValue'.
-        _inline '    || e.type === "keypress" && e.which === 13 ) { '.
+        _inline '    || e.type === "keypress" && e.which === 13 ) {'.
         _inline ''.
         _inline '    this.applyFilterValue(e.target.value);'.
         _inline '    submitSapeventForm({ ''filterValue'': e.target.value }, "stage_filter", "post");'.
@@ -31544,7 +31871,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    };'.
         _inline '  }, this);'.
         _inline ''.
-        _inline '  var isVisible = false; '.
+        _inline '  var isVisible = false;'.
         _inline ''.
         _inline '  // Apply filter to cells, mark filtered text'.
         _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
@@ -31565,8 +31892,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '// Get how status should affect object counter'.
         _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
-        _inline '  if (typeof status !== "string" '.
-        _inline '    || status.length !== 1 '.
+        _inline '  if (typeof status !== "string"'.
+        _inline '    || status.length !== 1'.
         _inline '    || this.STATUS.isValid(status) ) {'.
         _inline '    alert("Unknown status");'.
         _inline '  } else {'.
@@ -31602,8 +31929,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
         _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
         _inline '  if (status === this.STATUS.reset) {'.
-        _inline '    cell.innerHTML = (row.className == "local") '.
-        _inline '      ? this.TEMPLATES.cmdLocal '.
+        _inline '    cell.innerHTML = (row.className == "local")'.
+        _inline '      ? this.TEMPLATES.cmdLocal'.
         _inline '      : this.TEMPLATES.cmdRemote;'.
         _inline '  } else {'.
         _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
@@ -31632,7 +31959,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '}'.
         _inline ''.
         _inline '// Table iteration helper'.
-        _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {  '.
+        _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
         _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
         _inline '  var table    = this.dom.stageTab;'.
         _inline ''.
@@ -31721,7 +32048,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
         _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
         _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
-        _inline '  } '.
+        _inline '  }'.
         _inline ''.
         _inline '  // Hijack stage command'.
         _inline '  if (this.dom.stageButton) {'.
@@ -31800,14 +32127,14 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
         _inline '}'.
         _inline ''.
-        _inline '// Hotkey Overview '.
+        _inline '// Hotkey Overview'.
         _inline 'function closeHotkeyOverview() {'.
         _inline '  var div = document.getElementById("hotkeys");'.
         _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
         _inline '}'.
         _inline ''.
         _inline 'function KeyNavigation() {'.
-        _inline '  '.
+        _inline ''.
         _inline '}'.
         _inline ''.
         _inline 'KeyNavigation.prototype.onkeydown = function(oEvent) {'.
@@ -31840,7 +32167,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline 'KeyNavigation.prototype.onEnterOrSpace = function (oEvent) {'.
-        _inline '  '.
+        _inline ''.
         _inline '  // Enter or space clicks the selected link'.
         _inline ''.
         _inline '  var liSelected = this.getLiSelected();'.
@@ -31914,7 +32241,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '}'.
         _inline ''.
         _inline 'function LinkHints(sLinkHintKey, sColor){'.
-        _inline '  this.sLinkHintKey = sLinkHintKey; '.
+        _inline '  this.sLinkHintKey = sLinkHintKey;'.
         _inline '  this.sColor = sColor;'.
         _inline '  this.oTooltipMap = {};'.
         _inline '  this.bTooltipsOn = false;'.
@@ -31934,7 +32261,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline 'LinkHints.prototype.getTooltipStartValue = function(iToolTipCount){'.
-        _inline '  '.
+        _inline ''.
         _inline '  // if whe have 333 tooltips we start from 100'.
         _inline '  return Math.pow(10,iToolTipCount.toString().length - 1);'.
         _inline ''.
@@ -31943,10 +32270,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'LinkHints.prototype.fnRenderTooltips = function () {'.
         _inline ''.
         _inline '  // all possible links which should be accessed via tooltip have'.
-        _inline '  // sub span which is hidden by default. If we like to show the '.
+        _inline '  // sub span which is hidden by default. If we like to show the'.
         _inline '  // tooltip we have to toggle the css class ''hidden''.'.
-        _inline '  // '.
-        _inline '  // We use numeric values for the tooltip label. Maybe we can '.
+        _inline '  //'.
+        _inline '  // We use numeric values for the tooltip label. Maybe we can'.
         _inline '  // support also alphanumeric chars in the future. Then we have to'.
         _inline '  // calculate permutations and that''s work. So for the sake of simplicity'.
         _inline '  // we stick to numeric values and just increment them.'.
@@ -32003,7 +32330,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline 'LinkHints.prototype.fnActivateDropDownMenu = function (oTooltip) {'.
-        _inline '  // to enable link hint navigation for drop down menu, we must expand '.
+        _inline '  // to enable link hint navigation for drop down menu, we must expand'.
         _inline '  // like if they were hovered'.
         _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
         _inline '};'.
@@ -32029,7 +32356,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
-        _inline '  '.
+        _inline ''.
         _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
         _inline '  // Maybe we must add other types here in the future'.
         _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
@@ -32037,7 +32364,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    this.fnToggleAllTooltips();'.
         _inline ''.
         _inline '  } else if (this.bTooltipsOn === true) {'.
-        _inline '    '.
+        _inline ''.
         _inline '    // the user tries to reach a tooltip'.
         _inline '    this.sPending += oEvent.key;'.
         _inline '    var oTooltip = this.oTooltipMap[this.sPending];'.
@@ -32075,8 +32402,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  // these are the hotkeys provided by the backend'.
         _inline '  Object.keys(this.oKeyMap).forEach(function(sKey){'.
         _inline ''.
-        _inline '    var action = this.oKeyMap[sKey]; '.
-        _inline '    '.
+        _inline '    var action = this.oKeyMap[sKey];'.
+        _inline ''.
         _inline '    // We replace the actions with callback functions to unify'.
         _inline '    // the hotkey execution'.
         _inline '    this.oKeyMap[sKey] = function(oEvent) {'.
@@ -32091,7 +32418,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '      if (window[action]) {'.
         _inline '        window[action].call(this);'.
         _inline '      }'.
-        _inline '      '.
+        _inline ''.
         _inline '      // Or a SAP event'.
         _inline '      var sUiSapEvent = this.getSapEvent(action);'.
         _inline '      if (sUiSapEvent) {'.
@@ -32108,7 +32435,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline 'Hotkeys.prototype.showHotkeys = function() {'.
         _inline '  var elHotkeys = document.querySelector(''#hotkeys'');'.
-        _inline '  '.
+        _inline ''.
         _inline '  if (elHotkeys) {'.
         _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? '''' : ''none'';'.
         _inline '  }'.
@@ -32125,7 +32452,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
         _inline ''.
-        _inline '  var aFilteredAndNormalizedSapEvents = '.
+        _inline '  var aFilteredAndNormalizedSapEvents ='.
         _inline '        [].map.call(aSapEvents, function(oSapEvent){'.
         _inline '          return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
         _inline '        })'.
@@ -32150,7 +32477,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    return;'.
         _inline '  }'.
         _inline ''.
-        _inline '  var '.
+        _inline '  var'.
         _inline '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),'.
         _inline '    fnHotkey = this.oKeyMap[sKey];'.
         _inline ''.
@@ -32167,7 +32494,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '}'.
         _inline ''.
-        _inline '/* '.
+        _inline '/*'.
         _inline '  Patch / git add -p'.
         _inline '  */'.
         _inline ''.
@@ -32190,7 +32517,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    PATCH_ADD_ALL: ''patch_add_all'','.
         _inline '    PATCH_REMOVE_ALL: ''patch_remove_all'''.
         _inline '  };'.
-        _inline '  '.
+        _inline ''.
         _inline '  this.ACTION = {'.
         _inline '    PATCH_STAGE: ''patch_stage'''.
         _inline '  };'.
@@ -32218,7 +32545,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerAllFile = function(){'.
         _inline ''.
-        _inline '  // registers the link handlers for add and remove all changes for a file '.
+        _inline '  // registers the link handlers for add and remove all changes for a file'.
         _inline ''.
         _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_ADD_ALL, this.ADD_REMOVE);'.
         _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_REMOVE_ALL, this.REMOVE_ADD);'.
@@ -32226,14 +32553,14 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerForPatchLink = function(oClassCombination) {'.
-        _inline '  // register onclick handler. When a link is clicked it is '.
+        _inline '  // register onclick handler. When a link is clicked it is'.
         _inline '  // deactivated and its corresponding link gets active'.
         _inline '  //'.
-        _inline '  // e.g. if you click on ''add'' add is deactivated and ''remove'' '.
+        _inline '  // e.g. if you click on ''add'' add is deactivated and ''remove'''.
         _inline '  // is activated.'.
         _inline ''.
         _inline '  var elLinkAll = document.querySelectorAll(''.'' + this.CSS_CLASS.PATCH + '' a.'' + oClassCombination.sClassLinkClicked);'.
-        _inline '  '.
+        _inline ''.
         _inline '  [].forEach.call(elLinkAll,function(elLink){'.
         _inline ''.
         _inline '    elLink.addEventListener(''click'',function(oEvent){'.
@@ -32244,7 +32571,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'Patch.prototype.togglePatchActive = function(oEvent, elClicked, elCorrespondingLink){ '.
+        _inline 'Patch.prototype.togglePatchActive = function(oEvent, elClicked, elCorrespondingLink){'.
         _inline ''.
         _inline '  if (!elClicked.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
         _inline '    elClicked.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
@@ -32265,7 +32592,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline 'Patch.prototype.getCorrespodingLinkId = function(sClickedLinkId, oClassCombination){'.
         _inline ''.
-        _inline '  // e.g. '.
+        _inline '  // e.g.'.
         _inline '  //'.
         _inline '  //   add_patch_z_test_git_add_p.prog.abap_28 => remove_patch_z_test_git_add_p.prog.abap_28'.
         _inline '  //'.
@@ -32285,7 +32612,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '    var sTableId = oEvent.srcElement.parentElement.parentElement.parentElement.parentElement.id;'.
         _inline '    var elAddAll = document.querySelectorAll(''#'' + this.escapeDots(sTableId) + '' a.'' + oClassCombination.sClassLinkClicked);'.
-        _inline '    '.
+        _inline ''.
         _inline '    [].forEach.call(elAddAll,function(elem){'.
         _inline '      this.togglePatchActiveForClassLink(oEvent, elem, oClassCombination);'.
         _inline '    }.bind(this));'.
@@ -57662,6 +57989,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
 
         get_persistence( )->save( li_data_model ).
 
+        tadir_insert( iv_package ).
+
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
                                       ix_previous = lx_error ).
@@ -57689,6 +58018,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
@@ -61779,7 +62109,7 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_http IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD acquire_login_details.
 
     DATA: lv_default_user TYPE string,
@@ -65081,5 +65411,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-08T15:36:41.886Z
+* abapmerge - 2018-11-09T04:39:02.724Z
 ****************************************************
