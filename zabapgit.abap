@@ -11373,6 +11373,16 @@ CLASS zcl_abapgit_objects DEFINITION
         it_results      TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
         VALUE(rt_items) TYPE zif_abapgit_definitions=>ty_items_tt.
+    CLASS-METHODS filter_files_to_deserialize
+      IMPORTING
+        it_results        TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
+    CLASS-METHODS adjust_namespaces
+      IMPORTING
+        it_results        TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
 ENDCLASS.
 CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM zcl_abapgit_objects_super.
 
@@ -16116,24 +16126,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD files_to_deserialize.
 
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
-    rt_results = zcl_abapgit_file_status=>status( io_repo ).
-    DELETE rt_results WHERE match = abap_true.     " Full match
-    SORT rt_results
-      BY obj_type ASCENDING
-         obj_name ASCENDING
-         filename ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name filename.
-
-    DELETE rt_results WHERE obj_type IS INITIAL.
-    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
-
-    rt_results = prioritize_deser( rt_results ).
-
-    LOOP AT rt_results ASSIGNING <ls_result>.
-* handle namespaces
-      REPLACE ALL OCCURRENCES OF '#' IN <ls_result>-obj_name WITH '/'.
-    ENDLOOP.
+    rt_results = adjust_namespaces(
+                   prioritize_deser(
+                     filter_files_to_deserialize(
+                       zcl_abapgit_file_status=>status( io_repo ) ) ) ).
 
   ENDMETHOD.
   METHOD has_changed_since.
@@ -16479,6 +16475,34 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     rt_overwrite = lt_overwrite_uniqe.
 
   ENDMETHOD.
+
+  METHOD filter_files_to_deserialize.
+
+    rt_results = it_results.
+
+    DELETE rt_results WHERE match = abap_true.     " Full match
+    SORT rt_results
+      BY obj_type ASCENDING
+         obj_name ASCENDING
+         rstate   DESCENDING. " ensures that non-empty rstate is kept
+    DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
+
+    DELETE rt_results WHERE obj_type IS INITIAL.
+    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
+
+  ENDMETHOD.
+  METHOD adjust_namespaces.
+
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
+
+    rt_results = it_results.
+
+    LOOP AT rt_results ASSIGNING <ls_result>.
+      REPLACE ALL OCCURRENCES OF '#' IN <ls_result>-obj_name WITH '/'.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   METHOD constructor.
@@ -65342,5 +65366,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-09T10:57:42.909Z
+* abapmerge - 2018-11-10T07:10:23.569Z
 ****************************************************
