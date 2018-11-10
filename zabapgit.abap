@@ -57259,7 +57259,11 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
-    mv_local_devclass = is_item-devclass.
+    IF is_item-devclass IS NOT INITIAL.
+      mv_local_devclass = is_item-devclass.
+    ELSE.
+      mv_local_devclass = is_item-obj_name.
+    ENDIF.
   ENDMETHOD.
   METHOD get_package.
     IF me->zif_abapgit_object~exists( ) = abap_true.
@@ -65408,5 +65412,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-10T07:12:57.399Z
+* abapmerge - 2018-11-10T07:24:24.912Z
 ****************************************************
