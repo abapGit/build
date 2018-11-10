@@ -5438,7 +5438,8 @@ CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS:
       get
         RETURNING VALUE(ro_switch) TYPE REF TO cl_sfw_sw
-        RAISING   zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception,
+      wait_for_background_job.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -23622,7 +23623,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     DATA: lt_fields TYPE tihttpnvp.
 
-    ASSERT eg_file IS SUPPLIED OR eg_object IS SUPPLIED.
+    ASSERT eg_file IS SUPPLIED OR eg_object IS SUPPLIED OR ev_key IS SUPPLIED.
 
     CLEAR: ev_key, eg_file, eg_object.
     lt_fields = parse_fields_upper_case_name( iv_string ).
@@ -48157,6 +48158,10 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
         lo_switch = cl_sfw_sw=>get_switch( lv_switch_id ).
         lo_switch->set_delete_flag( lv_switch_id ).
         lo_switch->save_all( ).
+
+        " deletion via background job. Wait until the job is finished.
+        wait_for_background_job( ).
+
       CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
         zcx_abapgit_exception=>raise( 'Error deleting Switch' ).
     ENDTRY.
@@ -48201,6 +48206,8 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     lo_switch->set_conflicts( lt_conflicts ).
 
     set_default_package( iv_package ).
+    tadir_insert( iv_package ).
+
     lo_switch->save_all(
       EXCEPTIONS
         not_saved = 1
@@ -48238,6 +48245,12 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -48292,12 +48305,33 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+  METHOD wait_for_background_job.
+
+    DATA: lv_job_count TYPE tbtco-jobcount.
+
+    " We wait for at most 5 seconds. If it takes
+    " more than that it probably doesn't matter,
+    " because we have other problems
+
+    DO 5 TIMES.
+
+      SELECT SINGLE jobcount
+             FROM tbtco
+             INTO lv_job_count
+             WHERE jobname = 'SFW_DELETE_SWITCH'
+             AND   status  = 'R'
+             AND   sdluname = sy-uname.
+
+      IF sy-subrc = 0.
+        WAIT UP TO 1 SECONDS.
+      ELSE.
+        EXIT.
+      ENDIF.
+
+    ENDDO.
+
   ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
 
@@ -48722,6 +48756,8 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     lo_bfs->set_nested_parent( lt_parent_bfs ).
 
     set_default_package( iv_package ).
+    tadir_insert( iv_package ).
+
     lo_bfs->save_all( ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -48750,6 +48786,7 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
@@ -48923,6 +48960,8 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     lo_bf->set_parent_bfs( lt_parent_bfs ).
 
     set_default_package( iv_package ).
+    tadir_insert( iv_package ).
+
     lo_bf->save_all( ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -48951,6 +48990,7 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
@@ -53398,6 +53438,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
@@ -60027,6 +60068,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
@@ -65366,5 +65408,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-10T07:10:23.569Z
+* abapmerge - 2018-11-10T07:12:57.399Z
 ****************************************************
