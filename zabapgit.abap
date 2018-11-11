@@ -5439,7 +5439,10 @@ CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       get
         RETURNING VALUE(ro_switch) TYPE REF TO cl_sfw_sw
         RAISING   zcx_abapgit_exception,
-      wait_for_background_job.
+      wait_for_background_job,
+      wait_for_deletion
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -48159,8 +48162,11 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
         lo_switch->set_delete_flag( lv_switch_id ).
         lo_switch->save_all( ).
 
-        " deletion via background job. Wait until the job is finished.
+        " deletion via background job. Wait until the job is finished...
         wait_for_background_job( ).
+
+        " ... the object is deleted
+        wait_for_deletion( ).
 
       CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
         zcx_abapgit_exception=>raise( 'Error deleting Switch' ).
@@ -48323,6 +48329,19 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
              AND   sdluname = sy-uname.
 
       IF sy-subrc = 0.
+        WAIT UP TO 1 SECONDS.
+      ELSE.
+        EXIT.
+      ENDIF.
+
+    ENDDO.
+
+  ENDMETHOD.
+  METHOD wait_for_deletion.
+
+    DO 5 TIMES.
+
+      IF zif_abapgit_object~exists( ) = abap_true.
         WAIT UP TO 1 SECONDS.
       ELSE.
         EXIT.
@@ -65412,5 +65431,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-10T07:24:24.912Z
+* abapmerge - 2018-11-11T05:35:21.153Z
 ****************************************************
