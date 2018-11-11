@@ -3605,11 +3605,10 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
 
   PROTECTED SECTION.
     DATA:
-      li_objects_node TYPE REF TO if_ixml_element.
+      mi_objects_node TYPE REF TO if_ixml_element.
 
     METHODS:
       download_data REDEFINITION.
-
   PRIVATE SECTION.
     DATA:
       mv_xml_stream      TYPE xstring,
@@ -5639,10 +5638,11 @@ CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_string_range TYPE RANGE OF string.
 
-    CLASS-DATA: range_node_codes TYPE ty_string_range.
+    CLASS-DATA: gt_range_node_codes TYPE ty_string_range.
     CONSTANTS: attrib_abapgit_leadig_spaces TYPE string VALUE 'abapgit-leadig-spaces' ##NO_TEXT.
 
     METHODS fix_ids IMPORTING ii_xml_doc TYPE REF TO if_ixml_document.
@@ -5692,6 +5692,24 @@ CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
+  PROTECTED SECTION.
+    CONSTANTS transobjecttype_class TYPE char1 VALUE 'C' ##NO_TEXT.
+
+    METHODS has_authorization
+      IMPORTING iv_object_type TYPE seu_objid
+                iv_class       TYPE tobc-oclss
+                iv_activity    TYPE activ_auth
+      RAISING   zcx_abapgit_exception.
+    METHODS is_used
+      IMPORTING iv_auth_object_class TYPE tobc-oclss
+      RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+    METHODS delete_class
+      IMPORTING iv_auth_object_class TYPE tobc-oclss.
+    METHODS put_delete_to_transport
+      IMPORTING iv_auth_object_class TYPE tobc-oclss
+                iv_object_type       TYPE seu_objid
+      RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -7133,7 +7151,7 @@ CLASS zcl_abapgit_persistence_db DEFINITION
   PRIVATE SECTION.
 
     CLASS-DATA go_db TYPE REF TO zcl_abapgit_persistence_db .
-    DATA: gv_update_function TYPE funcname.
+    DATA: mv_update_function TYPE funcname.
 
     METHODS get_update_function RETURNING VALUE(rv_funcname) TYPE funcname.
 
@@ -9299,6 +9317,7 @@ CLASS zcl_abapgit_popups DEFINITION
       package_popup_callback        FOR zif_abapgit_popups~package_popup_callback,
       popup_transport_request       FOR zif_abapgit_popups~popup_transport_request.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -9307,10 +9326,10 @@ CLASS zcl_abapgit_popups DEFINITION
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
     CONSTANTS c_answer_cancel      TYPE char1 VALUE 'A' ##NO_TEXT.
 
-    DATA go_select_list_popup TYPE REF TO cl_salv_table .
-    DATA gr_table TYPE REF TO data .
-    DATA gv_cancel TYPE abap_bool .
-    DATA go_table_descr TYPE REF TO cl_abap_tabledescr .
+    DATA mo_select_list_popup TYPE REF TO cl_salv_table .
+    DATA mr_table TYPE REF TO data .
+    DATA mv_cancel TYPE abap_bool .
+    DATA mo_table_descr TYPE REF TO cl_abap_tabledescr .
 
     METHODS add_field
       IMPORTING
@@ -10109,12 +10128,11 @@ CLASS zcl_abapgit_user_master_record DEFINITION
       END OF ty_user.
 
     CLASS-DATA:
-      mt_user TYPE HASHED TABLE OF ty_user
+      gt_user TYPE HASHED TABLE OF ty_user
                    WITH UNIQUE KEY user.
 
     DATA:
       ms_user TYPE zif_abapgit_definitions=>ty_git_user.
-
 ENDCLASS.
 CLASS zcl_abapgit_xml DEFINITION
   ABSTRACT
@@ -10484,40 +10502,31 @@ CLASS zcl_abapgit_default_transport DEFINITION
           zcx_abapgit_exception.
   PRIVATE SECTION.
 
-    CLASS-DATA:
-      mo_instance TYPE REF TO zcl_abapgit_default_transport .
+    CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_transport .
+    DATA mv_is_set_by_abapgit TYPE abap_bool .
+    DATA ms_save TYPE e070use .
 
-    DATA:
-      mv_is_set_by_abapgit TYPE abap_bool,
-      ms_save              TYPE e070use.
-
-    METHODS:
-      store
-        RAISING
-          zcx_abapgit_exception,
-
-      restore
-        RAISING
-          zcx_abapgit_exception,
-
-      get
-        RETURNING
-          VALUE(rs_default_task) TYPE e070use
-        RAISING
-          zcx_abapgit_exception,
-
-      set_internal
-        IMPORTING
-          iv_transport TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
-      clear
-        IMPORTING
-          is_default_task TYPE e070use
-        RAISING
-          zcx_abapgit_exception.
-
+    METHODS store
+      RAISING
+        zcx_abapgit_exception .
+    METHODS restore
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get
+      RETURNING
+        VALUE(rs_default_task) TYPE e070use
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_internal
+      IMPORTING
+        !iv_transport TYPE trkorr
+      RAISING
+        zcx_abapgit_exception .
+    METHODS clear
+      IMPORTING
+        !is_default_task TYPE e070use
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
   FINAL
@@ -18814,8 +18823,7 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_default_transport IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
   METHOD clear.
 
     CALL FUNCTION 'TR_TASK_RESET'
@@ -18863,11 +18871,11 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_instance.
 
-    IF mo_instance IS NOT BOUND.
-      CREATE OBJECT mo_instance.
+    IF go_instance IS NOT BOUND.
+      CREATE OBJECT go_instance.
     ENDIF.
 
-    ro_instance = mo_instance.
+    ro_instance = go_instance.
 
   ENDMETHOD.
   METHOD reset.
@@ -20155,7 +20163,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_return  TYPE TABLE OF bapiret2,
@@ -20194,7 +20202,7 @@ CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
     DATA: ls_user TYPE ty_user.
     FIELD-SYMBOLS: <ls_user> TYPE ty_user.
 
-    READ TABLE mt_user ASSIGNING <ls_user>
+    READ TABLE gt_user ASSIGNING <ls_user>
                        WITH KEY user = iv_user.
     IF sy-subrc <> 0.
 
@@ -20204,7 +20212,7 @@ CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
           iv_user = iv_user.
 
       INSERT ls_user
-             INTO TABLE mt_user
+             INTO TABLE gt_user
              ASSIGNING <ls_user>.
 
     ENDIF.
@@ -20217,7 +20225,6 @@ CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
     rv_name = ms_user-name.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   METHOD host.
@@ -20504,7 +20511,7 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
     DATA: lv_pct  TYPE i.
     DATA: lv_time TYPE t.
 
-    CONSTANTS: c_wait_secs TYPE i VALUE 2.
+    CONSTANTS: lc_wait_secs TYPE i VALUE 2.
 
     GET TIME.
     lv_time = sy-uzeit.
@@ -20523,7 +20530,7 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
         EXPORTING
           percentage = lv_pct
           text       = iv_text.
-      mv_cv_time_next = lv_time + c_wait_secs.
+      mv_cv_time_next = lv_time + lc_wait_secs.
 
     ENDIF.
     IF sy-datum > mv_cv_datum_next.
@@ -22422,8 +22429,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                    <lg_line>      TYPE data,
                    <lg_data>      TYPE any.
 
-    go_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
-    lo_struct_descr ?= go_table_descr->get_table_line_type( ).
+    mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
+    lo_struct_descr ?= mo_table_descr->get_table_line_type( ).
     lt_components = lo_struct_descr->get_components( ).
 
     INSERT INITIAL LINE INTO lt_components ASSIGNING <ls_component> INDEX 1.
@@ -22433,10 +22440,10 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     <ls_component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
 
     lo_struct_descr2 = cl_abap_structdescr=>create( lt_components ).
-    go_table_descr = cl_abap_tabledescr=>create( lo_struct_descr2 ).
+    mo_table_descr = cl_abap_tabledescr=>create( lo_struct_descr2 ).
 
-    CREATE DATA gr_table TYPE HANDLE go_table_descr.
-    ASSIGN gr_table->* TO <lt_table>.
+    CREATE DATA mr_table TYPE HANDLE mo_table_descr.
+    ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
     CREATE DATA lr_struct TYPE HANDLE lo_struct_descr2.
@@ -22483,7 +22490,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     lv_condition = |{ c_fieldname_selected } = ABAP_TRUE|.
 
-    ASSIGN gr_table->* TO <lt_table>.
+    ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
     CREATE DATA lr_exporting LIKE LINE OF et_list.
@@ -22502,19 +22509,19 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                    <lg_line>     TYPE any,
                    <lv_selected> TYPE flag.
 
-    ASSIGN gr_table->* TO <lt_table>.
+    ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
     CASE e_salv_function.
       WHEN 'O.K.'.
-        gv_cancel = abap_false.
-        go_select_list_popup->close_screen( ).
+        mv_cancel = abap_false.
+        mo_select_list_popup->close_screen( ).
 
       WHEN 'ABR'.
         "Canceled: clear list to overwrite nothing
         CLEAR <lt_table>.
-        gv_cancel = abap_true.
-        go_select_list_popup->close_screen( ).
+        mv_cancel = abap_true.
+        mo_select_list_popup->close_screen( ).
 
       WHEN 'SALL'.
 
@@ -22529,7 +22536,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
         ENDLOOP.
 
-        go_select_list_popup->refresh( ).
+        mo_select_list_popup->refresh( ).
 
       WHEN 'DSEL'.
 
@@ -22544,11 +22551,11 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
         ENDLOOP.
 
-        go_select_list_popup->refresh( ).
+        mo_select_list_popup->refresh( ).
 
       WHEN OTHERS.
         CLEAR <lt_table>.
-        go_select_list_popup->close_screen( ).
+        mo_select_list_popup->close_screen( ).
     ENDCASE.
 
   ENDMETHOD.
@@ -22560,7 +22567,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                    <lg_line>     TYPE any,
                    <lv_selected> TYPE flag.
 
-    ASSIGN gr_table->* TO <lt_table>.
+    ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
     lv_line = row.
@@ -22582,7 +22589,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     ENDIF.
 
-    go_select_list_popup->refresh( ).
+    mo_select_list_popup->refresh( ).
   ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
 
@@ -23013,22 +23020,22 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     create_new_table( it_list ).
 
-    ASSIGN gr_table->* TO <lt_table>.
+    ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
     TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = go_select_list_popup
+        cl_salv_table=>factory( IMPORTING r_salv_table = mo_select_list_popup
                                 CHANGING  t_table = <lt_table> ).
 
-        go_select_list_popup->set_screen_status( pfstatus = '102'
+        mo_select_list_popup->set_screen_status( pfstatus = '102'
                                                  report = 'SAPMSVIM' ).
 
-        go_select_list_popup->set_screen_popup( start_column = 1
+        mo_select_list_popup->set_screen_popup( start_column = 1
                                                 end_column   = 65
                                                 start_line   = 1
                                                 end_line     = 20 ).
 
-        lo_events = go_select_list_popup->get_event( ).
+        lo_events = mo_select_list_popup->get_event( ).
 
         SET HANDLER on_select_list_link_click FOR lo_events.
         SET HANDLER on_select_list_function_click FOR lo_events.
@@ -23037,9 +23044,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           EXPORTING
             text = iv_header_text.
 
-        go_select_list_popup->set_top_of_list( lo_table_header ).
+        mo_select_list_popup->set_top_of_list( lo_table_header ).
 
-        lo_columns = go_select_list_popup->get_columns( ).
+        lo_columns = mo_select_list_popup->get_columns( ).
         lo_columns->set_optimize( abap_true ).
         lt_columns = lo_columns->get( ).
 
@@ -23063,13 +23070,13 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
         ENDLOOP.
 
-        go_select_list_popup->display( ).
+        mo_select_list_popup->display( ).
 
       CATCH cx_salv_msg.
         zcx_abapgit_exception=>raise( 'Error from POPUP_TO_SELECT_FROM_LIST' ).
     ENDTRY.
 
-    IF gv_cancel = abap_true.
+    IF mv_cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
@@ -23077,9 +23084,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       IMPORTING
         et_list = et_list ).
 
-    CLEAR: go_select_list_popup,
-           gr_table,
-           go_table_descr.
+    CLEAR: mo_select_list_popup,
+           mr_table,
+           mo_table_descr.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_select_transports.
@@ -34559,19 +34566,19 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_update_function.
-    IF gv_update_function IS INITIAL.
-      gv_update_function = 'CALL_V1_PING'.
+    IF mv_update_function IS INITIAL.
+      mv_update_function = 'CALL_V1_PING'.
       CALL FUNCTION 'FUNCTION_EXISTS'
         EXPORTING
-          funcname = gv_update_function
+          funcname = mv_update_function
         EXCEPTIONS
           OTHERS   = 2.
 
       IF sy-subrc <> 0.
-        gv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
+        mv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
       ENDIF.
     ENDIF.
-    rv_funcname = gv_update_function.
+    rv_funcname = mv_update_function.
 
   ENDMETHOD.
   METHOD list.
@@ -44963,7 +44970,7 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_suso IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -45013,7 +45020,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
   METHOD pre_check.
 
     CONSTANTS:
-      co_act_delete TYPE activ_auth VALUE '06'.
+      lc_act_delete TYPE activ_auth VALUE '06'.
 
     DATA:
       lv_act_head            TYPE activ_auth,
@@ -45060,11 +45067,11 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
       CALL METHOD lo_suso->('GET_SUSO_EDIT_MODE')
         EXPORTING
           id_object     = mv_objectname
-          id_planed_act = co_act_delete
+          id_planed_act = lc_act_delete
         IMPORTING
           ed_mode_head  = lv_act_head.
 
-      IF lv_act_head <> co_act_delete.
+      IF lv_act_head <> lc_act_delete.
         zcx_abapgit_exception=>raise( |AUTH { mv_objectname }: Delete not allowed| ).
       ENDIF.
 
@@ -45173,6 +45180,9 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -45237,9 +45247,6 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
                  iv_name = 'TOBJVOR' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
@@ -45302,7 +45309,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname      = lv_objectname
-        transobjecttype = 'C'.
+        transobjecttype = zcl_abapgit_object_susc=>transobjecttype_class.
 
     INSERT tobc FROM ls_tobc.                             "#EC CI_SUBRC
 * ignore sy-subrc as all fields are key fields
@@ -45313,13 +45320,109 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~delete.
+    CONSTANTS activity_delete_06 TYPE activ_auth VALUE '06'.
 
-    DATA: lv_objclass TYPE tobc-oclss.
+    DATA: lv_auth_object_class TYPE tobc-oclss.
+    DATA: lv_object_type       TYPE seu_objid.
+    DATA: lv_tr_object_name    TYPE e071-obj_name.
+    DATA: lv_tr_return         TYPE char1.
 
-    lv_objclass = ms_item-obj_name.
-    CALL FUNCTION 'SUSR_DELETE_OBJECT_CLASS'
+    lv_auth_object_class = ms_item-obj_name.
+    lv_object_type = ms_item-obj_type.
+
+    TRY.
+        me->zif_abapgit_object~exists( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
+
+    has_authorization( iv_object_type = lv_object_type
+                       iv_class       = lv_auth_object_class
+                       iv_activity    = activity_delete_06 ).
+
+    is_used( lv_auth_object_class ).
+
+    delete_class( lv_auth_object_class ).
+
+    put_delete_to_transport( iv_auth_object_class = lv_auth_object_class
+                             iv_object_type       = lv_object_type ).
+  ENDMETHOD.
+
+  METHOD put_delete_to_transport.
+
+    DATA: lv_tr_object_name TYPE e071-obj_name.
+    DATA: lv_tr_return      TYPE char1.
+    DATA: Ls_package_info   TYPE tdevc.
+
+    lv_tr_object_name = iv_auth_object_class.
+    CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
-        objclass = lv_objclass.
+        objectname       = lv_tr_object_name
+        transobjecttype  = zcl_abapgit_object_susc=>transobjecttype_class
+      IMPORTING
+        return_from_korr = lv_tr_return.
+
+    IF lv_tr_return <> 'M'.
+      zcx_abapgit_exception=>raise( |error in SUSC delete at SUSR_COMMEDITCHECK| ).
+    ENDIF.
+
+    CALL FUNCTION 'TR_DEVCLASS_GET'
+      EXPORTING
+        iv_devclass = ms_item-devclass
+      IMPORTING
+        es_tdevc    = ls_package_info
+      EXCEPTIONS
+        OTHERS      = 1.
+    IF sy-subrc = 0 AND ls_package_info-korrflag IS INITIAL.
+      CALL FUNCTION 'TR_TADIR_INTERFACE'
+        EXPORTING
+          wi_delete_tadir_entry = abap_true
+          wi_test_modus         = space
+          wi_tadir_pgmid        = 'R3TR'
+          wi_tadir_object       = iv_object_type
+          wi_tadir_obj_name     = lv_tr_object_name
+        EXCEPTIONS
+          OTHERS                = 0.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD delete_class.
+
+    DELETE FROM tobc  WHERE oclss = iv_auth_object_class.
+    DELETE FROM tobct WHERE oclss = iv_auth_object_class.
+
+  ENDMETHOD.
+
+  METHOD is_used.
+
+    DATA: lv_used_auth_object_class TYPE tobc-oclss.
+
+    SELECT SINGLE oclss
+      FROM tobj
+      INTO lv_used_auth_object_class
+      WHERE oclss = iv_auth_object_class ##WARN_OK.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
+                                         iv_msgno = '212'
+                                         iv_msgv1 = |{ iv_auth_object_class }| ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD has_authorization.
+
+    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
+           ID 'DEVCLASS' DUMMY
+           ID 'OBJTYPE' FIELD iv_object_type
+           ID 'OBJNAME' FIELD iv_class
+           ID 'P_GROUP' DUMMY
+           ID 'ACTVT'   FIELD iv_activity.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
+                                         iv_msgno = '467' ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -45748,15 +45851,15 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD code_item_section_handling.
-    CONSTANTS: node_item TYPE string VALUE 'item' ##NO_TEXT.
-    CONSTANTS: node_text TYPE string VALUE '#text' ##NO_TEXT.
+    CONSTANTS: lc_node_item TYPE string VALUE 'item' ##NO_TEXT.
+    CONSTANTS: lc_node_text TYPE string VALUE '#text' ##NO_TEXT.
 
     IF iv_name IN get_range_node_codes( ).
       cv_within_code_section = abap_true.
     ENDIF.
 
     IF cv_within_code_section = abap_true.
-      IF iv_name = node_item.
+      IF iv_name = lc_node_item.
         TRY.
             ei_code_item_element ?= ii_node.
             RETURN.
@@ -45764,7 +45867,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
         ENDTRY.
 
       ELSEIF iv_name NOT IN get_range_node_codes( ) AND
-             iv_name <> node_text.
+             iv_name <> lc_node_text.
         cv_within_code_section = abap_false.
       ENDIF.
     ENDIF.
@@ -45847,20 +45950,20 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
 
     DATA: ls_range_node_code TYPE LINE OF ty_string_range.
 
-    IF me->range_node_codes IS INITIAL.
+    IF me->gt_range_node_codes IS INITIAL.
       ls_range_node_code-sign   = 'I'.
       ls_range_node_code-option = 'EQ'.
       ls_range_node_code-low    = 'CODE'.
-      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
       ls_range_node_code-low    = 'GTYPES'.
-      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
       ls_range_node_code-low    = 'GCODING'.
-      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
       ls_range_node_code-low    = 'FCODING'.
-      INSERT ls_range_node_code INTO TABLE me->range_node_codes.
+      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
     ENDIF.
 
-    rt_range_node_codes = me->range_node_codes.
+    rt_range_node_codes = me->gt_range_node_codes.
 
   ENDMETHOD.
   METHOD handle_attrib_leading_spaces.
@@ -60657,7 +60760,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD download.
 
     " We inherit from CL_APL_ECATT_DOWNLOAD because CL_APL_ECATT_VO_DOWNLOAD
@@ -60754,7 +60857,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
 
     lo_ecatt_vo = <lg_ecatt_vo>.
 
-    li_objects_node = template_over_all->create_simple_element(
+    mi_objects_node = template_over_all->create_simple_element(
                                            name   = 'BUSINESS_MESSAGES'
                                            parent = root_node ).
 
@@ -60794,7 +60897,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
-    li_objects_node = template_over_all->create_simple_element(
+    mi_objects_node = template_over_all->create_simple_element(
                                            name   = 'VO_FLAGS'
                                            parent = root_node ).
 
@@ -60862,7 +60965,7 @@ CLASS zcl_abapgit_ecatt_val_obj_down IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
-    li_objects_node = template_over_all->create_simple_element(
+    mi_objects_node = template_over_all->create_simple_element(
                                            name   = 'IMPL_DETAILS'
                                            parent = root_node ).
 
@@ -65437,5 +65540,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-11T05:37:02.250Z
+* abapmerge - 2018-11-11T16:46:51.576Z
 ****************************************************
