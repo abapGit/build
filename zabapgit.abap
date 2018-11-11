@@ -16261,12 +16261,18 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
+* DDLS has to be handled before DCLS
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'DDLS'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
     LOOP AT it_results ASSIGNING <ls_result>
         WHERE obj_type <> 'IASP'
         AND obj_type <> 'PROG'
         AND obj_type <> 'XSLT'
         AND obj_type <> 'PINF'
-        AND obj_type <> 'ENHS'.
+        AND obj_type <> 'ENHS'
+        AND obj_type <> 'DDLS'.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
@@ -58467,6 +58473,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
     <lg_field> = mo_files->read_string( 'asdcls' ).
 
     TRY.
+        tadir_insert( iv_package ).
+
         CALL METHOD ('CL_ACM_DCL_HANDLER_FACTORY')=>('CREATE')
           RECEIVING
             ro_handler = lo_dcl.
@@ -58474,12 +58482,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
         CALL METHOD lo_dcl->('SAVE')
           EXPORTING
             iv_dclname     = ms_item-obj_name
-            iv_put_state   = 'A'
+            iv_put_state   = 'I'
             is_dclsrc      = <lg_data>
             iv_devclass    = iv_package
             iv_access_mode = 'INSERT'.
-
-        tadir_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
@@ -58514,8 +58520,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
-    rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
+    rs_metadata-late_deser   = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
@@ -65431,5 +65437,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-11T05:35:21.153Z
+* abapmerge - 2018-11-11T05:37:02.250Z
 ****************************************************
