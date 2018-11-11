@@ -43566,7 +43566,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
         transaction      = lv_transaction
       EXCEPTIONS
         not_excecuted    = 1
-        object_not_found = 2
+        object_not_found = 0
         OTHERS           = 3.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from RPY_TRANSACTION_DELETE' ).
@@ -65601,5 +65601,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-11T16:50:26.193Z
+* abapmerge - 2018-11-11T17:43:01.819Z
 ****************************************************
