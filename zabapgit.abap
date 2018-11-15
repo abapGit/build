@@ -10770,20 +10770,11 @@ CLASS zcl_abapgit_factory DEFINITION
     TYPES:
       tty_syntax_check TYPE HASHED TABLE OF ty_syntax_check
                          WITH UNIQUE KEY package .
-    TYPES:
-      BEGIN OF ty_branch_overview,
-        repo_key TYPE zif_abapgit_persistence=>ty_value,
-        instance TYPE REF TO zif_abapgit_branch_overview,
-      END OF ty_branch_overview .
-    TYPES:
-      tty_branch_overview TYPE HASHED TABLE OF ty_branch_overview
-                           WITH UNIQUE KEY repo_key .
 
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
     CLASS-DATA gt_sap_package TYPE tty_sap_package .
     CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
     CLASS-DATA gt_syntax_check TYPE tty_syntax_check .
-    CLASS-DATA gi_branch_overview TYPE REF TO zif_abapgit_branch_overview .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api.
     CLASS-DATA gi_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
@@ -18171,14 +18162,10 @@ ENDCLASS.
 CLASS zcl_abapgit_factory IMPLEMENTATION.
   METHOD get_branch_overview.
 
-    IF gi_branch_overview IS INITIAL.
-      CREATE OBJECT gi_branch_overview
-        TYPE zcl_abapgit_branch_overview
-        EXPORTING
-          io_repo = io_repo.
-    ENDIF.
-
-    ri_branch_overview = gi_branch_overview.
+    CREATE OBJECT ri_branch_overview
+      TYPE zcl_abapgit_branch_overview
+      EXPORTING
+        io_repo = io_repo.
 
   ENDMETHOD.
   METHOD get_code_inspector.
@@ -19318,9 +19305,8 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
 
-    CLEAR mt_branches.
-
     lt_objects = get_git_objects( io_repo ).
+
     mt_commits = parse_commits( lt_objects ).
     _sort_commits( CHANGING ct_commits = mt_commits ).
 
@@ -19332,6 +19318,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     determine_merges( ).
     determine_tags( ).
     fixes( ).
+
   ENDMETHOD.
   METHOD determine_branch.
 
@@ -19527,7 +19514,6 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
         et_objects     = rt_objects ).
 
     DELETE rt_objects WHERE type = zif_abapgit_definitions=>c_type-blob.
-
   ENDMETHOD.
   METHOD parse_annotated_tags.
 
@@ -19759,6 +19745,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     ct_commits = lt_sorted_commits.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
   METHOD is_allowed.
@@ -65610,5 +65597,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-15T07:05:32.617Z
+* abapmerge - 2018-11-15T09:49:05.480Z
 ****************************************************
