@@ -58080,7 +58080,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
+CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -58175,8 +58175,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
           lr_data       TYPE REF TO data,
           lx_error      TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <lg_data>  TYPE any,
-                   <lg_field> TYPE data.
+    FIELD-SYMBOLS: <lg_data>    TYPE any,
+                   <lg_source>  TYPE data,
+                   <lg_version> TYPE data.
 
     TRY.
         CREATE DATA lr_data
@@ -58189,18 +58190,25 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
           CHANGING
             cg_data = <lg_data> ).
 
-        ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
+        ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lg_source>.
         ASSERT sy-subrc = 0.
 
         TRY.
             " If the file doesn't exist that's ok, because previously
             " the source code was stored in the xml. We are downward compatible.
-            <lg_field> = mo_files->read_string( 'asddlxs' ) ##no_text.
+            <lg_source> = mo_files->read_string( 'asddlxs' ) ##no_text.
           CATCH zcx_abapgit_exception.
         ENDTRY.
 
         CREATE OBJECT li_data_model
           TYPE ('CL_DDLX_WB_OBJECT_DATA').
+
+        ASSIGN COMPONENT 'METADATA-VERSION' OF STRUCTURE <lg_data> TO <lg_version>.
+        ASSERT sy-subrc = 0.
+
+        " We have to always save as inactive. Standard activation below activates then
+        " and also creates transport request entry if necessary
+        <lg_version> = 'inactive'.
 
         li_data_model->set_data( <lg_data> ).
 
@@ -58212,6 +58220,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
         zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
                                       ix_previous = lx_error ).
     ENDTRY.
+
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -58234,7 +58244,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
@@ -65601,5 +65610,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-11T17:43:01.819Z
+* abapmerge - 2018-11-15T07:05:32.617Z
 ****************************************************
