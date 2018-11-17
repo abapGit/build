@@ -15125,6 +15125,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ASSERT NOT is_data-key IS INITIAL.
 
     ms_data = is_data.
+    mv_request_remote_refresh = abap_true.
 
   ENDMETHOD.
   METHOD delete.
@@ -65582,5 +65583,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-17T05:15:43.943Z
+* abapmerge - 2018-11-17T05:23:39.992Z
 ****************************************************
