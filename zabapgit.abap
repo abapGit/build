@@ -11452,14 +11452,15 @@ CLASS zcl_abapgit_repo DEFINITION
       RETURNING
         VALUE(rv_key) TYPE zif_abapgit_persistence=>ty_value .
     METHODS get_name
+    ABSTRACT
       RETURNING
         VALUE(rv_name) TYPE string
       RAISING
         zcx_abapgit_exception .
     METHODS get_files_local
       IMPORTING
-        !io_log         TYPE REF TO zcl_abapgit_log OPTIONAL
-        !it_filter      TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+        !io_log TYPE REF TO zcl_abapgit_log OPTIONAL
+        !it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
@@ -11519,9 +11520,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS set_files_remote
       IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
+        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
     METHODS get_local_settings
       RETURNING
         VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
@@ -11535,15 +11534,27 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rt_list) TYPE scit_alvlist
       RAISING
         zcx_abapgit_exception .
-
+    METHODS has_remote_source
+    ABSTRACT
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+    METHODS status
+      IMPORTING
+        !io_log TYPE REF TO zcl_abapgit_log OPTIONAL
+      RETURNING
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
-    DATA mv_do_local_refresh TYPE abap_bool .
+    DATA mv_request_local_refresh TYPE abap_bool .
     DATA mv_last_serialization TYPE timestamp .
     DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
     DATA mv_code_inspector_successful TYPE abap_bool .
+    DATA mv_request_remote_refresh TYPE abap_bool .
+    DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
 
     METHODS set
       IMPORTING it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
@@ -11555,12 +11566,15 @@ CLASS zcl_abapgit_repo DEFINITION
                 is_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
                 iv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at OPTIONAL
                 iv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by OPTIONAL
-      RAISING   zcx_abapgit_exception .
-
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset_status .
+    METHODS reset_remote .
   PRIVATE SECTION.
 
-    METHODS: update_last_deserialize RAISING zcx_abapgit_exception.
-
+    METHODS update_last_deserialize
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -11614,7 +11628,15 @@ CLASS zcl_abapgit_repo_offline DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
+    METHODS get_name
+      REDEFINITION .
+    METHODS has_remote_source
+      REDEFINITION .
   PROTECTED SECTION.
+
+    METHODS reset_remote
+      REDEFINITION .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_repo_online DEFINITION
@@ -11631,11 +11653,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     ALIASES push
       FOR zif_abapgit_git_operations~push .
 
-    METHODS constructor
-      IMPORTING
-        !is_data TYPE zif_abapgit_persistence=>ty_repo
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_url
       RETURNING
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url .
@@ -11662,38 +11679,26 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS status
-      IMPORTING
-        !io_log           TYPE REF TO zcl_abapgit_log OPTIONAL
-      RETURNING
-        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_unnecessary_local_objs
       RETURNING
         VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
 
-    METHODS deserialize
-        REDEFINITION .
     METHODS get_files_remote
-        REDEFINITION .
+      REDEFINITION .
+    METHODS get_name
+      REDEFINITION .
     METHODS rebuild_local_checksums
-        REDEFINITION .
-    METHODS refresh
-        REDEFINITION .
+      REDEFINITION .
+    METHODS has_remote_source
+      REDEFINITION .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
     DATA mv_branch TYPE zif_abapgit_definitions=>ty_sha1 .
-    DATA mv_initialized TYPE abap_bool .
-    DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
 
-    METHODS reset_status .
-    METHODS initialize
-      RAISING
-        zcx_abapgit_exception .
     METHODS handle_stage_ignore
       IMPORTING
         !io_stage TYPE REF TO zcl_abapgit_stage
@@ -11702,6 +11707,9 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS set_objects
       IMPORTING
         !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS fetch_remote
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -14660,40 +14668,47 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
-  METHOD constructor.
+  METHOD fetch_remote.
 
-    super->constructor( is_data ).
+    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
+          ls_pull     TYPE zcl_abapgit_git_porcelain=>ty_pull_result.
 
-    mv_initialized = abap_false.
+    IF mv_request_remote_refresh = abap_false.
+      RETURN.
+    ENDIF.
 
-  ENDMETHOD.
-  METHOD deserialize.
+    CREATE OBJECT lo_progress
+      EXPORTING
+        iv_total = 1.
+    lo_progress->show( iv_current = 1
+                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
 
-    initialize( ).
+    ls_pull = zcl_abapgit_git_porcelain=>pull(
+      iv_url         = get_url( )
+      iv_branch_name = get_branch_name( ) ).
 
-    super->deserialize( is_checks ).
-
-    reset_status( ).
-
-    COMMIT WORK AND WAIT.
+    set_files_remote( ls_pull-files ).
+    set_objects( ls_pull-objects ).
+    mv_branch = ls_pull-branch.
 
   ENDMETHOD.
   METHOD get_branch_name.
     rv_name = ms_data-branch_name.
   ENDMETHOD.
   METHOD get_files_remote.
-    initialize( ).
-
-    rt_files = mt_remote.
+    fetch_remote( ).
+    rt_files = super->get_files_remote( ).
+  ENDMETHOD.
+  METHOD get_name.
+    rv_name = zcl_abapgit_url=>name( ms_data-url ).
+    rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
   ENDMETHOD.
   METHOD get_objects.
-    initialize( ).
-
+    fetch_remote( ).
     rt_objects = mt_objects.
   ENDMETHOD.
   METHOD get_sha1_remote.
-    initialize( ).
-
+    fetch_remote( ).
     rv_sha1 = mv_branch.
   ENDMETHOD.
   METHOD get_unnecessary_local_objs.
@@ -14774,32 +14789,34 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD initialize.
-    IF mv_initialized = abap_false.
-      refresh( ).
-    ENDIF.
+  METHOD has_remote_source.
+    rv_yes = abap_true.
   ENDMETHOD.
-  METHOD rebuild_local_checksums. "REMOTE
+  METHOD rebuild_local_checksums.
 
-    DATA: lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt,
+    " TODO: method unify to base class !
+
+    DATA:
+          lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt,
           lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
           ls_last_item TYPE zif_abapgit_definitions=>ty_item,
           lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
 
-    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
+    FIELD-SYMBOLS:
+                   <ls_checksum> LIKE LINE OF lt_checksums,
                    <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
                    <ls_remote>   LIKE LINE OF lt_remote,
                    <ls_local>    LIKE LINE OF lt_local.
 
-    lt_remote = get_files_remote( ).
     lt_local  = get_files_local( ).
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
       AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
       AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
-
     SORT lt_local BY item.
+
+    lt_remote = get_files_remote( ).
     SORT lt_remote BY path filename.
 
     LOOP AT lt_local ASSIGNING <ls_local>.
@@ -14812,7 +14829,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
       READ TABLE lt_remote ASSIGNING <ls_remote>
         WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
         BINARY SEARCH.
-      CHECK sy-subrc = 0.  " Ignore new ones
+      CHECK sy-subrc = 0.  " Ignore new local ones
 
       APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_file_sig>.
       MOVE-CORRESPONDING <ls_local>-file TO <ls_file_sig>.
@@ -14829,42 +14846,13 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-  METHOD refresh.
-
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
-          ls_pull     TYPE zcl_abapgit_git_porcelain=>ty_pull_result.
-
-    super->refresh( iv_drop_cache ).
-    reset_status( ).
-
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 1.
-
-    lo_progress->show( iv_current = 1
-                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
-
-    ls_pull = zcl_abapgit_git_porcelain=>pull(
-      iv_url         = get_url( )
-      iv_branch_name = get_branch_name( ) ).
-
-    mt_remote  = ls_pull-files.
-    mt_objects = ls_pull-objects.
-    mv_branch  = ls_pull-branch.
-
-    mv_initialized = abap_true.
-
-  ENDMETHOD.
-  METHOD reset_status.
-    CLEAR mt_status.
-  ENDMETHOD.
   METHOD set_branch_name.
 
     IF ms_data-local_settings-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
     ENDIF.
 
-    mv_initialized = abap_false.
+    reset_remote( ).
     set( iv_branch_name = iv_branch_name ).
 
   ENDMETHOD.
@@ -14877,19 +14865,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot change URL. Local code is write-protected by repo config' ).
     ENDIF.
 
-    mv_initialized = abap_false.
+    reset_remote( ).
     set( iv_url = iv_url ).
-
-  ENDMETHOD.
-  METHOD status.
-
-    initialize( ).
-
-    IF lines( mt_status ) = 0.
-      mt_status = zcl_abapgit_file_status=>status( io_repo = me
-                                                   io_log  = io_log ).
-    ENDIF.
-    rt_results = mt_status.
 
   ENDMETHOD.
   METHOD zif_abapgit_git_operations~create_branch.
@@ -14953,6 +14930,28 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
+  METHOD get_name.
+    rv_name = ms_data-url.
+  ENDMETHOD.
+  METHOD has_remote_source.
+    rv_yes = boolc( lines( mt_remote ) > 0 ).
+  ENDMETHOD.
+  METHOD reset_remote.
+
+    DATA lt_backup LIKE mt_remote.
+
+    " online repo has online source to renew data from, offline does not
+    " so offline repo preserves the remote
+    " in case of partial pull failure the user will immediately see the new difference
+    " UI will detect "pullable" content based on mt_status
+    " in the uniform way both for online and offline repos
+    " for more details see discussion in 2096 and 1953
+
+    lt_backup = mt_remote.
+    super->reset_remote( ).
+    set_files_remote( lt_backup ).
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_folders.
@@ -15029,14 +15028,13 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_repo_items_online.
 
-    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
+    DATA:
           ls_file        TYPE zif_abapgit_definitions=>ty_repo_file,
           lt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
 
     FIELD-SYMBOLS: <ls_status>    LIKE LINE OF lt_status,
                    <ls_repo_item> LIKE LINE OF rt_repo_items.
-    lo_repo_online ?= mo_repo.
-    lt_status       = lo_repo_online->status( mo_log ).
+    lt_status       = mo_repo->status( mo_log ).
 
     LOOP AT lt_status ASSIGNING <ls_status>.
       AT NEW obj_name. "obj_type + obj_name
@@ -15121,7 +15119,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     ASSERT NOT is_data-key IS INITIAL.
@@ -15172,6 +15170,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     update_local_checksums( lt_updated_files ).
     update_last_deserialize( ).
+    reset_status( ).
+
+    COMMIT WORK AND WAIT.
 
   ENDMETHOD.
   METHOD deserialize_checks.
@@ -15226,7 +15227,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
                    <ls_cache>  LIKE LINE OF lt_cache,
                    <ls_tadir>  LIKE LINE OF lt_tadir.
     " Serialization happened before and no refresh request
-    IF mv_last_serialization IS NOT INITIAL AND mv_do_local_refresh = abap_false.
+    IF mv_last_serialization IS NOT INITIAL AND mv_request_local_refresh = abap_false.
       rt_files = mt_local.
       RETURN.
     ENDIF.
@@ -15300,8 +15301,8 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDLOOP.
 
     GET TIME STAMP FIELD mv_last_serialization.
-    mt_local            = rt_files.
-    mv_do_local_refresh = abap_false. " Fulfill refresh
+    mt_local                 = rt_files.
+    mv_request_local_refresh = abap_false. " Fulfill refresh
 
   ENDMETHOD.
   METHOD get_files_remote.
@@ -15327,38 +15328,30 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     rs_settings = ms_data-local_settings.
 
   ENDMETHOD.
-  METHOD get_name.
-
-    IF ms_data-offline = abap_true.
-      rv_name = ms_data-url.
-    ELSE.
-      rv_name = zcl_abapgit_url=>name( ms_data-url ).
-      rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_package.
     rv_package = ms_data-package.
   ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
   ENDMETHOD.
-  METHOD rebuild_local_checksums. "LOCAL (BASE)
+  METHOD rebuild_local_checksums.
 
-    DATA: lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
+    DATA:
+          lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
           ls_last_item TYPE zif_abapgit_definitions=>ty_item,
           lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
 
-    FIELD-SYMBOLS: <ls_checksum> LIKE LINE OF lt_checksums,
+    FIELD-SYMBOLS:
+                   <ls_checksum> LIKE LINE OF lt_checksums,
                    <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
                    <ls_local>    LIKE LINE OF lt_local.
+
     lt_local = get_files_local( ).
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
       AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
       AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
-
     SORT lt_local BY item.
 
     LOOP AT lt_local ASSIGNING <ls_local>.
@@ -15374,16 +15367,26 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDLOOP.
 
     set( it_checksums = lt_checksums ).
+    reset_status( ).
 
   ENDMETHOD.
   METHOD refresh.
 
-    mv_do_local_refresh = abap_true.
+    mv_request_local_refresh = abap_true.
+    reset_remote( ).
 
     IF iv_drop_cache = abap_true.
       CLEAR: mv_last_serialization, mt_local.
     ENDIF.
 
+  ENDMETHOD.
+  METHOD reset_remote.
+    CLEAR mt_remote.
+    mv_request_remote_refresh = abap_true.
+    reset_status( ).
+  ENDMETHOD.
+  METHOD reset_status.
+    CLEAR mt_status.
   ENDMETHOD.
   METHOD run_code_inspector.
 
@@ -15491,11 +15494,23 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD set_files_remote.
 
     mt_remote = it_files.
+    mv_request_remote_refresh = abap_false.
 
   ENDMETHOD.
   METHOD set_local_settings.
 
     set( is_local_settings = is_settings ).
+
+  ENDMETHOD.
+  METHOD status.
+
+    IF lines( mt_status ) = 0.
+      mt_status = zcl_abapgit_file_status=>status(
+        io_repo = me
+        io_log  = io_log ).
+    ENDIF.
+
+    rt_results = mt_status.
 
   ENDMETHOD.
   METHOD update_last_deserialize.
@@ -22182,9 +22197,9 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD pull.
 
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
 
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     lo_repo->refresh( ).
 
@@ -28250,7 +28265,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     DATA: lt_remote TYPE zif_abapgit_definitions=>ty_files_tt,
           lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lt_status TYPE zif_abapgit_definitions=>ty_results_tt,
-          lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+          lo_repo   TYPE REF TO zcl_abapgit_repo,
           lv_ts     TYPE timestamp.
 
     FIELD-SYMBOLS: <ls_status> LIKE LINE OF lt_status.
@@ -28272,7 +28287,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     ASSERT is_file IS INITIAL OR is_object IS INITIAL. " just one passed
 
-    lo_repo  ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lo_repo   = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lt_remote = lo_repo->get_files_remote( ).
     lt_local  = lo_repo->get_files_local( ).
     lt_status = lo_repo->status( ).
@@ -65597,5 +65612,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-15T09:49:05.480Z
+* abapmerge - 2018-11-17T05:13:56.207Z
 ****************************************************
