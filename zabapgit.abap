@@ -45264,106 +45264,43 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_susc IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
+  METHOD delete_class.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_oclss TYPE tobc-oclss.
-    SELECT SINGLE oclss FROM tobc INTO lv_oclss
-      WHERE oclss = ms_item-obj_name.
-    rv_bool = boolc( sy-subrc = 0 ).
+    DELETE FROM tobc  WHERE oclss = iv_auth_object_class.
+    DELETE FROM tobct WHERE oclss = iv_auth_object_class.
 
   ENDMETHOD.
+  METHOD has_authorization.
 
-  METHOD zif_abapgit_object~serialize.
+    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
+           ID 'DEVCLASS' DUMMY
+           ID 'OBJTYPE' FIELD iv_object_type
+           ID 'OBJNAME' FIELD iv_class
+           ID 'P_GROUP' DUMMY
+           ID 'ACTVT'   FIELD iv_activity.
 
-    DATA: ls_tobc  TYPE tobc,
-          ls_tobct TYPE tobct.
-    SELECT SINGLE * FROM tobc INTO ls_tobc
-      WHERE oclss = ms_item-obj_name.
     IF sy-subrc <> 0.
-      RETURN.
+      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
+                                         iv_msgno = '467' ).
     ENDIF.
 
-    SELECT SINGLE * FROM tobct INTO ls_tobct
-      WHERE oclss = ms_item-obj_name
-      AND langu = mv_language.
+  ENDMETHOD.
+  METHOD is_used.
 
-    io_xml->add( iv_name = 'TOBC'
-                 ig_data = ls_tobc ).
-    io_xml->add( iv_name = 'TOBCT'
-                 ig_data = ls_tobct ).
+    DATA: lv_used_auth_object_class TYPE tobc-oclss.
+
+    SELECT SINGLE oclss
+      FROM tobj
+      INTO lv_used_auth_object_class
+      WHERE oclss = iv_auth_object_class ##WARN_OK.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
+                                         iv_msgno = '212'
+                                         iv_msgv1 = |{ iv_auth_object_class }| ).
+    ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~deserialize.
-* see function group SUSA
-
-    DATA: ls_tobc       TYPE tobc,
-          lv_objectname TYPE e071-obj_name,
-          ls_tobct      TYPE tobct.
-    io_xml->read( EXPORTING iv_name = 'TOBC'
-                  CHANGING cg_data = ls_tobc ).
-    io_xml->read( EXPORTING iv_name = 'TOBCT'
-                  CHANGING cg_data = ls_tobct ).
-
-    tadir_insert( iv_package ).
-
-    lv_objectname = ms_item-obj_name.
-    CALL FUNCTION 'SUSR_COMMEDITCHECK'
-      EXPORTING
-        objectname      = lv_objectname
-        transobjecttype = zcl_abapgit_object_susc=>transobjecttype_class.
-
-    INSERT tobc FROM ls_tobc.                             "#EC CI_SUBRC
-* ignore sy-subrc as all fields are key fields
-
-    MODIFY tobct FROM ls_tobct.                           "#EC CI_SUBRC
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~delete.
-    CONSTANTS activity_delete_06 TYPE activ_auth VALUE '06'.
-
-    DATA: lv_auth_object_class TYPE tobc-oclss.
-    DATA: lv_object_type       TYPE seu_objid.
-    DATA: lv_tr_object_name    TYPE e071-obj_name.
-    DATA: lv_tr_return         TYPE char1.
-
-    lv_auth_object_class = ms_item-obj_name.
-    lv_object_type = ms_item-obj_type.
-
-    TRY.
-        me->zif_abapgit_object~exists( ).
-      CATCH zcx_abapgit_exception.
-        RETURN.
-    ENDTRY.
-
-    has_authorization( iv_object_type = lv_object_type
-                       iv_class       = lv_auth_object_class
-                       iv_activity    = activity_delete_06 ).
-
-    is_used( lv_auth_object_class ).
-
-    delete_class( lv_auth_object_class ).
-
-    put_delete_to_transport( iv_auth_object_class = lv_auth_object_class
-                             iv_object_type       = lv_object_type ).
-  ENDMETHOD.
-
   METHOD put_delete_to_transport.
 
     DATA: lv_tr_object_name TYPE e071-obj_name.
@@ -45402,46 +45339,86 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = c_user_unknown. " todo
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+    CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
-  METHOD delete_class.
+    DATA: lv_auth_object_class TYPE tobc-oclss.
+    DATA: lv_object_type       TYPE seu_objid.
+    DATA: lv_tr_object_name    TYPE e071-obj_name.
+    DATA: lv_tr_return         TYPE char1.
 
-    DELETE FROM tobc  WHERE oclss = iv_auth_object_class.
-    DELETE FROM tobct WHERE oclss = iv_auth_object_class.
+    lv_auth_object_class = ms_item-obj_name.
+    lv_object_type = ms_item-obj_type.
+
+    TRY.
+        me->zif_abapgit_object~exists( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
+
+    has_authorization( iv_object_type = lv_object_type
+                       iv_class       = lv_auth_object_class
+                       iv_activity    = lc_activity_delete_06 ).
+
+    is_used( lv_auth_object_class ).
+
+    delete_class( lv_auth_object_class ).
+
+    put_delete_to_transport( iv_auth_object_class = lv_auth_object_class
+                             iv_object_type       = lv_object_type ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+* see function group SUSA
+
+    DATA: ls_tobc       TYPE tobc,
+          lv_objectname TYPE e071-obj_name,
+          ls_tobct      TYPE tobct.
+    io_xml->read( EXPORTING iv_name = 'TOBC'
+                  CHANGING cg_data = ls_tobc ).
+    io_xml->read( EXPORTING iv_name = 'TOBCT'
+                  CHANGING cg_data = ls_tobct ).
+
+    tadir_insert( iv_package ).
+
+    lv_objectname = ms_item-obj_name.
+    CALL FUNCTION 'SUSR_COMMEDITCHECK'
+      EXPORTING
+        objectname      = lv_objectname
+        transobjecttype = zcl_abapgit_object_susc=>transobjecttype_class.
+
+    INSERT tobc FROM ls_tobc.                             "#EC CI_SUBRC
+* ignore sy-subrc as all fields are key fields
+
+    MODIFY tobct FROM ls_tobct.                           "#EC CI_SUBRC
+    ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
-  METHOD is_used.
-
-    DATA: lv_used_auth_object_class TYPE tobc-oclss.
-
-    SELECT SINGLE oclss
-      FROM tobj
-      INTO lv_used_auth_object_class
-      WHERE oclss = iv_auth_object_class ##WARN_OK.
-    IF sy-subrc = 0.
-      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
-                                         iv_msgno = '212'
-                                         iv_msgv1 = |{ iv_auth_object_class }| ).
-    ENDIF.
+    DATA: lv_oclss TYPE tobc-oclss.
+    SELECT SINGLE oclss FROM tobc INTO lv_oclss
+      WHERE oclss = ms_item-obj_name.
+    rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
-
-  METHOD has_authorization.
-
-    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
-           ID 'DEVCLASS' DUMMY
-           ID 'OBJTYPE' FIELD iv_object_type
-           ID 'OBJNAME' FIELD iv_class
-           ID 'P_GROUP' DUMMY
-           ID 'ACTVT'   FIELD iv_activity.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( iv_msgid = '01'
-                                         iv_msgno = '467' ).
-    ENDIF.
-
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
   ENDMETHOD.
-
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: lv_objclass TYPE tobc-oclss.
@@ -45452,19 +45429,26 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
         objclass = lv_objclass.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+    DATA: ls_tobc  TYPE tobc,
+          ls_tobct TYPE tobct.
+    SELECT SINGLE * FROM tobc INTO ls_tobc
+      WHERE oclss = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    SELECT SINGLE * FROM tobct INTO ls_tobct
+      WHERE oclss = ms_item-obj_name
+      AND langu = mv_language.
+
+    io_xml->add( iv_name = 'TOBC'
+                 ig_data = ls_tobc ).
+    io_xml->add( iv_name = 'TOBCT'
+                 ig_data = ls_tobct ).
+
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_styl IMPLEMENTATION.
 
@@ -48007,35 +47991,62 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
+  METHOD clear_fields.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
+    FIELD-SYMBOLS <ls_node> LIKE LINE OF ct_nodes.
 
-  METHOD zif_abapgit_object~changed_by.
+    CLEAR: cs_head-luser, cs_head-ldate, cs_head-ltime.
+    CLEAR: cs_head-fuser, cs_head-fdate, cs_head-ftime.
+    CLEAR: cs_head-frelease, cs_head-lrelease.
+    CLEAR: cs_head-responsibl.
 
-    DATA: ls_head TYPE ttree.
-
-    CALL FUNCTION 'STREE_STRUCTURE_READ'
-      EXPORTING
-        structure_id     = mv_tree_id
-      IMPORTING
-        structure_header = ls_head.
-
-    rv_user = ls_head-luser.
+    LOOP AT ct_nodes ASSIGNING <ls_node>.
+      CLEAR: <ls_node>-luser, <ls_node>-ldate, <ls_node>-ltime.
+      CLEAR: <ls_node>-fuser, <ls_node>-fdate, <ls_node>-ftime.
+      CLEAR: <ls_node>-frelease, <ls_node>-lrelease.
+    ENDLOOP.
 
   ENDMETHOD.
-
   METHOD constructor.
     super->constructor( is_item = is_item iv_language = iv_language ).
     mv_tree_id = ms_item-obj_name.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
+  METHOD delete_tree_structure.
+    CALL FUNCTION 'STREE_EXTERNAL_DELETE'
+      EXPORTING
+        structure_id          = iv_structure_id
+        no_confirmation_popup = abap_true.
   ENDMETHOD.
+  METHOD has_authorization.
 
+    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
+      ID 'DEVCLASS'  FIELD iv_devclass
+      ID 'OBJTYPE'   FIELD 'MENU'
+      ID 'OBJNAME'   FIELD iv_structure_id
+      ID 'P_GROUP'  DUMMY
+      ID 'ACTVT'    FIELD iv_activity.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( iv_msgid = 's#'
+                                         iv_msgno = '203' ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD is_used.
+
+    DATA: lt_used_in_structures TYPE STANDARD TABLE OF ttree WITH DEFAULT KEY.
+
+    CALL FUNCTION 'STREE_GET_STRUCTURE_USAGE'
+      EXPORTING
+        structure_id       = iv_structure_id
+      TABLES
+        used_in_structures = lt_used_in_structures.
+
+    IF lt_used_in_structures IS NOT INITIAL.
+      zcx_abapgit_exception=>raise( |IMG structure ID { iv_structure_id } is still used| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD jump_se43.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
@@ -48073,8 +48084,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~jump.
+  METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_head TYPE ttree.
 
@@ -48084,37 +48094,15 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       IMPORTING
         structure_header = ls_head.
 
-    CASE ls_head-type.
-      WHEN 'BMENU'.
-        jump_se43( ).
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |Jump for type { ls_head-type } not implemented| ).
-    ENDCASE.
+    rv_user = ls_head-luser.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    DATA: ls_msg    TYPE hier_mess,
-          ls_header TYPE ttree,
-          ls_tadir  TYPE tadir.
-
-    CALL FUNCTION 'STREE_STRUCTURE_EXIST'
-      EXPORTING
-        structure_id         = mv_tree_id
-        do_not_read_devclass = ''
-      IMPORTING
-        message              = ls_msg
-        structure_header     = ls_header
-        structure_tadir      = ls_tadir.
-
-    rv_bool = boolc( ls_header-id IS NOT INITIAL ).
-
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
 
-    CONSTANTS activity_delete_06 TYPE activ_auth VALUE '06'.
+    CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
     DATA: lv_object_type    TYPE seu_objid.
     DATA: lv_tr_object_name TYPE e071-obj_name.
@@ -48131,76 +48119,13 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     has_authorization( iv_object_type  = lv_object_type
                        iv_structure_id = mv_tree_id
                        iv_devclass     = ms_item-devclass
-                       iv_activity     = activity_delete_06 ).
+                       iv_activity     = lc_activity_delete_06 ).
 
     is_used( mv_tree_id ).
 
     delete_tree_structure( mv_tree_id ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_msg    TYPE hier_mess,
-          ls_head   TYPE ttree,
-          lt_titles TYPE TABLE OF ttreet,
-          lt_nodes  TYPE TABLE OF hier_iface,
-          lt_texts  TYPE TABLE OF hier_texts,
-          lt_refs   TYPE TABLE OF hier_ref.
-    CALL FUNCTION 'STREE_STRUCTURE_READ'
-      EXPORTING
-        structure_id     = mv_tree_id
-      IMPORTING
-        message          = ls_msg
-        structure_header = ls_head
-      TABLES
-        description      = lt_titles.
-
-    CALL FUNCTION 'STREE_HIERARCHY_READ'
-      EXPORTING
-        structure_id       = mv_tree_id
-        read_also_texts    = 'X'
-        all_languages      = 'X'
-      IMPORTING
-        message            = ls_msg
-      TABLES
-        list_of_nodes      = lt_nodes
-        list_of_references = lt_refs
-        list_of_texts      = lt_texts.
-
-    clear_fields( CHANGING cs_head  = ls_head
-                           ct_nodes = lt_nodes ).
-
-    io_xml->add( iv_name = 'TREE_HEAD'
-                 ig_data = ls_head ).
-    io_xml->add( iv_name = 'TREE_TITLES'
-                 ig_data = lt_titles ).
-    io_xml->add( iv_name = 'TREE_NODES'
-                 ig_data = lt_nodes ).
-    io_xml->add( iv_name = 'TREE_REFS'
-                 ig_data = lt_refs ).
-    io_xml->add( iv_name = 'TREE_TEXTS'
-                 ig_data = lt_texts ).
-
-  ENDMETHOD.
-
-  METHOD clear_fields.
-
-    FIELD-SYMBOLS <ls_node> LIKE LINE OF ct_nodes.
-
-    CLEAR: cs_head-luser, cs_head-ldate, cs_head-ltime.
-    CLEAR: cs_head-fuser, cs_head-fdate, cs_head-ftime.
-    CLEAR: cs_head-frelease, cs_head-lrelease.
-    CLEAR: cs_head-responsibl.
-
-    LOOP AT ct_nodes ASSIGNING <ls_node>.
-      CLEAR: <ls_node>-luser, <ls_node>-ldate, <ls_node>-ltime.
-      CLEAR: <ls_node>-fuser, <ls_node>-fdate, <ls_node>-ftime.
-      CLEAR: <ls_node>-frelease, <ls_node>-lrelease.
-    ENDLOOP.
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_msg    TYPE hier_mess,
@@ -48248,52 +48173,97 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+    DATA: ls_msg    TYPE hier_mess,
+          ls_header TYPE ttree,
+          ls_tadir  TYPE tadir.
+
+    CALL FUNCTION 'STREE_STRUCTURE_EXIST'
+      EXPORTING
+        structure_id         = mv_tree_id
+        do_not_read_devclass = ''
+      IMPORTING
+        message              = ls_msg
+        structure_header     = ls_header
+        structure_tadir      = ls_tadir.
+
+    rv_bool = boolc( ls_header-id IS NOT INITIAL ).
+
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
-
-  METHOD has_authorization.
-
-    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
-      ID 'DEVCLASS'  FIELD iv_devclass
-      ID 'OBJTYPE'   FIELD 'MENU'
-      ID 'OBJNAME'   FIELD iv_structure_id
-      ID 'P_GROUP'  DUMMY
-      ID 'ACTVT'    FIELD iv_activity.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( iv_msgid = 's#'
-                                         iv_msgno = '203' ).
-    ENDIF.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
   ENDMETHOD.
-  METHOD is_used.
+  METHOD zif_abapgit_object~jump.
 
-    DATA: lt_used_in_structures TYPE STANDARD TABLE OF ttree WITH DEFAULT KEY.
+    DATA: ls_head TYPE ttree.
 
-    CALL FUNCTION 'STREE_GET_STRUCTURE_USAGE'
+    CALL FUNCTION 'STREE_STRUCTURE_READ'
       EXPORTING
-        structure_id       = iv_structure_id
+        structure_id     = mv_tree_id
+      IMPORTING
+        structure_header = ls_head.
+
+    CASE ls_head-type.
+      WHEN 'BMENU'.
+        jump_se43( ).
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |Jump for type { ls_head-type } not implemented| ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: ls_msg    TYPE hier_mess,
+          ls_head   TYPE ttree,
+          lt_titles TYPE TABLE OF ttreet,
+          lt_nodes  TYPE TABLE OF hier_iface,
+          lt_texts  TYPE TABLE OF hier_texts,
+          lt_refs   TYPE TABLE OF hier_ref.
+    CALL FUNCTION 'STREE_STRUCTURE_READ'
+      EXPORTING
+        structure_id     = mv_tree_id
+      IMPORTING
+        message          = ls_msg
+        structure_header = ls_head
       TABLES
-        used_in_structures = lt_used_in_structures.
+        description      = lt_titles.
 
-    IF lt_used_in_structures IS NOT INITIAL.
-      zcx_abapgit_exception=>raise( |IMG structure ID { iv_structure_id } is still used| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD delete_tree_structure.
-    CALL FUNCTION 'STREE_EXTERNAL_DELETE'
+    CALL FUNCTION 'STREE_HIERARCHY_READ'
       EXPORTING
-        structure_id          = iv_structure_id
-        no_confirmation_popup = abap_true.
+        structure_id       = mv_tree_id
+        read_also_texts    = 'X'
+        all_languages      = 'X'
+      IMPORTING
+        message            = ls_msg
+      TABLES
+        list_of_nodes      = lt_nodes
+        list_of_references = lt_refs
+        list_of_texts      = lt_texts.
+
+    clear_fields( CHANGING cs_head  = ls_head
+                           ct_nodes = lt_nodes ).
+
+    io_xml->add( iv_name = 'TREE_HEAD'
+                 ig_data = ls_head ).
+    io_xml->add( iv_name = 'TREE_TITLES'
+                 ig_data = lt_titles ).
+    io_xml->add( iv_name = 'TREE_NODES'
+                 ig_data = lt_nodes ).
+    io_xml->add( iv_name = 'TREE_REFS'
+                 ig_data = lt_refs ).
+    io_xml->add( iv_name = 'TREE_TEXTS'
+                 ig_data = lt_texts ).
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
@@ -65612,5 +65582,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-17T05:13:56.207Z
+* abapmerge - 2018-11-17T05:15:43.943Z
 ****************************************************
