@@ -26,10 +26,6 @@ REPORT zabapgit LINE-SIZE 100.
 * SOFTWARE.
 ********************************************************************************
 
-SELECTION-SCREEN BEGIN OF SCREEN 1001.
-* dummy for triggering screen on Java SAP GUI
-SELECTION-SCREEN END OF SCREEN 1001.
-
 CLASS zcx_abapgit_2fa_error DEFINITION
   inheriting from CX_STATIC_CHECK
   create public .
@@ -702,8 +698,7 @@ CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
-INTERFACE zif_abapgit_background
-  .
+INTERFACE zif_abapgit_background .
   TYPES:
     BEGIN OF ty_settings,
       key   TYPE string,
@@ -726,25 +721,6 @@ INTERFACE zif_abapgit_background
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
-"! Defines a two factor authentication authenticator
-"! <p>
-"! Authenticators support one or multiple services and are able to generate access tokens using the
-"! service's API using the users username, password and two factor authentication token
-"! (app/sms/tokengenerator). With these access tokens the user can be authenticated to the service's
-"! implementation of the git http api, just like the "normal" password would.
-"! </p>
-"! <p>
-"! {@link ZCL_ABAPGIT_2FA_AUTH_REGISTRY} can be used to find a suitable implementation for a
-"! given repository.
-"! </p>
-"! <p>
-"! Using the {@link zif_abapgit_2fa_authenticator.METH:begin} and
-"! {@link zif_abapgit_2fa_authenticator.METH.end} methods an internal session can be started and
-"! completed in which internal state necessary for multiple methods will be cached. This can be
-"! used to avoid having multiple http sessions between
-"! {@link zif_abapgit_2fa_authenticator.METH:authenticate} and
-"! {@link zif_abapgit_2fa_authenticator.METH:delete_access_tokens}.
-"! </p>
 INTERFACE zif_abapgit_2fa_authenticator.
   "! Generate an access token
   "! @parameter iv_url | Repository url
@@ -824,8 +800,7 @@ INTERFACE zif_abapgit_comparison_result.
       RETURNING VALUE(rv_response) TYPE abap_bool.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_gui_functions
-  .
+INTERFACE zif_abapgit_gui_functions .
 
   METHODS:
     gui_is_available
@@ -894,8 +869,7 @@ INTERFACE zif_abapgit_auth.
       RETURNING VALUE(rv_allowed) TYPE abap_bool.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_code_inspector
- .
+INTERFACE zif_abapgit_code_inspector.
 
   METHODS:
     run
@@ -909,7 +883,6 @@ INTERFACE zif_abapgit_code_inspector
         VALUE(ro_inspection) TYPE REF TO cl_ci_inspection.
 
 ENDINTERFACE.
-"! Change transport system API
 INTERFACE zif_abapgit_cts_api.
   METHODS:
     "! Returns the transport request / task the object is currently locked in
@@ -1626,8 +1599,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
       RETURNING
         VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 ENDINTERFACE.
-INTERFACE zif_abapgit_tag_popups
- .
+INTERFACE zif_abapgit_tag_popups.
 
   METHODS:
     tag_list_popup
@@ -1647,8 +1619,7 @@ INTERFACE zif_abapgit_tag_popups
         zcx_abapgit_exception .
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_branch_overview
-  .
+INTERFACE zif_abapgit_branch_overview .
 
   METHODS:
     get_branches
@@ -1747,8 +1718,7 @@ INTERFACE zif_abapgit_persistence.
   TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_persist_repo
-  .
+INTERFACE zif_abapgit_persist_repo .
   METHODS add
     IMPORTING
       !iv_url         TYPE string
@@ -1835,8 +1805,7 @@ INTERFACE zif_abapgit_persist_repo
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
-INTERFACE zif_abapgit_persist_user
-  .
+INTERFACE zif_abapgit_persist_user .
 
   TYPES tt_favorites TYPE zif_abapgit_persistence=>tt_repo_keys .
 
@@ -1980,8 +1949,7 @@ INTERFACE zif_abapgit_persist_user
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
-INTERFACE zif_abapgit_popups
-  .
+INTERFACE zif_abapgit_popups .
   TYPES:
     BEGIN OF ty_popup,
       url         TYPE string,
@@ -2123,8 +2091,7 @@ INTERFACE zif_abapgit_popups
       zcx_abapgit_exception
       zcx_abapgit_cancel .
 ENDINTERFACE.
-INTERFACE zif_abapgit_ecatt
-  .
+INTERFACE zif_abapgit_ecatt .
 
   " downport missing types
 
@@ -2194,8 +2161,7 @@ INTERFACE zif_abapgit_exit.
         ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_git_operations
-  .
+INTERFACE zif_abapgit_git_operations .
 
   METHODS push
     IMPORTING
@@ -2212,8 +2178,7 @@ INTERFACE zif_abapgit_git_operations
       zcx_abapgit_exception .
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_gui_page_hotkey
- .
+INTERFACE zif_abapgit_gui_page_hotkey.
 
   TYPES:
     BEGIN OF ty_hotkey_action,
@@ -2232,8 +2197,7 @@ INTERFACE zif_abapgit_gui_page_hotkey
         VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_repo_srv
-  .
+INTERFACE zif_abapgit_repo_srv .
   METHODS delete
     IMPORTING
       !io_repo TYPE REF TO zcl_abapgit_repo
@@ -2322,8 +2286,7 @@ INTERFACE zif_abapgit_sap_package.
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_stage_logic
-  .
+INTERFACE zif_abapgit_stage_logic .
 
   METHODS get
     IMPORTING
@@ -2334,8 +2297,7 @@ INTERFACE zif_abapgit_stage_logic
       zcx_abapgit_exception .
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_tadir
-  .
+INTERFACE zif_abapgit_tadir .
   METHODS get_object_package
     IMPORTING
       !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
@@ -2366,8 +2328,7 @@ INTERFACE zif_abapgit_tadir
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
-INTERFACE zif_abapgit_version
-  .
+INTERFACE zif_abapgit_version .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
   CONSTANTS gc_abap_version TYPE string VALUE '1.79.1' ##NO_TEXT.
@@ -65241,6 +65202,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+SELECTION-SCREEN BEGIN OF SCREEN 1001.
+* dummy for triggering screen on Java SAP GUI
+SELECTION-SCREEN END OF SCREEN 1001.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PASSWORD_DIALOG
 ****************************************************
@@ -65584,5 +65549,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-17T06:32:56.564Z
+* abapmerge undefined - 2018-11-17T06:36:53.808Z
 ****************************************************
