@@ -16182,13 +16182,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     DATA: li_object TYPE REF TO zif_abapgit_object.
 
-    li_object = create_object( is_item     = is_item
-                               iv_language = sy-langu ).
-
     TRY.
+        li_object = create_object( is_item     = is_item
+                                   iv_language = sy-langu ).
+
         rv_active = li_object->is_active( ).
       CATCH cx_sy_dyn_call_illegal_method
-            cx_sy_ref_is_initial.
+            cx_sy_ref_is_initial
+            zcx_abapgit_exception.
         rv_active = abap_true.
     ENDTRY.
   ENDMETHOD.
@@ -65583,5 +65584,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge - 2018-11-17T05:23:39.992Z
+* abapmerge - 2018-11-17T05:25:29.383Z
 ****************************************************
