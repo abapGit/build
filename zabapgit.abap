@@ -45266,9 +45266,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
   ENDMETHOD.
   METHOD put_delete_to_transport.
 
-    DATA: lv_tr_object_name TYPE e071-obj_name.
-    DATA: lv_tr_return      TYPE char1.
-    DATA: Ls_package_info   TYPE tdevc.
+    DATA: lv_tr_object_name TYPE e071-obj_name,
+          lv_tr_return      TYPE char1,
+          ls_package_info   TYPE tdevc,
+          lv_tadir_object   TYPE tadir-object,
+          lv_tadir_obj_name TYPE tadir-obj_name.
 
     lv_tr_object_name = iv_auth_object_class.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
@@ -45290,13 +45292,15 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
       EXCEPTIONS
         OTHERS      = 1.
     IF sy-subrc = 0 AND ls_package_info-korrflag IS INITIAL.
+      lv_tadir_object   = iv_object_type.
+      lv_tadir_obj_name = lv_tr_object_name.
       CALL FUNCTION 'TR_TADIR_INTERFACE'
         EXPORTING
           wi_delete_tadir_entry = abap_true
           wi_test_modus         = space
           wi_tadir_pgmid        = 'R3TR'
-          wi_tadir_object       = iv_object_type
-          wi_tadir_obj_name     = lv_tr_object_name
+          wi_tadir_object       = lv_tadir_object
+          wi_tadir_obj_name     = lv_tadir_obj_name
         EXCEPTIONS
           OTHERS                = 0.
     ENDIF.
@@ -65549,5 +65553,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-17T06:36:53.808Z
+* abapmerge undefined - 2018-11-17T09:29:18.809Z
 ****************************************************
