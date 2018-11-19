@@ -2124,42 +2124,50 @@ INTERFACE zif_abapgit_ecatt .
     etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_exit.
-
+INTERFACE zif_abapgit_exit .
   TYPES:
-    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY.
+    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY .
 
-  METHODS:
-    change_local_host
-      CHANGING ct_hosts TYPE ty_icm_sinfo2_tt,
-    allow_sap_objects
-      RETURNING VALUE(rv_allowed) TYPE abap_bool,
-    change_proxy_url
-      IMPORTING iv_repo_url  TYPE csequence
-      CHANGING  cv_proxy_url TYPE string,
-    change_proxy_port
-      IMPORTING iv_repo_url   TYPE csequence
-      CHANGING  cv_proxy_port TYPE string,
-    change_proxy_authentication
-      IMPORTING iv_repo_url             TYPE csequence
-      CHANGING  cv_proxy_authentication TYPE abap_bool,
-    create_http_client
-      IMPORTING
-        iv_url           TYPE string
-      RETURNING
-        VALUE(ri_client) TYPE REF TO if_http_client
-      RAISING
-        zcx_abapgit_exception,
-    http_client
-      IMPORTING
-        ii_client TYPE REF TO if_http_client,
-    change_tadir
-      IMPORTING
-        iv_package TYPE devclass
-        io_log     TYPE REF TO zcl_abapgit_log
-      CHANGING
-        ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
+  METHODS change_local_host
+    CHANGING
+      !ct_hosts TYPE ty_icm_sinfo2_tt .
+  METHODS allow_sap_objects
+    RETURNING
+      VALUE(rv_allowed) TYPE abap_bool .
+  METHODS change_proxy_url
+    IMPORTING
+      !iv_repo_url  TYPE csequence
+    CHANGING
+      !cv_proxy_url TYPE string .
+  METHODS change_proxy_port
+    IMPORTING
+      !iv_repo_url   TYPE csequence
+    CHANGING
+      !cv_proxy_port TYPE string .
+  METHODS change_proxy_authentication
+    IMPORTING
+      !iv_repo_url             TYPE csequence
+    CHANGING
+      !cv_proxy_authentication TYPE abap_bool .
+  METHODS create_http_client
+    IMPORTING
+      !iv_url          TYPE string
+    RETURNING
+      VALUE(ri_client) TYPE REF TO if_http_client
+    RAISING
+      zcx_abapgit_exception .
+  METHODS http_client
+    IMPORTING
+      !ii_client TYPE REF TO if_http_client .
+  METHODS change_tadir
+    IMPORTING
+      !iv_package TYPE devclass
+      !io_log     TYPE REF TO zcl_abapgit_log
+    CHANGING
+      !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt .
+  METHODS get_ssl_id
+    RETURNING
+      VALUE(rv_ssl_id) TYPE ssfapplssl .
 ENDINTERFACE.
 INTERFACE zif_abapgit_git_operations .
 
@@ -10642,6 +10650,7 @@ CLASS zcl_abapgit_exit DEFINITION
 
     INTERFACES: zif_abapgit_exit.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit .
@@ -18272,7 +18281,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_exit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -18337,23 +18346,6 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD zif_abapgit_exit~create_http_client.
-
-    TRY.
-        ri_client = gi_exit->create_http_client( iv_url ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_exit~http_client.
-
-    TRY.
-        gi_exit->http_client( ii_client ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
-    ENDTRY.
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_exit~change_tadir.
 
     TRY.
@@ -18367,7 +18359,31 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~create_http_client.
 
+    TRY.
+        ri_client = gi_exit->create_http_client( iv_url ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~get_ssl_id.
+
+    TRY.
+        rv_ssl_id = gi_exit->get_ssl_id( ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+        rv_ssl_id = 'ANONYM'.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~http_client.
+
+    TRY.
+        gi_exit->http_client( ii_client ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+    ENDTRY.
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD add_ignore.
@@ -62332,7 +62348,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
       cl_http_client=>create_by_url(
         EXPORTING
           url                = zcl_abapgit_url=>host( iv_url )
-          ssl_id             = 'ANONYM'
+          ssl_id             = zcl_abapgit_exit=>get_instance( )->get_ssl_id( )
           proxy_host         = lo_proxy_configuration->get_proxy_url( iv_url )
           proxy_service      = lo_proxy_configuration->get_proxy_port( iv_url )
         IMPORTING
@@ -62837,26 +62853,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
-  METHOD constructor.
-    CREATE OBJECT mo_url_regex
-      EXPORTING
-        pattern     = iv_supported_url_regex
-        ignore_case = abap_true.
-  ENDMETHOD.
-  METHOD is_session_running.
-    rv_running = mv_session_running.
-  ENDMETHOD.
-  METHOD raise_comm_error_from_sy.
-    DATA: lv_error_msg TYPE string.
-
-    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
-            INTO lv_error_msg.
-    RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error
-      EXPORTING
-        mv_text = |Communication error: { lv_error_msg }| ##NO_TEXT.
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
   METHOD authenticate.
     RAISE EXCEPTION TYPE zcx_abapgit_2fa_auth_failed. " Needs to be overwritten in subclasses
   ENDMETHOD.
@@ -62866,6 +62863,12 @@ CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
     ENDIF.
 
     mv_session_running = abap_true.
+  ENDMETHOD.
+  METHOD constructor.
+    CREATE OBJECT mo_url_regex
+      EXPORTING
+        pattern     = iv_supported_url_regex
+        ignore_case = abap_true.
   ENDMETHOD.
   METHOD delete_access_tokens.
     RAISE EXCEPTION TYPE zcx_abapgit_2fa_del_failed. " Needs to be overwritten in subclasses
@@ -62877,13 +62880,6 @@ CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
 
     mv_session_running = abap_false.
   ENDMETHOD.
-  METHOD is_2fa_required.
-    rv_required = abap_false.
-  ENDMETHOD.
-  METHOD supports_url.
-    rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
-  ENDMETHOD.
-
   METHOD get_http_client_for_url.
     DATA: lo_proxy       TYPE REF TO zcl_abapgit_proxy_config,
           lo_abapgit_exc TYPE REF TO zcx_abapgit_exception,
@@ -62893,7 +62889,7 @@ CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
     cl_http_client=>create_by_url(
       EXPORTING
         url                = iv_url
-        ssl_id             = 'ANONYM'
+        ssl_id             = zcl_abapgit_exit=>get_instance( )->get_ssl_id( )
         proxy_host         = lo_proxy->get_proxy_url( iv_url )
         proxy_service      = lo_proxy->get_proxy_port( iv_url  )
       IMPORTING
@@ -62919,7 +62915,25 @@ CLASS zcl_abapgit_2fa_auth_base IMPLEMENTATION.
       ENDTRY.
     ENDIF.
   ENDMETHOD.
+  METHOD is_2fa_required.
+    rv_required = abap_false.
+  ENDMETHOD.
+  METHOD is_session_running.
+    rv_running = mv_session_running.
+  ENDMETHOD.
+  METHOD raise_comm_error_from_sy.
+    DATA: lv_error_msg TYPE string.
 
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
+            INTO lv_error_msg.
+    RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error
+      EXPORTING
+        mv_text = |Communication error: { lv_error_msg }| ##NO_TEXT.
+  ENDMETHOD.
+  METHOD supports_url.
+    rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
@@ -65553,5 +65567,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-17T09:29:18.809Z
+* abapmerge undefined - 2018-11-19T06:19:30.906Z
 ****************************************************
