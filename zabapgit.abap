@@ -11176,14 +11176,16 @@ CLASS zcl_abapgit_objects DEFINITION
       BEGIN OF ty_serialization,
         files TYPE zif_abapgit_definitions=>ty_files_tt,
         item  TYPE zif_abapgit_definitions=>ty_item,
-      END OF ty_serialization.
+      END OF ty_serialization .
 
     CLASS-METHODS serialize
-      IMPORTING is_item                  TYPE zif_abapgit_definitions=>ty_item
-                iv_language              TYPE spras
-                io_log                   TYPE REF TO zcl_abapgit_log OPTIONAL
-      RETURNING VALUE(rs_files_and_item) TYPE zcl_abapgit_objects=>ty_serialization
-      RAISING   zcx_abapgit_exception .
+      IMPORTING
+        !is_item                 TYPE zif_abapgit_definitions=>ty_item
+        !iv_language             TYPE spras
+      RETURNING
+        VALUE(rs_files_and_item) TYPE zcl_abapgit_objects=>ty_serialization
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS deserialize
       IMPORTING
         !io_repo                 TYPE REF TO zcl_abapgit_repo
@@ -11241,9 +11243,12 @@ CLASS zcl_abapgit_objects DEFINITION
       RETURNING
         VALUE(rt_types) TYPE ty_types_tt .
     CLASS-METHODS is_active
-      IMPORTING is_item          TYPE zif_abapgit_definitions=>ty_item
-      RETURNING VALUE(rv_active) TYPE abap_bool
-      RAISING   zcx_abapgit_exception .
+      IMPORTING
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
+      RETURNING
+        VALUE(rv_active) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -11549,7 +11554,7 @@ CLASS zcl_abapgit_repo DEFINITION
 
     TYPES:
       ty_cache_tt TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
-                         WITH NON-UNIQUE KEY item .
+                             WITH NON-UNIQUE KEY item .
 
     METHODS apply_filter
       IMPORTING
@@ -11563,10 +11568,11 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS lookup_cache
       IMPORTING
-        !it_cache       TYPE ty_cache_tt
-        !is_item        TYPE zif_abapgit_definitions=>ty_item
-      RETURNING
-        VALUE(rt_found) TYPE zif_abapgit_definitions=>ty_files_item_tt
+        !it_cache TYPE ty_cache_tt
+      EXPORTING
+        !et_found TYPE zif_abapgit_definitions=>ty_files_item_tt
+      CHANGING
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
     METHODS update_last_deserialize
@@ -15261,6 +15267,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
           lo_progress  TYPE REF TO zcl_abapgit_progress,
           lt_cache     TYPE ty_cache_tt,
           lt_found     LIKE rt_files,
+          lx_error     TYPE REF TO zcx_abapgit_exception,
           ls_fils_item TYPE zcl_abapgit_objects=>ty_serialization.
 
     FIELD-SYMBOLS: <ls_file>   LIKE LINE OF ls_fils_item-files,
@@ -15287,6 +15294,12 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     apply_filter( EXPORTING it_filter = it_filter
                   CHANGING ct_tadir  = lt_tadir ).
 
+    lookup_cache(
+      EXPORTING it_cache = lt_cache
+      IMPORTING et_found = lt_found
+      CHANGING ct_tadir = lt_tadir ).
+    APPEND LINES OF lt_found TO rt_files.
+
     CREATE OBJECT lo_progress
       EXPORTING
         iv_total = lines( lt_tadir ).
@@ -15301,17 +15314,13 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       ls_fils_item-item-obj_name = <ls_tadir>-obj_name.
       ls_fils_item-item-devclass = <ls_tadir>-devclass.
 
-      lt_found = lookup_cache( is_item = ls_fils_item-item
-                               it_cache = lt_cache ).
-      IF lines( lt_found ) > 0.
-        APPEND LINES OF lt_found TO rt_files.
-        CONTINUE.
-      ENDIF.
-
-      ls_fils_item = zcl_abapgit_objects=>serialize(
-        is_item     = ls_fils_item-item
-        iv_language = get_dot_abapgit( )->get_master_language( )
-        io_log      = io_log ).
+      TRY.
+          ls_fils_item = zcl_abapgit_objects=>serialize(
+            is_item     = ls_fils_item-item
+            iv_language = get_dot_abapgit( )->get_master_language( ) ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          io_log->add_error( lx_error->get_text( ) ).
+      ENDTRY.
 
       LOOP AT ls_fils_item-files ASSIGNING <ls_file>.
         <ls_file>-path = <ls_tadir>-path.
@@ -15358,20 +15367,38 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD lookup_cache.
 
-    FIELD-SYMBOLS: <ls_cache> LIKE LINE OF it_cache.
-    IF mv_last_serialization IS NOT INITIAL. " Try to fetch from cache
+    DATA: ls_item  TYPE zif_abapgit_definitions=>ty_item,
+          lv_index TYPE i.
+
+    FIELD-SYMBOLS: <ls_cache> LIKE LINE OF it_cache,
+                   <ls_tadir> LIKE LINE OF ct_tadir.
+
+    CLEAR et_found.
+
+    IF mv_last_serialization IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
+      lv_index = sy-tabix.
+
+      ls_item-obj_type = <ls_tadir>-object.
+      ls_item-obj_name = <ls_tadir>-obj_name.
+      ls_item-devclass = <ls_tadir>-devclass.
       READ TABLE it_cache TRANSPORTING NO FIELDS
-        WITH KEY item = is_item. " type+name+package key
+        WITH KEY item = ls_item. " type+name+package key
       " There is something in cache and the object is unchanged
       IF sy-subrc = 0
           AND abap_false = zcl_abapgit_objects=>has_changed_since(
-          is_item      = is_item
+          is_item      = ls_item
           iv_timestamp = mv_last_serialization ).
-        LOOP AT it_cache ASSIGNING <ls_cache> WHERE item = is_item.
-          APPEND <ls_cache> TO rt_found.
+        LOOP AT it_cache ASSIGNING <ls_cache> WHERE item = ls_item.
+          APPEND <ls_cache> TO et_found.
         ENDLOOP.
+        DELETE ct_tadir INDEX lv_index.
       ENDIF.
-    ENDIF.
+
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD rebuild_local_checksums.
@@ -15804,6 +15831,17 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+  METHOD adjust_namespaces.
+
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
+
+    rt_results = it_results.
+
+    LOOP AT rt_results ASSIGNING <ls_result>.
+      REPLACE ALL OCCURRENCES OF '#' IN <ls_result>-obj_name WITH '/'.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -16216,6 +16254,21 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
                        zcl_abapgit_file_status=>status( io_repo ) ) ) ).
 
   ENDMETHOD.
+  METHOD filter_files_to_deserialize.
+
+    rt_results = it_results.
+
+    DELETE rt_results WHERE match = abap_true.     " Full match
+    SORT rt_results
+      BY obj_type ASCENDING
+         obj_name ASCENDING
+         rstate   DESCENDING. " ensures that non-empty rstate is kept
+    DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
+
+    DELETE rt_results WHERE obj_type IS INITIAL.
+    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
+
+  ENDMETHOD.
   METHOD has_changed_since.
     rv_changed = abap_true. " Assume changed
 
@@ -16369,12 +16422,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     rs_files_and_item-item = is_item.
 
     IF is_supported( rs_files_and_item-item ) = abap_false.
-      IF NOT io_log IS INITIAL.
-        io_log->add( iv_msg = |Object type ignored, not supported: { rs_files_and_item-item-obj_type
-                       }-{ rs_files_and_item-item-obj_name }|
-                     iv_type = 'E' ).
-      ENDIF.
-      RETURN.
+      zcx_abapgit_exception=>raise( |Object type ignored, not supported: {
+        rs_files_and_item-item-obj_type }-{
+        rs_files_and_item-item-obj_name }| ).
     ENDIF.
 
     CREATE OBJECT lo_files
@@ -16566,34 +16616,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     rt_overwrite = lt_overwrite_uniqe.
 
   ENDMETHOD.
-
-  METHOD filter_files_to_deserialize.
-
-    rt_results = it_results.
-
-    DELETE rt_results WHERE match = abap_true.     " Full match
-    SORT rt_results
-      BY obj_type ASCENDING
-         obj_name ASCENDING
-         rstate   DESCENDING. " ensures that non-empty rstate is kept
-    DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
-
-    DELETE rt_results WHERE obj_type IS INITIAL.
-    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
-
-  ENDMETHOD.
-  METHOD adjust_namespaces.
-
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
-
-    rt_results = it_results.
-
-    LOOP AT rt_results ASSIGNING <ls_result>.
-      REPLACE ALL OCCURRENCES OF '#' IN <ls_result>-obj_name WITH '/'.
-    ENDLOOP.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   METHOD constructor.
@@ -25877,7 +25899,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       AT FIRST.
         ro_html->add( '<thead><tr class="remote">' ).
         ro_html->add( '<th></th>' ). " Type
-        ro_html->add( '<th colspan="2">Files to remove or non-code</th>' ).
+        ro_html->add( '<th colspan="3">Files to remove or non-code</th>' ).
         ro_html->add( '<th></th>' ). " Status
         ro_html->add( '<th class="cmd">' ).
         ro_html->add( '<a>ignore</a>&#x2193; <a>remove</a>&#x2193; <a>reset</a>&#x2193;' ).
@@ -65715,5 +65737,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-22T04:08:28.881Z
+* abapmerge undefined - 2018-11-22T04:10:29.695Z
 ****************************************************
