@@ -1362,6 +1362,7 @@ INTERFACE zif_abapgit_definitions.
       repo_transport_to_branch TYPE string VALUE 'repo_transport_to_branch',
       repo_syntax_check        TYPE string VALUE 'repo_syntax_check',
       repo_code_inspector      TYPE string VALUE 'repo_code_inspector',
+      repo_open_in_master_lang TYPE string VALUE 'repo_open_in_master_lang',
 
       abapgit_home             TYPE string VALUE 'abapgit_home',
       abapgit_install          TYPE string VALUE 'abapgit_install',
@@ -1415,6 +1416,7 @@ INTERFACE zif_abapgit_definitions.
       inactive TYPE r3state VALUE 'I',
     END OF c_version .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
+  CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY'.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_object.
@@ -8968,7 +8970,10 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         RETURNING VALUE(rv_html) TYPE string,
       build_inactive_object_code
         IMPORTING is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_inactive_html_code) TYPE string.
+        RETURNING VALUE(rv_inactive_html_code) TYPE string,
+      open_in_master_language
+        RAISING zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
 
@@ -11567,6 +11572,11 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS update_last_deserialize
       RAISING
         zcx_abapgit_exception .
+    METHODS conversion_exit_isola_output
+      IMPORTING
+        iv_spras        TYPE spras
+      RETURNING
+        VALUE(rv_spras) TYPE laiso.
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -15111,7 +15121,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD apply_filter.
 
     DATA: lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
@@ -15204,13 +15214,21 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_checks.
 
-    DATA: lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+    DATA: lt_requirements    TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
+          lv_master_language TYPE spras,
+          lv_logon_language  TYPE spras.
     find_remote_dot_abapgit( ).
+
+    lv_master_language = get_dot_abapgit( )->get_master_language( ).
+    lv_logon_language  = cl_abap_syst=>get_logon_language( ).
 
     IF get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
-    ELSEIF get_dot_abapgit( )->get_master_language( ) <> sy-langu.
-      zcx_abapgit_exception=>raise( 'Current login language does not match master language' ).
+    ELSEIF lv_master_language <> lv_logon_language.
+      zcx_abapgit_exception=>raise( |Current login language |
+                                 && |'{ conversion_exit_isola_output( lv_logon_language ) }'|
+                                 && | does not match master language |
+                                 && |'{ conversion_exit_isola_output( lv_master_language ) }'| ).
     ENDIF.
 
     rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
@@ -15624,6 +15642,17 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.
+
+  METHOD conversion_exit_isola_output.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
+      EXPORTING
+        input  = iv_spras
+      IMPORTING
+        output = rv_spras.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   METHOD class_constructor.
@@ -24333,6 +24362,11 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
                          iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh_checksums }?{ lv_key }|
                          iv_opt = lv_crossout ).
 
+    IF mo_repo->get_dot_abapgit( )->get_master_language( ) <> cl_abap_syst=>get_logon_language( ).
+      lo_tb_advanced->add( iv_txt = 'Open in master language'
+                           iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?{ lv_key }| ).
+    ENDIF.
+
     lo_tb_advanced->add( iv_txt = 'Remove'
                          iv_act = |{ zif_abapgit_definitions=>c_action-repo_remove }?{ lv_key }| ).
 
@@ -24459,6 +24493,59 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     IF is_item-is_dir = abap_true.
       rv_html = zcl_abapgit_html=>icon( 'file-directory/darkgrey' ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD open_in_master_language.
+
+    CONSTANTS:
+      lc_abapgit_tcode TYPE tcode VALUE `ZABAPGIT` ##NO_TEXT.
+
+    DATA:
+      lv_master_language TYPE spras,
+      lt_spagpa          TYPE STANDARD TABLE OF rfc_spagpa,
+      ls_spagpa          LIKE LINE OF lt_spagpa,
+      ls_item            TYPE zif_abapgit_definitions=>ty_item.
+
+    " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
+
+    lv_master_language = mo_repo->get_dot_abapgit( )->get_master_language( ).
+
+    IF lv_master_language = cl_abap_syst=>get_logon_language( ).
+      zcx_abapgit_exception=>raise( |Repo already opened in master language| ).
+    ENDIF.
+
+    ls_item-obj_name = lc_abapgit_tcode.
+    ls_item-obj_type = |TRAN|.
+
+    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
+      zcx_abapgit_exception=>raise( |Please install the abapGit repository| ).
+    ENDIF.
+
+    SET LOCALE LANGUAGE lv_master_language.
+
+    ls_spagpa-parid  = zif_abapgit_definitions=>c_spagpa_param_repo_key.
+    ls_spagpa-parval = mo_repo->get_key( ).
+    INSERT ls_spagpa INTO TABLE lt_spagpa.
+
+    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+      DESTINATION 'NONE'
+      STARTING NEW TASK 'ABAPGIT'
+      EXPORTING
+        tcode                   = lc_abapgit_tcode
+      TABLES
+        spagpa_tab              = lt_spagpa
+      EXCEPTIONS
+        call_transaction_denied = 1
+        tcode_invalid           = 2
+        communication_failure   = 3
+        system_failure          = 4
+        OTHERS                  = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    MESSAGE |Repository opened in a new window| TYPE 'S'.
 
   ENDMETHOD.
   METHOD render_empty_package.
@@ -24618,20 +24705,6 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD render_parent_dir.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<tr class="folder">' ).
-    ro_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'dir' ) }</td>| ).
-    ro_html->add( |<td class="object" colspan="2">{ build_dir_jump_link( '..' ) }</td>| ).
-    IF mo_repo->is_offline( ) = abap_false.
-      ro_html->add( |<td colspan="2"></td>| ). " Dummy for online
-    ENDIF.
-    ro_html->add( '</tr>' ).
-
-  ENDMETHOD.
-
   METHOD render_item_lock_column.
     DATA: li_cts_api          TYPE REF TO zif_abapgit_cts_api,
           lv_transport        TYPE trkorr,
@@ -24663,6 +24736,19 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
         ASSERT 1 = 2.
     ENDTRY.
   ENDMETHOD.
+  METHOD render_parent_dir.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<tr class="folder">' ).
+    ro_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'dir' ) }</td>| ).
+    ro_html->add( |<td class="object" colspan="2">{ build_dir_jump_link( '..' ) }</td>| ).
+    IF mo_repo->is_offline( ) = abap_false.
+      ro_html->add( |<td colspan="2"></td>| ). " Dummy for online
+    ENDIF.
+    ro_html->add( '</tr>' ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
@@ -24687,6 +24773,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
         ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN c_actions-display_more.      " Increase MAX lines limit
         mv_max_lines    = mv_max_lines + mv_max_setting.
+        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_open_in_master_lang.
+        open_in_master_language( ).
         ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
     ENDCASE.
 
@@ -65475,11 +65564,18 @@ ENDFORM.                    "run
 
 FORM open_gui RAISING zcx_abapgit_exception.
 
+  DATA: lv_repo_key TYPE zif_abapgit_persistence=>ty_value.
+
   IF sy-batch = abap_true.
     zcl_abapgit_background=>run( ).
   ELSE.
 
-    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
+    GET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD lv_repo_key.
+
+    IF lv_repo_key IS NOT INITIAL.
+      SET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD ''.
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_repo_key ).
+    ELSEIF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
       " Don't show the last seen repo at startup
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
     ENDIF.
@@ -65619,5 +65715,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-21T05:12:15.174Z
+* abapmerge undefined - 2018-11-22T04:08:28.881Z
 ****************************************************
