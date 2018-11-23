@@ -13360,7 +13360,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     ENDLOOP.
 
-    DELETE rt_files WHERE filename is initial.
+    DELETE rt_files WHERE filename IS INITIAL.
 
     normalize_path( CHANGING ct_files = rt_files ).
 
@@ -65961,5 +65961,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-23T11:18:53.867Z
+* abapmerge undefined - 2018-11-23T11:33:40.531Z
 ****************************************************
