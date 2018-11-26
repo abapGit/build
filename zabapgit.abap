@@ -7610,11 +7610,24 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS render_hotkey_overview
+      IMPORTING
+        io_page TYPE REF TO zcl_abapgit_gui_page
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception.
 
+    CLASS-METHODS render_infopanel
+      IMPORTING
+        iv_div_id  TYPE string
+        iv_title   TYPE string
+        iv_hide    TYPE abap_bool DEFAULT abap_true
+        iv_hint    TYPE string OPTIONAL
+        io_content TYPE REF TO zcl_abapgit_html
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -9126,6 +9139,8 @@ CLASS zcl_abapgit_hotkeys DEFINITION
   PUBLIC SECTION.
     CLASS-METHODS:
       get_default_hotkeys_from_pages
+        IMPORTING
+          io_page TYPE REF TO zcl_abapgit_gui_page OPTIONAL
         RETURNING
           VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action
         RAISING
@@ -9138,6 +9153,13 @@ CLASS zcl_abapgit_hotkeys DEFINITION
           VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
         RAISING
           zcx_abapgit_exception.
+
+    CLASS-METHODS should_show_hint
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
+
+  PRIVATE SECTION.
+    CLASS-DATA gv_hint_was_shown TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_html DEFINITION
@@ -15631,6 +15653,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD find_remote_dot_abapgit.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
+
+    get_files_remote( ).
+
     READ TABLE mt_remote ASSIGNING <ls_remote>
       WITH KEY path = zif_abapgit_definitions=>c_root_dir
       filename = zif_abapgit_definitions=>c_dot_abapgit.
@@ -24455,12 +24480,12 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   METHOD get_default_hotkeys_from_pages.
 
     DATA: lt_hotkey_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
           lo_interface      TYPE REF TO cl_oo_interface,
+          lv_class_name     TYPE abap_abstypename,
           lt_classes        TYPE seo_relkeys.
 
     FIELD-SYMBOLS: <ls_class> TYPE seorelkey.
@@ -24474,8 +24499,13 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     ENDTRY.
 
     lt_classes = lo_interface->get_implementing_classes( ).
+    IF io_page IS BOUND.
+      lv_class_name = cl_abap_classdescr=>get_class_name( io_page ).
+      SHIFT lv_class_name LEFT DELETING LEADING '\CLASS='.
+    ENDIF.
 
     LOOP AT lt_classes ASSIGNING <ls_class>.
+      CHECK lv_class_name IS INITIAL OR lv_class_name = <ls_class>-clsname.
 
       CALL METHOD (<ls_class>-clsname)=>zif_abapgit_gui_page_hotkey~get_hotkey_actions
         RECEIVING
@@ -24537,7 +24567,12 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
+  METHOD should_show_hint.
+    IF gv_hint_was_shown = abap_false.
+      rv_yes = abap_true.
+      gv_hint_was_shown = abap_true.
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   METHOD render_content.
@@ -26403,7 +26438,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
 
-    ls_hotkey_action-name           = |Stage: Patch|.
+    ls_hotkey_action-name           = |Patch|.
     ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_patch.
     ls_hotkey_action-default_hotkey = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -28258,7 +28293,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -28501,6 +28536,56 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     MESSAGE lv_user TYPE 'S'.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+    DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
+
+    ls_hotkey_action-name           = |abapGit settings|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_settings.
+    ls_hotkey_action-default_hotkey = |x|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Stage changes|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_stage.
+    ls_hotkey_action-default_hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Switch branch|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_branch_switch.
+    ls_hotkey_action-default_hotkey = |b|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Installed repo list|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_repo_overview.
+    ls_hotkey_action-default_hotkey = |o|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Refresh repository|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_refresh.
+    ls_hotkey_action-default_hotkey = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Pull|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_pull.
+    ls_hotkey_action-default_hotkey = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Add online repository|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_newonline.
+    ls_hotkey_action-default_hotkey = |n|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Uninstall repository|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_purge.
+    ls_hotkey_action-default_hotkey = |u|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-name           = |Show diffs|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_diff.
+    ls_hotkey_action-default_hotkey = |d|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
@@ -28554,57 +28639,6 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-    DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_action.
-
-    ls_hotkey_action-name           = |Main: Settings|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_settings.
-    ls_hotkey_action-default_hotkey = |x|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Stage|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_stage.
-    ls_hotkey_action-default_hotkey = |s|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Switch branch|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_branch_switch.
-    ls_hotkey_action-default_hotkey = |b|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Repo overview|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_repo_overview.
-    ls_hotkey_action-default_hotkey = |o|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Refresh|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_refresh.
-    ls_hotkey_action-default_hotkey = |r|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Pull|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-git_pull.
-    ls_hotkey_action-default_hotkey = |p|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: + Online|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_newonline.
-    ls_hotkey_action-default_hotkey = |n|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Uninstall|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_purge.
-    ls_hotkey_action-default_hotkey = |u|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-    ls_hotkey_action-name           = |Main: Show diff|.
-    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-go_diff.
-    ls_hotkey_action-default_hotkey = |d|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
@@ -29440,7 +29474,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
-    ls_hotkey_action-name           = |Diff: Stage|.
+    ls_hotkey_action-name           = |Stage changes|.
     ls_hotkey_action-action         = |stagePatch|.
     ls_hotkey_action-default_hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -30067,12 +30101,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
-    ls_hotkey_action-name           = |Code Inspector: Stage|.
+    ls_hotkey_action-name           = |Stage|.
     ls_hotkey_action-action         = c_actions-stage.
     ls_hotkey_action-default_hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-name           = |Code Inspector: Re-Run|.
+    ls_hotkey_action-name           = |Re-Run|.
     ls_hotkey_action-action         = c_actions-rerun.
     ls_hotkey_action-default_hotkey = |r|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -30733,7 +30767,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
-    ls_hotkey_action-name           = |Global: Show hotkeys|.
+    ls_hotkey_action-name           = |Show hotkeys help|.
     ls_hotkey_action-action         = c_global_page_action-showhotkeys.
     ls_hotkey_action-default_hotkey = |?|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -30793,8 +30827,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_hotkey_overview.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( ) ).
+    ro_html = zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( me ).
 
   ENDMETHOD.
   METHOD scripts.
@@ -30894,7 +30927,7 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_branch_span.
 
     DATA: lv_text  TYPE string,
@@ -30939,7 +30972,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_hotkey_overview.
 
-    DATA: lv_display  TYPE string,
+    DATA: lv_hint     TYPE string,
           lt_hotkeys  TYPE zif_abapgit_definitions=>tty_hotkey,
           lt_actions  TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
           lo_settings TYPE REF TO zcl_abapgit_settings.
@@ -30948,56 +30981,80 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                    <ls_action> LIKE LINE OF lt_actions.
 
     lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-    lt_hotkeys = lo_settings->get_hotkeys( ).
-
-    lt_actions = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
+    lt_hotkeys  = lo_settings->get_hotkeys( ).
+    lt_actions  = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( io_page ).
 
     CREATE OBJECT ro_html.
 
-    lv_display = 'display:none'.
-
-    ro_html->add( |<div id="hotkeys" class="news" style="{ lv_display }">| ).
-
-    ro_html->add( '<div class="headbar title">Hotkeys'
-               && '<div class="float-right">'
-               && zcl_abapgit_html=>a(
-                    iv_txt   = '&#x274c;'
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
-                    iv_act   = 'closeHotkeyOverview()'
-                    iv_class = 'close-btn' )
-               && '</div></div>' ).
-
-    READ TABLE lt_hotkeys ASSIGNING <ls_hotkey>
-                          WITH KEY action = zcl_abapgit_gui_page=>c_global_page_action-showhotkeys.
-    IF sy-subrc = 0.
-      ro_html->add( |<div class="paddings">Close window with '{ <ls_hotkey>-sequence }' |
-                 && |or upper right corner X</div>| ).
-    ENDIF.
-
-    " Generate hotkeys
-    ro_html->add( |<div class="newslist">| ).
-
-    ro_html->add( '<table>' ).
-
+    " Render hotkeys
+    ro_html->add( '<ul class="hotkeys">' ).
     LOOP AT lt_hotkeys ASSIGNING <ls_hotkey>.
 
       READ TABLE lt_actions ASSIGNING <ls_action>
                             WITH TABLE KEY action
                             COMPONENTS action = <ls_hotkey>-action.
-
       IF sy-subrc = 0.
-        ro_html->add( '<tr>' ).
-        ro_html->add( |<td>{ <ls_hotkey>-sequence }</td><td>-</td><td>{ <ls_action>-name }</td>| ).
-        ro_html->add( '</tr>' ).
+        ro_html->add( |<li>|
+          && |<span class="key-id">{ <ls_hotkey>-sequence }</span>|
+          && |<span class="key-descr">{ <ls_action>-name }</span>|
+          && |</li>| ).
       ENDIF.
 
     ENDLOOP.
+    ro_html->add( '</ul>' ).
 
-    ro_html->add( '</table>' ).
+    " Wrap
+    READ TABLE lt_hotkeys ASSIGNING <ls_hotkey>
+      WITH KEY action = zcl_abapgit_gui_page=>c_global_page_action-showhotkeys.
+    IF sy-subrc = 0.
+      lv_hint = |Close window with '{ <ls_hotkey>-sequence }' or upper right corner 'X'|.
+    ENDIF.
 
+    ro_html = render_infopanel(
+      iv_div_id  = 'hotkeys'
+      iv_title   = 'Hotkeys'
+      iv_hint    = lv_hint
+      iv_hide    = abap_true
+      io_content = ro_html ).
+
+    IF zcl_abapgit_hotkeys=>should_show_hint( ) = abap_true.
+      ro_html->add( |<div id="hotkeys-hint" class="corner-hint">|
+        && |Press '{ <ls_hotkey>-sequence }' to get keyboard shortcuts list|
+        && |</div>| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD render_infopanel.
+
+    DATA lv_display TYPE string.
+
+    CREATE OBJECT ro_html.
+
+    IF iv_hide = abap_true. " Initially hide
+      lv_display = 'display:none'.
+    ENDIF.
+
+    ro_html->add( |<div id="{ iv_div_id }" class="info-panel" style="{ lv_display }">| ).
+
+    ro_html->add( |<div class="info-title">{ iv_title }|
+               && '<div class="float-right">'
+               && zcl_abapgit_html=>a(
+                    iv_txt   = '&#x274c;'
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
+                    iv_act   = |toggleDisplay('{ iv_div_id }')|
+                    iv_class = 'close-btn' )
+               && '</div></div>' ).
+
+    IF iv_hint IS NOT INITIAL.
+      ro_html->add( '<div class="info-hint">'
+        && zcl_abapgit_html=>icon( iv_name = 'alert' iv_class = 'pad-right' )
+        && iv_hint
+        && '</div>' ).
+    ENDIF.
+
+    ro_html->add( |<div class="info-list">| ).
+    ro_html->add( io_content ).
     ro_html->add( '</div>' ).
-
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
@@ -31050,7 +31107,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_news.
 
     DATA: lv_text    TYPE string,
-          lv_display TYPE string,
+          lv_hint    TYPE string,
           lt_log     TYPE zcl_abapgit_news=>tt_log.
 
     FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_log.
@@ -31063,30 +31120,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     lt_log = io_news->get_log( ).
 
-    IF io_news->has_unseen( ) = abap_false.
-      lv_display = 'display:none'.
-    ENDIF.
-
-    ro_html->add( |<div id="news" class="news" style="{ lv_display }">| ).
-
-    ro_html->add( '<div class="headbar title">Announcement of the latest changes'
-               && '<div class="float-right">'
-               && zcl_abapgit_html=>a(
-                    iv_txt   = '&#x274c;'
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
-                    iv_act   = 'displayNews()'
-                    iv_class = 'close-btn' )
-               && '</div></div>' ).
-
-    IF io_news->has_important( ) = abap_true.
-      ro_html->add( '<div class="headbar important">'
-        && zcl_abapgit_html=>icon( iv_name = 'alert' iv_class = 'pad-right' )
-        && 'Please note changes marked with "!"'
-        && '</div>' ).
-    ENDIF.
-
-    " Generate news
-    ro_html->add( |<div class="newslist">| ).
+    " Render news
     LOOP AT lt_log ASSIGNING <ls_line>.
       IF <ls_line>-is_header = abap_true.
         IF <ls_line>-pos_to_cur > 0.
@@ -31101,9 +31135,18 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
         ro_html->add( |<li>{ <ls_line>-text }</li>| ).
       ENDIF.
     ENDLOOP.
-    ro_html->add( '</div>' ).
 
-    ro_html->add( '</div>' ).
+    " Wrap
+    IF io_news->has_important( ) = abap_true.
+      lv_hint = 'Please note changes marked with "!"'.
+    ENDIF.
+
+    ro_html = render_infopanel(
+      iv_div_id  = 'news'
+      iv_title   = 'Announcement of the latest changes'
+      iv_hint    = lv_hint
+      iv_hide    = boolc( io_news->has_unseen( ) = abap_false )
+      io_content = ro_html ).
 
   ENDMETHOD.
   METHOD render_repo_top.
@@ -31147,7 +31190,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       ELSE.
         lv_icon = 'arrow-up/grey80'.
       ENDIF.
-      ro_html->add_a( iv_act = 'displayNews()'
+      ro_html->add_a( iv_act = |toggleDisplay('news')|
                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
                       iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
                                                        iv_class = 'pad-sides'
@@ -32063,7 +32106,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '/* News Announcement */'.
         _inline ''.
-        _inline 'div.news { '.
+        _inline 'div.info-panel { '.
         _inline '  position: absolute;'.
         _inline '  z-index: 99;'.
         _inline '  top: 36px;'.
@@ -32074,18 +32117,24 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news div.headbar {'.
+        _inline 'div.info-panel div.info-hint {'.
         _inline '  text-transform: uppercase;'.
         _inline '  font-size: small;'.
-        _inline '  padding: 4px 6px;'.
+        _inline '  padding: 8px 6px 0px;'.
+        _inline '  text-align: center;'.
+        _inline '  color: #ccc;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news div.title {'.
+        _inline 'div.info-panel div.info-title {'.
+        _inline '  text-transform: uppercase;'.
+        _inline '  font-size: small;'.
+        _inline '  padding: 6px;'.
+        _inline '  text-align: center;'.
         _inline '  color: #f8f8f8;'.
         _inline '  background-color: #888;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news div.title a.close-btn { '.
+        _inline 'div.info-panel div.info-title a.close-btn { '.
         _inline '  color: #d8d8d8; '.
         _inline '  padding-left: 12px; '.
         _inline '  padding-right: 2px;'.
@@ -32093,19 +32142,18 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  bottom: 1px;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news div.important { color: #aaa; }'.
-        _inline 'div.news div.newslist {'.
-        _inline '  padding: 0.5em 0.7em;'.
+        _inline 'div.info-panel div.info-list {'.
+        _inline '  padding: 0.8em 0.7em 1em;'.
         _inline '  color: #444;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news li {'.
+        _inline 'div.info-panel li {'.
         _inline '  padding-left: 10px;'.
         _inline '  list-style-type: none;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news h1:first-child { margin: auto; }'.
-        _inline 'div.news h1 { '.
+        _inline 'div.info-panel h1:first-child { margin: auto; }'.
+        _inline 'div.info-panel h1 { '.
         _inline '  font-size: inherit;'.
         _inline '  padding: 6px 4px;'.
         _inline '  margin: 4px auto auto;'.
@@ -32113,7 +32161,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  font-weight: normal;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news .version-marker {'.
+        _inline 'div.info-panel .version-marker {'.
         _inline '  color: white;'.
         _inline '  display: inline-block;'.
         _inline '  margin-left: 20px;'.
@@ -32123,12 +32171,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  background-color: #ccc;'.
         _inline '}'.
         _inline ''.
-        _inline 'div.news .update {'.
+        _inline 'div.info-panel .update {'.
         _inline '  border: #e8ba30 1px solid;'.
         _inline '  background-color: #f5c538;'.
         _inline '}'.
         _inline ''.
-        _inline '.newslist td {'.
+        _inline 'div.info-panel div.info-list td {'.
         _inline '  padding-right: 1em'.
         _inline '}'.
         _inline ''.
@@ -32171,6 +32219,44 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '/* diff-patch */'.
         _inline '.patch-active {'.
         _inline '  color: lightgrey !important; '.
+        _inline '}'.
+        _inline ''.
+        _inline '/* HOTKEYS */'.
+        _inline ''.
+        _inline 'ul.hotkeys {'.
+        _inline '  list-style-type: none;'.
+        _inline '  padding: 0;'.
+        _inline '  margin: 0;'.
+        _inline '  font-size: smaller;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'ul.hotkeys span.key-id {'.
+        _inline '  background: #f0f0f0;'.
+        _inline '  border: 1px solid #dcdcdc;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  padding: 1px 7px;'.
+        _inline '  width: 0.5em;'.
+        _inline '  display: inline-block;'.
+        _inline '  text-align: center;'.
+        _inline '  margin-top: 0.2em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'ul.hotkeys span.key-descr {'.
+        _inline '  margin-left: 1.2em;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.corner-hint {'.
+        _inline '  position: fixed;'.
+        _inline '  bottom: 10px;'.
+        _inline '  right: 10px;'.
+        _inline '  color: #aaa;'.
+        _inline '  border: 1px solid #ccc;'.
+        _inline '  border-radius: 3px;'.
+        _inline '  padding: 4px;'.
+        _inline '  font-size: smaller;'.
+        _inline '  opacity: 0.5;'.
+        _inline '  background: white;'.
+        _inline '  z-index: 99;'.
         _inline '}'.
       WHEN 'JS_COMMON'.
 ****************************************************
@@ -32754,15 +32840,9 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ' **********************************************************/'.
         _inline ''.
         _inline '// News announcement'.
-        _inline 'function displayNews() {'.
-        _inline '  var div = document.getElementById("news");'.
-        _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Hotkey Overview'.
-        _inline 'function closeHotkeyOverview() {'.
-        _inline '  var div = document.getElementById("hotkeys");'.
-        _inline '  div.style.display = (div.style.display) ? '''' : ''none'';'.
+        _inline 'function toggleDisplay(divId) {'.
+        _inline '  var div = document.getElementById(divId);'.
+        _inline '  if (div) div.style.display = (div.style.display) ? '''' : ''none'';'.
         _inline '}'.
         _inline ''.
         _inline 'function KeyNavigation() {'.
@@ -33123,7 +33203,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
         _inline ''.
         _inline '  document.addEventListener(''keypress'', oHotkeys.onkeydown.bind(oHotkeys));'.
-        _inline ''.
+        _inline '  setTimeout(function(){ '.
+        _inline '    var div = document.getElementById("hotkeys-hint");'.
+        _inline '    if (div) div.style.opacity = 0.2;'.
+        _inline '  }, 4900);'.
+        _inline '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);'.
         _inline '}'.
         _inline ''.
         _inline '/*'.
@@ -66251,5 +66335,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-26T12:36:32.629Z
+* abapmerge undefined - 2018-11-26T17:30:02.631Z
 ****************************************************
