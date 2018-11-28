@@ -7623,6 +7623,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
         iv_title       TYPE string
         iv_hide        TYPE abap_bool DEFAULT abap_true
         iv_hint        TYPE string OPTIONAL
+        iv_scrollable  TYPE abap_bool DEFAULT abap_true
         io_content     TYPE REF TO zcl_abapgit_html
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
@@ -24642,7 +24643,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   METHOD build_dir_jump_link.
 
     DATA: lv_path   TYPE string,
@@ -24912,7 +24913,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       lv_master_language TYPE spras,
       lt_spagpa          TYPE STANDARD TABLE OF rfc_spagpa,
       ls_spagpa          LIKE LINE OF lt_spagpa,
-      ls_item            TYPE zif_abapgit_definitions=>ty_item.
+      ls_item            TYPE zif_abapgit_definitions=>ty_item,
+      lv_subrc           TYPE syst-subrc,
+      lv_save_sy_langu   TYPE sy-langu.
 
     " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
 
@@ -24929,6 +24932,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Please install the abapGit repository| ).
     ENDIF.
 
+    lv_save_sy_langu = sy-langu.
     SET LOCALE LANGUAGE lv_master_language.
 
     ls_spagpa-parid  = zif_abapgit_definitions=>c_spagpa_param_repo_key.
@@ -24949,8 +24953,12 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
         system_failure          = 4
         OTHERS                  = 5.
 
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc = { sy-subrc }| ).
+    lv_subrc = sy-subrc.
+
+    SET LOCALE LANGUAGE lv_save_sy_langu.
+
+    IF lv_subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc = { lv_subrc }| ).
     ENDIF.
 
     MESSAGE 'Repository opened in a new window' TYPE 'S'.
@@ -25130,7 +25138,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
                                                                     iv_object_name             = is_item-obj_name
                                                                     iv_resolve_task_to_request = abap_false ).
           lv_transport_string = lv_transport.
-          lv_icon_html = zcl_abapgit_html=>a( iv_txt = zcl_abapgit_html=>icon( iv_name = 'lock/darkgrey'
+          lv_icon_html = zcl_abapgit_html=>a( iv_txt = zcl_abapgit_html=>icon( iv_name = 'briefcase/darkgrey'
                                                                                iv_hint = lv_transport_string )
                                               iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?| &&
                                                        lv_transport ).
@@ -31013,11 +31021,12 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ENDIF.
 
     ro_html = render_infopanel(
-      iv_div_id  = 'hotkeys'
-      iv_title   = 'Hotkeys'
-      iv_hint    = lv_hint
-      iv_hide    = abap_true
-      io_content = ro_html ).
+      iv_div_id     = 'hotkeys'
+      iv_title      = 'Hotkeys'
+      iv_hint       = lv_hint
+      iv_hide       = abap_true
+      iv_scrollable = abap_false
+      io_content    = ro_html ).
 
     IF <ls_hotkey> IS ASSIGNED AND zcl_abapgit_hotkeys=>should_show_hint( ) = abap_true.
       ro_html->add( |<div id="hotkeys-hint" class="corner-hint">|
@@ -31029,6 +31038,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_infopanel.
 
     DATA lv_display TYPE string.
+    DATA lv_class TYPE string.
 
     CREATE OBJECT ro_html.
 
@@ -31036,7 +31046,12 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lv_display = 'display:none'.
     ENDIF.
 
-    ro_html->add( |<div id="{ iv_div_id }" class="info-panel" style="{ lv_display }">| ).
+    lv_class = 'info-panel'.
+    IF iv_scrollable = abap_false. " Initially hide
+      lv_class = lv_class && ' info-panel-fixed'.
+    ENDIF.
+
+    ro_html->add( |<div id="{ iv_div_id }" class="{ lv_class }" style="{ lv_display }">| ).
 
     ro_html->add( |<div class="info-title">{ iv_title }|
                && '<div class="float-right">'
@@ -31535,6 +31550,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '.repo_tab td.icon {'.
         _inline '  width: 32px;'.
         _inline '  text-align: center;'.
+        _inline '}'.
+        _inline '.repo_tab td.icon:not(:first-child) {'.
+        _inline '  width: 26px;'.
+        _inline '  text-align: left;'.
         _inline '}'.
         _inline '.repo_tab td.type {'.
         _inline '  width: 3em;'.
@@ -32117,6 +32136,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  margin-left: -20em;'.
         _inline '  background-color: white;'.
         _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
+        _inline '}'.
+        _inline ''.
+        _inline 'div.info-panel-fixed { '.
+        _inline '  position: fixed;'.
+        _inline '  top: 15%;'.
         _inline '}'.
         _inline ''.
         _inline 'div.info-panel div.info-hint {'.
@@ -66337,5 +66361,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-27T11:28:18.831Z
+* abapmerge undefined - 2018-11-28T06:20:04.521Z
 ****************************************************
