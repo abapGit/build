@@ -9531,6 +9531,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CONSTANTS c_abapgit_wikipage TYPE string VALUE 'http://docs.abapgit.org' ##NO_TEXT.
     CONSTANTS c_package_abapgit TYPE devclass VALUE '$ABAPGIT' ##NO_TEXT.
     CONSTANTS c_abapgit_url TYPE string VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT.
+    CONSTANTS c_abapgit_tcode TYPE tcode VALUE `ZABAPGIT` ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -22842,13 +22843,11 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
   METHOD is_installed.
 
-    TRY.
-        rv_installed = zcl_abapgit_repo_srv=>get_instance( )->is_repo_installed( c_abapgit_url ).
-        " TODO, alternative checks for presence in the system
-      CATCH zcx_abapgit_exception.
-        " cannot be installed anyway in this case, e.g. no connection
-        rv_installed = abap_false.
-    ENDTRY.
+    DATA: ls_item TYPE zif_abapgit_definitions=>ty_item.
+
+    ls_item-obj_type = 'TRAN'.
+    ls_item-obj_name = c_abapgit_tcode.
+    rv_installed = zcl_abapgit_objects=>exists( ls_item ).
 
   ENDMETHOD.
 
@@ -66365,5 +66364,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-28T06:22:11.955Z
+* abapmerge undefined - 2018-11-29T05:30:17.006Z
 ****************************************************
