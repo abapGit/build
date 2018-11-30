@@ -1419,6 +1419,7 @@ INTERFACE zif_abapgit_definitions.
     END OF c_version .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY'.
+  CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE'.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_object.
@@ -9546,14 +9547,23 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CLASS-METHODS is_installed
       RETURNING
         VALUE(rv_installed) TYPE abap_bool .
-  PRIVATE SECTION.
+    CLASS-METHODS prepare_gui_startup
+      RAISING
+        zcx_abapgit_exception.
 
+  PRIVATE SECTION.
     CLASS-METHODS do_install
       IMPORTING iv_title   TYPE c
                 iv_text    TYPE c
                 iv_url     TYPE string
                 iv_package TYPE devclass
       RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS set_start_repo_from_package
+      IMPORTING
+        iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_services_git DEFINITION
@@ -18219,11 +18229,13 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   ENDMETHOD.
   METHOD path_to_package.
 
-    DATA: lv_length TYPE i,
-          lv_parent TYPE devclass,
-          lv_new    TYPE string,
-          lv_path   TYPE string,
-          lv_top    TYPE devclass.
+    DATA: lv_length               TYPE i,
+          lv_parent               TYPE devclass,
+          lv_new                  TYPE string,
+          lv_path                 TYPE string,
+          lv_absolute_name        TYPE string,
+          lv_top                  TYPE devclass,
+          lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
 
     lv_top = iv_top.
 
@@ -18236,23 +18248,38 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
     lv_parent  = lv_top.
     rv_package = lv_top.
 
+    INSERT iv_top INTO TABLE lt_unique_package_names.
+
     WHILE lv_path CA '/'.
       SPLIT lv_path AT '/' INTO lv_new lv_path.
 
       CASE io_dot->get_folder_logic( ).
         WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
-          rv_package = lv_new.
-          TRANSLATE rv_package USING '#/'.
+          lv_absolute_name = lv_new.
+          TRANSLATE lv_absolute_name USING '#/'.
           IF iv_top(1) = '$'.
-            CONCATENATE '$' rv_package INTO rv_package.
+            CONCATENATE '$' lv_absolute_name INTO lv_absolute_name.
           ENDIF.
         WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
-          CONCATENATE rv_package '_' lv_new INTO rv_package.
+          CONCATENATE rv_package '_' lv_new INTO lv_absolute_name.
         WHEN OTHERS.
           ASSERT 0 = 1.
       ENDCASE.
 
-      TRANSLATE rv_package TO UPPER CASE.
+      TRANSLATE lv_absolute_name TO UPPER CASE.
+
+      IF strlen( lv_absolute_name ) > 30.
+        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters-name limit| ).
+      ENDIF.
+
+      READ TABLE lt_unique_package_names TRANSPORTING NO FIELDS
+        WITH TABLE KEY table_line = lv_absolute_name.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } has a subpackage with the same name| ).
+      ELSE.
+        rv_package = lv_absolute_name.
+        INSERT rv_package INTO TABLE lt_unique_package_names.
+      ENDIF.
 
       IF zcl_abapgit_factory=>get_sap_package( rv_package )->exists( ) = abap_false AND
           iv_create_if_not_exists = abap_true.
@@ -22794,7 +22821,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
       iv_text_button_1         = 'Continue'
       iv_text_button_2         = 'Cancel'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
 
     IF lv_answer <> '1'.
       RETURN.
@@ -22871,6 +22898,83 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD prepare_gui_startup.
+
+    DATA: lv_repo_key TYPE zif_abapgit_persistence=>ty_value,
+          lv_package  TYPE devclass.
+
+    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
+      " Don't show the last seen repo at startup
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
+    ENDIF.
+
+    " We have two special cases for gui startup
+    "   - open a specific repo by repo key
+    "   - open a specific repo by package name
+    " These overrule the last shown repo
+
+    GET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD lv_repo_key.
+    GET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_package  FIELD lv_package.
+
+    IF lv_repo_key IS NOT INITIAL.
+
+      SET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD ''.
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_repo_key ).
+
+    ELSEIF lv_package IS NOT INITIAL.
+
+      SET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_package FIELD ''.
+      set_start_repo_from_package( lv_package ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD set_start_repo_from_package.
+
+    DATA: lo_repo          TYPE REF TO zcl_abapgit_repo,
+          lt_r_package     TYPE RANGE OF devclass,
+          ls_r_package     LIKE LINE OF lt_r_package,
+          lt_superpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+          lo_package       TYPE REF TO zif_abapgit_sap_package.
+
+    FIELD-SYMBOLS: <lo_repo>         TYPE LINE OF zif_abapgit_definitions=>ty_repo_ref_tt,
+                   <lv_superpackage> LIKE LINE OF lt_superpackages.
+
+    lo_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+
+    IF lo_package->exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    ls_r_package-sign   = 'I'.
+    ls_r_package-option = 'EQ'.
+    ls_r_package-low    = iv_package.
+    INSERT ls_r_package INTO TABLE lt_r_package.
+
+    " Also consider superpackages. E.g. when some open $abapgit_ui, abapGit repo
+    " should be found via package $abapgit
+    lt_superpackages = lo_package->list_superpackages( ).
+    LOOP AT lt_superpackages ASSIGNING <lv_superpackage>.
+      ls_r_package-low = <lv_superpackage>.
+      INSERT ls_r_package INTO TABLE lt_r_package.
+    ENDLOOP.
+
+    LOOP AT zcl_abapgit_repo_srv=>get_instance( )->list( ) ASSIGNING <lo_repo>.
+
+      IF <lo_repo>->get_package( ) IN lt_r_package.
+        lo_repo = <lo_repo>.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF lo_repo IS BOUND.
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
@@ -66213,24 +66317,14 @@ ENDFORM.                    "run
 
 FORM open_gui RAISING zcx_abapgit_exception.
 
-  DATA: lv_repo_key TYPE zif_abapgit_persistence=>ty_value.
-
   IF sy-batch = abap_true.
     zcl_abapgit_background=>run( ).
   ELSE.
 
-    GET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD lv_repo_key.
-
-    IF lv_repo_key IS NOT INITIAL.
-      SET PARAMETER ID zif_abapgit_definitions=>c_spagpa_param_repo_key FIELD ''.
-      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_repo_key ).
-    ELSEIF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
-      " Don't show the last seen repo at startup
-      zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
-    ENDIF.
-
+    zcl_abapgit_services_abapgit=>prepare_gui_startup( ).
     zcl_abapgit_gui=>get_instance( )->go_home( ).
     CALL SELECTION-SCREEN 1001. " trigger screen
+
   ENDIF.
 
 ENDFORM.
@@ -66364,5 +66458,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-11-29T05:30:17.006Z
+* abapmerge undefined - 2018-11-30T06:13:14.670Z
 ****************************************************
