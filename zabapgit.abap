@@ -18289,12 +18289,12 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters-name limit| ).
       ENDIF.
 
+      rv_package = lv_absolute_name.
       READ TABLE lt_unique_package_names TRANSPORTING NO FIELDS
-        WITH TABLE KEY table_line = lv_absolute_name.
+        WITH TABLE KEY table_line = rv_package.
       IF sy-subrc = 0.
-        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } has a subpackage with the same name| ).
+        zcx_abapgit_exception=>raise( |Package { rv_package } has a subpackage with the same name| ).
       ELSE.
-        rv_package = lv_absolute_name.
         INSERT rv_package INTO TABLE lt_unique_package_names.
       ENDIF.
 
@@ -66359,5 +66359,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-02T08:12:46.117Z
+* abapmerge undefined - 2018-12-02T11:15:41.486Z
 ****************************************************
