@@ -417,6 +417,7 @@ INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_stage_logic DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
+INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
@@ -1715,6 +1716,22 @@ INTERFACE zif_abapgit_persistence.
            local_settings  TYPE ty_local_settings,
          END OF ty_repo_xml.
 
+  TYPES:
+    BEGIN OF ty_repo_meta_mask,
+      url             TYPE abap_bool,
+      branch_name     TYPE abap_bool,
+      package         TYPE abap_bool,
+      created_by      TYPE abap_bool,
+      created_at      TYPE abap_bool,
+      deserialized_by TYPE abap_bool,
+      deserialized_at TYPE abap_bool,
+      offline         TYPE abap_bool,
+      local_checksums TYPE abap_bool,
+      dot_abapgit     TYPE abap_bool,
+      head_branch     TYPE abap_bool,
+      local_settings  TYPE abap_bool,
+    END OF ty_repo_meta_mask.
+
   TYPES: BEGIN OF ty_repo,
            key TYPE zif_abapgit_persistence=>ty_value.
       INCLUDE TYPE ty_repo_xml.
@@ -1760,53 +1777,11 @@ INTERFACE zif_abapgit_persist_repo .
     RAISING
       zcx_abapgit_exception
       zcx_abapgit_not_found .
-  METHODS update_branch_name
+  METHODS update_metadata
     IMPORTING
       !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-      !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo_xml-branch_name
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_deserialized
-    IMPORTING
-      !iv_key             TYPE zif_abapgit_persistence=>ty_value
-      !iv_deserialized_at TYPE timestampl
-      !iv_deserialized_by TYPE xubname
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_dot_abapgit
-    IMPORTING
-      !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-      !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_head_branch
-    IMPORTING
-      !iv_key         TYPE zif_abapgit_persistence=>ty_repo-key
-      !iv_head_branch TYPE zif_abapgit_persistence=>ty_repo_xml-head_branch
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_local_checksums
-    IMPORTING
-      !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
-      !it_checksums TYPE zif_abapgit_persistence=>ty_repo_xml-local_checksums
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_local_settings
-    IMPORTING
-      !iv_key      TYPE zif_abapgit_persistence=>ty_repo-key
-      !is_settings TYPE zif_abapgit_persistence=>ty_repo_xml-local_settings
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_offline
-    IMPORTING
-      !iv_key     TYPE zif_abapgit_persistence=>ty_repo-key
-      !iv_offline TYPE zif_abapgit_persistence=>ty_repo_xml-offline
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_url
-    IMPORTING
-      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      !iv_url TYPE zif_abapgit_persistence=>ty_repo_xml-url
+      !is_meta        TYPE zif_abapgit_persistence=>ty_repo_xml
+      !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -2210,6 +2185,16 @@ INTERFACE zif_abapgit_gui_page_hotkey.
         VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_repo_listener .
+  INTERFACE zif_abapgit_persistence LOAD .
+  METHODS on_meta_change
+    IMPORTING
+      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      !is_meta TYPE zif_abapgit_persistence=>ty_repo_xml
+      !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
 INTERFACE zif_abapgit_repo_srv .
   METHODS delete
     IMPORTING
@@ -2257,12 +2242,6 @@ INTERFACE zif_abapgit_repo_srv .
     IMPORTING
       !io_repo  TYPE REF TO zcl_abapgit_repo
       is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
-    RAISING
-      zcx_abapgit_exception .
-  METHODS switch_repo_type
-    IMPORTING
-      !iv_key     TYPE zif_abapgit_persistence=>ty_value
-      !iv_offline TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS validate_package
@@ -7208,6 +7187,7 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
       FOR zif_abapgit_persist_repo~read .
   PRIVATE SECTION.
 
+    DATA mt_meta_fields TYPE STANDARD TABLE OF abap_compname.
     DATA mo_db TYPE REF TO zcl_abapgit_persistence_db .
 
     METHODS from_xml
@@ -11578,12 +11558,13 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
-  CREATE PUBLIC
-
-  FRIENDS ZCL_ABAPGIT_repo_srv .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
+    METHODS bind_listener
+      IMPORTING
+        ii_listener TYPE REF TO zif_abapgit_repo_listener.
     METHODS deserialize_checks
       RETURNING
         VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
@@ -11628,9 +11609,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_package
       RETURNING
         VALUE(rv_package) TYPE zif_abapgit_persistence=>ty_repo-package .
-    METHODS delete
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_dot_abapgit
       RETURNING
         VALUE(ro_dot_abapgit) TYPE REF TO zcl_abapgit_dot_abapgit .
@@ -11699,6 +11677,11 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS switch_repo_type
+      IMPORTING
+        iv_offline TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
 
   PROTECTED SECTION.
 
@@ -11727,10 +11710,16 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS reset_remote .
   PRIVATE SECTION.
 
+    DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
+
     TYPES:
       ty_cache_tt TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
                              WITH NON-UNIQUE KEY item .
-
+    METHODS notify_listener
+      IMPORTING
+        is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
+      RAISING
+        zcx_abapgit_exception .
     METHODS apply_filter
       IMPORTING
         !it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt
@@ -11897,10 +11886,12 @@ CLASS zcl_abapgit_repo_srv DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_repo_srv .
+    INTERFACES zif_abapgit_repo_listener .
 
     CLASS-METHODS get_instance
       RETURNING
         VALUE(ri_srv) TYPE REF TO zif_abapgit_repo_srv .
+
   PRIVATE SECTION.
 
     ALIASES delete
@@ -11919,13 +11910,25 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     METHODS refresh
       RAISING
         zcx_abapgit_exception .
-    METHODS constructor .
     METHODS is_sap_object_allowed
       RETURNING
         VALUE(rv_allowed) TYPE abap_bool .
+    METHODS instantiate_and_add
+      IMPORTING
+        !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+      RETURNING
+        VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
     METHODS add
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reinstantiate_repo
+      IMPORTING
+        !iv_key  TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_meta TYPE zif_abapgit_persistence=>ty_repo_xml
       RAISING
         zcx_abapgit_exception .
     METHODS validate_sub_super_packages
@@ -11934,6 +11937,7 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         !it_repos   TYPE zif_abapgit_persistence=>tt_repo
       RAISING
         zcx_abapgit_exception .
+
 ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
     FRIENDS ZCL_ABAPGIT_factory.
@@ -14799,10 +14803,22 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    io_repo->bind_listener( me ).
     APPEND io_repo TO mt_list.
 
   ENDMETHOD.
-  METHOD constructor.
+  METHOD instantiate_and_add.
+
+    IF is_repo_meta-offline = abap_false.
+      CREATE OBJECT ro_repo TYPE zcl_abapgit_repo_online
+        EXPORTING
+          is_data = is_repo_meta.
+    ELSE.
+      CREATE OBJECT ro_repo TYPE zcl_abapgit_repo_offline
+        EXPORTING
+          is_data = is_repo_meta.
+    ENDIF.
+    add( ro_repo ).
 
   ENDMETHOD.
   METHOD get_instance.
@@ -14832,17 +14848,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     lt_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
     LOOP AT lt_list ASSIGNING <ls_list>.
-      IF <ls_list>-offline = abap_false.
-        CREATE OBJECT lo_online
-          EXPORTING
-            is_data = <ls_list>.
-        APPEND lo_online TO mt_list.
-      ELSE.
-        CREATE OBJECT lo_offline
-          EXPORTING
-            is_data = <ls_list>.
-        APPEND lo_offline TO mt_list.
-      ENDIF.
+      instantiate_and_add( <ls_list> ).
     ENDLOOP.
 
     mv_init = abap_true.
@@ -14879,7 +14885,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~delete.
 
-    io_repo->delete( ).
+    zcl_abapgit_persist_factory=>get_repo( )->delete( io_repo->get_key( ) ).
 
     DELETE TABLE mt_list FROM io_repo.
     ASSERT sy-subrc = 0.
@@ -14962,11 +14968,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'new_offline not found' ).
     ENDTRY.
 
-    CREATE OBJECT ro_repo
-      EXPORTING
-        is_data = ls_repo.
-
-    add( ro_repo ).
+    ro_repo ?= instantiate_and_add( ls_repo ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~new_online.
@@ -14992,14 +14994,46 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'new_online not found' ).
     ENDTRY.
 
-    CREATE OBJECT ro_repo
-      EXPORTING
-        is_data = ls_repo.
-
-    add( ro_repo ).
+    ro_repo ?= instantiate_and_add( ls_repo ).
 
     ro_repo->refresh( ).
     ro_repo->find_remote_dot_abapgit( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_listener~on_meta_change.
+
+    DATA li_persistence TYPE REF TO zif_abapgit_persist_repo.
+
+    li_persistence = zcl_abapgit_persist_factory=>get_repo( ).
+    li_persistence->update_metadata(
+      iv_key         = iv_key
+      is_meta        = is_meta
+      is_change_mask = is_change_mask ).
+    " Recreate repo instance if type changed
+    " Instances in mt_list are of *_online and *_offline type
+    " If type is changed object should be recreated from the proper class
+    " TODO refactor, e.g. unify repo logic in one class
+    IF is_change_mask-offline = abap_true.
+      reinstantiate_repo(
+        iv_key  = iv_key
+        is_meta = is_meta ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD reinstantiate_repo.
+
+      DATA lo_repo      TYPE REF TO zcl_abapgit_repo.
+      DATA ls_full_meta TYPE zif_abapgit_persistence=>ty_repo.
+
+      lo_repo = get( iv_key ).
+      DELETE TABLE mt_list FROM lo_repo.
+      ASSERT sy-subrc IS INITIAL.
+
+      MOVE-CORRESPONDING is_meta TO ls_full_meta.
+      ls_full_meta-key = iv_key.
+
+      instantiate_and_add( ls_full_meta ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~purge.
@@ -15019,36 +15053,6 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
                                  is_checks = is_checks ).
 
     delete( io_repo ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_srv~switch_repo_type.
-
-* todo, this should be a method on the repo instead?
-
-    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
-
-    FIELD-SYMBOLS <lo_repo> LIKE LINE OF mt_list.
-
-    lo_repo = get( iv_key ).
-    READ TABLE mt_list ASSIGNING <lo_repo> FROM lo_repo.
-    ASSERT sy-subrc IS INITIAL.
-    ASSERT iv_offline <> lo_repo->ms_data-offline.
-
-    IF iv_offline = abap_true. " On-line -> OFFline
-      lo_repo->set(
-        iv_url         = zcl_abapgit_url=>name( lo_repo->ms_data-url )
-        iv_branch_name = ''
-        iv_head_branch = ''
-        iv_offline     = abap_true ).
-      CREATE OBJECT <lo_repo> TYPE zcl_abapgit_repo_offline
-        EXPORTING
-          is_data = lo_repo->ms_data.
-    ELSE. " OFFline -> On-line
-      lo_repo->set( iv_offline = abap_false ).
-      CREATE OBJECT <lo_repo> TYPE zcl_abapgit_repo_online
-        EXPORTING
-          is_data = lo_repo->ms_data.
-    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~validate_package.
@@ -15549,11 +15553,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
         output = rv_spras.
 
   ENDMETHOD.
-  METHOD delete.
-
-    zcl_abapgit_persist_factory=>get_repo( )->delete( ms_data-key ).
-
-  ENDMETHOD.
   METHOD delete_checks.
 
     DATA: li_package TYPE REF TO zif_abapgit_sap_package.
@@ -15798,6 +15797,19 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD notify_listener.
+
+    DATA ls_meta_slug TYPE zif_abapgit_persistence=>ty_repo_xml.
+
+    IF mi_listener IS BOUND.
+      MOVE-CORRESPONDING ms_data TO ls_meta_slug.
+      mi_listener->on_meta_change(
+        iv_key         = ms_data-key
+        is_meta        = ls_meta_slug
+        is_change_mask = is_change_mask ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD rebuild_local_checksums.
 
     DATA:
@@ -15881,7 +15893,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
 * TODO: refactor
 
-    DATA: li_persistence TYPE REF TO zif_abapgit_persist_repo.
+    DATA:
+          ls_mask        TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
     ASSERT it_checksums IS SUPPLIED
       OR iv_url IS SUPPLIED
       OR iv_branch_name IS SUPPLIED
@@ -15891,65 +15904,49 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       OR is_local_settings IS SUPPLIED
       OR iv_deserialized_by IS SUPPLIED
       OR iv_deserialized_at IS SUPPLIED.
-
-    li_persistence = zcl_abapgit_persist_factory=>get_repo( ).
-
     IF it_checksums IS SUPPLIED.
-      li_persistence->update_local_checksums(
-        iv_key       = ms_data-key
-        it_checksums = it_checksums ).
       ms_data-local_checksums = it_checksums.
+      ls_mask-local_checksums = abap_true.
     ENDIF.
 
     IF iv_url IS SUPPLIED.
-      li_persistence->update_url(
-        iv_key = ms_data-key
-        iv_url = iv_url ).
       ms_data-url = iv_url.
+      ls_mask-url = abap_true.
     ENDIF.
 
     IF iv_branch_name IS SUPPLIED.
-      li_persistence->update_branch_name(
-        iv_key         = ms_data-key
-        iv_branch_name = iv_branch_name ).
       ms_data-branch_name = iv_branch_name.
+      ls_mask-branch_name = abap_true.
     ENDIF.
 
     IF iv_head_branch IS SUPPLIED.
-      li_persistence->update_head_branch(
-        iv_key         = ms_data-key
-        iv_head_branch = iv_head_branch ).
       ms_data-head_branch = iv_head_branch.
+      ls_mask-head_branch = abap_true.
     ENDIF.
 
     IF iv_offline IS SUPPLIED.
-      li_persistence->update_offline(
-        iv_key     = ms_data-key
-        iv_offline = iv_offline ).
       ms_data-offline = iv_offline.
+      ls_mask-offline = abap_true.
     ENDIF.
 
     IF is_dot_abapgit IS SUPPLIED.
-      li_persistence->update_dot_abapgit(
-        iv_key         = ms_data-key
-        is_dot_abapgit = is_dot_abapgit ).
       ms_data-dot_abapgit = is_dot_abapgit.
+      ls_mask-dot_abapgit = abap_true.
     ENDIF.
 
     IF is_local_settings IS SUPPLIED.
-      li_persistence->update_local_settings(
-        iv_key      = ms_data-key
-        is_settings = is_local_settings ).
       ms_data-local_settings = is_local_settings.
+      ls_mask-local_settings = abap_true.
     ENDIF.
 
     IF iv_deserialized_at IS SUPPLIED OR iv_deserialized_by IS SUPPLIED.
-      li_persistence->update_deserialized(
-        iv_key             = ms_data-key
-        iv_deserialized_at = iv_deserialized_at
-        iv_deserialized_by = iv_deserialized_by ).
       ms_data-deserialized_at = iv_deserialized_at.
+      ms_data-deserialized_by = iv_deserialized_by.
+      ls_mask-deserialized_at = abap_true.
+      ls_mask-deserialized_by = abap_true.
     ENDIF.
+
+    notify_listener( ls_mask ).
 
   ENDMETHOD.
   METHOD set_dot_abapgit.
@@ -15976,6 +15973,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     rt_results = mt_status.
 
+  ENDMETHOD.
+  METHOD bind_listener.
+    mi_listener = ii_listener.
   ENDMETHOD.
   METHOD update_last_deserialize.
 
@@ -16064,6 +16064,23 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     SORT lt_checksums BY item.
     set( it_checksums = lt_checksums ).
+
+  ENDMETHOD.
+  METHOD switch_repo_type.
+
+    IF iv_offline = ms_data-offline.
+      zcx_abapgit_exception=>raise( |Cannot switch_repo_type, offline already = "{ ms_data-offline }"| ).
+    ENDIF.
+
+    IF iv_offline = abap_true. " On-line -> OFFline
+      set(
+        iv_url         = zcl_abapgit_url=>name( ms_data-url )
+        iv_branch_name = ''
+        iv_head_branch = ''
+        iv_offline     = abap_true ).
+    ELSE. " OFFline -> On-line
+      set( iv_offline = abap_false ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -22452,10 +22469,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type(
-      iv_key = iv_key
-      iv_offline = abap_false ).
-
+    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->switch_repo_type( iv_offline = abap_false ).
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_url( ls_popup-url ).
     lo_repo->set_branch_name( ls_popup-branch_name ).
@@ -22504,7 +22518,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    zcl_abapgit_repo_srv=>get_instance( )->switch_repo_type( iv_key = iv_key  iv_offline = abap_true ).
+    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->switch_repo_type( iv_offline = abap_true ).
 
     COMMIT WORK.
 
@@ -35052,8 +35066,24 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
+
   METHOD constructor.
+
+    DATA ls_dummy_meta_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
+    DATA ls_dummy_meta      TYPE zif_abapgit_persistence=>ty_repo_xml.
+    DATA lo_type_meta_mask  TYPE REF TO cl_abap_structdescr.
+    DATA lo_type_meta       TYPE REF TO cl_abap_structdescr.
+    FIELD-SYMBOLS <ls_comp> LIKE LINE OF lo_type_meta_mask->components.
+
+    " Collect actual list of fields in repo meta data (used in update_meta)
+    lo_type_meta_mask ?= cl_abap_structdescr=>describe_by_data( ls_dummy_meta_mask ).
+    lo_type_meta      ?= cl_abap_structdescr=>describe_by_data( ls_dummy_meta ).
+    LOOP AT lo_type_meta_mask->components ASSIGNING <ls_comp>.
+      APPEND <ls_comp>-name TO mt_meta_fields.
+    ENDLOOP.
+
     mo_db = zcl_abapgit_persistence_db=>get_instance( ).
+
   ENDMETHOD.
   METHOD from_xml.
 
@@ -35183,187 +35213,55 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_branch_name.
 
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
+  METHOD zif_abapgit_persist_repo~update_metadata.
 
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
+    DATA:
+          lv_blob            TYPE zif_abapgit_persistence=>ty_content-data_str,
+          ls_persistent_meta TYPE zif_abapgit_persistence=>ty_repo.
 
-    ls_repo-branch_name = iv_branch_name.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_deserialized.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
+    FIELD-SYMBOLS <lv_field>   LIKE LINE OF mt_meta_fields.
+    FIELD-SYMBOLS <lv_dst>     TYPE ANY.
+    FIELD-SYMBOLS <lv_src>     TYPE ANY.
+    FIELD-SYMBOLS <lv_changed> TYPE abap_bool.
 
     ASSERT NOT iv_key IS INITIAL.
 
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    IF iv_deserialized_at IS NOT INITIAL.
-      ls_repo-deserialized_at = iv_deserialized_at.
+    IF is_change_mask IS INITIAL.
+      RETURN.
     ENDIF.
 
-    IF iv_deserialized_by IS NOT INITIAL.
-      ls_repo-deserialized_by = iv_deserialized_by.
-    ENDIF.
-
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_dot_abapgit.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-dot_abapgit = is_dot_abapgit.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_head_branch.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-head_branch = iv_head_branch.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_local_checksums.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-local_checksums = it_checksums.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_local_settings.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-local_settings = is_settings.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_offline.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-
-    ASSERT NOT iv_key IS INITIAL.
-
-    TRY.
-        ls_repo = read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
-    ENDTRY.
-
-    ls_repo-offline = iv_offline.
-    ls_content-data_str = to_xml( ls_repo ).
-
-    mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-                   iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_persist_repo~update_url.
-
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
-          ls_content LIKE LINE OF lt_content,
-          ls_repo    TYPE zif_abapgit_persistence=>ty_repo.
-    IF iv_url IS INITIAL.
+    " Validations
+    IF is_change_mask-url = abap_true AND is_meta-url IS INITIAL.
       zcx_abapgit_exception=>raise( 'update, url empty' ).
     ENDIF.
 
-    ASSERT NOT iv_key IS INITIAL.
-
     TRY.
-        ls_repo = read( iv_key ).
+        ls_persistent_meta = read( iv_key ).
       CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'key not found' ).
+        zcx_abapgit_exception=>raise( 'repo key not found' ).
     ENDTRY.
 
-    ls_repo-url = iv_url.
-    ls_content-data_str = to_xml( ls_repo ).
+    " Update
+    LOOP AT mt_meta_fields ASSIGNING <lv_field>.
+      ASSIGN COMPONENT <lv_field> OF STRUCTURE is_change_mask TO <lv_changed>.
+      ASSERT sy-subrc = 0.
+      CHECK <lv_changed> = abap_true.
+      ASSIGN COMPONENT <lv_field> OF STRUCTURE ls_persistent_meta TO <lv_dst>.
+      ASSERT sy-subrc = 0.
+      ASSIGN COMPONENT <lv_field> OF STRUCTURE is_meta TO <lv_src>.
+      ASSERT sy-subrc = 0.
+      <lv_dst> = <lv_src>.
+    ENDLOOP.
+
+    lv_blob = to_xml( ls_persistent_meta ).
 
     mo_db->update( iv_type  = zcl_abapgit_persistence_db=>c_type_repo
                    iv_value = iv_key
-                   iv_data  = ls_content-data_str ).
+                   iv_data  = lv_blob ).
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
@@ -66461,5 +66359,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-02T08:08:24.738Z
+* abapmerge undefined - 2018-12-02T08:12:46.117Z
 ****************************************************
