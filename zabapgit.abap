@@ -430,7 +430,9 @@ INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
+INTERFACE zif_abapgit_gui_router DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
+INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
@@ -839,6 +841,25 @@ INTERFACE zif_abapgit_object_enhs.
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+INTERFACE zif_abapgit_gui_asset_manager .
+
+  TYPES:
+    BEGIN OF ty_web_asset,
+      url     TYPE w3url,
+      type    TYPE char50,
+      subtype TYPE char50,
+      content TYPE xstring,
+    END OF ty_web_asset .
+  TYPES:
+    tt_web_assets TYPE STANDARD TABLE OF ty_web_asset WITH DEFAULT KEY .
+
+  METHODS get_all_assets
+    RETURNING
+      VALUE(rt_assets) TYPE tt_web_assets
+    RAISING
+      zcx_abapgit_exception.
+
+ENDINTERFACE.
 INTERFACE zif_abapgit_gui_page.
 
   METHODS on_event
@@ -853,6 +874,22 @@ INTERFACE zif_abapgit_gui_page.
   METHODS render
     RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
     RAISING   zcx_abapgit_exception.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_gui_router .
+
+  METHODS on_event
+    IMPORTING
+      iv_action    TYPE clike
+      iv_prev_page TYPE clike
+      iv_getdata   TYPE clike OPTIONAL
+      it_postdata  TYPE cnht_post_data_tab OPTIONAL
+    EXPORTING
+      ei_page      TYPE REF TO zif_abapgit_gui_page
+      ev_state     TYPE i
+    RAISING
+      zcx_abapgit_exception
+      zcx_abapgit_cancel.
 
 ENDINTERFACE.
 INTERFACE zif_abapgit_auth.
@@ -1076,14 +1113,6 @@ INTERFACE zif_abapgit_definitions.
       delete_tadir TYPE abap_bool,
       ddic         TYPE abap_bool,
     END OF ty_metadata .
-  TYPES:
-    BEGIN OF ty_web_asset,
-      url     TYPE w3url,
-      base64  TYPE string,
-      content TYPE xstring,
-    END OF ty_web_asset .
-  TYPES:
-    tt_web_assets TYPE STANDARD TABLE OF ty_web_asset WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_repo_file,
       path       TYPE string,
@@ -7445,14 +7474,9 @@ CLASS zcl_abapgit_test_serialize DEFINITION
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
-  FINAL
-  CREATE PRIVATE .
+  FINAL .
 
   PUBLIC SECTION.
-
-    CLASS-METHODS: get_instance
-      RETURNING VALUE(ro_gui) TYPE REF TO zcl_abapgit_gui
-      RAISING   zcx_abapgit_exception.
 
     METHODS go_home
       RAISING zcx_abapgit_exception.
@@ -7465,9 +7489,14 @@ CLASS zcl_abapgit_gui DEFINITION
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING action frame getdata postdata query_table.
 
-  PRIVATE SECTION.
+    METHODS constructor
+      IMPORTING
+        ii_router    TYPE REF TO zif_abapgit_gui_router
+        ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager
+      RAISING
+        zcx_abapgit_exception.
 
-    CLASS-DATA: go_gui TYPE REF TO zcl_abapgit_gui.
+  PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_page_stack,
              page     TYPE REF TO zif_abapgit_gui_page,
@@ -7476,12 +7505,9 @@ CLASS zcl_abapgit_gui DEFINITION
 
     DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_page,
           mt_stack       TYPE STANDARD TABLE OF ty_page_stack,
-          mo_router      TYPE REF TO zcl_abapgit_gui_router,
-          mo_asset_man   TYPE REF TO zcl_abapgit_gui_asset_manager,
+          mi_router      TYPE REF TO zif_abapgit_gui_router,
+          mi_asset_man   TYPE REF TO zif_abapgit_gui_asset_manager,
           mo_html_viewer TYPE REF TO cl_gui_html_viewer.
-
-    METHODS constructor
-      RAISING zcx_abapgit_exception.
 
     METHODS startup
       RAISING zcx_abapgit_exception.
@@ -7522,31 +7548,54 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
   PUBLIC SECTION.
 
-    METHODS get_asset
-      IMPORTING iv_asset_name  TYPE string
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
+    INTERFACES zif_abapgit_gui_asset_manager.
 
-    METHODS get_images
-      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
+    CLASS-METHODS string_to_xstring
+      IMPORTING
+        iv_str         TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
 
-    CLASS-METHODS get_webfont_link
-      RETURNING VALUE(rv_link) TYPE string.
+    CLASS-METHODS base64_to_xstring
+      IMPORTING
+        iv_base64      TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS bintab_to_xstring
+      IMPORTING
+        it_bintab      TYPE lvc_t_mime
+        iv_size        TYPE i
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS xstring_to_bintab
+      IMPORTING
+        iv_xstr   TYPE xstring
+      EXPORTING
+        ev_size   TYPE i
+        et_bintab TYPE lvc_t_mime.
 
   PRIVATE SECTION.
 
-    METHODS get_inline_asset
-      IMPORTING iv_asset_name  TYPE string
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
+    METHODS get_textlike_asset
+      IMPORTING
+        iv_asset_url    TYPE string
+      RETURNING
+        VALUE(rs_asset) TYPE zif_abapgit_gui_asset_manager=>ty_web_asset
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS get_mime_asset
-      IMPORTING iv_asset_name  TYPE c
-      RETURNING VALUE(rv_data) TYPE xstring
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        iv_mime_name    TYPE c
+      RETURNING
+        VALUE(rv_xdata) TYPE xstring
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS get_inline_images
-      RETURNING VALUE(rt_images) TYPE zif_abapgit_definitions=>tt_web_assets.
+      RETURNING VALUE(rt_images) TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
@@ -8884,14 +8933,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS on_event
-      IMPORTING iv_action    TYPE clike
-                iv_prev_page TYPE clike
-                iv_getdata   TYPE clike OPTIONAL
-                it_postdata  TYPE cnht_post_data_tab OPTIONAL
-      EXPORTING ei_page      TYPE REF TO zif_abapgit_gui_page
-                ev_state     TYPE i
-      RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
+    INTERFACES zif_abapgit_gui_router.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -9778,11 +9820,17 @@ CLASS zcl_abapgit_ui_factory DEFINITION
         RETURNING
           VALUE(ri_gui_functions) TYPE REF TO zif_abapgit_gui_functions.
 
+    CLASS-METHODS: get_gui
+      RETURNING
+        VALUE(ro_gui) TYPE REF TO zcl_abapgit_gui
+      RAISING
+        zcx_abapgit_exception.
   PRIVATE SECTION.
     CLASS-DATA:
       gi_popups        TYPE REF TO zif_abapgit_popups,
       gi_tag_popups    TYPE REF TO zif_abapgit_tag_popups,
-      gi_gui_functions TYPE REF TO zif_abapgit_gui_functions.
+      gi_gui_functions TYPE REF TO zif_abapgit_gui_functions,
+      go_gui           TYPE REF TO zcl_abapgit_gui.
 
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
@@ -21938,6 +21986,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_gui.
+
+    DATA:
+          li_router    TYPE REF TO zif_abapgit_gui_router,
+          li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
+
+    IF go_gui IS INITIAL.
+      CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
+      CREATE OBJECT li_asset_man TYPE zcl_abapgit_gui_asset_manager.
+      CREATE OBJECT go_gui
+        EXPORTING
+          ii_router    = li_router
+          ii_asset_man = li_asset_man.
+    ENDIF.
+    ro_gui = go_gui.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   METHOD clean_up.
@@ -25732,7 +25798,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       EXPORTING
         i_trkorr = lv_transport.
   ENDMETHOD.
-  METHOD on_event.
+  METHOD zif_abapgit_gui_router~on_event.
 
     DATA: ls_event_data TYPE ty_event_data.
 
@@ -30976,6 +31042,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD html_head.
 
+    DATA lv_font TYPE string.
+
     CREATE OBJECT ro_html.
 
     ro_html->add( '<head>' ).                               "#EC NOTEXT
@@ -30987,7 +31055,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
 
-    ro_html->add( zcl_abapgit_gui_asset_manager=>get_webfont_link( ) ). " Web fonts
+    lv_font = |<link rel="stylesheet" type="text/css" href="|
+      && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
+      && '">'.                                         "#EC NOTEXT
+    ro_html->add( lv_font ). " Web fonts
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
@@ -31460,64 +31531,40 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
-  METHOD get_asset.
 
-    DATA: lv_asset_name TYPE string,
-          lv_mime_name  TYPE wwwdatatab-objid.
+  METHOD zif_abapgit_gui_asset_manager~get_all_assets.
 
-    lv_asset_name = to_upper( iv_asset_name ).
+    DATA:
+          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets,
+          ls_asset  LIKE LINE OF lt_assets.
 
-    CASE lv_asset_name.
-      WHEN 'CSS_COMMON'.
-        lv_mime_name = 'ZABAPGIT_CSS_COMMON'.
-      WHEN 'JS_COMMON'.
-        lv_mime_name = 'ZABAPGIT_JS_COMMON'.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |Improper resource name: { iv_asset_name }| ).
-    ENDCASE.
+    ls_asset = get_textlike_asset( 'css/common.css' ).
+    APPEND ls_asset TO rt_assets.
+    ls_asset = get_textlike_asset( 'js/common.js' ).
+    APPEND ls_asset TO rt_assets.
 
-    " Inline is default (for older AG snapshots to work)
-    rv_data = get_inline_asset( lv_asset_name ).
-    IF rv_data IS INITIAL.
-      rv_data = get_mime_asset( lv_mime_name ). " Get MIME object
-    ENDIF.
-
-    IF rv_data IS INITIAL.
-      zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_name }| ).
-    ENDIF.
+    lt_assets = get_inline_images( ).
+    APPEND LINES OF lt_assets TO rt_assets.
 
   ENDMETHOD.
-  METHOD get_images.
-
-    FIELD-SYMBOLS <ls_image> LIKE LINE OF rt_images.
-
-    rt_images = get_inline_images( ).
-
-    " Convert to xstring
-    LOOP AT rt_images ASSIGNING <ls_image>.
-      CALL FUNCTION 'SSFC_BASE64_DECODE'
-        EXPORTING
-          b64data = <ls_image>-base64
-        IMPORTING
-          bindata = <ls_image>-content
-        EXCEPTIONS
-          OTHERS  = 1.
-      ASSERT sy-subrc = 0. " Image data error
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD get_inline_asset.
+  METHOD get_textlike_asset.
 
 * used by abapmerge
     DEFINE _inline.
       APPEND &1 TO lt_data.
     END-OF-DEFINITION.
 
-    DATA: lt_data TYPE zif_abapgit_definitions=>ty_string_tt,
-          lv_str  TYPE string.
+    DATA:
+          lt_data      TYPE string_table,
+          lv_mime_name TYPE wwwdatatab-objid,
+          lv_str       TYPE string.
 
-    CASE iv_asset_name.
-      WHEN 'CSS_COMMON'.
+    CASE iv_asset_url.
+      WHEN 'css/common.css'.
+        rs_asset-url     = iv_asset_url.
+        rs_asset-type    = 'text'.
+        rs_asset-subtype = 'css'.
+        lv_mime_name     = 'ZABAPGIT_CSS_COMMON'.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
 ****************************************************
@@ -32475,7 +32522,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  background: white;'.
         _inline '  z-index: 99;'.
         _inline '}'.
-      WHEN 'JS_COMMON'.
+      WHEN 'js/common.js'.
+        rs_asset-url     = iv_asset_url.
+        rs_asset-type    = 'text'.
+        rs_asset-subtype = 'javascript'.
+        lv_mime_name     = 'ZABAPGIT_JS_COMMON'.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
 ****************************************************
@@ -33615,28 +33666,32 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '}'.
       WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_name }| ).
+        zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_url }| ).
     ENDCASE.
 
-    CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
+    IF lt_data IS NOT INITIAL.
+      CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
+      rs_asset-content = string_to_xstring( lv_str ).
+    ELSE.
+      rs_asset-content = get_mime_asset( lv_mime_name ).
+    ENDIF.
 
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = lv_str
-      IMPORTING
-        buffer = rv_data
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
+    IF rs_asset-content IS INITIAL.
+      zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_url }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_inline_images.
 
-    DATA ls_image TYPE zif_abapgit_definitions=>ty_web_asset.
+    DATA:
+      lv_base64 TYPE string,
+      ls_image  LIKE LINE OF rt_images.
 
 * see https://github.com/larshp/abapGit/issues/201 for source SVG
     ls_image-url     = 'img/logo' ##NO_TEXT.
-    ls_image-base64 =
+    ls_image-type    = 'image'.
+    ls_image-subtype = 'pmg'.
+    lv_base64 =
          'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
       && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
       && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
@@ -33716,6 +33771,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
       && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
       && 'cpUAAAAASUVORK5CYII='.
+    ls_image-content = base64_to_xstring( lv_base64 ).
     APPEND ls_image TO rt_images.
 
   ENDMETHOD.
@@ -33727,7 +33783,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
           lt_w3mime TYPE STANDARD TABLE OF w3mime.
 
     ls_key-relid = 'MI'.
-    ls_key-objid = iv_asset_name.
+    ls_key-objid = iv_mime_name.
 
     " Get exact file size
     CALL FUNCTION 'WWWPARAMS_READ'
@@ -33760,25 +33816,64 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    rv_xdata = bintab_to_xstring(
+      iv_size   = lv_size
+      it_bintab = lt_w3mime ).
+
+  ENDMETHOD.
+  METHOD string_to_xstring.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text   = iv_str
+      IMPORTING
+        buffer = rv_xstr
+      EXCEPTIONS
+        OTHERS = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+
+  METHOD base64_to_xstring.
+
+    CALL FUNCTION 'SSFC_BASE64_DECODE'
+      EXPORTING
+        b64data = iv_base64
+      IMPORTING
+        bindata = rv_xstr
+      EXCEPTIONS
+        OTHERS  = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+
+  METHOD bintab_to_xstring.
+
     CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
       EXPORTING
-        input_length = lv_size
+        input_length = iv_size
       IMPORTING
-        buffer       = rv_data
+        buffer       = rv_xstr
       TABLES
-        binary_tab   = lt_w3mime
+        binary_tab   = it_bintab
       EXCEPTIONS
         failed       = 1 ##FM_SUBRC_OK.
+    ASSERT sy-subrc = 0.
 
   ENDMETHOD.
-  METHOD get_webfont_link.
 
-    rv_link = '<link rel="stylesheet"'
-           && ' type="text/css" href="'
-           && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
-           && '">'.                                         "#EC NOTEXT
+  METHOD xstring_to_bintab.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      buffer        = iv_xstr
+    IMPORTING
+      output_length = ev_size
+    TABLES
+      binary_tab    = et_bintab.
 
   ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
@@ -33814,33 +33909,23 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD cache_asset.
 
     DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE TABLE OF w3_mime, " RAW255
+          lt_xdata TYPE lvc_t_mime,
           lv_size  TYPE int4.
 
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
     IF iv_text IS SUPPLIED. " String input
-
-      CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-        EXPORTING
-          text   = iv_text
-        IMPORTING
-          buffer = lv_xstr
-        EXCEPTIONS
-          OTHERS = 1.
-      ASSERT sy-subrc = 0.
-
+      lv_xstr = zcl_abapgit_gui_asset_manager=>string_to_xstring( iv_text ).
     ELSE. " Raw input
       lv_xstr = iv_xdata.
     ENDIF.
 
-    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    zcl_abapgit_gui_asset_manager=>xstring_to_bintab(
       EXPORTING
-        buffer        = lv_xstr
+        iv_xstr   = lv_xstr
       IMPORTING
-        output_length = lv_size
-      TABLES
-        binary_tab    = lt_xdata.
+        ev_size   = lv_size
+        et_bintab = lt_xdata ).
 
     mo_html_viewer->load_data(
       EXPORTING
@@ -33881,6 +33966,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
+    mi_router    = ii_router.
+    mi_asset_man = ii_asset_man.
     startup( ).
 
   ENDMETHOD.
@@ -33890,15 +33977,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       rv_page_name =
         cl_abap_classdescr=>describe_by_object_ref( mi_cur_page
           )->get_relative_name( ).
-      SHIFT rv_page_name LEFT DELETING LEADING 'LCL_GUI_'.
     ENDIF." ELSE - return is empty => initial page
 
-  ENDMETHOD.
-  METHOD get_instance.
-    IF go_gui IS INITIAL.
-      CREATE OBJECT go_gui.
-    ENDIF.
-    ro_gui = go_gui.
   ENDMETHOD.
   METHOD go_home.
 
@@ -33925,7 +34005,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         ENDIF.
 
         IF lv_state IS INITIAL.
-          mo_router->on_event(
+          mi_router->on_event(
             EXPORTING
               iv_action    = iv_action
               iv_prev_page = get_current_page_name( )
@@ -33988,36 +34068,22 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     DATA: lt_events TYPE cntl_simple_events,
           ls_event  LIKE LINE OF lt_events,
-          lt_assets TYPE zif_abapgit_definitions=>tt_web_assets.
+          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
 
     FIELD-SYMBOLS <ls_asset> LIKE LINE OF lt_assets.
 
-    CREATE OBJECT mo_router.
-    CREATE OBJECT mo_asset_man.
     CREATE OBJECT mo_html_viewer
       EXPORTING
         query_table_disabled = abap_true
         parent               = cl_gui_container=>screen0.
 
-    cache_asset( iv_xdata   = mo_asset_man->get_asset( 'css_common' )
-                 iv_url     = 'css/common.css'
-                 iv_type    = 'text'
-                 iv_subtype = 'css' ).
-
-    cache_asset( iv_xdata   = mo_asset_man->get_asset( 'js_common' )
-                 iv_url     = 'js/common.js'
-                 iv_type    = 'text'
-                 iv_subtype = 'javascript' ).
-
-    lt_assets = mo_asset_man->get_images( ).
-    IF lines( lt_assets ) > 0.
-      LOOP AT lt_assets ASSIGNING <ls_asset>.
-        cache_asset( iv_xdata   = <ls_asset>-content
-                     iv_url     = <ls_asset>-url
-                     iv_type    = 'image'
-                     iv_subtype = 'png' ).
-      ENDLOOP.
-    ENDIF.
+    lt_assets = mi_asset_man->get_all_assets( ).
+    LOOP AT lt_assets ASSIGNING <ls_asset>.
+      cache_asset( iv_xdata   = <ls_asset>-content
+                   iv_url     = <ls_asset>-url
+                   iv_type    = <ls_asset>-type
+                   iv_subtype = <ls_asset>-subtype ).
+    ENDLOOP.
 
     ls_event-eventid    = mo_html_viewer->m_id_sapevent.
     ls_event-appl_event = abap_true.
@@ -66290,7 +66356,7 @@ FORM open_gui RAISING zcx_abapgit_exception.
   ELSE.
 
     zcl_abapgit_services_abapgit=>prepare_gui_startup( ).
-    zcl_abapgit_gui=>get_instance( )->go_home( ).
+    zcl_abapgit_ui_factory=>get_gui( )->go_home( ).
     CALL SELECTION-SCREEN 1001. " trigger screen
 
   ENDIF.
@@ -66381,7 +66447,7 @@ ENDFORM.
 FORM exit RAISING zcx_abapgit_exception.
   CASE sy-ucomm.
     WHEN 'CBAC'.  "Back
-      IF zcl_abapgit_gui=>get_instance( )->back( ) IS INITIAL.
+      IF zcl_abapgit_ui_factory=>get_gui( )->back( ) IS INITIAL.
         LEAVE TO SCREEN 1001.
       ENDIF.
   ENDCASE.
@@ -66426,5 +66492,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-03T11:48:40.057Z
+* abapmerge undefined - 2018-12-04T05:35:29.680Z
 ****************************************************
