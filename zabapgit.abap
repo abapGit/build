@@ -454,6 +454,7 @@ CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_check DEFINITION DEFERRED.
+CLASS zcl_abapgit_string_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
@@ -1213,6 +1214,7 @@ INTERFACE zif_abapgit_definitions.
            email      TYPE string,
            time       TYPE string,
            message    TYPE string,
+           body       TYPE stringtab,
            branch     TYPE string,
            merge      TYPE string,
            tags       TYPE stringtab,
@@ -7501,6 +7503,7 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_page_stack,
@@ -7555,32 +7558,7 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     INTERFACES zif_abapgit_gui_asset_manager.
 
-    CLASS-METHODS string_to_xstring
-      IMPORTING
-        iv_str         TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS base64_to_xstring
-      IMPORTING
-        iv_base64      TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS bintab_to_xstring
-      IMPORTING
-        it_bintab      TYPE lvc_t_mime
-        iv_size        TYPE i
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS xstring_to_bintab
-      IMPORTING
-        iv_xstr   TYPE xstring
-      EXPORTING
-        ev_size   TYPE i
-        et_bintab TYPE lvc_t_mime.
-
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     METHODS get_textlike_asset
@@ -7664,6 +7642,16 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception.
+
+    CLASS-METHODS render_commit_popup
+      IMPORTING
+        iv_content     TYPE csequence
+        iv_id          TYPE csequence
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -7979,7 +7967,10 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
         RETURNING VALUE(rv_string) TYPE string,
       escape_message
         IMPORTING iv_string        TYPE string
-        RETURNING VALUE(rv_string) TYPE string.
+        RETURNING VALUE(rv_string) TYPE string,
+      render_commit_popups
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
@@ -12317,6 +12308,41 @@ CLASS zcl_abapgit_stage_logic DEFINITION
         CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
 ENDCLASS.
+CLASS zcl_abapgit_string_utils DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS string_to_xstring
+      IMPORTING
+        iv_str         TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS base64_to_xstring
+      IMPORTING
+        iv_base64      TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS bintab_to_xstring
+      IMPORTING
+        it_bintab      TYPE lvc_t_mime
+        iv_size        TYPE i
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS xstring_to_bintab
+      IMPORTING
+        iv_xstr   TYPE xstring
+      EXPORTING
+        ev_size   TYPE i
+        et_bintab TYPE lvc_t_mime.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
   CREATE PRIVATE
   FRIENDS ZCL_ABAPGIT_factory.
@@ -14046,6 +14072,57 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
   METHOD zif_abapgit_code_inspector~run.
 
     rt_list = mo_adhoc_code_inspector->run( ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
+  METHOD base64_to_xstring.
+
+    CALL FUNCTION 'SSFC_BASE64_DECODE'
+      EXPORTING
+        b64data = iv_base64
+      IMPORTING
+        bindata = rv_xstr
+      EXCEPTIONS
+        OTHERS  = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD bintab_to_xstring.
+
+    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
+      EXPORTING
+        input_length = iv_size
+      IMPORTING
+        buffer       = rv_xstr
+      TABLES
+        binary_tab   = it_bintab
+      EXCEPTIONS
+        failed       = 1 ##FM_SUBRC_OK.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD string_to_xstring.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text   = iv_str
+      IMPORTING
+        buffer = rv_xstr
+      EXCEPTIONS
+        OTHERS = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD xstring_to_bintab.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      buffer        = iv_xstr
+    IMPORTING
+      output_length = ev_size
+    TABLES
+      binary_tab    = et_bintab.
 
   ENDMETHOD.
 ENDCLASS.
@@ -19873,7 +19950,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
+CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
@@ -20123,7 +20200,8 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
           lt_body   TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
           ls_raw    TYPE zcl_abapgit_git_pack=>ty_commit.
 
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects.
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects,
+                   <lv_body>   TYPE string.
     LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
         WHERE type = zif_abapgit_definitions=>c_type-commit.
       ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
@@ -20142,6 +20220,11 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       ENDIF.
 
       READ TABLE lt_body INDEX 1 INTO ls_commit-message.  "#EC CI_SUBRC
+      " The second line is always empty. Therefore we omit it.
+      LOOP AT lt_body ASSIGNING <lv_body>
+                      FROM 3.
+        INSERT <lv_body> INTO TABLE ls_commit-body.
+      ENDLOOP.
 
 * unix time stamps are in same time zone, so ignore the zone,
       FIND REGEX zif_abapgit_definitions=>c_author_regex IN ls_raw-author
@@ -20188,6 +20271,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
                    <ls_temp>     LIKE LINE OF lt_temp,
                    <ls_temp_end> LIKE LINE OF lt_temp,
                    <ls_commit>   LIKE LINE OF it_commits.
+
     LOOP AT mt_branches ASSIGNING <ls_branch>.
 
       CLEAR lt_temp.
@@ -30464,10 +30548,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
-
   METHOD body.
-    DATA: lv_tag                 TYPE string.
-    DATA: lv_branch_display_name TYPE string.
+
+    DATA: lv_tag                 TYPE string,
+          lv_branch_display_name TYPE string.
 
     FIELD-SYMBOLS: <ls_commit> LIKE LINE OF mt_commits,
                    <ls_create> LIKE LINE OF <ls_commit>-create.
@@ -30489,7 +30573,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ro_html->add( '<canvas id="gitGraph"></canvas>' ).
 
     ro_html->add( '<script type="text/javascript" src="https://cdnjs.' &&
-      'cloudflare.com/ajax/libs/gitgraph.js/1.12.0/gitgraph.min.js">' &&
+      'cloudflare.com/ajax/libs/gitgraph.js/1.14.0/gitgraph.min.js">' &&
       '</script>' ) ##NO_TEXT.
 
     ro_html->add( '<script type="text/javascript">' ).
@@ -30510,8 +30594,10 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ro_html->add( '  template: myTemplateConfig,' ).
     ro_html->add( '  orientation: "vertical-reverse"' ).
     ro_html->add( '});' ).
+    ro_html->add( 'var gBranchOveriew = new BranchOverview();' ).
 
     LOOP AT mt_commits ASSIGNING <ls_commit>.
+
       IF sy-tabix = 1.
 * assumption: all branches are created from master, todo
         ro_html->add( |var {
@@ -30533,15 +30619,19 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
                                   sep   = ` | ` ).
 
         ro_html->add( |{ escape_branch( <ls_commit>-branch ) }.commit(\{message: "{
-          escape_message( <ls_commit>-message ) }", author: "{
+          escape_message( <ls_commit>-message ) }", long: "{ escape_message( concat_lines_of( table = <ls_commit>-body
+                                                                                              sep   = ` ` ) )
+          }", author: "{
           <ls_commit>-author }", sha1: "{
-          <ls_commit>-sha1(7) }", tag: "{ lv_tag }"\});| ).
+          <ls_commit>-sha1(7) }", tag: "{ lv_tag
+          }", onClick:gBranchOveriew.onCommitClick.bind(gBranchOveriew)\});| ).
       ELSE.
         ro_html->add( |{ escape_branch( <ls_commit>-merge ) }.merge({
           escape_branch( <ls_commit>-branch ) }, \{message: "{
-          escape_message( <ls_commit>-message ) }", author: "{
-          <ls_commit>-author }", sha1: "{
-          <ls_commit>-sha1(7) }"\});| ).
+          escape_message( <ls_commit>-message ) }", long: "{ escape_message( concat_lines_of( table = <ls_commit>-body
+                                                                                              sep   = ` ` ) )
+          }", author: "{ <ls_commit>-author }", sha1: "{
+          <ls_commit>-sha1(7) }", onClick:gBranchOveriew.onCommitClick.bind(gBranchOveriew)\});| ).
       ENDIF.
 
       LOOP AT <ls_commit>-create ASSIGNING <ls_create>.
@@ -30558,7 +30648,14 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
 
     ENDLOOP.
 
+    ro_html->add(
+       |gitGraph.addEventListener( "commit:mouseover", gBranchOveriew.showCommit.bind(gBranchOveriew) );| ).
+    ro_html->add(
+       |gitGraph.addEventListener( "commit:mouseout",  gBranchOveriew.hideCommit.bind(gBranchOveriew) );| ).
+
     ro_html->add( '</script>' ).
+
+    ro_html->add( render_commit_popups( ) ).
 
   ENDMETHOD.
   METHOD build_menu.
@@ -30700,6 +30797,63 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD render_commit_popups.
+
+    DATA: lv_time    TYPE char10,
+          lv_date    TYPE sy-datum,
+          lv_content TYPE string.
+
+    FIELD-SYMBOLS: <ls_commit> LIKE LINE OF mt_commits.
+
+    CREATE OBJECT ro_html.
+
+    LOOP AT mt_commits ASSIGNING <ls_commit>.
+
+      CLEAR: lv_time, lv_date.
+
+      PERFORM p6_to_date_time_tz IN PROGRAM rstr0400
+                                 USING <ls_commit>-time
+                                       lv_time
+                                       lv_date.
+
+      lv_content = |<table class="commit">|
+                && |  <tr>|
+                && |    <td class="title">Author</td>|
+                && |    <td>{ <ls_commit>-author }</td>|
+                && |  </tr>|
+                && |  <tr>|
+                && |    <td class="title">SHA1</td>|
+                && |    <td>{ <ls_commit>-sha1 }</td>|
+                && |  </tr>|
+                && |  <tr>|
+                && |    <td class="title">Date/Time</td>|
+                && |    <td>{ lv_date DATE = USER }</td>|
+                && |  </tr>|
+                && |  <tr>|
+                && |    <td class="title">Message</td>|
+                && |    <td>{ <ls_commit>-message }</td>|
+                && |  </tr>|
+                && |  <tr>|.
+
+      IF <ls_commit>-body IS NOT INITIAL.
+        lv_content = lv_content
+                  && |<td class="title">Body</td>|
+                  && |<td>{ concat_lines_of( table = <ls_commit>-body
+                                             sep   = |<br/>| ) }</td>|.
+      ENDIF.
+
+      lv_content = lv_content
+                && |  </tr>|
+                && |</table>|.
+
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_commit_popup( iv_id      = <ls_commit>-sha1(7)
+                                                                    iv_content = lv_content ) ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD constructor.
@@ -31213,7 +31367,7 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_branch_span.
 
     DATA: lv_text  TYPE string,
@@ -31237,6 +31391,24 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       ro_html->add( lv_text ).
     ENDIF.
     ro_html->add( '</span>' ).
+
+  ENDMETHOD.
+  METHOD render_commit_popup.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<ul class="hotkeys">' ).
+    ro_html->add( |<li>|
+      && |<span>{ iv_content }</span>|
+      && |</li>| ).
+    ro_html->add( '</ul>' ).
+
+    ro_html = render_infopanel(
+      iv_div_id     = |{ iv_id }|
+      iv_title      = 'Commit details'
+      iv_hide       = abap_true
+      iv_scrollable = abap_false
+      io_content    = ro_html ).
 
   ENDMETHOD.
   METHOD render_error.
@@ -31545,20 +31717,144 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
-
-  METHOD zif_abapgit_gui_asset_manager~get_all_assets.
+  METHOD get_inline_images.
 
     DATA:
-          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets,
-          ls_asset  LIKE LINE OF lt_assets.
+      lv_base64 TYPE string,
+      ls_image  LIKE LINE OF rt_images.
 
-    ls_asset = get_textlike_asset( 'css/common.css' ).
-    APPEND ls_asset TO rt_assets.
-    ls_asset = get_textlike_asset( 'js/common.js' ).
-    APPEND ls_asset TO rt_assets.
+* see https://github.com/larshp/abapGit/issues/201 for source SVG
+    ls_image-url     = 'img/logo' ##NO_TEXT.
+    ls_image-type    = 'image'.
+    ls_image-subtype = 'pmg'.
+    lv_base64 =
+         'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
+      && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
+      && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
+      && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
+      && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
+      && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
+      && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
+      && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
+      && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
+      && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
+      && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
+      && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
+      && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
+      && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
+      && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
+      && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
+      && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
+      && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
+      && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
+      && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
+      && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
+      && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
+      && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
+      && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
+      && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
+      && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
+      && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
+      && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
+      && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
+      && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
+      && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
+      && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
+      && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
+      && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
+      && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
+      && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
+      && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
+      && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
+      && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
+      && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
+      && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
+      && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
+      && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
+      && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
+      && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
+      && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
+      && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
+      && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
+      && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
+      && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
+      && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
+      && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
+      && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
+      && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
+      && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
+      && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
+      && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
+      && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
+      && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
+      && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
+      && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
+      && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
+      && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
+      && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
+      && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
+      && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
+      && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
+      && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
+      && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
+      && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
+      && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
+      && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
+      && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
+      && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
+      && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
+      && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
+      && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
+      && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
+      && 'cpUAAAAASUVORK5CYII='.
+    ls_image-content = zcl_abapgit_string_utils=>base64_to_xstring( lv_base64 ).
+    APPEND ls_image TO rt_images.
 
-    lt_assets = get_inline_images( ).
-    APPEND LINES OF lt_assets TO rt_assets.
+  ENDMETHOD.
+  METHOD get_mime_asset.
+
+    DATA: ls_key    TYPE wwwdatatab,
+          lv_size_c TYPE wwwparams-value,
+          lv_size   TYPE i,
+          lt_w3mime TYPE STANDARD TABLE OF w3mime.
+
+    ls_key-relid = 'MI'.
+    ls_key-objid = iv_mime_name.
+
+    " Get exact file size
+    CALL FUNCTION 'WWWPARAMS_READ'
+      EXPORTING
+        relid            = ls_key-relid
+        objid            = ls_key-objid
+        name             = 'filesize'
+      IMPORTING
+        value            = lv_size_c
+      EXCEPTIONS
+        entry_not_exists = 1.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_size = lv_size_c.
+
+    " Get binary data
+    CALL FUNCTION 'WWWDATA_IMPORT'
+      EXPORTING
+        key               = ls_key
+      TABLES
+        mime              = lt_w3mime
+      EXCEPTIONS
+        wrong_object_type = 1
+        import_error      = 2.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    rv_xdata = zcl_abapgit_string_utils=>bintab_to_xstring(
+      iv_size   = lv_size
+      it_bintab = lt_w3mime ).
 
   ENDMETHOD.
   METHOD get_textlike_asset.
@@ -32517,8 +32813,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  color: lightgrey !important; '.
         _inline '}'.
         _inline ''.
-        _inline '/* HOTKEYS */'.
         _inline ''.
+        _inline '/* HOTKEYS */'.
         _inline 'ul.hotkeys {'.
         _inline '  list-style-type: none;'.
         _inline '  padding: 0;'.
@@ -32553,6 +32849,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  opacity: 0.5;'.
         _inline '  background: white;'.
         _inline '  z-index: 99;'.
+        _inline '}'.
+        _inline ''.
+        _inline '/* Commit popup */'.
+        _inline 'table.commit tr .title {'.
+        _inline '  font-weight: bold;'.
+        _inline '  vertical-align: top;'.
         _inline '}'.
       WHEN 'js/common.js'.
         rs_asset-url     = iv_asset_url.
@@ -33683,7 +33985,6 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline ''.
         _inline 'function preparePatch(){'.
         _inline ''.
         _inline '  var oPatch = new Patch();'.
@@ -33697,13 +33998,72 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  oPatch.registerStagePatch();'.
         _inline ''.
         _inline '}'.
+        _inline ''.
+        _inline '/**********************************************************'.
+        _inline ' * Page branch overview'.
+        _inline ' * '.
+        _inline ' * Hovering a commit node in the branch overview will show'.
+        _inline ' * a popup with the commit details. Single click on a node'.
+        _inline ' * will fix the popup, so that users can select text. The'.
+        _inline ' * fixation is removed when any node is hovered or the popup '.
+        _inline ' * is closed via ''X''.'.
+        _inline ' * '.
+        _inline ' **********************************************************/'.
+        _inline ''.
+        _inline 'function BranchOverview() {'.
+        _inline '  this.bFixed = false;'.
+        _inline '  this.elCurrentCommit = {'.
+        _inline '    style : {'.
+        _inline '      display: ''none'''.
+        _inline '    }'.
+        _inline '  };'.
+        _inline '}'.
+        _inline ''.
+        _inline 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {'.
+        _inline ''.
+        _inline '  // If the popup is fixed, we just remove the fixation.'.
+        _inline '  // The popup will then be hidden by the next call of hideCommit '.
+        _inline '  if (this.bFixed) {'.
+        _inline '    this.bFixed = false;'.
+        _inline '    return;'.
+        _inline '  } '.
+        _inline ''.
+        _inline '  // We hide the previous shown commit popup'.
+        _inline '  this.elCurrentCommit.style.display = ''none'';'.
+        _inline ''.
+        _inline '  // Display the new commit popup if sha1 is supplied'.
+        _inline '  if (sSha1){'.
+        _inline '    this.elCurrentCommit = document.getElementById(sSha1);'.
+        _inline '    this.elCurrentCommit.style.display = '''';'.
+        _inline ''.
+        _inline '    // and fix the popup so that the next hideCommit won''t hide it.'.
+        _inline '    this.bFixed = bFixPopup;'.
+        _inline ''.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline '// called by onClick of commit nodes in branch overview'.
+        _inline 'BranchOverview.prototype.onCommitClick = function(commit){'.
+        _inline '  this.toggleCommit(commit.sha1, true);'.
+        _inline '};'.
+        _inline ''.
+        _inline '// Called by commit:mouseover'.
+        _inline 'BranchOverview.prototype.showCommit = function(event){'.
+        _inline '  this.toggleCommit(event.data.sha1);'.
+        _inline '};'.
+        _inline ''.
+        _inline '// Called by commit:mouseout'.
+        _inline 'BranchOverview.prototype.hideCommit = function (event){'.
+        _inline '  this.toggleCommit();'.
+        _inline '};'.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_url }| ).
     ENDCASE.
 
     IF lt_data IS NOT INITIAL.
       CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
-      rs_asset-content = string_to_xstring( lv_str ).
+      rs_asset-content = zcl_abapgit_string_utils=>string_to_xstring( lv_str ).
     ELSE.
       rs_asset-content = get_mime_asset( lv_mime_name ).
     ENDIF.
@@ -33713,199 +34073,21 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD get_inline_images.
+  METHOD zif_abapgit_gui_asset_manager~get_all_assets.
 
     DATA:
-      lv_base64 TYPE string,
-      ls_image  LIKE LINE OF rt_images.
+          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets,
+          ls_asset  LIKE LINE OF lt_assets.
 
-* see https://github.com/larshp/abapGit/issues/201 for source SVG
-    ls_image-url     = 'img/logo' ##NO_TEXT.
-    ls_image-type    = 'image'.
-    ls_image-subtype = 'pmg'.
-    lv_base64 =
-         'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
-      && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
-      && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
-      && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
-      && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
-      && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
-      && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
-      && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
-      && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
-      && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
-      && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
-      && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
-      && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
-      && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
-      && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
-      && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
-      && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
-      && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
-      && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
-      && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
-      && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
-      && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
-      && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
-      && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
-      && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
-      && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
-      && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
-      && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
-      && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
-      && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
-      && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
-      && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
-      && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
-      && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
-      && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
-      && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
-      && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
-      && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
-      && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
-      && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
-      && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
-      && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
-      && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
-      && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
-      && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
-      && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
-      && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
-      && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
-      && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
-      && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
-      && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
-      && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
-      && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
-      && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
-      && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
-      && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
-      && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
-      && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
-      && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
-      && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
-      && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
-      && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
-      && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
-      && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
-      && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
-      && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
-      && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
-      && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
-      && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
-      && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
-      && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
-      && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
-      && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
-      && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
-      && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
-      && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
-      && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
-      && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
-      && 'cpUAAAAASUVORK5CYII='.
-    ls_image-content = base64_to_xstring( lv_base64 ).
-    APPEND ls_image TO rt_images.
+    ls_asset = get_textlike_asset( 'css/common.css' ).
+    APPEND ls_asset TO rt_assets.
+    ls_asset = get_textlike_asset( 'js/common.js' ).
+    APPEND ls_asset TO rt_assets.
+
+    lt_assets = get_inline_images( ).
+    APPEND LINES OF lt_assets TO rt_assets.
 
   ENDMETHOD.
-  METHOD get_mime_asset.
-
-    DATA: ls_key    TYPE wwwdatatab,
-          lv_size_c TYPE wwwparams-value,
-          lv_size   TYPE i,
-          lt_w3mime TYPE STANDARD TABLE OF w3mime.
-
-    ls_key-relid = 'MI'.
-    ls_key-objid = iv_mime_name.
-
-    " Get exact file size
-    CALL FUNCTION 'WWWPARAMS_READ'
-      EXPORTING
-        relid            = ls_key-relid
-        objid            = ls_key-objid
-        name             = 'filesize'
-      IMPORTING
-        value            = lv_size_c
-      EXCEPTIONS
-        entry_not_exists = 1.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    lv_size = lv_size_c.
-
-    " Get binary data
-    CALL FUNCTION 'WWWDATA_IMPORT'
-      EXPORTING
-        key               = ls_key
-      TABLES
-        mime              = lt_w3mime
-      EXCEPTIONS
-        wrong_object_type = 1
-        import_error      = 2.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    rv_xdata = bintab_to_xstring(
-      iv_size   = lv_size
-      it_bintab = lt_w3mime ).
-
-  ENDMETHOD.
-  METHOD string_to_xstring.
-
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = iv_str
-      IMPORTING
-        buffer = rv_xstr
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-
-  METHOD base64_to_xstring.
-
-    CALL FUNCTION 'SSFC_BASE64_DECODE'
-      EXPORTING
-        b64data = iv_base64
-      IMPORTING
-        bindata = rv_xstr
-      EXCEPTIONS
-        OTHERS  = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-
-  METHOD bintab_to_xstring.
-
-    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = iv_size
-      IMPORTING
-        buffer       = rv_xstr
-      TABLES
-        binary_tab   = it_bintab
-      EXCEPTIONS
-        failed       = 1 ##FM_SUBRC_OK.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-
-  METHOD xstring_to_bintab.
-
-    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-    EXPORTING
-      buffer        = iv_xstr
-    IMPORTING
-      output_length = ev_size
-    TABLES
-      binary_tab    = et_bintab.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
@@ -33947,12 +34129,12 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
     IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_gui_asset_manager=>string_to_xstring( iv_text ).
+      lv_xstr = zcl_abapgit_string_utils=>string_to_xstring( iv_text ).
     ELSE. " Raw input
       lv_xstr = iv_xdata.
     ENDIF.
 
-    zcl_abapgit_gui_asset_manager=>xstring_to_bintab(
+    zcl_abapgit_string_utils=>xstring_to_bintab(
       EXPORTING
         iv_xstr   = lv_xstr
       IMPORTING
@@ -34003,7 +34185,6 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     startup( ).
 
   ENDMETHOD.
-
   METHOD get_current_page_name.
     IF mi_cur_page IS BOUND.
       rv_page_name =
@@ -66554,5 +66735,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-09T06:51:15.225Z
+* abapmerge undefined - 2018-12-09T06:52:57.263Z
 ****************************************************
