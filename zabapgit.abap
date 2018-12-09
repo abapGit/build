@@ -25508,6 +25508,15 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
         ro_html->add( '<div class="repo_container">' ).
 
+        " Offline match banner
+        IF mo_repo->is_offline( ) = abap_true AND mo_repo->has_remote_source( ) = abap_true
+          AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
+          ro_html->add(
+            |<div class="repo_banner panel success">|
+            && |ZIP source is attached and completely <b>matches</b> to the local state|
+            && |</div>| ).
+        ENDIF.
+
         " Repo content table
         ro_html->add( '<table class="repo_tab">' ).
 
@@ -31648,6 +31657,16 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '.float-right      { float: right; }'.
         _inline '.pad-right        { padding-right: 6px; }'.
         _inline ''.
+        _inline '/* PANELS */'.
+        _inline 'div.panel {'.
+        _inline '  border-radius: 3px;'.
+        _inline '}'.
+        _inline 'div.panel.success {'.
+        _inline '  color: #589a58 !important;'.
+        _inline '  background: #c5eac5;'.
+        _inline '}'.
+        _inline '/* TODO: add warning and error colors */'.
+        _inline ''.
         _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
         _inline 'div#header {'.
         _inline '  padding:          0.5em 0.5em;'.
@@ -31777,6 +31796,14 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'div.repo_container {'.
         _inline '  position: relative;'.
         _inline '}'.
+        _inline ''.
+        _inline 'div.repo_banner {'.
+        _inline '  margin: 0em 1.2em 1em;'.
+        _inline '  padding: 0.5em 0.5em;'.
+        _inline '  text-align: center;'.
+        _inline '  font-size: 85%;'.
+        _inline '}'.
+        _inline ''.
         _inline 'table.repo_tab {'.
         _inline '  border: 1px solid #DDD;'.
         _inline '  border-radius: 3px;'.
@@ -66527,5 +66554,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-08T12:27:45.315Z
+* abapmerge undefined - 2018-12-09T06:51:15.225Z
 ****************************************************
