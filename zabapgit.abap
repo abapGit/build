@@ -33909,7 +33909,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'Patch.prototype.togglePatchActiveForClassLink = function(oEvent, elClicked, oClassCombination) {'.
         _inline ''.
         _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId(elClicked.id, oClassCombination);'.
-        _inline '  var elCorrespondingLink = document.querySelector(''#'' + this.escape(sCorrespondingLinkId));'.
+        _inline '  var elCorrespondingLink = document.querySelector(''[ID="'' + this.escape(sCorrespondingLinkId) + ''"]'');'.
         _inline ''.
         _inline '  this.togglePatchActive(oEvent, elClicked, elCorrespondingLink);'.
         _inline '};'.
@@ -33937,7 +33937,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  return function(oEvent) {'.
         _inline ''.
         _inline '    var sTableId = oEvent.srcElement.parentElement.parentElement.parentElement.parentElement.id;'.
-        _inline '    var elAddAll = document.querySelectorAll(''#'' + this.escape(sTableId) + '' a.'' + oClassCombination.sClassLinkClicked);'.
+        _inline '    var elAddAll = document.querySelectorAll(''[ID="'' + this.escape(sTableId) + ''"] a.'' + oClassCombination.sClassLinkClicked);'.
         _inline ''.
         _inline '    [].forEach.call(elAddAll,function(elem){'.
         _inline '      this.togglePatchActiveForClassLink(oEvent, elem, oClassCombination);'.
@@ -66746,5 +66746,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-12T13:33:24.338Z
+* abapmerge undefined - 2018-12-12T13:35:10.467Z
 ****************************************************
