@@ -60838,7 +60838,10 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
            ls_vseoclass-changedon,
            ls_vseoclass-r3release,
            ls_vseoclass-chgdanyby,
-           ls_vseoclass-chgdanyon.
+           ls_vseoclass-chgdanyon,
+           ls_vseoclass-clsfinal,
+           ls_vseoclass-clsabstrct,
+           ls_vseoclass-exposure.
 
     IF mv_skip_testclass = abap_true.
       CLEAR ls_vseoclass-with_unit_tests.
@@ -66743,5 +66746,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-12T12:13:02.542Z
+* abapmerge undefined - 2018-12-12T13:33:24.338Z
 ****************************************************
