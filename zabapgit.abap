@@ -561,7 +561,6 @@ CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_interface DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_class_new DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_class DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
@@ -665,7 +664,6 @@ CLASS zcl_abapgit_object_cus2 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_cus1 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_cus0 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_cmpt DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_clas_new DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_char DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_avas DEFINITION DEFERRED.
@@ -6523,20 +6521,6 @@ CLASS zcl_abapgit_object_clas DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         RETURNING VALUE(rv_is_class_locked) TYPE abap_bool
         RAISING   zcx_abapgit_exception.
 ENDCLASS.
-"! This class is just a different name for zcl_zabapgit_object_clas.
-"! It has been created to heal repositories of the brave ones who uses abapGit
-"! experimental features "! and had the luck to serialize their CLAS objects with
-"! the serializer LCL_OBJECT_CLAS_NEW.
-"! It can be removed on 2019-04 where we expect all CLAS object being
-"! re-serialized with the serializer LCL_OBJECT_CLAS.
-"! References: https://github.com/larshp/abapGit/pull/1311
-CLASS zcl_abapgit_object_clas_new DEFINITION INHERITING FROM zcl_abapgit_object_clas.
-
-  PROTECTED SECTION.
-    METHODS:
-      get_metadata REDEFINITION.
-
-ENDCLASS.
 CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_program FINAL.
 
   PUBLIC SECTION.
@@ -6794,29 +6778,33 @@ CLASS zcl_abapgit_oo_base DEFINITION ABSTRACT.
       RAISING   zcx_abapgit_exception
                 cx_sy_dyn_call_error.
 ENDCLASS.
-CLASS zcl_abapgit_oo_class DEFINITION INHERITING FROM zcl_abapgit_oo_base.
+CLASS zcl_abapgit_oo_class DEFINITION
+  INHERITING FROM zcl_abapgit_oo_base
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      zif_abapgit_oo_object_fnc~create REDEFINITION,
-      zif_abapgit_oo_object_fnc~generate_locals REDEFINITION,
-      zif_abapgit_oo_object_fnc~insert_text_pool REDEFINITION,
-      zif_abapgit_oo_object_fnc~create_sotr REDEFINITION,
-      zif_abapgit_oo_object_fnc~get_includes REDEFINITION,
-      zif_abapgit_oo_object_fnc~get_class_properties REDEFINITION,
-      zif_abapgit_oo_object_fnc~read_text_pool REDEFINITION,
-      zif_abapgit_oo_object_fnc~read_sotr REDEFINITION,
-      zif_abapgit_oo_object_fnc~delete REDEFINITION.
 
-ENDCLASS.
-CLASS zcl_abapgit_oo_class_new DEFINITION INHERITING FROM zcl_abapgit_oo_class.
-
-  PUBLIC SECTION.
-    METHODS:
-      zif_abapgit_oo_object_fnc~create REDEFINITION,
-      zif_abapgit_oo_object_fnc~generate_locals REDEFINITION,
-      zif_abapgit_oo_object_fnc~deserialize_source REDEFINITION.
-
+    METHODS zif_abapgit_oo_object_fnc~create
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~create_sotr
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~delete
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~generate_locals
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~get_class_properties
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~get_includes
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~insert_text_pool
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~read_sotr
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~read_text_pool
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~deserialize_source
+        REDEFINITION .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-METHODS update_source_index
@@ -16501,11 +16489,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ELSE.
       lv_class_name = class_name( is_item ).
     ENDIF.
-
-*    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true
-*        AND is_item-obj_type = 'CLAS'.
-*      lv_class_name = 'LCL_OBJECT_CLAS_NEW'.
-*    ENDIF.
 
     REPLACE FIRST OCCURRENCE OF 'LCL' IN lv_class_name WITH 'ZCL_ABAPGIT'.
 
@@ -36530,7 +36513,7 @@ CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -36780,6 +36763,7 @@ CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
+
     DATA: lt_vseoattrib TYPE seoo_attributes_r.
     FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
 
@@ -36812,6 +36796,84 @@ CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from SEO_CLASS_CREATE_COMPLETE' ).
     ENDIF.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~create_sotr.
+    DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt,
+          lt_objects TYPE sotr_objects,
+          ls_paket   TYPE sotr_pack,
+          lv_object  LIKE LINE OF lt_objects.
+
+    FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
+
+    LOOP AT it_sotr ASSIGNING <ls_sotr>.
+      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
+        EXPORTING
+          object_vector    = <ls_sotr>-header-objid_vec
+        IMPORTING
+          objects          = lt_objects
+        EXCEPTIONS
+          object_not_found = 1
+          OTHERS           = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from SOTR_OBJECT_GET_OBJECTS' ).
+      ENDIF.
+
+      READ TABLE lt_objects INDEX 1 INTO lv_object.
+      ASSERT sy-subrc = 0.
+
+      ls_paket-paket = iv_package.
+
+      CALL FUNCTION 'SOTR_CREATE_CONCEPT'
+        EXPORTING
+          paket                         = ls_paket
+          crea_lan                      = <ls_sotr>-header-crea_lan
+          alias_name                    = <ls_sotr>-header-alias_name
+          object                        = lv_object
+          entries                       = <ls_sotr>-entries
+          concept_default               = <ls_sotr>-header-concept
+        EXCEPTIONS
+          package_missing               = 1
+          crea_lan_missing              = 2
+          object_missing                = 3
+          paket_does_not_exist          = 4
+          alias_already_exist           = 5
+          object_type_not_found         = 6
+          langu_missing                 = 7
+          identical_context_not_allowed = 8
+          text_too_long                 = 9
+          error_in_update               = 10
+          no_master_langu               = 11
+          error_in_concept_id           = 12
+          alias_not_allowed             = 13
+          tadir_entry_creation_failed   = 14
+          internal_error                = 15
+          error_in_correction           = 16
+          user_cancelled                = 17
+          no_entry_found                = 18
+          OTHERS                        = 19.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from SOTR_CREATE_CONCEPT' ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~delete.
+    CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
+      EXPORTING
+        clskey       = is_deletion_key
+      EXCEPTIONS
+        not_existing = 1
+        is_interface = 2
+        db_error     = 3
+        no_access    = 4
+        other        = 5
+        OTHERS       = 6.
+    IF sy-subrc = 1.
+* ignore deletion of objects that does not exist
+* this can happen when the SXCI object is deleted before the implementing CLAS
+      RETURN.
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE: { sy-subrc }| ).
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~deserialize_source.
 
@@ -36933,136 +36995,24 @@ CLASS zcl_abapgit_oo_class_new IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-ENDCLASS.
-CLASS zcl_abapgit_oo_class IMPLEMENTATION.
-  METHOD zif_abapgit_oo_object_fnc~create.
-    DATA: lt_vseoattrib TYPE seoo_attributes_r.
-    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
-
-    ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
-    ASSERT sy-subrc = 0.
-
-    lt_vseoattrib = convert_attrib_to_vseoattrib(
-                      iv_clsname    = <lv_clsname>
-                      it_attributes = it_attributes ).
-
-    CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
+  METHOD zif_abapgit_oo_object_fnc~get_class_properties.
+    CALL FUNCTION 'SEO_CLIF_GET'
       EXPORTING
-        devclass        = iv_package
-        overwrite       = iv_overwrite
-      CHANGING
-        class           = cg_properties
-        attributes      = lt_vseoattrib
+        cifkey       = is_class_key
+        version      = seoc_version_active
+      IMPORTING
+        class        = rs_class_properties
       EXCEPTIONS
-        existing        = 1
-        is_interface    = 2
-        db_error        = 3
-        component_error = 4
-        no_access       = 5
-        other           = 6
-        OTHERS          = 7.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SEO_CLASS_CREATE_COMPLETE' ).
+        not_existing = 1
+        deleted      = 2
+        model_only   = 3
+        OTHERS       = 4.
+    IF sy-subrc = 1.
+      RETURN. " in case only inactive version exists
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from seo_clif_get' ).
     ENDIF.
   ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~generate_locals.
-    CALL FUNCTION 'SEO_CLASS_GENERATE_LOCALS'
-      EXPORTING
-        clskey                 = is_key
-        force                  = iv_force
-        locals_def             = it_local_definitions
-        locals_imp             = it_local_implementations
-        locals_mac             = it_local_macros
-        locals_testclasses     = it_local_test_classes
-      EXCEPTIONS
-        not_existing           = 1
-        model_only             = 2
-        locals_not_generated   = 3
-        locals_not_initialised = 4
-        OTHERS                 = 5.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from generate_locals' ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~insert_text_pool.
-    DATA: lv_cp TYPE program.
-
-    lv_cp = cl_oo_classname_service=>get_classpool_name( iv_class_name ).
-
-    INSERT TEXTPOOL lv_cp
-      FROM it_text_pool
-      LANGUAGE iv_language
-      STATE 'I'.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
-    ENDIF.
-
-    zcl_abapgit_objects_activation=>add( iv_type = 'REPT'
-                                         iv_name = lv_cp ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~create_sotr.
-    DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          lt_objects TYPE sotr_objects,
-          ls_paket   TYPE sotr_pack,
-          lv_object  LIKE LINE OF lt_objects.
-
-    FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
-
-    LOOP AT it_sotr ASSIGNING <ls_sotr>.
-      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
-        EXPORTING
-          object_vector    = <ls_sotr>-header-objid_vec
-        IMPORTING
-          objects          = lt_objects
-        EXCEPTIONS
-          object_not_found = 1
-          OTHERS           = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from SOTR_OBJECT_GET_OBJECTS' ).
-      ENDIF.
-
-      READ TABLE lt_objects INDEX 1 INTO lv_object.
-      ASSERT sy-subrc = 0.
-
-      ls_paket-paket = iv_package.
-
-      CALL FUNCTION 'SOTR_CREATE_CONCEPT'
-        EXPORTING
-          paket                         = ls_paket
-          crea_lan                      = <ls_sotr>-header-crea_lan
-          alias_name                    = <ls_sotr>-header-alias_name
-          object                        = lv_object
-          entries                       = <ls_sotr>-entries
-          concept_default               = <ls_sotr>-header-concept
-        EXCEPTIONS
-          package_missing               = 1
-          crea_lan_missing              = 2
-          object_missing                = 3
-          paket_does_not_exist          = 4
-          alias_already_exist           = 5
-          object_type_not_found         = 6
-          langu_missing                 = 7
-          identical_context_not_allowed = 8
-          text_too_long                 = 9
-          error_in_update               = 10
-          no_master_langu               = 11
-          error_in_concept_id           = 12
-          alias_not_allowed             = 13
-          tadir_entry_creation_failed   = 14
-          internal_error                = 15
-          error_in_correction           = 16
-          user_cancelled                = 17
-          no_entry_found                = 18
-          OTHERS                        = 19.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from SOTR_CREATE_CONCEPT' ).
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-
   METHOD zif_abapgit_oo_object_fnc~get_includes.
 * note: includes returned might not exist
 * method cl_oo_classname_service=>GET_ALL_CLASS_INCLUDES does not exist in 702
@@ -37106,34 +37056,22 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~get_class_properties.
-    CALL FUNCTION 'SEO_CLIF_GET'
-      EXPORTING
-        cifkey       = is_class_key
-        version      = seoc_version_active
-      IMPORTING
-        class        = rs_class_properties
-      EXCEPTIONS
-        not_existing = 1
-        deleted      = 2
-        model_only   = 3
-        OTHERS       = 4.
-    IF sy-subrc = 1.
-      RETURN. " in case only inactive version exists
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from seo_clif_get' ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~read_text_pool.
-    DATA:
-     lv_cp TYPE program.
+  METHOD zif_abapgit_oo_object_fnc~insert_text_pool.
+    DATA: lv_cp TYPE program.
 
     lv_cp = cl_oo_classname_service=>get_classpool_name( iv_class_name ).
-    READ TEXTPOOL lv_cp INTO rt_text_pool LANGUAGE iv_language. "#EC CI_READ_REP
-  ENDMETHOD.
 
+    INSERT TEXTPOOL lv_cp
+      FROM it_text_pool
+      LANGUAGE iv_language
+      STATE 'I'.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from INSERT TEXTPOOL' ).
+    ENDIF.
+
+    zcl_abapgit_objects_activation=>add( iv_type = 'REPT'
+                                         iv_name = lv_cp ).
+  ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_sotr.
     DATA: lv_concept    TYPE sotr_head-concept,
           lt_seocompodf TYPE STANDARD TABLE OF seocompodf WITH DEFAULT KEY,
@@ -37190,27 +37128,13 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
     ENDLOOP.
   ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~read_text_pool.
+    DATA:
+     lv_cp TYPE program.
 
-  METHOD zif_abapgit_oo_object_fnc~delete.
-    CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
-      EXPORTING
-        clskey       = is_deletion_key
-      EXCEPTIONS
-        not_existing = 1
-        is_interface = 2
-        db_error     = 3
-        no_access    = 4
-        other        = 5
-        OTHERS       = 6.
-    IF sy-subrc = 1.
-* ignore deletion of objects that does not exist
-* this can happen when the SXCI object is deleted before the implementing CLAS
-      RETURN.
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE: { sy-subrc }| ).
-    ENDIF.
+    lv_cp = cl_oo_classname_service=>get_classpool_name( iv_class_name ).
+    READ TEXTPOOL lv_cp INTO rt_text_pool LANGUAGE iv_language. "#EC CI_READ_REP
   ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   METHOD deserialize_abap_source_new.
@@ -60503,23 +60427,13 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_clas_new IMPLEMENTATION.
-
-  METHOD get_metadata.
-    rs_metadata = super->get_metadata( ).
-    rs_metadata-class = 'ZCL_ABAPGIT_OBJECT_CLAS'.
-  ENDMETHOD.
-
-ENDCLASS.
-CLASS zcl_abapgit_object_clas IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
 
-    CREATE OBJECT mi_object_oriented_object_fct TYPE zcl_abapgit_oo_class_new.
+    CREATE OBJECT mi_object_oriented_object_fct TYPE zcl_abapgit_oo_class.
   ENDMETHOD.
-
   METHOD deserialize_abap.
 * same as in zcl_abapgit_object_clas, but without "mo_object_oriented_object_fct->add_to_activation_list"
 
@@ -60581,171 +60495,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       it_descriptions = lt_descriptions ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~changed_by.
-
-    TYPES: BEGIN OF ty_includes,
-             programm TYPE programm,
-           END OF ty_includes.
-
-    TYPES: BEGIN OF ty_reposrc,
-             unam  TYPE reposrc-unam,
-             udat  TYPE reposrc-udat,
-             utime TYPE reposrc-utime,
-           END OF ty_reposrc.
-
-    DATA: lt_reposrc  TYPE STANDARD TABLE OF ty_reposrc,
-          ls_reposrc  LIKE LINE OF lt_reposrc,
-          lt_includes TYPE STANDARD TABLE OF ty_includes.
-
-    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
-    ASSERT lines( lt_includes ) > 0.
-
-    SELECT unam udat utime FROM reposrc
-      INTO TABLE lt_reposrc
-      FOR ALL ENTRIES IN lt_includes
-      WHERE progname = lt_includes-programm
-      AND   r3state = 'A'.
-    IF sy-subrc <> 0.
-      rv_user = c_user_unknown.
-    ELSE.
-      SORT lt_reposrc BY udat DESCENDING utime DESCENDING.
-      READ TABLE lt_reposrc INDEX 1 INTO ls_reposrc.
-      ASSERT sy-subrc = 0.
-      rv_user = ls_reposrc-unam.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~delete.
-    DATA: ls_clskey TYPE seoclskey.
-    ls_clskey-clsname = ms_item-obj_name.
-
-    mi_object_oriented_object_fct->delete( ls_clskey ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~deserialize.
-    deserialize_abap( io_xml     = io_xml
-                      iv_package = iv_package ).
-
-    deserialize_tpool( io_xml ).
-
-    deserialize_sotr( io_xml     = io_xml
-                      iv_package = iv_package ).
-
-    deserialize_docu( io_xml ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~exists.
-    DATA: ls_class_key TYPE seoclskey.
-    ls_class_key-clsname = ms_item-obj_name.
-
-    rv_bool = mi_object_oriented_object_fct->exists( ls_class_key ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    DATA: lt_includes TYPE seoincl_t.
-
-    FIELD-SYMBOLS <lv_incl> LIKE LINE OF lt_includes.
-    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
-    LOOP AT lt_includes ASSIGNING <lv_incl>.
-      rv_changed = check_prog_changed_since(
-        iv_program   = <lv_incl>
-        iv_timestamp = iv_timestamp
-        iv_skip_gui  = abap_true ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'CLAS'
-        in_new_window = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lt_source    TYPE seop_source_string,
-          ls_class_key TYPE seoclskey.
-
-    ls_class_key-clsname = ms_item-obj_name.
-
-    IF zif_abapgit_object~exists( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        version = seoc_version_active
-        force   = seox_true.
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        version = seoc_version_inactive
-        force   = seox_true.
-
-    lt_source = mi_object_oriented_object_fct->serialize_abap( ls_class_key ).
-
-    mo_files->add_abap( lt_source ).
-
-    lt_source = mi_object_oriented_object_fct->serialize_abap(
-      is_class_key = ls_class_key
-      iv_type      = seop_ext_class_locals_def ).
-    IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'locals_def'
-                          it_abap  = lt_source ).           "#EC NOTEXT
-    ENDIF.
-
-    lt_source = mi_object_oriented_object_fct->serialize_abap(
-      is_class_key = ls_class_key
-      iv_type      = seop_ext_class_locals_imp ).
-    IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'locals_imp'
-                          it_abap  = lt_source ).           "#EC NOTEXT
-    ENDIF.
-
-    lt_source = mi_object_oriented_object_fct->serialize_abap(
-      is_class_key            = ls_class_key
-      iv_type                 = seop_ext_class_testclasses ).
-
-    mv_skip_testclass = mi_object_oriented_object_fct->get_skip_test_classes( ).
-    IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
-      mo_files->add_abap( iv_extra = 'testclasses'
-                          it_abap  = lt_source ).           "#EC NOTEXT
-    ENDIF.
-
-    lt_source = mi_object_oriented_object_fct->serialize_abap(
-      is_class_key = ls_class_key
-      iv_type      = seop_ext_class_macros ).
-    IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'macros'
-                          it_abap  = lt_source ).           "#EC NOTEXT
-    ENDIF.
-
-    serialize_xml( io_xml ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_classpool TYPE program.
-
-    lv_classpool = cl_oo_classname_service=>get_classpool_name( |{ ms_item-obj_name }| ).
-
-    IF is_class_locked( )             = abap_true
-    OR is_text_locked( lv_classpool ) = abap_true.
-
-      rv_is_locked = abap_true.
-
-    ENDIF.
-
-  ENDMETHOD.
-
   METHOD deserialize_docu.
 
     DATA: lt_lines  TYPE tlinetab,
@@ -60765,7 +60514,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       iv_object_name = lv_object
       iv_language    = mv_language ).
   ENDMETHOD.
-
   METHOD deserialize_sotr.
     "OTR stands for Online Text Repository
     DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt.
@@ -60781,7 +60529,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       iv_package    = iv_package
       it_sotr       = lt_sotr ).
   ENDMETHOD.
-
   METHOD deserialize_tpool.
 
     DATA: lv_clsname   TYPE seoclsname,
@@ -60803,7 +60550,18 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       iv_language   = mv_language ).
 
   ENDMETHOD.
+  METHOD is_class_locked.
 
+    DATA: lv_argument TYPE seqg3-garg.
+
+    lv_argument = ms_item-obj_name.
+    OVERLAY lv_argument WITH '=============================='.
+    lv_argument = lv_argument && '*'.
+
+    rv_is_class_locked = exists_a_lock_entry_for( iv_lock_object = 'ESEOCLASS'
+                                                  iv_argument    = lv_argument ).
+
+  ENDMETHOD.
   METHOD serialize_xml.
 
     DATA: ls_vseoclass    TYPE vseoclass,
@@ -60885,23 +60643,171 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
 
-  METHOD is_class_locked.
+    TYPES: BEGIN OF ty_includes,
+             programm TYPE programm,
+           END OF ty_includes.
 
-    DATA: lv_argument TYPE seqg3-garg.
+    TYPES: BEGIN OF ty_reposrc,
+             unam  TYPE reposrc-unam,
+             udat  TYPE reposrc-udat,
+             utime TYPE reposrc-utime,
+           END OF ty_reposrc.
 
-    lv_argument = ms_item-obj_name.
-    OVERLAY lv_argument WITH '=============================='.
-    lv_argument = lv_argument && '*'.
+    DATA: lt_reposrc  TYPE STANDARD TABLE OF ty_reposrc,
+          ls_reposrc  LIKE LINE OF lt_reposrc,
+          lt_includes TYPE STANDARD TABLE OF ty_includes.
 
-    rv_is_class_locked = exists_a_lock_entry_for( iv_lock_object = 'ESEOCLASS'
-                                                  iv_argument    = lv_argument ).
+    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
+    ASSERT lines( lt_includes ) > 0.
+
+    SELECT unam udat utime FROM reposrc
+      INTO TABLE lt_reposrc
+      FOR ALL ENTRIES IN lt_includes
+      WHERE progname = lt_includes-programm
+      AND   r3state = 'A'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ELSE.
+      SORT lt_reposrc BY udat DESCENDING utime DESCENDING.
+      READ TABLE lt_reposrc INDEX 1 INTO ls_reposrc.
+      ASSERT sy-subrc = 0.
+      rv_user = ls_reposrc-unam.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+    DATA: ls_clskey TYPE seoclskey.
+    ls_clskey-clsname = ms_item-obj_name.
+
+    mi_object_oriented_object_fct->delete( ls_clskey ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+    deserialize_abap( io_xml     = io_xml
+                      iv_package = iv_package ).
+
+    deserialize_tpool( io_xml ).
+
+    deserialize_sotr( io_xml     = io_xml
+                      iv_package = iv_package ).
+
+    deserialize_docu( io_xml ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+    DATA: ls_class_key TYPE seoclskey.
+    ls_class_key-clsname = ms_item-obj_name.
+
+    rv_bool = mi_object_oriented_object_fct->exists( ls_class_key ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    DATA: lt_includes TYPE seoincl_t.
+
+    FIELD-SYMBOLS <lv_incl> LIKE LINE OF lt_includes.
+    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
+    LOOP AT lt_includes ASSIGNING <lv_incl>.
+      rv_changed = check_prog_changed_since(
+        iv_program   = <lv_incl>
+        iv_timestamp = iv_timestamp
+        iv_skip_gui  = abap_true ).
+      IF rv_changed = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
 
+    DATA: lv_classpool TYPE program.
+
+    lv_classpool = cl_oo_classname_service=>get_classpool_name( |{ ms_item-obj_name }| ).
+
+    IF is_class_locked( )             = abap_true
+    OR is_text_locked( lv_classpool ) = abap_true.
+
+      rv_is_locked = abap_true.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = 'CLAS'
+        in_new_window = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lt_source    TYPE seop_source_string,
+          ls_class_key TYPE seoclskey.
+
+    ls_class_key-clsname = ms_item-obj_name.
+
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        version = seoc_version_active
+        force   = seox_true.
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        version = seoc_version_inactive
+        force   = seox_true.
+
+    lt_source = mi_object_oriented_object_fct->serialize_abap( ls_class_key ).
+
+    mo_files->add_abap( lt_source ).
+
+    lt_source = mi_object_oriented_object_fct->serialize_abap(
+      is_class_key = ls_class_key
+      iv_type      = seop_ext_class_locals_def ).
+    IF lines( lt_source ) > 0.
+      mo_files->add_abap( iv_extra = 'locals_def'
+                          it_abap  = lt_source ).           "#EC NOTEXT
+    ENDIF.
+
+    lt_source = mi_object_oriented_object_fct->serialize_abap(
+      is_class_key = ls_class_key
+      iv_type      = seop_ext_class_locals_imp ).
+    IF lines( lt_source ) > 0.
+      mo_files->add_abap( iv_extra = 'locals_imp'
+                          it_abap  = lt_source ).           "#EC NOTEXT
+    ENDIF.
+
+    lt_source = mi_object_oriented_object_fct->serialize_abap(
+      is_class_key            = ls_class_key
+      iv_type                 = seop_ext_class_testclasses ).
+
+    mv_skip_testclass = mi_object_oriented_object_fct->get_skip_test_classes( ).
+    IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
+      mo_files->add_abap( iv_extra = 'testclasses'
+                          it_abap  = lt_source ).           "#EC NOTEXT
+    ENDIF.
+
+    lt_source = mi_object_oriented_object_fct->serialize_abap(
+      is_class_key = ls_class_key
+      iv_type      = seop_ext_class_macros ).
+    IF lines( lt_source ) > 0.
+      mo_files->add_abap( iv_extra = 'macros'
+                          it_abap  = lt_source ).           "#EC NOTEXT
+    ENDIF.
+
+    serialize_xml( io_xml ).
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_char IMPLEMENTATION.
   METHOD instantiate_char.
@@ -66746,5 +66652,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-12T13:58:44.043Z
+* abapmerge undefined - 2018-12-17T07:19:13.216Z
 ****************************************************
