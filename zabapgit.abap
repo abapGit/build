@@ -5195,42 +5195,46 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_t100_texts,
-             sprsl TYPE t100-sprsl,
-             msgnr TYPE t100-msgnr,
-             text  TYPE t100-text,
-           END OF ty_t100_texts,
-           tt_t100_texts TYPE STANDARD TABLE OF ty_t100_texts,
-           tty_t100      TYPE STANDARD TABLE OF t100
-                         WITH NON-UNIQUE DEFAULT KEY,
-           BEGIN OF ty_longtext,
-             dokil TYPE dokil,
-             head  TYPE thead,
-             lines TYPE tline_tab,
-           END OF ty_longtext,
-           tty_longtexts TYPE STANDARD TABLE OF ty_longtext
-                              WITH NON-UNIQUE DEFAULT KEY.
 
-    METHODS:
-      serialize_texts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
-        RAISING   zcx_abapgit_exception,
-      deserialize_texts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
-        RAISING   zcx_abapgit_exception,
-      serialize_longtexts_msag
-        IMPORTING it_t100 TYPE zcl_abapgit_object_msag=>tty_t100
-                  io_xml  TYPE REF TO zcl_abapgit_xml_output
-        RAISING   zcx_abapgit_exception,
-      delete_msgid IMPORTING iv_message_id TYPE arbgb,
-      free_access_permission
-        IMPORTING
-          iv_message_id TYPE arbgb,
-      delete_documentation
-        IMPORTING
-          iv_message_id TYPE arbgb.
+    TYPES:
+      BEGIN OF ty_t100_texts,
+        sprsl TYPE t100-sprsl,
+        msgnr TYPE t100-msgnr,
+        text  TYPE t100-text,
+      END OF ty_t100_texts .
+    TYPES:
+      tt_t100_texts TYPE STANDARD TABLE OF ty_t100_texts .
+    TYPES:
+      tty_t100      TYPE STANDARD TABLE OF t100
+                           WITH NON-UNIQUE DEFAULT KEY .
 
+    METHODS serialize_texts
+      IMPORTING
+        !io_xml TYPE REF TO zcl_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_texts
+      IMPORTING
+        !io_xml TYPE REF TO zcl_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
+    METHODS serialize_longtexts_msag
+      IMPORTING
+        !it_t100 TYPE zcl_abapgit_object_msag=>tty_t100
+        !io_xml  TYPE REF TO zcl_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS delete_msgid
+      IMPORTING
+        !iv_message_id TYPE arbgb .
+    METHODS free_access_permission
+      IMPORTING
+        !iv_message_id TYPE arbgb .
+    METHODS delete_documentation
+      IMPORTING
+        !iv_message_id TYPE arbgb .
 ENDCLASS.
 CLASS zcl_abapgit_object_nrob DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -5807,7 +5811,7 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     TYPES:
       tty_param_values TYPE STANDARD TABLE OF rsparam
-                                   WITH NON-UNIQUE DEFAULT KEY .
+                                     WITH NON-UNIQUE DEFAULT KEY .
 
     CONSTANTS:
       c_oo_program(9) VALUE '\PROGRAM=' ##NO_TEXT.
@@ -5829,6 +5833,10 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     DATA:
       mt_bcdata TYPE STANDARD TABLE OF bdcdata .
 
+    METHODS shift_param
+      CHANGING
+        !ct_rsparam TYPE s_param
+        !cs_tstcp   TYPE tstcp .
     METHODS add_data
       IMPORTING
         !iv_fnam TYPE bdcdata-fnam
@@ -5865,13 +5873,11 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         zcx_abapgit_exception .
     METHODS deserialize_oo_transaction
       IMPORTING
-        !iv_package      TYPE devclass
-        !is_tstc         TYPE tstc
-        !is_tstcc        TYPE tstcc
-        !is_tstct        TYPE tstct
-        !is_tstcp        TYPE tstcp
-        !it_param_values TYPE zcl_abapgit_object_tran=>tty_param_values
-        !is_rsstcd       TYPE rsstcd
+        !iv_package TYPE devclass
+        !is_tstc    TYPE tstc
+        !is_tstcc   TYPE tstcc
+        !is_tstct   TYPE tstct
+        !is_rsstcd  TYPE rsstcd
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -8676,74 +8682,84 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
 
   PRIVATE SECTION.
 
-    DATA:
-      mo_settings    TYPE REF TO zcl_abapgit_settings,
-      mv_error       TYPE abap_bool,
-      mt_post_fields TYPE tihttpnvp.
+    DATA mo_settings TYPE REF TO zcl_abapgit_settings .
+    DATA mv_error TYPE abap_bool .
+    DATA mt_post_fields TYPE tihttpnvp .
 
+    METHODS post_commit_msg .
+    METHODS post_development_internals .
+    METHODS post_hotkeys .
     METHODS render_proxy
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_development_internals
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_form_begin
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_form_end
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_max_lines
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_adt_jump_enabled
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_commit_msg
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-    METHODS build_settings
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS post_proxy .
+    METHODS post
       IMPORTING
-        it_post_fields TYPE tihttpnvp.
-    METHODS validate_settings.
+        !it_post_fields TYPE tihttpnvp .
+    METHODS validate_settings .
     METHODS parse_post
       IMPORTING
-        it_postdata           TYPE cnht_post_data_tab
+        !it_postdata          TYPE cnht_post_data_tab
       RETURNING
-        VALUE(rt_post_fields) TYPE tihttpnvp.
+        VALUE(rt_post_fields) TYPE tihttpnvp .
     METHODS persist_settings
       RAISING
-        zcx_abapgit_exception.
-    METHODS read_settings.
+        zcx_abapgit_exception .
+    METHODS read_settings .
     METHODS render_section_begin
       IMPORTING
-                iv_header      TYPE csequence
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+        !iv_header     TYPE csequence
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_section_end
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_start_up
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_link_hints
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS render_hotkeys
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS get_possible_hotkey_actions
       RETURNING
         VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     METHODS get_default_hotkeys
       RETURNING
         VALUE(rt_default_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS is_post_field_checked
       IMPORTING
-        iv_name          TYPE string
+        !iv_name         TYPE string
       RETURNING
-        VALUE(rv_return) TYPE abap_bool.
-
+        VALUE(rv_return) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
@@ -10948,6 +10964,7 @@ CLASS zcl_abapgit_file_status DEFINITION
       RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING   zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-METHODS:
@@ -14140,7 +14157,8 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
 
     DATA: lv_index TYPE i.
 
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote.
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote,
+                   <ls_local>  LIKE LINE OF cs_files-local.
     LOOP AT cs_files-remote ASSIGNING <ls_remote>.
       lv_index = sy-tabix.
 
@@ -14152,6 +14170,17 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
          AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
         " Remove .abapgit from remotes - it cannot be removed or ignored
         DELETE cs_files-remote INDEX lv_index.
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT cs_files-local ASSIGNING <ls_local>.
+      lv_index = sy-tabix.
+
+      IF io_repo->get_dot_abapgit( )->is_ignored(
+          iv_path     = <ls_local>-file-path
+          iv_filename = <ls_local>-file-filename ) = abap_true.
+        DELETE cs_files-local INDEX lv_index.
       ENDIF.
 
     ENDLOOP.
@@ -18770,7 +18799,6 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
           iv_path     = <ls_result>-path
           iv_filename = <ls_result>-filename ) = abap_true.
         DELETE rt_results INDEX lv_index.
-        CONTINUE.
       ENDIF.
     ENDLOOP.
 
@@ -26853,46 +26881,75 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
-  METHOD build_settings.
+  METHOD constructor.
+    super->constructor( ).
+    ms_control-page_title = 'SETTINGS'.
+  ENDMETHOD.
+  METHOD get_default_hotkeys.
 
-    DATA: lv_i_param_value TYPE i,
-          lv_column        TYPE string,
-          lt_key_bindings  TYPE zif_abapgit_definitions=>tty_hotkey.
+    DATA: lt_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
+          ls_hotkey  LIKE LINE OF rt_default_hotkeys.
 
-    FIELD-SYMBOLS: <ls_post_field>  TYPE ihttpnvp,
-                   <ls_key_binding> TYPE zif_abapgit_definitions=>ty_hotkey.
+    FIELD-SYMBOLS: <ls_action> LIKE LINE OF lt_actions.
+
+    lt_actions = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
+
+    LOOP AT lt_actions ASSIGNING <ls_action>.
+      ls_hotkey-action   = <ls_action>-action.
+      ls_hotkey-sequence = <ls_action>-default_hotkey.
+      INSERT ls_hotkey INTO TABLE rt_default_hotkeys.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_possible_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    rt_hotkey_actions = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
+
+    " insert empty row at the beginning, so that we can unset a hotkey
+    INSERT ls_hotkey_action INTO rt_hotkey_actions INDEX 1.
+
+  ENDMETHOD.
+  METHOD is_post_field_checked.
+    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = iv_name.
+    IF sy-subrc = 0.
+      IF <ls_post_field>-value = abap_true "HTML value when using standard netweaver GUI
+          OR <ls_post_field>-value = 'on'.     "HTML value when using Netweaver Java GUI
+        rv_return = abap_true.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+  METHOD parse_post.
+
+    DATA lv_serialized_post_data TYPE string.
+
+    CONCATENATE LINES OF it_postdata INTO lv_serialized_post_data.
+    rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
+
+  ENDMETHOD.
+  METHOD persist_settings.
+
+    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
+
+    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
+    lo_settings_persistence->modify( mo_settings ).
+    MESSAGE 'Settings succesfully saved' TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD post.
+
+    DATA: lv_i_param_value TYPE i.
+
+    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
     CREATE OBJECT mo_settings.
     mt_post_fields = it_post_fields.
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_url'.
-    IF sy-subrc <> 0.
-      mv_error = abap_true.
-    ENDIF.
-    mo_settings->set_proxy_url( <ls_post_field>-value ).
+    post_proxy( ).
+    post_commit_msg( ).
+    post_development_internals( ).
 
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_port'.
-    IF sy-subrc <> 0.
-      mv_error = abap_true.
-    ENDIF.
-    mo_settings->set_proxy_port( <ls_post_field>-value ).
-
-    IF is_post_field_checked( 'proxy_auth' ) = abap_true.
-      mo_settings->set_proxy_authentication( abap_true ).
-    ELSE.
-      mo_settings->set_proxy_authentication( abap_false ).
-    ENDIF.
-
-    IF is_post_field_checked( 'critical_tests' ) = abap_true.
-      mo_settings->set_run_critical_tests( abap_true ).
-    ELSE.
-      mo_settings->set_run_critical_tests( abap_false ).
-    ENDIF.
-
-    IF is_post_field_checked( 'experimental_features' ) = abap_true.
-      mo_settings->set_experimental_features( abap_true ).
-    ELSE.
-      mo_settings->set_experimental_features( abap_false ).
-    ENDIF.
-
+* todo, refactor to private POST_* methods
     IF is_post_field_checked( 'show_default_repo' ) = abap_true.
       mo_settings->set_show_default_repo( abap_true ).
     ELSE.
@@ -26929,6 +26986,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_link_hint_background_color( |{ <ls_post_field>-value }| ).
     ENDIF.
 
+    post_hotkeys( ).
+
+  ENDMETHOD.
+  METHOD post_commit_msg.
+
+    DATA: lv_i_param_value TYPE i.
+
+    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
     READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_length'.
     IF sy-subrc = 0.
       lv_i_param_value = <ls_post_field>-value.
@@ -26950,6 +27015,30 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ELSE.
       mo_settings->set_commitmsg_body_size( zcl_abapgit_settings=>c_commitmsg_body_size_dft ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD post_development_internals.
+
+    IF is_post_field_checked( 'critical_tests' ) = abap_true.
+      mo_settings->set_run_critical_tests( abap_true ).
+    ELSE.
+      mo_settings->set_run_critical_tests( abap_false ).
+    ENDIF.
+
+    IF is_post_field_checked( 'experimental_features' ) = abap_true.
+      mo_settings->set_experimental_features( abap_true ).
+    ELSE.
+      mo_settings->set_experimental_features( abap_false ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD post_hotkeys.
+
+    DATA: lv_column       TYPE string,
+          lt_key_bindings TYPE zif_abapgit_definitions=>tty_hotkey.
+
+    FIELD-SYMBOLS: <ls_post_field>  TYPE ihttpnvp,
+                   <ls_key_binding> TYPE zif_abapgit_definitions=>ty_hotkey.
     LOOP AT mt_post_fields ASSIGNING <ls_post_field> WHERE name CP 'key*'.
 
       FIND FIRST OCCURRENCE OF REGEX `key_(.*)_`
@@ -26971,61 +27060,26 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     mo_settings->set_hotkeys( lt_key_bindings ).
 
   ENDMETHOD.
-  METHOD constructor.
-    super->constructor( ).
-    ms_control-page_title = 'SETTINGS'.
-  ENDMETHOD.
-  METHOD get_default_hotkeys.
+  METHOD post_proxy.
 
-    DATA: lt_actions TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
-          ls_hotkey  LIKE LINE OF rt_default_hotkeys.
-
-    FIELD-SYMBOLS: <ls_action> LIKE LINE OF lt_actions.
-
-    lt_actions = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
-
-    LOOP AT lt_actions ASSIGNING <ls_action>.
-      ls_hotkey-action   = <ls_action>-action.
-      ls_hotkey-sequence = <ls_action>-default_hotkey.
-      INSERT ls_hotkey INTO TABLE rt_default_hotkeys.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD get_possible_hotkey_actions.
-
-    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
-
-    rt_hotkey_actions = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
-
-    " insert empty row at the beginning, so that we can unset a hotkey
-    INSERT ls_hotkey_action INTO rt_hotkey_actions INDEX 1.
-
-  ENDMETHOD.
-  METHOD is_post_field_checked.
     FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = iv_name.
-    IF sy-subrc = 0.
-      IF <ls_post_field>-value = abap_true "HTML value when using standard netweaver GUI
-      OR <ls_post_field>-value = 'on'.     "HTML value when using Netweaver Java GUI
-        rv_return = abap_true.
-      ENDIF.
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_url'.
+    IF sy-subrc <> 0.
+      mv_error = abap_true.
     ENDIF.
-  ENDMETHOD.
-  METHOD parse_post.
+    mo_settings->set_proxy_url( <ls_post_field>-value ).
 
-    DATA lv_serialized_post_data TYPE string.
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_port'.
+    IF sy-subrc <> 0.
+      mv_error = abap_true.
+    ENDIF.
+    mo_settings->set_proxy_port( <ls_post_field>-value ).
 
-    CONCATENATE LINES OF it_postdata INTO lv_serialized_post_data.
-    rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
-
-  ENDMETHOD.
-  METHOD persist_settings.
-
-    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
-
-    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    lo_settings_persistence->modify( mo_settings ).
-    MESSAGE 'Settings succesfully saved' TYPE 'S'.
+    IF is_post_field_checked( 'proxy_auth' ) = abap_true.
+      mo_settings->set_proxy_authentication( abap_true ).
+    ELSE.
+      mo_settings->set_proxy_authentication( abap_false ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD read_settings.
@@ -27307,7 +27361,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 * todo, check input values eg INT
@@ -27319,7 +27373,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       WHEN c_action-save_settings.
         lt_post_fields = parse_post( it_postdata ).
 
-        build_settings( lt_post_fields ).
+        post( lt_post_fields ).
         validate_settings( ).
 
         IF mv_error = abap_true.
@@ -28349,7 +28403,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( '</form>' ).                            "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<form id="source_form" method="post" action="sapevent:apply_source">' ). "#EC NOTEXT
-      ro_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) &&' - ' ). "#EC NOTEXT
+      ro_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''source_form'');' "#EC NOTEXT
                       iv_txt = 'Apply'
                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
@@ -28362,9 +28416,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
       ro_html->add( '<tr>' ).                               "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
-      ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) &&'</th> ' ). "#EC NOTEXT
+      ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && '</th> ' ). "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
-      ro_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) &&'</th> ' ). "#EC NOTEXT
+      ro_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) && '</th> ' ). "#EC NOTEXT
       ro_html->add( '</tr>' ).                              "#EC NOTEXT
       ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ENDIF.
@@ -38339,7 +38393,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
     ENDIF.
 
-    READ TABLE it_tpool INTO ls_tpool WITH KEY id = 'R'.  "#EC CI_SUBRC
+    READ TABLE it_tpool INTO ls_tpool WITH KEY id = 'R'.
     IF sy-subrc = 0.
 * there is a bug in RPY_PROGRAM_UPDATE, the header line of TTAB is not
 * cleared, so the title length might be inherited from a different program.
@@ -44351,15 +44405,58 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD shift_param.
+
+    DATA: ls_param  LIKE LINE OF ct_rsparam,
+          lv_length TYPE i.
+
+    FIELD-SYMBOLS <lg_f> TYPE any.
+    DO 254 TIMES.
+      IF cs_tstcp-param = space.
+        EXIT.
+      ENDIF.
+      CLEAR ls_param.
+      IF cs_tstcp-param CA '='.
+        CHECK sy-fdpos <> 0.
+        ASSIGN cs_tstcp-param(sy-fdpos) TO <lg_f>.
+        ls_param-field = <lg_f>.
+        IF ls_param-field(1) = space.
+          SHIFT ls_param-field.
+        ENDIF.
+        sy-fdpos = sy-fdpos + 1.
+        SHIFT cs_tstcp-param BY sy-fdpos PLACES.
+        IF cs_tstcp-param CA ';'.
+          IF sy-fdpos <> 0.
+            ASSIGN cs_tstcp-param(sy-fdpos) TO <lg_f>.
+            ls_param-value = <lg_f>.
+            IF ls_param-value(1) = space.
+              SHIFT ls_param-value.
+            ENDIF.
+          ENDIF.
+          sy-fdpos = sy-fdpos + 1.
+          SHIFT cs_tstcp-param BY sy-fdpos PLACES.
+          APPEND ls_param TO ct_rsparam.
+        ELSE.
+          lv_length = strlen( cs_tstcp-param ).
+          CHECK lv_length > 0.
+          ASSIGN cs_tstcp-param(lv_length) TO <lg_f>.
+          ls_param-value = <lg_f>.
+          IF ls_param-value(1) = space.
+            SHIFT ls_param-value.
+          ENDIF.
+          lv_length = lv_length + 1.
+          SHIFT cs_tstcp-param BY lv_length PLACES.
+          APPEND ls_param TO ct_rsparam.
+        ENDIF.
+      ENDIF.
+    ENDDO.
+
+  ENDMETHOD.
   METHOD split_parameters.
 * see subroutine split_parameters in include LSEUKF01
 
     DATA: lv_off       TYPE i,
-          lv_param_beg TYPE i,
-          lv_length    TYPE i,
-          ls_param     LIKE LINE OF ct_rsparam.
-
-    FIELD-SYMBOLS <lg_f> TYPE any.
+          lv_param_beg TYPE i.
     CLEAR cs_rsstcd-s_vari.
 
     IF cs_tstcp-param(1) = '\'.             " OO-Transaktion ohne FR
@@ -44415,45 +44512,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       cs_rsstcd-st_prog  = c_true.
     ENDIF.
 
-    DO 254 TIMES.
-      IF cs_tstcp-param = space.
-        EXIT.
-      ENDIF.
-      CLEAR ls_param.
-      IF cs_tstcp-param CA '='.
-        CHECK sy-fdpos <> 0.
-        ASSIGN cs_tstcp-param(sy-fdpos) TO <lg_f>.
-        ls_param-field = <lg_f>.
-        IF ls_param-field(1) = space.
-          SHIFT ls_param-field.
-        ENDIF.
-        sy-fdpos = sy-fdpos + 1.
-        SHIFT cs_tstcp-param BY sy-fdpos PLACES.
-        IF cs_tstcp-param CA ';'.
-          IF sy-fdpos <> 0.
-            ASSIGN cs_tstcp-param(sy-fdpos) TO <lg_f>.
-            ls_param-value = <lg_f>.
-            IF ls_param-value(1) = space.
-              SHIFT ls_param-value.
-            ENDIF.
-          ENDIF.
-          sy-fdpos = sy-fdpos + 1.
-          SHIFT cs_tstcp-param BY sy-fdpos PLACES.
-          APPEND ls_param TO ct_rsparam.
-        ELSE.
-          lv_length = strlen( cs_tstcp-param ).
-          CHECK lv_length > 0.
-          ASSIGN cs_tstcp-param(lv_length) TO <lg_f>.
-          ls_param-value = <lg_f>.
-          IF ls_param-value(1) = space.
-            SHIFT ls_param-value.
-          ENDIF.
-          lv_length = lv_length + 1.
-          SHIFT cs_tstcp-param BY lv_length PLACES.
-          APPEND ls_param TO ct_rsparam.
-        ENDIF.
-      ENDIF.
-    ENDDO.
+    shift_param(
+      CHANGING ct_rsparam = ct_rsparam
+               cs_tstcp   = cs_tstcp ).
 
     set_oo_parameters(
       EXPORTING it_rsparam = ct_rsparam
@@ -44556,8 +44617,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
                                     is_tstc         = ls_tstc
                                     is_tstcc        = ls_tstcc
                                     is_tstct        = ls_tstct
-                                    is_tstcp        = ls_tstcp
-                                    it_param_values = lt_param_values
                                     is_rsstcd       = ls_rsstcd ).
 
       WHEN OTHERS.
@@ -62311,7 +62370,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
 * Devesh,C5129871  18.07.2011  Releasing enqueu after uploading
 *begin
     TRY.
-        ecatt_object->close_object( im_suppress_events ='X' ).
+        ecatt_object->close_object( im_suppress_events = 'X' ).
       CATCH cx_ecatt_apl INTO lx_ecatt.
     ENDTRY.
 *end
@@ -66605,5 +66664,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-20T08:23:25.274Z
+* abapmerge undefined - 2018-12-20T08:25:22.687Z
 ****************************************************
