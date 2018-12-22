@@ -66824,5 +66824,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-22T10:38:11.089Z
+* abapmerge undefined - 2018-12-22T10:45:02.356Z
 ****************************************************
