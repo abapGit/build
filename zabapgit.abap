@@ -428,6 +428,7 @@ INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_router DEFERRED.
@@ -503,6 +504,7 @@ CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
 CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
+CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
@@ -890,6 +892,38 @@ INTERFACE zif_abapgit_gui_router .
       zcx_abapgit_exception
       zcx_abapgit_cancel.
 
+ENDINTERFACE.
+INTERFACE zif_abapgit_frontend_services .
+    METHODS file_upload
+      IMPORTING
+        !iv_path TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS file_download
+      IMPORTING
+        !iv_path TYPE string
+        !iv_xstr TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS show_file_save_dialog
+      IMPORTING
+        !iv_title TYPE string
+        !iv_extension TYPE string
+        !iv_default_filename TYPE string
+      RETURNING
+        VALUE(rv_path) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS show_file_open_dialog
+      IMPORTING
+        !iv_title TYPE string
+        !iv_default_filename TYPE string
+      RETURNING
+        VALUE(rv_path) TYPE string
+      RAISING
+        zcx_abapgit_exception .
 ENDINTERFACE.
 INTERFACE zif_abapgit_auth.
 
@@ -9948,6 +9982,17 @@ CLASS zcl_abapgit_diff DEFINITION
       map_beacons,
       shortlist.
 ENDCLASS.
+CLASS zcl_abapgit_frontend_services DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_frontend_services.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_hash DEFINITION
   CREATE PUBLIC .
 
@@ -10916,6 +10961,11 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_cts_api
       RETURNING
         VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api.
+    CLASS-METHODS get_frontend_services
+      RETURNING
+        VALUE(ri_fe_serv) TYPE REF TO zif_abapgit_frontend_services.
+
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -10951,6 +11001,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api.
     CLASS-DATA gi_adhoc_code_inspector TYPE REF TO zif_abapgit_code_inspector.
+    CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services.
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -12512,6 +12563,7 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS file_upload
       RETURNING VALUE(rv_xstr) TYPE xstring
@@ -13349,146 +13401,37 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
   METHOD file_download.
 
-    DATA: lt_rawdata  TYPE solix_tab,
-          lv_action   TYPE i,
-          lv_filename TYPE string,
-          lv_default  TYPE string,
-          lv_path     TYPE string,
-          lv_fullpath TYPE string,
-          lv_package  TYPE devclass.
+    DATA:
+      lv_path     TYPE string,
+      lv_default  TYPE string,
+      lo_fe_serv  TYPE REF TO zif_abapgit_frontend_services,
+      lv_package  TYPE devclass.
+
     lv_package = iv_package.
     TRANSLATE lv_package USING '/#'.
     CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
 
-    cl_gui_frontend_services=>file_save_dialog(
-      EXPORTING
-        window_title         = 'Export ZIP'
-        default_extension    = 'zip'
-        default_file_name    = lv_default
-      CHANGING
-        filename             = lv_filename
-        path                 = lv_path
-        fullpath             = lv_fullpath
-        user_action          = lv_action
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).                         "#EC NOTEXT
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ).
-    ENDIF.
-    IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ).
-    ENDIF.
+    lo_fe_serv = zcl_abapgit_factory=>get_frontend_services( ).
 
-    lt_rawdata = cl_bcs_convert=>xstring_to_solix( iv_xstr ).
+    lv_path = lo_fe_serv->show_file_save_dialog(
+      iv_title            = 'Export ZIP'
+      iv_extension        = 'zip'
+      iv_default_filename = lv_default ).
 
-    cl_gui_frontend_services=>gui_download(
-      EXPORTING
-        bin_filesize              = xstrlen( iv_xstr )
-        filename                  = lv_fullpath
-        filetype                  = 'BIN'
-      CHANGING
-        data_tab                  = lt_rawdata
-      EXCEPTIONS
-        file_write_error          = 1
-        no_batch                  = 2
-        gui_refuse_filetransfer   = 3
-        invalid_type              = 4
-        no_authority              = 5
-        unknown_error             = 6
-        header_not_allowed        = 7
-        separator_not_allowed     = 8
-        filesize_not_allowed      = 9
-        header_too_long           = 10
-        dp_error_create           = 11
-        dp_error_send             = 12
-        dp_error_write            = 13
-        unknown_dp_error          = 14
-        access_denied             = 15
-        dp_out_of_memory          = 16
-        disk_full                 = 17
-        dp_timeout                = 18
-        file_not_found            = 19
-        dataprovider_exception    = 20
-        control_flush_error       = 21
-        not_supported_by_gui      = 22
-        error_no_gui              = 23
-        OTHERS                    = 24 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_download' ).
-    ENDIF.
+    lo_fe_serv->file_download(
+      iv_path = lv_path
+      iv_xstr = iv_xstr ).
 
   ENDMETHOD.
   METHOD file_upload.
 
-    DATA: lt_data       TYPE TABLE OF x255,
-          lt_file_table TYPE filetable,
-          ls_file_table LIKE LINE OF lt_file_table,
-          lv_action     TYPE i,
-          lv_string     TYPE string,
-          lv_rc         TYPE i,
-          lv_length     TYPE i.
-    cl_gui_frontend_services=>file_open_dialog(
-      EXPORTING
-        window_title            = 'Import ZIP'
-        default_filename        = '*.zip'
-      CHANGING
-        file_table              = lt_file_table
-        rc                      = lv_rc
-        user_action             = lv_action
-      EXCEPTIONS
-        file_open_dialog_failed = 1
-        cntl_error              = 2
-        error_no_gui            = 3
-        not_supported_by_gui    = 4
-        OTHERS                  = 5 ).                      "#EC NOTEXT
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ).
-    ENDIF.
-    IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ).
-    ENDIF.
+    DATA: lv_path TYPE string.
 
-    READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
-    ASSERT sy-subrc = 0.
-    lv_string = ls_file_table-filename.
+    lv_path = zcl_abapgit_factory=>get_frontend_services( )->show_file_open_dialog(
+      iv_title            = 'Import ZIP'
+      iv_default_filename = '*.zip' ).
 
-    cl_gui_frontend_services=>gui_upload(
-      EXPORTING
-        filename                = lv_string
-        filetype                = 'BIN'
-      IMPORTING
-        filelength              = lv_length
-      CHANGING
-        data_tab                = lt_data
-      EXCEPTIONS
-        file_open_error         = 1
-        file_read_error         = 2
-        no_batch                = 3
-        gui_refuse_filetransfer = 4
-        invalid_type            = 5
-        no_authority            = 6
-        unknown_error           = 7
-        bad_data_format         = 8
-        header_not_allowed      = 9
-        separator_not_allowed   = 10
-        header_too_long         = 11
-        unknown_dp_error        = 12
-        access_denied           = 13
-        dp_out_of_memory        = 14
-        disk_full               = 15
-        dp_timeout              = 16
-        not_supported_by_gui    = 17
-        error_no_gui            = 18
-        OTHERS                  = 19 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_upload' ).
-    ENDIF.
-
-    CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
-    rv_xstr = rv_xstr(lv_length).
+    rv_xstr = zcl_abapgit_factory=>get_frontend_services( )->file_upload( lv_path ).
 
   ENDMETHOD.
   METHOD import.
@@ -18810,7 +18753,32 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+  METHOD get_abap_unit_tests.
+
+    IF gi_adhoc_code_inspector IS BOUND.
+      ri_abap_unit_tests = gi_adhoc_code_inspector.
+    ELSE.
+      CREATE OBJECT ri_abap_unit_tests
+        TYPE zcl_abapgit_abap_unit_tests
+        EXPORTING
+          iv_package = iv_package.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_adhoc_code_inspector.
+
+    IF gi_adhoc_code_inspector IS BOUND.
+      ri_adhoc_code_inspector = gi_adhoc_code_inspector.
+    ELSE.
+      CREATE OBJECT ri_adhoc_code_inspector
+        TYPE zcl_abapgit_adhoc_code_insp
+        EXPORTING
+          iv_package   = iv_package
+          iv_test_name = iv_test_name.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_branch_overview.
 
     CREATE OBJECT ri_branch_overview
@@ -18843,6 +18811,22 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ENDIF.
 
     ri_code_inspector = <ls_code_inspector>-instance.
+
+  ENDMETHOD.
+  METHOD get_cts_api.
+    IF gi_cts_api IS NOT BOUND.
+      CREATE OBJECT gi_cts_api TYPE zcl_abapgit_cts_api.
+    ENDIF.
+
+    ri_cts_api = gi_cts_api.
+  ENDMETHOD.
+  METHOD get_frontend_services.
+
+    IF gi_fe_services IS INITIAL.
+      CREATE OBJECT gi_fe_services TYPE zcl_abapgit_frontend_services.
+    ENDIF.
+
+    ri_fe_serv = gi_fe_services.
 
   ENDMETHOD.
   METHOD get_sap_package.
@@ -18908,40 +18892,6 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ENDIF.
 
     ri_tadir = gi_tadir.
-
-  ENDMETHOD.
-
-  METHOD get_cts_api.
-    IF gi_cts_api IS NOT BOUND.
-      CREATE OBJECT gi_cts_api TYPE zcl_abapgit_cts_api.
-    ENDIF.
-
-    ri_cts_api = gi_cts_api.
-  ENDMETHOD.
-
-  METHOD get_adhoc_code_inspector.
-
-    IF gi_adhoc_code_inspector IS BOUND.
-      ri_adhoc_code_inspector = gi_adhoc_code_inspector.
-    ELSE.
-      CREATE OBJECT ri_adhoc_code_inspector
-        TYPE zcl_abapgit_adhoc_code_insp
-        EXPORTING
-          iv_package   = iv_package
-          iv_test_name = iv_test_name.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_abap_unit_tests.
-
-    IF gi_adhoc_code_inspector IS BOUND.
-      ri_abap_unit_tests = gi_adhoc_code_inspector.
-    ELSE.
-      CREATE OBJECT ri_abap_unit_tests
-        TYPE zcl_abapgit_abap_unit_tests
-        EXPORTING
-          iv_package = iv_package.
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -21630,6 +21580,158 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
     rv_sha1 = lv_hash.
 
     TRANSLATE rv_sha1 TO LOWER CASE.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
+  METHOD zif_abapgit_frontend_services~file_download.
+
+    DATA:
+      lt_rawdata  TYPE solix_tab.
+
+    lt_rawdata = cl_bcs_convert=>xstring_to_solix( iv_xstr ).
+
+    cl_gui_frontend_services=>gui_download(
+      EXPORTING
+        bin_filesize              = xstrlen( iv_xstr )
+        filename                  = iv_path
+        filetype                  = 'BIN'
+      CHANGING
+        data_tab                  = lt_rawdata
+      EXCEPTIONS
+        file_write_error          = 1
+        no_batch                  = 2
+        gui_refuse_filetransfer   = 3
+        invalid_type              = 4
+        no_authority              = 5
+        unknown_error             = 6
+        header_not_allowed        = 7
+        separator_not_allowed     = 8
+        filesize_not_allowed      = 9
+        header_too_long           = 10
+        dp_error_create           = 11
+        dp_error_send             = 12
+        dp_error_write            = 13
+        unknown_dp_error          = 14
+        access_denied             = 15
+        dp_out_of_memory          = 16
+        disk_full                 = 17
+        dp_timeout                = 18
+        file_not_found            = 19
+        dataprovider_exception    = 20
+        control_flush_error       = 21
+        not_supported_by_gui      = 22
+        error_no_gui              = 23
+        OTHERS                    = 24 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from gui_download' ). "#EC NOTEXT
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~file_upload.
+
+    DATA:
+      lt_data       TYPE TABLE OF x255,
+      lv_length     TYPE i.
+
+    cl_gui_frontend_services=>gui_upload(
+      EXPORTING
+        filename                = iv_path
+        filetype                = 'BIN'
+      IMPORTING
+        filelength              = lv_length
+      CHANGING
+        data_tab                = lt_data
+      EXCEPTIONS
+        file_open_error         = 1
+        file_read_error         = 2
+        no_batch                = 3
+        gui_refuse_filetransfer = 4
+        invalid_type            = 5
+        no_authority            = 6
+        unknown_error           = 7
+        bad_data_format         = 8
+        header_not_allowed      = 9
+        separator_not_allowed   = 10
+        header_too_long         = 11
+        unknown_dp_error        = 12
+        access_denied           = 13
+        dp_out_of_memory        = 14
+        disk_full               = 15
+        dp_timeout              = 16
+        not_supported_by_gui    = 17
+        error_no_gui            = 18
+        OTHERS                  = 19 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from gui_upload' ). "#EC NOTEXT
+    ENDIF.
+
+    CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
+    rv_xstr = rv_xstr(lv_length).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~show_file_open_dialog.
+
+    DATA:
+      lt_file_table TYPE filetable,
+      ls_file_table LIKE LINE OF lt_file_table,
+      lv_action     TYPE i,
+      lv_rc         TYPE i.
+
+    cl_gui_frontend_services=>file_open_dialog(
+      EXPORTING
+        window_title            = iv_title
+        default_filename        = iv_default_filename
+      CHANGING
+        file_table              = lt_file_table
+        rc                      = lv_rc
+        user_action             = lv_action
+      EXCEPTIONS
+        file_open_dialog_failed = 1
+        cntl_error              = 2
+        error_no_gui            = 3
+        not_supported_by_gui    = 4
+        OTHERS                  = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ). "#EC NOTEXT
+    ENDIF.
+    IF lv_action = cl_gui_frontend_services=>action_cancel.
+      zcx_abapgit_exception=>raise( 'cancelled' ). "#EC NOTEXT
+    ENDIF.
+
+    READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
+    ASSERT sy-subrc = 0.
+    rv_path = ls_file_table-filename.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~show_file_save_dialog.
+
+    DATA:
+      lv_action   TYPE i,
+      lv_filename TYPE string,
+      lv_path     TYPE string.
+
+    cl_gui_frontend_services=>file_save_dialog(
+      EXPORTING
+        window_title         = iv_title
+        default_extension    = iv_extension
+        default_file_name    = iv_default_filename
+      CHANGING
+        filename             = lv_filename
+        path                 = lv_path
+        fullpath             = rv_path
+        user_action          = lv_action
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ). "#EC NOTEXT
+    ENDIF.
+    IF lv_action = cl_gui_frontend_services=>action_cancel.
+      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -66640,8 +66742,66 @@ FORM password_popup
       cv_pass         = cv_pass ).
 
 ENDFORM.
+
+FORM remove_toolbar USING pv_dynnr TYPE char4.
+
+  DATA: ls_header               TYPE rpy_dyhead,
+        lt_containers           TYPE dycatt_tab,
+        lt_fields_to_containers TYPE dyfatc_tab,
+        lt_flow_logic           TYPE swydyflow.
+
+  CALL FUNCTION 'RPY_DYNPRO_READ'
+    EXPORTING
+      progname             = sy-cprog
+      dynnr                = pv_dynnr
+    IMPORTING
+      header               = ls_header
+    TABLES
+      containers           = lt_containers
+      fields_to_containers = lt_fields_to_containers
+      flow_logic           = lt_flow_logic
+    EXCEPTIONS
+      cancelled            = 1
+      not_found            = 2
+      permission_error     = 3
+      OTHERS               = 4.
+  IF sy-subrc IS NOT INITIAL.
+    RETURN. " Ignore errors, just exit
+  ENDIF.
+
+  IF ls_header-no_toolbar = abap_true.
+    RETURN. " No change required
+  ENDIF.
+
+  ls_header-no_toolbar = abap_true.
+
+  CALL FUNCTION 'RPY_DYNPRO_INSERT'
+    EXPORTING
+      header                 = ls_header
+      suppress_exist_checks  = abap_true
+    TABLES
+      containers           = lt_containers
+      fields_to_containers = lt_fields_to_containers
+      flow_logic           = lt_flow_logic
+    EXCEPTIONS
+      cancelled              = 1
+      already_exists         = 2
+      program_not_exists     = 3
+      not_executed           = 4
+      missing_required_field = 5
+      illegal_field_value    = 6
+      field_not_allowed      = 7
+      not_generated          = 8
+      illegal_field_position = 9
+      OTHERS                 = 10.
+  IF sy-subrc <> 2 AND sy-subrc <> 0.
+    RETURN. " Ignore errors, just exit
+  ENDIF.
+
+ENDFORM.
 **********************************************************************
 INITIALIZATION.
+  PERFORM remove_toolbar USING '1001'. " Remove toolbar on html screen
   lcl_password_dialog=>on_screen_init( ).
 
 START-OF-SELECTION.
@@ -66664,5 +66824,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-20T08:25:22.687Z
+* abapmerge undefined - 2018-12-22T10:38:11.089Z
 ****************************************************
