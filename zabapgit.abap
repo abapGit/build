@@ -893,37 +893,37 @@ INTERFACE zif_abapgit_gui_router .
       zcx_abapgit_cancel.
 
 ENDINTERFACE.
-INTERFACE zif_abapgit_frontend_services .
-    METHODS file_upload
-      IMPORTING
-        !iv_path TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    METHODS file_download
-      IMPORTING
-        !iv_path TYPE string
-        !iv_xstr TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    METHODS show_file_save_dialog
-      IMPORTING
-        !iv_title TYPE string
-        !iv_extension TYPE string
-        !iv_default_filename TYPE string
-      RETURNING
-        VALUE(rv_path) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS show_file_open_dialog
-      IMPORTING
-        !iv_title TYPE string
-        !iv_default_filename TYPE string
-      RETURNING
-        VALUE(rv_path) TYPE string
-      RAISING
-        zcx_abapgit_exception .
+INTERFACE zif_abapgit_frontend_services.
+  METHODS file_upload
+    IMPORTING
+      !iv_path       TYPE string
+    RETURNING
+      VALUE(rv_xstr) TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS file_download
+    IMPORTING
+      !iv_path TYPE string
+      !iv_xstr TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_save_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_extension        TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_open_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 INTERFACE zif_abapgit_auth.
 
@@ -4988,6 +4988,7 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: c_objectname_form    TYPE thead-tdobject VALUE 'FORM' ##NO_TEXT.
     CONSTANTS: c_objectname_tdlines TYPE thead-tdobject VALUE 'TDLINES' ##NO_TEXT.
@@ -8644,17 +8645,21 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
           io_html TYPE REF TO zcl_abapgit_html.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_repo_sett DEFINITION FINAL
-    CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES: zif_abapgit_gui_page_hotkey.
 
-    METHODS:
-      constructor
-        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+    INTERFACES zif_abapgit_gui_page_hotkey .
 
+    METHODS constructor
+      IMPORTING
+        !io_repo TYPE REF TO zcl_abapgit_repo .
+
+    METHODS zif_abapgit_gui_page~on_event
+        REDEFINITION .
   PROTECTED SECTION.
 
     CONSTANTS:
@@ -12016,7 +12021,7 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         VALUE(rv_allowed) TYPE abap_bool .
     METHODS instantiate_and_add
       IMPORTING
-        !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+        !is_repo_meta  TYPE zif_abapgit_persistence=>ty_repo
       RETURNING
         VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo
       RAISING
@@ -14898,6 +14903,12 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     APPEND io_repo TO mt_list.
 
   ENDMETHOD.
+  METHOD get_instance.
+    IF gi_ref IS INITIAL.
+      CREATE OBJECT gi_ref TYPE zcl_abapgit_repo_srv.
+    ENDIF.
+    ri_srv = gi_ref.
+  ENDMETHOD.
   METHOD instantiate_and_add.
 
     IF is_repo_meta-offline = abap_false.
@@ -14911,12 +14922,6 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDIF.
     add( ro_repo ).
 
-  ENDMETHOD.
-  METHOD get_instance.
-    IF gi_ref IS INITIAL.
-      CREATE OBJECT gi_ref TYPE zcl_abapgit_repo_srv.
-    ENDIF.
-    ri_srv = gi_ref.
   ENDMETHOD.
   METHOD is_sap_object_allowed.
 
@@ -14943,6 +14948,21 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDLOOP.
 
     mv_init = abap_true.
+
+  ENDMETHOD.
+  METHOD reinstantiate_repo.
+
+    DATA lo_repo      TYPE REF TO zcl_abapgit_repo.
+    DATA ls_full_meta TYPE zif_abapgit_persistence=>ty_repo.
+
+    lo_repo = get( iv_key ).
+    DELETE TABLE mt_list FROM lo_repo.
+    ASSERT sy-subrc IS INITIAL.
+
+    MOVE-CORRESPONDING is_meta TO ls_full_meta.
+    ls_full_meta-key = iv_key.
+
+    instantiate_and_add( ls_full_meta ).
 
   ENDMETHOD.
   METHOD validate_sub_super_packages.
@@ -14973,6 +14993,27 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
       ENDIF.
     ENDLOOP.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_listener~on_meta_change.
+
+    DATA li_persistence TYPE REF TO zif_abapgit_persist_repo.
+
+    li_persistence = zcl_abapgit_persist_factory=>get_repo( ).
+    li_persistence->update_metadata(
+      iv_key         = iv_key
+      is_meta        = is_meta
+      is_change_mask = is_change_mask ).
+    " Recreate repo instance if type changed
+    " Instances in mt_list are of *_online and *_offline type
+    " If type is changed object should be recreated from the proper class
+    " TODO refactor, e.g. unify repo logic in one class
+    IF is_change_mask-offline = abap_true.
+      reinstantiate_repo(
+        iv_key  = iv_key
+        is_meta = is_meta ).
+
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~delete.
 
@@ -15089,42 +15130,6 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     ro_repo->refresh( ).
     ro_repo->find_remote_dot_abapgit( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_listener~on_meta_change.
-
-    DATA li_persistence TYPE REF TO zif_abapgit_persist_repo.
-
-    li_persistence = zcl_abapgit_persist_factory=>get_repo( ).
-    li_persistence->update_metadata(
-      iv_key         = iv_key
-      is_meta        = is_meta
-      is_change_mask = is_change_mask ).
-    " Recreate repo instance if type changed
-    " Instances in mt_list are of *_online and *_offline type
-    " If type is changed object should be recreated from the proper class
-    " TODO refactor, e.g. unify repo logic in one class
-    IF is_change_mask-offline = abap_true.
-      reinstantiate_repo(
-        iv_key  = iv_key
-        is_meta = is_meta ).
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD reinstantiate_repo.
-
-      DATA lo_repo      TYPE REF TO zcl_abapgit_repo.
-      DATA ls_full_meta TYPE zif_abapgit_persistence=>ty_repo.
-
-      lo_repo = get( iv_key ).
-      DELETE TABLE mt_list FROM lo_repo.
-      ASSERT sy-subrc IS INITIAL.
-
-      MOVE-CORRESPONDING is_meta TO ls_full_meta.
-      ls_full_meta-key = iv_key.
-
-      instantiate_and_add( ls_full_meta ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~purge.
@@ -27489,7 +27494,82 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
+CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK DEFINITION DEFERRED.
+* renamed: zcl_abapgit_gui_page_repo_sett :: lcl_requirements
+CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK DEFINITION CREATE PRIVATE.
+
+  "This assumes grouping, any duplicate field will trigger a new record.
+  "Not perfect, but a little better than assuming a sequence
+
+  PUBLIC SECTION.
+    CLASS-METHODS new
+      RETURNING VALUE(ro_result) TYPE REF TO kHGwlqtIBLLmUTOYRsTwbzKpTIehBK.
+
+    METHODS set_component   IMPORTING iv_component   TYPE string.
+    METHODS set_min_release IMPORTING iv_min_release TYPE string.
+    METHODS set_min_patch   IMPORTING iv_min_patch   TYPE string.
+
+    METHODS get_as_table
+      RETURNING VALUE(rt_requirements) TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+
+  PRIVATE SECTION.
+    DATA: ms_requirement  TYPE zif_abapgit_dot_abapgit=>ty_requirement,
+          mt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+
+ENDCLASS.
+
+CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK IMPLEMENTATION.
+
+  METHOD new.
+    CREATE OBJECT ro_result.
+  ENDMETHOD.
+
+  METHOD set_component.
+
+    IF ms_requirement-component IS NOT INITIAL.
+      APPEND ms_requirement TO mt_requirements.
+      CLEAR ms_requirement.
+    ENDIF.
+    ms_requirement-component = iv_component.
+
+  ENDMETHOD.
+
+  METHOD set_min_patch.
+
+    IF ms_requirement-min_patch IS NOT INITIAL.
+      APPEND ms_requirement TO mt_requirements.
+      CLEAR ms_requirement.
+    ENDIF.
+    ms_requirement-min_patch = iv_min_patch.
+
+  ENDMETHOD.
+
+  METHOD set_min_release.
+
+    IF ms_requirement-min_release IS NOT INITIAL.
+      APPEND ms_requirement TO mt_requirements.
+      CLEAR ms_requirement.
+    ENDIF.
+    ms_requirement-min_release = iv_min_release.
+
+  ENDMETHOD.
+
+  METHOD get_as_table.
+
+    IF ms_requirement IS NOT INITIAL.
+      APPEND ms_requirement TO mt_requirements.
+    ENDIF.
+
+    SORT mt_requirements BY component min_release min_patch.
+    DELETE mt_requirements WHERE component IS INITIAL.
+    DELETE ADJACENT DUPLICATES FROM mt_requirements COMPARING ALL FIELDS.
+
+    rt_requirements = mt_requirements.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'REPO SETTINGS'.
@@ -27643,7 +27723,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     DATA: lo_dot          TYPE REF TO zcl_abapgit_dot_abapgit,
           ls_post_field   LIKE LINE OF it_post_fields,
-          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
+          lo_requirements TYPE REF TO kHGwlqtIBLLmUTOYRsTwbzKpTIehBK.
     FIELD-SYMBOLS: <ls_requirement> TYPE zif_abapgit_dot_abapgit=>ty_requirement.
     lo_dot = mo_repo->get_dot_abapgit( ).
 
@@ -27655,23 +27736,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ASSERT sy-subrc = 0.
     lo_dot->set_starting_folder( ls_post_field-value ).
 
+    lo_requirements = kHGwlqtIBLLmUTOYRsTwbzKpTIehBK=>new( ).
     LOOP AT it_post_fields INTO ls_post_field WHERE name CP 'req_*'.
       CASE ls_post_field-name+4(3).
         WHEN 'com'.
-          INSERT INITIAL LINE INTO TABLE lt_requirements ASSIGNING <ls_requirement>.
-          <ls_requirement>-component = ls_post_field-value.
+          lo_requirements->set_component( ls_post_field-value ).
         WHEN 'rel'.
-          <ls_requirement>-min_release = ls_post_field-value.
+          lo_requirements->set_min_release( ls_post_field-value ).
         WHEN 'pat'.
-          <ls_requirement>-min_patch = ls_post_field-value.
+          lo_requirements->set_min_patch( ls_post_field-value ).
       ENDCASE.
     ENDLOOP.
 
-    SORT lt_requirements BY component min_release min_patch.
-    DELETE lt_requirements WHERE component IS INITIAL.
-    DELETE ADJACENT DUPLICATES FROM lt_requirements COMPARING ALL FIELDS.
-
-    lo_dot->set_requirements( lt_requirements ).
+    lo_dot->set_requirements( lo_requirements->get_as_table( ) ).
 
     mo_repo->set_dot_abapgit( lo_dot ).
 
@@ -54601,16 +54678,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_form IMPLEMENTATION.
-
-  METHOD constructor.
-
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
-
-    mv_form_name = ms_item-obj_name.
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   METHOD build_extra_from_header.
 
     DATA: lv_tdspras TYPE laiso.
@@ -54642,6 +54710,14 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
                             iv_ext    = c_extension_xml
                             iv_string = lv_string ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+    mv_form_name = ms_item-obj_name.
 
   ENDMETHOD.
   METHOD extract_tdlines.
@@ -54699,6 +54775,41 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         read_only_header = abap_true
       IMPORTING
         form_header      = rs_last_changed.
+
+  ENDMETHOD.
+  METHOD order_check_and_insert.
+
+    DATA: ls_order TYPE e071k-trkorr.
+
+    CALL FUNCTION 'SAPSCRIPT_ORDER_CHECK'
+      EXPORTING
+        objecttype           = ms_item-obj_type
+        form                 = mv_form_name
+      EXCEPTIONS
+        invalid_input        = 1
+        object_locked        = 2
+        object_not_available = 3
+        OTHERS               = 4.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    CALL FUNCTION 'SAPSCRIPT_ORDER_INSERT'
+      EXPORTING
+        objecttype     = ms_item-obj_type
+        form           = mv_form_name
+        masterlang     = mv_language
+      CHANGING
+        order          = ls_order
+      EXCEPTIONS
+        invalid_input  = 1
+        order_canceled = 2
+        OTHERS         = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -54784,6 +54895,9 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
     rv_changed = boolc( sy-subrc <> 0 OR lv_last_changed_ts > iv_timestamp ).
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -54915,10 +55029,34 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         tabs         = es_form_data-tabs
         windows      = es_form_data-windows.
 
-      _sort_tdlines_by_windows( CHANGING ct_form_windows  = es_form_data-windows
-                                         ct_lines         = et_lines ).
+    _sort_tdlines_by_windows( CHANGING ct_form_windows  = es_form_data-windows
+                                       ct_lines         = et_lines ).
   ENDMETHOD.
+  METHOD _save_form.
 
+    CALL FUNCTION 'SAVE_FORM'
+      EXPORTING
+        form_header  = cs_form_data-form_header
+      TABLES
+        form_lines   = it_lines
+        pages        = cs_form_data-pages
+        page_windows = cs_form_data-page_windows
+        paragraphs   = cs_form_data-paragraphs
+        strings      = cs_form_data-strings
+        tabs         = cs_form_data-tabs
+        windows      = cs_form_data-windows.
+
+    CALL FUNCTION 'SAPSCRIPT_CHANGE_OLANGUAGE'
+      EXPORTING
+        forced    = abap_true
+        name      = cs_form_data-text_header-tdname
+        object    = cs_form_data-text_header-tdobject
+        olanguage = cs_form_data-orig_language
+      EXCEPTIONS
+        OTHERS    = 1
+        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+
+  ENDMETHOD.
   METHOD _sort_tdlines_by_windows.
     DATA lt_lines        TYPE zcl_abapgit_object_form=>tyt_lines.
     DATA ls_lines        LIKE LINE OF lt_lines.
@@ -54944,71 +55082,6 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         lv_firstloop = abap_false.
       ENDLOOP.
     ENDLOOP.
-  ENDMETHOD.
-
-METHOD _save_form.
-
-    CALL FUNCTION 'SAVE_FORM'
-      EXPORTING
-        form_header  = cs_form_data-form_header
-      TABLES
-        form_lines   = it_lines
-        pages        = cs_form_data-pages
-        page_windows = cs_form_data-page_windows
-        paragraphs   = cs_form_data-paragraphs
-        strings      = cs_form_data-strings
-        tabs         = cs_form_data-tabs
-        windows      = cs_form_data-windows.
-
-    CALL FUNCTION 'SAPSCRIPT_CHANGE_OLANGUAGE'
-      EXPORTING
-        forced    = abap_true
-        name      = cs_form_data-text_header-tdname
-        object    = cs_form_data-text_header-tdobject
-        olanguage = cs_form_data-orig_language
-      EXCEPTIONS
-        OTHERS    = 1
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
-
-  ENDMETHOD.
-
-  METHOD order_check_and_insert.
-
-    DATA: ls_order TYPE e071k-trkorr.
-
-    CALL FUNCTION 'SAPSCRIPT_ORDER_CHECK'
-      EXPORTING
-        objecttype           = ms_item-obj_type
-        form                 = mv_form_name
-      EXCEPTIONS
-        invalid_input        = 1
-        object_locked        = 2
-        object_not_available = 3
-        OTHERS               = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    CALL FUNCTION 'SAPSCRIPT_ORDER_INSERT'
-      EXPORTING
-        objecttype     = ms_item-obj_type
-        form           = mv_form_name
-        masterlang     = mv_language
-      CHANGING
-        order          = ls_order
-      EXCEPTIONS
-        invalid_input  = 1
-        order_canceled = 2
-        OTHERS         = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
@@ -60072,8 +60145,7 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
     rv_active = abap_true.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -60082,39 +60154,12 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     mv_customizing_activity = ms_item-obj_name.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~exists.
-
-    CALL FUNCTION 'S_CUS_ACTIVITY_EXIST'
-      EXPORTING
-        activity            = mv_customizing_activity
-      EXCEPTIONS
-        activity_exists_not = 1
-        OTHERS              = 2.
-
-    rv_bool = boolc( sy-subrc = 0 ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
 
     DATA: ls_message TYPE hier_mess.
@@ -60130,32 +60175,6 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_customzing_activity TYPE ty_customzing_activity.
-
-    CALL FUNCTION 'S_CUS_ACTIVITY_READ'
-      EXPORTING
-        activity               = mv_customizing_activity
-      IMPORTING
-        activity_header        = ls_customzing_activity-activity_header
-        activity_customer_exit = ls_customzing_activity-activity_customer_exit
-      TABLES
-        activity_title         = ls_customzing_activity-activity_title
-        objects                = ls_customzing_activity-objects
-        objects_title          = ls_customzing_activity-objects_title.
-
-    CLEAR: ls_customzing_activity-activity_header-fdatetime,
-           ls_customzing_activity-activity_header-fuser,
-           ls_customzing_activity-activity_header-ldatetime,
-           ls_customzing_activity-activity_header-luser.
-
-    io_xml->add( iv_name = 'CUS1'
-                 ig_data = ls_customzing_activity ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_customzing_activity TYPE ty_customzing_activity,
@@ -60204,18 +60223,60 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+    CALL FUNCTION 'S_CUS_ACTIVITY_EXIST'
+      EXPORTING
+        activity            = mv_customizing_activity
+      EXCEPTIONS
+        activity_exists_not = 1
+        OTHERS              = 2.
+
+    rv_bool = boolc( sy-subrc = 0 ).
+
   ENDMETHOD.
-
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = abap_true.
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
     rv_is_locked = abap_false.
   ENDMETHOD.
-METHOD zif_abapgit_object~is_active.
-    rv_active = abap_true.
-  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
 
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: ls_customzing_activity TYPE ty_customzing_activity.
+
+    CALL FUNCTION 'S_CUS_ACTIVITY_READ'
+      EXPORTING
+        activity               = mv_customizing_activity
+      IMPORTING
+        activity_header        = ls_customzing_activity-activity_header
+        activity_customer_exit = ls_customzing_activity-activity_customer_exit
+      TABLES
+        activity_title         = ls_customzing_activity-activity_title
+        objects                = ls_customzing_activity-objects
+        objects_title          = ls_customzing_activity-objects_title.
+
+    CLEAR: ls_customzing_activity-activity_header-fdatetime,
+           ls_customzing_activity-activity_header-fuser,
+           ls_customzing_activity-activity_header-ldatetime,
+           ls_customzing_activity-activity_header-luser.
+
+    io_xml->add( iv_name = 'CUS1'
+                 ig_data = ls_customzing_activity ).
+
+  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   METHOD constructor.
@@ -66824,5 +66885,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-25T09:12:42.334Z
+* abapmerge undefined - 2018-12-26T05:38:16.186Z
 ****************************************************
