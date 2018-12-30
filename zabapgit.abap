@@ -10025,6 +10025,13 @@ CLASS zcl_abapgit_convert DEFINITION
         !iv_string      TYPE string
       RETURNING
         VALUE(rt_lines) TYPE string_table .
+    CLASS-METHODS conversion_exit_isola_output
+      IMPORTING
+        iv_spras        TYPE spras
+      RETURNING
+        VALUE(rv_spras) TYPE laiso.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_diff DEFINITION
   CREATE PUBLIC .
@@ -11884,11 +11891,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS update_last_deserialize
       RAISING
         zcx_abapgit_exception .
-    METHODS conversion_exit_isola_output
-      IMPORTING
-        iv_spras        TYPE spras
-      RETURNING
-        VALUE(rv_spras) TYPE laiso.
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -15566,6 +15568,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD bind_listener.
+    mi_listener = ii_listener.
+  ENDMETHOD.
   METHOD build_dotabapgit_file.
 
     rs_file-path     = zif_abapgit_definitions=>c_root_dir.
@@ -15581,15 +15586,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     ms_data = is_data.
     mv_request_remote_refresh = abap_true.
-
-  ENDMETHOD.
-  METHOD conversion_exit_isola_output.
-
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
-      EXPORTING
-        input  = iv_spras
-      IMPORTING
-        output = rv_spras.
 
   ENDMETHOD.
   METHOD delete_checks.
@@ -15649,9 +15645,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
     ELSEIF lv_master_language <> lv_logon_language.
       zcx_abapgit_exception=>raise( |Current login language |
-                                 && |'{ conversion_exit_isola_output( lv_logon_language ) }'|
+                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_logon_language ) }'|
                                  && | does not match master language |
-                                 && |'{ conversion_exit_isola_output( lv_master_language ) }'| ).
+                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_master_language ) }'| ).
     ENDIF.
 
     rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
@@ -16013,8 +16009,22 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     rt_results = mt_status.
 
   ENDMETHOD.
-  METHOD bind_listener.
-    mi_listener = ii_listener.
+  METHOD switch_repo_type.
+
+    IF iv_offline = ms_data-offline.
+      zcx_abapgit_exception=>raise( |Cannot switch_repo_type, offline already = "{ ms_data-offline }"| ).
+    ENDIF.
+
+    IF iv_offline = abap_true. " On-line -> OFFline
+      set(
+        iv_url         = zcl_abapgit_url=>name( ms_data-url )
+        iv_branch_name = ''
+        iv_head_branch = ''
+        iv_offline     = abap_true ).
+    ELSE. " OFFline -> On-line
+      set( iv_offline = abap_false ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD update_last_deserialize.
 
@@ -16103,23 +16113,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     SORT lt_checksums BY item.
     set( it_checksums = lt_checksums ).
-
-  ENDMETHOD.
-  METHOD switch_repo_type.
-
-    IF iv_offline = ms_data-offline.
-      zcx_abapgit_exception=>raise( |Cannot switch_repo_type, offline already = "{ ms_data-offline }"| ).
-    ENDIF.
-
-    IF iv_offline = abap_true. " On-line -> OFFline
-      set(
-        iv_url         = zcl_abapgit_url=>name( ms_data-url )
-        iv_branch_name = ''
-        iv_head_branch = ''
-        iv_offline     = abap_true ).
-    ELSE. " OFFline -> On-line
-      set( iv_offline = abap_false ).
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -21622,6 +21615,15 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
       lv_offset = lv_offset - 1. "Move Cursor
 
     ENDDO.
+
+  ENDMETHOD.
+  METHOD conversion_exit_isola_output.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
+      EXPORTING
+        input  = iv_spras
+      IMPORTING
+        output = rv_spras.
 
   ENDMETHOD.
   METHOD int_to_xstring4.
@@ -66886,5 +66888,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-30T07:08:20.429Z
+* abapmerge undefined - 2018-12-30T07:10:33.417Z
 ****************************************************
