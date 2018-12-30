@@ -455,7 +455,6 @@ CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_check DEFINITION DEFERRED.
-CLASS zcl_abapgit_string_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
@@ -469,13 +468,10 @@ CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhc DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
-CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
@@ -496,6 +492,7 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_master_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
+CLASS zcl_abapgit_string_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
@@ -645,6 +642,7 @@ CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
@@ -672,6 +670,7 @@ CLASS zcl_abapgit_object_avas DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_asfc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
+CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
 CLASS zcl_abapgit_comparison_null DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
@@ -689,6 +688,7 @@ CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_http DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_github_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_registry DEFINITION DEFERRED.
@@ -3204,6 +3204,40 @@ CLASS zcl_abapgit_http DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    METHODS:
+      constructor
+        IMPORTING ii_client TYPE REF TO if_http_client,
+      close,
+      set_digest
+        IMPORTING io_digest TYPE REF TO zcl_abapgit_http_digest,
+      send_receive_close
+        IMPORTING iv_data        TYPE xstring
+        RETURNING VALUE(rv_data) TYPE xstring
+        RAISING   zcx_abapgit_exception,
+      get_cdata
+        RETURNING VALUE(rv_value) TYPE string,
+      check_http_200
+        RAISING zcx_abapgit_exception,
+      check_smart_response
+        IMPORTING iv_expected_content_type TYPE string
+                  iv_content_regex         TYPE string
+        RAISING   zcx_abapgit_exception,
+      send_receive
+        RAISING zcx_abapgit_exception,
+      set_headers
+        IMPORTING iv_url     TYPE string
+                  iv_service TYPE string
+        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA: mi_client TYPE REF TO if_http_client,
+          mo_digest TYPE REF TO zcl_abapgit_http_digest.
+
+ENDCLASS.
 CLASS zcl_abapgit_http_digest DEFINITION
   CREATE PUBLIC .
 
@@ -3676,6 +3710,49 @@ CLASS zcl_abapgit_comparison_null DEFINITION FINAL CREATE PUBLIC.
     INTERFACES zif_abapgit_comparison_result .
   PROTECTED SECTION.
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_longtexts DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      serialize
+        IMPORTING
+          iv_object_name TYPE sobj_name
+          iv_longtext_id TYPE dokil-id
+          it_dokil       TYPE zif_abapgit_definitions=>tty_dokil
+          io_xml         TYPE REF TO zcl_abapgit_xml_output
+        RAISING
+          zcx_abapgit_exception,
+
+      deserialize
+        IMPORTING
+          io_xml             TYPE REF TO zcl_abapgit_xml_input
+          iv_master_language TYPE langu
+        RAISING
+          zcx_abapgit_exception,
+
+      delete
+        IMPORTING
+          iv_object_name TYPE sobj_name
+          iv_longtext_id TYPE dokil-id
+        RAISING
+          zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_longtext,
+        dokil TYPE dokil,
+        head  TYPE thead,
+        lines TYPE tline_tab,
+      END OF ty_longtext,
+      tty_longtexts TYPE STANDARD TABLE OF ty_longtext
+                         WITH NON-UNIQUE DEFAULT KEY.
+    CONSTANTS:
+      c_longtexts_name    TYPE string   VALUE 'LONGTEXTS' ##NO_TEXT,
+      c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_badi DEFINITION.
 
@@ -4927,6 +5004,24 @@ CLASS zcl_abapgit_object_ecvo DEFINITION
       get_lock_object REDEFINITION.
 
 ENDCLASS.
+CLASS zcl_abapgit_object_enhc DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+    METHODS:
+      constructor
+        IMPORTING
+          is_item     TYPE zif_abapgit_definitions=>ty_item
+          iv_language TYPE spras.
+
+  PRIVATE SECTION.
+    DATA:
+      mv_composite_id TYPE enhcompositename.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_enho DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
@@ -6070,6 +6165,7 @@ CLASS zcl_abapgit_object_vcls DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 * See include MTOBJCON:
     CONSTANTS: c_cluster_type TYPE c VALUE 'C'.
@@ -10273,6 +10369,41 @@ CLASS zcl_abapgit_state DEFINITION
           !cv_prev TYPE char1 .
 
 ENDCLASS.
+CLASS zcl_abapgit_string_utils DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS string_to_xstring
+      IMPORTING
+        iv_str         TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS base64_to_xstring
+      IMPORTING
+        iv_base64      TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS bintab_to_xstring
+      IMPORTING
+        it_bintab      TYPE lvc_t_mime
+        iv_size        TYPE i
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS xstring_to_bintab
+      IMPORTING
+        iv_xstr   TYPE xstring
+      EXPORTING
+        ev_size   TYPE i
+        et_bintab TYPE lvc_t_mime.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
   CREATE PUBLIC .
 
@@ -11109,40 +11240,6 @@ CLASS zcl_abapgit_folder_logic DEFINITION
         WITH UNIQUE KEY devclass .
     DATA mt_parent TYPE ty_devclass_info_tt .
 ENDCLASS.
-CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
-
-  PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING ii_client TYPE REF TO if_http_client,
-      close,
-      set_digest
-        IMPORTING io_digest TYPE REF TO zcl_abapgit_http_digest,
-      send_receive_close
-        IMPORTING iv_data        TYPE xstring
-        RETURNING VALUE(rv_data) TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      get_cdata
-        RETURNING VALUE(rv_value) TYPE string,
-      check_http_200
-        RAISING zcx_abapgit_exception,
-      check_smart_response
-        IMPORTING iv_expected_content_type TYPE string
-                  iv_content_regex         TYPE string
-        RAISING   zcx_abapgit_exception,
-      send_receive
-        RAISING zcx_abapgit_exception,
-      set_headers
-        IMPORTING iv_url     TYPE string
-                  iv_service TYPE string
-        RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    DATA: mi_client TYPE REF TO if_http_client,
-          mo_digest TYPE REF TO zcl_abapgit_http_digest.
-
-ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE
   FOR TESTING .
@@ -11172,49 +11269,6 @@ CLASS zcl_abapgit_injector DEFINITION
       IMPORTING
         ii_cts_api TYPE REF TO zif_abapgit_cts_api.
   PRIVATE SECTION.
-ENDCLASS.
-CLASS zcl_abapgit_longtexts DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    CLASS-METHODS:
-      serialize
-        IMPORTING
-          iv_object_name TYPE sobj_name
-          iv_longtext_id TYPE dokil-id
-          it_dokil       TYPE zif_abapgit_definitions=>tty_dokil
-          io_xml         TYPE REF TO zcl_abapgit_xml_output
-        RAISING
-          zcx_abapgit_exception,
-
-      deserialize
-        IMPORTING
-          io_xml             TYPE REF TO zcl_abapgit_xml_input
-          iv_master_language TYPE langu
-        RAISING
-          zcx_abapgit_exception,
-
-      delete
-        IMPORTING
-          iv_object_name TYPE sobj_name
-          iv_longtext_id TYPE dokil-id
-        RAISING
-          zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    TYPES:
-      BEGIN OF ty_longtext,
-        dokil TYPE dokil,
-        head  TYPE thead,
-        lines TYPE tline_tab,
-      END OF ty_longtext,
-      tty_longtexts TYPE STANDARD TABLE OF ty_longtext
-                         WITH NON-UNIQUE DEFAULT KEY.
-    CONSTANTS:
-      c_longtexts_name    TYPE string   VALUE 'LONGTEXTS' ##NO_TEXT,
-      c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
-
 ENDCLASS.
 CLASS zcl_abapgit_merge DEFINITION
   FINAL
@@ -11392,24 +11446,6 @@ CLASS zcl_abapgit_news DEFINITION
         !iv_current_version TYPE string
       RETURNING
         VALUE(rt_log)       TYPE tt_log .
-ENDCLASS.
-CLASS zcl_abapgit_object_enhc DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super.
-
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
-    METHODS:
-      constructor
-        IMPORTING
-          is_item     TYPE zif_abapgit_definitions=>ty_item
-          iv_language TYPE spras.
-
-  PRIVATE SECTION.
-    DATA:
-      mv_composite_id TYPE enhcompositename.
-
 ENDCLASS.
 CLASS zcl_abapgit_objects DEFINITION
   CREATE PUBLIC .
@@ -12365,41 +12401,6 @@ CLASS zcl_abapgit_stage_logic DEFINITION
       remove_identical
         CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
-ENDCLASS.
-CLASS zcl_abapgit_string_utils DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS string_to_xstring
-      IMPORTING
-        iv_str         TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS base64_to_xstring
-      IMPORTING
-        iv_base64      TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS bintab_to_xstring
-      IMPORTING
-        it_bintab      TYPE lvc_t_mime
-        iv_size        TYPE i
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS xstring_to_bintab
-      IMPORTING
-        iv_xstr   TYPE xstring
-      EXPORTING
-        ev_size   TYPE i
-        et_bintab TYPE lvc_t_mime.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_check DEFINITION
   CREATE PRIVATE
@@ -14022,57 +14023,6 @@ CLASS zcl_abapgit_syntax_check IMPLEMENTATION.
   METHOD zif_abapgit_code_inspector~run.
 
     rt_list = mo_adhoc_code_inspector->run( ).
-
-  ENDMETHOD.
-ENDCLASS.
-CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
-  METHOD base64_to_xstring.
-
-    CALL FUNCTION 'SSFC_BASE64_DECODE'
-      EXPORTING
-        b64data = iv_base64
-      IMPORTING
-        bindata = rv_xstr
-      EXCEPTIONS
-        OTHERS  = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD bintab_to_xstring.
-
-    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = iv_size
-      IMPORTING
-        buffer       = rv_xstr
-      TABLES
-        binary_tab   = it_bintab
-      EXCEPTIONS
-        failed       = 1 ##FM_SUBRC_OK.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD string_to_xstring.
-
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = iv_str
-      IMPORTING
-        buffer = rv_xstr
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD xstring_to_bintab.
-
-    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-    EXPORTING
-      buffer        = iv_xstr
-    IMPORTING
-      output_length = ev_size
-    TABLES
-      binary_tab    = et_bintab.
 
   ENDMETHOD.
 ENDCLASS.
@@ -17111,180 +17061,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
-  METHOD constructor.
-
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
-
-    mv_composite_id = ms_item-obj_name.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~changed_by.
-
-    rv_user = c_user_unknown.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lx_error      TYPE REF TO cx_enh_root,
-          li_enh_object TYPE REF TO if_enh_object.
-
-    TRY.
-        li_enh_object = cl_enh_factory=>load_enhancement_composite(
-          name = mv_composite_id
-          lock = abap_true ).
-
-        li_enh_object->delete( ).
-        li_enh_object->save( ).
-        li_enh_object->unlock( ).
-
-      CATCH cx_enh_root INTO lx_error.
-        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lx_error            TYPE REF TO cx_enh_root,
-          li_enh_composite    TYPE REF TO if_enh_composite,
-          lv_package          TYPE devclass,
-          lt_composite_childs TYPE enhcompositename_it,
-          lt_enh_childs       TYPE enhname_it,
-          lv_longtext_id      TYPE enhdocuobject,
-          lv_shorttext        TYPE string.
-
-    FIELD-SYMBOLS: <ls_composite_child> TYPE enhcompositename,
-                   <ls_enh_child>       LIKE LINE OF lt_enh_childs.
-
-    lv_package = iv_package.
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING  cg_data = lv_shorttext ).
-    io_xml->read( EXPORTING iv_name = 'COMPOSITE_CHILDS'
-                  CHANGING  cg_data = lt_composite_childs ).
-    io_xml->read( EXPORTING iv_name = 'ENH_CHILDS'
-                  CHANGING  cg_data = lt_enh_childs ).
-    io_xml->read( EXPORTING iv_name = 'LONGTEXT_ID'
-                  CHANGING  cg_data = lv_longtext_id ).
-
-    TRY.
-        cl_enh_factory=>create_enhancement_composite(
-          EXPORTING
-            name      = mv_composite_id
-            run_dark  = abap_true
-          IMPORTING
-            composite = li_enh_composite
-          CHANGING
-            devclass  = lv_package ).
-
-        li_enh_composite->if_enh_object_docu~set_shorttext( lv_shorttext ).
-
-        LOOP AT lt_composite_childs ASSIGNING <ls_composite_child>.
-          li_enh_composite->add_composite_child( <ls_composite_child> ).
-        ENDLOOP.
-
-        LOOP AT lt_enh_childs ASSIGNING <ls_enh_child>.
-          li_enh_composite->add_enh_child( <ls_enh_child> ).
-        ENDLOOP.
-
-        li_enh_composite->set_longtext_id( lv_longtext_id ).
-
-        li_enh_composite->if_enh_object~save( ).
-        li_enh_composite->if_enh_object~activate( ).
-        li_enh_composite->if_enh_object~unlock( ).
-
-      CATCH cx_enh_root INTO lx_error.
-        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~exists.
-
-    TRY.
-        cl_enh_factory=>load_enhancement_composite(
-          name = mv_composite_id
-          lock = abap_false ).
-        rv_bool = abap_true.
-      CATCH cx_enh_root.
-        rv_bool = abap_false.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_argument TYPE seqg3-garg.
-
-    lv_argument = |{ mv_composite_id }|.
-    OVERLAY lv_argument WITH '                                  '.
-    lv_argument = |{ lv_argument }*|.
-
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = |E_ENHANCE|
-                                            iv_argument    = lv_argument ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true
-      EXCEPTIONS
-        OTHERS        = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lx_error            TYPE REF TO cx_enh_root,
-          li_enh_composite    TYPE REF TO if_enh_composite,
-          lt_composite_childs TYPE enhcompositename_it,
-          lt_enh_childs       TYPE enhname_it,
-          lv_longtext_id      TYPE enhdocuobject,
-          lv_shorttext        TYPE string.
-
-    TRY.
-        li_enh_composite = cl_enh_factory=>load_enhancement_composite(
-          name = mv_composite_id
-          lock = abap_false ).
-
-        lv_shorttext = li_enh_composite->if_enh_object_docu~get_shorttext( ).
-
-        lt_composite_childs = li_enh_composite->get_composite_childs( ).
-        lt_enh_childs       = li_enh_composite->get_enh_childs( ).
-        lv_longtext_id      = li_enh_composite->get_longtext_id( ).
-
-        io_xml->add( iv_name = 'SHORTTEXT'
-                     ig_data = lv_shorttext ).
-        io_xml->add( iv_name = 'COMPOSITE_CHILDS'
-                     ig_data = lt_composite_childs ).
-        io_xml->add( iv_name = 'ENH_CHILDS'
-                     ig_data = lt_enh_childs ).
-        io_xml->add( iv_name = 'LONGTEXT_ID'
-                     ig_data = lv_longtext_id ).
-
-      CATCH cx_enh_root INTO lx_error.
-        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-ENDCLASS.
 CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
 
@@ -17914,126 +17690,6 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
-  METHOD delete.
-
-    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
-    FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
-
-    SELECT * FROM dokil
-             INTO TABLE lt_dokil
-             WHERE id     = iv_longtext_id
-             AND   object = iv_longtext_id.
-
-    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
-
-      CALL FUNCTION 'DOCU_DEL'
-        EXPORTING
-          id       = <ls_dokil>-id
-          langu    = <ls_dokil>-langu
-          object   = <ls_dokil>-object
-          typ      = <ls_dokil>-typ
-        EXCEPTIONS
-          ret_code = 1
-          OTHERS   = 2.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD deserialize.
-
-    DATA: lt_longtexts     TYPE tty_longtexts,
-          lv_no_masterlang TYPE dokil-masterlang.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = c_longtexts_name
-      CHANGING
-        cg_data = lt_longtexts ).
-
-    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
-
-      lv_no_masterlang = boolc( iv_master_language <> <ls_longtext>-dokil-langu ).
-
-      CALL FUNCTION 'DOCU_UPDATE'
-        EXPORTING
-          head          = <ls_longtext>-head
-          state         = c_docu_state_active
-          typ           = <ls_longtext>-dokil-typ
-          version       = <ls_longtext>-dokil-version
-          no_masterlang = lv_no_masterlang
-        TABLES
-          line          = <ls_longtext>-lines.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD serialize.
-
-    DATA: ls_longtext  TYPE ty_longtext,
-          lt_longtexts TYPE tty_longtexts,
-          lt_dokil     TYPE zif_abapgit_definitions=>tty_dokil.
-
-    FIELD-SYMBOLS: <ls_dokil> LIKE LINE OF lt_dokil.
-    IF lines( it_dokil ) > 0.
-
-      lt_dokil = it_dokil.
-
-    ELSEIF iv_longtext_id IS NOT INITIAL.
-
-      SELECT * FROM dokil
-              INTO TABLE lt_dokil
-              WHERE id     = iv_longtext_id
-              AND   object = iv_object_name.
-
-    ELSE.
-
-      zcx_abapgit_exception=>raise( |serialize_longtexts parameter error| ).
-
-    ENDIF.
-
-    LOOP AT lt_dokil ASSIGNING <ls_dokil>
-                     WHERE txtlines > 0.
-
-      CLEAR: ls_longtext.
-
-      ls_longtext-dokil = <ls_dokil>.
-
-      CALL FUNCTION 'DOCU_READ'
-        EXPORTING
-          id      = <ls_dokil>-id
-          langu   = <ls_dokil>-langu
-          object  = <ls_dokil>-object
-          typ     = <ls_dokil>-typ
-          version = <ls_dokil>-version
-        IMPORTING
-          head    = ls_longtext-head
-        TABLES
-          line    = ls_longtext-lines.
-
-      CLEAR: ls_longtext-head-tdfuser,
-             ls_longtext-head-tdfreles,
-             ls_longtext-head-tdfdate,
-             ls_longtext-head-tdftime,
-             ls_longtext-head-tdluser,
-             ls_longtext-head-tdlreles,
-             ls_longtext-head-tdldate,
-             ls_longtext-head-tdltime.
-
-      INSERT ls_longtext INTO TABLE lt_longtexts.
-
-    ENDLOOP.
-
-    io_xml->add( iv_name = c_longtexts_name
-                 ig_data = lt_longtexts ).
-
-  ENDMETHOD.
-ENDCLASS.
 CLASS zcl_abapgit_injector IMPLEMENTATION.
   METHOD set_code_inspector.
 
@@ -18113,142 +17769,6 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
 
   METHOD set_cts_api.
     zcl_abapgit_factory=>gi_cts_api = ii_cts_api.
-  ENDMETHOD.
-ENDCLASS.
-CLASS zcl_abapgit_http_client IMPLEMENTATION.
-  METHOD check_http_200.
-
-    DATA: lv_code TYPE i,
-          lv_text TYPE string.
-
-    mi_client->response->get_status(
-      IMPORTING
-        code   = lv_code ).
-    CASE lv_code.
-      WHEN 200.
-        RETURN.
-      WHEN 302.
-        zcx_abapgit_exception=>raise( 'HTTP redirect, check URL' ).
-      WHEN 401.
-        zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
-      WHEN 403.
-        zcx_abapgit_exception=>raise( 'HTTP 403, forbidden' ).
-      WHEN 404.
-        zcx_abapgit_exception=>raise( 'HTTP 404, not found' ).
-      WHEN 415.
-        zcx_abapgit_exception=>raise( 'HTTP 415, unsupported media type' ).
-      WHEN OTHERS.
-        lv_text = mi_client->response->get_cdata( ).
-        zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD check_smart_response.
-
-    DATA: lv_content_type TYPE string.
-    DATA: lv_data         TYPE string.
-
-    IF iv_expected_content_type IS NOT INITIAL.
-      lv_content_type = mi_client->response->get_content_type( ).
-      IF lv_content_type <> iv_expected_content_type.
-        zcx_abapgit_exception=>raise( 'Wrong Content-Type sent by server - no fallback to the dumb protocol!' ).
-      ENDIF.
-    ENDIF.
-
-    IF iv_content_regex IS NOT INITIAL.
-      lv_data = mi_client->response->get_cdata( ).
-      FIND REGEX iv_content_regex IN lv_data.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Wrong Content sent by server' ).
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD close.
-    mi_client->close( ).
-  ENDMETHOD.
-  METHOD constructor.
-    mi_client = ii_client.
-  ENDMETHOD.
-  METHOD get_cdata.
-    rv_value = mi_client->response->get_cdata( ).
-  ENDMETHOD.
-  METHOD send_receive.
-
-    DATA: lv_text    TYPE string,
-          lv_code    TYPE i,
-          lv_message TYPE string.
-
-    mi_client->send( ).
-    mi_client->receive(
-      EXCEPTIONS
-        http_communication_failure = 1
-        http_invalid_state         = 2
-        http_processing_failed     = 3
-        OTHERS                     = 4 ).
-
-    IF sy-subrc <> 0.
-      " in case of HTTP_COMMUNICATION_FAILURE
-      " make sure:
-      " a) SSL is setup properly in STRUST
-      " b) no firewalls
-      " check trace file in transaction SMICM
-
-      mi_client->get_last_error(
-        IMPORTING
-          code    = lv_code
-          message = lv_message ).
-
-      lv_text = |HTTP error { lv_code } occured: { lv_message }|.
-
-      zcx_abapgit_exception=>raise( lv_text ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD send_receive_close.
-
-* do not use set_cdata as it modifies the Content-Type header field
-    mi_client->request->set_data( iv_data ).
-    send_receive( ).
-    check_http_200( ).
-    rv_data = mi_client->response->get_data( ).
-    mi_client->close( ).
-
-  ENDMETHOD.
-  METHOD set_digest.
-    mo_digest = io_digest.
-  ENDMETHOD.
-  METHOD set_headers.
-
-    DATA: lv_value TYPE string.
-    mi_client->request->set_header_field(
-        name  = '~request_method'
-        value = 'POST' ).
-
-    lv_value = zcl_abapgit_url=>path_name( iv_url ) &&
-      '/git-' &&
-      iv_service &&
-      '-pack'.
-    mi_client->request->set_header_field(
-        name  = '~request_uri'
-        value = lv_value ).
-
-    lv_value = 'application/x-git-'
-                  && iv_service && '-pack-request'.         "#EC NOTEXT
-    mi_client->request->set_header_field(
-        name  = 'Content-Type'
-        value = lv_value ).                                 "#EC NOTEXT
-
-    lv_value = 'application/x-git-'
-                  && iv_service && '-pack-result'.          "#EC NOTEXT
-    mi_client->request->set_header_field(
-        name  = 'Accept'
-        value = lv_value ).                                 "#EC NOTEXT
-
-    IF mo_digest IS BOUND.
-      mo_digest->run( mi_client ).
-    ENDIF.
-
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
@@ -20924,6 +20444,57 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
     CONDENSE rv_time.
     rv_time+11 = lv_utcsign.
     rv_time+12 = lv_utcdiff.
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
+  METHOD base64_to_xstring.
+
+    CALL FUNCTION 'SSFC_BASE64_DECODE'
+      EXPORTING
+        b64data = iv_base64
+      IMPORTING
+        bindata = rv_xstr
+      EXCEPTIONS
+        OTHERS  = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD bintab_to_xstring.
+
+    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
+      EXPORTING
+        input_length = iv_size
+      IMPORTING
+        buffer       = rv_xstr
+      TABLES
+        binary_tab   = it_bintab
+      EXCEPTIONS
+        failed       = 1 ##FM_SUBRC_OK.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD string_to_xstring.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text   = iv_str
+      IMPORTING
+        buffer = rv_xstr
+      EXCEPTIONS
+        OTHERS = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD xstring_to_bintab.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      buffer        = iv_xstr
+    IMPORTING
+      output_length = ev_size
+    TABLES
+      binary_tab    = et_bintab.
 
   ENDMETHOD.
 ENDCLASS.
@@ -42945,7 +42516,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -42982,6 +42553,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
                   CHANGING cg_data = lt_vclmf ).
 
     ls_vcldir_entry-author = sy-uname.
+    ls_vcldir_entry-changedate = sy-datum.
 
     CALL FUNCTION 'VIEWCLUSTER_SAVE_DEFINITION'
       EXPORTING
@@ -43050,6 +42622,9 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -43143,6 +42718,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     ENDIF.
 
     CLEAR ls_vcldir_entry-author.
+    CLEAR ls_vcldir_entry-changedate.
 
     io_xml->add( iv_name = 'VCLDIR'
                  ig_data = ls_vcldir_entry ).
@@ -43153,9 +42729,6 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     io_xml->add( iv_name = 'VCLMF_TAB'
                  ig_data = lt_vclmf ).
 
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
@@ -56798,6 +56371,180 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+    mv_composite_id = ms_item-obj_name.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+
+    rv_user = c_user_unknown.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lx_error      TYPE REF TO cx_enh_root,
+          li_enh_object TYPE REF TO if_enh_object.
+
+    TRY.
+        li_enh_object = cl_enh_factory=>load_enhancement_composite(
+          name = mv_composite_id
+          lock = abap_true ).
+
+        li_enh_object->delete( ).
+        li_enh_object->save( ).
+        li_enh_object->unlock( ).
+
+      CATCH cx_enh_root INTO lx_error.
+        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lx_error            TYPE REF TO cx_enh_root,
+          li_enh_composite    TYPE REF TO if_enh_composite,
+          lv_package          TYPE devclass,
+          lt_composite_childs TYPE enhcompositename_it,
+          lt_enh_childs       TYPE enhname_it,
+          lv_longtext_id      TYPE enhdocuobject,
+          lv_shorttext        TYPE string.
+
+    FIELD-SYMBOLS: <ls_composite_child> TYPE enhcompositename,
+                   <ls_enh_child>       LIKE LINE OF lt_enh_childs.
+
+    lv_package = iv_package.
+    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING  cg_data = lv_shorttext ).
+    io_xml->read( EXPORTING iv_name = 'COMPOSITE_CHILDS'
+                  CHANGING  cg_data = lt_composite_childs ).
+    io_xml->read( EXPORTING iv_name = 'ENH_CHILDS'
+                  CHANGING  cg_data = lt_enh_childs ).
+    io_xml->read( EXPORTING iv_name = 'LONGTEXT_ID'
+                  CHANGING  cg_data = lv_longtext_id ).
+
+    TRY.
+        cl_enh_factory=>create_enhancement_composite(
+          EXPORTING
+            name      = mv_composite_id
+            run_dark  = abap_true
+          IMPORTING
+            composite = li_enh_composite
+          CHANGING
+            devclass  = lv_package ).
+
+        li_enh_composite->if_enh_object_docu~set_shorttext( lv_shorttext ).
+
+        LOOP AT lt_composite_childs ASSIGNING <ls_composite_child>.
+          li_enh_composite->add_composite_child( <ls_composite_child> ).
+        ENDLOOP.
+
+        LOOP AT lt_enh_childs ASSIGNING <ls_enh_child>.
+          li_enh_composite->add_enh_child( <ls_enh_child> ).
+        ENDLOOP.
+
+        li_enh_composite->set_longtext_id( lv_longtext_id ).
+
+        li_enh_composite->if_enh_object~save( ).
+        li_enh_composite->if_enh_object~activate( ).
+        li_enh_composite->if_enh_object~unlock( ).
+
+      CATCH cx_enh_root INTO lx_error.
+        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    TRY.
+        cl_enh_factory=>load_enhancement_composite(
+          name = mv_composite_id
+          lock = abap_false ).
+        rv_bool = abap_true.
+      CATCH cx_enh_root.
+        rv_bool = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_argument TYPE seqg3-garg.
+
+    lv_argument = |{ mv_composite_id }|.
+    OVERLAY lv_argument WITH '                                  '.
+    lv_argument = |{ lv_argument }*|.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = |E_ENHANCE|
+                                            iv_argument    = lv_argument ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation     = 'SHOW'
+        object_name   = ms_item-obj_name
+        object_type   = ms_item-obj_type
+        in_new_window = abap_true
+      EXCEPTIONS
+        OTHERS        = 1.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lx_error            TYPE REF TO cx_enh_root,
+          li_enh_composite    TYPE REF TO if_enh_composite,
+          lt_composite_childs TYPE enhcompositename_it,
+          lt_enh_childs       TYPE enhname_it,
+          lv_longtext_id      TYPE enhdocuobject,
+          lv_shorttext        TYPE string.
+
+    TRY.
+        li_enh_composite = cl_enh_factory=>load_enhancement_composite(
+          name = mv_composite_id
+          lock = abap_false ).
+
+        lv_shorttext = li_enh_composite->if_enh_object_docu~get_shorttext( ).
+
+        lt_composite_childs = li_enh_composite->get_composite_childs( ).
+        lt_enh_childs       = li_enh_composite->get_enh_childs( ).
+        lv_longtext_id      = li_enh_composite->get_longtext_id( ).
+
+        io_xml->add( iv_name = 'SHORTTEXT'
+                     ig_data = lv_shorttext ).
+        io_xml->add( iv_name = 'COMPOSITE_CHILDS'
+                     ig_data = lt_composite_childs ).
+        io_xml->add( iv_name = 'ENH_CHILDS'
+                     ig_data = lt_enh_childs ).
+        io_xml->add( iv_name = 'LONGTEXT_ID'
+                     ig_data = lv_longtext_id ).
+
+      CATCH cx_enh_root INTO lx_error.
+        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   METHOD constructor.
 
@@ -61731,6 +61478,126 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
+  METHOD delete.
+
+    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
+    FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
+
+    SELECT * FROM dokil
+             INTO TABLE lt_dokil
+             WHERE id     = iv_longtext_id
+             AND   object = iv_longtext_id.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
+
+      CALL FUNCTION 'DOCU_DEL'
+        EXPORTING
+          id       = <ls_dokil>-id
+          langu    = <ls_dokil>-langu
+          object   = <ls_dokil>-object
+          typ      = <ls_dokil>-typ
+        EXCEPTIONS
+          ret_code = 1
+          OTHERS   = 2.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD deserialize.
+
+    DATA: lt_longtexts     TYPE tty_longtexts,
+          lv_no_masterlang TYPE dokil-masterlang.
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = c_longtexts_name
+      CHANGING
+        cg_data = lt_longtexts ).
+
+    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
+
+      lv_no_masterlang = boolc( iv_master_language <> <ls_longtext>-dokil-langu ).
+
+      CALL FUNCTION 'DOCU_UPDATE'
+        EXPORTING
+          head          = <ls_longtext>-head
+          state         = c_docu_state_active
+          typ           = <ls_longtext>-dokil-typ
+          version       = <ls_longtext>-dokil-version
+          no_masterlang = lv_no_masterlang
+        TABLES
+          line          = <ls_longtext>-lines.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD serialize.
+
+    DATA: ls_longtext  TYPE ty_longtext,
+          lt_longtexts TYPE tty_longtexts,
+          lt_dokil     TYPE zif_abapgit_definitions=>tty_dokil.
+
+    FIELD-SYMBOLS: <ls_dokil> LIKE LINE OF lt_dokil.
+    IF lines( it_dokil ) > 0.
+
+      lt_dokil = it_dokil.
+
+    ELSEIF iv_longtext_id IS NOT INITIAL.
+
+      SELECT * FROM dokil
+              INTO TABLE lt_dokil
+              WHERE id     = iv_longtext_id
+              AND   object = iv_object_name.
+
+    ELSE.
+
+      zcx_abapgit_exception=>raise( |serialize_longtexts parameter error| ).
+
+    ENDIF.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>
+                     WHERE txtlines > 0.
+
+      CLEAR: ls_longtext.
+
+      ls_longtext-dokil = <ls_dokil>.
+
+      CALL FUNCTION 'DOCU_READ'
+        EXPORTING
+          id      = <ls_dokil>-id
+          langu   = <ls_dokil>-langu
+          object  = <ls_dokil>-object
+          typ     = <ls_dokil>-typ
+          version = <ls_dokil>-version
+        IMPORTING
+          head    = ls_longtext-head
+        TABLES
+          line    = ls_longtext-lines.
+
+      CLEAR: ls_longtext-head-tdfuser,
+             ls_longtext-head-tdfreles,
+             ls_longtext-head-tdfdate,
+             ls_longtext-head-tdftime,
+             ls_longtext-head-tdluser,
+             ls_longtext-head-tdlreles,
+             ls_longtext-head-tdldate,
+             ls_longtext-head-tdltime.
+
+      INSERT ls_longtext INTO TABLE lt_longtexts.
+
+    ENDLOOP.
+
+    io_xml->add( iv_name = c_longtexts_name
+                 ig_data = lt_longtexts ).
+
+  ENDMETHOD.
+ENDCLASS.
 CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
   METHOD zif_abapgit_comparison_result~is_result_complete_halt.
     rv_response = abap_false.
@@ -63523,6 +63390,142 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
     ii_client->request->set_header_field(
       name  = 'Authorization'
       value = lv_auth ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS zcl_abapgit_http_client IMPLEMENTATION.
+  METHOD check_http_200.
+
+    DATA: lv_code TYPE i,
+          lv_text TYPE string.
+
+    mi_client->response->get_status(
+      IMPORTING
+        code   = lv_code ).
+    CASE lv_code.
+      WHEN 200.
+        RETURN.
+      WHEN 302.
+        zcx_abapgit_exception=>raise( 'HTTP redirect, check URL' ).
+      WHEN 401.
+        zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
+      WHEN 403.
+        zcx_abapgit_exception=>raise( 'HTTP 403, forbidden' ).
+      WHEN 404.
+        zcx_abapgit_exception=>raise( 'HTTP 404, not found' ).
+      WHEN 415.
+        zcx_abapgit_exception=>raise( 'HTTP 415, unsupported media type' ).
+      WHEN OTHERS.
+        lv_text = mi_client->response->get_cdata( ).
+        zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD check_smart_response.
+
+    DATA: lv_content_type TYPE string.
+    DATA: lv_data         TYPE string.
+
+    IF iv_expected_content_type IS NOT INITIAL.
+      lv_content_type = mi_client->response->get_content_type( ).
+      IF lv_content_type <> iv_expected_content_type.
+        zcx_abapgit_exception=>raise( 'Wrong Content-Type sent by server - no fallback to the dumb protocol!' ).
+      ENDIF.
+    ENDIF.
+
+    IF iv_content_regex IS NOT INITIAL.
+      lv_data = mi_client->response->get_cdata( ).
+      FIND REGEX iv_content_regex IN lv_data.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Wrong Content sent by server' ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD close.
+    mi_client->close( ).
+  ENDMETHOD.
+  METHOD constructor.
+    mi_client = ii_client.
+  ENDMETHOD.
+  METHOD get_cdata.
+    rv_value = mi_client->response->get_cdata( ).
+  ENDMETHOD.
+  METHOD send_receive.
+
+    DATA: lv_text    TYPE string,
+          lv_code    TYPE i,
+          lv_message TYPE string.
+
+    mi_client->send( ).
+    mi_client->receive(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        http_processing_failed     = 3
+        OTHERS                     = 4 ).
+
+    IF sy-subrc <> 0.
+      " in case of HTTP_COMMUNICATION_FAILURE
+      " make sure:
+      " a) SSL is setup properly in STRUST
+      " b) no firewalls
+      " check trace file in transaction SMICM
+
+      mi_client->get_last_error(
+        IMPORTING
+          code    = lv_code
+          message = lv_message ).
+
+      lv_text = |HTTP error { lv_code } occured: { lv_message }|.
+
+      zcx_abapgit_exception=>raise( lv_text ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD send_receive_close.
+
+* do not use set_cdata as it modifies the Content-Type header field
+    mi_client->request->set_data( iv_data ).
+    send_receive( ).
+    check_http_200( ).
+    rv_data = mi_client->response->get_data( ).
+    mi_client->close( ).
+
+  ENDMETHOD.
+  METHOD set_digest.
+    mo_digest = io_digest.
+  ENDMETHOD.
+  METHOD set_headers.
+
+    DATA: lv_value TYPE string.
+    mi_client->request->set_header_field(
+        name  = '~request_method'
+        value = 'POST' ).
+
+    lv_value = zcl_abapgit_url=>path_name( iv_url ) &&
+      '/git-' &&
+      iv_service &&
+      '-pack'.
+    mi_client->request->set_header_field(
+        name  = '~request_uri'
+        value = lv_value ).
+
+    lv_value = 'application/x-git-'
+                  && iv_service && '-pack-request'.         "#EC NOTEXT
+    mi_client->request->set_header_field(
+        name  = 'Content-Type'
+        value = lv_value ).                                 "#EC NOTEXT
+
+    lv_value = 'application/x-git-'
+                  && iv_service && '-pack-result'.          "#EC NOTEXT
+    mi_client->request->set_header_field(
+        name  = 'Accept'
+        value = lv_value ).                                 "#EC NOTEXT
+
+    IF mo_digest IS BOUND.
+      mo_digest->run( mi_client ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -66885,5 +66888,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-27T08:13:22.567Z
+* abapmerge undefined - 2018-12-30T07:06:03.933Z
 ****************************************************
