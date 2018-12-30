@@ -12550,11 +12550,6 @@ CLASS zcl_abapgit_zip DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS import
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_value
-      RAISING
-        zcx_abapgit_exception .
     CLASS-METHODS export
       IMPORTING
         !io_repo   TYPE REF TO zcl_abapgit_repo
@@ -12569,17 +12564,20 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
+    CLASS-METHODS unzip_file
+      IMPORTING
+        !iv_xstr TYPE xstring
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS load
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CLASS-METHODS file_upload
-      RETURNING VALUE(rv_xstr) TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS unzip_file
-      IMPORTING iv_xstr         TYPE xstring
-      RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING   zcx_abapgit_exception.
-
     CLASS-METHODS normalize_path
       CHANGING ct_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING  zcx_abapgit_exception.
@@ -13429,23 +13427,18 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       iv_xstr = iv_xstr ).
 
   ENDMETHOD.
-  METHOD file_upload.
+  METHOD load.
 
-    DATA: lv_path TYPE string.
+    DATA: lv_path TYPE string,
+          lv_xstr TYPE xstring.
 
     lv_path = zcl_abapgit_factory=>get_frontend_services( )->show_file_open_dialog(
       iv_title            = 'Import ZIP'
       iv_default_filename = '*.zip' ).
 
-    rv_xstr = zcl_abapgit_factory=>get_frontend_services( )->file_upload( lv_path ).
+    lv_xstr = zcl_abapgit_factory=>get_frontend_services( )->file_upload( lv_path ).
 
-  ENDMETHOD.
-  METHOD import.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_offline.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_files_remote( unzip_file( file_upload( ) ) ).
+    rt_files = unzip_file( lv_xstr ).
 
   ENDMETHOD.
   METHOD normalize_path.
@@ -25582,75 +25575,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       EXPORTING
         i_trkorr = lv_transport.
   ENDMETHOD.
-  METHOD zif_abapgit_gui_router~on_event.
-
-    DATA: ls_event_data TYPE ty_event_data.
-
-    ls_event_data-action    = iv_action.
-    ls_event_data-prev_page = iv_prev_page.
-    ls_event_data-getdata   = iv_getdata.
-    ls_event_data-postdata  = it_postdata.
-    general_page_routing(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    repository_services(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    git_services(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    zip_services(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    db_actions(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    abapgit_services_actions(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    remote_origin_manipulations(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    sap_gui_actions(
-      EXPORTING
-        is_event_data = ls_event_data
-      IMPORTING
-        ei_page      = ei_page
-        ev_state     = ev_state ).
-
-    IF ev_state IS INITIAL.
-      ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD remote_origin_manipulations.
 
     DATA: lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
@@ -25746,15 +25670,87 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_router~on_event.
+
+    DATA: ls_event_data TYPE ty_event_data.
+
+    ls_event_data-action    = iv_action.
+    ls_event_data-prev_page = iv_prev_page.
+    ls_event_data-getdata   = iv_getdata.
+    ls_event_data-postdata  = it_postdata.
+    general_page_routing(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    repository_services(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    git_services(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    zip_services(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    db_actions(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    abapgit_services_actions(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    remote_origin_manipulations(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    sap_gui_actions(
+      EXPORTING
+        is_event_data = ls_event_data
+      IMPORTING
+        ei_page      = ei_page
+        ev_state     = ev_state ).
+
+    IF ev_state IS INITIAL.
+      ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zip_services.
 
     DATA: lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
+
     lv_key = is_event_data-getdata. " TODO refactor
 
     CASE is_event_data-action.
         " ZIP services actions
       WHEN zif_abapgit_definitions=>c_action-zip_import.                      " Import repo from ZIP
-        zcl_abapgit_zip=>import( lv_key ).
+        lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        lo_repo->set_files_remote( zcl_abapgit_zip=>load( ) ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
@@ -32670,14 +32666,16 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    }'.
         _inline ''.
         _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
-        _inline '        fToBind = this,'.
-        _inline '        fNOP    = function() {},'.
-        _inline '        fBound  = function() {'.
-        _inline '          return fToBind.apply(this instanceof fNOP'.
-        _inline '                 ? this'.
-        _inline '                 : oThis,'.
-        _inline '                 aArgs.concat(Array.prototype.slice.call(arguments)));'.
-        _inline '        };'.
+        _inline '      fToBind = this,'.
+        _inline '      fNOP    = function() {},'.
+        _inline '      fBound  = function() {'.
+        _inline '        return fToBind.apply('.
+        _inline '          this instanceof fNOP'.
+        _inline '            ? this'.
+        _inline '            : oThis,'.
+        _inline '          aArgs.concat(Array.prototype.slice.call(arguments))'.
+        _inline '        );'.
+        _inline '      };'.
         _inline ''.
         _inline '    if (this.prototype) {'.
         _inline '      fNOP.prototype = this.prototype;'.
@@ -32691,8 +32689,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// String includes polyfill, taken from https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/String/includes'.
         _inline 'if (!String.prototype.includes) {'.
         _inline '  String.prototype.includes = function(search, start) {'.
-        _inline '    ''use strict'';'.
-        _inline '    if (typeof start !== ''number'') {'.
+        _inline '    "use strict";'.
+        _inline '    if (typeof start !== "number") {'.
         _inline '      start = 0;'.
         _inline '    }'.
         _inline ''.
@@ -32788,11 +32786,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  var keys = Object.keys(totals);'.
-        _inline '  for (var i = keys.length - 1; i >= 0; i--) {'.
+        _inline '  for (var j = keys.length - 1; j >= 0; j--) {'.
         _inline '    console.log(prefix'.
-        _inline '      + " " + keys[i] + ": "'.
-        _inline '      + totals[keys[i]].time.toFixed(3) + "ms"'.
-        _inline '      + " (" + totals[keys[i]].count.toFixed() +")");'.
+        _inline '      + " " + keys[j] + ": "'.
+        _inline '      + totals[keys[j]].time.toFixed(3) + "ms"'.
+        _inline '      + " (" + totals[keys[j]].count.toFixed() +")");'.
         _inline '  }'.
         _inline '}'.
         _inline ''.
@@ -32810,7 +32808,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// somehow only functions on window are visible for the select tag'.
         _inline 'window.onTagTypeChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ ''type'': sValue }, "change_tag_type", "post");'.
+        _inline '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");'.
         _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
@@ -32819,12 +32817,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// somehow only functions on window are visible for the select tag'.
         _inline 'window.onOrderByChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ ''orderBy'': sValue }, "change_order_by", "post");'.
+        _inline '  submitSapeventForm({ orderBy: sValue }, "change_order_by", "post");'.
         _inline '};'.
         _inline ''.
         _inline 'window.onDirectionChange = function(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ ''direction'': sValue }, "direction", "post");'.
+        _inline '  submitSapeventForm({ direction: sValue }, "direction", "post");'.
         _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
@@ -32858,7 +32856,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    remove: "R",'.
         _inline '    ignore: "I",'.
         _inline '    reset:  "?",'.
-        _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1; }'.
+        _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }'.
         _inline '  };'.
         _inline ''.
         _inline '  this.TEMPLATES = {'.
@@ -32878,7 +32876,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);'.
         _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
         _inline '  window.onload                    = this.onPageLoad.bind(this);'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Detect column index'.
         _inline 'StageHelper.prototype.detectColumns = function() {'.
@@ -32890,7 +32888,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  return colIndex;'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Store table state on leaving the page'.
         _inline 'StageHelper.prototype.onPageUnload = function() {'.
@@ -32921,10 +32919,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var target = event.target || event.srcElement;'.
         _inline '  if (!target) return;'.
         _inline ''.
+        _inline '  var td;'.
         _inline '  if (target.tagName === "A") {'.
-        _inline '    var td = target.parentNode;'.
+        _inline '    td = target.parentNode;'.
         _inline '  } else if (target.tagName === "TD") {'.
-        _inline '    var td = target;'.
+        _inline '    td = target;'.
         _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
         _inline '      target = td.children[0];'.
         _inline '    } else return;'.
@@ -32941,7 +32940,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    this.iterateStageTab(true, function (row) {'.
         _inline '      if (row.style.display !== "none"            // Not filtered out'.
         _inline '        && row.className === targetRow.className  // Same context as header'.
-        _inline '        ) {'.
+        _inline '      ) {'.
         _inline '        this.updateRow(row, status);'.
         _inline '      }'.
         _inline '    });'.
@@ -32953,11 +32952,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// Search object'.
         _inline 'StageHelper.prototype.onFilter = function (e) {'.
         _inline '  if ( // Enter hit or clear, IE SUCKS !'.
-        _inline '       e.type === "input" && !e.target.value && this.lastFilterValue'.
+        _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
         _inline '    || e.type === "keypress" && e.which === 13 ) {'.
         _inline ''.
         _inline '    this.applyFilterValue(e.target.value);'.
-        _inline '    submitSapeventForm({ ''filterValue'': e.target.value }, "stage_filter", "post");'.
+        _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
         _inline '  }'.
         _inline '};'.
         _inline ''.
@@ -32995,10 +32994,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // Update DOM'.
         _inline '  row.style.display = isVisible ? "" : "none";'.
-        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
-        _inline '    if (targets[i].isChanged) targets[i].elem.innerHTML = targets[i].newHtml;'.
+        _inline '  for (var j = targets.length - 1; j >= 0; j--) {'.
+        _inline '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Get how status should affect object counter'.
         _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
@@ -33009,7 +33008,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  } else {'.
         _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Update table line'.
         _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
@@ -33023,7 +33022,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  }'.
         _inline ''.
         _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Update Status cell (render set of commands)'.
         _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
@@ -33033,7 +33032,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  } else {'.
         _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Update Command cell (render set of commands)'.
         _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
@@ -33045,19 +33044,19 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  } else {'.
         _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Update menu items visibility'.
         _inline 'StageHelper.prototype.updateMenu = function () {'.
         _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
         _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
         _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Submit stage state to the server'.
         _inline 'StageHelper.prototype.submit = function () {'.
         _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Extract data from the table'.
         _inline 'StageHelper.prototype.collectData = function () {'.
@@ -33066,7 +33065,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
         _inline '  });'.
         _inline '  return data;'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Table iteration helper'.
         _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
@@ -33081,7 +33080,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
         _inline '    var tbody = table.tBodies[b];'.
         _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
-        _inline '      args = [tbody.rows[r]].concat(restArgs);'.
+        _inline '      var args = [tbody.rows[r]].concat(restArgs);'.
         _inline '      cb.apply(this, args); // callback'.
         _inline '    }'.
         _inline '  }'.
@@ -33090,7 +33089,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    this.dom.stageTab.style.display = "";'.
         _inline '    window.scrollTo(0, scrollOffset);'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Check list wrapper'.
@@ -33102,11 +33101,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.id.onclick = this.onClick.bind(this);'.
         _inline '}'.
         _inline ''.
-        _inline 'CheckListWrapper.prototype.onClick = function(e) {'.
+        _inline 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars'.
         _inline '  // Get nodes'.
         _inline '  var target = event.target || event.srcElement;'.
         _inline '  if (!target) return;'.
-        _inline '  if (target.tagName !== "A") { target = target.parentNode; } // icon clicked'.
+        _inline '  if (target.tagName !== "A") { target = target.parentNode } // icon clicked'.
         _inline '  if (target.tagName !== "A") return;'.
         _inline '  if (target.parentNode.tagName !== "LI") return;'.
         _inline ''.
@@ -33133,7 +33132,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // Action callback'.
         _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Diff page logic'.
@@ -33180,17 +33179,17 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '      div.style.display = state ? "" : "none";'.
         _inline '    }'.
         _inline '  });'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Action on stage -> save visible diffs as state for stage page'.
-        _inline 'DiffHelper.prototype.onStage = function (e) {'.
+        _inline 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars'.
         _inline '  if (window.sessionStorage) {'.
         _inline '    var data = this.buildStageCache();'.
         _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
         _inline '  }'.
         _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
         _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Collect visible diffs'.
         _inline 'DiffHelper.prototype.buildStageCache = function () {'.
@@ -33202,7 +33201,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    }'.
         _inline '  });'.
         _inline '  return list;'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Table iterator'.
         _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
@@ -33212,10 +33211,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
         _inline '    var div = diffList.children[i];'.
         _inline '    if (div.className !== "diff") continue;'.
-        _inline '    args = [div].concat(restArgs);'.
+        _inline '    var args = [div].concat(restArgs);'.
         _inline '    cb.apply(this, args); // callback'.
         _inline '  }'.
-        _inline '}'.
+        _inline '};'.
         _inline ''.
         _inline '// Highlight Filter button if filter is activate'.
         _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
@@ -33234,7 +33233,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '// News announcement'.
         _inline 'function toggleDisplay(divId) {'.
         _inline '  var div = document.getElementById(divId);'.
-        _inline '  if (div) div.style.display = (div.style.display) ? '''' : ''none'';'.
+        _inline '  if (div) div.style.display = (div.style.display) ? "" : "none";'.
         _inline '}'.
         _inline ''.
         _inline 'function KeyNavigation() {'.
@@ -33259,7 +33258,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline 'KeyNavigation.prototype.getLiSelected = function() {'.
-        _inline '  return document.querySelector(''li .selected'');'.
+        _inline '  return document.querySelector("li .selected");'.
         _inline '};'.
         _inline ''.
         _inline 'KeyNavigation.prototype.getActiveElement = function () {'.
@@ -33270,7 +33269,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  return this.getActiveElement().parentElement;'.
         _inline '};'.
         _inline ''.
-        _inline 'KeyNavigation.prototype.onEnterOrSpace = function (oEvent) {'.
+        _inline 'KeyNavigation.prototype.onEnterOrSpace = function (oEvent) { // eslint-disable-line no-unused-vars'.
         _inline ''.
         _inline '  // Enter or space clicks the selected link'.
         _inline ''.
@@ -33295,9 +33294,9 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    // we deselect the current li and select the next sibling'.
         _inline '    liNext = oActiveElementParent.nextElementSibling;'.
         _inline '    if (liNext) {'.
-        _inline '      liSelected.classList.toggle(''selected'');'.
+        _inline '      liSelected.classList.toggle("selected");'.
         _inline '      liNext.firstElementChild.focus();'.
-        _inline '      oActiveElementParent.classList.toggle(''selected'');'.
+        _inline '      oActiveElementParent.classList.toggle("selected");'.
         _inline '      oEvent.preventDefault();'.
         _inline '    }'.
         _inline ''.
@@ -33307,7 +33306,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    // the right element should have been activated in fnTooltipActivate'.
         _inline '    liNext = this.getActiveElement().nextElementSibling;'.
         _inline '    if (liNext) {'.
-        _inline '      liNext.classList.toggle(''selected'');'.
+        _inline '      liNext.classList.toggle("selected");'.
         _inline '      liNext.firstElementChild.firstElementChild.focus();'.
         _inline '      oEvent.preventDefault();'.
         _inline '    }'.
@@ -33325,9 +33324,9 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  if (liSelected && liPrevious) {'.
         _inline ''.
-        _inline '    liSelected.classList.toggle(''selected'');'.
+        _inline '    liSelected.classList.toggle("selected");'.
         _inline '    liPrevious.firstElementChild.focus();'.
-        _inline '    this.getActiveElementParent().classList.toggle(''selected'');'.
+        _inline '    this.getActiveElementParent().classList.toggle("selected");'.
         _inline '    oEvent.preventDefault();'.
         _inline ''.
         _inline '  }'.
@@ -33340,7 +33339,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var oKeyNavigation = new KeyNavigation();'.
         _inline ''.
-        _inline '  document.addEventListener(''keydown'', oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
+        _inline '  document.addEventListener("keydown", oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
         _inline ''.
         _inline '}'.
         _inline ''.
@@ -33350,14 +33349,14 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.oTooltipMap = {};'.
         _inline '  this.bTooltipsOn = false;'.
         _inline '  this.sPending = "";'.
-        _inline '  this.aTooltipElements = document.querySelectorAll(''a span'');'.
+        _inline '  this.aTooltipElements = document.querySelectorAll("a span");'.
         _inline '}'.
         _inline ''.
         _inline 'LinkHints.prototype.fnRenderTooltip = function (oTooltip, iTooltipCounter) {'.
         _inline '  if (this.bTooltipsOn) {'.
-        _inline '    oTooltip.classList.remove(''hidden'');'.
+        _inline '    oTooltip.classList.remove("hidden");'.
         _inline '  } else {'.
-        _inline '    oTooltip.classList.add(''hidden'');'.
+        _inline '    oTooltip.classList.add("hidden");'.
         _inline '  }'.
         _inline '  oTooltip.innerHTML = iTooltipCounter;'.
         _inline '  oTooltip.style.backgroundColor = this.sColor;'.
@@ -33406,12 +33405,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.bTooltipsOn = false;'.
         _inline ''.
         _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
-        _inline '    oTooltip.classList.add(''hidden'');'.
+        _inline '    oTooltip.classList.add("hidden");'.
         _inline '  });'.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnFilterTooltips = function (sPending) {'.
+        _inline 'LinkHints.prototype.fnFilterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
         _inline ''.
         _inline '  Object'.
         _inline '    .keys(this.oTooltipMap)'.
@@ -33423,10 +33422,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '      if (regex.test(sKey)) {'.
         _inline '        // we have a partial match, grey out the matched part'.
-        _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + ''</div>'');'.
+        _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + "</div>");'.
         _inline '      } else {'.
         _inline '        // and hide the not matched tooltips'.
-        _inline '        oTooltip.classList.add(''hidden'');'.
+        _inline '        oTooltip.classList.add("hidden");'.
         _inline '      }'.
         _inline ''.
         _inline '    }.bind(this));'.
@@ -33538,10 +33537,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '}'.
         _inline ''.
         _inline 'Hotkeys.prototype.showHotkeys = function() {'.
-        _inline '  var elHotkeys = document.querySelector(''#hotkeys'');'.
+        _inline '  var elHotkeys = document.querySelector("#hotkeys");'.
         _inline ''.
         _inline '  if (elHotkeys) {'.
-        _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? '''' : ''none'';'.
+        _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";'.
         _inline '  }'.
         _inline '};'.
         _inline ''.
@@ -33557,13 +33556,12 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
         _inline ''.
         _inline '  var aFilteredAndNormalizedSapEvents ='.
-        _inline '        [].map.call(aSapEvents, function(oSapEvent){'.
-        _inline '          return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
-        _inline '        })'.
-        _inline '        .filter(function(elem){'.
-        _inline '          // remove false positives'.
-        _inline '          return (elem && !elem.includes("sapevent:"));'.
-        _inline '        });'.
+        _inline '    [].map.call(aSapEvents, function(oSapEvent){'.
+        _inline '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
+        _inline '    }).filter(function(elem){'.
+        _inline '      // remove false positives'.
+        _inline '      return (elem && !elem.includes("sapevent:"));'.
+        _inline '    });'.
         _inline ''.
         _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
         _inline ''.
@@ -33572,7 +33570,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
         _inline ''.
         _inline '  if (oEvent.defaultPrevented) {'.
-        _inline '      return;'.
+        _inline '    return;'.
         _inline '  }'.
         _inline ''.
         _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
@@ -33594,8 +33592,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
         _inline ''.
-        _inline '  document.addEventListener(''keypress'', oHotkeys.onkeydown.bind(oHotkeys));'.
-        _inline '  setTimeout(function(){ '.
+        _inline '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));'.
+        _inline '  setTimeout(function(){'.
         _inline '    var div = document.getElementById("hotkeys-hint");'.
         _inline '    if (div) div.style.opacity = 0.2;'.
         _inline '  }, 4900);'.
@@ -33614,20 +33612,20 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'function Patch() {'.
         _inline ''.
         _inline '  this.CSS_CLASS = {'.
-        _inline '    ADD: ''add'','.
-        _inline '    REMOVE: ''remove'','.
-        _inline '    PATCH: ''patch'','.
-        _inline '    PATCH_ACTIVE: ''patch-active'''.
+        _inline '    ADD:          "add",'.
+        _inline '    REMOVE:       "remove",'.
+        _inline '    PATCH:        "patch",'.
+        _inline '    PATCH_ACTIVE: "patch-active"'.
         _inline '  };'.
         _inline ''.
         _inline '  this.ID = {'.
-        _inline '    STAGE: ''stage'','.
-        _inline '    PATCH_ADD_ALL: ''patch_add_all'','.
-        _inline '    PATCH_REMOVE_ALL: ''patch_remove_all'''.
+        _inline '    STAGE:            "stage",'.
+        _inline '    PATCH_ADD_ALL:    "patch_add_all",'.
+        _inline '    PATCH_REMOVE_ALL: "patch_remove_all"'.
         _inline '  };'.
         _inline ''.
         _inline '  this.ACTION = {'.
-        _inline '    PATCH_STAGE: ''patch_stage'''.
+        _inline '    PATCH_STAGE: "patch_stage"'.
         _inline '  };'.
         _inline ''.
         _inline '  this.ADD_REMOVE = new CSSPatchClassCombination(this.CSS_CLASS.ADD, this.CSS_CLASS.REMOVE);'.
@@ -33655,8 +33653,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // registers the link handlers for add and remove all changes for a file'.
         _inline ''.
-        _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_ADD_ALL, this.ADD_REMOVE);'.
-        _inline '  this.registerClickHandlerForPatchLinkAll(''#'' + this.ID.PATCH_REMOVE_ALL, this.REMOVE_ADD);'.
+        _inline '  this.registerClickHandlerForPatchLinkAll("#" + this.ID.PATCH_ADD_ALL, this.ADD_REMOVE);'.
+        _inline '  this.registerClickHandlerForPatchLinkAll("#" + this.ID.PATCH_REMOVE_ALL, this.REMOVE_ADD);'.
         _inline ''.
         _inline '};'.
         _inline ''.
@@ -33667,11 +33665,11 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  // e.g. if you click on ''add'' add is deactivated and ''remove'''.
         _inline '  // is activated.'.
         _inline ''.
-        _inline '  var elLinkAll = document.querySelectorAll(''.'' + this.CSS_CLASS.PATCH + '' a.'' + oClassCombination.sClassLinkClicked);'.
+        _inline '  var elLinkAll = document.querySelectorAll("." + this.CSS_CLASS.PATCH + " a." + oClassCombination.sClassLinkClicked);'.
         _inline ''.
         _inline '  [].forEach.call(elLinkAll,function(elLink){'.
         _inline ''.
-        _inline '    elLink.addEventListener(''click'',function(oEvent){'.
+        _inline '    elLink.addEventListener("click",function(oEvent){'.
         _inline '      this.togglePatchActiveForClassLink(oEvent, elLink, oClassCombination);'.
         _inline '    }.bind(this));'.
         _inline ''.
@@ -33706,15 +33704,15 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  //'.
         _inline '  // and vice versa'.
         _inline ''.
-        _inline '  var oRegexPatchClassPrefix = new RegExp(''^'' + oClassCombination.sClassLinkClicked );'.
+        _inline '  var oRegexPatchClassPrefix = new RegExp("^" + oClassCombination.sClassLinkClicked );'.
         _inline '  return sClickedLinkId.replace(oRegexPatchClassPrefix, oClassCombination.sClassCorrespondingLink);'.
         _inline ''.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.escape = function(sFileName){'.
         _inline '  return sFileName'.
-        _inline '    .replace(/\./g,''\\.'')'.
-        _inline '    .replace(/\#/g,''\\#'');'.
+        _inline '    .replace(/\./g, "\\.")'.
+        _inline '    .replace(/#/g, "\\#");'.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.patchLinkClickAll = function(oClassCombination) {'.
@@ -33729,7 +33727,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '    oEvent.preventDefault();'.
         _inline ''.
-        _inline '  }'.
+        _inline '  };'.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerClickHandlerForPatchLinkAll = function(sSelector, oClassCombination){'.
@@ -33737,15 +33735,15 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  var elAll = document.querySelectorAll(sSelector);'.
         _inline ''.
         _inline '  [].forEach.call(elAll, function(elem){'.
-        _inline '    elem.addEventListener(''click'', this.patchLinkClickAll(oClassCombination).bind(this));'.
+        _inline '    elem.addEventListener("click", this.patchLinkClickAll(oClassCombination).bind(this));'.
         _inline '  }.bind(this));'.
         _inline ''.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.registerStagePatch = function registerStagePatch(){'.
         _inline ''.
-        _inline '  var elStage = document.querySelector(''#'' + this.ID.STAGE);'.
-        _inline '  elStage.addEventListener(''click'', this.stagePatch.bind(this));'.
+        _inline '  var elStage = document.querySelector("#" + this.ID.STAGE);'.
+        _inline '  elStage.addEventListener("click", this.stagePatch.bind(this));'.
         _inline ''.
         _inline '  // for hotkeys'.
         _inline '  window.stagePatch = function(){'.
@@ -33758,10 +33756,10 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // Collect add and remove info and submit to backend'.
         _inline ''.
-        _inline '  var aAddPatch = this.collectActiveElementsForSelector(''.'' + this.CSS_CLASS.PATCH +'' a.'' + this.CSS_CLASS.ADD);'.
-        _inline '  var aRemovePatch = this.collectActiveElementsForSelector(''.'' + this.CSS_CLASS.PATCH + '' a.'' + this.CSS_CLASS.REMOVE);'.
+        _inline '  var aAddPatch = this.collectActiveElementsForSelector("." + this.CSS_CLASS.PATCH +" a." + this.CSS_CLASS.ADD);'.
+        _inline '  var aRemovePatch = this.collectActiveElementsForSelector("." + this.CSS_CLASS.PATCH + " a." + this.CSS_CLASS.REMOVE);'.
         _inline ''.
-        _inline '  submitSapeventForm({''add'': aAddPatch, ''remove'': aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
+        _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
         _inline ''.
         _inline '};'.
         _inline ''.
@@ -33793,20 +33791,20 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Page branch overview'.
-        _inline ' * '.
+        _inline ' *'.
         _inline ' * Hovering a commit node in the branch overview will show'.
         _inline ' * a popup with the commit details. Single click on a node'.
         _inline ' * will fix the popup, so that users can select text. The'.
-        _inline ' * fixation is removed when any node is hovered or the popup '.
+        _inline ' * fixation is removed when any node is hovered or the popup'.
         _inline ' * is closed via ''X''.'.
-        _inline ' * '.
+        _inline ' *'.
         _inline ' **********************************************************/'.
         _inline ''.
         _inline 'function BranchOverview() {'.
         _inline '  this.bFixed = false;'.
         _inline '  this.elCurrentCommit = {'.
         _inline '    style : {'.
-        _inline '      display: ''none'''.
+        _inline '      display: "none"'.
         _inline '    }'.
         _inline '  };'.
         _inline '}'.
@@ -33814,19 +33812,19 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {'.
         _inline ''.
         _inline '  // If the popup is fixed, we just remove the fixation.'.
-        _inline '  // The popup will then be hidden by the next call of hideCommit '.
+        _inline '  // The popup will then be hidden by the next call of hideCommit'.
         _inline '  if (this.bFixed) {'.
         _inline '    this.bFixed = false;'.
         _inline '    return;'.
-        _inline '  } '.
+        _inline '  }'.
         _inline ''.
         _inline '  // We hide the previous shown commit popup'.
-        _inline '  this.elCurrentCommit.style.display = ''none'';'.
+        _inline '  this.elCurrentCommit.style.display = "none";'.
         _inline ''.
         _inline '  // Display the new commit popup if sha1 is supplied'.
         _inline '  if (sSha1){'.
         _inline '    this.elCurrentCommit = document.getElementById(sSha1);'.
-        _inline '    this.elCurrentCommit.style.display = '''';'.
+        _inline '    this.elCurrentCommit.style.display = "";'.
         _inline ''.
         _inline '    // and fix the popup so that the next hideCommit won''t hide it.'.
         _inline '    this.bFixed = bFixPopup;'.
@@ -33846,7 +33844,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '};'.
         _inline ''.
         _inline '// Called by commit:mouseout'.
-        _inline 'BranchOverview.prototype.hideCommit = function (event){'.
+        _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
         _inline '  this.toggleCommit();'.
         _inline '};'.
       WHEN OTHERS.
@@ -66888,5 +66886,5 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-30T07:06:03.933Z
+* abapmerge undefined - 2018-12-30T07:08:20.429Z
 ****************************************************
