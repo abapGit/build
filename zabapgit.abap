@@ -5276,6 +5276,7 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
+    CLASS-METHODS clear_idoc_segement_fields CHANGING cs_structure TYPE any.
 
   PRIVATE SECTION.
     TYPES:
@@ -5284,8 +5285,9 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         t_syntax   TYPE STANDARD TABLE OF edi_iapi02 WITH NON-UNIQUE DEFAULT KEY,
       END OF ty_idoc.
 
-    DATA:
-      mv_idoctyp TYPE edi_iapi00-idoctyp.
+    DATA: mv_idoctyp TYPE edi_iapi00-idoctyp.
+
+    CLASS-METHODS clear_idoc_segement_field  IMPORTING iv_fieldname TYPE csequence CHANGING cs_structure TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -5298,16 +5300,14 @@ CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PRIVATE SECTION.
-    TYPES:
-      BEGIN OF ty_extention,
-        attributes TYPE edi_iapi01,
-        t_syntax   TYPE STANDARD TABLE OF edi_iapi03 WITH NON-UNIQUE DEFAULT KEY,
-      END OF ty_extention.
+    TYPES: BEGIN OF ty_extention,
+             attributes TYPE edi_iapi01,
+             t_syntax   TYPE STANDARD TABLE OF edi_iapi03 WITH NON-UNIQUE DEFAULT KEY,
+           END OF ty_extention.
 
-    DATA:
-      mv_extension TYPE edi_cimtyp.
+    CONSTANTS c_dataname_iext TYPE string VALUE 'IEXT' ##NO_TEXT.
+    DATA: mv_extension TYPE edi_cimtyp.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_jobd DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -5901,14 +5901,49 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
+    TYPES: BEGIN OF ty_segment_definition,
+             segmentheader     TYPE edisegmhd,
+             segmentdefinition TYPE edisegmdef,
+             segmentstructures TYPE STANDARD TABLE OF edisegstru WITH DEFAULT KEY,
+           END OF ty_segment_definition.
+    TYPES: ty_segment_definitions TYPE STANDARD TABLE OF ty_segment_definition WITH DEFAULT KEY.
+
+    "! Serialize IDoc Segment type/definition if exits
+    "! @parameter io_xml | XML writer
+    "! @raising zcx_abapgit_exception | Exceptions
+    METHODS serialize_idoc_segment IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+                                   RAISING   zcx_abapgit_exception.
+
+    "! Deserialize IDoc Segment type/definition if exits
+    "! @parameter io_xml | XML writer
+    "! @parameter iv_package | Target package
+    "! @parameter rv_deserialized | It's a segment and was desserialized
+    "! @raising zcx_abapgit_exception | Exceptions
+    METHODS deserialize_idoc_segment IMPORTING io_xml                 TYPE REF TO zcl_abapgit_xml_input
+                                               iv_package             TYPE devclass
+                                     RETURNING VALUE(rv_deserialized) TYPE abap_bool
+                                     RAISING   zcx_abapgit_exception.
+    "! Delete the IDoc Segment type if exists
+    "! @parameter rv_deleted | It's a segment and was deleted
+    "! @raising zcx_abapgit_exception | Exceptions
+    METHODS delete_idoc_segment RETURNING VALUE(rv_deleted) TYPE abap_bool
+                                RAISING   zcx_abapgit_exception.
   PRIVATE SECTION.
-
+    CONSTANTS c_extension_xml    TYPE string   VALUE 'xml' ##NO_TEXT.
     CONSTANTS c_longtext_id_tabl TYPE dokil-id VALUE 'TB' ##NO_TEXT.
-
+    CONSTANTS: BEGIN OF c_s_dataname,
+                 segment_definition TYPE string VALUE 'SEGMENT_DEFINITION' ##NO_TEXT,
+               END OF c_s_dataname.
     TYPES: ty_dd03p_tt TYPE STANDARD TABLE OF dd03p.
 
     METHODS clear_dd03p_fields
       CHANGING ct_dd03p TYPE ty_dd03p_tt.
+    "! Check if structure is an IDoc segment
+    "! @raising zcx_abapgit_exception | It's not an IDoc segment
+    METHODS check_is_idoc_segment RAISING zcx_abapgit_exception.
+    METHODS clear_dd03p_fields_common CHANGING cs_dd03p TYPE dd03p.
+    METHODS clear_dd03p_fields_dataelement CHANGING cs_dd03p TYPE dd03p.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_tobj DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -12106,6 +12141,7 @@ CLASS zcl_abapgit_serialize DEFINITION
 
   PUBLIC SECTION.
 
+    METHODS constructor.
     METHODS on_end_of_task
       IMPORTING
         !p_task TYPE clike .
@@ -12119,9 +12155,10 @@ CLASS zcl_abapgit_serialize DEFINITION
         VALUE(rt_files)      TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
+
   PROTECTED SECTION.
 
-    CLASS-DATA gv_max TYPE i .
+    CLASS-DATA gv_max_threads TYPE i .
     DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mv_free TYPE i .
     DATA mo_log TYPE REF TO zcl_abapgit_log .
@@ -12152,6 +12189,8 @@ CLASS zcl_abapgit_serialize DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    METHODS is_merged RETURNING VALUE(rv_result) TYPE abap_bool .
+
 ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
@@ -14376,7 +14415,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
+CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD add_to_return.
 
     FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_fils_item-files,
@@ -14396,10 +14435,10 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF gv_max >= 1.
+    IF gv_max_threads >= 1.
 * SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
 * multiple times in same session
-      rv_threads = gv_max.
+      rv_threads = gv_max_threads.
       RETURN.
     ENDIF.
 
@@ -14410,14 +14449,14 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
         function_not_exist = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      gv_max = 1.
+      gv_max_threads = 1.
     ELSE.
 * todo, add possibility to set group name in user exit
       CALL FUNCTION 'SPBT_INITIALIZE'
         EXPORTING
           group_name                     = 'parallel_generators'
         IMPORTING
-          free_pbt_wps                   = gv_max
+          free_pbt_wps                   = gv_max_threads
         EXCEPTIONS
           invalid_group_name             = 1
           internal_error                 = 2
@@ -14429,17 +14468,17 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
       IF sy-subrc <> 0.
 *   fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
 *   RZ12, SM50, SM21, SARFC
-        gv_max = 1.
+        gv_max_threads = 1.
       ENDIF.
     ENDIF.
 
-    IF gv_max > 1.
-      gv_max = gv_max - 1.
+    IF gv_max_threads > 1.
+      gv_max_threads = gv_max_threads - 1.
     ENDIF.
 
-    ASSERT gv_max >= 1.
+    ASSERT gv_max_threads >= 1.
 
-    rv_threads = gv_max.
+    rv_threads = gv_max_threads.
 
   ENDMETHOD.
   METHOD on_end_of_task.
@@ -14565,6 +14604,27 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
     rt_files = mt_files.
 
   ENDMETHOD.
+
+  METHOD constructor.
+    IF is_merged( ) = abap_true.
+      gv_max_threads = 1.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD is_merged.
+
+    DATA lo_marker TYPE REF TO data.
+
+    TRY.
+        CREATE DATA lo_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
+        "No exception --> marker found
+        rv_result = abap_true.
+
+      CATCH cx_sy_create_data_error  ##no_handler.
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD constructor.
@@ -32663,6 +32723,24 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ' **********************************************************/'.
         _inline ''.
         _inline '/**********************************************************'.
+        _inline '  Global variables used from outside'.
+        _inline ' **********************************************************/'.
+        _inline '/* exported setInitialFocus */'.
+        _inline '/* exported setInitialFocusWithQuerySelector */'.
+        _inline '/* exported submitFormById */'.
+        _inline '/* exported errorStub */'.
+        _inline '/* exported confirmInitialized */'.
+        _inline '/* exported perfOut */'.
+        _inline '/* exported perfLog */'.
+        _inline '/* exported perfClear */'.
+        _inline '/* exported enableArrowListNavigation */'.
+        _inline '/* exported setLinkHints */'.
+        _inline '/* exported setKeyBindings */'.
+        _inline '/* exported preparePatch */'.
+        _inline '/* exported registerStagePatch */'.
+        _inline '/* exported toggleRepoListDetail */'.
+        _inline ''.
+        _inline '/**********************************************************'.
         _inline ' * Polyfills'.
         _inline ' **********************************************************/'.
         _inline ''.
@@ -44993,27 +45071,23 @@ CLASS zcl_abapgit_object_tabl_dialog IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD clear_dd03p_fields.
+
+    CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E' ##NO_TEXT.
 
     DATA: lv_masklen TYPE c LENGTH 4.
 
-    FIELD-SYMBOLS: <ls_dd03p> LIKE LINE OF ct_dd03p.
+    FIELD-SYMBOLS: <ls_dd03p> TYPE dd03p.
+
 * remove nested structures
     DELETE ct_dd03p WHERE depth <> '00'.
 * remove fields from .INCLUDEs
     DELETE ct_dd03p WHERE adminfield <> '0'.
 
     LOOP AT ct_dd03p ASSIGNING <ls_dd03p> WHERE NOT rollname IS INITIAL.
-      CLEAR: <ls_dd03p>-ddlanguage,
-        <ls_dd03p>-dtelmaster,
-        <ls_dd03p>-logflag,
-        <ls_dd03p>-ddtext,
-        <ls_dd03p>-reservedte,
-        <ls_dd03p>-reptext,
-        <ls_dd03p>-scrtext_s,
-        <ls_dd03p>-scrtext_m,
-        <ls_dd03p>-scrtext_l.
+
+      clear_dd03p_fields_common( CHANGING cs_dd03p = <ls_dd03p> ).
 
       lv_masklen = <ls_dd03p>-masklen.
       IF lv_masklen = '' OR NOT lv_masklen CO '0123456789'.
@@ -45021,34 +45095,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         CLEAR <ls_dd03p>-masklen.
       ENDIF.
 
-      IF <ls_dd03p>-comptype = 'E'.
-* type specified via data element
-        CLEAR: <ls_dd03p>-domname,
-          <ls_dd03p>-inttype,
-          <ls_dd03p>-intlen,
-          <ls_dd03p>-mask,
-          <ls_dd03p>-memoryid,
-          <ls_dd03p>-headlen,
-          <ls_dd03p>-scrlen1,
-          <ls_dd03p>-scrlen2,
-          <ls_dd03p>-scrlen3,
-          <ls_dd03p>-datatype,
-          <ls_dd03p>-leng,
-          <ls_dd03p>-outputlen,
-          <ls_dd03p>-deffdname,
-          <ls_dd03p>-convexit,
-          <ls_dd03p>-entitytab,
-          <ls_dd03p>-dommaster,
-          <ls_dd03p>-domname3l,
-          <ls_dd03p>-decimals,
-          <ls_dd03p>-lowercase,
-          <ls_dd03p>-signflag.
+      IF <ls_dd03p>-comptype = lc_comptype_dataelement.
+        clear_dd03p_fields_dataelement( CHANGING cs_dd03p = <ls_dd03p> ).
       ENDIF.
 
       IF <ls_dd03p>-shlporigin = 'D'.
 * search help from domain
         CLEAR: <ls_dd03p>-shlpfield,
-          <ls_dd03p>-shlpname.
+               <ls_dd03p>-shlpname.
       ENDIF.
 
 * XML output assumes correct field content
@@ -45057,6 +45111,46 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       ENDIF.
 
     ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD clear_dd03p_fields_dataelement.
+
+* type specified via data element
+    CLEAR: cs_dd03p-domname,
+           cs_dd03p-inttype,
+           cs_dd03p-intlen,
+           cs_dd03p-mask,
+           cs_dd03p-memoryid,
+           cs_dd03p-headlen,
+           cs_dd03p-scrlen1,
+           cs_dd03p-scrlen2,
+           cs_dd03p-scrlen3,
+           cs_dd03p-datatype,
+           cs_dd03p-leng,
+           cs_dd03p-outputlen,
+           cs_dd03p-deffdname,
+           cs_dd03p-convexit,
+           cs_dd03p-entitytab,
+           cs_dd03p-dommaster,
+           cs_dd03p-domname3l,
+           cs_dd03p-decimals,
+           cs_dd03p-lowercase,
+           cs_dd03p-signflag.
+
+  ENDMETHOD.
+
+  METHOD clear_dd03p_fields_common.
+
+    CLEAR: cs_dd03p-ddlanguage,
+           cs_dd03p-dtelmaster,
+           cs_dd03p-logflag,
+           cs_dd03p-ddtext,
+           cs_dd03p-reservedte,
+           cs_dd03p-reptext,
+           cs_dd03p-scrtext_s,
+           cs_dd03p-scrtext_m,
+           cs_dd03p-scrtext_l.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -45137,45 +45231,49 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_data>  TYPE any.
     lv_objname = ms_item-obj_name.
 
-    lv_no_ask = abap_true.
-    SELECT SINGLE tabclass FROM dd02l INTO lv_tabclass
-      WHERE tabname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
-    IF sy-subrc = 0 AND lv_tabclass = 'TRANSP'.
+    IF delete_idoc_segment( ) = abap_false.
+
+      lv_no_ask = abap_true.
+      SELECT SINGLE tabclass FROM dd02l INTO lv_tabclass
+        WHERE tabname = ms_item-obj_name
+        AND as4local = 'A'
+        AND as4vers = '0000'.
+      IF sy-subrc = 0 AND lv_tabclass = 'TRANSP'.
 
 * Avoid dump in dynamic SELECT in case the table does not exist on database
-      CALL FUNCTION 'DB_EXISTS_TABLE'
-        EXPORTING
-          tabname = lv_objname
-        IMPORTING
-          subrc   = lv_subrc.
-      IF lv_subrc = 0.
-* it cannot delete table with table wihtout asking
-        CREATE DATA lr_data TYPE (lv_objname).
-        ASSIGN lr_data->* TO <lg_data>.
-        SELECT SINGLE * FROM (lv_objname) INTO <lg_data>.
-        IF sy-subrc = 0.
-          lv_no_ask = abap_false.
+        CALL FUNCTION 'DB_EXISTS_TABLE'
+          EXPORTING
+            tabname = lv_objname
+          IMPORTING
+            subrc   = lv_subrc.
+        IF lv_subrc = 0.
+* it cannot delete table with table without asking
+          CREATE DATA lr_data TYPE (lv_objname).
+          ASSIGN lr_data->* TO <lg_data>.
+          SELECT SINGLE * FROM (lv_objname) INTO <lg_data>.
+          IF sy-subrc = 0.
+            lv_no_ask = abap_false.
+          ENDIF.
         ENDIF.
       ENDIF.
-    ENDIF.
 
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = lv_no_ask
-        objname              = lv_objname
-        objtype              = 'T'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL' ).
-    ENDIF.
+      CALL FUNCTION 'RS_DD_DELETE_OBJ'
+        EXPORTING
+          no_ask               = lv_no_ask
+          objname              = lv_objname
+          objtype              = 'T'
+        EXCEPTIONS
+          not_executed         = 1
+          object_not_found     = 2
+          object_not_specified = 3
+          permission_failure   = 4.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL' ).
+      ENDIF.
 
-    delete_longtexts( c_longtext_id_tabl ).
+      delete_longtexts( c_longtext_id_tabl ).
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -45194,101 +45292,108 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
           lt_dd35v     TYPE TABLE OF dd35v,
           lt_dd36m     TYPE dd36mttyp,
           ls_dd12v     LIKE LINE OF lt_dd12v.
-    io_xml->read( EXPORTING iv_name = 'DD02V'
-                  CHANGING cg_data = ls_dd02v ).
-    io_xml->read( EXPORTING iv_name = 'DD09L'
-                  CHANGING cg_data = ls_dd09l ).
-    io_xml->read( EXPORTING iv_name  = 'DD03P_TABLE'
-                  CHANGING cg_data = lt_dd03p ).
-    io_xml->read( EXPORTING iv_name = 'DD05M_TABLE'
-                  CHANGING cg_data = lt_dd05m ).
-    io_xml->read( EXPORTING iv_name = 'DD08V_TABLE'
-                  CHANGING cg_data = lt_dd08v ).
-    io_xml->read( EXPORTING iv_name = 'DD12V'
-                  CHANGING cg_data = lt_dd12v ).
-    io_xml->read( EXPORTING iv_name = 'DD17V'
-                  CHANGING cg_data = lt_dd17v ).
-    io_xml->read( EXPORTING iv_name = 'DD35V_TALE'
-                  CHANGING cg_data = lt_dd35v ).
-    io_xml->read( EXPORTING iv_name = 'DD36M'
-                  CHANGING cg_data = lt_dd36m ).
 
-    corr_insert( iv_package ).
+    IF deserialize_idoc_segment( io_xml     = io_xml
+                                 iv_package = iv_package ) = abap_false.
 
-    lv_name = ms_item-obj_name. " type conversion
+      io_xml->read( EXPORTING iv_name = 'DD02V'
+                    CHANGING cg_data = ls_dd02v ).
+      io_xml->read( EXPORTING iv_name = 'DD09L'
+                    CHANGING cg_data = ls_dd09l ).
+      io_xml->read( EXPORTING iv_name  = 'DD03P_TABLE'
+                    CHANGING cg_data = lt_dd03p ).
+      io_xml->read( EXPORTING iv_name = 'DD05M_TABLE'
+                    CHANGING cg_data = lt_dd05m ).
+      io_xml->read( EXPORTING iv_name = 'DD08V_TABLE'
+                    CHANGING cg_data = lt_dd08v ).
+      io_xml->read( EXPORTING iv_name = 'DD12V'
+                    CHANGING cg_data = lt_dd12v ).
+      io_xml->read( EXPORTING iv_name = 'DD17V'
+                    CHANGING cg_data = lt_dd17v ).
+      io_xml->read( EXPORTING iv_name = 'DD35V_TALE'
+                    CHANGING cg_data = lt_dd35v ).
+      io_xml->read( EXPORTING iv_name = 'DD36M'
+                    CHANGING cg_data = lt_dd36m ).
 
-    CALL FUNCTION 'DDIF_TABL_PUT'
-      EXPORTING
-        name              = lv_name
-        dd02v_wa          = ls_dd02v
-        dd09l_wa          = ls_dd09l
-      TABLES
-        dd03p_tab         = lt_dd03p
-        dd05m_tab         = lt_dd05m
-        dd08v_tab         = lt_dd08v
-        dd35v_tab         = lt_dd35v
-        dd36m_tab         = lt_dd36m
-      EXCEPTIONS
-        tabl_not_found    = 1
-        name_inconsistent = 2
-        tabl_inconsistent = 3
-        put_failure       = 4
-        put_refused       = 5
-        OTHERS            = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_TABL_PUT' ).
-    ENDIF.
+      corr_insert( iv_package ).
 
-    zcl_abapgit_objects_activation=>add_item( ms_item ).
+      lv_name = ms_item-obj_name. " type conversion
 
-* handle indexes
-    LOOP AT lt_dd12v INTO ls_dd12v.
-
-* todo, call corr_insert?
-
-      CLEAR lt_secondary.
-      LOOP AT lt_dd17v INTO ls_dd17v
-          WHERE sqltab = ls_dd12v-sqltab AND indexname = ls_dd12v-indexname.
-        APPEND ls_dd17v TO lt_secondary.
-      ENDLOOP.
-
-      CALL FUNCTION 'DDIF_INDX_PUT'
+      CALL FUNCTION 'DDIF_TABL_PUT'
         EXPORTING
-          name              = ls_dd12v-sqltab
-          id                = ls_dd12v-indexname
-          dd12v_wa          = ls_dd12v
+          name              = lv_name
+          dd02v_wa          = ls_dd02v
+          dd09l_wa          = ls_dd09l
         TABLES
-          dd17v_tab         = lt_secondary
+          dd03p_tab         = lt_dd03p
+          dd05m_tab         = lt_dd05m
+          dd08v_tab         = lt_dd08v
+          dd35v_tab         = lt_dd35v
+          dd36m_tab         = lt_dd36m
         EXCEPTIONS
-          indx_not_found    = 1
+          tabl_not_found    = 1
           name_inconsistent = 2
-          indx_inconsistent = 3
+          tabl_inconsistent = 3
           put_failure       = 4
           put_refused       = 5
           OTHERS            = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DDIF_INDX_PUT' ).
+        zcx_abapgit_exception=>raise( 'error from DDIF_TABL_PUT' ).
       ENDIF.
 
-      CALL FUNCTION 'DD_DD_TO_E071'
-        EXPORTING
-          type     = 'INDX'
-          name     = ls_dd12v-sqltab
-          id       = ls_dd12v-indexname
-        IMPORTING
-          obj_name = lv_tname.
+      zcl_abapgit_objects_activation=>add_item( ms_item ).
 
-      zcl_abapgit_objects_activation=>add( iv_type = 'INDX'
-                                           iv_name = lv_tname ).
+* handle indexes
+      LOOP AT lt_dd12v INTO ls_dd12v.
 
-    ENDLOOP.
+* todo, call corr_insert?
 
-    deserialize_longtexts( io_xml ).
+        CLEAR lt_secondary.
+        LOOP AT lt_dd17v INTO ls_dd17v
+            WHERE sqltab = ls_dd12v-sqltab AND indexname = ls_dd12v-indexname.
+          APPEND ls_dd17v TO lt_secondary.
+        ENDLOOP.
+
+        CALL FUNCTION 'DDIF_INDX_PUT'
+          EXPORTING
+            name              = ls_dd12v-sqltab
+            id                = ls_dd12v-indexname
+            dd12v_wa          = ls_dd12v
+          TABLES
+            dd17v_tab         = lt_secondary
+          EXCEPTIONS
+            indx_not_found    = 1
+            name_inconsistent = 2
+            indx_inconsistent = 3
+            put_failure       = 4
+            put_refused       = 5
+            OTHERS            = 6.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'error from DDIF_INDX_PUT' ).
+        ENDIF.
+
+        CALL FUNCTION 'DD_DD_TO_E071'
+          EXPORTING
+            type     = 'INDX'
+            name     = ls_dd12v-sqltab
+            id       = ls_dd12v-indexname
+          IMPORTING
+            obj_name = lv_tname.
+
+        zcl_abapgit_objects_activation=>add( iv_type = 'INDX'
+                                             iv_name = lv_tname ).
+
+      ENDLOOP.
+
+      deserialize_longtexts( io_xml ).
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_tabname TYPE dd02l-tabname.
+
     SELECT SINGLE tabname FROM dd02l INTO lv_tabname
       WHERE tabname = ms_item-obj_name
       AND as4local = 'A'
@@ -45492,7 +45597,203 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     serialize_longtexts( io_xml         = io_xml
                          iv_longtext_id = c_longtext_id_tabl ).
 
+    serialize_idoc_segment( io_xml ).
+
   ENDMETHOD.
+
+  METHOD serialize_idoc_segment.
+
+    DATA lv_segment_type        TYPE edilsegtyp.
+    DATA lv_result              TYPE syst_subrc.
+    DATA lv_devclass            TYPE devclass.
+    DATA lt_segmentdefinitions  TYPE STANDARD TABLE OF edisegmdef.
+    DATA ls_segment_definition  TYPE ty_segment_definition.
+    DATA lt_segment_definitions TYPE ty_segment_definitions.
+    FIELD-SYMBOLS: <ls_segemtndefinition> TYPE edisegmdef.
+
+    TRY.
+        check_is_idoc_segment( ).
+
+        lv_segment_type = ms_item-obj_name.
+        CALL FUNCTION 'SEGMENT_READ'
+          EXPORTING
+            segmenttyp        = lv_segment_type
+          IMPORTING
+            result            = lv_result
+          TABLES
+            segmentdefinition = lt_segmentdefinitions
+          EXCEPTIONS
+            OTHERS            = 1.
+        IF sy-subrc <> 0 OR lv_result <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+
+        LOOP AT lt_segmentdefinitions ASSIGNING <ls_segemtndefinition>.
+          CLEAR ls_segment_definition.
+          CALL FUNCTION 'SEGMENTDEFINITION_READ'
+            EXPORTING
+              segmenttyp           = <ls_segemtndefinition>-segtyp
+            IMPORTING
+              result               = lv_result
+              devclass             = lv_devclass
+              segmentheader        = ls_segment_definition-segmentheader
+              segmentdefinition    = ls_segment_definition-segmentdefinition
+            TABLES
+              segmentstructure     = ls_segment_definition-segmentstructures
+            CHANGING
+              version              = <ls_segemtndefinition>-version
+            EXCEPTIONS
+              no_authority         = 1
+              segment_not_existing = 2
+              OTHERS               = 3.
+          IF sy-subrc <> 0 OR lv_result <> 0.
+            zcx_abapgit_exception=>raise_t100( ).
+          ENDIF.
+
+          zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
+                                     CHANGING cs_structure = ls_segment_definition-segmentdefinition ).
+          zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
+                                     CHANGING cs_structure = ls_segment_definition-segmentheader ).
+
+          APPEND ls_segment_definition TO lt_segment_definitions.
+        ENDLOOP.
+
+        io_xml->add( iv_name = c_s_dataname-segment_definition
+                     ig_data = lt_segment_definitions ).
+
+      CATCH zcx_abapgit_exception ##no_handler.
+        "ok, no Idoc segment
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD check_is_idoc_segment.
+
+    DATA lv_segment_type TYPE edilsegtyp.
+
+    lv_segment_type = ms_item-obj_name.
+
+    SELECT SINGLE segtyp
+           FROM edisegment
+           INTO lv_segment_type
+           WHERE segtyp = lv_segment_type.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'No IDoc segment' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD deserialize_idoc_segment.
+
+    DATA lv_version             TYPE segmentvrs .
+    DATA lv_result              TYPE syst_subrc.
+    DATA lt_segment_definitions TYPE ty_segment_definitions.
+    DATA lv_package             TYPE devclass.
+    FIELD-SYMBOLS <ls_segment_definition> TYPE ty_segment_definition.
+
+    TRY.
+
+        io_xml->read( EXPORTING iv_name = c_s_dataname-segment_definition
+                      CHANGING  cg_data = lt_segment_definitions ).
+      CATCH zcx_abapgit_exception ##no_handler.
+        rv_deserialized = abap_false.
+        RETURN. "previous XML version or no IDoc segment
+    ENDTRY.
+
+    rv_deserialized = abap_true.
+
+    lv_package = iv_package.
+
+    LOOP AT lt_segment_definitions ASSIGNING <ls_segment_definition>.
+      <ls_segment_definition>-segmentheader-presp =
+      <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
+
+      CALL FUNCTION 'SEGMENT_READ'
+        EXPORTING
+          segmenttyp = <ls_segment_definition>-segmentheader-segtyp
+        IMPORTING
+          result     = lv_result
+        EXCEPTIONS
+          OTHERS     = 1.
+      IF sy-subrc <> 0 OR lv_result <> 0.
+        CALL FUNCTION 'SEGMENT_CREATE'
+          IMPORTING
+            segmentdefinition = <ls_segment_definition>-segmentdefinition
+          TABLES
+            segmentstructure  = <ls_segment_definition>-segmentstructures
+          CHANGING
+            segmentheader     = <ls_segment_definition>-segmentheader
+            devclass          = lv_package
+          EXCEPTIONS
+            OTHERS            = 1.
+      ELSE.
+
+        CALL FUNCTION 'SEGMENT_MODIFY'
+          CHANGING
+            segmentheader = <ls_segment_definition>-segmentheader
+            devclass      = lv_package
+          EXCEPTIONS
+            OTHERS        = 1.
+        IF sy-subrc = 0.
+          CALL FUNCTION 'SEGMENTDEFINITION_MODIFY'
+            TABLES
+              segmentstructure  = <ls_segment_definition>-segmentstructures
+            CHANGING
+              segmentdefinition = <ls_segment_definition>-segmentdefinition
+            EXCEPTIONS
+              OTHERS            = 1.
+        ENDIF.
+      ENDIF.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+    CALL FUNCTION 'TR_TADIR_INTERFACE'
+      EXPORTING
+        wi_test_modus       = abap_false
+        wi_tadir_pgmid      = 'R3TR'
+        wi_tadir_object     = ms_item-obj_type
+        wi_tadir_obj_name   = ms_item-obj_name
+        wi_tadir_author     = cl_abap_syst=>get_user_name( )
+        wi_tadir_devclass   = iv_package
+        wi_tadir_masterlang = mv_language
+        iv_set_edtflag      = abap_true
+        iv_delflag          = abap_false
+      EXCEPTIONS
+        OTHERS              = 1.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from TR_TADIR_INTERFACE' ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD delete_idoc_segment.
+
+    DATA lv_segment_type        TYPE edilsegtyp.
+    DATA lv_result              TYPE syst_subrc.
+
+    TRY.
+        check_is_idoc_segment( ).
+
+      CATCH zcx_abapgit_exception ##no_handler.
+        rv_deleted = abap_false.
+        RETURN. "previous XML version or no IDoc segment
+    ENDTRY.
+
+    rv_deleted = abap_true.
+    lv_segment_type = ms_item-obj_name.
+
+    CALL FUNCTION 'SEGMENT_DELETE'
+      EXPORTING
+        segmenttyp = lv_segment_type
+      IMPORTING
+        result     = lv_result
+      EXCEPTIONS
+        OTHERS     = 1.
+    IF sy-subrc <> 0 OR lv_result <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
@@ -52321,7 +52622,7 @@ ENDCLASS.
 CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   METHOD constructor.
 
-    super->constructor( is_item = is_item
+    super->constructor( is_item     = is_item
                         iv_language = iv_language ).
 
     mv_extension = ms_item-obj_name.
@@ -52363,30 +52664,36 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
     DATA: ls_extension  TYPE ty_extention,
           ls_attributes TYPE edi_iapi05.
 
-    io_xml->read(
-      EXPORTING
-        iv_name = 'IEXT'
-      CHANGING
-        cg_data = ls_extension ).
+    io_xml->read( EXPORTING iv_name = c_dataname_iext
+                  CHANGING  cg_data = ls_extension ).
 
     MOVE-CORRESPONDING ls_extension-attributes TO ls_attributes.
     ls_attributes-presp = cl_abap_syst=>get_user_name( ).
     ls_attributes-pwork = ls_attributes-presp.
 
-    CALL FUNCTION 'EXTTYPE_CREATE'
-      EXPORTING
-        pi_cimtyp     = mv_extension
-        pi_devclass   = iv_package
-        pi_attributes = ls_attributes
-      TABLES
-        pt_syntax     = ls_extension-t_syntax
-      EXCEPTIONS
-        OTHERS        = 1.
-
+    IF me->zif_abapgit_object~exists( ) = abap_true.
+      CALL FUNCTION 'EXTTYPE_UPDATE'
+        EXPORTING
+          pi_cimtyp     = mv_extension
+          pi_attributes = ls_attributes
+        TABLES
+          pt_syntax     = ls_extension-t_syntax
+        EXCEPTIONS
+          OTHERS        = 1.
+    ELSE.
+      CALL FUNCTION 'EXTTYPE_CREATE'
+        EXPORTING
+          pi_cimtyp     = mv_extension
+          pi_devclass   = iv_package
+          pi_attributes = ls_attributes
+        TABLES
+          pt_syntax     = ls_extension-t_syntax
+        EXCEPTIONS
+          OTHERS        = 1.
+    ENDIF.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -52445,7 +52752,7 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: ls_extension TYPE ty_extention.
+    DATA ls_extension           TYPE ty_extention.
 
     CALL FUNCTION 'EXTTYPE_READ'
       EXPORTING
@@ -52461,20 +52768,12 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    CLEAR: ls_extension-attributes-devc,
-           ls_extension-attributes-plast,
-           ls_extension-attributes-credate,
-           ls_extension-attributes-cretime,
-           ls_extension-attributes-ldate,
-           ls_extension-attributes-ltime,
-           ls_extension-attributes-pwork,
-           ls_extension-attributes-presp.
+    zcl_abapgit_object_idoc=>clear_idoc_segement_fields( CHANGING cs_structure = ls_extension-attributes ).
 
-    io_xml->add( iv_name = 'IEXT'
+    io_xml->add( iv_name = c_dataname_iext
                  ig_data = ls_extension ).
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object~is_locked.
     rv_is_locked = abap_false.
   ENDMETHOD.
@@ -52550,21 +52849,13 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
 
     CALL FUNCTION 'IDOCTYPE_CREATE'
       EXPORTING
-        pi_idoctyp          = mv_idoctyp
-        pi_devclass         = iv_package
-        pi_attributes       = ls_attributes
+        pi_idoctyp    = mv_idoctyp
+        pi_devclass   = iv_package
+        pi_attributes = ls_attributes
       TABLES
-        pt_syntax           = ls_idoc-t_syntax
+        pt_syntax     = ls_idoc-t_syntax
       EXCEPTIONS
-        object_not_found    = 1
-        object_exists       = 2
-        action_not_possible = 3
-        syntax_error        = 4
-        segment_error       = 5
-        transport_error     = 6
-        db_error            = 7
-        no_authority        = 8
-        OTHERS              = 9.
+        OTHERS        = 1.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -52617,15 +52908,12 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
       STARTING NEW TASK 'GIT'
       EXPORTING
-        tcode                 = 'WE30'
-        mode_val              = 'E'
+        tcode     = 'WE30'
+        mode_val  = 'E'
       TABLES
-        using_tab             = lt_bdcdata
+        using_tab = lt_bdcdata
       EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4.
+        OTHERS    = 1.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -52653,12 +52941,7 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    CLEAR: ls_idoc-attributes-devc,
-           ls_idoc-attributes-plast,
-           ls_idoc-attributes-credate,
-           ls_idoc-attributes-cretime,
-           ls_idoc-attributes-ldate,
-           ls_idoc-attributes-ltime.
+    clear_idoc_segement_fields( CHANGING cs_structure = ls_idoc-attributes ).
 
     io_xml->add( iv_name = 'IDOC'
                  ig_data = ls_idoc ).
@@ -52671,6 +52954,37 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
+  METHOD clear_idoc_segement_fields.
+
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'DEVC'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'PLAST'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'PWORK'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'PRESP'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'CREDATE'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'CRETIME'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'LDATE'
+                               CHANGING  cs_structure = cs_structure ).
+    clear_idoc_segement_field( EXPORTING iv_fieldname = 'LTIME'
+                               CHANGING  cs_structure = cs_structure ).
+  ENDMETHOD.
+
+  METHOD clear_idoc_segement_field.
+
+    FIELD-SYMBOLS <lv_any_field> TYPE any.
+
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_structure TO <lv_any_field>.
+    IF sy-subrc = 0.
+      CLEAR <lv_any_field>.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
@@ -66909,5 +67223,8 @@ AT SELECTION-SCREEN.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
 ****************************************************
-* abapmerge undefined - 2018-12-31T05:32:59.766Z
+INTERFACE lif_abapmerge_marker.
+ENDINTERFACE.
+****************************************************
+* abapmerge undefined - 2019-01-02T07:16:47.592Z
 ****************************************************
