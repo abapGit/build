@@ -45689,14 +45689,19 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     DATA lv_package             TYPE devclass.
     FIELD-SYMBOLS <ls_segment_definition> TYPE ty_segment_definition.
 
+    rv_deserialized = abap_false.
+
     TRY.
 
         io_xml->read( EXPORTING iv_name = c_s_dataname-segment_definition
                       CHANGING  cg_data = lt_segment_definitions ).
       CATCH zcx_abapgit_exception ##no_handler.
-        rv_deserialized = abap_false.
         RETURN. "previous XML version or no IDoc segment
     ENDTRY.
+
+    IF lines( lt_segment_definitions ) = 0.
+      RETURN. "no IDoc segment
+    ENDIF.
 
     rv_deserialized = abap_true.
 
@@ -67226,5 +67231,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-02T07:16:47.592Z
+* abapmerge undefined - 2019-01-02T10:52:13.313Z
 ****************************************************
