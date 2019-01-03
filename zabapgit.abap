@@ -30438,10 +30438,14 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     LOOP AT mt_commits ASSIGNING <ls_commit>.
 
       IF sy-tabix = 1.
-* assumption: all branches are created from master, todo
+        " assumption: all branches are created from master, todo
         ro_html->add( |var {
           escape_branch( <ls_commit>-branch ) } = gitgraph.branch("{
           <ls_commit>-branch }");| ).
+      ENDIF.
+
+      IF <ls_commit>-branch IS INITIAL.
+        CONTINUE. " we skip orphaned commits
       ENDIF.
 
       IF <ls_commit>-compressed = abap_true.
@@ -32739,6 +32743,9 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '/* exported preparePatch */'.
         _inline '/* exported registerStagePatch */'.
         _inline '/* exported toggleRepoListDetail */'.
+        _inline '/* exported onDirectionChange */'.
+        _inline '/* exported onOrderByChange  */'.
+        _inline '/* exported onTagTypeChange */'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Polyfills'.
@@ -32891,25 +32898,37 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '/**********************************************************'.
         _inline ' * TAG PAGE Logic'.
         _inline ' **********************************************************/'.
-        _inline '// somehow only functions on window are visible for the select tag'.
-        _inline 'window.onTagTypeChange = function(oSelectObject){'.
+        _inline 'function onTagTypeChange(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");'.
-        _inline '};'.
+        _inline '}'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * Repo Overview Logic'.
         _inline ' **********************************************************/'.
-        _inline '// somehow only functions on window are visible for the select tag'.
-        _inline 'window.onOrderByChange = function(oSelectObject){'.
+        _inline 'function onOrderByChange(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ orderBy: sValue }, "change_order_by", "post");'.
-        _inline '};'.
+        _inline '}'.
         _inline ''.
-        _inline 'window.onDirectionChange = function(oSelectObject){'.
+        _inline 'function onDirectionChange(oSelectObject){'.
         _inline '  var sValue = oSelectObject.value;'.
         _inline '  submitSapeventForm({ direction: sValue }, "direction", "post");'.
-        _inline '};'.
+        _inline '}'.
+        _inline ''.
+        _inline 'function findStyleSheetByName(name) {'.
+        _inline '  var classes = document.styleSheets[0].cssRules || document.styleSheets[0].rules;'.
+        _inline '  for (var i = 0; i < classes.length; i++) {'.
+        _inline '    if (classes[i].selectorText === name) return classes[i];'.
+        _inline '  }'.
+        _inline '}'.
+        _inline ''.
+        _inline 'function toggleRepoListDetail() {'.
+        _inline '  var detailClass = findStyleSheetByName(".ro-detail");'.
+        _inline '  if (detailClass) {'.
+        _inline '    detailClass.style.display = detailClass.style.display === "none" ? "" : "none";'.
+        _inline '  }'.
+        _inline '}'.
         _inline ''.
         _inline '/**********************************************************'.
         _inline ' * STAGE PAGE Logic'.
@@ -33334,7 +33353,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
         _inline '  if (oEvent.key === "ENTER" || oEvent.key === "") {'.
-        _inline '    this.onEnterOrSpace(oEvent);'.
+        _inline '    this.onEnterOrSpace();'.
         _inline '  } else if (/Down$/.test(oEvent.key)) {'.
         _inline '    this.onArrowDown(oEvent);'.
         _inline '  } else if (/Up$/.test(oEvent.key)) {'.
@@ -33355,7 +33374,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  return this.getActiveElement().parentElement;'.
         _inline '};'.
         _inline ''.
-        _inline 'KeyNavigation.prototype.onEnterOrSpace = function (oEvent) { // eslint-disable-line no-unused-vars'.
+        _inline 'KeyNavigation.prototype.onEnterOrSpace = function () {'.
         _inline ''.
         _inline '  // Enter or space clicks the selected link'.
         _inline ''.
@@ -33933,21 +33952,6 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
         _inline '  this.toggleCommit();'.
         _inline '};'.
-        _inline ''.
-        _inline '// Repo overview'.
-        _inline 'function findStyleSheetByName(name) {'.
-        _inline '  var classes = document.styleSheets[0].cssRules || document.styleSheets[0].rules;'.
-        _inline '  for (var i = 0; i < classes.length; i++) {'.
-        _inline '    if (classes[i].selectorText === name) return classes[i];'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function toggleRepoListDetail() {'.
-        _inline '  var detailClass = findStyleSheetByName(".ro-detail");'.
-        _inline '  if (detailClass) {'.
-        _inline '    detailClass.style.display = detailClass.style.display === "none" ? "" : "none";'.
-        _inline '  }'.
-        _inline '}'.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_url }| ).
     ENDCASE.
@@ -67231,5 +67235,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-02T10:52:13.313Z
+* abapmerge undefined - 2019-01-03T05:38:11.113Z
 ****************************************************
