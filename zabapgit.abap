@@ -2386,7 +2386,7 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_version .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.81.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.81.1' ##NO_TEXT.
 
 ENDINTERFACE.
 CLASS zcl_abapgit_background DEFINITION
@@ -67236,5 +67236,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-05T06:51:22.500Z
+* abapmerge undefined - 2019-01-05T11:07:41.526Z
 ****************************************************
