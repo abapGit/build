@@ -67117,6 +67117,7 @@ FORM output.
   PERFORM set_pf_status IN PROGRAM rsdbrunt IF FOUND.
 
   APPEND 'CRET' TO lt_ucomm.  "Button Execute
+  APPEND 'SPOS' TO lt_ucomm.  "Button Save
 
   CALL FUNCTION 'RS_SET_SELSCREEN_STATUS'
     EXPORTING
@@ -67188,9 +67189,9 @@ FORM remove_toolbar USING pv_dynnr TYPE char4.
       header                 = ls_header
       suppress_exist_checks  = abap_true
     TABLES
-      containers           = lt_containers
-      fields_to_containers = lt_fields_to_containers
-      flow_logic           = lt_flow_logic
+      containers             = lt_containers
+      fields_to_containers   = lt_fields_to_containers
+      flow_logic             = lt_flow_logic
     EXCEPTIONS
       cancelled              = 1
       already_exists         = 2
@@ -67235,5 +67236,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-04T13:37:48.248Z
+* abapmerge undefined - 2019-01-05T06:51:22.500Z
 ****************************************************
