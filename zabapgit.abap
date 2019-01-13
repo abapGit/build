@@ -3896,6 +3896,8 @@ CLASS zcl_abapgit_object_enhs_badi_d DEFINITION.
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_object_enhs.
 
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_enhs_hook_d DEFINITION.
 
@@ -5073,6 +5075,8 @@ CLASS zcl_abapgit_object_ensc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -6356,6 +6360,7 @@ CLASS zcl_abapgit_object_wdyn DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA:
@@ -6422,6 +6427,7 @@ CLASS zcl_abapgit_object_webi DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_webi,
              veptext         TYPE veptext,
@@ -16999,9 +17005,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     lt_overwrite = warning_overwrite_find( ct_results ).
 
     LOOP AT lt_overwrite ASSIGNING <ls_overwrite>.
-      READ TABLE it_overwrite INTO ls_overwrite WITH KEY
-        obj_type = <ls_overwrite>-obj_type
-        obj_name = <ls_overwrite>-obj_name.
+
+      READ TABLE it_overwrite INTO ls_overwrite
+                              WITH TABLE KEY object_type_and_name
+                              COMPONENTS obj_type = <ls_overwrite>-obj_type
+                                         obj_name = <ls_overwrite>-obj_name.
       IF sy-subrc <> 0 OR ls_overwrite-decision IS INITIAL.
         zcx_abapgit_exception=>raise( |Overwrite { <ls_overwrite>-obj_type } {
           <ls_overwrite>-obj_name } undecided| ).
@@ -17052,9 +17060,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       io_repo      = io_repo ).
 
     LOOP AT lt_overwrite ASSIGNING <ls_overwrite>.
-      READ TABLE it_overwrite INTO ls_overwrite WITH KEY
-        obj_type = <ls_overwrite>-obj_type
-        obj_name = <ls_overwrite>-obj_name.
+
+      READ TABLE it_overwrite INTO ls_overwrite
+                              WITH TABLE KEY object_type_and_name
+                              COMPONENTS obj_type = <ls_overwrite>-obj_type
+                                         obj_name = <ls_overwrite>-obj_name.
       IF sy-subrc <> 0 OR ls_overwrite-decision IS INITIAL.
         zcx_abapgit_exception=>raise( |Overwrite odd package { <ls_overwrite>-obj_type } {
           <ls_overwrite>-obj_name } undecided| ).
@@ -39648,11 +39658,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
           zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
         ENDIF.
 
-*        IF iv_type = 'CLAS'.
-*          fix_class_methods( EXPORTING iv_obj_name = lv_obj_name
-*                             CHANGING ct_objects = lt_objects ).
-*        ENDIF.
-
         LOOP AT lt_objects ASSIGNING <ls_object>.
           <ls_object>-delet_flag = iv_delete.
         ENDLOOP.
@@ -40117,7 +40122,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_webi IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -40221,7 +40226,6 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
           WHERE function = <ls_function>-function.
         li_fault = li_function->create_fault( <ls_fault>-fault ).
         li_fault->set_name_mapped_to( <ls_fault>-mappedname ).
-*        li_fault->set_description( <ls_fault>-description_id ).
         li_fault->set_detail( <ls_fault>-detail ).
       ENDLOOP.
 
@@ -40412,6 +40416,12 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -40493,16 +40503,8 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
                  ig_data = ls_webi ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
 ENDCLASS.
-
-CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD add_fm_exception.
 
     DATA: ls_exception LIKE LINE OF ct_exception.
@@ -41124,8 +41126,6 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name  = 'SOURCES'
                   CHANGING cg_data = mt_sources ).
 
-*    tadir_insert( iv_package ).
-
     ls_component-comp_metadata-definition-author = sy-uname.
     ls_component-comp_metadata-definition-createdon = sy-datum.
     recover_definition( is_definition = ls_component-comp_metadata
@@ -41161,6 +41161,12 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -41183,13 +41189,6 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
     io_xml->add( ig_data = mt_sources
                  iv_name = 'SOURCES' ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
@@ -54908,7 +54907,6 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     DATA: ls_form_data              TYPE tys_form_data.
     DATA: lt_text_header            TYPE tyt_text_header.
     DATA: lt_lines                  TYPE tyt_lines.
-*    DATA: lo_xml                    TYPE REF TO zcl_abapgit_xml_output.
     DATA: lv_form_found             TYPE flag.
     FIELD-SYMBOLS: <ls_text_header> LIKE LINE OF lt_text_header.
 
@@ -54917,7 +54915,6 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     LOOP AT lt_text_header ASSIGNING <ls_text_header>.
       CLEAR lt_lines.
       CLEAR ls_form_data.
-*      FREE lo_xml.
 
       _read_form( EXPORTING is_text_header = <ls_text_header>
                   IMPORTING ev_form_found = lv_form_found
@@ -55195,8 +55192,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
         lo_spot_ref ?= li_spot_ref.
 
         lv_enh_shtext = li_spot_ref->if_enh_object_docu~get_shorttext( ).
-        "find parent = composite enhancement (ENSC)
-*        lv_parent = cl_r3standard_persistence=>enh_find_parent_composite( lv_spot_name ).
         "find subsequent enhancement spots
         lt_enh_spots = lo_spot_ref->if_enh_spot_composite~get_enh_spot_childs( ).
         "find subsequent composite enhancement spots
@@ -55496,15 +55491,13 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
   METHOD zif_abapgit_object_enhs~deserialize.
 
     DATA: lv_parent          TYPE enhspotcompositename,
           lt_enh_badi        TYPE enh_badi_data_it,
           lo_badidef_tool    TYPE REF TO cl_enh_tool_badi_def,
           lv_enh_shorttext   TYPE string,
-*          lv_package         LIKE iv_package,
           li_enh_object      TYPE REF TO if_enh_object,
           li_enh_object_docu TYPE REF TO if_enh_object_docu,
           lv_text            TYPE string,
@@ -55520,8 +55513,6 @@ CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING  cg_data = lv_enh_shorttext ).
-
-*    lv_package = iv_package.
 
     li_enh_object ?= ii_enh_spot_tool.
     li_enh_object_docu ?= ii_enh_spot_tool.
@@ -55545,7 +55536,6 @@ CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object_enhs~serialize.
 
     DATA: lv_spot_name       TYPE enhspotname,
@@ -55578,7 +55568,6 @@ CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
                  iv_name = 'BADI_DATA' ).
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
   METHOD factory.
@@ -58822,7 +58811,7 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_devc IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -59156,14 +59145,15 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     " the hierarchy before.
     CLEAR ls_package_data-parentcl.
 
+* Fields not set:
+* korrflag
+* dlvunit
+* parentcl
     ls_data_sign-ctext            = abap_true.
-*    ls_data_sign-korrflag         = abap_true.
     ls_data_sign-as4user          = abap_true.
     ls_data_sign-pdevclass        = abap_true.
-*    ls_data_sign-dlvunit          = abap_true.
     ls_data_sign-comp_posid       = abap_true.
     ls_data_sign-component        = abap_true.
-*    ls_data_sign-parentcl         = abap_true. " No parent package change here
     ls_data_sign-perminher        = abap_true.
     ls_data_sign-intfprefx        = abap_true.
     ls_data_sign-packtype         = abap_true.
@@ -59315,6 +59305,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     DATA: lv_object TYPE eqegraarg.
@@ -59453,9 +59446,6 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     IF lt_usage_data IS NOT INITIAL.
       io_xml->add( iv_name = 'PERMISSION' ig_data = lt_usage_data ).
     ENDIF.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
@@ -67278,5 +67268,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-13T06:31:12.846Z
+* abapmerge undefined - 2019-01-13T09:30:16.384Z
 ****************************************************
