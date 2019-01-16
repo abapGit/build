@@ -8193,8 +8193,10 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         commit TYPE string VALUE 'commit' ##NO_TEXT,
         rerun  TYPE string VALUE 'rerun' ##NO_TEXT,
       END OF c_actions.
+
     DATA:
-      mo_stage  TYPE REF TO zcl_abapgit_stage.
+      mo_stage         TYPE REF TO zcl_abapgit_stage,
+      mv_check_variant TYPE sci_chkv.
 
     METHODS:
       build_menu
@@ -8213,7 +8215,17 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
 
       is_stage_allowed
         RETURNING
-          VALUE(rv_is_stage_allowed) TYPE abap_bool.
+          VALUE(rv_is_stage_allowed) TYPE abap_bool,
+
+      ask_user_for_check_variant
+        RETURNING
+          VALUE(rv_check_variant) TYPE sci_chkv
+        RAISING
+          zcx_abapgit_exception,
+
+      determine_check_variant
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_commit DEFINITION
@@ -11848,8 +11860,10 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS run_code_inspector
+      IMPORTING
+        iv_check_variant TYPE string
       RETURNING
-        VALUE(rt_list) TYPE scit_alvlist
+        VALUE(rt_list)   TYPE scit_alvlist
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
@@ -15969,18 +15983,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD run_code_inspector.
 
-    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector,
-          lv_check_variant  TYPE string.
-
-    lv_check_variant = get_local_settings( )-code_inspector_check_variant.
-
-    IF lv_check_variant IS INITIAL.
-      zcx_abapgit_exception=>raise( |No check variant maintained in repo settings.| ).
-    ENDIF.
+    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector.
 
     li_code_inspector = zcl_abapgit_factory=>get_code_inspector(
                                   iv_package            = get_package( )
-                                  iv_check_variant_name = |{ lv_check_variant }| ).
+                                  iv_check_variant_name = |{ iv_check_variant }| ).
 
     rt_list = li_code_inspector->run( ).
 
@@ -19303,7 +19310,16 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
+    IF iv_package IS INITIAL.
+      zcx_abapgit_exception=>raise( |Please supply package| ).
+    ENDIF.
+
     mv_package = iv_package.
+
+    IF iv_check_variant_name IS INITIAL.
+      zcx_abapgit_exception=>raise( |Please supply check variant| ).
+    ENDIF.
+
     mv_check_variant_name = iv_check_variant_name.
 
     " We create the inspection and objectset with dummy names.
@@ -30276,6 +30292,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     mo_repo ?= io_repo.
     mo_stage = io_stage.
     ms_control-page_title = 'Code Inspector'.
+    determine_check_variant( ).
     run_code_inspector( ).
   ENDMETHOD.
   METHOD has_inspection_errors.
@@ -30293,23 +30310,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
-    DATA: lv_check_variant TYPE sci_chkv.
-
     FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
 
     CREATE OBJECT ro_html.
 
-    lv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
-
-    IF lv_check_variant IS INITIAL.
-      ro_html->add( |No check variant maintained in repo settings.| ).
+    IF mv_check_variant IS INITIAL.
+      ro_html->add( |No check variant supplied.| ).
       RETURN.
     ENDIF.
 
     ro_html->add( '<div class="toc"><br/>' ).
 
     ro_html->add( |Code inspector check variant: {
-                    mo_repo->get_local_settings( )-code_inspector_check_variant
+                    mv_check_variant
                   }<br/>| ).
 
     IF lines( mt_result ) = 0.
@@ -30328,7 +30341,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
   METHOD run_code_inspector.
 
-    mt_result = mo_repo->run_code_inspector( ).
+    mt_result = mo_repo->run_code_inspector( |{ mv_check_variant }| ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
@@ -30415,6 +30428,49 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     ro_html = super->zif_abapgit_gui_page~render( ).
 
   ENDMETHOD.
+
+  METHOD ask_user_for_check_variant.
+
+    DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
+
+    FIELD-SYMBOLS: <ls_return> LIKE LINE OF lt_return.
+
+    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
+      EXPORTING
+        tabname           = 'SCI_DYNP'
+        fieldname         = 'CHKV'
+      TABLES
+        return_tab        = lt_return
+      EXCEPTIONS
+        field_not_found   = 1
+        no_help_for_field = 2
+        inconsistent_help = 3
+        no_values_found   = 4
+        OTHERS            = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    READ TABLE lt_return ASSIGNING <ls_return>
+                         WITH KEY retfield = 'SCI_DYNP-CHKV'.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Please select a check variant.| ).
+    ENDIF.
+
+    rv_check_variant = <ls_return>-fieldval.
+
+  ENDMETHOD.
+  METHOD determine_check_variant.
+
+    mv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
+
+    IF mv_check_variant IS INITIAL.
+      mv_check_variant = ask_user_for_check_variant( ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
@@ -67268,5 +67324,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-15T09:37:33.451Z
+* abapmerge undefined - 2019-01-16T08:35:38.188Z
 ****************************************************
