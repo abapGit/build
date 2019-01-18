@@ -20816,11 +20816,9 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
         lo_columns->set_optimize( ).
 
         lo_column = lo_columns->get_column( 'REQUIRED_RELEASE' ).
-*        lo_column->set_fixed_header_text( 'S' ).
         lo_column->set_short_text( 'Req. Rel.' ).
 
         lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
-*        lo_column->set_fixed_header_text( 'S' ).
         lo_column->set_short_text( 'Req. SP L.' ).
 
         lo_alv->set_screen_popup( start_column = 30
@@ -23409,7 +23407,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     DATA: lv_url          TYPE string,
           ls_package_data TYPE scompkdtln,
           ls_branch       TYPE zif_abapgit_definitions=>ty_git_branch,
-          lv_create       TYPE boolean.
+          lv_create       TYPE boolean,
+          lv_text         TYPE string.
 
     FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
                    <ls_fbranch>  LIKE LINE OF ct_fields,
@@ -23442,6 +23441,12 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
       ASSERT sy-subrc = 0.
       ls_package_data-devclass = <ls_fpackage>-value.
+
+      IF zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->exists( ) = abap_true.
+        lv_text = |Package { ls_package_data-devclass } already exists|.
+        MESSAGE lv_text TYPE 'I' DISPLAY LIKE 'E'.
+        RETURN.
+      ENDIF.
 
       popup_to_create_package(
         IMPORTING
@@ -36893,7 +36898,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         other           = 6
         OTHERS          = 7.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SEO_CLASS_CREATE_COMPLETE' ).
+      zcx_abapgit_exception=>raise( |error from SEO_CLASS_CREATE_COMPLETE: { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -62939,12 +62944,8 @@ CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
         RETURN.
     ENDTRY.
 
-* build_schema( ).
-* set_attributes_to_schema( ).
     set_attributes_to_template( ).
-* set_systems_data_to_schema( ).
     set_systems_data_to_template( ).
-* download_schema( ).
     download_data( ).
 
   ENDMETHOD.
@@ -63307,18 +63308,14 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
     ENDTRY.
 
     toolname = ecatt_object->attrib->get_tool_name( ).
-* build_schema( ).
-* set_attributes_to_schema( ).
     set_attributes_to_template( ).
 
     IF toolname EQ cl_apl_ecatt_const=>toolname_ecatt.
 
       ecatt_script ?= ecatt_object.
 
-*   set_script_to_schema( ).
       set_script_to_template( ).
 
-*   set_params_to_schema( ).
       TRY.
           get_general_params_data( ecatt_script->params ).
         CATCH cx_ecatt_apl.                              "#EC NOHANDLER
@@ -63352,7 +63349,6 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     ENDIF.
 
-* download_schema( ).
     download_data( ).
 
   ENDMETHOD.
@@ -63841,10 +63837,7 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
     lv_partyp = cl_apl_ecatt_const=>params_type_par.
 
     ecatt_data ?= ecatt_object.
-* build_schema( ).
-* set_attributes_to_schema( ).
     set_attributes_to_template( ).
-* set_params_to_schema( ).
     get_general_params_data( im_params = ecatt_data->params
                              im_ptyp   = lv_partyp ).
 
@@ -63862,7 +63855,6 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
 * ENDMS180406
     set_variants_to_dom( ecatt_data->params ).
 
-* download_schema( ).
     download_data( ).
 
   ENDMETHOD.
@@ -67639,5 +67631,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-17T13:57:08.634Z
+* abapmerge undefined - 2019-01-18T06:09:37.450Z
 ****************************************************
