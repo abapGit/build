@@ -8252,20 +8252,21 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
         REDEFINITION.
 
   PROTECTED SECTION.
-    DATA: mo_repo TYPE REF TO zcl_abapgit_repo.
-    DATA:
-      mt_result TYPE scit_alvlist.
 
-    METHODS:
-      render_result IMPORTING io_html   TYPE REF TO zcl_abapgit_html
-                              iv_result TYPE scir_alvlist,
-      jump
-        IMPORTING
-          is_item        TYPE zif_abapgit_definitions=>ty_item
-          is_sub_item    TYPE zif_abapgit_definitions=>ty_item
-          iv_line_number TYPE i
-        RAISING
-          zcx_abapgit_exception.
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo .
+    DATA mt_result TYPE scit_alvlist .
+
+    METHODS render_result
+      IMPORTING
+        !io_html   TYPE REF TO zcl_abapgit_html
+        !it_result TYPE scit_alvlist .
+    METHODS jump
+      IMPORTING
+        !is_item        TYPE zif_abapgit_definitions=>ty_item
+        !is_sub_item    TYPE zif_abapgit_definitions=>ty_item
+        !iv_line_number TYPE i
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
     CONSTANTS: c_object_separator TYPE char1 VALUE '|'.
 
@@ -9161,6 +9162,7 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
     METHODS:
       render_content REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
@@ -26311,7 +26313,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   METHOD render_content.
 
     DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF mt_result.
 
     li_syntax_check = zcl_abapgit_factory=>get_syntax_check( mo_repo->get_package( ) ).
 
@@ -26324,10 +26325,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
       ro_html->add( 'No errors' ).
     ENDIF.
 
-    LOOP AT mt_result ASSIGNING <ls_result>.
-      render_result( io_html   = ro_html
-                     iv_result = <ls_result> ).
-    ENDLOOP.
+    render_result( io_html   = ro_html
+                   it_result = mt_result ).
 
     ro_html->add( '</div>' ).
 
@@ -30286,45 +30285,57 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD render_result.
+
+    CONSTANTS: lc_limit TYPE i VALUE 500.
+
     DATA: lv_class TYPE string,
           lv_line  TYPE string.
 
-    io_html->add( '<div>' ).
-    IF iv_result-sobjname IS INITIAL OR
-       ( iv_result-sobjname = iv_result-objname AND
-         iv_result-sobjtype = iv_result-sobjtype ).
-      io_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }|
-                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
-                               |{ c_object_separator }{ c_object_separator }{ iv_result-line }|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+    LOOP AT it_result ASSIGNING <ls_result> TO lc_limit.
 
-    ELSE.
-      io_html->add_a( iv_txt = |{ iv_result-objtype } { iv_result-objname }| &&
-                               | < { iv_result-sobjtype } { iv_result-sobjname }|
-                      iv_act = |{ iv_result-objtype }{ iv_result-objname }| &&
-                               |{ c_object_separator }{ iv_result-sobjtype }{ iv_result-sobjname }| &&
-                               |{ c_object_separator }{ iv_result-line }|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+      io_html->add( '<div>' ).
+      IF <ls_result>-sobjname IS INITIAL OR
+         ( <ls_result>-sobjname = <ls_result>-objname AND
+           <ls_result>-sobjtype = <ls_result>-sobjtype ).
+        io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
+                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
+                                 |{ c_object_separator }{ c_object_separator }{ <ls_result>-line }|
+                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
 
+      ELSE.
+        io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }| &&
+                                 | < { <ls_result>-sobjtype } { <ls_result>-sobjname }|
+                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
+                                 |{ c_object_separator }{ <ls_result>-sobjtype }{ <ls_result>-sobjname }| &&
+                                 |{ c_object_separator }{ <ls_result>-line }|
+                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+
+      ENDIF.
+      io_html->add( '</div>' ).
+
+      CASE <ls_result>-kind.
+        WHEN 'E'.
+          lv_class = 'error'.
+        WHEN 'W'.
+          lv_class = 'warning'.
+        WHEN OTHERS.
+          lv_class = 'grey'.
+      ENDCASE.
+
+      CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+        EXPORTING
+          input  = <ls_result>-line
+        IMPORTING
+          output = lv_line.
+
+      io_html->add( |<div class="{ lv_class }">Line { lv_line }: { <ls_result>-text }</div><br>| ).
+
+    ENDLOOP.
+
+    IF lines( it_result ) > lc_limit.
+      io_html->add( |Only first { lc_limit } findings shown in list!| ).
     ENDIF.
-    io_html->add( '</div>' ).
-
-    CASE iv_result-kind.
-      WHEN 'E'.
-        lv_class = 'error'.
-      WHEN 'W'.
-        lv_class = 'warning'.
-      WHEN OTHERS.
-        lv_class = 'grey'.
-    ENDCASE.
-
-    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
-      EXPORTING
-        input  = iv_result-line
-      IMPORTING
-        output = lv_line.
-
-    io_html->add( |<div class="{ lv_class }">Line { lv_line }: { iv_result-text }</div><br>| ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
@@ -30362,6 +30373,38 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
+  METHOD ask_user_for_check_variant.
+
+    DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
+
+    FIELD-SYMBOLS: <ls_return> LIKE LINE OF lt_return.
+
+    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
+      EXPORTING
+        tabname           = 'SCI_DYNP'
+        fieldname         = 'CHKV'
+      TABLES
+        return_tab        = lt_return
+      EXCEPTIONS
+        field_not_found   = 1
+        no_help_for_field = 2
+        inconsistent_help = 3
+        no_values_found   = 4
+        OTHERS            = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    READ TABLE lt_return ASSIGNING <ls_return>
+                         WITH KEY retfield = 'SCI_DYNP-CHKV'.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Please select a check variant.| ).
+    ENDIF.
+
+    rv_check_variant = <ls_return>-fieldval.
+
+  ENDMETHOD.
   METHOD build_menu.
 
     DATA: lv_opt TYPE c LENGTH 1.
@@ -30408,6 +30451,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     determine_check_variant( ).
     run_code_inspector( ).
   ENDMETHOD.
+  METHOD determine_check_variant.
+
+    mv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
+
+    IF mv_check_variant IS INITIAL.
+      mv_check_variant = ask_user_for_check_variant( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD has_inspection_errors.
 
     READ TABLE mt_result TRANSPORTING NO FIELDS
@@ -30422,8 +30474,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD render_content.
-
-    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
 
     CREATE OBJECT ro_html.
 
@@ -30444,10 +30494,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     ro_html->add( |<br/>| ).
 
-    LOOP AT mt_result ASSIGNING <ls_result>.
-      render_result( io_html   = ro_html
-                     iv_result = <ls_result> ).
-    ENDLOOP.
+    render_result( io_html   = ro_html
+                   it_result = mt_result ).
 
     ro_html->add( '</div>' ).
 
@@ -30541,49 +30589,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     ro_html = super->zif_abapgit_gui_page~render( ).
 
   ENDMETHOD.
-
-  METHOD ask_user_for_check_variant.
-
-    DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
-
-    FIELD-SYMBOLS: <ls_return> LIKE LINE OF lt_return.
-
-    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
-      EXPORTING
-        tabname           = 'SCI_DYNP'
-        fieldname         = 'CHKV'
-      TABLES
-        return_tab        = lt_return
-      EXCEPTIONS
-        field_not_found   = 1
-        no_help_for_field = 2
-        inconsistent_help = 3
-        no_values_found   = 4
-        OTHERS            = 5.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    READ TABLE lt_return ASSIGNING <ls_return>
-                         WITH KEY retfield = 'SCI_DYNP-CHKV'.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Please select a check variant.| ).
-    ENDIF.
-
-    rv_check_variant = <ls_return>-fieldval.
-
-  ENDMETHOD.
-  METHOD determine_check_variant.
-
-    mv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
-
-    IF mv_check_variant IS INITIAL.
-      mv_check_variant = ask_user_for_check_variant( ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
@@ -38753,6 +38758,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_dynpros.
 
+    CONSTANTS lc_rpyty_force_off TYPE char01 VALUE '/' ##NO_TEXT.
+
     DATA: ls_header               TYPE rpy_dyhead,
           lt_containers           TYPE dycatt_tab,
           lt_fields_to_containers TYPE dyfatc_tab,
@@ -38809,6 +38816,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         ASSIGN COMPONENT 'OUTPUTSTYLE' OF STRUCTURE <ls_field> TO <lv_outputstyle>.
         IF sy-subrc = 0 AND <lv_outputstyle> = '  '.
           CLEAR <lv_outputstyle>.
+        ENDIF.
+
+* if the DDIC element has a PARAMETER_ID and the flag "from_dict" is active
+* the import will enable the SET-/GET_PARAM flag. In this case force "off"
+        IF <ls_field>-param_id IS NOT INITIAL
+           AND <ls_field>-from_dict = abap_true.
+          IF <ls_field>-set_param IS INITIAL.
+            <ls_field>-set_param = lc_rpyty_force_off.
+          ENDIF.
+          IF <ls_field>-get_param IS INITIAL.
+            <ls_field>-get_param = lc_rpyty_force_off.
+          ENDIF.
         ENDIF.
       ENDLOOP.
 
@@ -67631,5 +67650,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-18T06:09:37.450Z
+* abapmerge undefined - 2019-01-20T06:58:57.561Z
 ****************************************************
