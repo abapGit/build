@@ -1197,7 +1197,7 @@ INTERFACE zif_abapgit_definitions.
       path     TYPE string,
       filename TYPE string,
       package  TYPE devclass,
-      match    TYPE sap_bool,
+      match    TYPE abap_bool,
       lstate   TYPE char1,
       rstate   TYPE char1,
     END OF ty_result .
@@ -1774,7 +1774,7 @@ INTERFACE zif_abapgit_persistence.
            created_at      TYPE timestampl,
            deserialized_by TYPE xubname,
            deserialized_at TYPE timestampl,
-           offline         TYPE sap_bool,
+           offline         TYPE abap_bool,
            local_checksums TYPE ty_local_checksum_tt,
            dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
            head_branch     TYPE string,   " HEAD symref of the repo, master branch
@@ -1812,7 +1812,7 @@ INTERFACE zif_abapgit_persist_repo .
       !iv_branch_name TYPE string
       !iv_branch      TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
       !iv_package     TYPE devclass
-      !iv_offline     TYPE sap_bool DEFAULT abap_false
+      !iv_offline     TYPE abap_bool DEFAULT abap_false
       !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
     RETURNING
       VALUE(rv_key)   TYPE zif_abapgit_persistence=>ty_repo-key
@@ -2084,7 +2084,7 @@ INTERFACE zif_abapgit_popups .
   METHODS popup_to_create_package
     EXPORTING
       !es_package_data TYPE scompkdtln
-      !ev_create       TYPE boolean
+      !ev_create       TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS popup_to_create_transp_branch
@@ -4043,14 +4043,14 @@ CLASS zcl_abapgit_objects_files DEFINITION
       add_xml
         IMPORTING iv_extra     TYPE clike OPTIONAL
                   io_xml       TYPE REF TO zcl_abapgit_xml_output
-                  iv_normalize TYPE sap_bool DEFAULT abap_true
+                  iv_normalize TYPE abap_bool DEFAULT abap_true
                   is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
         RAISING   zcx_abapgit_exception,
 * needed since type-check during dynamic call fails even if the object is compatible
       add_xml_from_plugin
         IMPORTING iv_extra     TYPE clike OPTIONAL
                   io_xml       TYPE REF TO object
-                  iv_normalize TYPE sap_bool DEFAULT abap_true
+                  iv_normalize TYPE abap_bool DEFAULT abap_true
         RAISING   zcx_abapgit_exception ##called,
       read_xml
         IMPORTING iv_extra      TYPE clike OPTIONAL
@@ -4058,7 +4058,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
         RAISING   zcx_abapgit_exception,
       read_abap
         IMPORTING iv_extra       TYPE clike OPTIONAL
-                  iv_error       TYPE sap_bool DEFAULT abap_true
+                  iv_error       TYPE abap_bool DEFAULT abap_true
         RETURNING VALUE(rt_abap) TYPE abaptxt255_tab
         RAISING   zcx_abapgit_exception,
       add_abap
@@ -4084,6 +4084,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
       get_accessed_files
         RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_item           TYPE zif_abapgit_definitions=>ty_item,
           mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
@@ -5167,7 +5168,7 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING
         is_text_header TYPE zcl_abapgit_object_form=>tys_text_header
       EXPORTING
-        ev_form_found  TYPE flag
+        ev_form_found  TYPE abap_bool
         es_form_data   TYPE zcl_abapgit_object_form=>tys_form_data
         et_lines       TYPE zcl_abapgit_object_form=>tyt_lines.
 
@@ -5752,7 +5753,7 @@ CLASS zcl_abapgit_object_smim DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     METHODS get_url_for_io
       EXPORTING ev_url       TYPE string
-                ev_is_folder TYPE boole_d
+                ev_is_folder TYPE abap_bool
       RAISING   zcx_abapgit_not_found
                 zcx_abapgit_exception.
 
@@ -7763,7 +7764,7 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS back
       IMPORTING iv_to_bookmark TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(rv_exit) TYPE xfeld
+      RETURNING VALUE(rv_exit) TYPE abap_bool
       RAISING   zcx_abapgit_exception.
 
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
@@ -8668,7 +8669,7 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
 
     METHODS build_menu
       IMPORTING
-        VALUE(iv_with_conflict) TYPE boolean OPTIONAL
+        VALUE(iv_with_conflict) TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(ro_menu)          TYPE REF TO zcl_abapgit_html_toolbar .
 ENDCLASS.
@@ -8735,7 +8736,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
         zcx_abapgit_exception .
     METHODS build_menu
       IMPORTING
-        VALUE(iv_with_conflict) TYPE boolean OPTIONAL
+        VALUE(iv_with_conflict) TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(ro_menu)          TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS is_binary
@@ -10692,7 +10693,7 @@ CLASS zcl_abapgit_xml DEFINITION
                c_attr_serializer_version TYPE string VALUE 'serializer_version' ##NO_TEXT.
 
     METHODS to_xml
-      IMPORTING iv_normalize  TYPE sap_bool DEFAULT abap_true
+      IMPORTING iv_normalize  TYPE abap_bool DEFAULT abap_true
       RETURNING VALUE(rv_xml) TYPE string.
 
     METHODS parse
@@ -10762,7 +10763,7 @@ CLASS zcl_abapgit_xml_output DEFINITION
         VALUE(ri_element) TYPE REF TO if_ixml_element .
     METHODS render
       IMPORTING
-        !iv_normalize TYPE sap_bool DEFAULT abap_true
+        !iv_normalize TYPE abap_bool DEFAULT abap_true
         !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
       RETURNING
         VALUE(rv_xml) TYPE string .
@@ -10831,6 +10832,7 @@ CLASS zcl_abapgit_branch_overview DEFINITION
       RAISING
         zcx_abapgit_exception .
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -11465,7 +11467,7 @@ CLASS zcl_abapgit_merge DEFINITION
         VALUE(rv_source_branch) TYPE string .
     METHODS has_conflicts
       RETURNING
-        VALUE(rv_conflicts_exists) TYPE boolean .
+        VALUE(rv_conflicts_exists) TYPE abap_bool .
     METHODS resolve_conflict
       IMPORTING
         !is_conflict TYPE zif_abapgit_definitions=>ty_merge_conflict
@@ -11474,6 +11476,7 @@ CLASS zcl_abapgit_merge DEFINITION
     METHODS run
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -19617,7 +19620,7 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
@@ -19687,7 +19690,7 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD determine_merges.
 
     DATA: BEGIN OF ls_deleted_branch_info,
-            created TYPE flag,
+            created TYPE abap_bool,
             index   TYPE string,
             name    TYPE string,
           END OF ls_deleted_branch_info.
@@ -20069,7 +20072,6 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
     ct_commits = lt_sorted_commits.
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
   METHOD is_allowed.
@@ -23208,7 +23210,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
                    <lg_line>     TYPE any,
-                   <lv_selected> TYPE flag.
+                   <lv_selected> TYPE abap_bool.
 
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
@@ -23266,7 +23268,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
                    <lg_line>     TYPE any,
-                   <lv_selected> TYPE flag.
+                   <lv_selected> TYPE abap_bool.
 
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
@@ -23409,7 +23411,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     DATA: lv_url          TYPE string,
           ls_package_data TYPE scompkdtln,
           ls_branch       TYPE zif_abapgit_definitions=>ty_git_branch,
-          lv_create       TYPE boolean,
+          lv_create       TYPE abap_bool,
           lv_text         TYPE string.
 
     FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
@@ -23495,7 +23497,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD zif_abapgit_popups~package_popup_callback.
 
     DATA: ls_package_data TYPE scompkdtln,
-          lv_create       TYPE boolean.
+          lv_create       TYPE abap_bool.
 
     FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF ct_fields.
 
@@ -28192,7 +28194,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
         "Table for Div-Table and textarea
         ro_html->add( '<div class="diff_content">' ).       "#EC NOTEXT
-        ro_html->add( '<table class="w100">' ).                          "#EC NOTEXT
+        ro_html->add( '<table class="w100">' ).             "#EC NOTEXT
         ro_html->add( '<thead class="header">' ).           "#EC NOTEXT
         ro_html->add( '<tr>' ).                             "#EC NOTEXT
         ro_html->add( '<th>Code</th>' ).                    "#EC NOTEXT
@@ -36409,7 +36411,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
   METHOD reduce.
 
     DATA: lv_source LIKE LINE OF ct_source,
-          lv_found  TYPE sap_bool.
+          lv_found  TYPE abap_bool.
 * skip files that only contain the standard comments
     lv_found = abap_false.
     LOOP AT ct_source INTO lv_source.
@@ -36429,7 +36431,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
     DATA: lv_begin  TYPE string,
           lv_end    TYPE string,
-          lv_remove TYPE sap_bool,
+          lv_remove TYPE abap_bool,
           lv_source LIKE LINE OF ct_source.
 
     "@TODO: Put under test
@@ -38427,7 +38429,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_program.
 
-    DATA: lv_exists      TYPE sap_bool,
+    DATA: lv_exists      TYPE abap_bool,
           lv_progname    TYPE reposrc-progname,
           ls_tpool       LIKE LINE OF it_tpool,
           lv_title       TYPE rglif-title,
@@ -49381,7 +49383,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_deleted TYPE xfeld,
+    DATA: lv_deleted TYPE abap_bool,
           ls_message TYPE hier_mess.
 
     CALL FUNCTION 'STREE_SFW_ASSIGNMENT_DELETE'
@@ -49428,7 +49430,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
     DATA: ls_assignment_data TYPE ttree_sfw_nodes,
           ls_node_data       TYPE hier_iface,
-          lv_saved           TYPE xfeld,
+          lv_saved           TYPE abap_bool,
           ls_message         TYPE hier_mess.
 
     io_xml->read(
@@ -51610,7 +51612,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD update_attributes.
 
     DATA: ls_sign       TYPE scompisign,
-          lv_changeable TYPE flag.
+          lv_changeable TYPE abap_bool.
     ii_interface->get_changeable( IMPORTING e_changeable = lv_changeable ).
     IF lv_changeable = abap_false.
 * at creation the object is already in change mode
@@ -52446,7 +52448,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
     DATA: lv_t100a          TYPE t100a,
-          lv_frozen         TYPE flag,
+          lv_frozen         TYPE abap_bool,
           lv_message_id     TYPE arbgb,
           lv_access_granted TYPE abap_bool.
 
@@ -55302,7 +55304,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     DATA: ls_form_data              TYPE tys_form_data.
     DATA: lt_text_header            TYPE tyt_text_header.
     DATA: lt_lines                  TYPE tyt_lines.
-    DATA: lv_form_found             TYPE flag.
+    DATA: lv_form_found             TYPE abap_bool.
     FIELD-SYMBOLS: <ls_text_header> LIKE LINE OF lt_text_header.
 
     lt_text_header = find_form( ms_item-obj_name ).
@@ -55413,7 +55415,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     DATA ls_lines        LIKE LINE OF lt_lines.
     DATA ls_form_windows LIKE LINE OF ct_form_windows.
     DATA lv_elt_windows  TYPE tdformat VALUE '/W'.
-    DATA lv_firstloop    TYPE boolean.
+    DATA lv_firstloop    TYPE abap_bool.
 
     lt_lines = ct_lines.
     CLEAR ct_lines.
@@ -62213,7 +62215,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
   METHOD zif_abapgit_object~exists.
 
-    DATA: lv_state TYPE flag,
+    DATA: lv_state TYPE abap_bool,
           lo_aab   TYPE REF TO cl_aab_id.
     lo_aab = create_object( ).
 
@@ -67650,5 +67652,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-20T06:58:57.561Z
+* abapmerge undefined - 2019-01-20T07:01:19.850Z
 ****************************************************
