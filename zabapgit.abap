@@ -5403,32 +5403,43 @@ CLASS zcl_abapgit_object_pinf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_pinf,
-             attributes TYPE scompidtln,
-             elements   TYPE STANDARD TABLE OF scomeldtln WITH DEFAULT KEY,
-           END OF ty_pinf.
 
-    TYPES: ty_elements TYPE STANDARD TABLE OF tpak_package_interf_elem_ref WITH DEFAULT KEY.
+    TYPES:
+      BEGIN OF ty_pinf,
+        attributes TYPE scompidtln,
+        elements   TYPE STANDARD TABLE OF scomeldtln WITH DEFAULT KEY,
+      END OF ty_pinf .
+    TYPES:
+      ty_elements TYPE STANDARD TABLE OF tpak_package_interf_elem_ref WITH DEFAULT KEY .
 
-    METHODS:
-      create_or_load
-        IMPORTING is_pinf             TYPE ty_pinf
-                  iv_package          TYPE devclass
-        RETURNING VALUE(ri_interface) TYPE REF TO if_package_interface
-        RAISING   zcx_abapgit_exception,
-      delete_elements
-        IMPORTING ii_interface TYPE REF TO if_package_interface
-        RAISING   zcx_abapgit_exception,
-      update_attributes
-        IMPORTING is_pinf      TYPE ty_pinf
-                  ii_interface TYPE REF TO if_package_interface
-        RAISING   zcx_abapgit_exception,
-      update_elements
-        IMPORTING is_pinf      TYPE ty_pinf
-                  ii_interface TYPE REF TO if_package_interface
-        RAISING   zcx_abapgit_exception.
-
+    METHODS create_or_load
+      IMPORTING
+        !is_pinf            TYPE ty_pinf
+        !iv_package         TYPE devclass
+      RETURNING
+        VALUE(ri_interface) TYPE REF TO if_package_interface
+      RAISING
+        zcx_abapgit_exception .
+    METHODS delete_elements
+      IMPORTING
+        !ii_interface TYPE REF TO if_package_interface
+      RAISING
+        zcx_abapgit_exception .
+    METHODS update_attributes
+      IMPORTING
+        !iv_package   TYPE devclass
+        !is_pinf      TYPE ty_pinf
+        !ii_interface TYPE REF TO if_package_interface
+      RAISING
+        zcx_abapgit_exception .
+    METHODS update_elements
+      IMPORTING
+        !is_pinf      TYPE ty_pinf
+        !ii_interface TYPE REF TO if_package_interface
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_prag DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -51460,116 +51471,61 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
+  METHOD create_or_load.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~changed_by.
-
-    SELECT SINGLE changed_by FROM intf INTO rv_user
-      WHERE intf_name = ms_item-obj_name.
-    IF sy-subrc <> 0.
-      rv_user = c_user_unknown.
+    IF zif_abapgit_object~exists( ) = abap_false.
+      cl_package_interface=>create_new_package_interface(
+        EXPORTING
+          i_pkg_interface_name    = is_pinf-attributes-intf_name
+          i_publisher_pkg_name    = iv_package
+        IMPORTING
+          e_package_interface     = ri_interface
+        EXCEPTIONS
+          object_already_existing = 1
+          object_just_created     = 2
+          interface_name_invalid  = 3
+          unexpected_error        = 4
+          OTHERS                  = 7 ).
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error creating new package interface' ).
+      ENDIF.
+    ELSE.
+      cl_package_interface=>load_package_interface(
+        EXPORTING
+          i_package_interface_name   = is_pinf-attributes-intf_name
+          i_force_reload             = abap_true
+        IMPORTING
+          e_package_interface        = ri_interface
+        EXCEPTIONS
+          db_read_error              = 1
+          unexpected_error           = 2
+          object_not_existing        = 3
+          shorttext_not_existing     = 4
+          object_locked_and_modified = 5
+          OTHERS                     = 6 ).
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error loading package interface' ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
+  METHOD delete_elements.
 
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
+    DATA: lt_elements TYPE ty_elements.
 
-  METHOD zif_abapgit_object~exists.
+    FIELD-SYMBOLS: <li_element> LIKE LINE OF lt_elements.
+    ii_interface->set_elements_changeable( abap_true ).
 
-    DATA: lv_pack_name TYPE intf-pack_name,
-          lv_main_pack TYPE tdevc-mainpack.
-    SELECT SINGLE pack_name FROM intf INTO lv_pack_name
-      WHERE intf_name = ms_item-obj_name.
-    rv_bool = boolc( sy-subrc = 0 ).
-
-    IF rv_bool = abap_true.
-      SELECT SINGLE mainpack FROM tdevc INTO lv_main_pack
-        WHERE devclass = lv_pack_name.                  "#EC CI_GENBUFF
-      rv_bool = boolc( sy-subrc = 0 ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_pinf      TYPE ty_pinf,
-          lv_name      TYPE scomifnam,
-          lt_elements  TYPE ty_elements,
-          li_interface TYPE REF TO if_package_interface.
-
-    FIELD-SYMBOLS: <lg_any>     TYPE any,
-                   <li_element> LIKE LINE OF lt_elements,
-                   <ls_element> LIKE LINE OF ls_pinf-elements.
-    lv_name = ms_item-obj_name.
-
-    cl_package_interface=>load_package_interface(
-      EXPORTING
-        i_package_interface_name = lv_name
-        i_force_reload           = abap_true
-      IMPORTING
-        e_package_interface      = li_interface ).
-
-    li_interface->get_all_attributes(
-      IMPORTING e_package_interface_data = ls_pinf-attributes ).
-
-    CLEAR: ls_pinf-attributes-pack_name,
-           ls_pinf-attributes-author,
-           ls_pinf-attributes-created_by,
-           ls_pinf-attributes-created_on,
-           ls_pinf-attributes-changed_by,
-           ls_pinf-attributes-changed_on,
-           ls_pinf-attributes-tadir_devc.
-
-* fields does not exist in older SAP versions
-    ASSIGN COMPONENT 'SW_COMP_LOGICAL_PACKAGE' OF STRUCTURE ls_pinf-attributes TO <lg_any>.
-    IF sy-subrc = 0.
-      CLEAR <lg_any>.
-    ENDIF.
-    ASSIGN COMPONENT 'SW_COMP_TADIR_PACKAGE' OF STRUCTURE ls_pinf-attributes TO <lg_any>.
-    IF sy-subrc = 0.
-      CLEAR <lg_any>.
-    ENDIF.
-
-    li_interface->get_elements( IMPORTING e_elements = lt_elements ).
+    ii_interface->get_elements( IMPORTING e_elements = lt_elements ).
 
     LOOP AT lt_elements ASSIGNING <li_element>.
-      APPEND INITIAL LINE TO ls_pinf-elements ASSIGNING <ls_element>.
-      <li_element>->get_all_attributes( IMPORTING e_element_data = <ls_element> ).
-      CLEAR <ls_element>-elem_pack.
+      <li_element>->delete( ).
     ENDLOOP.
 
-    io_xml->add( ig_data = ls_pinf
-                 iv_name = 'PINF' ).
+    ii_interface->save_elements( ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: li_interface TYPE REF TO if_package_interface,
-          ls_pinf      TYPE ty_pinf.
-    io_xml->read( EXPORTING iv_name = 'PINF'
-                  CHANGING cg_data = ls_pinf ).
-
-    li_interface = create_or_load(
-      is_pinf = ls_pinf
-      iv_package = iv_package ).
-
-    update_attributes(
-      is_pinf      = ls_pinf
-      ii_interface = li_interface ).
-
-    update_elements(
-      is_pinf      = ls_pinf
-      ii_interface = li_interface ).
-
-  ENDMETHOD.
-
   METHOD update_attributes.
 
     DATA: ls_sign       TYPE scompisign,
@@ -51593,6 +51549,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
       i_package_interface_data = is_pinf-attributes
       i_data_sign              = ls_sign ).
 
+    set_default_package( iv_package ).
 * looks like setting "i_suppress_dialog = abap_true" will make
 * it fail for local($) packages
     ii_interface->save( ).
@@ -51600,7 +51557,6 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     ii_interface->set_changeable( abap_false ).
 
   ENDMETHOD.
-
   METHOD update_elements.
 
     DATA: lt_existing TYPE ty_elements,
@@ -51654,63 +51610,18 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     ii_interface->set_elements_changeable( abap_false ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
 
-  METHOD create_or_load.
-
-    IF zif_abapgit_object~exists( ) = abap_false.
-      cl_package_interface=>create_new_package_interface(
-        EXPORTING
-          i_pkg_interface_name    = is_pinf-attributes-intf_name
-          i_publisher_pkg_name    = iv_package
-        IMPORTING
-          e_package_interface     = ri_interface
-        EXCEPTIONS
-          object_already_existing = 1
-          object_just_created     = 2
-          interface_name_invalid  = 3
-          unexpected_error        = 4
-          OTHERS                  = 7 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error creating new package interface' ).
-      ENDIF.
-    ELSE.
-      cl_package_interface=>load_package_interface(
-        EXPORTING
-          i_package_interface_name   = is_pinf-attributes-intf_name
-          i_force_reload             = abap_true
-        IMPORTING
-          e_package_interface        = ri_interface
-        EXCEPTIONS
-          db_read_error              = 1
-          unexpected_error           = 2
-          object_not_existing        = 3
-          shorttext_not_existing     = 4
-          object_locked_and_modified = 5
-          OTHERS                     = 6 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error loading package interface' ).
-      ENDIF.
+    SELECT SINGLE changed_by FROM intf INTO rv_user
+      WHERE intf_name = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD delete_elements.
-
-    DATA: lt_elements TYPE ty_elements.
-
-    FIELD-SYMBOLS: <li_element> LIKE LINE OF lt_elements.
-    ii_interface->set_elements_changeable( abap_true ).
-
-    ii_interface->get_elements( IMPORTING e_elements = lt_elements ).
-
-    LOOP AT lt_elements ASSIGNING <li_element>.
-      <li_element>->delete( ).
-    ENDLOOP.
-
-    ii_interface->save_elements( ).
-
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_name      TYPE scomifnam,
@@ -51744,7 +51655,54 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     li_interface->save( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
 
+    DATA: li_interface TYPE REF TO if_package_interface,
+          ls_pinf      TYPE ty_pinf.
+    io_xml->read( EXPORTING iv_name = 'PINF'
+                  CHANGING cg_data = ls_pinf ).
+
+    li_interface = create_or_load(
+      is_pinf = ls_pinf
+      iv_package = iv_package ).
+
+    update_attributes(
+      iv_package   = iv_package
+      is_pinf      = ls_pinf
+      ii_interface = li_interface ).
+
+    update_elements(
+      is_pinf      = ls_pinf
+      ii_interface = li_interface ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_pack_name TYPE intf-pack_name,
+          lv_main_pack TYPE tdevc-mainpack.
+    SELECT SINGLE pack_name FROM intf INTO lv_pack_name
+      WHERE intf_name = ms_item-obj_name.
+    rv_bool = boolc( sy-subrc = 0 ).
+
+    IF rv_bool = abap_true.
+      SELECT SINGLE mainpack FROM tdevc INTO lv_main_pack
+        WHERE devclass = lv_pack_name.                  "#EC CI_GENBUFF
+      rv_bool = boolc( sy-subrc = 0 ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -51755,16 +51713,57 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
         in_new_window = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
-  ENDMETHOD.
+    DATA: ls_pinf      TYPE ty_pinf,
+          lv_name      TYPE scomifnam,
+          lt_elements  TYPE ty_elements,
+          li_interface TYPE REF TO if_package_interface.
 
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
+    FIELD-SYMBOLS: <lg_any>     TYPE any,
+                   <li_element> LIKE LINE OF lt_elements,
+                   <ls_element> LIKE LINE OF ls_pinf-elements.
+    lv_name = ms_item-obj_name.
+
+    cl_package_interface=>load_package_interface(
+      EXPORTING
+        i_package_interface_name = lv_name
+        i_force_reload           = abap_true
+      IMPORTING
+        e_package_interface      = li_interface ).
+
+    li_interface->get_all_attributes(
+      IMPORTING e_package_interface_data = ls_pinf-attributes ).
+
+    CLEAR: ls_pinf-attributes-pack_name,
+           ls_pinf-attributes-author,
+           ls_pinf-attributes-created_by,
+           ls_pinf-attributes-created_on,
+           ls_pinf-attributes-changed_by,
+           ls_pinf-attributes-changed_on,
+           ls_pinf-attributes-tadir_devc.
+
+* fields does not exist in older SAP versions
+    ASSIGN COMPONENT 'SW_COMP_LOGICAL_PACKAGE' OF STRUCTURE ls_pinf-attributes TO <lg_any>.
+    IF sy-subrc = 0.
+      CLEAR <lg_any>.
+    ENDIF.
+    ASSIGN COMPONENT 'SW_COMP_TADIR_PACKAGE' OF STRUCTURE ls_pinf-attributes TO <lg_any>.
+    IF sy-subrc = 0.
+      CLEAR <lg_any>.
+    ENDIF.
+
+    li_interface->get_elements( IMPORTING e_elements = lt_elements ).
+
+    LOOP AT lt_elements ASSIGNING <li_element>.
+      APPEND INITIAL LINE TO ls_pinf-elements ASSIGNING <ls_element>.
+      <li_element>->get_all_attributes( IMPORTING e_element_data = <ls_element> ).
+      CLEAR <ls_element>-elem_pack.
+    ENDLOOP.
+
+    io_xml->add( ig_data = ls_pinf
+                 iv_name = 'PINF' ).
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_para IMPLEMENTATION.
@@ -67609,5 +67608,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-23T05:31:47.517Z
+* abapmerge undefined - 2019-01-23T05:34:08.473Z
 ****************************************************
