@@ -9967,6 +9967,15 @@ CLASS zcl_abapgit_services_git DEFINITION
         zcx_abapgit_exception
         zcx_abapgit_cancel.
 
+  PROTECTED SECTION.
+
+    CLASS-METHODS get_unnecessary_local_objs
+      IMPORTING
+        !io_repo                            TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_services_repo DEFINITION
@@ -11876,13 +11885,13 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
-  CREATE PUBLIC.
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
     METHODS bind_listener
       IMPORTING
-        ii_listener TYPE REF TO zif_abapgit_repo_listener.
+        !ii_listener TYPE REF TO zif_abapgit_repo_listener .
     METHODS deserialize_checks
       RETURNING
         VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
@@ -11976,9 +11985,9 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS run_code_inspector
       IMPORTING
-        iv_check_variant TYPE string
+        !iv_check_variant TYPE string
       RETURNING
-        VALUE(rt_list)   TYPE scit_alvlist
+        VALUE(rt_list)    TYPE scit_alvlist
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
@@ -11992,17 +12001,11 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS get_unnecessary_local_objs
-      RETURNING
-        VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
     METHODS switch_repo_type
       IMPORTING
-        iv_offline TYPE abap_bool
+        !iv_offline TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
-
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -15947,48 +15950,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_package.
     rv_package = ms_data-package.
-  ENDMETHOD.
-  METHOD get_unnecessary_local_objs.
-
-    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tadir_unique TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_tadir
-                               WITH UNIQUE KEY pgmid object obj_name,
-          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
-          lt_status       TYPE zif_abapgit_definitions=>ty_results_tt,
-          lv_package      TYPE zif_abapgit_persistence=>ty_repo-package.
-
-    FIELD-SYMBOLS: <ls_status> TYPE zif_abapgit_definitions=>ty_result,
-                   <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir.
-    " delete objects which are added locally but are not in remote repo
-    lt_local  = get_files_local( ).
-    lt_remote = get_files_remote( ).
-    lt_status = status( ).
-
-    lv_package = get_package( ).
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
-    SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
-
-    LOOP AT lt_status ASSIGNING <ls_status>
-                      WHERE lstate = zif_abapgit_definitions=>c_state-added.
-
-      READ TABLE lt_tadir ASSIGNING <ls_tadir>
-                          WITH KEY pgmid    = 'R3TR'
-                                   object   = <ls_status>-obj_type
-                                   obj_name = <ls_status>-obj_name
-                                   devclass = <ls_status>-package
-                          BINARY SEARCH.
-      IF sy-subrc <> 0.
-* skip objects that does not exist locally
-        CONTINUE.
-      ENDIF.
-
-      INSERT <ls_tadir> INTO TABLE lt_tadir_unique.
-
-    ENDLOOP.
-
-    rt_unnecessary_local_objects = lt_tadir_unique.
-
   ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
@@ -22701,6 +22662,49 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
     MESSAGE lv_text TYPE 'S'.
 
   ENDMETHOD.
+  METHOD get_unnecessary_local_objs.
+
+    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tadir_unique TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_tadir
+                               WITH UNIQUE KEY pgmid object obj_name,
+          lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
+          lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_status       TYPE zif_abapgit_definitions=>ty_results_tt,
+          lv_package      TYPE zif_abapgit_persistence=>ty_repo-package.
+
+    FIELD-SYMBOLS: <ls_status> TYPE zif_abapgit_definitions=>ty_result,
+                   <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir.
+
+    " delete objects which are added locally but are not in remote repo
+    lt_local  = io_repo->get_files_local( ).
+    lt_remote = io_repo->get_files_remote( ).
+    lt_status = io_repo->status( ).
+
+    lv_package = io_repo->get_package( ).
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
+    SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
+
+    LOOP AT lt_status ASSIGNING <ls_status>
+                      WHERE lstate = zif_abapgit_definitions=>c_state-added.
+
+      READ TABLE lt_tadir ASSIGNING <ls_tadir>
+                          WITH KEY pgmid    = 'R3TR'
+                                   object   = <ls_status>-obj_type
+                                   obj_name = <ls_status>-obj_name
+                                   devclass = <ls_status>-package
+                          BINARY SEARCH.
+      IF sy-subrc <> 0.
+* skip objects that does not exist locally
+        CONTINUE.
+      ENDIF.
+
+      INSERT <ls_tadir> INTO TABLE lt_tadir_unique.
+
+    ENDLOOP.
+
+    rt_unnecessary_local_objects = lt_tadir_unique.
+
+  ENDMETHOD.
   METHOD pull.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
@@ -22739,13 +22743,13 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lt_unnecessary_local_objs = lo_repo->get_unnecessary_local_objs( ).
+    lt_unnecessary_local_objs = get_unnecessary_local_objs( lo_repo ).
 
     IF lines( lt_unnecessary_local_objs ) > 0.
 
@@ -67611,5 +67615,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-23T05:27:34.333Z
+* abapmerge undefined - 2019-01-23T05:29:39.207Z
 ****************************************************
