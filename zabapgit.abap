@@ -428,6 +428,7 @@ INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
@@ -925,6 +926,14 @@ INTERFACE zif_abapgit_frontend_services.
       VALUE(rv_path)       TYPE string
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+INTERFACE zif_abapgit_progress .
+
+  METHODS show
+    IMPORTING
+      iv_current TYPE i
+      iv_text    TYPE csequence .
+
 ENDINTERFACE.
 INTERFACE zif_abapgit_auth.
 
@@ -2693,6 +2702,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
         VALUE(rv_data) TYPE xstring
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CONSTANTS:
@@ -10465,21 +10475,24 @@ CLASS zcl_abapgit_path DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_progress DEFINITION
   FINAL
-  CREATE PUBLIC .
+  CREATE PROTECTED .
 
   PUBLIC SECTION.
 
-    METHODS show
+    INTERFACES zif_abapgit_progress .
+
+    CLASS-METHODS get_instance
       IMPORTING
-        VALUE(iv_current) TYPE i
-        !iv_text          TYPE csequence .
-    METHODS constructor
-      IMPORTING
-        !iv_total TYPE i .
+        !iv_total          TYPE i
+      RETURNING
+        VALUE(ri_progress) TYPE REF TO zif_abapgit_progress .
   PROTECTED SECTION.
 
     DATA mv_total TYPE i .
 
+    METHODS constructor
+      IMPORTING
+        !iv_total TYPE i .
     METHODS calc_pct
       IMPORTING
         !iv_current   TYPE i
@@ -14069,19 +14082,17 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_exists.
 
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
+    DATA: li_progress TYPE REF TO zif_abapgit_progress,
           ls_item     TYPE zif_abapgit_definitions=>ty_item.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( it_tadir ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
 
 * rows from database table TADIR are not removed for
 * transportable objects until the transport is released
     LOOP AT it_tadir ASSIGNING <ls_tadir>.
       IF sy-tabix MOD 200 = 0.
-        lo_progress->show(
+        li_progress->show(
           iv_current = sy-tabix
           iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
       ENDIF.
@@ -14554,7 +14565,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_serialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
   METHOD add_to_return.
 
     FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_fils_item-files,
@@ -14566,6 +14577,11 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       <ls_return>-item = is_fils_item-item.
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD constructor.
+    IF is_merged( ) = abap_true.
+      gv_max_threads = 1.
+    ENDIF.
   ENDMETHOD.
   METHOD determine_max_threads.
 
@@ -14618,6 +14634,19 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     ASSERT gv_max_threads >= 1.
 
     rv_threads = gv_max_threads.
+
+  ENDMETHOD.
+  METHOD is_merged.
+
+    DATA lo_marker TYPE REF TO data.
+
+    TRY.
+        CREATE DATA lo_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
+        "No exception --> marker found
+        rv_result = abap_true.
+
+      CATCH cx_sy_create_data_error  ##no_handler.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD on_end_of_task.
@@ -14706,7 +14735,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD serialize.
 
     DATA: lv_max      TYPE i,
-          lo_progress TYPE REF TO zcl_abapgit_progress.
+          li_progress TYPE REF TO zif_abapgit_progress.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
     CLEAR mt_files.
@@ -14715,13 +14744,11 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     mv_free = lv_max.
     mo_log = io_log.
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( it_tadir ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
 
     LOOP AT it_tadir ASSIGNING <ls_tadir>.
 
-      lo_progress->show(
+      li_progress->show(
         iv_current = sy-tabix
         iv_text    = |Serialize { <ls_tadir>-obj_name }, { lv_max } threads| ) ##NO_TEXT.
 
@@ -14743,27 +14770,6 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     rt_files = mt_files.
 
   ENDMETHOD.
-
-  METHOD constructor.
-    IF is_merged( ) = abap_true.
-      gv_max_threads = 1.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD is_merged.
-
-    DATA lo_marker TYPE REF TO data.
-
-    TRY.
-        CREATE DATA lo_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
-        "No exception --> marker found
-        rv_result = abap_true.
-
-      CATCH cx_sy_create_data_error  ##no_handler.
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD constructor.
@@ -15334,17 +15340,16 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD fetch_remote.
 
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress,
+    DATA: li_progress TYPE REF TO zif_abapgit_progress,
           ls_pull     TYPE zcl_abapgit_git_porcelain=>ty_pull_result.
 
     IF mv_request_remote_refresh = abap_false.
       RETURN.
     ENDIF.
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 1.
-    lo_progress->show( iv_current = 1
+    li_progress = zcl_abapgit_progress=>get_instance( 1 ).
+
+    li_progress->show( iv_current = 1
                        iv_text    = 'Fetch remote files' ) ##NO_TEXT.
 
     ls_pull = zcl_abapgit_git_porcelain=>pull(
@@ -16577,7 +16582,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD delete.
 
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
+          li_progress TYPE REF TO zif_abapgit_progress,
           lt_tadir    LIKE it_tadir,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
@@ -16594,9 +16599,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     TRY.
         zcl_abapgit_dependencies=>resolve( CHANGING ct_tadir = lt_tadir ).
 
-        CREATE OBJECT lo_progress
-          EXPORTING
-            iv_total = lines( lt_tadir ).
+        li_progress = zcl_abapgit_progress=>get_instance( lines( lt_tadir ) ).
 
         lt_items = map_tadir_to_items( lt_tadir ).
 
@@ -16604,7 +16607,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
                               it_items    = lt_items ).
 
         LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-          lo_progress->show( iv_current = sy-tabix
+          li_progress->show( iv_current = sy-tabix
                              iv_text    = |Delete { <ls_tadir>-obj_name }| ) ##NO_TEXT.
 
           CLEAR ls_item.
@@ -16658,7 +16661,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lt_ddic     TYPE TABLE OF ty_deserialization,
           lt_rest     TYPE TABLE OF ty_deserialization,
           lt_late     TYPE TABLE OF ty_deserialization,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
+          li_progress TYPE REF TO zif_abapgit_progress,
           lv_path     TYPE string,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
@@ -16684,9 +16687,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       CHANGING
         ct_results = lt_results ).
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( lt_results ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( lt_results ) ).
 
     lt_items = map_results_to_items( lt_results ).
 
@@ -16695,7 +16696,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
-      lo_progress->show( iv_current = sy-tabix
+      li_progress->show( iv_current = sy-tabix
                          iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
 
       CLEAR ls_item.
@@ -16792,17 +16793,15 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_objects.
 
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+    DATA: li_progress TYPE REF TO zif_abapgit_progress.
 
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
     zcl_abapgit_objects_activation=>clear( ).
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( it_objects ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( it_objects ) ).
 
     LOOP AT it_objects ASSIGNING <ls_obj>.
-      lo_progress->show(
+      li_progress->show(
         iv_current = sy-tabix
         iv_text    = |Deserialize { iv_descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
 
@@ -19708,17 +19707,15 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD get_git_objects.
 
     DATA: lo_branch_list       TYPE REF TO zcl_abapgit_git_branch_list,
-          lo_progress          TYPE REF TO zcl_abapgit_progress,
+          li_progress          TYPE REF TO zif_abapgit_progress,
           lt_branches_and_tags TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
           lt_tags              TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
           ls_tag               LIKE LINE OF mt_tags.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_tags.
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 1.
+    li_progress = zcl_abapgit_progress=>get_instance( 1 ).
 
-    lo_progress->show(
+    li_progress->show(
       iv_current = 1
       iv_text    = |Get git objects { io_repo->get_name( ) }| ) ##NO_TEXT.
 
@@ -20803,10 +20800,17 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
     mv_total = iv_total.
 
   ENDMETHOD.
-  METHOD show.
+  METHOD get_instance.
 
-    DATA: lv_pct  TYPE i.
-    DATA: lv_time TYPE t.
+    CREATE OBJECT ri_progress TYPE zcl_abapgit_progress
+      EXPORTING
+        iv_total = iv_total.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~show.
+
+    DATA: lv_pct  TYPE i,
+          lv_time TYPE t.
 
     CONSTANTS: lc_wait_secs TYPE i VALUE 2.
 
@@ -29396,17 +29400,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD render_content.
 
     DATA: ls_diff_file LIKE LINE OF mt_diff_files,
-          lo_progress  TYPE REF TO zcl_abapgit_progress.
+          li_progress  TYPE REF TO zif_abapgit_progress.
     CREATE OBJECT ro_html.
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( mt_diff_files ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( mt_diff_files ) ).
 
     ro_html->add( |<div id="diff-list" data-repo-key="{ mv_repo_key }">| ).
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_js_error_banner( ) ).
     LOOP AT mt_diff_files INTO ls_diff_file.
-      lo_progress->show(
+      li_progress->show(
         iv_current = sy-tabix
         iv_text    = |Render Diff - { ls_diff_file-filename }| ).
 
@@ -39729,26 +39731,24 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_new.
 
-    DATA: lo_progress TYPE REF TO zcl_abapgit_progress.
+    DATA: li_progress TYPE REF TO zif_abapgit_progress.
 
     IF gt_objects IS INITIAL.
       RETURN.
     ENDIF.
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = 100.
+    li_progress = zcl_abapgit_progress=>get_instance( 100 ).
 
     IF iv_ddic = abap_true.
 
-      lo_progress->show( iv_current = 98
+      li_progress->show( iv_current = 98
                          iv_text    = 'Activating DDIC' ).
 
       activate_ddic( ).
 
     ELSE.
 
-      lo_progress->show( iv_current = 98
+      li_progress->show( iv_current = 98
                          iv_text    = 'Activating non DDIC' ).
 
       activate_old( ).
@@ -39876,14 +39876,12 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
     DATA: lv_class    LIKE LINE OF gt_classes,
           lo_cross    TYPE REF TO cl_wb_crossreference,
           lv_include  TYPE programm,
-          lo_progress TYPE REF TO zcl_abapgit_progress.
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( gt_classes ).
+          li_progress TYPE REF TO zif_abapgit_progress.
+    li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
 
     LOOP AT gt_classes INTO lv_class.
       IF sy-tabix MOD 20 = 0.
-        lo_progress->show(
+        li_progress->show(
           iv_current = sy-tabix
           iv_text    = 'Updating where-used lists' ).
       ENDIF.
@@ -65942,7 +65940,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode_deltas.
 
     DATA: ls_object   LIKE LINE OF ct_objects,
-          lo_progress TYPE REF TO zcl_abapgit_progress,
+          li_progress TYPE REF TO zif_abapgit_progress,
           lt_deltas   LIKE ct_objects.
     LOOP AT ct_objects INTO ls_object
       USING KEY type
@@ -65957,12 +65955,10 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     "Restore correct Delta Order
     SORT lt_deltas BY index.
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lines( lt_deltas ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( lt_deltas ) ).
 
     LOOP AT lt_deltas INTO ls_object.
-      lo_progress->show( iv_current = sy-tabix
+      li_progress->show( iv_current = sy-tabix
                          iv_text    = 'Decode deltas' ) ##NO_TEXT.
 
       delta( EXPORTING is_object = ls_object
@@ -66205,7 +66201,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_adler32       TYPE zif_abapgit_definitions=>ty_adler32,
           lv_compressed    TYPE xstring,
           lv_xstring       TYPE xstring,
-          lo_progress      TYPE REF TO zcl_abapgit_progress,
+          li_progress      TYPE REF TO zif_abapgit_progress,
           lv_objects_total TYPE i.
 
     FIELD-SYMBOLS: <ls_object>  LIKE LINE OF it_objects.
@@ -66218,13 +66214,11 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_objects_total = lines( it_objects ).
 
-    CREATE OBJECT lo_progress
-      EXPORTING
-        iv_total = lv_objects_total.
+    li_progress = zcl_abapgit_progress=>get_instance( lv_objects_total ).
 
     LOOP AT it_objects ASSIGNING <ls_object>.
       IF sy-tabix MOD 200 = 0.
-        lo_progress->show(
+        li_progress->show(
           iv_current = sy-tabix
           iv_text    = |Encoding objects ( { sy-tabix } of { lv_objects_total } )| ).
       ENDIF.
@@ -67615,5 +67609,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-23T05:29:39.207Z
+* abapmerge undefined - 2019-01-23T05:31:47.517Z
 ****************************************************
