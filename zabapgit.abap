@@ -51701,7 +51701,15 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+
+    DATA: lv_argument TYPE eqegraarg.
+
+    lv_argument = |PF{ ms_item-obj_name }|.
+    OVERLAY lv_argument WITH  '                                          *'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = lv_argument ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -67608,5 +67616,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-23T05:34:08.473Z
+* abapmerge undefined - 2019-01-24T07:57:13.441Z
 ****************************************************
