@@ -599,6 +599,7 @@ CLASS zcl_abapgit_object_ssfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_srfc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sqsc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_splo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sots DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_smim DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sicf DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_shma DEFINITION DEFERRED.
@@ -5398,6 +5399,101 @@ CLASS zcl_abapgit_object_para DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.
+CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet DEFINITION DEFERRED.
+INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT DEFERRED.
+* renamed: zcl_abapgit_object_pinf :: lif_package_interface_facade
+INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+
+  METHODS:
+    get_elements
+      IMPORTING
+        iv_with_deleted_elements TYPE flag DEFAULT 'X'
+      EXPORTING
+        et_elements              TYPE tpak_package_interf_elem_list
+      RAISING
+        zcx_abapgit_exception,
+
+    set_elements_changeable
+      IMPORTING
+        VALUE(iv_changeable) TYPE flag
+      RAISING
+        zcx_abapgit_exception,
+
+    save_elements
+      IMPORTING
+        iv_transport_request TYPE trkorr OPTIONAL
+        iv_suppress_dialog   TYPE flag DEFAULT ' '
+      RAISING
+        zcx_abapgit_exception,
+
+    get_all_attributes
+      EXPORTING
+        es_package_interface_data TYPE scompidtln
+      RAISING
+        zcx_abapgit_exception,
+
+    set_changeable
+      IMPORTING
+        VALUE(iv_changeable) TYPE flag
+      RAISING
+        zcx_abapgit_exception,
+
+    delete
+      IMPORTING
+        iv_suppress_dialog TYPE flag DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception,
+
+    save
+      IMPORTING
+        iv_transport_request TYPE trkorr OPTIONAL
+        iv_suppress_dialog   TYPE flag DEFAULT ' '
+      RAISING
+        zcx_abapgit_exception,
+
+    remove_elements
+      IMPORTING
+        it_elements TYPE tpak_package_interf_elem_list
+      RAISING
+        zcx_abapgit_exception,
+
+    add_elements
+      IMPORTING
+        is_elements_data TYPE scomeldata
+      RAISING
+        zcx_abapgit_exception,
+
+    set_all_attributes
+      IMPORTING
+        is_package_interface_data TYPE scompidtln
+        is_data_sign              TYPE scompisign
+      RAISING
+        zcx_abapgit_exception,
+
+    get_changeable
+      EXPORTING
+        VALUE(ev_changeable) TYPE flag
+      RAISING
+        zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+* renamed: zcl_abapgit_object_pinf :: lcl_package_interface_facade
+CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet DEFINITION.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+
+    METHODS:
+      constructor
+        IMPORTING
+          ii_interface TYPE REF TO if_package_interface.
+
+  PRIVATE SECTION.
+    DATA: mi_interface TYPE REF TO if_package_interface.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_pinf DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
@@ -5419,27 +5515,38 @@ CLASS zcl_abapgit_object_pinf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         !is_pinf            TYPE ty_pinf
         !iv_package         TYPE devclass
       RETURNING
-        VALUE(ri_interface) TYPE REF TO if_package_interface
+        VALUE(ri_interface) TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT
       RAISING
         zcx_abapgit_exception .
     METHODS delete_elements
       IMPORTING
-        !ii_interface TYPE REF TO if_package_interface
+        !ii_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT
       RAISING
         zcx_abapgit_exception .
     METHODS update_attributes
       IMPORTING
         !iv_package   TYPE devclass
         !is_pinf      TYPE ty_pinf
-        !ii_interface TYPE REF TO if_package_interface
+        !ii_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT
       RAISING
         zcx_abapgit_exception .
     METHODS update_elements
       IMPORTING
-        !is_pinf      TYPE ty_pinf
-        !ii_interface TYPE REF TO if_package_interface
+        is_pinf      TYPE ty_pinf
+        ii_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT
       RAISING
         zcx_abapgit_exception .
+    METHODS load
+      IMPORTING
+        iv_name             TYPE scomifnam
+      RETURNING
+        VALUE(ri_interface) TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+    METHODS create_facade
+      IMPORTING
+        ii_interface     TYPE REF TO if_package_interface
+      RETURNING
+        VALUE(ri_facade) TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_prag DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -5773,6 +5880,47 @@ CLASS zcl_abapgit_object_smim DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                 ev_is_folder TYPE abap_bool
       RAISING   zcx_abapgit_not_found
                 zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_super
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_object.
+
+    ALIASES:
+      mo_files FOR zif_abapgit_object~mo_files.
+
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_sots,
+        header  TYPE sotr_headu,
+        entries TYPE sotr_textl_tt,
+      END OF ty_sots,
+      tty_sots TYPE STANDARD TABLE OF ty_sots
+                    WITH NON-UNIQUE DEFAULT KEY.
+
+    METHODS:
+      read_sots
+        RETURNING
+          VALUE(rt_sots) TYPE tty_sots,
+
+      create_sots
+        IMPORTING
+          is_sots    TYPE ty_sots
+          iv_package TYPE devclass
+          iv_object  TYPE trobjtype
+        RAISING
+          zcx_abapgit_exception,
+
+      get_raw_text_filename
+        IMPORTING
+          is_entry           TYPE sotr_textl
+        RETURNING
+          VALUE(rv_filename) TYPE string.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_splo DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -48098,6 +48246,301 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
+CLASS zcl_abapgit_object_sots IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = c_user_unknown.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lt_sots TYPE tty_sots.
+
+    FIELD-SYMBOLS: <ls_sots> TYPE ty_sots.
+
+    lt_sots = read_sots( ).
+
+    LOOP AT lt_sots ASSIGNING <ls_sots>.
+
+      CALL FUNCTION 'BTFR_DELETE_SINGLE_TEXT'
+        EXPORTING
+          concept             = <ls_sots>-header-concept
+          flag_string         = abap_true
+        EXCEPTIONS
+          text_not_found      = 1
+          invalid_package     = 2
+          text_not_changeable = 3
+          text_enqueued       = 4
+          no_correction       = 5
+          parameter_error     = 6
+          OTHERS              = 7.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error in BTFR_DELETE_SINGLE_TEXT subrc={ sy-subrc }| ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lt_sots    TYPE tty_sots,
+          lt_objects TYPE sotr_objects,
+          lv_object  LIKE LINE OF lt_objects,
+          lx_error   TYPE REF TO zcx_abapgit_exception.
+
+    FIELD-SYMBOLS: <ls_sots>  TYPE ty_sots,
+                   <ls_entry> LIKE LINE OF <ls_sots>-entries.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = 'SOTS'
+      CHANGING
+        cg_data = lt_sots ).
+
+    tadir_insert( iv_package ).
+
+    LOOP AT lt_sots ASSIGNING <ls_sots>.
+
+      CLEAR: lt_objects.
+
+      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
+        EXPORTING
+          object_vector    = <ls_sots>-header-objid_vec
+        IMPORTING
+          objects          = lt_objects
+        EXCEPTIONS
+          object_not_found = 1
+          OTHERS           = 2.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from SOTR_OBJECT_GET_OBJECTS' ).
+      ENDIF.
+
+      READ TABLE lt_objects INDEX 1 INTO lv_object.
+      ASSERT sy-subrc = 0.
+
+      LOOP AT <ls_sots>-entries ASSIGNING <ls_entry>.
+
+        TRY.
+            <ls_entry>-text = mo_files->read_string( iv_extra = get_raw_text_filename( <ls_entry> )
+                                                     iv_ext   = 'txt' ).
+
+          CATCH zcx_abapgit_exception INTO lx_error.
+            " Most probably file not found -> ignore
+            CONTINUE.
+        ENDTRY.
+
+      ENDLOOP.
+
+      create_sots(
+          is_sots    = <ls_sots>
+          iv_package = iv_package
+          iv_object  = lv_object ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_object_type TYPE trobjtype,
+          lv_object_name TYPE trobj_name.
+
+    lv_object_type = ms_item-obj_type.
+    lv_object_name = ms_item-obj_name.
+
+    CALL FUNCTION 'SOTR_WBO_OBJECTS_CHECK'
+      EXPORTING
+        pgmid          = 'R3TR'
+        object         = lv_object_type
+        obj_name       = lv_object_name
+      IMPORTING
+        object_exist   = rv_bool
+      EXCEPTIONS
+        unknown_object = 1
+        OTHERS         = 2.
+
+    IF sy-subrc <> 0.
+      rv_bool = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~has_changed_since.
+    rv_changed = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
+      DESTINATION 'NONE'
+      EXPORTING
+        operation           = 'SHOW'
+        object_name         = ms_item-obj_name
+        object_type         = ms_item-obj_type
+      EXCEPTIONS
+        not_executed        = 1
+        invalid_object_type = 2
+        OTHERS              = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lt_sots TYPE tty_sots.
+
+    FIELD-SYMBOLS: <ls_sots>  TYPE ty_sots,
+                   <ls_entry> TYPE sotr_textl.
+
+    lt_sots = read_sots( ).
+
+    LOOP AT lt_sots ASSIGNING <ls_sots>.
+
+      LOOP AT <ls_sots>-entries ASSIGNING <ls_entry>.
+
+        mo_files->add_string( iv_extra  = get_raw_text_filename( <ls_entry> )
+                              iv_ext    = 'txt'
+                              iv_string = <ls_entry>-text ).
+
+        CLEAR: <ls_entry>-text.
+
+      ENDLOOP.
+
+    ENDLOOP.
+
+    io_xml->add( iv_name = 'SOTS'
+                 ig_data = lt_sots ).
+
+  ENDMETHOD.
+
+  METHOD read_sots.
+
+    DATA: lt_sotr_head TYPE STANDARD TABLE OF sotr_headu,
+          ls_sots      LIKE LINE OF rt_sots.
+
+    FIELD-SYMBOLS: <ls_sotr_head> TYPE sotr_head,
+                   <ls_entry>     LIKE LINE OF ls_sots-entries.
+    SELECT * FROM sotr_headu
+             INTO TABLE lt_sotr_head
+             WHERE paket = ms_item-obj_name
+             ORDER BY PRIMARY KEY.
+
+    LOOP AT lt_sotr_head ASSIGNING <ls_sotr_head>.
+
+      CLEAR: ls_sots.
+
+      CALL FUNCTION 'SOTR_STRING_GET_CONCEPT'
+        EXPORTING
+          concept        = <ls_sotr_head>-concept
+        IMPORTING
+          header         = ls_sots-header
+          entries        = ls_sots-entries
+        EXCEPTIONS
+          no_entry_found = 1
+          OTHERS         = 2.
+
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      CLEAR:
+        ls_sots-header-paket,
+        ls_sots-header-crea_name,
+        ls_sots-header-crea_tstut,
+        ls_sots-header-chan_name,
+        ls_sots-header-chan_tstut.
+
+      LOOP AT ls_sots-entries ASSIGNING <ls_entry>.
+        CLEAR: <ls_entry>-version,
+               <ls_entry>-crea_name,
+               <ls_entry>-crea_tstut,
+               <ls_entry>-chan_name,
+               <ls_entry>-chan_tstut.
+      ENDLOOP.
+
+      INSERT ls_sots INTO TABLE rt_sots.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD create_sots.
+
+    " Reimplementation of SOTR_STRING_CREATE_CONCEPT because we can't supply
+    " concept and it would then be generated.
+
+    DATA: lv_subrc                 TYPE sy-subrc,
+          lv_source_langu          TYPE spras,
+          ls_header                TYPE btfr_head,
+          lv_flag_is_string        TYPE btfr_flag VALUE abap_true,
+          lv_text_tab              TYPE sotr_text_tt,
+          lv_concept_default       TYPE sotr_conc,
+          lt_entries               TYPE sotr_textl_tt,
+          lv_concept               LIKE is_sots-header-concept,
+          lv_flag_correction_entry TYPE abap_bool VALUE abap_true.
+
+    lt_entries = is_sots-entries.
+
+    ls_header-paket          = iv_package.
+    ls_header-crea_lan       = mv_language.
+    ls_header-alias_name     = is_sots-header-alias_name.
+    lv_source_langu          = mv_language.
+    lv_concept               = is_sots-header-concept.
+
+    PERFORM btfr_create
+      IN PROGRAM saplsotr_db_string
+      USING    iv_object
+               lv_source_langu
+               lv_flag_correction_entry
+               lv_flag_is_string
+      CHANGING lv_text_tab
+               lt_entries
+               ls_header
+               lv_concept
+               lv_concept_default
+               lv_subrc.
+
+    CASE lv_subrc.
+      WHEN 1.
+        zcx_abapgit_exception=>raise( |No entry found| ).
+      WHEN 2.
+        zcx_abapgit_exception=>raise( |OTR concept not found| ).
+      WHEN 3.
+        zcx_abapgit_exception=>raise( |Enter a permitted object type| ).
+      WHEN 4.
+        zcx_abapgit_exception=>raise( |The concept will be created in the non-original system| ).
+      WHEN 5.
+        zcx_abapgit_exception=>raise( |Invalid alias| ).
+      WHEN 6.
+        zcx_abapgit_exception=>raise( |No correction entry has been created| ).
+      WHEN 7.
+        zcx_abapgit_exception=>raise( |Error in database operation| ).
+      WHEN 9.
+        zcx_abapgit_exception=>raise( |Action canceled by user| ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD get_raw_text_filename.
+
+    rv_filename =
+        to_lower( |{ is_entry-concept }_|
+               && |{ is_entry-langu   }_|
+               && |{ is_entry-object  }_|
+               && |{ is_entry-lfd_num }| ).
+
+  ENDMETHOD.
+
+ENDCLASS.
 CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
   METHOD zif_abapgit_object~has_changed_since.
@@ -51471,8 +51914,223 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
+CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
+
+  METHOD constructor.
+
+    mi_interface = ii_interface.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~get_elements.
+
+    mi_interface->get_elements(
+      IMPORTING
+        e_elements     = et_elements
+      EXCEPTIONS
+        object_invalid = 1
+        intern_err     = 2
+        OTHERS         = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~set_elements_changeable.
+
+    mi_interface->set_elements_changeable(
+      EXPORTING
+        i_changeable                = iv_changeable
+      EXCEPTIONS
+        object_already_changeable   = 1
+        object_already_unlocked     = 2
+        object_locked_by_other_user = 3
+        object_modified             = 4
+        object_just_created         = 5
+        object_deleted              = 6
+        permission_failure          = 7
+        object_invalid              = 8
+        unexpected_error            = 9
+        OTHERS                      = 10 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~save_elements.
+
+    mi_interface->save_elements(
+      EXCEPTIONS
+        object_not_changeable = 1
+        object_invalid        = 2
+        cancelled_in_corr     = 3
+        permission_failure    = 4
+        unexpected_error      = 5
+        intern_err            = 6
+        OTHERS                = 7 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~get_all_attributes.
+
+    mi_interface->get_all_attributes(
+      IMPORTING
+        e_package_interface_data = es_package_interface_data
+      EXCEPTIONS
+        object_invalid           = 1
+        OTHERS                   = 2 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~set_changeable.
+
+    mi_interface->set_changeable(
+      EXPORTING
+        i_changeable                 = iv_changeable
+      EXCEPTIONS
+        object_locked_by_other_user  = 1
+        permission_failure           = 2
+        object_already_changeable    = 3
+        object_already_unlocked      = 4
+        object_just_created          = 5
+        object_deleted               = 6
+        object_modified              = 7
+        object_not_existing          = 8
+        object_invalid               = 9
+        unexpected_error             = 10
+        OTHERS                       = 11 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~delete.
+
+    mi_interface->delete(
+      EXCEPTIONS
+        object_not_empty      = 1
+        object_not_changeable = 2
+        object_invalid        = 3
+        intern_err            = 4
+        OTHERS                = 5 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~save.
+
+    mi_interface->save(
+      EXCEPTIONS
+        short_text_missing    = 1
+        object_not_changeable = 2
+        object_invalid        = 3
+        cancelled_in_corr     = 4
+        permission_failure    = 5
+        unexpected_error      = 6
+        intern_err            = 7
+        OTHERS                = 8 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~remove_elements.
+
+    mi_interface->remove_elements(
+      EXPORTING
+        i_elements            = it_elements
+      EXCEPTIONS
+        object_deleted        = 1
+        object_invalid        = 2
+        object_not_changeable = 3
+        element_not_contained = 4
+        intern_err            = 5
+        OTHERS                = 6 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~add_elements.
+
+    mi_interface->add_elements(
+      EXPORTING
+        i_elements_data        = is_elements_data
+      EXCEPTIONS
+        object_invalid         = 1
+        intern_err             = 2
+        OTHERS                 = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~set_all_attributes.
+
+    mi_interface->set_all_attributes(
+      EXPORTING
+        i_package_interface_data     = is_package_interface_data
+        i_data_sign                  = is_data_sign
+      EXCEPTIONS
+        object_deleted               = 1
+        object_not_changeable        = 2
+        interface_not_empty          = 3
+        acl_not_empty                = 4
+        author_not_existing          = 5
+        object_type_mismatch         = 6
+        logical_package_types_differ = 7
+        object_invalid               = 8
+        OTHERS                       = 9 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsqJyKbsVHldwKaGdXoRoiJNIwT~get_changeable.
+
+    mi_interface->get_changeable(
+      IMPORTING
+        e_changeable   = ev_changeable
+      EXCEPTIONS
+        object_invalid = 1
+        OTHERS         = 2 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD create_or_load.
+
+    DATA: li_interface TYPE REF TO if_package_interface.
 
     IF zif_abapgit_object~exists( ) = abap_false.
       cl_package_interface=>create_new_package_interface(
@@ -51480,7 +52138,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
           i_pkg_interface_name    = is_pinf-attributes-intf_name
           i_publisher_pkg_name    = iv_package
         IMPORTING
-          e_package_interface     = ri_interface
+          e_package_interface     = li_interface
         EXCEPTIONS
           object_already_existing = 1
           object_just_created     = 2
@@ -51490,23 +52148,13 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'error creating new package interface' ).
       ENDIF.
+
+      ri_interface = create_facade( li_interface ).
+
     ELSE.
-      cl_package_interface=>load_package_interface(
-        EXPORTING
-          i_package_interface_name   = is_pinf-attributes-intf_name
-          i_force_reload             = abap_true
-        IMPORTING
-          e_package_interface        = ri_interface
-        EXCEPTIONS
-          db_read_error              = 1
-          unexpected_error           = 2
-          object_not_existing        = 3
-          shorttext_not_existing     = 4
-          object_locked_and_modified = 5
-          OTHERS                     = 6 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error loading package interface' ).
-      ENDIF.
+
+      ri_interface = load( is_pinf-attributes-intf_name ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -51517,7 +52165,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
     FIELD-SYMBOLS: <li_element> LIKE LINE OF lt_elements.
     ii_interface->set_elements_changeable( abap_true ).
 
-    ii_interface->get_elements( IMPORTING e_elements = lt_elements ).
+    ii_interface->get_elements( IMPORTING et_elements = lt_elements ).
 
     LOOP AT lt_elements ASSIGNING <li_element>.
       <li_element>->delete( ).
@@ -51530,7 +52178,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
     DATA: ls_sign       TYPE scompisign,
           lv_changeable TYPE abap_bool.
-    ii_interface->get_changeable( IMPORTING e_changeable = lv_changeable ).
+    ii_interface->get_changeable( IMPORTING ev_changeable = lv_changeable ).
     IF lv_changeable = abap_false.
 * at creation the object is already in change mode
       ii_interface->set_changeable( abap_true ).
@@ -51546,8 +52194,8 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
     ls_sign-release_status = abap_true.
 
     ii_interface->set_all_attributes(
-      i_package_interface_data = is_pinf-attributes
-      i_data_sign              = ls_sign ).
+      is_package_interface_data = is_pinf-attributes
+      is_data_sign              = ls_sign ).
 
     set_default_package( iv_package ).
 * looks like setting "i_suppress_dialog = abap_true" will make
@@ -51563,25 +52211,14 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
           lt_add      TYPE scomeldata,
           lv_index    TYPE i,
           lv_found    TYPE abap_bool,
-*          ls_sign     TYPE scomelsign,
           ls_attr     TYPE scomeldtln.
 
     FIELD-SYMBOLS: <li_element> LIKE LINE OF lt_existing,
                    <ls_element> LIKE LINE OF is_pinf-elements.
-*    ls_sign-usag_restr                 = abap_true.
-*    ls_sign-stability                  = abap_true.
-*    ls_sign-no_check                   = abap_true.
-*    ls_sign-useastype                  = abap_true.
-*    ls_sign-asforgnkey                 = abap_true.
-*    ls_sign-deprecation_type           = abap_true. backport
-*    ls_sign-replacement_object_type    = abap_true. backport
-*    ls_sign-replacement_object_name    = abap_true. backport
-*    ls_sign-replacement_subobject_type = abap_true. backport
-*    ls_sign-replacement_subobject_name = abap_true. backport
 
     ii_interface->set_elements_changeable( abap_true ).
 
-    ii_interface->get_elements( IMPORTING e_elements = lt_existing ).
+    ii_interface->get_elements( IMPORTING et_elements = lt_existing ).
 
     LOOP AT is_pinf-elements ASSIGNING <ls_element>.
 
@@ -51624,25 +52261,9 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_name      TYPE scomifnam,
-          li_interface TYPE REF TO if_package_interface.
-    lv_name = ms_item-obj_name.
+    DATA: li_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
-    cl_package_interface=>load_package_interface(
-      EXPORTING
-        i_package_interface_name   = lv_name
-      IMPORTING
-        e_package_interface        = li_interface
-      EXCEPTIONS
-        db_read_error              = 1
-        unexpected_error           = 2
-        object_not_existing        = 3
-        shorttext_not_existing     = 4
-        object_locked_and_modified = 5
-        OTHERS                     = 6 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error loading package interface, delete' ).
-    ENDIF.
+    li_interface = load( |{ ms_item-obj_name }| ).
 
 * elements must be deleted before the package interface
 * can be deleted
@@ -51657,13 +52278,13 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: li_interface TYPE REF TO if_package_interface,
+    DATA: li_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT,
           ls_pinf      TYPE ty_pinf.
     io_xml->read( EXPORTING iv_name = 'PINF'
                   CHANGING cg_data = ls_pinf ).
 
     li_interface = create_or_load(
-      is_pinf = ls_pinf
+      is_pinf    = ls_pinf
       iv_package = iv_package ).
 
     update_attributes(
@@ -51724,24 +52345,17 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_pinf      TYPE ty_pinf,
-          lv_name      TYPE scomifnam,
           lt_elements  TYPE ty_elements,
-          li_interface TYPE REF TO if_package_interface.
+          li_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     FIELD-SYMBOLS: <lg_any>     TYPE any,
                    <li_element> LIKE LINE OF lt_elements,
                    <ls_element> LIKE LINE OF ls_pinf-elements.
-    lv_name = ms_item-obj_name.
 
-    cl_package_interface=>load_package_interface(
-      EXPORTING
-        i_package_interface_name = lv_name
-        i_force_reload           = abap_true
-      IMPORTING
-        e_package_interface      = li_interface ).
+    li_interface = load( |{ ms_item-obj_name }| ).
 
     li_interface->get_all_attributes(
-      IMPORTING e_package_interface_data = ls_pinf-attributes ).
+      IMPORTING es_package_interface_data = ls_pinf-attributes ).
 
     CLEAR: ls_pinf-attributes-pack_name,
            ls_pinf-attributes-author,
@@ -51761,7 +52375,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
       CLEAR <lg_any>.
     ENDIF.
 
-    li_interface->get_elements( IMPORTING e_elements = lt_elements ).
+    li_interface->get_elements( IMPORTING et_elements = lt_elements ).
 
     LOOP AT lt_elements ASSIGNING <li_element>.
       APPEND INITIAL LINE TO ls_pinf-elements ASSIGNING <ls_element>.
@@ -51773,6 +52387,29 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
                  iv_name = 'PINF' ).
 
   ENDMETHOD.
+
+  METHOD load.
+
+    DATA: li_interface TYPE REF TO  if_package_interface.
+
+    cl_package_interface=>load_package_interface(
+      EXPORTING
+        i_package_interface_name = iv_name
+        i_force_reload           = abap_true
+      IMPORTING
+        e_package_interface      = li_interface ).
+
+    ri_interface = create_facade( li_interface ).
+
+  ENDMETHOD.
+  METHOD create_facade.
+
+    CREATE OBJECT ri_facade TYPE kHGwlqJyKbsVHldwKaGddDbbHeNaet
+      EXPORTING
+        ii_interface = ii_interface.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
@@ -67616,5 +68253,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-24T13:41:35.246Z
+* abapmerge undefined - 2019-01-24T14:03:19.713Z
 ****************************************************
