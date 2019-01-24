@@ -5882,7 +5882,7 @@ CLASS zcl_abapgit_object_smim DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                 zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_super PUBLIC FINAL.
+CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
     INTERFACES:
@@ -68250,5 +68250,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-24T14:59:22.555Z
+* abapmerge undefined - 2019-01-24T15:09:31.061Z
 ****************************************************
