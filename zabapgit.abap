@@ -2003,10 +2003,11 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_popups .
   TYPES:
     BEGIN OF ty_popup,
-      url         TYPE string,
-      package     TYPE devclass,
-      branch_name TYPE string,
-      cancel      TYPE abap_bool,
+      url          TYPE string,
+      package      TYPE devclass,
+      branch_name  TYPE string,
+      folder_logic TYPE string,
+      cancel       TYPE abap_bool,
     END OF ty_popup .
 
   CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
@@ -2294,10 +2295,11 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS new_offline
     IMPORTING
-      !iv_url        TYPE string
-      !iv_package    TYPE devclass
+      !iv_url         TYPE string
+      !iv_package     TYPE devclass
+      iv_folder_logic TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
     RETURNING
-      VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_offline
+      VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_offline
     RAISING
       zcx_abapgit_exception .
   METHODS new_online
@@ -10009,6 +10011,11 @@ CLASS zcl_abapgit_popups DEFINITION
       CHANGING  ct_fields         TYPE ty_lt_fields
       RAISING   zcx_abapgit_exception
                 zcx_abapgit_cancel.
+    METHODS validate_folder_logic
+      IMPORTING
+        iv_folder_logic TYPE string
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
@@ -15389,16 +15396,20 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~new_offline.
 
-    DATA: ls_repo TYPE zif_abapgit_persistence=>ty_repo,
-          lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
+          lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
     validate_package( iv_package ).
+
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
+    lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
       iv_url         = iv_url
       iv_branch_name = ''
       iv_package     = iv_package
       iv_offline     = abap_true
-      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
+      is_dot_abapgit = lo_dot_abapgit->get_data( ) ).
 
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
@@ -22363,8 +22374,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     ENDIF.
 
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-      iv_url     = ls_popup-url
-      iv_package = ls_popup-package ).
+      iv_url          = ls_popup-url
+      iv_package      = ls_popup-package
+      iv_folder_logic = ls_popup-folder_logic  ).
     lo_repo->rebuild_local_checksums( ).
 
     zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
@@ -23227,7 +23239,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -23991,6 +24003,13 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                          iv_obligatory = abap_true
                CHANGING  ct_fields     = lt_fields ).
 
+    add_field( EXPORTING iv_tabname    = 'ZABAPGIT'
+                         iv_fieldname  = 'VALUE'
+                         iv_fieldtext  = 'Folder logic'
+                         iv_obligatory = abap_true
+                         iv_value      = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+               CHANGING  ct_fields     = lt_fields ).
+
     WHILE lv_finished = abap_false.
 
       lv_icon_ok  = icon_okay.
@@ -24033,10 +24052,16 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       TRANSLATE <ls_field>-value TO UPPER CASE.
       rs_popup-package = <ls_field>-value.
 
+      READ TABLE lt_fields INDEX 3 ASSIGNING <ls_field>.
+      ASSERT sy-subrc = 0.
+      TRANSLATE <ls_field>-value TO UPPER CASE.
+      rs_popup-folder_logic = <ls_field>-value.
+
       lv_finished = abap_true.
 
       TRY.
           zcl_abapgit_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
+          validate_folder_logic( rs_popup-folder_logic ).
 
         CATCH zcx_abapgit_exception INTO lx_error.
           " in case of validation errors we display the popup again
@@ -24226,6 +24251,20 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD validate_folder_logic.
+
+    IF  iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+    AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+
+      zcx_abapgit_exception=>raise( |Invalid folder logic { iv_folder_logic }. |
+                                 && |Choose either { zif_abapgit_dot_abapgit=>c_folder_logic-prefix } |
+                                 && |or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -68250,5 +68289,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-01-26T10:06:08.897Z
+* abapmerge undefined - 2019-01-28T08:59:55.077Z
 ****************************************************
