@@ -5930,14 +5930,9 @@ CLASS zcl_abapgit_object_splo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_sprx DEFINITION
-INHERITING FROM zcl_abapgit_objects_super
-  PUBLIC
-  FINAL
-  CREATE PUBLIC .
+CLASS zcl_abapgit_object_sprx DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
-
     INTERFACES:
       zif_abapgit_object.
 
@@ -68884,5 +68879,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-02T12:31:40.666Z
+* abapmerge undefined - 2019-02-03T20:17:57.449Z
 ****************************************************
