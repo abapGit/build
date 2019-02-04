@@ -11453,6 +11453,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_requirements
       IMPORTING
         it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
@@ -18883,7 +18884,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -18912,6 +18913,8 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     APPEND '/README.md' TO ls_data-ignore.
     APPEND '/package.json' TO ls_data-ignore.
     APPEND '/.travis.yml' TO ls_data-ignore.
+    APPEND '/.gitlab-ci.yml' TO ls_data-ignore.
+    APPEND '/abaplint.json' TO ls_data-ignore.
 
     CREATE OBJECT ro_dot_abapgit
       EXPORTING
@@ -18963,6 +18966,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_master_language.
     rv_language = ms_data-master_language.
+  ENDMETHOD.
+  METHOD get_requirements.
+    rt_requirements = ms_data-requirements.
   ENDMETHOD.
   METHOD get_signature.
 
@@ -19021,6 +19027,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD set_folder_logic.
     ms_data-folder_logic = iv_logic.
   ENDMETHOD.
+  METHOD set_requirements.
+    ms_data-requirements = it_requirements.
+  ENDMETHOD.
   METHOD set_starting_folder.
     ms_data-starting_folder = iv_path.
   ENDMETHOD.
@@ -19039,14 +19048,6 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.
-
-  METHOD get_requirements.
-    rt_requirements = ms_data-requirements.
-  ENDMETHOD.
-
-  METHOD set_requirements.
-    ms_data-requirements = it_requirements.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_dependencies IMPLEMENTATION.
@@ -48983,12 +48984,18 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
+    DATA: lv_object_name TYPE eu_lname,
+          lv_object_type TYPE seu_obj.
+
+    lv_object_name = ms_item-obj_name.
+    lv_object_type = ms_item-obj_type.
+
     CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
       DESTINATION 'NONE'
       EXPORTING
         operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
+        object_name         = lv_object_name
+        object_type         = lv_object_type
       EXCEPTIONS
         not_executed        = 1
         invalid_object_type = 2
@@ -68879,5 +68886,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-03T20:17:57.449Z
+* abapmerge undefined - 2019-02-04T05:34:45.655Z
 ****************************************************
