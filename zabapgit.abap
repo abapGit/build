@@ -12466,6 +12466,7 @@ CLASS zcl_abapgit_repo_srv DEFINITION
       RETURNING
         VALUE(ri_srv) TYPE REF TO zif_abapgit_repo_srv .
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     ALIASES delete
@@ -14217,8 +14218,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
-    DATA: lt_tdevc        TYPE STANDARD TABLE OF tdevc,
-          lv_path         TYPE string,
+    DATA: lv_path         TYPE string,
           lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
           lt_excludes     TYPE RANGE OF trobjtype,
           lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
@@ -15328,9 +15328,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD refresh.
 
-    DATA: lt_list    TYPE zif_abapgit_persistence=>tt_repo,
-          lo_online  TYPE REF TO zcl_abapgit_repo_online,
-          lo_offline TYPE REF TO zcl_abapgit_repo_offline.
+    DATA: lt_list TYPE zif_abapgit_persistence=>tt_repo.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
     CLEAR mt_list.
@@ -16668,7 +16666,7 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
     rv_active = abap_true.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -17082,8 +17080,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD filter_files_to_deserialize.
-
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
 
     rt_results = it_results.
 
@@ -23333,7 +23329,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -23523,6 +23519,18 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
     mo_select_list_popup->refresh( ).
+  ENDMETHOD.
+  METHOD validate_folder_logic.
+
+    IF  iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+    AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+
+      zcx_abapgit_exception=>raise( |Invalid folder logic { iv_folder_logic }. |
+                                 && |Choose either { zif_abapgit_dot_abapgit=>c_folder_logic-prefix } |
+                                 && |or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
 
@@ -23909,7 +23917,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       lv_transports_as_text = ls_transport_header-trkorr.
       SELECT SINGLE as4text FROM e07t INTO lv_desc_as_text  WHERE
         trkorr = ls_transport_header-trkorr AND
-        langu = sy-langu .
+        langu = sy-langu.
 
     ELSE.   " Else set branch name and commit message to 'Transport(s)_TRXXXXXX_TRXXXXX'
       lv_transports_as_text = 'Transport(s)'.
@@ -24358,20 +24366,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD validate_folder_logic.
-
-    IF  iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-    AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
-
-      zcx_abapgit_exception=>raise( |Invalid folder logic { iv_folder_logic }. |
-                                 && |Choose either { zif_abapgit_dot_abapgit=>c_folder_logic-prefix } |
-                                 && |or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
-
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
@@ -27628,7 +27622,7 @@ CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'REPO SETTINGS'.
@@ -27782,9 +27776,7 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
 
     DATA: lo_dot          TYPE REF TO zcl_abapgit_dot_abapgit,
           ls_post_field   LIKE LINE OF it_post_fields,
-          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
           lo_requirements TYPE REF TO kHGwlqtIBLLmUTOYRsTwbzKpTIehBK.
-    FIELD-SYMBOLS: <ls_requirement> TYPE zif_abapgit_dot_abapgit=>ty_requirement.
     lo_dot = mo_repo->get_dot_abapgit( ).
 
     READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'folder_logic'.
@@ -28618,10 +28610,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD render_table_head.
 
     CREATE OBJECT ro_html.
+
+    ro_html->add( '<thead class="header">' ).               "#EC NOTEXT
+    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ro_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
+
     IF mv_merge_mode EQ c_merge_mode-selection.
-      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
-      ro_html->add( '<tr>' ).                               "#EC NOTEXT
-      ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<form id="target_form" method="post" action="sapevent:apply_target">' ). "#EC NOTEXT
       ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''target_form'');' "#EC NOTEXT
@@ -28639,18 +28633,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
                       iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
       ro_html->add( '</th> ' ).                             "#EC NOTEXT
       ro_html->add( '</form>' ).                            "#EC NOTEXT
-      ro_html->add( '</tr>' ).                              "#EC NOTEXT
-      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ELSE.
-      ro_html->add( '<thead class="header">' ).             "#EC NOTEXT
-      ro_html->add( '<tr>' ).                               "#EC NOTEXT
-      ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && '</th> ' ). "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) && '</th> ' ). "#EC NOTEXT
-      ro_html->add( '</tr>' ).                              "#EC NOTEXT
-      ro_html->add( '</thead>' ).                           "#EC NOTEXT
     ENDIF.
+
+    ro_html->add( '</tr>' ).                                "#EC NOTEXT
+    ro_html->add( '</thead>' ).                             "#EC NOTEXT
 
   ENDMETHOD.
   METHOD resolve_diff.
@@ -35783,7 +35773,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
-
   METHOD constructor.
 
     DATA ls_dummy_meta_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
@@ -35930,16 +35919,15 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_persist_repo~update_metadata.
 
     DATA:
-          lv_blob            TYPE zif_abapgit_persistence=>ty_content-data_str,
-          ls_persistent_meta TYPE zif_abapgit_persistence=>ty_repo.
+      lv_blob            TYPE zif_abapgit_persistence=>ty_content-data_str,
+      ls_persistent_meta TYPE zif_abapgit_persistence=>ty_repo.
 
     FIELD-SYMBOLS <lv_field>   LIKE LINE OF mt_meta_fields.
-    FIELD-SYMBOLS <lv_dst>     TYPE ANY.
-    FIELD-SYMBOLS <lv_src>     TYPE ANY.
+    FIELD-SYMBOLS <lv_dst>     TYPE any.
+    FIELD-SYMBOLS <lv_src>     TYPE any.
     FIELD-SYMBOLS <lv_changed> TYPE abap_bool.
 
     ASSERT NOT iv_key IS INITIAL.
@@ -35978,7 +35966,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
                    iv_data  = lv_blob ).
 
   ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
@@ -43271,9 +43258,6 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~is_locked.
 
     DATA:
-      ls_vcldir         TYPE vcldir,
-      ls_vcldirt        TYPE vcldirt,
-
       lv_argument       TYPE seqg3-garg,
       lv_argument_langu TYPE seqg3-garg.
 
@@ -45798,7 +45782,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_idoc_segment.
 
-    DATA lv_version             TYPE segmentvrs .
     DATA lv_result              LIKE sy-subrc.
     DATA lt_segment_definitions TYPE ty_segment_definitions.
     DATA lv_package             TYPE devclass.
@@ -47026,8 +47009,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
 
     DATA: lv_auth_object_class TYPE tobc-oclss.
     DATA: lv_object_type       TYPE seu_objid.
-    DATA: lv_tr_object_name    TYPE e071-obj_name.
-    DATA: lv_tr_return         TYPE char1.
 
     lv_auth_object_class = ms_item-obj_name.
     lv_object_type = ms_item-obj_type.
@@ -50724,9 +50705,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
 
     CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
-    DATA: lv_object_type    TYPE seu_objid.
-    DATA: lv_tr_object_name TYPE e071-obj_name.
-    DATA: lv_tr_return      TYPE char1.
+    DATA: lv_object_type TYPE seu_objid.
 
     lv_object_type = ms_item-obj_type.
 
@@ -54062,7 +54041,7 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_intf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
@@ -54208,8 +54187,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: ls_vseointerf TYPE vseointerf,
-          ls_clskey     TYPE seoclskey.
+    DATA: ls_vseointerf TYPE vseointerf.
 
     io_xml->read( EXPORTING iv_name = 'VSEOINTERF'
                   CHANGING cg_data = ls_vseointerf ).
@@ -64583,7 +64561,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
       TRY.
           get_general_params_data( ecatt_script->params ).
-        CATCH cx_ecatt_apl.                              "#EC NOHANDLER
+        CATCH cx_ecatt_apl.                              "#EC NO_HANDLER
 *         proceed with download and report errors later
       ENDTRY.
 
@@ -64602,7 +64580,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
               ENDIF.
             ENDIF.
-          CATCH cx_ecatt_apl.                            "#EC NOHANDLER
+          CATCH cx_ecatt_apl.                            "#EC NO_HANDLER
 *         proceed with download and report errors later
         ENDTRY.
       ENDLOOP.
@@ -68892,5 +68870,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-04T06:08:50.590Z
+* abapmerge undefined - 2019-02-05T07:10:38.160Z
 ****************************************************
