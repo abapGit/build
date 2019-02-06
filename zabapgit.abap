@@ -4245,8 +4245,8 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
     METHODS check_timestamp
       IMPORTING
         !iv_timestamp     TYPE timestamp
-        !iv_date          TYPE datum
-        !iv_time          TYPE uzeit
+        !iv_date          TYPE d
+        !iv_time          TYPE t
       RETURNING
         VALUE(rv_changed) TYPE abap_bool .
     METHODS get_metadata
@@ -4797,8 +4797,8 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
     TYPES:
       BEGIN OF ty_last_changed,
         luser TYPE xubname,
-        ldate TYPE datum,
-        ltime TYPE uzeit,
+        ldate TYPE d,
+        ltime TYPE t,
       END OF ty_last_changed.
 
     CONSTANTS:
@@ -4891,7 +4891,6 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
         RAISING
           cx_ecatt
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_ecat DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -5654,6 +5653,7 @@ CLASS zcl_abapgit_object_sfpf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       fix_oref
         IMPORTING ii_document TYPE REF TO if_ixml_document.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       load
@@ -5792,6 +5792,8 @@ CLASS zcl_abapgit_object_sicf DEFINITION
     ALIASES mo_files
       FOR zif_abapgit_object~mo_files .
 
+    TYPES: ty_hash TYPE c LENGTH 25.
+
     CLASS-METHODS read_tadir_sicf
       IMPORTING
         !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
@@ -5804,9 +5806,10 @@ CLASS zcl_abapgit_object_sicf DEFINITION
       IMPORTING
         !iv_obj_name   TYPE tadir-obj_name
       RETURNING
-        VALUE(rv_hash) TYPE text25
+        VALUE(rv_hash) TYPE ty_hash
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -10754,7 +10757,7 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
       BEGIN OF ty_requirement_status,
         met               TYPE abap_bool,
         component         TYPE dlvunit,
-        description       TYPE text80,
+        description       TYPE cvers_sdu-desc_text,
         installed_release TYPE saprelease,
         installed_patch   TYPE sappatchlv,
         required_release  TYPE saprelease,
@@ -10775,6 +10778,7 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-METHODS show_requirement_popup
@@ -10852,9 +10856,9 @@ CLASS zcl_abapgit_time DEFINITION
     CLASS-METHODS get
       RETURNING VALUE(rv_time) TYPE ty_unixtime
       RAISING   zcx_abapgit_exception.
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS: c_epoch TYPE datum VALUE '19700101'.
-
+    CONSTANTS: c_epoch TYPE d VALUE '19700101'.
 ENDCLASS.
 CLASS zcl_abapgit_url DEFINITION
   FINAL
@@ -11838,6 +11842,7 @@ CLASS zcl_abapgit_news DEFINITION
     METHODS has_unseen
       RETURNING
         VALUE(rv_boolean) TYPE abap_bool .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mt_log TYPE tt_log .
@@ -17657,9 +17662,9 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   ENDMETHOD.
   METHOD version_to_numeric.
 
-    DATA: lv_major   TYPE numc4,
-          lv_minor   TYPE numc4,
-          lv_release TYPE numc4.
+    DATA: lv_major   TYPE n LENGTH 4,
+          lv_minor   TYPE n LENGTH 4,
+          lv_release TYPE n LENGTH 4.
 
     SPLIT iv_version AT '.' INTO lv_major lv_minor lv_release.
 
@@ -21014,7 +21019,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD version_greater_or_equal.
 
-    DATA: lv_number TYPE numc4 ##NEEDED.
+    DATA: lv_number TYPE n LENGTH 4 ##NEEDED.
 
     TRY.
         MOVE EXACT: is_status-installed_release TO lv_number,
@@ -21572,9 +21577,10 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~file_upload.
 
-    DATA:
-      lt_data       TYPE TABLE OF x255,
-      lv_length     TYPE i.
+    TYPES: ty_hex TYPE x LENGTH 255.
+
+    DATA: lt_data   TYPE TABLE OF ty_hex WITH DEFAULT KEY,
+          lv_length TYPE i.
 
     cl_gui_frontend_services=>gui_upload(
       EXPORTING
@@ -49433,7 +49439,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   METHOD change_sicf.
 
     DATA: lt_icfhndlist TYPE icfhndlist,
@@ -49660,7 +49666,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
 * note: this method is called dynamically from some places
 
     DATA: lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lv_hash     TYPE text25,
+          lv_hash     TYPE ty_hash,
           lv_obj_name TYPE tadir-obj_name.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF lt_tadir.
@@ -51241,7 +51247,7 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   METHOD fix_oref.
 
     DATA: li_iterator TYPE REF TO if_ixml_node_iterator,
@@ -51360,6 +51366,11 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
 
     TRY.
         li_form = cl_fp_helper=>convert_xstring_to_form( lv_xstr ).
+
+        IF zif_abapgit_object~exists( ) = abap_true.
+          cl_fp_wb_form=>delete( lv_name ).
+        ENDIF.
+
         tadir_insert( iv_package ).
         li_wb_object = cl_fp_wb_form=>create( i_name = lv_name
                                               i_form = li_form ).
@@ -51389,6 +51400,21 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_object TYPE seqg3-garg.
+
+    lv_object = |{ ms_item-obj_name }|.
+    OVERLAY lv_object WITH '                              '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EFPFORM'
+                                            iv_argument    = lv_object ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -51407,22 +51433,6 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     fix_oref( li_document ).
     io_xml->set_raw( li_document->get_root_element( ) ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_object TYPE seqg3-garg.
-
-    lv_object = |{ ms_item-obj_name }|.
-    OVERLAY lv_object WITH '                              '.
-    lv_object = lv_object && '*'.
-
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EFPFORM'
-                                            iv_argument    = lv_object ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
@@ -58704,7 +58714,7 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   METHOD clear_attributes.
 
     DATA: lo_element     TYPE REF TO if_ixml_element,
@@ -58945,7 +58955,38 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     ci_node->append_child( lo_node ).
 
   ENDMETHOD.
+  METHOD serialize_versions.
 
+    DATA: li_versions_node TYPE REF TO if_ixml_element.
+    FIELD-SYMBOLS: <ls_version_info> LIKE LINE OF it_version_info.
+
+    li_versions_node = ci_document->create_element( co_name-versions ).
+
+    IF lines( it_version_info ) > 0.
+
+      LOOP AT it_version_info ASSIGNING <ls_version_info>.
+
+        serialize_version(
+          EXPORTING
+            iv_version = <ls_version_info>-version
+          CHANGING
+            ci_node    = li_versions_node ).
+
+      ENDLOOP.
+
+    ELSE.
+
+      serialize_version(
+        EXPORTING
+          iv_version = co_default_version
+        CHANGING
+          ci_node    = li_versions_node ).
+
+    ENDIF.
+
+    ci_document->append_child( li_versions_node ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_last_changed      TYPE ty_last_changed,
@@ -59071,6 +59112,21 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD zif_abapgit_object~has_changed_since.
     rv_changed = abap_true.
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    DATA: lv_object TYPE seqg3-garg.
+
+    lv_object = ms_item-obj_name.
+    OVERLAY lv_object WITH '                              '.
+    lv_object = lv_object && '*'.
+
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = get_lock_object( )
+                                            iv_argument    = lv_object ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -59124,56 +59180,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD serialize_versions.
-
-    DATA: li_versions_node TYPE REF TO if_ixml_element.
-    FIELD-SYMBOLS: <ls_version_info> LIKE LINE OF it_version_info.
-
-    li_versions_node = ci_document->create_element( co_name-versions ).
-
-    IF lines( it_version_info ) > 0.
-
-      LOOP AT it_version_info ASSIGNING <ls_version_info>.
-
-        serialize_version(
-          EXPORTING
-            iv_version = <ls_version_info>-version
-          CHANGING
-            ci_node    = li_versions_node ).
-
-      ENDLOOP.
-
-    ELSE.
-
-      serialize_version(
-        EXPORTING
-          iv_version = co_default_version
-        CHANGING
-          ci_node    = li_versions_node ).
-
-    ENDIF.
-
-    ci_document->append_child( li_versions_node ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_object TYPE seqg3-garg.
-
-    lv_object = ms_item-obj_name.
-    OVERLAY lv_object WITH '                              '.
-    lv_object = lv_object && '*'.
-
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = get_lock_object( )
-                                            iv_argument    = lv_object ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
 ENDCLASS.
-
 CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   METHOD constructor.
 
@@ -68870,5 +68877,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-05T07:10:38.160Z
+* abapmerge undefined - 2019-02-06T07:10:08.833Z
 ****************************************************
