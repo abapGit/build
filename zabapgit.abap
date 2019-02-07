@@ -48504,29 +48504,28 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   METHOD generate_service_definition.
 
     DATA: lv_transport    TYPE e070use-ordernum,
-          lo_proxy_object TYPE REF TO cl_proxy_object,
+          li_proxy_object TYPE REF TO if_px_main,
           lx_proxy_fault  TYPE REF TO cx_proxy_fault.
 
     lv_transport = zcl_abapgit_default_transport=>get_instance(
                                                )->get( )-ordernum.
 
     TRY.
-        lo_proxy_object = cl_pxn_factory=>create(
+        li_proxy_object = cl_pxn_factory=>create(
                               application  = 'PROXY_UI'
                               display_only = abap_false
                               saveable     = abap_true
-                          )->load_by_abap_name_int(
+                          )->if_pxn_factory~load_by_abap_name(
                               object   = mv_object
-                              obj_name = mv_obj_name
-                          )->proxy.
+                              obj_name = mv_obj_name ).
 
-        lo_proxy_object->activate(
+        li_proxy_object->activate(
           EXPORTING
             activate_all     = abap_true
           CHANGING
             transport_number = lv_transport ).
 
-        lo_proxy_object->dequeue( ).
+        li_proxy_object->dequeue( ).
 
       CATCH cx_proxy_fault INTO lx_proxy_fault.
         zcx_abapgit_exception=>raise( iv_text     = |{ lx_proxy_fault->get_text( ) }|
@@ -52706,9 +52705,10 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
         acl_not_empty                = 4
         author_not_existing          = 5
         object_type_mismatch         = 6
-        logical_package_types_differ = 7
-        object_invalid               = 8
-        OTHERS                       = 9 ).
+        object_invalid               = 7
+        OTHERS                       = 8 ).
+* Downport: exception "logical_package_types_differ"
+* does not exist in lower versions
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -68877,5 +68877,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-06T07:13:57.839Z
+* abapmerge undefined - 2019-02-07T08:58:24.339Z
 ****************************************************
