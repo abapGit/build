@@ -15726,10 +15726,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_branch_name.
 
-    IF ms_data-local_settings-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
-    ENDIF.
-
     reset_remote( ).
     set( iv_branch_name = iv_branch_name ).
 
@@ -15738,10 +15734,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     mt_objects = it_objects.
   ENDMETHOD.
   METHOD set_url.
-
-    IF ms_data-local_settings-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot change URL. Local code is write-protected by repo config' ).
-    ENDIF.
 
     reset_remote( ).
     set( iv_url = iv_url ).
@@ -68877,5 +68869,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-07T08:58:24.339Z
+* abapmerge undefined - 2019-02-07T11:10:38.924Z
 ****************************************************
