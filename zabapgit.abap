@@ -2211,6 +2211,7 @@ INTERFACE zif_abapgit_exit .
       zcx_abapgit_exception .
   METHODS http_client
     IMPORTING
+      !iv_url    TYPE string
       !ii_client TYPE REF TO if_http_client .
   METHODS change_tadir
     IMPORTING
@@ -3101,10 +3102,13 @@ CLASS zcl_abapgit_2fa_auth_registry DEFINITION
                           CHANGING  cv_username TYPE string
                                     cv_password TYPE string
                           RAISING   zcx_abapgit_exception.
+
+  PROTECTED SECTION.
     CLASS-DATA:
       "! All authenticators managed by the registry
       gt_registered_authenticators TYPE HASHED TABLE OF REF TO zif_abapgit_2fa_authenticator
-                                        WITH UNIQUE KEY table_line READ-ONLY.
+                                        WITH UNIQUE KEY table_line.
+
   PRIVATE SECTION.
     CLASS-METHODS:
       popup_token
@@ -4547,6 +4551,7 @@ CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
     DATA: mo_persistence TYPE REF TO if_wb_object_persist.
 
   PRIVATE SECTION.
@@ -10470,58 +10475,65 @@ CLASS zcl_abapgit_diff DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    DATA mt_beacons TYPE zif_abapgit_definitions=>ty_string_tt READ-ONLY.
 
 * assumes data is UTF8 based with newlines
 * only works with lines up to 255 characters
     METHODS constructor
-      IMPORTING iv_new TYPE xstring
-                iv_old TYPE xstring.
-
+      IMPORTING
+        !iv_new TYPE xstring
+        !iv_old TYPE xstring .
     METHODS get
-      RETURNING VALUE(rt_diff) TYPE zif_abapgit_definitions=>ty_diffs_tt.
-
+      RETURNING
+        VALUE(rt_diff) TYPE zif_abapgit_definitions=>ty_diffs_tt .
     METHODS stats
-      RETURNING VALUE(rs_count) TYPE zif_abapgit_definitions=>ty_count.
-
+      RETURNING
+        VALUE(rs_count) TYPE zif_abapgit_definitions=>ty_count .
     METHODS set_patch_new
       IMPORTING
-        iv_line_new   TYPE i
-        iv_patch_flag TYPE abap_bool
+        !iv_line_new   TYPE i
+        !iv_patch_flag TYPE abap_bool
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     METHODS set_patch_old
       IMPORTING
-        iv_line_old   TYPE i
-        iv_patch_flag TYPE abap_bool
+        !iv_line_old   TYPE i
+        !iv_patch_flag TYPE abap_bool
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
+    METHODS get_beacons
+      RETURNING
+        VALUE(rt_beacons) TYPE zif_abapgit_definitions=>ty_string_tt .
+  PROTECTED SECTION.
 
   PRIVATE SECTION.
-    DATA mt_diff     TYPE zif_abapgit_definitions=>ty_diffs_tt.
-    DATA ms_stats    TYPE zif_abapgit_definitions=>ty_count.
 
-    CLASS-METHODS:
-      unpack
-        IMPORTING iv_new TYPE xstring
-                  iv_old TYPE xstring
-        EXPORTING et_new TYPE abaptxt255_tab
-                  et_old TYPE abaptxt255_tab,
-      render
-        IMPORTING it_new         TYPE abaptxt255_tab
-                  it_old         TYPE abaptxt255_tab
-                  it_delta       TYPE vxabapt255_tab
-        RETURNING VALUE(rt_diff) TYPE zif_abapgit_definitions=>ty_diffs_tt,
-      compute
-        IMPORTING it_new          TYPE abaptxt255_tab
-                  it_old          TYPE abaptxt255_tab
-        RETURNING VALUE(rt_delta) TYPE vxabapt255_tab.
+    DATA mt_beacons TYPE zif_abapgit_definitions=>ty_string_tt .
+    DATA mt_diff TYPE zif_abapgit_definitions=>ty_diffs_tt .
+    DATA ms_stats TYPE zif_abapgit_definitions=>ty_count .
 
-    METHODS:
-      calculate_line_num_and_stats,
-      map_beacons,
-      shortlist.
+    CLASS-METHODS unpack
+      IMPORTING
+        !iv_new TYPE xstring
+        !iv_old TYPE xstring
+      EXPORTING
+        !et_new TYPE abaptxt255_tab
+        !et_old TYPE abaptxt255_tab .
+    CLASS-METHODS render
+      IMPORTING
+        !it_new        TYPE abaptxt255_tab
+        !it_old        TYPE abaptxt255_tab
+        !it_delta      TYPE vxabapt255_tab
+      RETURNING
+        VALUE(rt_diff) TYPE zif_abapgit_definitions=>ty_diffs_tt .
+    CLASS-METHODS compute
+      IMPORTING
+        !it_new         TYPE abaptxt255_tab
+        !it_old         TYPE abaptxt255_tab
+      RETURNING
+        VALUE(rt_delta) TYPE vxabapt255_tab .
+    METHODS calculate_line_num_and_stats .
+    METHODS map_beacons .
+    METHODS shortlist .
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   FINAL
@@ -18780,7 +18792,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     IF gi_exit IS INITIAL.
       TRY.
           CREATE OBJECT gi_exit TYPE ('ZCL_ABAPGIT_USER_EXIT').
-        CATCH cx_sy_create_object_error.
+        CATCH cx_sy_create_object_error ##NO_HANDLER.
       ENDTRY.
     ENDIF.
 
@@ -18791,7 +18803,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
     TRY.
         rv_allowed = gi_exit->allow_sap_objects( ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18799,7 +18811,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
     TRY.
         gi_exit->change_local_host( CHANGING ct_hosts = ct_hosts ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18808,10 +18820,10 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     TRY.
         gi_exit->change_proxy_authentication(
           EXPORTING
-            iv_repo_url            = iv_repo_url
+            iv_repo_url             = iv_repo_url
           CHANGING
             cv_proxy_authentication = cv_proxy_authentication ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18820,10 +18832,10 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     TRY.
         gi_exit->change_proxy_port(
           EXPORTING
-            iv_repo_url  = iv_repo_url
+            iv_repo_url   = iv_repo_url
           CHANGING
             cv_proxy_port = cv_proxy_port ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18832,10 +18844,10 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     TRY.
         gi_exit->change_proxy_url(
           EXPORTING
-            iv_repo_url = iv_repo_url
+            iv_repo_url  = iv_repo_url
           CHANGING
             cv_proxy_url = cv_proxy_url ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18848,7 +18860,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
             io_log     = io_log
           CHANGING
             ct_tadir   = ct_tadir ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18856,7 +18868,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
     TRY.
         ri_client = gi_exit->create_http_client( iv_url ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -18864,16 +18876,21 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
     TRY.
         rv_ssl_id = gi_exit->get_ssl_id( ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
-        rv_ssl_id = 'ANONYM'.
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
+
+    IF rv_ssl_id IS INITIAL.
+      rv_ssl_id = 'ANONYM'.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_exit~http_client.
 
     TRY.
-        gi_exit->http_client( ii_client ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method.
+        gi_exit->http_client(
+          iv_url    = iv_url
+          ii_client = ii_client ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -21750,6 +21767,11 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD get.
     rt_diff = mt_diff.
+  ENDMETHOD.
+  METHOD get_beacons.
+
+    rt_beacons = mt_beacons.
+
   ENDMETHOD.
   METHOD map_beacons.
 
@@ -28402,7 +28424,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     IF is_diff_line-beacon > 0.
-      READ TABLE is_diff-o_diff->mt_beacons INTO lv_beacon INDEX is_diff_line-beacon.
+      READ TABLE is_diff-o_diff->get_beacons( ) INTO lv_beacon INDEX is_diff_line-beacon.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
@@ -29664,12 +29686,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_beacon.
 
-    DATA: lv_beacon  TYPE string.
+    DATA: lv_beacon TYPE string.
 
     CREATE OBJECT ro_html.
 
     IF is_diff_line-beacon > 0.
-      READ TABLE is_diff-o_diff->mt_beacons INTO lv_beacon INDEX is_diff_line-beacon.
+      READ TABLE is_diff-o_diff->get_beacons( ) INTO lv_beacon INDEX is_diff_line-beacon.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
@@ -61066,7 +61088,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -65650,10 +65672,13 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
     " Disable internal auth dialog (due to its unclarity)
     li_client->propertytype_logon_popup = if_http_client=>co_disabled.
 
-    zcl_abapgit_login_manager=>load( iv_uri    = iv_url
-                                     ii_client = li_client ).
+    zcl_abapgit_login_manager=>load(
+      iv_uri    = iv_url
+      ii_client = li_client ).
 
-    zcl_abapgit_exit=>get_instance( )->http_client( li_client ).
+    zcl_abapgit_exit=>get_instance( )->http_client(
+      iv_url    = iv_url
+      ii_client = li_client ).
 
     ro_client->send_receive( ).
     IF check_auth_requested( li_client ) = abap_true.
@@ -68869,5 +68894,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-07T11:10:38.924Z
+* abapmerge undefined - 2019-02-10T07:30:42.224Z
 ****************************************************
