@@ -4675,6 +4675,7 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_dd01_texts,
@@ -5713,18 +5714,22 @@ CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         iv_language TYPE spras.
 
   PROTECTED SECTION.
-    METHODS has_authorization
-      IMPORTING iv_devclass     TYPE devclass
-                iv_object_type  TYPE seu_objid
-                iv_structure_id TYPE hier_guid
-                iv_activity     TYPE activ_auth
-      RAISING   zcx_abapgit_exception.
-    METHODS is_used
-      IMPORTING iv_structure_id TYPE hier_guid
-      RAISING   zcx_abapgit_exception.
-    METHODS delete_tree_structure
-      IMPORTING iv_structure_id TYPE hier_guid.
 
+    METHODS has_authorization
+      IMPORTING
+        !iv_devclass     TYPE devclass
+        !iv_structure_id TYPE hier_guid
+        !iv_activity     TYPE activ_auth
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_used
+      IMPORTING
+        !iv_structure_id TYPE hier_guid
+      RAISING
+        zcx_abapgit_exception .
+    METHODS delete_tree_structure
+      IMPORTING
+        !iv_structure_id TYPE hier_guid .
   PRIVATE SECTION.
     DATA: mv_tree_id TYPE ttree-id.
 
@@ -6190,24 +6195,28 @@ CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
+
     CONSTANTS transobjecttype_class TYPE char1 VALUE 'C' ##NO_TEXT.
 
     METHODS has_authorization
-      IMPORTING iv_object_type TYPE seu_objid
-                iv_class       TYPE tobc-oclss
-                iv_activity    TYPE activ_auth
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !iv_class    TYPE tobc-oclss
+        !iv_activity TYPE activ_auth
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_used
-      IMPORTING iv_auth_object_class TYPE tobc-oclss
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !iv_auth_object_class TYPE tobc-oclss
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
-    METHODS delete_class
-      IMPORTING iv_auth_object_class TYPE tobc-oclss.
-    METHODS put_delete_to_transport
-      IMPORTING iv_auth_object_class TYPE tobc-oclss
-                iv_object_type       TYPE seu_objid
-      RAISING   zcx_abapgit_exception.
 
+    METHODS delete_class
+      IMPORTING
+        !iv_auth_object_class TYPE tobc-oclss .
+    METHODS put_delete_to_transport
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -17203,6 +17212,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD prioritize_deser.
 
+* todo, refactor this method
+
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
 
 * WEBI has to be handled before SPRX.
@@ -17230,11 +17241,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
-* PINF has to be handled before DEVC for package interface usage
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PINF'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
 * ENHS has to be handled before ENHO
     LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHS'.
       APPEND <ls_result> TO rt_results.
@@ -17250,10 +17256,21 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         AND obj_type <> 'PROG'
         AND obj_type <> 'XSLT'
         AND obj_type <> 'PINF'
+        AND obj_type <> 'DEVC'
         AND obj_type <> 'ENHS'
         AND obj_type <> 'DDLS'
         AND obj_type <> 'SPRX'
         AND obj_type <> 'WEBI'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* PINF after everything as it can expose objects
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PINF'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* DEVC after PINF, as it can refer for package interface usage
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'DEVC'.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
@@ -46951,7 +46968,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
 
     AUTHORITY-CHECK OBJECT 'S_DEVELOP'
            ID 'DEVCLASS' DUMMY
-           ID 'OBJTYPE' FIELD iv_object_type
+           ID 'OBJTYPE' FIELD 'SUSC'
            ID 'OBJNAME' FIELD iv_class
            ID 'P_GROUP' DUMMY
            ID 'ACTVT'   FIELD iv_activity.
@@ -46984,8 +47001,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
           ls_package_info   TYPE tdevc,
           lv_tadir_object   TYPE tadir-object,
           lv_tadir_obj_name TYPE tadir-obj_name.
+    lv_tr_object_name = ms_item-obj_name.
 
-    lv_tr_object_name = iv_auth_object_class.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname       = lv_tr_object_name
@@ -47005,7 +47022,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
       EXCEPTIONS
         OTHERS      = 1.
     IF sy-subrc = 0 AND ls_package_info-korrflag IS INITIAL.
-      lv_tadir_object   = iv_object_type.
+      lv_tadir_object   = ms_item-obj_type.
       lv_tadir_obj_name = lv_tr_object_name.
       CALL FUNCTION 'TR_TADIR_INTERFACE'
         EXPORTING
@@ -47026,13 +47043,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
     CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
+
     CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
     DATA: lv_auth_object_class TYPE tobc-oclss.
-    DATA: lv_object_type       TYPE seu_objid.
-
     lv_auth_object_class = ms_item-obj_name.
-    lv_object_type = ms_item-obj_type.
 
     TRY.
         me->zif_abapgit_object~exists( ).
@@ -47040,16 +47055,15 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
         RETURN.
     ENDTRY.
 
-    has_authorization( iv_object_type = lv_object_type
-                       iv_class       = lv_auth_object_class
-                       iv_activity    = lc_activity_delete_06 ).
+    has_authorization( iv_class    = lv_auth_object_class
+                       iv_activity = lc_activity_delete_06 ).
 
     is_used( lv_auth_object_class ).
 
     delete_class( lv_auth_object_class ).
 
-    put_delete_to_transport( iv_auth_object_class = lv_auth_object_class
-                             iv_object_type       = lv_object_type ).
+    put_delete_to_transport( ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 * see function group SUSA
@@ -50644,11 +50658,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
       ID 'DEVCLASS'  FIELD iv_devclass
       ID 'OBJTYPE'   FIELD 'MENU'
       ID 'OBJNAME'   FIELD iv_structure_id
-      ID 'P_GROUP'  DUMMY
-      ID 'ACTVT'    FIELD iv_activity.
+      ID 'P_GROUP'   DUMMY
+      ID 'ACTVT'     FIELD iv_activity.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( iv_msgid = 's#'
+      zcx_abapgit_exception=>raise_t100( iv_msgid = 'S#'
                                          iv_msgno = '203' ).
     ENDIF.
   ENDMETHOD.
@@ -50724,18 +50738,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
 
     CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
-    DATA: lv_object_type TYPE seu_objid.
-
-    lv_object_type = ms_item-obj_type.
-
     TRY.
         me->zif_abapgit_object~exists( ).
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
 
-    has_authorization( iv_object_type  = lv_object_type
-                       iv_structure_id = mv_tree_id
+    has_authorization( iv_structure_id = mv_tree_id
                        iv_devclass     = ms_item-devclass
                        iv_activity     = lc_activity_delete_06 ).
 
@@ -59763,7 +59772,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_dd01_texts ASSIGNING <ls_dd01_text>.
       MOVE-CORRESPONDING ls_dd01v TO <ls_dd01_text>.
 
-      LOOP AT lt_dd07v ASSIGNING <ls_dd07v>.
+      LOOP AT lt_dd07v ASSIGNING <ls_dd07v> WHERE NOT ddlanguage IS INITIAL.
         APPEND INITIAL LINE TO lt_dd07_texts ASSIGNING <ls_dd07_text>.
         MOVE-CORRESPONDING <ls_dd07v> TO <ls_dd07_text>.
       ENDLOOP.
@@ -68902,5 +68911,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-12T06:33:36.093Z
+* abapmerge undefined - 2019-02-13T05:48:20.846Z
 ****************************************************
