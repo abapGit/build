@@ -11379,6 +11379,7 @@ CLASS zcl_abapgit_dependencies DEFINITION
         !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -19085,7 +19086,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_dependencies IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
     TYPES: BEGIN OF ty_ddls_name.
@@ -19107,9 +19108,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   ENDMETHOD.
   METHOD resolve.
 
-    DATA: lv_tabclass    TYPE dd02l-tabclass.
+    DATA: lv_tabclass TYPE dd02l-tabclass.
 
-    FIELD-SYMBOLS: <ls_tadir>            LIKE LINE OF ct_tadir.
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
 
 * misuse field KORRNUM to fix deletion sequence
 
@@ -19139,6 +19140,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           ENDIF.
         WHEN 'DTEL'.
           <ls_tadir>-korrnum = '8000'.
+* ACID after PROG/FUGR/CLAS
+        WHEN 'ACID'.
+          <ls_tadir>-korrnum = '3000'.
         WHEN 'PARA'.
 * PARA after DTEL
           <ls_tadir>-korrnum = '8100'.
@@ -68371,6 +68375,8 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     CREATE OBJECT lo_stage.
 
+    ls_comment-comment = 'BG: Deletion' ##NO_TEXT.
+
     LOOP AT is_files-remote ASSIGNING <ls_remote>.
 
       mo_log->add_info( |removed: {
@@ -68380,11 +68386,13 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
       lo_stage->rm( iv_path     = <ls_remote>-path
                     iv_filename = <ls_remote>-filename ).
 
+      CONCATENATE ls_comment-comment zif_abapgit_definitions=>c_newline <ls_remote>-filename
+        INTO ls_comment-comment.
+
     ENDLOOP.
 
     ls_comment-committer-name  = 'Deletion' ##NO_TEXT.
     ls_comment-committer-email = 'deletion@localhost'.
-    ls_comment-comment         = build_comment( is_files ).
 
     io_repo->push( is_comment = ls_comment
                    io_stage   = lo_stage ).
@@ -68940,5 +68948,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-13T12:51:30.661Z
+* abapmerge undefined - 2019-02-14T15:20:09.331Z
 ****************************************************
