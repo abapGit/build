@@ -28447,12 +28447,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_beacon.
 
-    DATA: lv_beacon  TYPE string.
+    DATA: lv_beacon  TYPE string,
+          lt_beacons TYPE zif_abapgit_definitions=>ty_string_tt.
 
     CREATE OBJECT ro_html.
 
     IF is_diff_line-beacon > 0.
-      READ TABLE is_diff-o_diff->get_beacons( ) INTO lv_beacon INDEX is_diff_line-beacon.
+      lt_beacons = is_diff-o_diff->get_beacons( ).
+      READ TABLE lt_beacons INTO lv_beacon INDEX is_diff_line-beacon.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
@@ -29714,12 +29716,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_beacon.
 
-    DATA: lv_beacon TYPE string.
+    DATA: lv_beacon  TYPE string,
+          lt_beacons TYPE zif_abapgit_definitions=>ty_string_tt.
 
     CREATE OBJECT ro_html.
 
     IF is_diff_line-beacon > 0.
-      READ TABLE is_diff-o_diff->get_beacons( ) INTO lv_beacon INDEX is_diff_line-beacon.
+      lt_beacons = is_diff-o_diff->get_beacons( ).
+      READ TABLE lt_beacons INTO lv_beacon INDEX is_diff_line-beacon.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
@@ -55503,7 +55507,7 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD are_exceptions_class_based.
     DATA:
       lt_dokumentation    TYPE TABLE OF funct,
@@ -55798,12 +55802,13 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
              cnam     TYPE reposrc-cnam,
            END OF ty_reposrc.
 
-    DATA: lt_reposrc   TYPE STANDARD TABLE OF ty_reposrc WITH DEFAULT KEY,
-          ls_reposrc   LIKE LINE OF lt_reposrc,
-          lv_program   TYPE program,
-          lv_offset_ns TYPE i,
-          lv_tabix     LIKE sy-tabix,
-          lt_functab   TYPE ty_rs38l_incl_tt.
+    DATA: lt_reposrc        TYPE STANDARD TABLE OF ty_reposrc WITH DEFAULT KEY,
+          ls_reposrc        LIKE LINE OF lt_reposrc,
+          lv_program        TYPE program,
+          lv_offset_ns      TYPE i,
+          lv_tabix          LIKE sy-tabix,
+          lt_functab        TYPE ty_rs38l_incl_tt,
+          lt_tadir_includes TYPE HASHED TABLE OF objname WITH UNIQUE KEY table_line.
 
     FIELD-SYMBOLS: <lv_include> LIKE LINE OF rt_includes,
                    <ls_func>    LIKE LINE OF lt_functab.
@@ -55842,6 +55847,24 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDIF.
 
     IF lines( rt_includes ) > 0.
+      " check which includes have their own tadir entry
+      " these includes might reside in a different package or might be shared between multiple function groups
+      " or other programs and are hence no part of the to serialized FUGR object
+      " they will be handled as individual objects when serializing their package
+      SELECT obj_name
+        INTO TABLE lt_tadir_includes
+        FROM tadir
+        FOR ALL ENTRIES IN rt_includes
+        WHERE pgmid = 'R3TR'
+              AND object = 'PROG'
+              AND obj_name = rt_includes-table_line.
+      LOOP AT rt_includes ASSIGNING <lv_include>.
+        READ TABLE lt_tadir_includes WITH KEY table_line = <lv_include> TRANSPORTING NO FIELDS.
+        IF sy-subrc = 0.
+          DELETE rt_includes.
+        ENDIF.
+      ENDLOOP.
+
       SELECT progname cnam FROM reposrc
         INTO TABLE lt_reposrc
         FOR ALL ENTRIES IN rt_includes
@@ -68948,5 +68971,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-14T15:20:09.331Z
+* abapmerge undefined - 2019-02-15T05:12:13.182Z
 ****************************************************
