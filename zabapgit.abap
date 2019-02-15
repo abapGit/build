@@ -1522,11 +1522,7 @@ INTERFACE zif_abapgit_object.
     jump
       RAISING zcx_abapgit_exception,
     get_metadata
-      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata,
-    has_changed_since
-      IMPORTING iv_timestamp      TYPE timestamp
-      RETURNING VALUE(rv_changed) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
+      RETURNING VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata.
   METHODS:
     compare_to_remote_version
       IMPORTING io_remote_version_xml       TYPE REF TO zcl_abapgit_xml_input
@@ -2516,6 +2512,7 @@ CLASS zcl_abapgit_git_add_patch DEFINITION
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
       mt_diff  TYPE zif_abapgit_definitions=>ty_diffs_tt,
@@ -2546,11 +2543,6 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
-    METHODS get_head     " For potential future use
-      RETURNING
-        VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_head_symref
       RETURNING
         VALUE(rv_head_symref) TYPE string .
@@ -2559,16 +2551,11 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS get_tags_only     " For potential future use
+    METHODS get_tags_only         " For potential future use
       RETURNING
         VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS is_ignored
-      IMPORTING
-        !iv_branch_name  TYPE clike
-      RETURNING
-        VALUE(rv_ignore) TYPE abap_bool .
     CLASS-METHODS get_display_name
       IMPORTING
         !iv_branch_name        TYPE clike
@@ -2591,6 +2578,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         !iv_branch_name TYPE clike
       RETURNING
         VALUE(rv_name)  TYPE string .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
@@ -2621,6 +2609,11 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         !iv_data              TYPE string
       RETURNING
         VALUE(rv_head_symref) TYPE string .
+    CLASS-METHODS is_ignored
+      IMPORTING
+        !iv_branch_name  TYPE clike
+      RETURNING
+        VALUE(rv_ignore) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_git_pack DEFINITION
   CREATE PUBLIC .
@@ -2841,6 +2834,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -4333,6 +4327,7 @@ CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS: create_object
       RETURNING VALUE(ro_aab) TYPE REF TO cl_aab_id
@@ -11987,14 +11982,6 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rv_user) TYPE xubname
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS has_changed_since
-      IMPORTING
-        !is_item          TYPE zif_abapgit_definitions=>ty_item
-        !iv_timestamp     TYPE timestamp
-      RETURNING
-        VALUE(rv_changed) TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
     CLASS-METHODS is_supported
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
@@ -12303,36 +12290,33 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
     DATA mv_request_local_refresh TYPE abap_bool .
-    DATA mv_last_serialization TYPE timestamp .
     DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
     DATA mv_code_inspector_successful TYPE abap_bool .
     DATA mv_request_remote_refresh TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
 
     METHODS set
-      IMPORTING it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
-                iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
-                iv_branch_name     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
-                iv_head_branch     TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
-                iv_offline         TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
-                is_dot_abapgit     TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
-                is_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
-                iv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at OPTIONAL
-                iv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by OPTIONAL
+      IMPORTING
+        !it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
+        !iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
+        !iv_branch_name     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
+        !iv_head_branch     TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
+        !iv_offline         TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
+        !is_dot_abapgit     TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
+        !is_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
+        !iv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at OPTIONAL
+        !iv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by OPTIONAL
       RAISING
-                zcx_abapgit_exception .
+        zcx_abapgit_exception .
     METHODS reset_status .
     METHODS reset_remote .
   PRIVATE SECTION.
 
     DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
 
-    TYPES:
-      ty_cache_tt TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item
-                             WITH NON-UNIQUE KEY item .
     METHODS notify_listener
       IMPORTING
-        is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
+        !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
       RAISING
         zcx_abapgit_exception .
     METHODS apply_filter
@@ -12343,15 +12327,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS build_dotabapgit_file
       RETURNING
         VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
-      RAISING
-        zcx_abapgit_exception .
-    METHODS lookup_cache
-      IMPORTING
-        !it_cache TYPE ty_cache_tt
-      EXPORTING
-        !et_found TYPE zif_abapgit_definitions=>ty_files_item_tt
-      CHANGING
-        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
     METHODS update_last_deserialize
@@ -13014,6 +12989,7 @@ CLASS zcl_abapgit_transport_objects DEFINITION
         !it_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mt_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
@@ -14009,7 +13985,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
   METHOD constructor.
     mt_transport_objects = it_transport_objects.
   ENDMETHOD.
@@ -14038,13 +14014,13 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
                        file-filename = ls_object_status-filename.
             IF sy-subrc <> 0.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } not found in the local repository files| ).
+               } not found in the local repository files| ).
+            ELSE.
+              io_stage->add(
+                iv_path     = ls_local_file-file-path
+                iv_filename = ls_local_file-file-filename
+                iv_data     = ls_local_file-file-data ).
             ENDIF.
-
-            io_stage->add(
-              iv_path     = ls_local_file-file-path
-              iv_filename = ls_local_file-file-filename
-              iv_data     = ls_local_file-file-data ).
           WHEN zif_abapgit_definitions=>c_state-deleted.
             IF ls_transport_object-delflag = abap_false.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
@@ -14058,8 +14034,9 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
         ENDCASE.
       ENDLOOP.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-        } not found in the local repository files| ).
+        " Since not all objects in a transport might be in the local repo
+        " i.e generated SADL objects, we don't add these objects to
+        " the stage.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
@@ -16104,7 +16081,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
 
-    CLEAR: mt_local, mv_last_serialization.
+    CLEAR: mt_local.
 
     update_local_checksums( lt_updated_files ).
     update_last_deserialize( ).
@@ -16164,20 +16141,17 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     DATA: lt_tadir     TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lo_serialize TYPE REF TO zcl_abapgit_serialize,
-          lt_cache     TYPE ty_cache_tt,
           lt_found     LIKE rt_files.
 
     FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
     " Serialization happened before and no refresh request
-    IF mv_last_serialization IS NOT INITIAL AND mv_request_local_refresh = abap_false.
+    IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
       rt_files = mt_local.
       RETURN.
     ENDIF.
 
     APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
     <ls_return>-file = build_dotabapgit_file( ).
-
-    lt_cache = mt_local.
 
     lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
       iv_package            = get_package( )
@@ -16189,12 +16163,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     apply_filter( EXPORTING it_filter = it_filter
                   CHANGING ct_tadir  = lt_tadir ).
 
-    lookup_cache(
-      EXPORTING it_cache = lt_cache
-      IMPORTING et_found = lt_found
-      CHANGING ct_tadir = lt_tadir ).
-    APPEND LINES OF lt_found TO rt_files.
-
     CREATE OBJECT lo_serialize.
 
     lt_found = lo_serialize->serialize(
@@ -16203,7 +16171,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       io_log      = io_log ).
     APPEND LINES OF lt_found TO rt_files.
 
-    GET TIME STAMP FIELD mv_last_serialization.
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
 
@@ -16236,42 +16203,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
-  ENDMETHOD.
-  METHOD lookup_cache.
-
-    DATA: ls_item  TYPE zif_abapgit_definitions=>ty_item,
-          lv_index TYPE i.
-
-    FIELD-SYMBOLS: <ls_cache> LIKE LINE OF it_cache,
-                   <ls_tadir> LIKE LINE OF ct_tadir.
-
-    CLEAR et_found.
-
-    IF mv_last_serialization IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
-      lv_index = sy-tabix.
-
-      ls_item-obj_type = <ls_tadir>-object.
-      ls_item-obj_name = <ls_tadir>-obj_name.
-      ls_item-devclass = <ls_tadir>-devclass.
-      READ TABLE it_cache TRANSPORTING NO FIELDS
-        WITH KEY item = ls_item. " type+name+package key
-      " There is something in cache and the object is unchanged
-      IF sy-subrc = 0
-          AND abap_false = zcl_abapgit_objects=>has_changed_since(
-          is_item      = ls_item
-          iv_timestamp = mv_last_serialization ).
-        LOOP AT it_cache ASSIGNING <ls_cache> WHERE item = ls_item.
-          APPEND <ls_cache> TO et_found.
-        ENDLOOP.
-        DELETE ct_tadir INDEX lv_index.
-      ENDIF.
-
-    ENDLOOP.
-
   ENDMETHOD.
   METHOD notify_listener.
 
@@ -16328,7 +16259,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     reset_remote( ).
 
     IF iv_drop_cache = abap_true.
-      CLEAR: mv_last_serialization, mt_local.
+      CLEAR: mt_local.
     ENDIF.
 
   ENDMETHOD.
@@ -16673,9 +16604,6 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
       RECEIVING
         rs_metadata = rs_metadata.
 
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -17125,18 +17053,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     DELETE rt_results WHERE obj_type IS INITIAL.
     DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
-
-  ENDMETHOD.
-  METHOD has_changed_since.
-    rv_changed = abap_true. " Assume changed
-
-    IF is_supported( is_item ) = abap_false.
-      RETURN. " Will requre serialize which will log the error
-    ENDIF.
-
-    rv_changed = create_object(
-      is_item     = is_item
-      iv_language = zif_abapgit_definitions=>c_english )->has_changed_since( iv_timestamp ).
 
   ENDMETHOD.
   METHOD is_active.
@@ -23973,7 +23889,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       SELECT SINGLE as4text FROM e07t INTO lv_desc_as_text  WHERE
         trkorr = ls_transport_header-trkorr AND
         langu = sy-langu.
-
     ELSE.   " Else set branch name and commit message to 'Transport(s)_TRXXXXXX_TRXXXXX'
       lv_transports_as_text = 'Transport(s)'.
       LOOP AT it_transport_headers INTO ls_transport_header.
@@ -38418,9 +38333,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -40417,9 +40329,6 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -40580,9 +40489,6 @@ CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -40948,9 +40854,6 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -41709,9 +41612,6 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -41743,10 +41643,6 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -42318,9 +42214,6 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -42753,9 +42646,6 @@ CLASS zcl_abapgit_object_w3super IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: ls_bdcdata TYPE bdcdata,
@@ -43064,37 +42954,6 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd25l
-      INTO (lv_date, lv_time)
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT SINGLE as4date as4time FROM dd09l
-      INTO (lv_date, lv_time)
-      WHERE tabname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-VIMA'
@@ -43307,9 +43166,6 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
@@ -43957,20 +43813,6 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA lv_date TYPE dats.
-    DATA lv_time TYPE tims.
-    SELECT SINGLE lstdate lsttime FROM dm40l
-      INTO (lv_date, lv_time)
-           WHERE  dmoid     = me->mv_data_model
-           AND    as4local  = me->mv_activation_state.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -44193,11 +44035,6 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -44260,10 +44097,6 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_type IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -44435,23 +44268,6 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd40l
-      INTO (lv_date, lv_time)
-      WHERE typename = ms_item-obj_name
-      AND as4local = 'A'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -45163,9 +44979,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -45313,10 +45126,6 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     DELETE FROM tvdir WHERE tabname = iv_tabname.
     DELETE FROM tvimf WHERE tabname = iv_tabname.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
@@ -46266,60 +46075,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date    TYPE dats,
-          lv_time    TYPE tims,
-          lt_indexes TYPE STANDARD TABLE OF dd09l.
-
-    FIELD-SYMBOLS <ls_index> LIKE LINE OF lt_indexes.
-
-    SELECT SINGLE as4date as4time FROM dd02l " Table
-      INTO (lv_date, lv_time)
-      WHERE tabname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT SINGLE as4date as4time FROM dd09l " Table tech settings
-      INTO (lv_date, lv_time)
-      WHERE tabname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT as4date as4time FROM dd12l " Table tech settings
-      INTO CORRESPONDING FIELDS OF TABLE lt_indexes
-      WHERE sqltab = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'
-      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.
-
-    LOOP AT lt_indexes ASSIGNING <ls_index>.
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = <ls_index>-as4date
-        iv_time      = <ls_index>-as4time ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -46597,11 +46352,7 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
 
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -46919,9 +46670,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -47136,9 +46884,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -47224,11 +46969,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -47255,10 +46995,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_styl IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -47549,9 +47285,6 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -47930,9 +47663,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
     DATA: lv_ssfo_formname TYPE tdsfname.
@@ -48170,11 +47900,6 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -48350,10 +48075,6 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
     rs_metadata = get_metadata( ).
 
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~is_active.
@@ -48721,9 +48442,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true. "dummy implementation
   ENDMETHOD.
@@ -48800,10 +48518,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_splo IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -49026,9 +48740,6 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -49205,10 +48916,6 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_smim IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -49881,9 +49588,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -49966,12 +49670,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_shma IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -50235,23 +49933,6 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
 ENDCLASS.
 CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
 
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd30l
-       INTO (lv_date, lv_time)
-       WHERE shlpname = ms_item-obj_name
-       AND as4local = 'A'.                              "#EC CI_GENBUFF
-
-    rv_changed = check_timestamp(
-     iv_timestamp = iv_timestamp
-     iv_date      = lv_date
-     iv_time      = lv_time ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd30l INTO rv_user
@@ -50433,10 +50114,6 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
@@ -50556,10 +50233,6 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
     mv_extension = ms_item-obj_name.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
@@ -50854,9 +50527,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -51051,9 +50721,6 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -51155,10 +50822,6 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -51474,9 +51137,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -51634,9 +51294,6 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -51838,9 +51495,6 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -52180,11 +51834,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -52424,13 +52073,6 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = check_prog_changed_since(
-      iv_program   = ms_item-obj_name
-      iv_timestamp = iv_timestamp ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     IF is_program_locked( )                     = abap_true
@@ -52547,11 +52189,6 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -53006,9 +52643,6 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -53103,10 +52737,6 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_para IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
@@ -53300,10 +52930,6 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -53882,9 +53508,6 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -54037,11 +53660,6 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -54308,19 +53926,6 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    DATA:
-      lv_program  TYPE program,
-      lt_includes TYPE seoincl_t.
-
-    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
-    READ TABLE lt_includes INDEX 1 INTO lv_program.
-    "lv_program = cl_oo_classname_service=>get_interfacepool_name( lv_clsname ).
-    rv_changed = check_prog_changed_since(
-      iv_program   = lv_program
-      iv_timestamp = iv_timestamp
-      iv_skip_gui  = abap_true ).
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -54460,9 +54065,6 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -54631,9 +54233,6 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     DATA: lt_bdcdata TYPE TABLE OF bdcdata.
@@ -54739,10 +54338,6 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -54919,10 +54514,6 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 ENDCLASS.
 CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -55080,10 +54671,6 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -55244,12 +54831,6 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
 
@@ -56257,36 +55838,6 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lt_functab  TYPE ty_rs38l_incl_tt,
-          lt_includes TYPE ty_sobj_name_tt.
-
-    FIELD-SYMBOLS: <ls_func>         LIKE LINE OF lt_functab,
-                   <lv_include_name> LIKE LINE OF lt_includes.
-    lt_includes = includes( ). " Main prog also included here
-
-    LOOP AT lt_includes ASSIGNING <lv_include_name>.
-      rv_changed = check_prog_changed_since(
-        iv_program   = <lv_include_name>
-        iv_timestamp = iv_timestamp ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-    lt_functab = functions( ).
-
-    LOOP AT lt_functab ASSIGNING <ls_func>.
-      rv_changed = check_prog_changed_since(
-        iv_program   = <ls_func>-include
-        iv_timestamp = iv_timestamp ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -56560,19 +56111,6 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: ls_last_changed    TYPE tys_form_header.
-    DATA: lv_last_changed_ts TYPE timestamp.
-
-    ls_last_changed = get_last_changes( ms_item-obj_name ).
-
-    CONVERT DATE ls_last_changed-tdldate TIME ls_last_changed-tdltime
-            INTO TIME STAMP lv_last_changed_ts TIME ZONE sy-zonlo.
-
-    rv_changed = boolc( sy-subrc <> 0 OR lv_last_changed_ts > iv_timestamp ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -56872,9 +56410,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -57020,23 +56555,6 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd25l
-      INTO (lv_date, lv_time)
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -57404,9 +56922,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -58414,9 +57929,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -58571,9 +58083,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -59201,9 +58710,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -59490,23 +58996,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd04l
-      INTO (lv_date, lv_time)
-      WHERE rollname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     jump_se11( iv_radio = 'RSRD1-DDTYPE'
@@ -59675,9 +59164,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -59974,23 +59460,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    DATA: lv_date TYPE dats,
-          lv_time TYPE tims.
-
-    SELECT SINGLE as4date as4time FROM dd01l
-      INTO (lv_date, lv_time)
-      WHERE domname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers  = '0000'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -60058,10 +59527,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_docv IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
     rv_user = read( )-head-tdluser.
@@ -60188,10 +59653,6 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_doct IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
 
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -60470,11 +59931,6 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -61020,9 +60476,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -61332,9 +60785,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -61595,9 +61045,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -61782,9 +61229,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
     rs_metadata-delete_tadir = abap_true.
     rs_metadata-late_deser   = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -61874,10 +61318,6 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
     mv_img_attribute = ms_item-obj_name.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
 
   METHOD zif_abapgit_object~changed_by.
@@ -62080,9 +61520,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true.
   ENDMETHOD.
@@ -62206,9 +61643,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -62385,11 +61819,6 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
 
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -62722,22 +62151,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    DATA: lt_includes TYPE seoincl_t.
-
-    FIELD-SYMBOLS <lv_incl> LIKE LINE OF lt_includes.
-    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
-    LOOP AT lt_includes ASSIGNING <lv_incl>.
-      rv_changed = check_prog_changed_since(
-        iv_program   = <lv_incl>
-        iv_timestamp = iv_timestamp
-        iv_skip_gui  = abap_true ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
@@ -62988,9 +62401,6 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ECLS_ATTRIBUTE'
@@ -63183,9 +62593,6 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for(
@@ -63331,9 +62738,6 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
 * TODO, this function module does not exist in 702
@@ -63413,11 +62817,6 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
     rs_metadata-delete_tadir = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~has_changed_since.
-
-    rv_changed = abap_true.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = abap_false.
@@ -63445,20 +62844,6 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_acid IMPLEMENTATION.
-
-  METHOD zif_abapgit_object~has_changed_since.
-    rv_changed = abap_true.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~changed_by.
-* looks like "changed by user" is not stored in the database
-    rv_user = c_user_unknown.
-  ENDMETHOD.
-
   METHOD create_object.
 
     DATA: lv_name TYPE aab_id_name.
@@ -63475,41 +62860,13 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lo_aab         TYPE REF TO cl_aab_id,
-          lv_description TYPE aab_id_descript.
-    IF zif_abapgit_object~exists( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    lo_aab = create_object( ).
-
-    lo_aab->get_descript(
-      IMPORTING ex_descript = lv_description
-      EXCEPTIONS no_description_found = 1 ).
-
-    io_xml->add( iv_name = 'DESCRIPTION'
-                 ig_data = lv_description ).
-
+  METHOD zif_abapgit_object~changed_by.
+* looks like "changed by user" is not stored in the database
+    rv_user = c_user_unknown.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lv_description TYPE aab_id_descript,
-          lo_aab         TYPE REF TO cl_aab_id.
-    io_xml->read( EXPORTING iv_name = 'DESCRIPTION'
-                  CHANGING cg_data = lv_description ).
-
-    lo_aab = create_object( ).
-    lo_aab->enqueue( ).
-    lo_aab->set_descript( lv_description ).
-    tadir_insert( iv_package ).
-    lo_aab->save( ).
-
+  METHOD zif_abapgit_object~compare_to_remote_version.
+    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
 
     DATA: lo_aab TYPE REF TO cl_aab_id.
@@ -63533,7 +62890,20 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     lo_aab->dequeue( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
 
+    DATA: lv_description TYPE aab_id_descript,
+          lo_aab         TYPE REF TO cl_aab_id.
+    io_xml->read( EXPORTING iv_name = 'DESCRIPTION'
+                  CHANGING cg_data = lv_description ).
+
+    lo_aab = create_object( ).
+    lo_aab->enqueue( ).
+    lo_aab->set_descript( lv_description ).
+    tadir_insert( iv_package ).
+    lo_aab->save( ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_state TYPE abap_bool,
@@ -63546,7 +62916,17 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     rv_bool = boolc( lv_state = abap_true ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
 
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
     CALL FUNCTION 'RS_TOOL_ACCESS'
@@ -63557,20 +62937,24 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
         in_new_window = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
 
-  METHOD zif_abapgit_object~compare_to_remote_version.
-    CREATE OBJECT ro_comparison_result TYPE zcl_abapgit_comparison_null.
+    DATA: lo_aab         TYPE REF TO cl_aab_id,
+          lv_description TYPE aab_id_descript.
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    lo_aab = create_object( ).
+
+    lo_aab->get_descript(
+      IMPORTING ex_descript = lv_description
+      EXCEPTIONS no_description_found = 1 ).
+
+    io_xml->add( iv_name = 'DESCRIPTION'
+                 ig_data = lv_description ).
+
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
-
 ENDCLASS.
 CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD delete.
@@ -66924,7 +66308,6 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       iv_type = zif_abapgit_definitions=>c_type-tag
       iv_data = lv_tag ).
 
-    CLEAR ls_object.
     ls_object-sha1 = lv_new_tag_sha1.
     ls_object-type = zif_abapgit_definitions=>c_type-tag.
     ls_object-data = lv_tag.
@@ -66947,8 +66330,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
           lv_commit TYPE xstring,
           lv_pack   TYPE xstring,
           ls_object LIKE LINE OF et_new_objects,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    DATA: lv_uindex     TYPE sy-index.
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit,
+          lv_uindex TYPE sy-index.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
@@ -66973,7 +66356,6 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     ls_commit-body      = is_comment-comment.
     lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
 
-    CLEAR ls_object.
     ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-commit iv_data = lv_commit ).
     ls_object-type = zif_abapgit_definitions=>c_type-commit.
     ls_object-data = lv_commit.
@@ -67017,7 +66399,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       ENDIF.
 
       ls_object-type = zif_abapgit_definitions=>c_type-blob.
-*       ASSERT NOT <ls_blob>-data IS INITIAL. "#1857 allow empty files - some more checks needed?
+* note <ls_blob>-data can be empty, #1857 allow empty files - some more checks needed?
       ls_object-data = <ls_blob>-data.
       lv_uindex = lv_uindex + 1.
       ls_object-index = lv_uindex.
@@ -67143,20 +66525,19 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_decompress_len TYPE i,
           lv_xstring        TYPE xstring,
           lv_expected       TYPE i,
-          ls_object         LIKE LINE OF rt_objects.
-    DATA: lv_uindex            TYPE sy-index.
-
+          ls_object         LIKE LINE OF rt_objects,
+          lv_uindex         TYPE sy-index.
     lv_data = iv_data.
 
 * header
     IF NOT xstrlen( lv_data ) > 4 OR lv_data(4) <> c_pack_start.
-      zcx_abapgit_exception=>raise( 'Unexpected pack header' ).
+      zcx_abapgit_exception=>raise( |Unexpected pack header| ).
     ENDIF.
     lv_data = lv_data+4.
 
 * version
     IF lv_data(4) <> c_version.
-      zcx_abapgit_exception=>raise( 'Version not supported' ).
+      zcx_abapgit_exception=>raise( |Version not supported| ).
     ENDIF.
     lv_data = lv_data+4.
 
@@ -67182,7 +66563,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 * strip header, '789C', CMF + FLG
       lv_zlib = lv_data(2).
       IF lv_zlib <> c_zlib AND lv_zlib <> c_zlib_hmm.
-        zcx_abapgit_exception=>raise( 'Unexpected zlib header' ).
+        zcx_abapgit_exception=>raise( |Unexpected zlib header| ).
       ENDIF.
       lv_data = lv_data+2.
 
@@ -67197,7 +66578,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
             raw_out_len = lv_decompress_len ).
 
         IF lv_expected <> lv_decompress_len.
-          zcx_abapgit_exception=>raise( 'Decompression falied' ).
+          zcx_abapgit_exception=>raise( |Decompression falied| ).
         ENDIF.
 
         cl_abap_gzip=>compress_binary(
@@ -67248,7 +66629,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_xstring = iv_data(lv_len).
     lv_sha1 = zcl_abapgit_hash=>sha1_raw( lv_xstring ).
     IF to_upper( lv_sha1 ) <> lv_data.
-      zcx_abapgit_exception=>raise( 'SHA1 at end of pack doesnt match' ).
+      zcx_abapgit_exception=>raise( |SHA1 at end of pack doesnt match| ).
     ENDIF.
 
     decode_deltas( CHANGING ct_objects = rt_objects ).
@@ -67296,7 +66677,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     IF rs_commit-author IS INITIAL
         OR rs_commit-committer IS INITIAL
         OR rs_commit-tree IS INITIAL.
-      zcx_abapgit_exception=>raise( 'multiple parents? not supported' ).
+      zcx_abapgit_exception=>raise( |multiple parents? not supported| ).
     ENDIF.
 
   ENDMETHOD.
@@ -67306,8 +66687,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           li_progress TYPE REF TO zif_abapgit_progress,
           lt_deltas   LIKE ct_objects.
     LOOP AT ct_objects INTO ls_object
-      USING KEY type
-      WHERE type = zif_abapgit_definitions=>c_type-ref_d.
+        USING KEY type
+        WHERE type = zif_abapgit_definitions=>c_type-ref_d.
       INSERT ls_object INTO TABLE lt_deltas.
     ENDLOOP.
 
@@ -67418,7 +66799,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       IF ls_node-chmod <> zif_abapgit_definitions=>c_chmod-dir
           AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-file
           AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-executable.
-        zcx_abapgit_exception=>raise( 'Unknown chmod' ).
+        zcx_abapgit_exception=>raise( |Unknown chmod| ).
       ENDIF.
 
       lv_offset = lv_match + 1.
@@ -67467,7 +66848,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Base not found, { is_object-sha1 }| ).
     ELSEIF <ls_object>-type = zif_abapgit_definitions=>c_type-ref_d.
 * sanity check
-      zcx_abapgit_exception=>raise( 'Delta, base eq delta' ).
+      zcx_abapgit_exception=>raise( |Delta, base eq delta| ).
     ENDIF.
 
     lv_base = <ls_object>-data.
@@ -67740,7 +67121,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       WHEN 112.
         rv_type = zif_abapgit_definitions=>c_type-ref_d.
       WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'Todo, unknown type' ).
+        zcx_abapgit_exception=>raise( |Todo, unknown git pack type| ).
     ENDCASE.
 
   ENDMETHOD.
@@ -67792,7 +67173,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_type-ref_d.
         lv_type = 112.
       WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'Unexpected object type while encoding pack' ).
+        zcx_abapgit_exception=>raise( |Unexpected object type while encoding pack| ).
     ENDCASE.
 
     lv_length = iv_length.
@@ -67829,7 +67210,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     cv_decompressed = ls_data-raw.
 
     IF lv_compressed_len IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Decompression falied :o/' ).
+      zcx_abapgit_exception=>raise( |Decompression falied :o/| ).
     ENDIF.
 
     cv_data = cv_data+lv_compressed_len.
@@ -67842,7 +67223,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       cv_data = cv_data+1.
     ENDIF.
     IF cv_data(4) <> lv_adler32.
-      zcx_abapgit_exception=>raise( 'Wrong Adler checksum' ).
+      zcx_abapgit_exception=>raise( |Wrong Adler checksum| ).
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
@@ -67914,15 +67295,6 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       REPLACE FIRST OCCURRENCE OF 'refs/heads/' IN rv_display_name WITH ''.
     ELSEIF rv_display_name CP 'refs/tags/*'.
       REPLACE FIRST OCCURRENCE OF 'refs/' IN rv_display_name WITH ''.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_head.
-
-    IF mv_head_symref IS NOT INITIAL.
-      rs_branch = find_by_name( mv_head_symref ).
-    ELSE.
-      rs_branch = find_by_name( zif_abapgit_definitions=>c_head_name ).
     ENDIF.
 
   ENDMETHOD.
@@ -68054,27 +67426,21 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD skip_first_pkt.
 
     DATA: lv_hex    TYPE x LENGTH 1,
-          lv_length TYPE i,
-          lv_0a_pos TYPE i.
+          lv_length TYPE i.
 * channel
     ASSERT iv_data(2) = '00'.
 
     lv_hex = to_upper( iv_data+2(2) ).
-    lv_0a_pos = lv_hex - 1.
-    IF iv_data+lv_0a_pos(1) = cl_abap_char_utilities=>newline.
-      lv_length = lv_hex.
-    ELSE.
-      lv_length = lv_hex.
-    ENDIF.
+    lv_length = lv_hex.
 
     rv_data = iv_data+lv_length.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_git_add_patch IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   METHOD calculate_patch.
 
-    FIELD-SYMBOLS: <ls_diff> TYPE zif_abapgit_definitions=>ty_diff.
+    FIELD-SYMBOLS: <ls_diff> LIKE LINE OF mt_diff.
 
     LOOP AT mt_diff ASSIGNING <ls_diff>.
 
@@ -68976,5 +68342,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-15T11:31:27.137Z
+* abapmerge undefined - 2019-02-15T14:54:44.293Z
 ****************************************************
