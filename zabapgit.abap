@@ -14912,6 +14912,11 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
 
     ASSERT gv_max_threads >= 1.
 
+    IF gv_max_threads > 32.
+* https://en.wikipedia.org/wiki/Amdahl%27s_law
+      gv_max_threads = 32.
+    ENDIF.
+
     rv_threads = gv_max_threads.
 
   ENDMETHOD.
@@ -68971,5 +68976,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-15T11:29:10.486Z
+* abapmerge undefined - 2019-02-15T11:31:27.137Z
 ****************************************************
