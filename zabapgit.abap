@@ -4259,6 +4259,7 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
     METHODS corr_insert
       IMPORTING
         !iv_package TYPE devclass
+        !iv_object_class TYPE any OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS tadir_insert
@@ -37823,26 +37824,38 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD corr_insert.
 
-    DATA: ls_object TYPE ddenqs.
-    ls_object-objtype = ms_item-obj_type.
-    ls_object-objname = ms_item-obj_name.
+    DATA: lv_object       TYPE string,
+          lv_object_class TYPE string.
+
+    IF iv_object_class IS NOT INITIAL.
+      lv_object_class = iv_object_class.
+      IF iv_object_class = 'DICT'.
+        CONCATENATE ms_item-obj_type ms_item-obj_name INTO lv_object.
+      ELSE.
+        lv_object = ms_item-obj_name.
+      ENDIF.
+    ELSE.
+      lv_object_class = ms_item-obj_type.
+      lv_object       = ms_item-obj_name.
+    ENDIF.
 
     CALL FUNCTION 'RS_CORR_INSERT'
       EXPORTING
-        object              = ls_object
-        object_class        = 'DICT'
+        object              = lv_object
+        object_class        = lv_object_class
         devclass            = iv_package
         master_language     = mv_language
-        mode                = 'INSERT'
+        global_lock         = abap_true
+        author              = sy-uname
+        mode                = 'I'
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
         unknown_objectclass = 3
         OTHERS              = 4.
-    IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( 'Cancelled' ).
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -42988,7 +43001,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD28V_TABLE'
                   CHANGING cg_data = lt_dd28v ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -44556,7 +44569,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD43V'
                   CHANGING cg_data = lt_dd43v ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -46158,7 +46171,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       io_xml->read( EXPORTING iv_name = 'DD36M'
                     CHANGING cg_data = lt_dd36m ).
 
-      corr_insert( iv_package ).
+      corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
       lv_name = ms_item-obj_name. " type conversion
 
@@ -50366,7 +50379,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD33V_TABLE'
                   CHANGING cg_data = lt_dd33v ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name.
 
@@ -53800,20 +53813,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'T100'
                   CHANGING cg_data = lt_t100 ).
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        global_lock         = abap_true
-        devclass            = iv_package
-        object              = ls_t100a-arbgb
-        object_class        = 'T100'
-        mode                = 'INSERT'
-      EXCEPTIONS
-        cancelled           = 01
-        permission_failure  = 02
-        unknown_objectclass = 03.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from RS_CORR_INSERT' ).
-    ENDIF.
+    corr_insert( iv_package ).
 
     SELECT * FROM t100u INTO TABLE lt_before
       WHERE arbgb = ls_t100a-arbgb ORDER BY msgnr. "#EC CI_GENBUFF "#EC CI_BYPASS
@@ -56977,7 +56977,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
                   CHANGING cg_data = lt_dd27p ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name.
 
@@ -59444,7 +59444,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'TPARA'
                   CHANGING cg_data = ls_tpara ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -59925,7 +59925,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD07V_TAB'
                   CHANGING cg_data = lt_dd07v ).
 
-    corr_insert( iv_package ).
+    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -68971,5 +68971,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-15T08:32:27.932Z
+* abapmerge undefined - 2019-02-15T11:29:10.486Z
 ****************************************************
