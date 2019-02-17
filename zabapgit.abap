@@ -3465,6 +3465,7 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
         RAISING
           cx_ecatt_apl_xml.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
       co_xml TYPE int4 VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
@@ -4034,64 +4035,82 @@ CLASS zcl_abapgit_objects_files DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-                  iv_path TYPE string OPTIONAL,
-      add_string
-        IMPORTING iv_extra  TYPE clike OPTIONAL
-                  iv_ext    TYPE string
-                  iv_string TYPE string
-        RAISING   zcx_abapgit_exception,
-      read_string
-        IMPORTING iv_extra         TYPE clike OPTIONAL
-                  iv_ext           TYPE string
-        RETURNING VALUE(rv_string) TYPE string
-        RAISING   zcx_abapgit_exception,
-      add_xml
-        IMPORTING iv_extra     TYPE clike OPTIONAL
-                  io_xml       TYPE REF TO zcl_abapgit_xml_output
-                  iv_normalize TYPE abap_bool DEFAULT abap_true
-                  is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-        RAISING   zcx_abapgit_exception,
-* needed since type-check during dynamic call fails even if the object is compatible
-      add_xml_from_plugin
-        IMPORTING iv_extra     TYPE clike OPTIONAL
-                  io_xml       TYPE REF TO object
-                  iv_normalize TYPE abap_bool DEFAULT abap_true
-        RAISING   zcx_abapgit_exception ##called,
-      read_xml
-        IMPORTING iv_extra      TYPE clike OPTIONAL
-        RETURNING VALUE(ro_xml) TYPE REF TO zcl_abapgit_xml_input
-        RAISING   zcx_abapgit_exception,
-      read_abap
-        IMPORTING iv_extra       TYPE clike OPTIONAL
-                  iv_error       TYPE abap_bool DEFAULT abap_true
-        RETURNING VALUE(rt_abap) TYPE abaptxt255_tab
-        RAISING   zcx_abapgit_exception,
-      add_abap
-        IMPORTING iv_extra TYPE clike OPTIONAL
-                  it_abap  TYPE STANDARD TABLE
-        RAISING   zcx_abapgit_exception,
-      add
-        IMPORTING is_file TYPE zif_abapgit_definitions=>ty_file,
-      add_raw
-        IMPORTING iv_extra TYPE clike OPTIONAL
-                  iv_ext   TYPE string
-                  iv_data  TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      read_raw
-        IMPORTING iv_extra       TYPE clike OPTIONAL
-                  iv_ext         TYPE string
-        RETURNING VALUE(rv_data) TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      get_files
-        RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt,
-      set_files
-        IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_tt,
-      get_accessed_files
-        RETURNING VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt.
 
+    METHODS constructor
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !iv_path TYPE string OPTIONAL .
+    METHODS add_string
+      IMPORTING
+        !iv_extra  TYPE clike OPTIONAL
+        !iv_ext    TYPE string
+        !iv_string TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_string
+      IMPORTING
+        !iv_extra        TYPE clike OPTIONAL
+        !iv_ext          TYPE string
+      RETURNING
+        VALUE(rv_string) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_xml
+      IMPORTING
+        !iv_extra     TYPE clike OPTIONAL
+        !io_xml       TYPE REF TO zcl_abapgit_xml_output
+        !iv_normalize TYPE abap_bool DEFAULT abap_true
+        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_xml
+      IMPORTING
+        !iv_extra     TYPE clike OPTIONAL
+      RETURNING
+        VALUE(ro_xml) TYPE REF TO zcl_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_abap
+      IMPORTING
+        !iv_extra      TYPE clike OPTIONAL
+        !iv_error      TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rt_abap) TYPE abaptxt255_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_abap
+      IMPORTING
+        !iv_extra TYPE clike OPTIONAL
+        !it_abap  TYPE STANDARD TABLE
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add
+      IMPORTING
+        !is_file TYPE zif_abapgit_definitions=>ty_file .
+    METHODS add_raw
+      IMPORTING
+        !iv_extra TYPE clike OPTIONAL
+        !iv_ext   TYPE string
+        !iv_data  TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_raw
+      IMPORTING
+        !iv_extra      TYPE clike OPTIONAL
+        !iv_ext        TYPE string
+      RETURNING
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_files
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
+    METHODS set_files
+      IMPORTING
+        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
+    METHODS get_accessed_files
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_item           TYPE zif_abapgit_definitions=>ty_item,
@@ -6942,87 +6961,98 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
 
   PROTECTED SECTION.
 
-    TYPES: ty_spaces_tt TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
-
-    TYPES: BEGIN OF ty_dynpro,
-             header     TYPE rpy_dyhead,
-             containers TYPE dycatt_tab,
-             fields     TYPE dyfatc_tab,
-             flow_logic TYPE swydyflow,
-             spaces     TYPE ty_spaces_tt,
-           END OF ty_dynpro.
-
-    TYPES: ty_dynpro_tt TYPE STANDARD TABLE OF ty_dynpro WITH DEFAULT KEY.
-
-    TYPES: BEGIN OF ty_cua,
-             adm TYPE rsmpe_adm,
-             sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
-             fun TYPE STANDARD TABLE OF rsmpe_funt WITH DEFAULT KEY,
-             men TYPE STANDARD TABLE OF rsmpe_men WITH DEFAULT KEY,
-             mtx TYPE STANDARD TABLE OF rsmpe_mnlt WITH DEFAULT KEY,
-             act TYPE STANDARD TABLE OF rsmpe_act WITH DEFAULT KEY,
-             but TYPE STANDARD TABLE OF rsmpe_but WITH DEFAULT KEY,
-             pfk TYPE STANDARD TABLE OF rsmpe_pfk WITH DEFAULT KEY,
-             set TYPE STANDARD TABLE OF rsmpe_staf WITH DEFAULT KEY,
-             doc TYPE STANDARD TABLE OF rsmpe_atrt WITH DEFAULT KEY,
-             tit TYPE STANDARD TABLE OF rsmpe_titt WITH DEFAULT KEY,
-             biv TYPE STANDARD TABLE OF rsmpe_buts WITH DEFAULT KEY,
-           END OF ty_cua.
+    TYPES:
+      ty_spaces_tt TYPE STANDARD TABLE OF i WITH DEFAULT KEY .
+    TYPES:
+      BEGIN OF ty_dynpro,
+        header     TYPE rpy_dyhead,
+        containers TYPE dycatt_tab,
+        fields     TYPE dyfatc_tab,
+        flow_logic TYPE swydyflow,
+        spaces     TYPE ty_spaces_tt,
+      END OF ty_dynpro .
+    TYPES:
+      ty_dynpro_tt TYPE STANDARD TABLE OF ty_dynpro WITH DEFAULT KEY .
+    TYPES:
+      BEGIN OF ty_cua,
+        adm TYPE rsmpe_adm,
+        sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
+        fun TYPE STANDARD TABLE OF rsmpe_funt WITH DEFAULT KEY,
+        men TYPE STANDARD TABLE OF rsmpe_men WITH DEFAULT KEY,
+        mtx TYPE STANDARD TABLE OF rsmpe_mnlt WITH DEFAULT KEY,
+        act TYPE STANDARD TABLE OF rsmpe_act WITH DEFAULT KEY,
+        but TYPE STANDARD TABLE OF rsmpe_but WITH DEFAULT KEY,
+        pfk TYPE STANDARD TABLE OF rsmpe_pfk WITH DEFAULT KEY,
+        set TYPE STANDARD TABLE OF rsmpe_staf WITH DEFAULT KEY,
+        doc TYPE STANDARD TABLE OF rsmpe_atrt WITH DEFAULT KEY,
+        tit TYPE STANDARD TABLE OF rsmpe_titt WITH DEFAULT KEY,
+        biv TYPE STANDARD TABLE OF rsmpe_buts WITH DEFAULT KEY,
+      END OF ty_cua .
 
     METHODS serialize_dynpros
-      IMPORTING iv_program_name  TYPE programm
-      RETURNING VALUE(rt_dynpro) TYPE ty_dynpro_tt
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_program_name TYPE programm
+      RETURNING
+        VALUE(rt_dynpro) TYPE ty_dynpro_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS serialize_cua
-      IMPORTING iv_program_name TYPE programm
-      RETURNING VALUE(rs_cua)   TYPE ty_cua
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_program_name TYPE programm
+      RETURNING
+        VALUE(rs_cua)    TYPE ty_cua
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_dynpros
-      IMPORTING it_dynpros TYPE ty_dynpro_tt
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !it_dynpros TYPE ty_dynpro_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_textpool
-      IMPORTING iv_program    TYPE programm
-                it_tpool      TYPE textpool_table
-                iv_language   TYPE langu OPTIONAL
-                iv_is_include TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_program    TYPE programm
+        !it_tpool      TYPE textpool_table
+        !iv_language   TYPE langu OPTIONAL
+        !iv_is_include TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_cua
-      IMPORTING iv_program_name TYPE programm
-                is_cua          TYPE ty_cua
-      RAISING   zcx_abapgit_exception.
-
-    METHODS check_prog_changed_since
-      IMPORTING iv_program        TYPE programm
-                iv_timestamp      TYPE timestamp
-                iv_skip_gui       TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(rv_changed) TYPE abap_bool.
-
+      IMPORTING
+        !iv_program_name TYPE programm
+        !is_cua          TYPE ty_cua
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_any_dynpro_locked
-      IMPORTING iv_program                     TYPE programm
-      RETURNING VALUE(rv_is_any_dynpro_locked) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_program                    TYPE programm
+      RETURNING
+        VALUE(rv_is_any_dynpro_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_cua_locked
-      IMPORTING iv_program              TYPE programm
-      RETURNING VALUE(rv_is_cua_locked) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_program             TYPE programm
+      RETURNING
+        VALUE(rv_is_cua_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_text_locked
-      IMPORTING iv_program               TYPE programm
-      RETURNING VALUE(rv_is_text_locked) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
-    CLASS-METHODS:
-      add_tpool
-        IMPORTING it_tpool        TYPE textpool_table
-        RETURNING VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt,
-      read_tpool
-        IMPORTING it_tpool        TYPE zif_abapgit_definitions=>ty_tpool_tt
-        RETURNING VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt.
-
+      IMPORTING
+        !iv_program              TYPE programm
+      RETURNING
+        VALUE(rv_is_text_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS add_tpool
+      IMPORTING
+        !it_tpool       TYPE textpool_table
+      RETURNING
+        VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt .
+    CLASS-METHODS read_tpool
+      IMPORTING
+        !it_tpool       TYPE zif_abapgit_definitions=>ty_tpool_tt
+      RETURNING
+        VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt .
   PRIVATE SECTION.
     METHODS:
       condense_flow
@@ -12201,9 +12231,6 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS get_local_checksums
-      RETURNING
-        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt .
     METHODS get_local_checksums_per_file
       RETURNING
         VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
@@ -12314,6 +12341,9 @@ CLASS zcl_abapgit_repo DEFINITION
 
     DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
 
+    METHODS get_local_checksums
+      RETURNING
+        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt .
     METHODS notify_listener
       IMPORTING
         !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
@@ -20176,7 +20206,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD _sort_commits.
 
     DATA: lt_sorted_commits TYPE ty_commits,
-          lv_next_commit    TYPE zif_abapgit_definitions=>ty_commit,
+          ls_next_commit    TYPE zif_abapgit_definitions=>ty_commit,
           lt_parents        TYPE tyt_commit_sha1_range,
           ls_parent         LIKE LINE OF lt_parents.
 
@@ -20200,12 +20230,12 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       DO.
         _get_1st_child_commit( EXPORTING it_commit_sha1s = lt_parents
                                IMPORTING et_commit_sha1s = lt_parents
-                                         es_1st_commit   = lv_next_commit
+                                         es_1st_commit   = ls_next_commit
                                CHANGING  ct_commits      = ct_commits ).
-        IF lv_next_commit IS INITIAL.
+        IF ls_next_commit IS INITIAL.
           EXIT. "DO
         ENDIF.
-        INSERT lv_next_commit INTO TABLE lt_sorted_commits.
+        INSERT ls_next_commit INTO TABLE lt_sorted_commits.
       ENDDO.
     ENDIF.
 
@@ -38457,81 +38487,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD check_prog_changed_since.
-
-    DATA: lv_date    TYPE dats,
-          lv_time    TYPE tims,
-          lt_screens TYPE STANDARD TABLE OF d020s,
-          lt_eudb    TYPE STANDARD TABLE OF eudb.
-
-    FIELD-SYMBOLS: <ls_screen> LIKE LINE OF lt_screens,
-                   <ls_eudb>   LIKE LINE OF lt_eudb.
-
-    SELECT SINGLE udat utime FROM reposrc " Program
-      INTO (lv_date, lv_time)
-      WHERE progname = iv_program
-      AND   r3state = 'A'.
-
-    rv_changed = check_timestamp(
-      iv_timestamp = iv_timestamp
-      iv_date      = lv_date
-      iv_time      = lv_time ).
-    IF rv_changed = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT SINGLE udat utime FROM repotext " Program text pool
-      INTO (lv_date, lv_time)
-      WHERE progname = iv_program
-      AND   r3state = 'A'.
-
-    IF sy-subrc = 0. " Text not found ? Assuming no changes, see #404
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = lv_date
-        iv_time      = lv_time ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDIF.
-
-    IF iv_skip_gui = abap_true.
-      RETURN.
-    ENDIF.
-
-    SELECT dgen tgen FROM d020s           " Screens
-      INTO CORRESPONDING FIELDS OF TABLE lt_screens
-      WHERE prog = iv_program
-      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-
-    LOOP AT lt_screens ASSIGNING <ls_screen>.
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = <ls_screen>-dgen
-        iv_time      = <ls_screen>-tgen ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-    SELECT vdatum vzeit FROM eudb         " GUI
-      INTO CORRESPONDING FIELDS OF TABLE lt_eudb
-      WHERE relid = 'CU'
-      AND   name  = iv_program
-      AND   srtf2 = 0
-      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.        "#EC CI_SUBRC
-
-    LOOP AT lt_eudb ASSIGNING <ls_eudb>.
-      rv_changed = check_timestamp(
-        iv_timestamp = iv_timestamp
-        iv_date      = <ls_eudb>-vdatum
-        iv_time      = <ls_eudb>-vzeit ).
-      IF rv_changed = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD condense_flow.
 
     DATA: lv_spaces LIKE LINE OF et_spaces.
@@ -39775,21 +39730,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_xml ).
 
     APPEND ls_file TO mt_files.
-
-  ENDMETHOD.
-  METHOD add_xml_from_plugin.
-*    this method wraps add_xml as in the plugin. This is necessary as the wrapped
-*    xml-object in the plugin can only be typed to object.
-*    ABAP does not perform implicit type casts (also if compatible) in signatures,
-*    therefore this method's signature is typed ref to object
-    DATA lo_xml TYPE REF TO zcl_abapgit_xml_output.
-
-    lo_xml ?= io_xml.
-
-    me->add_xml(
-      iv_extra     = iv_extra
-      io_xml       = lo_xml
-      iv_normalize = iv_normalize ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -62459,7 +62399,7 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_object_avas IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
   METHOD insert_assignments.
 
     DATA: lt_assignment TYPE STANDARD TABLE OF cls_assignment,
@@ -62503,7 +62443,7 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
   METHOD instantiate.
 
     DATA: lv_id  TYPE guid_32,
-          lo_err TYPE REF TO cx_root.
+          lx_err TYPE REF TO cx_root.
 
     lv_id = ms_item-obj_name.
 
@@ -62511,14 +62451,14 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
         CREATE OBJECT ro_avas
           EXPORTING
             im_assignment_id = lv_id.
-      CATCH cx_pak_wb_object_locked INTO lo_err.
-        zcx_abapgit_exception=>raise( |AVAS { lv_id }: locked: { lo_err->get_longtext( ) }| ).
-      CATCH cx_pak_not_authorized INTO lo_err.
-        zcx_abapgit_exception=>raise( |AVAS { lv_id }: not authorized: { lo_err->get_longtext( ) }| ).
-      CATCH cx_pak_invalid_state INTO lo_err.
-        zcx_abapgit_exception=>raise( |AVAS { lv_id }: invalid state: { lo_err->get_longtext( ) }| ).
-      CATCH cx_pak_invalid_data INTO lo_err.
-        zcx_abapgit_exception=>raise( |AVAS { lv_id }: invalid data: { lo_err->get_longtext( ) }| ).
+      CATCH cx_pak_wb_object_locked INTO lx_err.
+        zcx_abapgit_exception=>raise( |AVAS { lv_id }: locked: { lx_err->get_longtext( ) }| ).
+      CATCH cx_pak_not_authorized INTO lx_err.
+        zcx_abapgit_exception=>raise( |AVAS { lv_id }: not authorized: { lx_err->get_longtext( ) }| ).
+      CATCH cx_pak_invalid_state INTO lx_err.
+        zcx_abapgit_exception=>raise( |AVAS { lv_id }: invalid state: { lx_err->get_longtext( ) }| ).
+      CATCH cx_pak_invalid_data INTO lx_err.
+        zcx_abapgit_exception=>raise( |AVAS { lv_id }: invalid data: { lx_err->get_longtext( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -62593,6 +62533,9 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
     rs_metadata = get_metadata( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
     rv_is_locked = exists_a_lock_entry_for(
@@ -62638,9 +62581,6 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
       iv_name = 'AVAS'
       ig_data = ls_avas ).
 
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_auth IMPLEMENTATION.
@@ -63405,7 +63345,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
           lo_ecatt_vo TYPE REF TO object.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
-                   <lt_params>   TYPE REF TO cl_apl_ecatt_params.
+                   <lo_params>   TYPE REF TO cl_apl_ecatt_params.
 
     load_help = im_load_help.
     typ = im_object_type.
@@ -63434,21 +63374,21 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
     set_business_msgs( ).
 
     ASSIGN lo_ecatt_vo->('PARAMS')
-           TO <lt_params>.
+           TO <lo_params>.
     ASSERT sy-subrc = 0.
 
-    get_general_params_data( im_params = <lt_params>
+    get_general_params_data( im_params = <lo_params>
                              im_ptyp   = lv_partyp ).
     LOOP AT parm INTO wa_parm.
       set_general_params_data_to_dom( ).
       IF NOT wa_parm-val_type IS INITIAL.
-        set_deep_stru_to_dom( <lt_params> ).
-        set_deep_data_to_dom( im_params = <lt_params>
+        set_deep_stru_to_dom( <lo_params> ).
+        set_deep_data_to_dom( im_params = <lo_params>
                               im_pindex = wa_parm-pindex ).
       ENDIF.
     ENDLOOP.
 
-    set_variants_to_dom( <lt_params> ).
+    set_variants_to_dom( <lo_params> ).
 
     download_data( ).
 
@@ -64453,8 +64393,8 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
   METHOD download_data.
 
     DATA:
-      lo_xml   TYPE REF TO cl_apl_ecatt_xml,
-      lv_size  TYPE int4.
+      lo_xml  TYPE REF TO cl_apl_ecatt_xml,
+      lv_size TYPE int4.
 
     CLEAR: ev_xml_stream,
            ev_xml_stream_size.
@@ -64485,8 +64425,8 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
     DATA:
       lo_xml           TYPE REF TO cl_apl_ecatt_xml,
       lv_xstr          TYPE xstring,
-      lv_nc_xmlref_typ TYPE REF TO if_ixml_node_collection,
-      lv_n_xmlref_typ  TYPE REF TO if_ixml_node,
+      li_nc_xmlref_typ TYPE REF TO if_ixml_node_collection,
+      li_n_xmlref_typ  TYPE REF TO if_ixml_node,
       lv_index         TYPE i VALUE 0,
       lv_count         TYPE i.
 
@@ -64509,15 +64449,15 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
         ex_dom = ri_template_over_all ).
 
 * MD: Workaround, because nodes starting with "XML" are not allowed
-    lv_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns(
+    li_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns(
                           'XMLREF_TYP' ).                   "#EC NOTEXT
-    CALL METHOD lv_nc_xmlref_typ->('GET_LENGTH')  " downport
+    CALL METHOD li_nc_xmlref_typ->('GET_LENGTH')  " downport
       RECEIVING
         rval = lv_count.
 
     WHILE lv_index LT lv_count.
-      lv_n_xmlref_typ = lv_nc_xmlref_typ->get_item( lv_index ).
-      lv_n_xmlref_typ->set_name( 'X-MLREF_TYP' ).
+      li_n_xmlref_typ = li_nc_xmlref_typ->get_item( lv_index ).
+      li_n_xmlref_typ->set_name( 'X-MLREF_TYP' ).
       lv_index = lv_index + 1.
     ENDWHILE.
 
@@ -65616,7 +65556,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_http_client_for_url.
     DATA: lo_proxy       TYPE REF TO zcl_abapgit_proxy_config,
-          lo_abapgit_exc TYPE REF TO zcx_abapgit_exception,
+          lx_abapgit_exc TYPE REF TO zcx_abapgit_exception,
           lv_error_text  TYPE string.
 
     CREATE OBJECT lo_proxy.
@@ -65640,12 +65580,15 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
     IF lo_proxy->get_proxy_authentication( iv_url ) = abap_true.
       TRY.
           zcl_abapgit_proxy_auth=>run( ri_client ).
-        CATCH zcx_abapgit_exception INTO lo_abapgit_exc.
-          lv_error_text = lo_abapgit_exc->get_text( ).
+        CATCH zcx_abapgit_exception INTO lx_abapgit_exc.
+          lv_error_text = lx_abapgit_exc->get_text( ).
           IF lv_error_text IS INITIAL.
             lv_error_text = `Proxy authentication error`.
           ENDIF.
-          RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error EXPORTING mv_text = lv_error_text previous = lo_abapgit_exc.
+          RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error
+            EXPORTING
+              mv_text  = lv_error_text
+              previous = lx_abapgit_exc.
       ENDTRY.
     ENDIF.
   ENDMETHOD.
@@ -68342,5 +68285,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-15T15:24:24.460Z
+* abapmerge undefined - 2019-02-17T09:31:15.433Z
 ****************************************************
