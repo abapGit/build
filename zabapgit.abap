@@ -7437,7 +7437,8 @@ CLASS zcl_abapgit_oo_interface DEFINITION
       zif_abapgit_oo_object_fnc~get_interface_properties REDEFINITION,
       zif_abapgit_oo_object_fnc~delete REDEFINITION.
 ENDCLASS.
-CLASS zcl_abapgit_oo_serializer DEFINITION CREATE PUBLIC.
+CLASS zcl_abapgit_oo_serializer DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
@@ -7480,32 +7481,43 @@ CLASS zcl_abapgit_oo_serializer DEFINITION CREATE PUBLIC.
         VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mv_skip_testclass TYPE abap_bool .
+
     METHODS calculate_skip_testclass
       IMPORTING
         !it_source               TYPE zif_abapgit_definitions=>ty_string_tt
       RETURNING
         VALUE(rv_skip_testclass) TYPE abap_bool .
-  PRIVATE SECTION.
-    DATA mv_skip_testclass TYPE abap_bool.
     METHODS serialize_abap_old
-      IMPORTING is_clskey        TYPE seoclskey
-      RETURNING VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !is_clskey       TYPE seoclskey
+      RETURNING
+        VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS serialize_abap_new
-      IMPORTING is_clskey        TYPE seoclskey
-      RETURNING VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
-      RAISING   zcx_abapgit_exception
-                cx_sy_dyn_call_error.
+      IMPORTING
+        !is_clskey       TYPE seoclskey
+      RETURNING
+        VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
+      RAISING
+        zcx_abapgit_exception
+        cx_sy_dyn_call_error .
     METHODS remove_signatures
-      CHANGING ct_source TYPE zif_abapgit_definitions=>ty_string_tt.
-
+      CHANGING
+        !ct_source TYPE zif_abapgit_definitions=>ty_string_tt .
     METHODS read_include
-      IMPORTING is_clskey        TYPE seoclskey
-                iv_type          TYPE seop_include_ext_app
-      RETURNING VALUE(rt_source) TYPE seop_source_string.
+      IMPORTING
+        !is_clskey       TYPE seoclskey
+        !iv_type         TYPE seop_include_ext_app
+      RETURNING
+        VALUE(rt_source) TYPE seop_source_string .
     METHODS reduce
-      CHANGING ct_source TYPE zif_abapgit_definitions=>ty_string_tt.
+      CHANGING
+        !ct_source TYPE zif_abapgit_definitions=>ty_string_tt .
 ENDCLASS.
 CLASS zcl_abapgit_persist_background DEFINITION
   CREATE PUBLIC .
@@ -8120,79 +8132,87 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
       RETURNING VALUE(rt_images) TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_chunk_lib DEFINITION FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_gui_chunk_lib DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
     CLASS-METHODS render_error
-      IMPORTING ix_error       TYPE REF TO zcx_abapgit_exception OPTIONAL
-                iv_error       TYPE string OPTIONAL
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+      IMPORTING
+        !ix_error      TYPE REF TO zcx_abapgit_exception OPTIONAL
+        !iv_error      TYPE string OPTIONAL
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     CLASS-METHODS render_repo_top
-      IMPORTING io_repo               TYPE REF TO zcl_abapgit_repo
-                iv_show_package       TYPE abap_bool DEFAULT abap_true
-                iv_show_branch        TYPE abap_bool DEFAULT abap_true
-                iv_interactive_branch TYPE abap_bool DEFAULT abap_false
-                iv_branch             TYPE string OPTIONAL
-                io_news               TYPE REF TO zcl_abapgit_news OPTIONAL
-      RETURNING VALUE(ro_html)        TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_repo               TYPE REF TO zcl_abapgit_repo
+        !iv_show_package       TYPE abap_bool DEFAULT abap_true
+        !iv_show_branch        TYPE abap_bool DEFAULT abap_true
+        !iv_interactive_branch TYPE abap_bool DEFAULT abap_false
+        !iv_branch             TYPE string OPTIONAL
+        !io_news               TYPE REF TO zcl_abapgit_news OPTIONAL
+      RETURNING
+        VALUE(ro_html)         TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS render_item_state
-      IMPORTING iv_lstate      TYPE char1
-                iv_rstate      TYPE char1
-      RETURNING VALUE(rv_html) TYPE string.
-
-    CLASS-METHODS render_branch_span
-      IMPORTING iv_branch      TYPE string
-                io_repo        TYPE REF TO zcl_abapgit_repo_online
-                iv_interactive TYPE abap_bool
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_lstate     TYPE char1
+        !iv_rstate     TYPE char1
+      RETURNING
+        VALUE(rv_html) TYPE string .
     CLASS-METHODS render_js_error_banner
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS render_news
       IMPORTING
-                io_news        TYPE REF TO zcl_abapgit_news
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
+        !io_news       TYPE REF TO zcl_abapgit_news
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS render_hotkey_overview
       IMPORTING
-        io_page        TYPE REF TO zcl_abapgit_gui_page
+        !io_page       TYPE REF TO zcl_abapgit_gui_page
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
-    CLASS-METHODS render_infopanel
-      IMPORTING
-        iv_div_id      TYPE string
-        iv_title       TYPE string
-        iv_hide        TYPE abap_bool DEFAULT abap_true
-        iv_hint        TYPE string OPTIONAL
-        iv_scrollable  TYPE abap_bool DEFAULT abap_true
-        io_content     TYPE REF TO zcl_abapgit_html
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS render_commit_popup
       IMPORTING
-        iv_content     TYPE csequence
-        iv_id          TYPE csequence
+        !iv_content    TYPE csequence
+        !iv_id         TYPE csequence
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-METHODS render_branch_span
+      IMPORTING
+        !iv_branch      TYPE string
+        !io_repo        TYPE REF TO zcl_abapgit_repo_online
+        !iv_interactive TYPE abap_bool
+      RETURNING
+        VALUE(ro_html)  TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS render_infopanel
+      IMPORTING
+        !iv_div_id     TYPE string
+        !iv_title      TYPE string
+        !iv_hide       TYPE abap_bool DEFAULT abap_true
+        !iv_hint       TYPE string OPTIONAL
+        !iv_scrollable TYPE abap_bool DEFAULT abap_true
+        !io_content    TYPE REF TO zcl_abapgit_html
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -9845,9 +9865,6 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS field_keys_to_upper
-      CHANGING
-        !ct_fields TYPE tihttpnvp .
     CLASS-METHODS parse_fields
       IMPORTING
         !iv_string       TYPE clike
@@ -9858,12 +9875,6 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string       TYPE clike
       RETURNING
         VALUE(rt_fields) TYPE tihttpnvp .
-    CLASS-METHODS add_field
-      IMPORTING
-        !iv_name TYPE string
-        !ig_field   TYPE any
-      CHANGING
-        !ct_field   TYPE tihttpnvp .
     CLASS-METHODS get_field
       IMPORTING
         !iv_name  TYPE string
@@ -9899,13 +9910,13 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
     CLASS-METHODS file_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_file         TYPE any                                                 "assuming ty_file
+        !ig_file         TYPE any                                                                     "assuming ty_file
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS obj_encode
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
-        !ig_object       TYPE any                                         "assuming ty_item
+        !ig_object       TYPE any                                                         "assuming ty_item
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS file_obj_decode
@@ -9913,8 +9924,8 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string TYPE clike
       EXPORTING
         !ev_key    TYPE zif_abapgit_persistence=>ty_repo-key
-        !eg_file   TYPE any                        "assuming ty_file
-        !eg_object TYPE any                "assuming ty_item
+        !eg_file   TYPE any                                "assuming ty_file
+        !eg_object TYPE any                    "assuming ty_item
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS dbkey_encode
@@ -9935,11 +9946,23 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !ev_seed    TYPE string
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    CLASS-METHODS unescape
-      IMPORTING iv_string        TYPE string
-      RETURNING VALUE(rv_string) TYPE string.
 
+    CLASS-METHODS field_keys_to_upper
+      CHANGING
+        !ct_fields TYPE tihttpnvp .
+    CLASS-METHODS add_field
+      IMPORTING
+        !iv_name  TYPE string
+        !ig_field TYPE any
+      CHANGING
+        !ct_field TYPE tihttpnvp .
+    CLASS-METHODS unescape
+      IMPORTING
+        !iv_string       TYPE string
+      RETURNING
+        VALUE(rv_string) TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_html_toolbar DEFINITION
   CREATE PUBLIC .
@@ -11031,7 +11054,7 @@ CLASS zcl_abapgit_xml_input DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_xml_output DEFINITION
   INHERITING FROM zcl_abapgit_xml
-  CREATE PUBLIC.
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
@@ -11048,9 +11071,6 @@ CLASS zcl_abapgit_xml_output DEFINITION
       IMPORTING
         !iv_name TYPE clike
         !ii_xml  TYPE REF TO if_ixml_element .
-    METHODS build_asx_node
-      RETURNING
-        VALUE(ri_element) TYPE REF TO if_ixml_element .
     METHODS render
       IMPORTING
         !iv_normalize TYPE abap_bool DEFAULT abap_true
@@ -11059,8 +11079,12 @@ CLASS zcl_abapgit_xml_output DEFINITION
         VALUE(rv_xml) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: mi_raw  TYPE REF TO if_ixml_element.
 
+    DATA mi_raw TYPE REF TO if_ixml_element .
+
+    METHODS build_asx_node
+      RETURNING
+        VALUE(ri_element) TYPE REF TO if_ixml_element .
 ENDCLASS.
 CLASS zcl_abapgit_xml_pretty DEFINITION
   CREATE PUBLIC .
@@ -12874,6 +12898,7 @@ CLASS zcl_abapgit_tadir DEFINITION
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     METHODS exists
       IMPORTING
         !is_item         TYPE zif_abapgit_definitions=>ty_item
@@ -12894,11 +12919,10 @@ CLASS zcl_abapgit_tadir DEFINITION
         !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
         !iv_only_local_objects TYPE abap_bool
         !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
-        !io_folder_logic       TYPE REF TO zcl_abapgit_folder_logic OPTIONAL
       RETURNING
         VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_transport DEFINITION
   FINAL
@@ -14244,8 +14268,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
           lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
 
     FIELD-SYMBOLS: <ls_tadir>   LIKE LINE OF rt_tadir,
-                   <lv_package> TYPE devclass.
-
+                   <lv_package> LIKE LINE OF lt_packages.
     "Determine Packages to Read
     IF iv_ignore_subpackages = abap_false.
       lt_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
@@ -14280,7 +14303,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
         AND object NOT IN lt_excludes
         AND delflag = abap_false
         AND srcsystem IN lt_srcsystem
-        ORDER BY PRIMARY KEY.             "#EC CI_GENBUFF "#EC CI_SUBRC
+        ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF "#EC CI_SUBRC
     ENDIF.
 
     SORT rt_tadir BY devclass pgmid object obj_name.
@@ -14332,7 +14355,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
                   iv_obj_name = <ls_tadir>-obj_name
                 RECEIVING
                   rv_hash     = <ls_tadir>-obj_name+15.
-            CATCH cx_sy_dyn_call_illegal_method.
+            CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
 * SICF might not be supported in some systems, assume this code is not called
           ENDTRY.
       ENDCASE.
@@ -14437,7 +14460,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
               iv_obj_name = iv_obj_name
             RECEIVING
               rs_tadir    = rs_tadir.
-        CATCH cx_sy_dyn_call_illegal_method.
+        CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
 * SICF might not be supported in some systems, assume this code is not called
       ENDTRY.
     ELSE.
@@ -24504,7 +24527,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
     DATA ls_field LIKE LINE OF ct_field.
@@ -31650,7 +31673,7 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_branch_span.
 
     DATA: lv_text  TYPE string,
@@ -57792,6 +57815,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     DATA: lv_enh_id     TYPE enhname,
           li_enh_object TYPE REF TO if_enh_object.
+
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
+
     lv_enh_id = ms_item-obj_name.
     TRY.
         li_enh_object = cl_enh_factory=>get_enhancement(
@@ -68186,5 +68214,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-18T09:33:36.862Z
+* abapmerge undefined - 2019-02-18T13:30:39.986Z
 ****************************************************
