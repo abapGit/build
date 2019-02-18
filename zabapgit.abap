@@ -1394,6 +1394,7 @@ INTERFACE zif_abapgit_definitions .
       link_hint_key              TYPE char01,
       link_hint_background_color TYPE string,
       hotkeys                    TYPE tty_hotkey,
+      octicons_disabled          TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -8238,6 +8239,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
         RETURNING
           VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action.
 
+    METHODS:
+      constructor.
+
   PROTECTED SECTION.
 
     TYPES: BEGIN OF ty_control,
@@ -8257,6 +8261,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
+    DATA: mo_settings         TYPE REF TO zcl_abapgit_settings.
     METHODS html_head
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -9342,9 +9347,12 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
         zcx_abapgit_exception .
     METHODS is_post_field_checked
       IMPORTING
-        !iv_name         TYPE string
+        iv_name          TYPE string
       RETURNING
         VALUE(rv_return) TYPE abap_bool .
+    METHODS render_octicons
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
@@ -12730,7 +12738,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
         RETURNING
           VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
         RAISING
-          zcx_abapgit_exception.
+          zcx_abapgit_exception,
+      set_octicons_disabled
+        IMPORTING
+          iv_octions_disabled TYPE abap_bool,
+      get_octicons_disabled
+        RETURNING
+          VALUE(rv_octions_disabled) TYPE abap_bool.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -14843,6 +14857,14 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
 
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD get_octicons_disabled.
+    rv_octions_disabled = ms_user_settings-octicons_disabled.
+  ENDMETHOD.
+
+  METHOD set_octicons_disabled.
+    ms_user_settings-octicons_disabled = iv_octions_disabled.
   ENDMETHOD.
 
 ENDCLASS.
@@ -27141,6 +27163,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_link_hint_background_color( |{ <ls_post_field>-value }| ).
     ENDIF.
 
+    IF is_post_field_checked( 'octicons_disabled' ) = abap_true.
+      mo_settings->set_octicons_disabled( abap_true ).
+    ELSE.
+      mo_settings->set_octicons_disabled( abap_false ).
+    ENDIF.
     post_hotkeys( ).
 
   ENDMETHOD.
@@ -27296,6 +27323,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
     ro_html->add( |<hr>| ).
+    ro_html->add( render_octicons( ) ).
+    ro_html->add( |<hr>| ).
     ro_html->add( render_link_hints( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_hotkeys( ) ).
@@ -27448,6 +27477,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<label for="max_lines">Max. # of objects listed (0 = all)</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+  ENDMETHOD.
+  METHOD render_octicons.
+
+    DATA lv_checked TYPE string.
+
+    IF mo_settings->get_octicons_disabled( ) = abap_true.
+      lv_checked = 'checked'.
+    ENDIF.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |<h2>Octicons</h2>| ).
+    ro_html->add( |You should disbale octicons when your client doesn't have internet access |
+               && |or the abapGit UI hangs sometimes.| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( `<input type="checkbox" name="octicons_disabled" value="X" `
+                   && lv_checked && ` > Disable octions` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
@@ -31436,7 +31484,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+
+  METHOD constructor.
+
+    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+  ENDMETHOD.
   METHOD add_hotkeys.
 
     DATA: lv_json    TYPE string,
@@ -31529,26 +31583,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
 
-    lv_font = |<link rel="stylesheet" type="text/css" href="|
-      && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
-      && '">'.                                         "#EC NOTEXT
-    ro_html->add( lv_font ). " Web fonts
+    IF mo_settings->get_octicons_disabled( ) = abap_false.
+
+      lv_font = |<link rel="stylesheet" type="text/css" href="|
+        && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
+        && '">'.                                            "#EC NOTEXT
+      ro_html->add( lv_font ). " Web fonts
+
+    ENDIF.
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
   METHOD link_hints.
 
-    DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
-          lv_link_hint_key    TYPE char01,
+    DATA: lv_link_hint_key    TYPE char01,
           lv_background_color TYPE string.
 
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    lv_link_hint_key = mo_settings->get_link_hint_key( ).
+    lv_background_color = mo_settings->get_link_hint_background_color( ).
 
-    lv_link_hint_key = lo_settings->get_link_hint_key( ).
-    lv_background_color = lo_settings->get_link_hint_background_color( ).
-
-    IF lo_settings->get_link_hints_enabled( ) = abap_true
+    IF mo_settings->get_link_hints_enabled( ) = abap_true
     AND lv_link_hint_key IS NOT INITIAL.
 
       io_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
@@ -68214,5 +68269,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-18T13:30:39.986Z
+* abapmerge undefined - 2019-02-18T14:33:14.292Z
 ****************************************************
