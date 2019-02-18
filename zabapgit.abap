@@ -421,7 +421,6 @@ INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
-INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
@@ -444,6 +443,9 @@ INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
 INTERFACE zif_abapgit_gui_functions DEFERRED.
 INTERFACE zif_abapgit_comparison_result DEFERRED.
+INTERFACE zif_abapgit_ecatt_upload DEFERRED.
+INTERFACE zif_abapgit_ecatt_download DEFERRED.
+INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_2fa_authenticator DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
@@ -802,6 +804,54 @@ INTERFACE zif_abapgit_2fa_authenticator.
     RAISING
       zcx_abapgit_2fa_illegal_state .
 ENDINTERFACE.
+INTERFACE zif_abapgit_ecatt .
+
+  " downport missing types
+
+  TYPES:
+    etvo_invert_validation TYPE c LENGTH 1,
+    etvo_error_prio        TYPE n LENGTH 1,
+    etvo_impl_name         TYPE c LENGTH 30,
+    etvo_impl_type         TYPE c LENGTH 1,
+    etvo_impl_subtype      TYPE c LENGTH 4,
+    etvo_package           TYPE c LENGTH 255,
+    BEGIN OF etvoimpl_det,
+      impl_name    TYPE etvo_impl_name,
+      impl_type    TYPE etvo_impl_type,
+      impl_subtype TYPE etvo_impl_subtype,
+      impl_package TYPE etvo_package,
+    END OF etvoimpl_det.
+
+  TYPES:
+    BEGIN OF ecvo_bus_msg.
+      INCLUDE TYPE etobj_key.
+  TYPES:
+    bus_msg_no   TYPE c LENGTH 1, " etvo_msg_no
+    arbgb        TYPE arbgb,
+    msgnr        TYPE msgnr,
+    bus_msg_text TYPE string, "etvo_bus_msg_text
+    otr_key      TYPE sotr_conc,
+    msg_type     TYPE c LENGTH 4, "etvo_msg_type
+    END OF ecvo_bus_msg,
+
+    etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_ecatt_download .
+
+  METHODS:
+    get_xml_stream
+      RETURNING
+        VALUE(rv_xml_stream) TYPE xstring.
+
+ENDINTERFACE.
+INTERFACE zif_abapgit_ecatt_upload .
+  METHODS:
+    set_stream_for_upload
+      IMPORTING
+        iv_xml TYPE xstring.
+
+ENDINTERFACE.
 INTERFACE zif_abapgit_comparison_result.
 
   METHODS:
@@ -1009,15 +1059,15 @@ INTERFACE zif_abapgit_cts_api.
                                   RETURNING VALUE(rv_possible) TYPE abap_bool
                                   RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
-INTERFACE zif_abapgit_definitions.
-
+INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_type    TYPE c LENGTH 6 .
   TYPES:
     ty_bitbyte TYPE c LENGTH 8 .
   TYPES:
     ty_sha1    TYPE c LENGTH 40 .
-  TYPES: ty_adler32 TYPE x LENGTH 4.
+  TYPES:
+    ty_adler32 TYPE x LENGTH 4 .
   TYPES:
     BEGIN OF ty_file_signature,
       path     TYPE string,
@@ -1039,9 +1089,8 @@ INTERFACE zif_abapgit_definitions.
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
     ty_string_tt TYPE STANDARD TABLE OF string WITH DEFAULT KEY .
-
-  TYPES: ty_repo_ref_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY.
-
+  TYPES:
+    ty_repo_ref_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY .
   TYPES ty_git_branch_type TYPE char2 .
   TYPES:
     BEGIN OF ty_git_branch,
@@ -1053,7 +1102,6 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_git_branch .
   TYPES:
     ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY .
-
   TYPES:
     BEGIN OF ty_git_tag,
       sha1         TYPE zif_abapgit_definitions=>ty_sha1,
@@ -1068,24 +1116,14 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_git_tag .
   TYPES:
     ty_git_tag_list_tt TYPE STANDARD TABLE OF ty_git_tag WITH DEFAULT KEY .
-
   TYPES:
     BEGIN OF ty_hotkey,
       sequence TYPE string,
       action   TYPE string,
-    END OF ty_hotkey,
+    END OF ty_hotkey .
+  TYPES:
     tty_hotkey TYPE STANDARD TABLE OF ty_hotkey
-                    WITH NON-UNIQUE DEFAULT KEY.
-
-  CONSTANTS:
-    BEGIN OF c_git_branch_type,
-      branch          TYPE ty_git_branch_type VALUE 'HD',
-      lightweight_tag TYPE ty_git_branch_type VALUE 'TG',
-      annotated_tag   TYPE ty_git_branch_type VALUE 'AT',
-      other           TYPE ty_git_branch_type VALUE 'ZZ',
-    END OF c_git_branch_type .
-  CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
-
+                    WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
     BEGIN OF ty_git_user,
       name  TYPE string,
@@ -1115,42 +1153,44 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_file_item .
   TYPES:
     ty_files_item_tt TYPE STANDARD TABLE OF ty_file_item WITH DEFAULT KEY .
-
-  TYPES: ty_yes_no TYPE c LENGTH 1.
-
-  TYPES: BEGIN OF ty_overwrite.
+  TYPES:
+    ty_yes_no TYPE c LENGTH 1 .
+  TYPES:
+    BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
-         END OF ty_overwrite.
-
-  TYPES: ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
+         END OF ty_overwrite .
+  TYPES:
+    ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
                               WITH UNIQUE HASHED KEY object_type_and_name
-                                   COMPONENTS obj_type obj_name.
-  TYPES: BEGIN OF ty_requirements,
-           met      TYPE ty_yes_no,
-           decision TYPE ty_yes_no,
-         END OF ty_requirements.
-
-  TYPES: BEGIN OF ty_transport_type,
-           request TYPE trfunction,
-           task    TYPE trfunction,
-         END OF ty_transport_type.
-
-  TYPES: BEGIN OF ty_transport,
-           required  TYPE abap_bool,
-           transport TYPE trkorr,
-           type      TYPE ty_transport_type,
-         END OF ty_transport.
-  TYPES: BEGIN OF ty_deserialize_checks,
-           overwrite       TYPE ty_overwrite_tt,
-           warning_package TYPE ty_overwrite_tt,
-           requirements    TYPE ty_requirements,
-           transport       TYPE ty_transport,
-         END OF ty_deserialize_checks,
-         BEGIN OF ty_delete_checks,
-           transport TYPE ty_transport,
-         END OF ty_delete_checks.
-
+                                   COMPONENTS obj_type obj_name .
+  TYPES:
+    BEGIN OF ty_requirements,
+      met      TYPE ty_yes_no,
+      decision TYPE ty_yes_no,
+    END OF ty_requirements .
+  TYPES:
+    BEGIN OF ty_transport_type,
+      request TYPE trfunction,
+      task    TYPE trfunction,
+    END OF ty_transport_type .
+  TYPES:
+    BEGIN OF ty_transport,
+      required  TYPE abap_bool,
+      transport TYPE trkorr,
+      type      TYPE ty_transport_type,
+    END OF ty_transport .
+  TYPES:
+    BEGIN OF ty_deserialize_checks,
+      overwrite       TYPE ty_overwrite_tt,
+      warning_package TYPE ty_overwrite_tt,
+      requirements    TYPE ty_requirements,
+      transport       TYPE ty_transport,
+    END OF ty_deserialize_checks .
+  TYPES:
+    BEGIN OF ty_delete_checks,
+      transport TYPE ty_transport,
+    END OF ty_delete_checks .
   TYPES:
     BEGIN OF ty_metadata,
       class        TYPE string,
@@ -1187,7 +1227,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES:
     ty_objects_tt TYPE STANDARD TABLE OF ty_object WITH DEFAULT KEY
       WITH NON-UNIQUE SORTED KEY sha COMPONENTS sha1
-      WITH NON-UNIQUE SORTED KEY type COMPONENTS type sha1.
+      WITH NON-UNIQUE SORTED KEY type COMPONENTS type sha1 .
   TYPES:
     BEGIN OF ty_tadir,
       pgmid    TYPE tadir-pgmid,
@@ -1217,7 +1257,7 @@ INTERFACE zif_abapgit_definitions.
   TYPES:
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
   TYPES:
-    ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY.
+    ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_tpool.
       INCLUDE TYPE textpool.
@@ -1237,62 +1277,57 @@ INTERFACE zif_abapgit_definitions.
       cmpname   TYPE seocmpname,
       attkeyfld TYPE seokeyfld,
       attbusobj TYPE seobusobj,
-    END OF ty_obj_attribute,
+    END OF ty_obj_attribute .
+  TYPES:
     ty_obj_attribute_tt TYPE STANDARD TABLE OF ty_obj_attribute WITH DEFAULT KEY
-                             WITH NON-UNIQUE SORTED KEY cmpname COMPONENTS cmpname.
+                             WITH NON-UNIQUE SORTED KEY cmpname COMPONENTS cmpname .
   TYPES:
     BEGIN OF ty_transport_to_branch,
       branch_name TYPE string,
       commit_text TYPE string,
     END OF ty_transport_to_branch .
-
-  TYPES: BEGIN OF ty_create,
-           name   TYPE string,
-           parent TYPE string,
-         END OF ty_create.
-
-  TYPES: BEGIN OF ty_commit,
-           sha1       TYPE ty_sha1,
-           parent1    TYPE ty_sha1,
-           parent2    TYPE ty_sha1,
-           author     TYPE string,
-           email      TYPE string,
-           time       TYPE string,
-           message    TYPE string,
-           body       TYPE stringtab,
-           branch     TYPE string,
-           merge      TYPE string,
-           tags       TYPE stringtab,
-           create     TYPE STANDARD TABLE OF ty_create WITH DEFAULT KEY,
-           compressed TYPE abap_bool,
-         END OF ty_commit.
-
-  TYPES: ty_commit_tt TYPE STANDARD TABLE OF ty_commit WITH DEFAULT KEY.
-
-  CONSTANTS: BEGIN OF c_diff,
-               insert TYPE c LENGTH 1 VALUE 'I',
-               delete TYPE c LENGTH 1 VALUE 'D',
-               update TYPE c LENGTH 1 VALUE 'U',
-             END OF c_diff.
-
-  TYPES: BEGIN OF ty_diff,
-           patch_flag TYPE abap_bool,
-           new_num    TYPE c LENGTH 6,
-           new        TYPE string,
-           result     TYPE c LENGTH 1,
-           old_num    TYPE c LENGTH 6,
-           old        TYPE string,
-           short      TYPE abap_bool,
-           beacon     TYPE i,
-         END OF ty_diff.
-  TYPES:  ty_diffs_tt TYPE STANDARD TABLE OF ty_diff WITH DEFAULT KEY.
-
-  TYPES: BEGIN OF ty_count,
-           insert TYPE i,
-           delete TYPE i,
-           update TYPE i,
-         END OF ty_count.
-
+  TYPES:
+    BEGIN OF ty_create,
+      name   TYPE string,
+      parent TYPE string,
+    END OF ty_create .
+  TYPES:
+    BEGIN OF ty_commit,
+      sha1       TYPE ty_sha1,
+      parent1    TYPE ty_sha1,
+      parent2    TYPE ty_sha1,
+      author     TYPE string,
+      email      TYPE string,
+      time       TYPE string,
+      message    TYPE string,
+      body       TYPE stringtab,
+      branch     TYPE string,
+      merge      TYPE string,
+      tags       TYPE stringtab,
+      create     TYPE STANDARD TABLE OF ty_create WITH DEFAULT KEY,
+      compressed TYPE abap_bool,
+    END OF ty_commit .
+  TYPES:
+    ty_commit_tt TYPE STANDARD TABLE OF ty_commit WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_diff,
+      patch_flag TYPE abap_bool,
+      new_num    TYPE c LENGTH 6,
+      new        TYPE string,
+      result     TYPE c LENGTH 1,
+      old_num    TYPE c LENGTH 6,
+      old        TYPE string,
+      short      TYPE abap_bool,
+      beacon     TYPE i,
+    END OF ty_diff .
+  TYPES:
+    ty_diffs_tt TYPE STANDARD TABLE OF ty_diff WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_count,
+      insert TYPE i,
+      delete TYPE i,
+      update TYPE i,
+    END OF ty_count .
   TYPES:
     BEGIN OF ty_expanded,
       path  TYPE string,
@@ -1302,76 +1337,85 @@ INTERFACE zif_abapgit_definitions.
     END OF ty_expanded .
   TYPES:
     ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
-
-  TYPES: BEGIN OF ty_ancestor,
-           commit TYPE ty_sha1,
-           tree   TYPE ty_sha1,
-           time   TYPE string,
-           body   TYPE string,
-         END OF ty_ancestor.
-
-  TYPES: BEGIN OF ty_merge,
-           repo     TYPE REF TO zcl_abapgit_repo_online,
-           source   TYPE ty_git_branch,
-           target   TYPE ty_git_branch,
-           common   TYPE ty_ancestor,
-           stree    TYPE ty_expanded_tt,
-           ttree    TYPE ty_expanded_tt,
-           ctree    TYPE ty_expanded_tt,
-           result   TYPE ty_expanded_tt,
-           stage    TYPE REF TO zcl_abapgit_stage,
-           conflict TYPE string,
-         END OF ty_merge.
-
-  TYPES: BEGIN OF ty_merge_conflict,
-           path        TYPE string,
-           filename    TYPE string,
-           source_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
-           source_data TYPE xstring,
-           target_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
-           target_data TYPE xstring,
-           result_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
-           result_data TYPE xstring,
-         END OF ty_merge_conflict,
-         tt_merge_conflict TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY.
-
-  TYPES: BEGIN OF ty_repo_item,
-           obj_type TYPE tadir-object,
-           obj_name TYPE tadir-obj_name,
-           inactive TYPE abap_bool,
-           sortkey  TYPE i,
-           path     TYPE string,
-           is_dir   TYPE abap_bool,
-           changes  TYPE i,
-           lstate   TYPE char1,
-           rstate   TYPE char1,
-           files    TYPE tt_repo_files,
-         END OF ty_repo_item.
-  TYPES tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY.
-
-  TYPES: BEGIN OF ty_s_user_settings,
-           max_lines                  TYPE i,
-           adt_jump_enabled           TYPE abap_bool,
-           show_default_repo          TYPE abap_bool,
-           link_hints_enabled         TYPE abap_bool,
-           link_hint_key              TYPE char01,
-           link_hint_background_color TYPE string,
-           hotkeys                    TYPE tty_hotkey,
-         END OF ty_s_user_settings.
-
   TYPES:
-          tty_dokil TYPE STANDARD TABLE OF dokil
-                         WITH NON-UNIQUE DEFAULT KEY.
-  TYPES: tty_lines TYPE STANDARD TABLE OF i
-                        WITH NON-UNIQUE DEFAULT KEY,
-         BEGIN OF ty_patch,
-           filename  TYPE string,
-           lines_new TYPE tty_lines,
-           lines_old TYPE tty_lines,
-         END OF ty_patch,
-         tty_patch TYPE HASHED TABLE OF ty_patch
-                        WITH UNIQUE KEY filename.
+    BEGIN OF ty_ancestor,
+      commit TYPE ty_sha1,
+      tree   TYPE ty_sha1,
+      time   TYPE string,
+      body   TYPE string,
+    END OF ty_ancestor .
+  TYPES:
+    BEGIN OF ty_merge,
+      repo     TYPE REF TO zcl_abapgit_repo_online,
+      source   TYPE ty_git_branch,
+      target   TYPE ty_git_branch,
+      common   TYPE ty_ancestor,
+      stree    TYPE ty_expanded_tt,
+      ttree    TYPE ty_expanded_tt,
+      ctree    TYPE ty_expanded_tt,
+      result   TYPE ty_expanded_tt,
+      stage    TYPE REF TO zcl_abapgit_stage,
+      conflict TYPE string,
+    END OF ty_merge .
+  TYPES:
+    BEGIN OF ty_merge_conflict,
+      path        TYPE string,
+      filename    TYPE string,
+      source_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      source_data TYPE xstring,
+      target_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      target_data TYPE xstring,
+      result_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      result_data TYPE xstring,
+    END OF ty_merge_conflict .
+  TYPES:
+    tt_merge_conflict TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_repo_item,
+      obj_type TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      inactive TYPE abap_bool,
+      sortkey  TYPE i,
+      path     TYPE string,
+      is_dir   TYPE abap_bool,
+      changes  TYPE i,
+      lstate   TYPE char1,
+      rstate   TYPE char1,
+      files    TYPE tt_repo_files,
+    END OF ty_repo_item .
+  TYPES:
+    tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_s_user_settings,
+      max_lines                  TYPE i,
+      adt_jump_enabled           TYPE abap_bool,
+      show_default_repo          TYPE abap_bool,
+      link_hints_enabled         TYPE abap_bool,
+      link_hint_key              TYPE char01,
+      link_hint_background_color TYPE string,
+      hotkeys                    TYPE tty_hotkey,
+    END OF ty_s_user_settings .
+  TYPES:
+    tty_dokil TYPE STANDARD TABLE OF dokil
+                         WITH NON-UNIQUE DEFAULT KEY .
+  TYPES:
+    tty_lines TYPE STANDARD TABLE OF i
+                        WITH NON-UNIQUE DEFAULT KEY .
 
+  CONSTANTS:
+    BEGIN OF c_git_branch_type,
+      branch          TYPE ty_git_branch_type VALUE 'HD',
+      lightweight_tag TYPE ty_git_branch_type VALUE 'TG',
+      annotated_tag   TYPE ty_git_branch_type VALUE 'AT',
+      other           TYPE ty_git_branch_type VALUE 'ZZ',
+    END OF c_git_branch_type .
+  CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
+  CONSTANTS:
+    BEGIN OF c_diff,
+      insert TYPE c LENGTH 1 VALUE 'I',
+      delete TYPE c LENGTH 1 VALUE 'D',
+      update TYPE c LENGTH 1 VALUE 'U',
+    END OF c_diff .
   CONSTANTS:
     BEGIN OF c_type,
       commit TYPE zif_abapgit_definitions=>ty_type VALUE 'commit', "#EC NOTEXT
@@ -1489,11 +1533,9 @@ INTERFACE zif_abapgit_definitions.
 
       url                      TYPE string VALUE 'url',
     END OF c_action .
-
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
-  CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY'.
-  CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE'.
-
+  CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
+  CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE' ##NO_TEXT.
 ENDINTERFACE.
 INTERFACE zif_abapgit_object.
 
@@ -2139,39 +2181,6 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception
       zcx_abapgit_cancel .
-ENDINTERFACE.
-INTERFACE zif_abapgit_ecatt .
-
-  " downport missing types
-
-  TYPES:
-    etvo_invert_validation TYPE c LENGTH 1,
-    etvo_error_prio        TYPE n LENGTH 1,
-    etvo_impl_name         TYPE c LENGTH 30,
-    etvo_impl_type         TYPE c LENGTH 1,
-    etvo_impl_subtype      TYPE c LENGTH 4,
-    etvo_package           TYPE c LENGTH 255,
-    BEGIN OF etvoimpl_det,
-      impl_name    TYPE etvo_impl_name,
-      impl_type    TYPE etvo_impl_type,
-      impl_subtype TYPE etvo_impl_subtype,
-      impl_package TYPE etvo_package,
-    END OF etvoimpl_det.
-
-  TYPES:
-    BEGIN OF ecvo_bus_msg.
-      INCLUDE TYPE etobj_key.
-  TYPES:
-    bus_msg_no   TYPE c LENGTH 1, " etvo_msg_no
-    arbgb        TYPE arbgb,
-    msgnr        TYPE msgnr,
-    bus_msg_text TYPE string, "etvo_bus_msg_text
-    otr_key      TYPE sotr_conc,
-    msg_type     TYPE c LENGTH 4, "etvo_msg_type
-    END OF ecvo_bus_msg,
-
-    etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
-
 ENDINTERFACE.
 INTERFACE zif_abapgit_exit .
   TYPES:
@@ -3350,16 +3359,11 @@ CLASS zcl_abapgit_ecatt_config_downl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
+
     METHODS:
-      download REDEFINITION,
-
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
+      download REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -3367,8 +3371,7 @@ CLASS zcl_abapgit_ecatt_config_downl DEFINITION
 
   PRIVATE SECTION.
     DATA:
-      mv_xml_stream      TYPE xstring,
-      mv_xml_stream_size TYPE int4.
+      mv_xml_stream TYPE xstring.
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_upl DEFINITION
@@ -3377,10 +3380,8 @@ CLASS zcl_abapgit_ecatt_config_upl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring.
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
   PROTECTED SECTION.
     METHODS:
@@ -3395,24 +3396,21 @@ CLASS zcl_abapgit_ecatt_data_downl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
 
-    METHODS get_xml_stream
-      RETURNING
-        VALUE(rv_xml_stream) TYPE xstring .
-    METHODS get_xml_stream_size
-      RETURNING
-        VALUE(rv_xml_stream_size) TYPE int4 .
+    METHODS:
+      download
+        REDEFINITION.
 
-    METHODS download
-        REDEFINITION .
   PROTECTED SECTION.
     METHODS:
       download_data REDEFINITION.
 
   PRIVATE SECTION.
+    DATA:
+      mv_xml_stream TYPE xstring.
 
-    DATA mv_xml_stream TYPE xstring .
-    DATA mv_xml_stream_size TYPE int4 .
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_data_upload DEFINITION
   INHERITING FROM cl_apl_ecatt_data_upload
@@ -3420,10 +3418,8 @@ CLASS zcl_abapgit_ecatt_data_upload DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring.
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
   PROTECTED SECTION.
     METHODS:
@@ -3440,22 +3436,20 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
     CLASS-METHODS:
       build_xml_of_object
         IMPORTING
-          im_object_name     TYPE  etobj_name
-          im_object_version  TYPE  etobj_ver
-          im_object_type     TYPE  etobj_type
-          io_download        TYPE REF TO cl_apl_ecatt_download
-        EXPORTING
-          ex_xml_stream      TYPE  xstring
-          ex_xml_stream_size TYPE  int4
+          im_object_name       TYPE etobj_name
+          im_object_version    TYPE etobj_ver
+          im_object_type       TYPE etobj_type
+          io_download          TYPE REF TO cl_apl_ecatt_download
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring
         RAISING
           zcx_abapgit_exception,
 
       download_data
         IMPORTING
           ii_template_over_all TYPE REF TO if_ixml_document
-        EXPORTING
-          ev_xml_stream        TYPE xstring
-          ev_xml_stream_size   TYPE i,
+        RETURNING
+          VALUE(rv_xml_stream) TYPE xstring,
 
       upload_data_from_stream
         IMPORTING
@@ -3476,16 +3470,11 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
+
     METHODS:
-      download REDEFINITION,
-
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
+      download REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -3493,9 +3482,8 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
 
   PRIVATE SECTION.
     DATA:
-      mv_xml_stream      TYPE xstring,
-      mv_xml_stream_size TYPE int4,
-      mi_script_node     TYPE REF TO if_ixml_element.
+      mv_xml_stream  TYPE xstring,
+      mi_script_node TYPE REF TO if_ixml_element.
 
     METHODS:
       set_script_to_template
@@ -3532,10 +3520,8 @@ CLASS zcl_abapgit_ecatt_script_upl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring.
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
   PROTECTED SECTION.
     METHODS:
@@ -3550,16 +3536,11 @@ CLASS zcl_abapgit_ecatt_sp_download DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
+
     METHODS:
-      download REDEFINITION,
-
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
+      download REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -3567,8 +3548,7 @@ CLASS zcl_abapgit_ecatt_sp_download DEFINITION
 
   PRIVATE SECTION.
     DATA:
-      mv_xml_stream      TYPE xstring,
-      mv_xml_stream_size TYPE int4.
+      mv_xml_stream TYPE xstring.
 
     METHODS:
       set_sp_data_to_template.
@@ -3580,11 +3560,10 @@ CLASS zcl_abapgit_ecatt_sp_upload DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring,
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
+    METHODS:
       upload
         REDEFINITION.
 
@@ -3605,16 +3584,11 @@ CLASS zcl_abapgit_ecatt_system_downl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
+
     METHODS:
-      download REDEFINITION,
-
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
+      download REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -3622,8 +3596,7 @@ CLASS zcl_abapgit_ecatt_system_downl DEFINITION
 
   PRIVATE SECTION.
     DATA:
-      mv_xml_stream      TYPE xstring,
-      mv_xml_stream_size TYPE int4.
+      mv_xml_stream TYPE xstring.
 
     METHODS:
       set_systems_data_to_template.
@@ -3635,10 +3608,8 @@ CLASS zcl_abapgit_ecatt_system_upl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring.
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
   PROTECTED SECTION.
     METHODS:
@@ -3653,16 +3624,11 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_ecatt_download.
+
     METHODS:
-      download REDEFINITION,
-
-      get_xml_stream
-        RETURNING
-          VALUE(rv_xml_stream) TYPE xstring,
-
-      get_xml_stream_size
-        RETURNING
-          VALUE(rv_xml_stream_size) TYPE int4.
+      download REDEFINITION.
 
   PROTECTED SECTION.
     DATA:
@@ -3670,10 +3636,10 @@ CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION
 
     METHODS:
       download_data REDEFINITION.
+
   PRIVATE SECTION.
     DATA:
-      mv_xml_stream      TYPE xstring,
-      mv_xml_stream_size TYPE int4.
+      mv_xml_stream TYPE xstring.
 
     METHODS:
       set_ecatt_impl_detail,
@@ -3687,11 +3653,10 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      z_set_stream_for_upload
-        IMPORTING
-          iv_xml TYPE xstring,
+    INTERFACES:
+      zif_abapgit_ecatt_upload.
 
+    METHODS:
       upload REDEFINITION.
 
   PROTECTED SECTION.
@@ -13035,21 +13000,14 @@ CLASS zcl_abapgit_zip DEFINITION
         !it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS export_package
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
     CLASS-METHODS export_object
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
-    CLASS-METHODS unzip_file
-      IMPORTING
-        !iv_xstr TYPE xstring
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+    CLASS-METHODS export_package
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception
+        zcx_abapgit_cancel .
     CLASS-METHODS load
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
@@ -13057,26 +13015,40 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CLASS-METHODS normalize_path
-      CHANGING ct_files TYPE zif_abapgit_definitions=>ty_files_tt
-      RAISING  zcx_abapgit_exception.
-
-    CLASS-METHODS filename
-      IMPORTING iv_str      TYPE string
-      EXPORTING ev_path     TYPE string
-                ev_filename TYPE string
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS file_download
-      IMPORTING iv_package TYPE devclass
-                iv_xstr    TYPE xstring
-      RAISING   zcx_abapgit_exception.
 
     CLASS-METHODS encode_files
-      IMPORTING it_files       TYPE zif_abapgit_definitions=>ty_files_item_tt
-      RETURNING VALUE(rv_xstr) TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS filename
+      IMPORTING
+        !iv_str      TYPE string
+      EXPORTING
+        !ev_path     TYPE string
+        !ev_filename TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS file_download
+      IMPORTING
+        !iv_package TYPE devclass
+        !iv_xstr    TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS normalize_path
+      CHANGING
+        !ct_files TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS unzip_file
+      IMPORTING
+        !iv_xstr        TYPE xstring
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_zlib DEFINITION
   CREATE PUBLIC .
@@ -13756,11 +13728,11 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
   METHOD export_object.
 
-    DATA: ls_tadir    TYPE zif_abapgit_definitions=>ty_tadir,
-          lv_folder   TYPE string,
-          lv_fullpath TYPE string,
-          lt_rawdata  TYPE solix_tab,
-          lv_sep      TYPE c LENGTH 1,
+    DATA: ls_tadir      TYPE zif_abapgit_definitions=>ty_tadir,
+          lv_folder     TYPE string,
+          lv_fullpath   TYPE string,
+          lt_rawdata    TYPE solix_tab,
+          lv_sep        TYPE c LENGTH 1,
           ls_files_item TYPE zcl_abapgit_objects=>ty_serialization.
 
     STATICS: sv_prev TYPE string.
@@ -13885,10 +13857,10 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   METHOD file_download.
 
     DATA:
-      lv_path     TYPE string,
-      lv_default  TYPE string,
-      lo_fe_serv  TYPE REF TO zif_abapgit_frontend_services,
-      lv_package  TYPE devclass.
+      lv_path    TYPE string,
+      lv_default TYPE string,
+      lo_fe_serv TYPE REF TO zif_abapgit_frontend_services,
+      lv_package TYPE devclass.
 
     lv_package = iv_package.
     TRANSLATE lv_package USING '/#'.
@@ -13966,7 +13938,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     DATA: lo_zip  TYPE REF TO cl_abap_zip,
           lv_data TYPE xstring.
 
-    FIELD-SYMBOLS: <ls_zipfile> TYPE cl_abap_zip=>t_file,
+    FIELD-SYMBOLS: <ls_zipfile> LIKE LINE OF lo_zip->files,
                    <ls_file>    LIKE LINE OF rt_files.
     CREATE OBJECT lo_zip.
     lo_zip->load( EXPORTING
@@ -58255,7 +58227,7 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD clear_attributes.
 
     DATA: lo_element     TYPE REF TO if_ixml_element,
@@ -58322,6 +58294,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     DATA: ls_object   TYPE etmobjects,
           lo_upload   TYPE REF TO cl_apl_ecatt_upload,
+          li_upload   TYPE REF TO zif_abapgit_ecatt_upload,
           lv_xml      TYPE xstring,
           lv_text     TYPE string,
           li_document TYPE REF TO if_ixml_document,
@@ -58334,16 +58307,15 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lo_upload = get_upload( ).
+    lo_upload  = get_upload( ).
+    li_upload ?= lo_upload.
 
     li_document = cl_ixml=>create( )->create_document( ).
     li_document->append_child( ii_version_node->get_first_child( ) ).
 
     lv_xml = cl_ixml_80_20=>render_to_xstring( li_document ).
 
-    CALL METHOD lo_upload->('Z_SET_STREAM_FOR_UPLOAD')
-      EXPORTING
-        iv_xml = lv_xml.
+    li_upload->set_stream_for_upload( lv_xml ).
 
     ls_object-d_obj_name  = mv_object_name.
     ls_object-s_obj_type  = get_object_type( ).
@@ -58354,7 +58326,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     TRY.
         lo_upload->upload(
           CHANGING
-            ch_object      = ls_object ).
+            ch_object = ls_object ).
 
       CATCH cx_ecatt INTO lx_error.
         lv_text = lx_error->get_text( ).
@@ -58418,14 +58390,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     lv_object_type = get_object_type( ).
 
-    zcl_abapgit_ecatt_helper=>build_xml_of_object(
-      EXPORTING
-        im_object_name    = mv_object_name
-        im_object_version = is_version_info-version
-        im_object_type    = lv_object_type
-        io_download       = lo_download
-      IMPORTING
-        ex_xml_stream     = lv_xml ).
+    lv_xml = zcl_abapgit_ecatt_helper=>build_xml_of_object(
+                 im_object_name    = mv_object_name
+                 im_object_version = is_version_info-version
+                 im_object_type    = lv_object_type
+                 io_download       = lo_download ).
 
     li_document = cl_ixml_80_20=>parse_to_document( stream_xstring = lv_xml ).
 
@@ -58471,14 +58440,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     lv_object_type = get_object_type( ).
 
-    zcl_abapgit_ecatt_helper=>build_xml_of_object(
-      EXPORTING
-        im_object_name    = mv_object_name
-        im_object_version = iv_version
-        im_object_type    = lv_object_type
-        io_download       = lo_download
-      IMPORTING
-        ex_xml_stream     = lv_xml ).
+    lv_xml = zcl_abapgit_ecatt_helper=>build_xml_of_object(
+                 im_object_name    = mv_object_name
+                 im_object_version = iv_version
+                 im_object_type    = lv_object_type
+                 io_download       = lo_download ).
 
     li_document = cl_ixml_80_20=>parse_to_document( stream_xstring = lv_xml ).
 
@@ -63024,7 +62990,7 @@ CLASS ZCL_ABAPGIT_COMPARISON_NULL IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -63326,7 +63292,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
@@ -63397,22 +63363,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
-
-  ENDMETHOD.
-  METHOD get_xml_stream.
-
-    rv_xml_stream = mv_xml_stream.
-
-  ENDMETHOD.
-  METHOD get_xml_stream_size.
-
-    rv_xml_stream_size = mv_xml_stream_size.
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
   METHOD set_business_msgs.
@@ -63573,6 +63524,12 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
     li_insert_objects->append_child( new_child = li_element ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
 
@@ -63582,7 +63539,7 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " downport from CL_APL_ECATT_SYSTEMS_UPLOAD SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
@@ -63590,7 +63547,7 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -63619,22 +63576,12 @@ CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
-  METHOD get_xml_stream.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
 
     rv_xml_stream = mv_xml_stream.
-
-  ENDMETHOD.
-  METHOD get_xml_stream_size.
-
-    rv_xml_stream_size = mv_xml_stream_size.
 
   ENDMETHOD.
   METHOD set_systems_data_to_template.
@@ -63671,6 +63618,7 @@ CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
         EXCEPTIONS
           illegal_name = 1
           OTHERS       = 2.
+      ASSERT sy-subrc = 0.
 
       etpar_node->append_child( new_child = li_item ).
 
@@ -63678,7 +63626,7 @@ CLASS ZCL_ABAPGIT_ECATT_SYSTEM_DOWNL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
     " downport
@@ -63734,11 +63682,11 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
 
     "26.03.2013
 
-    DATA: lx_ecatt              TYPE REF TO cx_ecatt_apl,
-          lv_exists             TYPE etonoff,
-          lv_exc_occ            TYPE etonoff,
-          ls_tadir              TYPE tadir,
-          lo_ecatt_sp           TYPE REF TO object.
+    DATA: lx_ecatt    TYPE REF TO cx_ecatt_apl,
+          lv_exists   TYPE etonoff,
+          lv_exc_occ  TYPE etonoff,
+          ls_tadir    TYPE tadir,
+          lo_ecatt_sp TYPE REF TO object.
 
     FIELD-SYMBOLS: <lg_ecatt_sp> TYPE any,
                    <lv_d_akh>    TYPE data,
@@ -63841,7 +63789,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " downport from CL_APL_ECATT_START_PROFIL SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
@@ -63882,22 +63830,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
-
-  ENDMETHOD.
-  METHOD get_xml_stream.
-
-    rv_xml_stream = mv_xml_stream.
-
-  ENDMETHOD.
-  METHOD get_xml_stream_size.
-
-    rv_xml_stream_size = mv_xml_stream_size.
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
   METHOD set_sp_data_to_template.
@@ -63938,6 +63871,12 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
     li_start_profile_data_node->append_child( new_child = li_element ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
+
+    rv_xml_stream = mv_xml_stream.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
@@ -63946,7 +63885,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
@@ -64022,12 +63961,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
   METHOD escape_control_data.
@@ -64073,14 +64007,9 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD get_xml_stream.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
 
     rv_xml_stream = mv_xml_stream.
-
-  ENDMETHOD.
-  METHOD get_xml_stream_size.
-
-    rv_xml_stream_size = mv_xml_stream_size.
 
   ENDMETHOD.
   METHOD set_artmp_to_template.
@@ -64352,14 +64281,15 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
   METHOD build_xml_of_object.
 
     " downport of CL_APL_ECATT_DOWNLOAD=>BUILD_XML_OF_OBJECT
 
     DATA: lo_load_help_dummy TYPE REF TO cl_apl_ecatt_load_help,
           lx_ecatt           TYPE REF TO cx_ecatt_apl,
-          lv_text            TYPE string.
+          lv_text            TYPE string,
+          li_download        TYPE REF TO zif_abapgit_ecatt_download.
 
     "download method will create the xml stream
     "note: it's the redefined download( ) of each object type specific download, which is called
@@ -64381,23 +64311,15 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
         "will never be raised from download, when called with mv_generate_xml_no_download = 'X'.
     ENDTRY.
 
-    CALL METHOD io_download->('GET_XML_STREAM')
-      RECEIVING
-        rv_xml_stream = ex_xml_stream.
+    li_download ?= io_download.
 
-    CALL METHOD io_download->('GET_XML_STREAM_SIZE')
-      RECEIVING
-        rv_xml_stream_size = ex_xml_stream_size.
+    rv_xml_stream = li_download->get_xml_stream( ).
 
   ENDMETHOD.
   METHOD download_data.
 
     DATA:
-      lo_xml  TYPE REF TO cl_apl_ecatt_xml,
-      lv_size TYPE int4.
-
-    CLEAR: ev_xml_stream,
-           ev_xml_stream_size.
+      lo_xml TYPE REF TO cl_apl_ecatt_xml.
 
     TRY.
         CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
@@ -64410,10 +64332,7 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
 
         lo_xml->get_attributes(
           IMPORTING
-            ex_size_xstring = lv_size
-            ex_xml          = ev_xml_stream ).
-
-        ev_xml_stream_size = lv_size.
+            ex_xml = rv_xml_stream ).
 
       CATCH cx_ecatt_apl_xml.
         RETURN.
@@ -64463,21 +64382,21 @@ CLASS ZCL_ABAPGIT_ECATT_HELPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_DATA_UPLOAD IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
     " Downport
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " donwnpoort from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -64528,33 +64447,24 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
-  METHOD get_xml_stream.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
 
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-  METHOD get_xml_stream_size.
 
-    rv_xml_stream_size = mv_xml_stream_size.
-
-  ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_ecatt_config_upl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_CONFIG_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
     " Downport
     template_over_all = zcl_abapgit_ecatt_helper=>upload_data_from_stream( mv_external_xml ).
 
   ENDMETHOD.
-  METHOD z_set_stream_for_upload.
+  METHOD zif_abapgit_ecatt_upload~set_stream_for_upload.
 
     " downport from CL_ABAPGIT_ECATT_DATA_UPLOAD SET_STREAM_FOR_UPLOAD
     mv_external_xml = iv_xml.
@@ -64613,24 +64523,15 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
     " Downport
 
-    zcl_abapgit_ecatt_helper=>download_data(
-      EXPORTING
-        ii_template_over_all = template_over_all
-      IMPORTING
-        ev_xml_stream        = mv_xml_stream
-        ev_xml_stream_size   = mv_xml_stream_size ).
+    mv_xml_stream = zcl_abapgit_ecatt_helper=>download_data( template_over_all ).
 
   ENDMETHOD.
-  METHOD get_xml_stream.
+  METHOD zif_abapgit_ecatt_download~get_xml_stream.
 
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-  METHOD get_xml_stream_size.
 
-    rv_xml_stream_size = mv_xml_stream_size.
-
-  ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
   METHOD constructor.
@@ -68285,5 +68186,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-17T09:31:15.433Z
+* abapmerge undefined - 2019-02-18T09:33:36.862Z
 ****************************************************
