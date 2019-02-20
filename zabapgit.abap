@@ -36857,6 +36857,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         devclass        = iv_package
         overwrite       = iv_overwrite
         version         = seoc_version_active
+        suppress_dialog = abap_true
       CHANGING
         class           = cg_properties
         attributes      = lt_vseoattrib
@@ -38358,7 +38359,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         object_class        = 'ABAP'
         devclass            = iv_package
         master_language     = mv_language
-        mode                = 'INSERT'
+        mode                = 'I'
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -39453,11 +39455,16 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     ENDIF.
 
     IF iv_extra IS INITIAL.
-      CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_ext
+      CONCATENATE lv_obj_name '.' ms_item-obj_type
         INTO rv_filename.                                   "#EC NOTEXT
     ELSE.
-      CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_extra '.' iv_ext
+      CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_extra
         INTO rv_filename.                                   "#EC NOTEXT
+    ENDIF.
+
+    IF iv_ext IS NOT INITIAL.
+      CONCATENATE rv_filename '.' iv_ext
+        INTO rv_filename.
     ENDIF.
 
 * handle namespaces
@@ -67924,5 +67931,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-20T05:39:57.470Z
+* abapmerge undefined - 2019-02-20T05:41:53.589Z
 ****************************************************
