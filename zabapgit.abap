@@ -19511,6 +19511,11 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~is_successful.
+
+    rv_success = mv_success.
+
+  ENDMETHOD.
   METHOD zif_abapgit_code_inspector~run.
 
     DATA: lo_set     TYPE REF TO cl_ci_objectset,
@@ -67845,5 +67850,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-21T06:03:18.807Z
+* abapmerge undefined - 2019-02-21T06:17:42.563Z
 ****************************************************
