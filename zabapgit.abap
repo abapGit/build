@@ -1005,10 +1005,14 @@ INTERFACE zif_abapgit_code_inspector .
   METHODS run
     IMPORTING
       !iv_variant    TYPE sci_chkv
+      !iv_save       TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(rt_list) TYPE scit_alvlist
     RAISING
       zcx_abapgit_exception .
+  METHODS is_successful
+    RETURNING
+      VALUE(rv_success) TYPE abap_bool .
 ENDINTERFACE.
 INTERFACE zif_abapgit_cts_api.
   METHODS:
@@ -4714,6 +4718,7 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_dd04_texts,
@@ -5939,56 +5944,34 @@ CLASS zcl_abapgit_object_sprx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     CONSTANTS:
       BEGIN OF c_proxy,
         data   TYPE string VALUE 'PROXY_DATA' ##NO_TEXT,
         header TYPE string VALUE 'PROXY_HEADER' ##NO_TEXT,
-      END OF c_proxy.
+      END OF c_proxy .
+    DATA mv_object TYPE sproxhdr-object .
+    DATA mv_obj_name TYPE sproxhdr-obj_name .
 
-    METHODS:
-      get_object_and_name
-        EXPORTING
-          ev_object   TYPE sproxhdr-object
-          ev_obj_name TYPE sproxhdr-obj_name,
-
-      activate_classes
-        IMPORTING
-          it_sproxdat_new TYPE sprx_dat_t
-        RAISING
-          zcx_abapgit_exception,
-
-      generate_service_definition
-        IMPORTING
-          it_sproxdat_new TYPE sprx_dat_t
-        RAISING
-          zcx_abapgit_exception,
-
-      delta_handling
-        IMPORTING
-          io_xml          TYPE REF TO zcl_abapgit_xml_input
-        EXPORTING
-          et_sproxhdr_new TYPE sprx_hdr_t
-          et_sproxdat_new TYPE sprx_dat_t
-        RAISING
-          zcx_abapgit_exception,
-
-      check_sprx_tadir
-        RAISING
-          zcx_abapgit_exception,
-
-      dequeue_proxy
-        RAISING
-          zcx_abapgit_exception,
-
-      save
-        IMPORTING
-          it_sproxhdr_new TYPE sprx_hdr_t
-          it_sproxdat_new TYPE sprx_dat_t.
-
-    DATA:
-      mv_object   TYPE sproxhdr-object,
-      mv_obj_name TYPE sproxhdr-obj_name.
-
+    METHODS get_object_and_name
+      EXPORTING
+        !ev_object   TYPE sproxhdr-object
+        !ev_obj_name TYPE sproxhdr-obj_name .
+    METHODS delta_handling
+      IMPORTING
+        !io_xml          TYPE REF TO zcl_abapgit_xml_input
+      EXPORTING
+        !et_sproxhdr_new TYPE sprx_hdr_t
+        !et_sproxdat_new TYPE sprx_dat_t
+      RAISING
+        zcx_abapgit_exception .
+    METHODS check_sprx_tadir
+      RAISING
+        zcx_abapgit_exception .
+    METHODS save
+      IMPORTING
+        !it_sproxhdr_new TYPE sprx_hdr_t
+        !it_sproxdat_new TYPE sprx_dat_t .
 ENDCLASS.
 CLASS zcl_abapgit_object_sqsc DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -7187,15 +7170,21 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
   PROTECTED SECTION.
+
+    METHODS deserialize_proxy
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_abap
-      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_input
-                iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_xml     TYPE REF TO zcl_abapgit_xml_input
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_docu
-      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_input
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_xml TYPE REF TO zcl_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
     DATA mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc.
 
@@ -11222,6 +11211,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 
+    DATA mv_success TYPE abap_bool .
     CONSTANTS:
       BEGIN OF co_run_mode,
         run_with_popup   TYPE sychar01 VALUE 'P',
@@ -12180,13 +12170,6 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
       RAISING
         zcx_abapgit_exception .
-    METHODS run_code_inspector
-      IMPORTING
-        !iv_check_variant TYPE string
-      RETURNING
-        VALUE(rt_list)    TYPE scit_alvlist
-      RAISING
-        zcx_abapgit_exception .
     METHODS has_remote_source
           ABSTRACT
       RETURNING
@@ -12209,7 +12192,6 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
     DATA mv_request_local_refresh TYPE abap_bool .
     DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
-    DATA mv_code_inspector_successful TYPE abap_bool .
     DATA mv_request_remote_refresh TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
 
@@ -15688,7 +15670,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     ENDIF.
 
     IF ms_data-local_settings-block_commit = abap_true
-        AND mv_code_inspector_successful = abap_false.
+        AND zcl_abapgit_factory=>get_code_inspector( get_package( )
+          )->is_successful( ) = abap_false.
       zcx_abapgit_exception=>raise( |A successful code inspection is required| ).
     ENDIF.
 
@@ -15710,7 +15693,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     update_local_checksums( ls_push-updated_files ).
 
     reset_status( ).
-    CLEAR: mv_code_inspector_successful.
 
   ENDMETHOD.
 ENDCLASS.
@@ -16173,22 +16155,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD reset_status.
     CLEAR mt_status.
-  ENDMETHOD.
-  METHOD run_code_inspector.
-
-    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector.
-
-    li_code_inspector = zcl_abapgit_factory=>get_code_inspector( get_package( ) ).
-
-    rt_list = li_code_inspector->run( |{ iv_check_variant }| ).
-
-    DELETE rt_list WHERE kind = 'N'.
-
-    READ TABLE rt_list TRANSPORTING NO FIELDS
-                       WITH KEY kind = 'E'.
-
-    mv_code_inspector_successful = boolc( sy-subrc <> 0 ).
-
   ENDMETHOD.
   METHOD set.
 
@@ -19567,6 +19533,11 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
         rt_list = run_inspection( mo_inspection ).
 
         cleanup( lo_set ).
+
+        IF iv_save = abap_true.
+          READ TABLE rt_list TRANSPORTING NO FIELDS WITH KEY kind = 'E'.
+          mv_success = boolc( sy-subrc <> 0 ).
+        ENDIF.
 
       CATCH zcx_abapgit_exception INTO lx_error.
 
@@ -30464,7 +30435,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
   METHOD run_code_inspector.
 
-    mt_result = mo_repo->run_code_inspector( |{ mv_check_variant }| ).
+    DATA: li_code_inspector TYPE REF TO zif_abapgit_code_inspector.
+
+    li_code_inspector = zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( ) ).
+
+    mt_result = li_code_inspector->run(
+      iv_variant = |{ mv_check_variant }|
+      iv_save    = abap_true ).
+
+    DELETE mt_result WHERE kind = 'N'.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
@@ -36747,7 +36726,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           EXCEPTIONS
             class_not_existing            = 1
             read_source_error             = 2
-            OTHERS                        = 3.
+            OTHERS                        = 3 ##SUBRC_OK.
       CATCH cx_sy_dyn_call_param_not_found.
 * downport to 702, see https://github.com/larshp/abapGit/issues/933
 * this will READ REPORT instead of using it_source, which should be okay
@@ -36770,7 +36749,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         CALL METHOD lo_update->('SET_AMDP_SUPPORT')
           EXPORTING
             enabled = abap_true.
-      CATCH cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
 * AMDP not supported in this system, ignore error
     ENDTRY.
     lo_update->scan_section_source(
@@ -36928,10 +36907,11 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           user_cancelled                = 17
           no_entry_found                = 18
           OTHERS                        = 19.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from SOTR_CREATE_CONCEPT' ).
+      IF sy-subrc <> 0 AND sy-subrc <> 5.
+        zcx_abapgit_exception=>raise( 'error from SOTR_CREATE_CONCEPT,' && sy-subrc ).
       ENDIF.
     ENDLOOP.
+
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
@@ -37206,8 +37186,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_text_pool.
-    DATA:
-     lv_cp TYPE program.
+    DATA: lv_cp TYPE program.
 
     lv_cp = cl_oo_classname_service=>get_classpool_name( iv_class_name ).
     READ TEXTPOOL lv_cp INTO rt_text_pool LANGUAGE iv_language. "#EC CI_READ_REP
@@ -39827,19 +39806,17 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD use_new_activation_logic.
 
-    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true.
+* left for easy rollback, cleanup later
+* IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true.
 
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = 'DD_MASS_ACT_C3'    " Name of Function Module
-        EXCEPTIONS
-          function_not_exist = 1
-          OTHERS             = 2.
-
-      IF sy-subrc = 0.
-        rv_use_new_activation_logic = abap_true.
-      ENDIF.
-
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = 'DD_MASS_ACT_C3'
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    IF sy-subrc = 0.
+      rv_use_new_activation_logic = abap_true.
     ENDIF.
 
   ENDMETHOD.
@@ -45590,7 +45567,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
           object_not_specified = 3
           permission_failure   = 4.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL' ).
+        zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL,' && sy-subrc ).
       ENDIF.
 
       delete_longtexts( c_longtext_id_tabl ).
@@ -47802,45 +47779,6 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
 
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
-  METHOD activate_classes.
-
-    DATA: lt_objects TYPE STANDARD TABLE OF dwinactiv,
-          ls_object  LIKE LINE OF lt_objects.
-
-    FIELD-SYMBOLS: <ls_sproxdat_new> TYPE sprx_dat.
-
-    " Somehow the classes aren't activated by the proxy framework.
-    " This seems weird and it's almost certain a result of wrong API calls.
-    " So as a quick fix we activate them ourselves. This surely has to
-    " be improved in the future. ZCL_ABAPGIT_OBJECTS_ACTIVATION cannot
-    " be used as it doesn't activate classes.
-
-    LOOP AT it_sproxdat_new ASSIGNING <ls_sproxdat_new>
-                            WHERE object1 = 'CLAS'.
-
-      ls_object-object   = <ls_sproxdat_new>-object1.
-      ls_object-obj_name = <ls_sproxdat_new>-obj_name1.
-      INSERT ls_object INTO TABLE lt_objects.
-
-    ENDLOOP.
-
-    CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-      EXPORTING
-        activate_ddic_objects  = abap_false
-        with_popup             = abap_false
-      TABLES
-        objects                = lt_objects
-      EXCEPTIONS
-        excecution_error       = 1
-        cancelled              = 2
-        insert_into_corr_error = 3
-        OTHERS                 = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_WORKING_OBJECTS_ACTIVATE. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD check_sprx_tadir.
 
     DATA: lt_abap_keys TYPE prx_abapobjects,
@@ -47915,58 +47853,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
             cg_data = et_sproxdat_new ).
 
     ENDTRY.
-
-  ENDMETHOD.
-  METHOD dequeue_proxy.
-
-    DATA: lo_proxy TYPE REF TO cl_proxy,
-          lx_error TYPE REF TO cx_proxy_gen_error.
-
-    TRY.
-        lo_proxy = cl_proxy_fact=>load_by_abap_name(
-                       object   = mv_object
-                       obj_name = mv_obj_name ).
-
-        lo_proxy->dequeue( ).
-
-      CATCH cx_proxy_gen_error INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = |{ lx_error->get_text( ) }|
-                                      ix_previous = lx_error ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD generate_service_definition.
-
-    DATA: lv_transport    TYPE e070use-ordernum,
-          li_proxy_object TYPE REF TO if_px_main,
-          lx_proxy_fault  TYPE REF TO cx_proxy_fault.
-
-    lv_transport = zcl_abapgit_default_transport=>get_instance(
-                                               )->get( )-ordernum.
-
-    TRY.
-        li_proxy_object = cl_pxn_factory=>create(
-                              application  = 'PROXY_UI'
-                              display_only = abap_false
-                              saveable     = abap_true
-                          )->if_pxn_factory~load_by_abap_name(
-                              object   = mv_object
-                              obj_name = mv_obj_name ).
-
-        li_proxy_object->activate(
-          EXPORTING
-            activate_all     = abap_true
-          CHANGING
-            transport_number = lv_transport ).
-
-        li_proxy_object->dequeue( ).
-
-      CATCH cx_proxy_fault INTO lx_proxy_fault.
-        zcx_abapgit_exception=>raise( iv_text     = |{ lx_proxy_fault->get_text( ) }|
-                                      ix_previous = lx_proxy_fault ).
-    ENDTRY.
-
-    activate_classes( it_sproxdat_new ).
 
   ENDMETHOD.
   METHOD get_object_and_name.
@@ -48061,13 +47947,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
       it_sproxhdr_new = lt_sproxhdr_new
       it_sproxdat_new = lt_sproxdat_new ).
 
+    COMMIT WORK.
+
     check_sprx_tadir( ).
-
-    dequeue_proxy( ).
-
-    IF mv_object = 'INTF'.
-      generate_service_definition( lt_sproxdat_new ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -48126,23 +48008,19 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    TRY.
-        lo_proxy = cl_proxy_fact=>load_by_abap_name(
-                       object   = mv_object
-                       obj_name = mv_obj_name ).
+    ls_sprx_db_data = cl_proxy_db=>load_by_abap_name(
+      object   = mv_object
+      obj_name = mv_obj_name ).
 
-        lt_delta = lo_proxy->get_delta_all( ).
+    DELETE ls_sprx_db_data-sproxhdr WHERE object <> mv_object OR obj_name <> mv_obj_name.
+    DELETE ls_sprx_db_data-sproxdat WHERE object <> mv_object OR obj_name <> mv_obj_name.
+    DELETE ls_sprx_db_data-sproxsvar WHERE object <> mv_object OR obj_name <> mv_obj_name.
+    DELETE ls_sprx_db_data-sproxpck WHERE object <> mv_object OR obj_name <> mv_obj_name.
+    DELETE ls_sprx_db_data-sproxintf WHERE object <> mv_object OR obj_name <> mv_obj_name.
 
-        ls_sprx_db_data = cl_proxy_db=>serialize(
-                              proxy     = lo_proxy
-                              inactive  = abap_false
-                              delta     = lt_delta ).
-
-      CATCH cx_proxy_gen_error INTO lx_proxy_gen_error.
-        zcx_abapgit_exception=>raise(
-          iv_text     = |SPRX, { lx_proxy_gen_error->get_text( ) }|
-          ix_previous = lx_proxy_gen_error ).
-    ENDTRY.
+    IF lines( ls_sprx_db_data-sproxhdr ) <> 1.
+      zcx_abapgit_exception=>raise( |SPRX, no header found, { mv_object }, { mv_obj_name }| ).
+    ENDIF.
 
     LOOP AT ls_sprx_db_data-sproxhdr ASSIGNING <ls_sproxheader>.
 
@@ -48167,6 +48045,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
     io_xml->add(
         iv_name = c_proxy-data
         ig_data = ls_sprx_db_data-sproxdat ).
+
   ENDMETHOD.
 ENDCLASS.
 CLASS zcl_abapgit_object_splo IMPLEMENTATION.
@@ -53449,6 +53328,41 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
       iv_object_name = lv_object
       iv_language    = mv_language ).
   ENDMETHOD.
+  METHOD deserialize_proxy.
+
+    DATA: lv_transport    TYPE e070use-ordernum,
+          li_proxy_object TYPE REF TO if_px_main,
+          lv_name         TYPE prx_r3name,
+          lx_proxy_fault  TYPE REF TO cx_proxy_fault.
+
+    lv_transport = zcl_abapgit_default_transport=>get_instance(
+                                               )->get( )-ordernum.
+
+    lv_name = ms_item-obj_name.
+
+    TRY.
+        li_proxy_object = cl_pxn_factory=>create(
+                              application  = 'PROXY_UI'
+                              display_only = abap_false
+                              saveable     = abap_true
+                          )->if_pxn_factory~load_by_abap_name(
+                              object   = ms_item-obj_type
+                              obj_name = lv_name ).
+
+        li_proxy_object->activate(
+          EXPORTING
+            activate_all     = abap_true
+          CHANGING
+            transport_number = lv_transport ).
+
+        li_proxy_object->dequeue( ).
+
+      CATCH cx_proxy_fault INTO lx_proxy_fault.
+        zcx_abapgit_exception=>raise( iv_text     = |{ lx_proxy_fault->get_text( ) }|
+                                      ix_previous = lx_proxy_fault ).
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD serialize_xml.
     DATA:
       lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
@@ -53547,6 +53461,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     IF ls_vseointerf-clsproxy = abap_true.
       " Proxy interfaces are managed via SPRX
+      deserialize_proxy( ).
       RETURN.
     ENDIF.
 
@@ -58462,7 +58377,7 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -58590,7 +58505,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
         object_not_specified = 3
         permission_failure   = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DTEL' ).
+      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DTEL,' && sy-subrc ).
     ENDIF.
 
     delete_longtexts( c_longtext_id_dtel ).
@@ -58646,6 +58561,13 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
+                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -58722,14 +58644,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     serialize_longtexts( io_xml         = io_xml
                          iv_longtext_id = c_longtext_id_dtel ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ESDICT'
-                                            iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
@@ -67931,5 +67845,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-20T05:41:53.589Z
+* abapmerge undefined - 2019-02-21T06:03:18.807Z
 ****************************************************
