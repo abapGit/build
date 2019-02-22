@@ -585,7 +585,6 @@ CLASS zcl_abapgit_object_type DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ttyp DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_tobj DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_tabl_valid DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_tabl_compar DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_tabl DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sxci DEFINITION DEFERRED.
@@ -3910,48 +3909,42 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
       IMPORTING
         !io_local TYPE REF TO zcl_abapgit_xml_input .
   PROTECTED SECTION.
-  PRIVATE SECTION.
 
-    DATA mo_local TYPE REF TO zcl_abapgit_xml_input .
-ENDCLASS.
-CLASS zcl_abapgit_object_tabl_valid DEFINITION FINAL.
-  PUBLIC SECTION.
-    METHODS validate
-      IMPORTING
-        io_remote_version TYPE REF TO zcl_abapgit_xml_input
-        io_local_version  TYPE REF TO zcl_abapgit_xml_input
-      RETURNING
-        VALUE(rv_message) TYPE string
-      RAISING
-        zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
     TYPES:
       tty_founds  TYPE STANDARD TABLE OF rsfindlst
-                       WITH NON-UNIQUE DEFAULT KEY,
+                         WITH NON-UNIQUE DEFAULT KEY .
+    TYPES:
       tty_seu_obj TYPE STANDARD TABLE OF seu_obj
-                       WITH NON-UNIQUE DEFAULT KEY.
+                         WITH NON-UNIQUE DEFAULT KEY .
 
-    METHODS:
-      get_where_used_recursive
-        IMPORTING
-          iv_object_name       TYPE csequence
-          iv_depth             TYPE i
-          iv_object_type       TYPE euobj-id
-          it_scope             TYPE tty_seu_obj
-        RETURNING
-          VALUE(rt_founds_all) TYPE tty_founds
-        RAISING
-          zcx_abapgit_exception,
+    DATA mo_local TYPE REF TO zcl_abapgit_xml_input .
 
-      is_structure_used_in_db_table
-        IMPORTING
-          iv_object_name                        TYPE dd02v-tabname
-        RETURNING
-          VALUE(rv_is_structure_used_in_db_tab) TYPE abap_bool
-        RAISING
-          zcx_abapgit_exception.
+    METHODS get_where_used_recursive
+      IMPORTING
+        !iv_object_name      TYPE csequence
+        !iv_depth            TYPE i
+        !iv_object_type      TYPE euobj-id
+        !it_scope            TYPE tty_seu_obj
+      RETURNING
+        VALUE(rt_founds_all) TYPE tty_founds
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_structure_used_in_db_table
+      IMPORTING
+        !iv_object_name                       TYPE dd02v-tabname
+      RETURNING
+        VALUE(rv_is_structure_used_in_db_tab) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS validate
+      IMPORTING
+        !io_remote_version TYPE REF TO zcl_abapgit_xml_input
+        !io_local_version  TYPE REF TO zcl_abapgit_xml_input
+      RETURNING
+        VALUE(rv_message)  TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
 
 ENDCLASS.
 CLASS zcl_abapgit_objects_activation DEFINITION CREATE PUBLIC.
@@ -43054,6 +43047,8 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error in VIEWCLUSTER_GET_DEFINITION' ).
     ENDIF.
 
+    SORT lt_vclstrudep BY vclname object objfield.
+
     CLEAR ls_vcldir_entry-author.
     CLEAR ls_vcldir_entry-changedate.
 
@@ -45112,7 +45107,12 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_TABL_VALID IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
+  METHOD constructor.
+
+    mo_local = io_local.
+
+  ENDMETHOD.
   METHOD get_where_used_recursive.
 
     DATA: lt_findstrings TYPE stringtab,
@@ -45238,19 +45238,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_VALID IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-ENDCLASS.
-CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
-  METHOD constructor.
-
-    mo_local = io_local.
-
-  ENDMETHOD.
   METHOD zif_abapgit_comparator~compare.
 
-    DATA: lo_table_validation TYPE REF TO zcl_abapgit_object_tabl_valid.
-    CREATE OBJECT lo_table_validation.
-
-    rs_result-text = lo_table_validation->validate(
+    rs_result-text = validate(
       io_remote_version = io_remote
       io_local_version  = mo_local ).
 
@@ -67690,5 +67680,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-21T06:22:50.562Z
+* abapmerge undefined - 2019-02-22T07:07:06.456Z
 ****************************************************
