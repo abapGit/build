@@ -1816,6 +1816,7 @@ INTERFACE zif_abapgit_persistence.
 
   TYPES:
     BEGIN OF ty_local_settings,
+      display_name                 TYPE string,
       ignore_subpackages           TYPE abap_bool,
       write_protected              TYPE abap_bool,
       only_local_objects           TYPE abap_bool,
@@ -1870,6 +1871,7 @@ INTERFACE zif_abapgit_persist_repo .
       !iv_url         TYPE string
       !iv_branch_name TYPE string
       !iv_branch      TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+      iv_display_name TYPE string OPTIONAL
       !iv_package     TYPE devclass
       !iv_offline     TYPE abap_bool DEFAULT abap_false
       !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
@@ -2059,6 +2061,7 @@ INTERFACE zif_abapgit_popups .
       url          TYPE string,
       package      TYPE devclass,
       branch_name  TYPE string,
+      display_name TYPE string,
       folder_logic TYPE string,
       cancel       TYPE abap_bool,
     END OF ty_popup .
@@ -2327,6 +2330,7 @@ INTERFACE zif_abapgit_repo_srv .
     IMPORTING
       !iv_url         TYPE string
       !iv_branch_name TYPE string
+      iv_display_name TYPE string OPTIONAL
       !iv_package     TYPE devclass
     RETURNING
       VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_online
@@ -9270,7 +9274,9 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
         !io_html TYPE REF TO zcl_abapgit_html .
     METHODS render_local_settings
       IMPORTING
-        !io_html TYPE REF TO zcl_abapgit_html .
+        !io_html TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS save
       IMPORTING
         !it_postdata TYPE cnht_post_data_tab
@@ -10170,11 +10176,12 @@ CLASS zcl_abapgit_popups DEFINITION
           !e_salv_function .
     METHODS extract_field_values
       IMPORTING
-        it_fields  TYPE ty_sval_tt
+        it_fields       TYPE ty_sval_tt
       EXPORTING
-        ev_url     TYPE abaptxt255-line
-        ev_package TYPE tdevc-devclass
-        ev_branch  TYPE textl-line .
+        ev_url          TYPE abaptxt255-line
+        ev_package      TYPE tdevc-devclass
+        ev_branch       TYPE textl-line
+        ev_display_name TYPE trm255-text.
     TYPES:
       ty_lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
     METHODS _popup_2_get_values
@@ -12168,7 +12175,6 @@ CLASS zcl_abapgit_repo DEFINITION
       RETURNING
         VALUE(rv_key) TYPE zif_abapgit_persistence=>ty_value .
     METHODS get_name
-          ABSTRACT
       RETURNING
         VALUE(rv_name) TYPE string
       RAISING
@@ -12252,7 +12258,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS switch_repo_type
       IMPORTING
-        !iv_offline TYPE abap_bool
+        iv_offline TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -15477,11 +15483,11 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
-      iv_url         = iv_url
-      iv_branch_name = ''
-      iv_package     = iv_package
-      iv_offline     = abap_true
-      is_dot_abapgit = lo_dot_abapgit->get_data( ) ).
+      iv_url          = iv_url
+      iv_branch_name  = ''
+      iv_package      = iv_package
+      iv_offline      = abap_true
+      is_dot_abapgit  = lo_dot_abapgit->get_data( ) ).
 
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
@@ -15504,11 +15510,12 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     zcl_abapgit_url=>validate( |{ iv_url }| ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
-      iv_url         = iv_url
-      iv_branch_name = iv_branch_name
-      iv_package     = iv_package
-      iv_offline     = abap_false
-      is_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
+      iv_url          = iv_url
+      iv_branch_name  = iv_branch_name
+      iv_display_name = iv_display_name
+      iv_package      = iv_package
+      iv_offline      = abap_false
+      is_dot_abapgit  = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
       CATCH zcx_abapgit_not_found.
@@ -15609,7 +15616,11 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_name.
     rv_name = zcl_abapgit_url=>name( ms_data-url ).
-    rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
+    rv_name = super->get_name( ).
+    IF rv_name IS INITIAL.
+      rv_name = zcl_abapgit_url=>name( ms_data-url ).
+      rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
+    ENDIF.
   ENDMETHOD.
   METHOD get_objects.
     fetch_remote( ).
@@ -15789,7 +15800,11 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
   METHOD get_name.
-    rv_name = ms_data-url.
+    rv_name = super->get_name( ).
+
+    IF rv_name IS INITIAL.
+      rv_name = ms_data-url.
+    ENDIF.
   ENDMETHOD.
   METHOD has_remote_source.
     rv_yes = boolc( lines( mt_remote ) > 0 ).
@@ -16438,6 +16453,12 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.
+  METHOD get_name.
+
+    rv_name = ms_data-local_settings-display_name.
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
@@ -22230,7 +22251,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
       iv_url          = ls_popup-url
       iv_package      = ls_popup-package
-      iv_folder_logic = ls_popup-folder_logic  ).
+      iv_folder_logic = ls_popup-folder_logic ).
     lo_repo->rebuild_local_checksums( ).
 
     zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
@@ -22249,9 +22270,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     ENDIF.
 
     ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-      iv_url         = ls_popup-url
-      iv_branch_name = ls_popup-branch_name
-      iv_package     = ls_popup-package ).
+      iv_url          = ls_popup-url
+      iv_branch_name  = ls_popup-branch_name
+      iv_package      = ls_popup-package
+      iv_display_name = ls_popup-display_name ).
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -23156,7 +23178,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     CLEAR: ev_url,
            ev_package,
-           ev_branch.
+           ev_branch,
+           ev_display_name.
 
     READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
     ASSERT sy-subrc = 0.
@@ -23170,6 +23193,10 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
     ASSERT sy-subrc = 0.
     ev_branch = <ls_field>-value.
+
+    READ TABLE it_fields INDEX 4 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_display_name = <ls_field>-value.
 
   ENDMETHOD.
   METHOD get_selected_rows.
@@ -23952,19 +23979,20 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_popups~repo_popup.
 
-    DATA: lv_returncode TYPE c,
-          lv_icon_ok    TYPE icon-name,
-          lv_icon_br    TYPE icon-name,
-          lt_fields     TYPE TABLE OF sval,
-          lv_uattr      TYPE spo_fattr,
-          lv_pattr      TYPE spo_fattr,
-          lv_button2    TYPE svalbutton-buttontext,
-          lv_icon2      TYPE icon-name,
-          lv_package    TYPE tdevc-devclass,
-          lv_url        TYPE abaptxt255-line,
-          lv_branch     TYPE textl-line,
-          lv_finished   TYPE abap_bool,
-          lx_error      TYPE REF TO zcx_abapgit_exception.
+    DATA: lv_returncode   TYPE c,
+          lv_icon_ok      TYPE icon-name,
+          lv_icon_br      TYPE icon-name,
+          lt_fields       TYPE TABLE OF sval,
+          lv_uattr        TYPE spo_fattr,
+          lv_pattr        TYPE spo_fattr,
+          lv_button2      TYPE svalbutton-buttontext,
+          lv_icon2        TYPE icon-name,
+          lv_package      TYPE tdevc-devclass,
+          lv_url          TYPE abaptxt255-line,
+          lv_branch       TYPE textl-line,
+          lv_display_name TYPE trm255-text,
+          lv_finished     TYPE abap_bool,
+          lx_error        TYPE REF TO zcx_abapgit_exception.
 
     IF iv_freeze_url = abap_true.
       lv_uattr = '05'.
@@ -24008,6 +24036,12 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                            iv_field_attr = '05'
                  CHANGING ct_fields      = lt_fields ).
 
+      add_field( EXPORTING iv_tabname    = 'TRM255'
+                           iv_fieldname  = 'TEXT'
+                           iv_fieldtext  = 'Display name (opt.)'
+                           iv_value      = lv_display_name
+                 CHANGING ct_fields      = lt_fields ).
+
       lv_icon_ok  = icon_okay.
       lv_icon_br  = icon_workflow_fork.
 
@@ -24041,11 +24075,12 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
       extract_field_values(
         EXPORTING
-          it_fields  = lt_fields
+          it_fields       = lt_fields
         IMPORTING
-          ev_url     = lv_url
-          ev_package = lv_package
-          ev_branch  = lv_branch ).
+          ev_url          = lv_url
+          ev_package      = lv_package
+          ev_branch       = lv_branch
+          ev_display_name = lv_display_name ).
 
       lv_finished = abap_true.
 
@@ -24062,9 +24097,10 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     ENDWHILE.
 
-    rs_popup-url         = lv_url.
-    rs_popup-package     = lv_package.
-    rs_popup-branch_name = lv_branch.
+    rs_popup-url          = lv_url.
+    rs_popup-package      = lv_package.
+    rs_popup-branch_name  = lv_branch.
+    rs_popup-display_name = lv_display_name.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~run_page_class_popup.
@@ -27544,6 +27580,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     io_html->add( '<h2>Local settings</h2>' ).
 
+    IF mo_repo->is_offline( ) = abap_false.
+      io_html->add( '<br>' ).
+      io_html->add( 'Display name: <input name="display_name" type="text" size="30" value="' &&
+        ls_settings-display_name && '">' ).
+      io_html->add( '<br>' ).
+    ENDIF.
+
     CLEAR lv_checked.
     IF ls_settings-write_protected = abap_true.
       lv_checked = | checked|.
@@ -27623,6 +27666,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
           ls_post_field    LIKE LINE OF it_post_fields,
           lv_check_variant TYPE sci_chkv.
     ls_settings = mo_repo->get_local_settings( ).
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'display_name'.
+    ASSERT sy-subrc = 0.
+    ls_settings-display_name = ls_post_field-value.
 
     READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'write_protected' value = 'on'.
     IF sy-subrc = 0.
@@ -35697,6 +35744,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ls_repo-created_by   = sy-uname.
     GET TIME STAMP FIELD ls_repo-created_at.
     ls_repo-dot_abapgit  = is_dot_abapgit.
+
+    ls_repo-local_settings-display_name = iv_display_name.
 
     lv_repo_as_xml = to_xml( ls_repo ).
 
@@ -67684,5 +67733,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-25T06:48:39.120Z
+* abapmerge undefined - 2019-02-25T15:22:17.771Z
 ****************************************************
