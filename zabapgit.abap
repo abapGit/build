@@ -46259,7 +46259,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
           ed_mode_head  = lv_act_head.
 
       IF lv_act_head <> lc_act_delete.
-        zcx_abapgit_exception=>raise( |AUTH { mv_objectname }: Delete not allowed| ).
+        zcx_abapgit_exception=>raise( |SUSO { mv_objectname }: Delete not allowed| ).
       ENDIF.
 
       CALL METHOD lo_suso->('SUSO_COLLECT_IN_CTS')
@@ -46269,7 +46269,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
           ed_result = lv_suso_collect_in_cts.
 
       IF lv_suso_collect_in_cts IS NOT INITIAL.
-        zcx_abapgit_exception=>raise( |AUTH { mv_objectname }: Cannot delete| ).
+        zcx_abapgit_exception=>raise( |SUSO { mv_objectname }: Cannot delete| ).
       ENDIF.
 
     ENDIF.
@@ -48862,6 +48862,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         application               = space
         icfserdesc                = ls_icfserdesc
         icfactive                 = abap_true
+        icfaltnme                 = is_icfservice-icfaltnme
       EXCEPTIONS
         empty_icf_name            = 1
         no_new_virtual_host       = 2
@@ -49204,6 +49205,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
     CLEAR ls_icfservice-icf_user.
     CLEAR ls_icfservice-icf_cclnt.
     CLEAR ls_icfservice-icf_mclnt.
+    CLEAR ls_icfservice-icfaltnme_orig.
 
     io_xml->add( iv_name = 'URL'
                  ig_data = lv_url ).
@@ -60390,8 +60392,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
           EXPORTING
             name = ms_item-obj_name.
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise(
+          iv_text     = |DDLS, { ms_item-obj_name } { lx_error->get_text( ) }|
+          ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -67681,5 +67684,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-24T10:35:49.537Z
+* abapmerge undefined - 2019-02-25T06:48:39.120Z
 ****************************************************
