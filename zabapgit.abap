@@ -8822,7 +8822,8 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
           mv_repo_key      TYPE zif_abapgit_persistence=>ty_repo-key,
           mv_seed          TYPE string, " Unique page id to bind JS sessionStorage
           mv_patch_mode    TYPE abap_bool,
-          mo_stage         TYPE REF TO zcl_abapgit_stage.
+          mo_stage         TYPE REF TO zcl_abapgit_stage,
+          mv_section_count TYPE i.
 
     METHODS render_diff
       IMPORTING is_diff        TYPE ty_file_diff
@@ -29476,15 +29477,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_patch_data.
 
+    DATA: lv_section TYPE string.
+
     CLEAR: ev_filename, ev_line_index.
 
     IF iv_action <> c_patch_action-add AND iv_action <> c_patch_action-remove.
       zcx_abapgit_exception=>raise( |Invalid action { iv_action }| ).
     ENDIF.
 
-    FIND FIRST OCCURRENCE OF REGEX iv_action && `_patch_(.*)_(\d+)`
+    FIND FIRST OCCURRENCE OF REGEX `patch_line_` && iv_action && `_(.*)_(\d)+_(\d+)`
          IN iv_patch
-         SUBMATCHES ev_filename ev_line_index.
+         SUBMATCHES ev_filename lv_section ev_line_index.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Invalid patch| ).
     ENDIF.
@@ -29532,16 +29535,39 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    mv_section_count = mv_section_count + 1.
+
     IF is_diff_line-beacon > 0.
       lt_beacons = is_diff-o_diff->get_beacons( ).
       READ TABLE lt_beacons INTO lv_beacon INDEX is_diff_line-beacon.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
+
     ro_html->add( '<thead class="nav_line">' ).
     ro_html->add( '<tr>' ).
 
-    ro_html->add( '<th class="num"></th>' ).
+    IF mv_patch_mode = abap_true.
+
+      ro_html->add( |<th class="patch">| ).
+
+      ro_html->add_a( iv_txt   = |{ c_patch_action-add }|
+                      iv_act   = |patch_section_add('{ is_diff-filename }','{ mv_section_count }')|
+                      iv_id    = |patch_section_add_{ is_diff-filename }_{ mv_section_count }|
+                      iv_class = |patch_section_add|
+                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+
+      ro_html->add_a( iv_txt   = |{ c_patch_action-remove }|
+                      iv_act   = |patch_section_remove('{ is_diff-filename }', '{ mv_section_count }')|
+                      iv_id    = |patch_section_remove_{ is_diff-filename }_{ mv_section_count }|
+                      iv_class = |patch_section_remove|
+                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+
+      ro_html->add( '</th>' ).
+
+    ELSE.
+      ro_html->add( '<th class="num"></th>' ).
+    ENDIF.
     IF mv_unified = abap_true.
       ro_html->add( '<th class="num"></th>' ).
       ro_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
@@ -29558,6 +29584,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     DATA: ls_diff_file LIKE LINE OF mt_diff_files,
           li_progress  TYPE REF TO zif_abapgit_progress.
     CREATE OBJECT ro_html.
+
+    CLEAR: mv_section_count.
 
     li_progress = zcl_abapgit_progress=>get_instance( lines( mt_diff_files ) ).
 
@@ -29823,31 +29851,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     IF iv_patch_line_possible = abap_true.
 
-      lv_id = |patch_{ lv_object }_{ iv_index }|.
+      lv_id = |{ lv_object }_{ mv_section_count }_{ iv_index }|.
 
       io_html->add( |<td class="{ c_css_class-patch }">| ).
 
-      lv_left_class = |{ c_patch_action-add } |.
-      lv_right_class = |{ c_patch_action-remove } |.
-
       IF is_diff_line-patch_flag = abap_true.
-
-        lv_left_class = lv_left_class && |{ c_css_class-patch_active }|.
-
+        lv_left_class = c_css_class-patch_active.
       ELSE.
-
-        lv_right_class = lv_right_class && |{ c_css_class-patch_active }|.
-
+        lv_right_class = c_css_class-patch_active.
       ENDIF.
 
       io_html->add_a( iv_txt   = |{ c_patch_action-add }|
                       iv_act   = ||
-                      iv_id    = |{ c_patch_action-add }_{ lv_id }|
+                      iv_id    = |patch_line_{ c_patch_action-add }_{ lv_id }|
                       iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
                       iv_class = lv_left_class ).
       io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
                       iv_act   = ||
-                      iv_id    = |{ c_patch_action-remove }_{ lv_id }|
+                      iv_id    = |patch_line_{ c_patch_action-remove }_{ lv_id }|
                       iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
                       iv_class = lv_right_class ).
 
@@ -29865,15 +29886,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     io_html->add( |<th class="patch">| ).
 
-    io_html->add_a( iv_txt = |{ c_patch_action-add }|
-                    iv_act = |patch_add_all('{ is_diff-filename }')|
-                    iv_id  = |patch_add_all|
-                    iv_typ = zif_abapgit_definitions=>c_action_type-dummy ).
+    io_html->add_a( iv_txt   = |{ c_patch_action-add }|
+                    iv_act   = |patch_file_add('{ is_diff-filename }')|
+                    iv_id    = |patch_file_add_{ is_diff-filename }|
+                    iv_class = |patch_file_add|
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
 
-    io_html->add_a( iv_txt = |{ c_patch_action-remove }|
-                    iv_act = |patch_remove_all('{ is_diff-filename }')|
-                    iv_id  = |patch_remove_all|
-                    iv_typ = zif_abapgit_definitions=>c_action_type-dummy ).
+    io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
+                    iv_act   = |patch_file_remove('{ is_diff-filename }')|
+                    iv_id    = |patch_file_remove_{ is_diff-filename }|
+                    iv_class = |patch_file_remove|
+                    iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
 
     io_html->add( '</th>' ).
 
@@ -34054,109 +34077,14 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  Patch / git add -p'.
         _inline '  */'.
         _inline ''.
-        _inline 'function CSSPatchClassCombination(sClassLinkClicked, sClassCorrespondingLink){'.
-        _inline '  this.sClassLinkClicked = sClassLinkClicked;'.
-        _inline '  this.sClassCorrespondingLink = sClassCorrespondingLink;'.
-        _inline '}'.
+        _inline 'function Patch() { }'.
         _inline ''.
-        _inline 'function Patch() {'.
-        _inline ''.
-        _inline '  this.CSS_CLASS = {'.
-        _inline '    ADD:          "add",'.
-        _inline '    REMOVE:       "remove",'.
-        _inline '    PATCH:        "patch",'.
-        _inline '    PATCH_ACTIVE: "patch-active"'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.ID = {'.
-        _inline '    STAGE:            "stage",'.
-        _inline '    PATCH_ADD_ALL:    "patch_add_all",'.
-        _inline '    PATCH_REMOVE_ALL: "patch_remove_all"'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.ACTION = {'.
-        _inline '    PATCH_STAGE: "patch_stage"'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.ADD_REMOVE = new CSSPatchClassCombination(this.CSS_CLASS.ADD, this.CSS_CLASS.REMOVE);'.
-        _inline '  this.REMOVE_ADD = new CSSPatchClassCombination(this.CSS_CLASS.REMOVE, this.CSS_CLASS.ADD);'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline 'Patch.prototype.preparePatch = function(){'.
-        _inline ''.
-        _inline '  this.registerClickHandlerSingleLine();'.
-        _inline '  this.registerClickHandlerAllFile();'.
-        _inline ''.
+        _inline 'Patch.prototype.ID = {'.
+        _inline '  STAGE: "stage"'.
         _inline '};'.
         _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerSingleLine = function(){'.
-        _inline ''.
-        _inline '  // registers the link handlers for add and remove single lines'.
-        _inline ''.
-        _inline '  this.registerClickHandlerForPatchLink(this.ADD_REMOVE);'.
-        _inline '  this.registerClickHandlerForPatchLink(this.REMOVE_ADD);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerAllFile = function(){'.
-        _inline ''.
-        _inline '  // registers the link handlers for add and remove all changes for a file'.
-        _inline ''.
-        _inline '  this.registerClickHandlerForPatchLinkAll("#" + this.ID.PATCH_ADD_ALL, this.ADD_REMOVE);'.
-        _inline '  this.registerClickHandlerForPatchLinkAll("#" + this.ID.PATCH_REMOVE_ALL, this.REMOVE_ADD);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForPatchLink = function(oClassCombination) {'.
-        _inline '  // register onclick handler. When a link is clicked it is'.
-        _inline '  // deactivated and its corresponding link gets active'.
-        _inline '  //'.
-        _inline '  // e.g. if you click on ''add'' add is deactivated and ''remove'''.
-        _inline '  // is activated.'.
-        _inline ''.
-        _inline '  var elLinkAll = document.querySelectorAll("." + this.CSS_CLASS.PATCH + " a." + oClassCombination.sClassLinkClicked);'.
-        _inline ''.
-        _inline '  [].forEach.call(elLinkAll,function(elLink){'.
-        _inline ''.
-        _inline '    elLink.addEventListener("click",function(oEvent){'.
-        _inline '      this.togglePatchActiveForClassLink(oEvent, elLink, oClassCombination);'.
-        _inline '    }.bind(this));'.
-        _inline ''.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.togglePatchActive = function(oEvent, elClicked, elCorrespondingLink){'.
-        _inline ''.
-        _inline '  if (!elClicked.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
-        _inline '    elClicked.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '    elCorrespondingLink.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  oEvent.preventDefault();'.
-        _inline '};'.
-        _inline ''.
-        _inline ''.
-        _inline 'Patch.prototype.togglePatchActiveForClassLink = function(oEvent, elClicked, oClassCombination) {'.
-        _inline ''.
-        _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId(elClicked.id, oClassCombination);'.
-        _inline '  var elCorrespondingLink = document.querySelector(''[ID="'' + this.escape(sCorrespondingLinkId) + ''"]'');'.
-        _inline ''.
-        _inline '  this.togglePatchActive(oEvent, elClicked, elCorrespondingLink);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.getCorrespodingLinkId = function(sClickedLinkId, oClassCombination){'.
-        _inline ''.
-        _inline '  // e.g.'.
-        _inline '  //'.
-        _inline '  //   add_patch_z_test_git_add_p.prog.abap_28 => remove_patch_z_test_git_add_p.prog.abap_28'.
-        _inline '  //'.
-        _inline '  // and vice versa'.
-        _inline ''.
-        _inline '  var oRegexPatchClassPrefix = new RegExp("^" + oClassCombination.sClassLinkClicked );'.
-        _inline '  return sClickedLinkId.replace(oRegexPatchClassPrefix, oClassCombination.sClassCorrespondingLink);'.
-        _inline ''.
+        _inline 'Patch.prototype.ACTION = {'.
+        _inline '  PATCH_STAGE: "patch_stage"'.
         _inline '};'.
         _inline ''.
         _inline 'Patch.prototype.escape = function(sFileName){'.
@@ -34165,27 +34093,249 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '    .replace(/#/g, "\\#");'.
         _inline '};'.
         _inline ''.
-        _inline 'Patch.prototype.patchLinkClickAll = function(oClassCombination) {'.
-        _inline '  return function(oEvent) {'.
+        _inline '/*'.
+        _inline '  We have three type of cascading links, each of them has two verbs, add and remove.'.
+        _inline '  Which means that by clicking a file or section link all corresponding line links are clicked.'.
         _inline ''.
-        _inline '    var sTableId = oEvent.srcElement.parentElement.parentElement.parentElement.parentElement.id;'.
-        _inline '    var elAddAll = document.querySelectorAll(''[ID="'' + this.escape(sTableId) + ''"] a.'' + oClassCombination.sClassLinkClicked);'.
+        _inline '  The id of the link indicates its semantics and its membership.'.
         _inline ''.
-        _inline '    [].forEach.call(elAddAll,function(elem){'.
-        _inline '      this.togglePatchActiveForClassLink(oEvent, elem, oClassCombination);'.
-        _inline '    }.bind(this));'.
+        _inline '  */'.
         _inline ''.
-        _inline '    oEvent.preventDefault();'.
+        _inline '/*'.
+        _inline '  1) file links'.
         _inline ''.
-        _inline '  };'.
+        _inline '      example id of file link'.
+        _inline ''.
+        _inline '      patch_file_add_zcl_abapgit_user_exit.clas.abap'.
+        _inline '      \________/  ^  \_____________________________/'.
+        _inline '          |       |              |'.
+        _inline '          |       |              |____ file name'.
+        _inline '          |       |'.
+        _inline '          |     verb [add|remove]'.
+        _inline '          |'.
+        _inline '      constant prefix'.
+        _inline ''.
+        _inline '  */'.
+        _inline ''.
+        _inline 'function PatchFile(sId){'.
+        _inline '  var oRegex = new RegExp("(" + this.ID.FILE + ")_(add|remove)_(.*$)");'.
+        _inline '  var oMatch = sId.match(oRegex);'.
+        _inline '  this.id        = sId;'.
+        _inline '  this.prefix    = oMatch[1];'.
+        _inline '  this.verb      = oMatch[2];'.
+        _inline '  this.file_name = oMatch[3];'.
+        _inline '}'.
+        _inline ''.
+        _inline 'PatchFile.prototype.ID = {'.
+        _inline '  FILE:   "patch_file",'.
+        _inline '  ADD:    "patch_file_add",'.
+        _inline '  REMOVE: "patch_file_remove"'.
         _inline '};'.
         _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForPatchLinkAll = function(sSelector, oClassCombination){'.
+        _inline '/*'.
+        _inline '  2) section links within a file'.
+        _inline ''.
+        _inline '      example id of section link'.
+        _inline ''.
+        _inline '      patch_section_add_zcl_abapgit_user_exit.clas.abap_1'.
+        _inline '      \___________/  ^  \_____________________________/ ^'.
+        _inline '            |        |              |                   |'.
+        _inline '            |        |          file name               |'.
+        _inline '            |        |                                  |'.
+        _inline '            |      verb [add|remove]                    ------ section'.
+        _inline '            |'.
+        _inline '      constant prefix'.
+        _inline ''.
+        _inline '    */'.
+        _inline ''.
+        _inline 'function PatchSection(sId){'.
+        _inline '  var oRegex = new RegExp("(" + this.ID.SECTION + ")_(add|remove)_(.*)_(\\d+$)");'.
+        _inline '  var oMatch = sId.match(oRegex);'.
+        _inline '  this.id        = sId;'.
+        _inline '  this.prefix    = oMatch[1];'.
+        _inline '  this.verb      = oMatch[2];'.
+        _inline '  this.file_name = oMatch[3];'.
+        _inline '  this.section   = oMatch[4];'.
+        _inline '}'.
+        _inline ''.
+        _inline 'PatchSection.prototype.ID = {'.
+        _inline '  SECTION: "patch_section",'.
+        _inline '  ADD:     "patch_section_add",'.
+        _inline '  REMOVE:  "patch_section_remove"'.
+        _inline '};'.
+        _inline ''.
+        _inline '/*'.
+        _inline '  3) line links within a section'.
+        _inline ''.
+        _inline '      example id of line link'.
+        _inline ''.
+        _inline '      patch_line_add_zcl_abapgit_user_exit.clas.abap_1_25'.
+        _inline '      \________/  ^  \_____________________________/ ^  ^'.
+        _inline '            ^     |                ^                 |  |'.
+        _inline '            |     |                |                 |  ------- line number'.
+        _inline '            |     |             file name            |'.
+        _inline '            |     |                               section'.
+        _inline '            |   verb [add|remove]'.
+        _inline '            |'.
+        _inline '      constant prefix'.
+        _inline ''.
+        _inline '  */'.
+        _inline 'function PatchLine(sId){'.
+        _inline '  var oRegex = new RegExp("(" + this.ID.LINE + ")_(add|remove)_(.*)_(\\d+)_(\\d+$)");'.
+        _inline '  var oMatch = sId.match(oRegex);'.
+        _inline ''.
+        _inline '  this.id        = sId;'.
+        _inline '  this.prefix    = oMatch[1];'.
+        _inline '  this.verb      = oMatch[2];'.
+        _inline '  this.file_name = oMatch[3];'.
+        _inline '  this.section   = oMatch[4];'.
+        _inline '  this.line      = oMatch[5];'.
+        _inline ''.
+        _inline '  this.corresponding_verb = this.CORRESPONDING_VERBS[this.verb];'.
+        _inline '  this.elem               = document.querySelector("#" + Patch.prototype.escape(this.id));'.
+        _inline '  this.correspondingLink  = this.getCorrespodingLink();'.
+        _inline '}'.
+        _inline ''.
+        _inline 'PatchLine.prototype.ID = {'.
+        _inline '  LINE:   "patch_line",'.
+        _inline '  ADD:    "patch_line_add",'.
+        _inline '  REMOVE: "patch_line_remove"'.
+        _inline '};'.
+        _inline ''.
+        _inline 'PatchLine.prototype.CSS_CLASS = {'.
+        _inline '  PATCH:        "patch",'.
+        _inline '  PATCH_ACTIVE: "patch-active"'.
+        _inline '};'.
+        _inline ''.
+        _inline 'PatchLine.prototype.CORRESPONDING_VERBS = {'.
+        _inline '  add:    "remove",'.
+        _inline '  remove: "add"'.
+        _inline '};'.
+        _inline ''.
+        _inline 'PatchLine.prototype.getCorrespodingLinkId = function(){'.
+        _inline ''.
+        _inline '  // e.g.'.
+        _inline '  //'.
+        _inline '  //   patch_line_add_z_test_git_add_p.prog.abap_3_28 => patch_line_remove_z_test_git_add_p.prog.abap_3_28'.
+        _inline '  //'.
+        _inline '  // and vice versa'.
+        _inline ''.
+        _inline '  var oRegexPatchIdPrefix = new RegExp("^" + this.ID.LINE + "_" + this.verb );'.
+        _inline '  return this.id.replace(oRegexPatchIdPrefix, this.ID.LINE + "_" + this.corresponding_verb);'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'PatchLine.prototype.toggle = function(){'.
+        _inline ''.
+        _inline '  if (!this.elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
+        _inline '    this.elem.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
+        _inline '    this.correspondingLink.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
+        _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'PatchLine.prototype.getCorrespodingLink = function(){'.
+        _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId();'.
+        _inline '  return document.querySelector(''[ID="'' + Patch.prototype.escape(sCorrespondingLinkId) + ''"]'');'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.preparePatch = function(){'.
+        _inline ''.
+        _inline '  this.registerClickHandlerForFiles();'.
+        _inline '  this.registerClickHandlerForSections();'.
+        _inline '  this.registerClickHandlerForLines();'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
+        _inline '  // registers the link handlers for add and remove files'.
+        _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.ADD + "'']");'.
+        _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.REMOVE + "'']");'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
+        _inline '  // registers the link handlers for add and remove sections'.
+        _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.ADD + "'']");'.
+        _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.REMOVE + "'']");'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
+        _inline '  // registers the link handlers for add and remove lines'.
+        _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.ADD + "'']");'.
+        _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.REMOVE + "'']");'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForSelector = function(sSelector, fnCallback){'.
         _inline ''.
         _inline '  var elAll = document.querySelectorAll(sSelector);'.
         _inline ''.
         _inline '  [].forEach.call(elAll, function(elem){'.
-        _inline '    elem.addEventListener("click", this.patchLinkClickAll(oClassCombination).bind(this));'.
+        _inline '    elem.addEventListener("click", fnCallback.bind(this));'.
+        _inline '  }.bind(this));'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForPatchFile = function(sSelector){'.
+        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickFile);'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForPatchSection = function(sSelector){'.
+        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickSection);'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.registerClickHandlerForPatchLine = function(sSelector) {'.
+        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickLine);'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.patchLinkClickLine = function(oEvent){'.
+        _inline '  this.togglePatchForElem(oEvent.srcElement);'.
+        _inline '  oEvent.preventDefault();'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.togglePatchForElem = function(elLink) {'.
+        _inline '  new PatchLine(elLink.id).toggle();'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.getAllLineLinksForId = function(sId, sIdPrefix){'.
+        _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
+        _inline '  sId = sId.replace(oRegex, PatchLine.prototype.ID.LINE);'.
+        _inline '  return document.querySelectorAll("a[id^=''"+ this.escape(sId) + "'']");'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.getAllLineLinksForFile = function(oFile){'.
+        _inline '  return this.getAllLineLinksForId(oFile.id, PatchFile.prototype.ID.FILE);'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.getAllLineLinksForSection = function(oSection){'.
+        _inline '  return this.getAllLineLinksForId(oSection.id, PatchSection.prototype.ID.SECTION);'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.patchLinkClickFile = function(oEvent) {'.
+        _inline ''.
+        _inline '  var oFile = new PatchFile(oEvent.srcElement.id);'.
+        _inline '  var elAllLineLinksOfFile = this.getAllLineLinksForFile(oFile);'.
+        _inline ''.
+        _inline '  [].forEach.call(elAllLineLinksOfFile,function(elem){'.
+        _inline '    this.togglePatchForElem(elem);'.
+        _inline '  }.bind(this));'.
+        _inline ''.
+        _inline '  oEvent.preventDefault();'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.patchLinkClickSection = function(oEvent){'.
+        _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
+        _inline '  this.clickAllLineLinksInSection(oEvent, oSection.section);'.
+        _inline '  oEvent.preventDefault();'.
+        _inline '};'.
+        _inline ''.
+        _inline 'Patch.prototype.clickAllLineLinksInSection = function(oEvent){'.
+        _inline ''.
+        _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
+        _inline '  var elAllLineLinksOfSection = this.getAllLineLinksForSection(oSection);'.
+        _inline ''.
+        _inline '  [].forEach.call(elAllLineLinksOfSection,function(elem){'.
+        _inline '    this.togglePatchForElem(elem);'.
+        _inline '    oEvent.preventDefault();'.
         _inline '  }.bind(this));'.
         _inline ''.
         _inline '};'.
@@ -34206,37 +34356,34 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  // Collect add and remove info and submit to backend'.
         _inline ''.
-        _inline '  var aAddPatch = this.collectActiveElementsForSelector("." + this.CSS_CLASS.PATCH +" a." + this.CSS_CLASS.ADD);'.
-        _inline '  var aRemovePatch = this.collectActiveElementsForSelector("." + this.CSS_CLASS.PATCH + " a." + this.CSS_CLASS.REMOVE);'.
+        _inline '  var aAddPatch = this.collectActiveElementsForId( PatchLine.prototype.ID.ADD );'.
+        _inline '  var aRemovePatch = this.collectActiveElementsForId( PatchLine.prototype.ID.REMOVE );'.
         _inline ''.
         _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'Patch.prototype.collectActiveElementsForSelector = function(sSelector){'.
+        _inline 'Patch.prototype.collectActiveElementsForId = function(sId){'.
+        _inline ''.
+        _inline '  var sSelector = "." + PatchLine.prototype.CSS_CLASS.PATCH + " a[id^=''" + sId + "'']";'.
         _inline ''.
         _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
         _inline '    .filter(function(elem){'.
-        _inline '      return elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '    }.bind(this))'.
-        _inline '    .map(function(elem){'.
+        _inline '      return elem.classList.contains(PatchLine.prototype.CSS_CLASS.PATCH_ACTIVE);'.
+        _inline '    }).map(function(elem){'.
         _inline '      return elem.id;'.
         _inline '    });'.
         _inline ''.
         _inline '};'.
         _inline ''.
         _inline 'function preparePatch(){'.
-        _inline ''.
         _inline '  var oPatch = new Patch();'.
         _inline '  oPatch.preparePatch();'.
-        _inline ''.
         _inline '}'.
         _inline ''.
         _inline 'function registerStagePatch(){'.
-        _inline ''.
         _inline '  var oPatch = new Patch();'.
         _inline '  oPatch.registerStagePatch();'.
-        _inline ''.
         _inline '}'.
         _inline ''.
         _inline '/**********************************************************'.
@@ -67733,5 +67880,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-26T05:30:30.540Z
+* abapmerge undefined - 2019-02-26T05:32:54.708Z
 ****************************************************
