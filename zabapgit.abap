@@ -694,9 +694,9 @@ CLASS zcl_abapgit_http DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_github_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_registry DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_base DEFINITION DEFERRED.
-CLASS zcl_abapgit_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
@@ -2947,6 +2947,25 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_git_tag DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS:
+      add_tag_prefix
+        IMPORTING
+          iv_text        TYPE csequence
+        RETURNING
+          VALUE(rv_text) TYPE string,
+
+      remove_tag_prefix
+        IMPORTING
+          iv_text        TYPE string
+        RETURNING
+          VALUE(rv_text) TYPE string.
+
+ENDCLASS.
 CLASS zcl_abapgit_git_transport DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -3027,25 +3046,6 @@ CLASS zcl_abapgit_git_utils DEFINITION
       IMPORTING iv_data       TYPE xstring
       RETURNING VALUE(rv_len) TYPE i
       RAISING   zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcl_abapgit_tag DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS:
-      add_tag_prefix
-        IMPORTING
-          iv_text        TYPE csequence
-        RETURNING
-          VALUE(rv_text) TYPE string,
-
-      remove_tag_prefix
-        IMPORTING
-          iv_text        TYPE string
-        RETURNING
-          VALUE(rv_text) TYPE string.
 
 ENDCLASS.
 "! Default {@link ZIF_ABAPGIT_2FA_AUTHENTICATOR} implementation
@@ -19841,7 +19841,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
       CHECK sy-subrc = 0.
 
-      lv_tag = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
+      lv_tag = zcl_abapgit_git_tag=>remove_tag_prefix( <ls_tag>-name ).
       INSERT lv_tag INTO TABLE <ls_commit>-tags.
 
     ENDLOOP.
@@ -22000,7 +22000,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
 
       MOVE-CORRESPONDING <ls_tag> TO ls_tag_out.
 
-      ls_tag_out-name = zcl_abapgit_tag=>remove_tag_prefix( ls_tag_out-name ).
+      ls_tag_out-name = zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag_out-name ).
 
       IF ls_tag_out-body IS NOT INITIAL.
         ls_tag_out-body_icon = |{ icon_display_text }|.
@@ -22170,7 +22170,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
     LOOP AT lt_tags ASSIGNING <ls_tag>.
 
       INSERT INITIAL LINE INTO lt_selection INDEX 1 ASSIGNING <ls_sel>.
-      <ls_sel>-varoption = zcl_abapgit_tag=>remove_tag_prefix( <ls_tag>-name ).
+      <ls_sel>-varoption = zcl_abapgit_git_tag=>remove_tag_prefix( <ls_tag>-name ).
 
     ENDLOOP.
 
@@ -22200,7 +22200,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
     READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
     ASSERT sy-subrc = 0.
 
-    lv_name_with_prefix = zcl_abapgit_tag=>add_tag_prefix( <ls_sel>-varoption ).
+    lv_name_with_prefix = zcl_abapgit_git_tag=>add_tag_prefix( <ls_sel>-varoption ).
 
     READ TABLE lt_tags ASSIGNING <ls_tag> WITH KEY name = lv_name_with_prefix.
     ASSERT sy-subrc = 0.
@@ -22708,7 +22708,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       iv_url = lo_repo->get_url( )
       is_tag = ls_tag ).
 
-    lv_text = |Tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
+    lv_text = |Tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -26085,7 +26085,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Please supply a tag name| ).
     ENDIF.
 
-    ls_tag-name = zcl_abapgit_tag=>add_tag_prefix( ls_tag-name ).
+    ls_tag-name = zcl_abapgit_git_tag=>add_tag_prefix( ls_tag-name ).
     ASSERT ls_tag-name CP 'refs/tags/+*'.
 
     CASE mv_selected_type.
@@ -26112,9 +26112,9 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ENDTRY.
 
     IF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
-      lv_text = |Lightweight tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+      lv_text = |Lightweight tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
     ELSEIF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
-      lv_text = |Annotated tag { zcl_abapgit_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+      lv_text = |Annotated tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
     ENDIF.
 
     MESSAGE lv_text TYPE 'S'.
@@ -65206,22 +65206,6 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
     rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
   ENDMETHOD.
 ENDCLASS.
-CLASS ZCL_ABAPGIT_TAG IMPLEMENTATION.
-  METHOD add_tag_prefix.
-
-    rv_text = zif_abapgit_definitions=>c_tag_prefix && iv_text.
-
-  ENDMETHOD.
-  METHOD remove_tag_prefix.
-
-    rv_text = iv_text.
-
-    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_tag_prefix
-            IN rv_text
-            WITH ''.
-
-  ENDMETHOD.
-ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
@@ -65496,6 +65480,22 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
     ENDIF.
 
     et_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
+
+  ENDMETHOD.
+ENDCLASS.
+CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
+  METHOD add_tag_prefix.
+
+    rv_text = zif_abapgit_definitions=>c_tag_prefix && iv_text.
+
+  ENDMETHOD.
+  METHOD remove_tag_prefix.
+
+    rv_text = iv_text.
+
+    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_tag_prefix
+            IN rv_text
+            WITH ''.
 
   ENDMETHOD.
 ENDCLASS.
@@ -66584,7 +66584,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>c_newline }|
              && |type { is_tag-type }{ zif_abapgit_definitions=>c_newline }|
-             && |tag { zcl_abapgit_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>c_newline }|
+             && |tag { zcl_abapgit_git_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>c_newline }|
              && |tagger { is_tag-tagger_name } <{ is_tag-tagger_email }> { lv_time }|
              && |{ zif_abapgit_definitions=>c_newline }|
              && |{ zif_abapgit_definitions=>c_newline }|
@@ -67879,5 +67879,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-27T05:31:07.909Z
+* abapmerge undefined - 2019-02-27T05:33:18.983Z
 ****************************************************
