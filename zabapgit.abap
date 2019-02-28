@@ -38606,7 +38606,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         OTHERS    = 2.
     IF sy-subrc <> 0.
 * if moving code from SAPlink, see https://github.com/larshp/abapGit/issues/562
-      zcx_abapgit_exception=>raise( 'error from RS_CUA_INTERNAL_WRITE' ).
+      zcx_abapgit_exception=>raise( |Error from RS_CUA_INTERNAL_WRITE. Subrc = { sy-subrc }| ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add(
@@ -38664,7 +38664,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
           illegal_field_position = 9
           OTHERS                 = 10.
       IF sy-subrc <> 2 AND sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from RPY_DYNPRO_INSERT: { sy-subrc }| ).
+        zcx_abapgit_exception=>raise( |Error from RPY_DYNPRO_INSERT: { sy-subrc }| ).
       ENDIF.
 * todo, RPY_DYNPRO_UPDATE?
 
@@ -38702,9 +38702,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         unknown_objectclass = 3
         OTHERS              = 4.
     IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( |RS_CORR_INSERT, Cancelled, { sy-msgid }, { sy-msgno }| ).
+      zcx_abapgit_exception=>raise( |Error from RS_CORR_INSERT, Cancelled, { sy-msgid }, { sy-msgno }| ).
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from RS_CORR_INSERT, { sy-msgid }, { sy-msgno }| ).
+      zcx_abapgit_exception=>raise( |Error from RS_CORR_INSERT, { sy-msgid }, { sy-msgno }| ).
     ENDIF.
 
     READ TABLE it_tpool INTO ls_tpool WITH KEY id = 'R'.
@@ -38801,7 +38801,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         not_exists = 1
         OTHERS     = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'not found in PROGDIR' ).
+      zcx_abapgit_exception=>raise( |not found in PROGDIR. Subrc = { sy-subrc }| ).
     ENDIF.
 
 * todo, package?
@@ -38824,7 +38824,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         not_executed = 1
         OTHERS       = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'PROG, error inserting' ).
+      zcx_abapgit_exception=>raise( |PROG, error inserting. Subrc = { sy-subrc }| ).
     ENDIF.
 
     SELECT SINGLE * FROM progdir INTO ls_progdir_new
@@ -39007,7 +39007,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         unknown_version = 2
         OTHERS          = 3.
     IF sy-subrc > 1.
-      zcx_abapgit_exception=>raise( |error from RS_CUA_INTERNAL_FETCH, { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from RS_CUA_INTERNAL_FETCH, { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -39034,7 +39034,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         not_found = 1
         OTHERS    = 2.
     IF sy-subrc = 2.
-      zcx_abapgit_exception=>raise( 'error from screen_list' ).
+      zcx_abapgit_exception=>raise( |Error from RS_SCREEN_LIST. Subrc = { sy-subrc }| ).
     ENDIF.
 
     SORT lt_d020s BY dnum ASCENDING.
@@ -39130,7 +39130,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       RETURN.
     ELSEIF sy-subrc <> 0.
       zcl_abapgit_language=>restore_login_language( ).
-      zcx_abapgit_exception=>raise( 'Error reading program' ).
+      zcx_abapgit_exception=>raise( |Error reading program with RPY_PROGRAM_READ. Subrc = { sy-subrc }| ).
     ENDIF.
 
     zcl_abapgit_language=>restore_login_language( ).
@@ -67952,5 +67952,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-27T13:36:45.374Z
+* abapmerge undefined - 2019-02-28T05:54:20.159Z
 ****************************************************
