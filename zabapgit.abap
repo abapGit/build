@@ -6020,6 +6020,9 @@ CLASS zcl_abapgit_object_sprx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     DATA mv_object TYPE sproxhdr-object .
     DATA mv_obj_name TYPE sproxhdr-obj_name .
 
+    METHODS load_db
+      RETURNING
+        VALUE(rs_data) TYPE sprx_db_data .
     METHODS get_object_and_name
       EXPORTING
         !ev_object   TYPE sproxhdr-object
@@ -48113,6 +48116,47 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
     ev_obj_name = ms_item-obj_name+4.
 
   ENDMETHOD.
+  METHOD load_db.
+
+* method cl_proxy_db=>load_by_abap_name does not exist in lower releases
+
+    DATA: lt_packages TYPE prx_t_namespace_package,
+          ls_package  LIKE LINE OF lt_packages,
+          ls_hdr      TYPE prx_s_proxy_hdr,
+          lv_package  TYPE tadir-devclass,
+          lt_ids      TYPE prx_ids.
+
+    cl_proxy_query=>get_hdr_by_abap_name(
+      EXPORTING
+        object   = mv_object
+        obj_name = mv_obj_name
+      IMPORTING
+        hdr      = ls_hdr ).
+    APPEND ls_hdr-id TO lt_ids.
+
+    IF ls_hdr-gen_appl = 'WEBSERVICES'.
+      cl_proxy_utils=>get_package(
+        EXPORTING
+          object   = mv_object
+          obj_name = mv_obj_name
+        RECEIVING
+          rval     = lv_package
+        EXCEPTIONS
+          OTHERS   = 0 ).
+
+      ls_package-namespace = ls_hdr-esr_nspce.
+      ls_package-prefix    = ls_hdr-prefix.
+      ls_package-package   = lv_package.
+      APPEND ls_package TO lt_packages.
+    ENDIF.
+
+    rs_data = cl_proxy_db=>load(
+      inactive               = abap_false
+      ids                    = lt_ids
+      generating_application = ls_hdr-gen_appl
+      packages               = lt_packages ).
+
+  ENDMETHOD.
   METHOD save.
 
     DATA:
@@ -48147,8 +48191,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
            AND   obj_name   = mv_obj_name
            AND   inactive   = abap_false.
 
-    IF  sy-subrc = 0
-    AND lv_changed_by IS NOT INITIAL.
+    IF sy-subrc = 0 AND lv_changed_by IS NOT INITIAL.
       rv_user = lv_changed_by.
     ENDIF.
 
@@ -48247,22 +48290,16 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA:
-      lo_proxy           TYPE REF TO cl_proxy,
-      ls_sprx_db_data    TYPE sprx_db_data,
-      lt_delta           TYPE sprx_t_delta,
-      lx_proxy_gen_error TYPE REF TO cx_proxy_gen_error.
+      ls_sprx_db_data TYPE sprx_db_data.
 
     FIELD-SYMBOLS:
       <ls_sproxheader> LIKE LINE OF ls_sprx_db_data-sproxhdr,
-      <ls_sproxdat>    TYPE sprx_dat.
-
+      <ls_sproxdat>    LIKE LINE OF ls_sprx_db_data-sproxdat.
     IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
-    ls_sprx_db_data = cl_proxy_db=>load_by_abap_name(
-      object   = mv_object
-      obj_name = mv_obj_name ).
+    ls_sprx_db_data = load_db( ).
 
     DELETE ls_sprx_db_data-sproxhdr WHERE object <> mv_object OR obj_name <> mv_obj_name.
     DELETE ls_sprx_db_data-sproxdat WHERE object <> mv_object OR obj_name <> mv_obj_name.
@@ -67952,5 +67989,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-28T05:54:20.159Z
+* abapmerge undefined - 2019-02-28T05:58:53.385Z
 ****************************************************
