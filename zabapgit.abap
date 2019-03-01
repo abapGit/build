@@ -26896,11 +26896,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD is_post_field_checked.
     FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
     READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = iv_name.
-    IF sy-subrc = 0.
-      IF <ls_post_field>-value = abap_true "HTML value when using standard netweaver GUI
-          OR <ls_post_field>-value = 'on'.     "HTML value when using Netweaver Java GUI
-        rv_return = abap_true.
-      ENDIF.
+    IF sy-subrc = 0
+        AND ( <ls_post_field>-value = abap_true "HTML value when using standard netweaver GUI
+        OR <ls_post_field>-value = 'on' ).     "HTML value when using Netweaver Java GUI
+      rv_return = abap_true.
     ENDIF.
   ENDMETHOD.
   METHOD parse_post.
@@ -33847,7 +33846,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  this.aTooltipElements = document.querySelectorAll("a span");'.
         _inline '}'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnRenderTooltip = function (oTooltip, iTooltipCounter) {'.
+        _inline 'LinkHints.prototype.renderTooltip = function (oTooltip, iTooltipCounter) {'.
         _inline '  if (this.bTooltipsOn) {'.
         _inline '    oTooltip.classList.remove("hidden");'.
         _inline '  } else {'.
@@ -33865,7 +33864,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnRenderTooltips = function () {'.
+        _inline 'LinkHints.prototype.renderTooltips = function () {'.
         _inline ''.
         _inline '  // all possible links which should be accessed via tooltip have'.
         _inline '  // sub span which is hidden by default. If we like to show the'.
@@ -33881,23 +33880,27 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
         _inline '    iTooltipCounter += 1;'.
-        _inline '    this.fnRenderTooltip(oTooltip, iTooltipCounter);'.
+        _inline '    this.renderTooltip(oTooltip, iTooltipCounter);'.
         _inline '  }.bind(this));'.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnToggleAllTooltips = function () {'.
+        _inline 'LinkHints.prototype.toggleAllTooltips = function () {'.
         _inline ''.
         _inline '  this.sPending = "";'.
         _inline '  this.bTooltipsOn = !this.bTooltipsOn;'.
-        _inline '  this.fnRenderTooltips();'.
+        _inline '  this.renderTooltips();'.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnRemoveAllTooltips = function () {'.
-        _inline ''.
+        _inline 'LinkHints.prototype.disableTooltips = function(){'.
         _inline '  this.sPending = "";'.
         _inline '  this.bTooltipsOn = false;'.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.removeAllTooltips = function () {'.
+        _inline ''.
+        _inline '  this.disableTooltips();'.
         _inline ''.
         _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
         _inline '    oTooltip.classList.add("hidden");'.
@@ -33905,7 +33908,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnFilterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
+        _inline 'LinkHints.prototype.filterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
         _inline ''.
         _inline '  Object'.
         _inline '    .keys(this.oTooltipMap)'.
@@ -33927,22 +33930,22 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '};'.
         _inline ''.
-        _inline 'LinkHints.prototype.fnActivateDropDownMenu = function (oTooltip) {'.
+        _inline 'LinkHints.prototype.activateDropDownMenu = function (oTooltip) {'.
         _inline '  // to enable link hint navigation for drop down menu, we must expand'.
         _inline '  // like if they were hovered'.
         _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
         _inline '};'.
         _inline ''.
         _inline ''.
-        _inline 'LinkHints.prototype.fnTooltipActivate = function (oTooltip) {'.
+        _inline 'LinkHints.prototype.tooltipActivate = function (oTooltip) {'.
         _inline ''.
         _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
         _inline '  // and remove all tooltips'.
-        _inline '  this.fnRemoveAllTooltips();'.
+        _inline '  this.removeAllTooltips();'.
         _inline '  oTooltip.parentElement.click();'.
         _inline ''.
         _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
-        _inline '  this.fnActivateDropDownMenu(oTooltip);'.
+        _inline '  this.activateDropDownMenu(oTooltip);'.
         _inline '  oTooltip.parentElement.focus();'.
         _inline ''.
         _inline '};'.
@@ -33959,7 +33962,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  // Maybe we must add other types here in the future'.
         _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
         _inline ''.
-        _inline '    this.fnToggleAllTooltips();'.
+        _inline '    this.toggleAllTooltips();'.
         _inline ''.
         _inline '  } else if (this.bTooltipsOn === true) {'.
         _inline ''.
@@ -33969,14 +33972,32 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline ''.
         _inline '    if (oTooltip) {'.
         _inline '      // we are there, we have a fully specified tooltip. Let''s activate it'.
-        _inline '      this.fnTooltipActivate(oTooltip);'.
+        _inline '      this.tooltipActivate(oTooltip);'.
         _inline '    } else {'.
         _inline '      // we are not there yet, but let''s filter the link so that only'.
         _inline '      // the partially matched are shown'.
-        _inline '      this.fnFilterTooltips(this.sPending);'.
+        _inline '      this.filterTooltips(this.sPending);'.
+        _inline '      this.disableTooltipsIfNoTooltipIsVisible();'.
         _inline '    }'.
         _inline ''.
         _inline '  }'.
+        _inline ''.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.disableTooltipsIfNoTooltipIsVisible = function(){'.
+        _inline ''.
+        _inline '  if (!this.isAnyTooltipVisible()) {'.
+        _inline '    this.disableTooltips();'.
+        _inline '  }'.
+        _inline '};'.
+        _inline ''.
+        _inline 'LinkHints.prototype.isAnyTooltipVisible = function(){'.
+        _inline ''.
+        _inline '  return (Object'.
+        _inline '    .keys(this.oTooltipMap)'.
+        _inline '    .filter(function (key) {'.
+        _inline '      return !this.oTooltipMap[key].classList.contains("hidden");'.
+        _inline '    }.bind(this)).length > 0);'.
         _inline ''.
         _inline '};'.
         _inline ''.
@@ -36803,7 +36824,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
         class_not_existing = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from CL_OO_SOURCE' ).
+      zcx_abapgit_exception=>raise( |Error from CL_OO_SOURCE. Subrc = { sy-subrc }| ).
     ENDIF.
 
     lo_source->read( 'A' ).
@@ -36967,7 +36988,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         internal_error_insert_report   = 11
         OTHERS                         = 12.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SEO_METHOD_GENERATE_INCLUDE' ).
+      zcx_abapgit_exception=>raise( |Error from SEO_METHOD_GENERATE_INCLUDE. Subrc = { sy-subrc }| ).
     ENDIF.
 
     rv_program = cl_oo_classname_service=>get_method_include( ls_mtdkey ).
@@ -37005,7 +37026,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         _internal_class_overflow      = 19
         OTHERS                        = 20.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SEO_CLASS_GENERATE_CLASSPOOL' ).
+      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_GENERATE_CLASSPOOL. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -37100,7 +37121,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
             OTHERS             = 3.
     ENDTRY.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error instantiating CL_OO_CLASS_SECTION_SOURCE' ).
+      zcx_abapgit_exception=>raise( |Error instantiating CL_OO_CLASS_SECTION_SOURCE. Subrc = { sy-subrc }| ).
     ENDIF.
 
     lo_update->set_dark_mode( seox_true ).
@@ -37118,7 +37139,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         scan_abap_source_error = 1
         OTHERS                 = 2 ).
     IF sy-subrc <> 0 OR lv_scan_error = abap_true.
-      zcx_abapgit_exception=>raise( 'CLAS, error while scanning source' ).
+      zcx_abapgit_exception=>raise( |CLAS, error while scanning source. Subrc = { sy-subrc }| ).
     ENDIF.
 
 * this will update the SEO* database tables
@@ -37208,7 +37229,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         other           = 6
         OTHERS          = 7.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from SEO_CLASS_CREATE_COMPLETE: { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_CREATE_COMPLETE. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -37230,7 +37251,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           object_not_found = 1
           OTHERS           = 2.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from SOTR_OBJECT_GET_OBJECTS' ).
+        zcx_abapgit_exception=>raise( |error from SOTR_OBJECT_GET_OBJECTS. Subrc = { sy-subrc }| ).
       ENDIF.
 
       READ TABLE lt_objects INDEX 1 INTO lv_object.
@@ -37267,7 +37288,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           no_entry_found                = 18
           OTHERS                        = 19.
       IF sy-subrc <> 0 AND sy-subrc <> 5.
-        zcx_abapgit_exception=>raise( 'error from SOTR_CREATE_CONCEPT,' && sy-subrc ).
+        zcx_abapgit_exception=>raise( |Error from SOTR_CREATE_CONCEPT. Subrc = { sy-subrc }| ).
       ENDIF.
     ENDLOOP.
 
@@ -37288,7 +37309,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
 * this can happen when the SXCI object is deleted before the implementing CLAS
       RETURN.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE: { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE. Subrc = { sy-subrc }| ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~deserialize_source.
@@ -37426,7 +37447,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     IF sy-subrc = 1.
       RETURN. " in case only inactive version exists
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from seo_clif_get' ).
+      zcx_abapgit_exception=>raise( |Error from SEO_CLIF_GET. Subrc = { sy-subrc }| ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~get_includes.
@@ -37551,7 +37572,19 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     READ TEXTPOOL lv_cp INTO rt_text_pool LANGUAGE iv_language. "#EC CI_READ_REP
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_oo_base IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
+  METHOD convert_attrib_to_vseoattrib.
+    FIELD-SYMBOLS: <ls_attribute>  LIKE LINE OF it_attributes,
+                   <ls_vseoattrib> LIKE LINE OF rt_vseoattrib.
+
+    LOOP AT it_attributes ASSIGNING <ls_attribute>.
+      INSERT INITIAL LINE INTO TABLE rt_vseoattrib ASSIGNING <ls_vseoattrib>.
+      MOVE-CORRESPONDING <ls_attribute> TO <ls_vseoattrib>.
+      <ls_vseoattrib>-clsname = iv_clsname.
+      UNASSIGN <ls_vseoattrib>.
+    ENDLOOP.
+    UNASSIGN <ls_attribute>.
+  ENDMETHOD.
   METHOD deserialize_abap_source_new.
     DATA: lo_factory  TYPE REF TO object,
           lo_source   TYPE REF TO object,
@@ -37618,7 +37651,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         class_not_existing = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from CL_OO_SOURCE' ).
+      zcx_abapgit_exception=>raise( |Error from CL_OO_SOURCE. Subrc = { sy-subrc }| ).
     ENDIF.
 
     TRY.
@@ -37651,7 +37684,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         ret_code = 1
         OTHERS   = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DOCU_UPD' ).
+      zcx_abapgit_exception=>raise( |Error from DOCU_UPD. Subrc = { sy-subrc }| ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
@@ -37701,6 +37734,15 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~insert_text_pool.
     ASSERT 0 = 1. "Subclass responsibility
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~read_attributes.
+    SELECT cmpname attbusobj attkeyfld
+      FROM seocompodf
+      INTO CORRESPONDING FIELDS OF TABLE rt_attributes
+      WHERE clsname = iv_object_name
+        AND ( attbusobj <> space OR attkeyfld <> space )
+        AND version = '1'
+      ORDER BY PRIMARY KEY.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_descriptions.
     SELECT * FROM seocompotx INTO TABLE rt_descriptions
@@ -37766,28 +37808,6 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~update_descriptions.
     DELETE FROM seocompotx WHERE clsname = is_key-clsname. "#EC CI_SUBRC
     INSERT seocompotx FROM TABLE it_descriptions.         "#EC CI_SUBRC
-  ENDMETHOD.
-
-  METHOD zif_abapgit_oo_object_fnc~read_attributes.
-    SELECT cmpname attbusobj attkeyfld
-      FROM seocompodf
-      INTO CORRESPONDING FIELDS OF TABLE rt_attributes
-      WHERE clsname = iv_object_name
-        AND ( attbusobj <> space OR attkeyfld <> space )
-        AND version = '1'
-      ORDER BY PRIMARY KEY.
-  ENDMETHOD.
-  METHOD convert_attrib_to_vseoattrib.
-    FIELD-SYMBOLS: <ls_attribute>  LIKE LINE OF it_attributes,
-                   <ls_vseoattrib> LIKE LINE OF rt_vseoattrib.
-
-    LOOP AT it_attributes ASSIGNING <ls_attribute>.
-      INSERT INITIAL LINE INTO TABLE rt_vseoattrib ASSIGNING <ls_vseoattrib>.
-      MOVE-CORRESPONDING <ls_attribute> TO <ls_vseoattrib>.
-      <ls_vseoattrib>-clsname = iv_clsname.
-      UNASSIGN <ls_vseoattrib>.
-    ENDLOOP.
-    UNASSIGN <ls_attribute>.
   ENDMETHOD.
 ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
@@ -67989,5 +68009,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-02-28T05:58:53.385Z
+* abapmerge undefined - 2019-03-01T08:08:59.897Z
 ****************************************************
