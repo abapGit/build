@@ -11198,7 +11198,6 @@ ENDCLASS.
 CLASS zcl_abapgit_branch_overview DEFINITION
   FINAL
   CREATE PRIVATE
-
   FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
@@ -11271,7 +11270,6 @@ CLASS zcl_abapgit_branch_overview DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector DEFINITION
   CREATE PROTECTED
-
   FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
@@ -11561,7 +11559,6 @@ CLASS zcl_abapgit_exit DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_factory DEFINITION
   CREATE PRIVATE
-
   FRIENDS ZCL_ABAPGIT_injector .
 
   PUBLIC SECTION.
@@ -12850,12 +12847,12 @@ CLASS zcl_abapgit_stage DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_stage_logic DEFINITION
   CREATE PRIVATE
-
   FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_stage_logic .
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS:
       remove_ignored
@@ -68010,5 +68007,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-03T08:26:14.918Z
+* abapmerge undefined - 2019-03-03T10:45:06.132Z
 ****************************************************
