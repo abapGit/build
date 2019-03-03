@@ -11389,6 +11389,7 @@ CLASS zcl_abapgit_default_transport DEFINITION
           VALUE(rs_default_task) TYPE e070use
         RAISING
           zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_transport .
@@ -19229,7 +19230,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_default_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
   METHOD clear.
 
     CALL FUNCTION 'TR_TASK_RESET'
@@ -19245,7 +19246,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         OTHERS           = 4.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_RESET { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_RESET. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -19268,7 +19269,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         OTHERS           = 4.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_GET { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_GET. Subrc = { sy-subrc }| ).
     ENDIF.
 
     READ TABLE lt_e070use INTO rs_default_task
@@ -19329,7 +19330,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         OTHERS            = 7.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -19369,7 +19370,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         OTHERS            = 7.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET { sy-subrc }| ).
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -68009,5 +68010,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-01T08:08:59.897Z
+* abapmerge undefined - 2019-03-03T08:26:14.918Z
 ****************************************************
