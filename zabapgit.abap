@@ -1083,7 +1083,7 @@ INTERFACE zif_abapgit_definitions .
            ty_file_signature WITH UNIQUE KEY path filename .
   TYPES:
     BEGIN OF ty_file.
-      INCLUDE TYPE ty_file_signature.
+          INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
          END OF ty_file .
   TYPES:
@@ -1158,7 +1158,7 @@ INTERFACE zif_abapgit_definitions .
     ty_yes_no TYPE c LENGTH 1 .
   TYPES:
     BEGIN OF ty_overwrite.
-      INCLUDE TYPE ty_item.
+          INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
          END OF ty_overwrite .
   TYPES:
@@ -1261,7 +1261,7 @@ INTERFACE zif_abapgit_definitions .
     ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_tpool.
-      INCLUDE TYPE textpool.
+          INCLUDE TYPE textpool.
   TYPES:   split TYPE c LENGTH 8.
   TYPES: END OF ty_tpool .
   TYPES:
@@ -1489,16 +1489,13 @@ INTERFACE zif_abapgit_definitions .
       repo_syntax_check        TYPE string VALUE 'repo_syntax_check',
       repo_code_inspector      TYPE string VALUE 'repo_code_inspector',
       repo_open_in_master_lang TYPE string VALUE 'repo_open_in_master_lang',
-
       abapgit_home             TYPE string VALUE 'abapgit_home',
       abapgit_install          TYPE string VALUE 'abapgit_install',
-
       zip_import               TYPE string VALUE 'zip_import',
       zip_export               TYPE string VALUE 'zip_export',
       zip_package              TYPE string VALUE 'zip_package',
       zip_transport            TYPE string VALUE 'zip_transport',
       zip_object               TYPE string VALUE 'zip_object',
-
       git_pull                 TYPE string VALUE 'git_pull',
       git_reset                TYPE string VALUE 'git_reset',
       git_branch_create        TYPE string VALUE 'git_branch_create',
@@ -1508,11 +1505,9 @@ INTERFACE zif_abapgit_definitions .
       git_tag_delete           TYPE string VALUE 'git_tag_delete',
       git_tag_switch           TYPE string VALUE 'git_tag_switch',
       git_commit               TYPE string VALUE 'git_commit',
-
       db_display               TYPE string VALUE 'db_display',
       db_edit                  TYPE string VALUE 'db_edit',
       bg_update                TYPE string VALUE 'bg_update',
-
       go_main                  TYPE string VALUE 'go_main',
       go_explore               TYPE string VALUE 'go_explore',
       go_repo_overview         TYPE string VALUE 'go_repo_overview',
@@ -1529,11 +1524,9 @@ INTERFACE zif_abapgit_definitions .
       go_settings              TYPE string VALUE 'go_settings',
       go_tutorial              TYPE string VALUE 'go_tutorial',
       go_patch                 TYPE string VALUE 'go_patch',
-
       jump                     TYPE string VALUE 'jump',
       jump_pkg                 TYPE string VALUE 'jump_pkg',
       jump_transport           TYPE string VALUE 'jump_transport',
-
       url                      TYPE string VALUE 'url',
     END OF c_action .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
@@ -2953,19 +2946,18 @@ CLASS zcl_abapgit_git_tag DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS:
-      add_tag_prefix
-        IMPORTING
-          iv_text        TYPE csequence
-        RETURNING
-          VALUE(rv_text) TYPE string,
-
-      remove_tag_prefix
-        IMPORTING
-          iv_text        TYPE string
-        RETURNING
-          VALUE(rv_text) TYPE string.
-
+    CLASS-METHODS add_tag_prefix
+      IMPORTING
+        !iv_text       TYPE csequence
+      RETURNING
+        VALUE(rv_text) TYPE string .
+    CLASS-METHODS remove_tag_prefix
+      IMPORTING
+        !iv_text       TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_git_transport DEFINITION
   FINAL
@@ -6537,14 +6529,15 @@ CLASS zcl_abapgit_object_udmo DEFINITION
   PRIVATE SECTION.
 
     TYPES:
-      " You are reminded that the text serialisation / de-serialisation methods depend upon a common type.
-      " To make the dependency explicit, there is one common definition.
+        " You are reminded that the text serialisation / de-serialisation methods depend upon a common type.
+        " To make the dependency explicit, there is one common definition.
       BEGIN OF ty_udmo_text_type.
     TYPES sprache TYPE dm40t-sprache.
     TYPES dmoid TYPE dm40t-dmoid.
     TYPES langbez TYPE dm40t-langbez.
     TYPES as4local TYPE dm40t-as4local.
     TYPES END OF ty_udmo_text_type .
+
     DATA mv_data_model TYPE uddmodl .
     DATA mv_text_object TYPE doku_obj .
     DATA mv_lxe_text_name TYPE lxeobjname .
@@ -7644,7 +7637,6 @@ CLASS zcl_abapgit_persist_background DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_persist_factory DEFINITION
   CREATE PRIVATE
-
   FRIENDS ZCL_ABAPGIT_persist_injector .
 
   PUBLIC SECTION.
@@ -7743,6 +7735,7 @@ CLASS zcl_abapgit_persist_settings DEFINITION
     CLASS-METHODS get_instance
       RETURNING
         VALUE(ro_settings) TYPE REF TO zcl_abapgit_persist_settings .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mo_settings TYPE REF TO zcl_abapgit_settings .
@@ -7814,13 +7807,15 @@ CLASS zcl_abapgit_persistence_db DEFINITION
         !iv_data  TYPE zif_abapgit_persistence=>ty_content-data_str
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-DATA go_db TYPE REF TO zcl_abapgit_persistence_db .
-    DATA: mv_update_function TYPE funcname.
+    DATA mv_update_function TYPE funcname .
 
-    METHODS get_update_function RETURNING VALUE(rv_funcname) TYPE funcname.
-
+    METHODS get_update_function
+      RETURNING
+        VALUE(rv_funcname) TYPE funcname .
     METHODS validate_and_unprettify_xml
       IMPORTING
         !iv_xml       TYPE string
@@ -7831,7 +7826,6 @@ CLASS zcl_abapgit_persistence_db DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_persistence_repo DEFINITION
   CREATE PROTECTED
-
   FRIENDS ZCL_ABAPGIT_persist_factory .
 
   PUBLIC SECTION.
@@ -9016,7 +9010,7 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
         zcx_abapgit_exception .
 
     METHODS zif_abapgit_gui_page~on_event
-        REDEFINITION.
+         REDEFINITION.
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
 
@@ -9053,7 +9047,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
         zcx_abapgit_exception.
 
     METHODS zif_abapgit_gui_page~on_event
-        REDEFINITION .
+         REDEFINITION .
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
 
@@ -10798,6 +10792,7 @@ CLASS zcl_abapgit_login_manager DEFINITION
         VALUE(rv_auth) TYPE string
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -10807,16 +10802,14 @@ CLASS zcl_abapgit_login_manager DEFINITION
       END OF ty_auth .
 
     CLASS-DATA:
-      gt_auth TYPE TABLE OF ty_auth WITH DEFAULT KEY.
+      gt_auth TYPE TABLE OF ty_auth WITH DEFAULT KEY .
 
-    CLASS-METHODS:
-      append
-        IMPORTING
-          !iv_uri  TYPE string
-          !iv_auth TYPE string
-        RAISING
-          zcx_abapgit_exception.
-
+    CLASS-METHODS append
+      IMPORTING
+        !iv_uri  TYPE string
+        !iv_auth TYPE string
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_path DEFINITION
   CREATE PUBLIC .
@@ -14320,19 +14313,18 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
 
       <ls_tadir>-path = lv_path.
 
-      CASE <ls_tadir>-object.
-        WHEN 'SICF'.
+      IF <ls_tadir>-object = 'SICF'.
 * replace the internal GUID with a hash of the path
-          TRY.
-              CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
-                EXPORTING
-                  iv_obj_name = <ls_tadir>-obj_name
-                RECEIVING
-                  rv_hash     = <ls_tadir>-obj_name+15.
-            CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+        TRY.
+            CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
+              EXPORTING
+                iv_obj_name = <ls_tadir>-obj_name
+              RECEIVING
+                rv_hash     = <ls_tadir>-obj_name+15.
+          CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
 * SICF might not be supported in some systems, assume this code is not called
-          ENDTRY.
-      ENDCASE.
+        ENDTRY.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
   METHOD check_exists.
@@ -20748,7 +20740,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   METHOD show_requirement_popup.
     TYPES: BEGIN OF lty_color_line,
              color TYPE lvc_t_scol.
-        INCLUDE TYPE ty_requirement_status.
+            INCLUDE TYPE ty_requirement_status.
     TYPES: END OF lty_color_line,
     lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
 
@@ -21784,18 +21776,14 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     DO lv_len TIMES.
 
       IF sy-index = 1.
-
         "Intialize
-        CASE lv_bitbyte+lv_offset(1).
-          WHEN '1'.
-            rv_int = 1.
-        ENDCASE.
-
+        IF lv_bitbyte+lv_offset(1) = '1'.
+          rv_int = 1.
+        ENDIF.
       ELSE.
-        CASE lv_bitbyte+lv_offset(1).
-          WHEN '1'.
-            rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
-        ENDCASE.
+        IF lv_bitbyte+lv_offset(1) = '1'.
+          rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
+        ENDIF.
       ENDIF.
 
       lv_offset = lv_offset - 1. "Move Cursor
@@ -23334,8 +23322,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_folder_logic.
 
-    IF  iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-    AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+    IF iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+        AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
 
       zcx_abapgit_exception=>raise( |Invalid folder logic { iv_folder_logic }. |
                                  && |Choose either { zif_abapgit_dot_abapgit=>c_folder_logic-prefix } |
@@ -36172,7 +36160,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
   METHOD get_instance.
 
     IF go_persist IS NOT BOUND.
@@ -40680,7 +40668,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF  mi_vi->has_soap_extension_virtinfc( sews_c_vif_version-inactive ) = abap_true.
+    IF mi_vi->has_soap_extension_virtinfc( sews_c_vif_version-inactive ) = abap_true.
       li_soap = mi_vi->get_soap_extension_virtinfc( sews_c_vif_version-inactive ).
     ELSE.
       li_soap = mi_vi->create_soap_extension_virtinfc( ls_soap-soap_appl_uri ).
@@ -43180,16 +43168,16 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       lv_argument       TYPE seqg3-garg,
       lv_argument_langu TYPE seqg3-garg.
 
-    lv_argument         = me->ms_item-obj_name.
-    lv_argument_langu   = |@{ me->ms_item-obj_name }|.
+    lv_argument       = me->ms_item-obj_name.
+    lv_argument_langu = |@{ me->ms_item-obj_name }|.
 
     "Check all relevant maintein tabeles for view clusters
-    IF   check_lock( iv_tabname = 'VCLDIR'    iv_argument = lv_argument )        = abap_true
-      OR check_lock( iv_tabname = 'VCLDIRT'   iv_argument = lv_argument_langu )  = abap_true
-      OR check_lock( iv_tabname = 'VCLSTRUC'  iv_argument = lv_argument )        = abap_true
-      OR check_lock( iv_tabname = 'VCLSTRUCT' iv_argument = lv_argument_langu )  = abap_true
-      OR check_lock( iv_tabname = 'VCLSTRUC'  iv_argument = lv_argument )        = abap_true
-      OR check_lock( iv_tabname = 'VCLMF'     iv_argument = lv_argument )        = abap_true.
+    IF check_lock( iv_tabname = 'VCLDIR'    iv_argument = lv_argument ) = abap_true
+        OR check_lock( iv_tabname = 'VCLDIRT'   iv_argument = lv_argument_langu ) = abap_true
+        OR check_lock( iv_tabname = 'VCLSTRUC'  iv_argument = lv_argument )       = abap_true
+        OR check_lock( iv_tabname = 'VCLSTRUCT' iv_argument = lv_argument_langu ) = abap_true
+        OR check_lock( iv_tabname = 'VCLSTRUC'  iv_argument = lv_argument )       = abap_true
+        OR check_lock( iv_tabname = 'VCLMF'     iv_argument = lv_argument )       = abap_true.
 
       rv_is_locked = abap_true.
     ENDIF.
@@ -68007,5 +67995,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-03T10:45:06.132Z
+* abapmerge undefined - 2019-03-04T15:14:38.871Z
 ****************************************************
