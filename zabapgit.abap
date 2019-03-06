@@ -75,6 +75,7 @@ me->MV_TEXT = MV_TEXT .
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_auth_failed DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -106,6 +107,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Authentication failed using 2FA.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_comm_error DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -137,6 +139,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Communication error.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_del_failed DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -168,6 +171,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Deleting previous access tokens failed.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_gen_failed DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -199,6 +203,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Two factor access token generation failed.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_illegal_state DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -230,6 +235,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'Illegal state.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_2fa_unsupported DEFINITION
   inheriting from ZCX_ABAPGIT_2FA_ERROR
   final
@@ -261,6 +267,7 @@ MV_TEXT = MV_TEXT
     rv_text = 'The service is not supported for two factor authentication.' ##NO_TEXT.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_cancel DEFINITION
   INHERITING FROM cx_static_check
   FINAL
@@ -272,6 +279,7 @@ CLASS zcx_abapgit_cancel DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_cancel IMPLEMENTATION.
 ENDCLASS.
+
 "! abapGit general error
 CLASS zcx_abapgit_exception DEFINITION
   INHERITING FROM cx_static_check
@@ -401,6 +409,7 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
         msgv4  = iv_msgv4.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcx_abapgit_not_found DEFINITION
   INHERITING FROM cx_static_check
   FINAL
@@ -412,6 +421,7 @@ CLASS zcx_abapgit_not_found DEFINITION
 ENDCLASS.
 CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
+
 INTERFACE zif_abapgit_version DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_stage_logic DEFERRED.
@@ -729,6 +739,7 @@ INTERFACE zif_abapgit_background .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_2fa_authenticator.
   "! Generate an access token
   "! @parameter iv_url | Repository url
@@ -800,6 +811,7 @@ INTERFACE zif_abapgit_2fa_authenticator.
     RAISING
       zcx_abapgit_2fa_illegal_state .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_ecatt .
 
   " downport missing types
@@ -833,6 +845,7 @@ INTERFACE zif_abapgit_ecatt .
     etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_ecatt_download .
 
   METHODS:
@@ -841,6 +854,7 @@ INTERFACE zif_abapgit_ecatt_download .
         VALUE(rv_xml_stream) TYPE xstring.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_ecatt_upload .
   METHODS:
     set_stream_for_upload
@@ -848,6 +862,7 @@ INTERFACE zif_abapgit_ecatt_upload .
         iv_xml TYPE xstring.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_comparator .
   TYPES:
     BEGIN OF ty_result,
@@ -862,6 +877,7 @@ INTERFACE zif_abapgit_comparator .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_functions .
 
   METHODS:
@@ -870,6 +886,7 @@ INTERFACE zif_abapgit_gui_functions .
         VALUE(rv_gui_is_available) TYPE abap_bool.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_object_enho.
 
   METHODS:
@@ -883,6 +900,7 @@ INTERFACE zif_abapgit_object_enho.
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_object_enhs.
 
   METHODS:
@@ -898,6 +916,7 @@ INTERFACE zif_abapgit_object_enhs.
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
@@ -917,6 +936,7 @@ INTERFACE zif_abapgit_gui_asset_manager .
       zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_page.
 
   METHODS on_event
@@ -933,6 +953,7 @@ INTERFACE zif_abapgit_gui_page.
     RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_router .
 
   METHODS on_event
@@ -949,6 +970,7 @@ INTERFACE zif_abapgit_gui_router .
       zcx_abapgit_cancel.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_frontend_services.
   METHODS file_upload
     IMPORTING
@@ -981,6 +1003,7 @@ INTERFACE zif_abapgit_frontend_services.
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_progress .
 
   METHODS show
@@ -989,6 +1012,7 @@ INTERFACE zif_abapgit_progress .
       iv_text    TYPE csequence .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_auth.
 
   TYPES: ty_authorization TYPE string.
@@ -1006,6 +1030,7 @@ INTERFACE zif_abapgit_auth.
       RETURNING VALUE(rv_allowed) TYPE abap_bool.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_code_inspector .
   METHODS run
     IMPORTING
@@ -1019,6 +1044,7 @@ INTERFACE zif_abapgit_code_inspector .
     RETURNING
       VALUE(rv_success) TYPE abap_bool .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_cts_api.
   METHODS:
     "! Returns the transport request / task the object is currently locked in
@@ -1060,6 +1086,7 @@ INTERFACE zif_abapgit_cts_api.
                                   RETURNING VALUE(rv_possible) TYPE abap_bool
                                   RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_type    TYPE c LENGTH 6 .
@@ -1533,6 +1560,7 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE' ##NO_TEXT.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_object .
   DATA mo_files TYPE REF TO zcl_abapgit_objects_files .
 
@@ -1582,6 +1610,7 @@ INTERFACE zif_abapgit_object .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_oo_object_fnc.
 
   TYPES: BEGIN OF ty_includes,
@@ -1723,6 +1752,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
       RETURNING
         VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_tag_popups.
 
   METHODS:
@@ -1743,6 +1773,7 @@ INTERFACE zif_abapgit_tag_popups.
         zcx_abapgit_exception .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_branch_overview .
 
   METHODS:
@@ -1762,6 +1793,7 @@ INTERFACE zif_abapgit_branch_overview .
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
@@ -1788,6 +1820,7 @@ INTERFACE zif_abapgit_dot_abapgit.
     END OF c_folder_logic .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_persistence.
 
   TYPES:
@@ -1859,6 +1892,7 @@ INTERFACE zif_abapgit_persistence.
   TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_persist_repo .
   METHODS add
     IMPORTING
@@ -1905,6 +1939,7 @@ INTERFACE zif_abapgit_persist_repo .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_persist_user .
 
   TYPES tt_favorites TYPE zif_abapgit_persistence=>tt_repo_keys .
@@ -2049,6 +2084,7 @@ INTERFACE zif_abapgit_persist_user .
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_popups .
   TYPES:
     BEGIN OF ty_popup,
@@ -2193,6 +2229,7 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception
       zcx_abapgit_cancel .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_exit .
   TYPES:
     ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY .
@@ -2239,6 +2276,7 @@ INTERFACE zif_abapgit_exit .
     RETURNING
       VALUE(rv_ssl_id) TYPE ssfapplssl .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_git_operations .
 
   METHODS push
@@ -2256,6 +2294,7 @@ INTERFACE zif_abapgit_git_operations .
       zcx_abapgit_exception .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_page_hotkey.
 
   TYPES:
@@ -2275,6 +2314,7 @@ INTERFACE zif_abapgit_gui_page_hotkey.
         VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_repo_listener .
   INTERFACE zif_abapgit_persistence LOAD .
   METHODS on_meta_change
@@ -2285,6 +2325,7 @@ INTERFACE zif_abapgit_repo_listener .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_repo_srv .
   METHODS delete
     IMPORTING
@@ -2342,6 +2383,7 @@ INTERFACE zif_abapgit_repo_srv .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_sap_package.
 
   TYPES: ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY.
@@ -2370,6 +2412,7 @@ INTERFACE zif_abapgit_sap_package.
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_stage_logic .
 
   METHODS get
@@ -2381,6 +2424,7 @@ INTERFACE zif_abapgit_stage_logic .
       zcx_abapgit_exception .
 
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_tadir .
   METHODS get_object_package
     IMPORTING
@@ -2412,12 +2456,14 @@ INTERFACE zif_abapgit_tadir .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_version .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
   CONSTANTS gc_abap_version TYPE string VALUE '1.85.0' ##NO_TEXT.
 
 ENDINTERFACE.
+
 CLASS zcl_abapgit_background DEFINITION
   CREATE PUBLIC .
 
@@ -5524,6 +5570,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet DEFINITION.
     DATA: mi_interface TYPE REF TO if_package_interface.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_pinf DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
@@ -9746,6 +9793,7 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA: mo_repo         TYPE REF TO zcl_abapgit_repo,
@@ -9817,6 +9865,7 @@ CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
     INTERFACES zif_abapgit_gui_page_hotkey.
     ALIASES render FOR zif_abapgit_gui_page~render.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS render_content
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
@@ -9903,6 +9952,7 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_class     TYPE string OPTIONAL
       RETURNING
         VALUE(rv_str) TYPE string .
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
 
@@ -10082,6 +10132,7 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         RETURNING
           VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_item,
@@ -10761,6 +10812,8 @@ CLASS zcl_abapgit_log DEFINITION
     METHODS prepare_log_for_display
       RETURNING
         VALUE(rt_log_out) TYPE zcl_abapgit_log=>tty_log_out .
+
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_login_manager DEFINITION
   FINAL
@@ -13202,6 +13255,7 @@ CLASS ZCL_ABAPGIT_ZLIB_STREAM IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
   METHOD constructor.
 
@@ -13262,6 +13316,7 @@ CLASS ZCL_ABAPGIT_ZLIB_HUFFMAN IMPLEMENTATION.
     READ TABLE mt_symbol INDEX iv_index INTO rv_value.    "#EC CI_SUBRC
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
   METHOD bits_to_int.
 
@@ -13304,6 +13359,7 @@ CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   METHOD copy_out.
 
@@ -13675,6 +13731,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   METHOD encode_files.
 
@@ -13978,6 +14035,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
   METHOD constructor.
     mt_transport_objects = it_transport_objects.
@@ -14034,6 +14092,7 @@ CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
   METHOD create.
     DATA:
@@ -14082,6 +14141,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
       it_object_statuses = it_object_statuses ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   METHOD find_top_package.
 * assumption: all objects in transport share a common super package
@@ -14221,6 +14281,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                              it_filter = lt_tadir ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD build.
 
@@ -14438,6 +14499,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   METHOD remove_identical.
 
@@ -14506,6 +14568,7 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_stage IMPLEMENTATION.
   METHOD add.
 
@@ -14578,6 +14641,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
             iv_method   = c_method-rm ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   METHOD has_sadl_superclass.
 
@@ -14619,6 +14683,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
@@ -14809,6 +14874,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD add_to_return.
 
@@ -15027,6 +15093,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
@@ -15292,6 +15359,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
 
@@ -15596,6 +15664,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       it_repos   = lt_repos ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD fetch_remote.
 
@@ -15811,6 +15880,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
   METHOD get_name.
     rv_name = super->get_name( ).
@@ -15839,6 +15909,7 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_folders.
 
@@ -16005,6 +16076,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD apply_filter.
 
@@ -16473,6 +16545,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -16618,6 +16691,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD adjust_namespaces.
 
@@ -17431,6 +17505,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
 
@@ -17641,6 +17716,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   METHOD local_dot_abapgit.
 
@@ -17673,6 +17749,7 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   METHOD all_files.
 
@@ -18019,6 +18096,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   METHOD set_code_inspector.
 
@@ -18076,6 +18154,7 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   METHOD get_instance.
     CREATE OBJECT ro_instance.
@@ -18225,6 +18304,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
@@ -18583,6 +18663,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_branch_overview.
 
@@ -18674,6 +18755,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
@@ -18783,6 +18865,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
 
@@ -18949,6 +19032,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
@@ -19219,6 +19303,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
   METHOD clear.
 
@@ -19369,6 +19454,7 @@ CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_cts_api IMPLEMENTATION.
   METHOD zif_abapgit_cts_api~get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
@@ -19471,6 +19557,7 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   METHOD cleanup.
 
@@ -19704,6 +19791,7 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
   METHOD constructor.
 
@@ -20155,6 +20243,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
   METHOD is_allowed.
 
@@ -20170,6 +20259,7 @@ CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
   METHOD print.
 
@@ -20211,6 +20301,7 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
   METHOD add.
 
@@ -20305,6 +20396,7 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
     mi_raw = ii_raw.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
   METHOD constructor.
 
@@ -20356,6 +20448,7 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
   METHOD constructor.
     mi_ixml = cl_ixml=>create( ).
@@ -20457,6 +20550,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
   METHOD constructor.
 
@@ -20520,6 +20614,7 @@ CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   METHOD host.
 
@@ -20556,6 +20651,7 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
   METHOD get.
 
@@ -20600,6 +20696,7 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
   METHOD base64_to_xstring.
 
@@ -20651,6 +20748,7 @@ CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   METHOD reduce.
 
@@ -20664,6 +20762,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   METHOD get_requirement_met_status.
 
@@ -20831,6 +20930,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
   METHOD calc_pct.
 
@@ -20892,6 +20992,7 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
   METHOD change_dir.
 
@@ -20978,6 +21079,7 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   METHOD append.
 
@@ -21048,7 +21150,8 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_log IMPLEMENTATION.
+
+CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD add.
 
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
@@ -21183,13 +21286,13 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
     LOOP AT mt_log ASSIGNING <ls_log>.
       CASE <ls_log>-type.
         WHEN 'W'.
-          lv_icon  = 'alert'.
+          lv_icon  = 'attention'.
           lv_class = 'warning'.
         WHEN 'E'.
-          lv_icon  = 'flame'.
+          lv_icon  = 'error'.
           lv_class = 'error'.
         WHEN OTHERS. " ??? unexpected
-          lv_icon  = 'flame'.
+          lv_icon  = 'error'.
           lv_class = 'error'.
       ENDCASE.
 
@@ -21211,6 +21314,7 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_LANGUAGE IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -21230,6 +21334,7 @@ CLASS ZCL_ABAPGIT_LANGUAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
   METHOD adler32.
 
@@ -21317,6 +21422,7 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
   METHOD zif_abapgit_frontend_services~file_download.
 
@@ -21470,6 +21576,7 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   METHOD calculate_line_num_and_stats.
 
@@ -21760,6 +21867,7 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD bitbyte_to_int.
 
@@ -21883,6 +21991,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   METHOD set_gui_functions.
 
@@ -21900,6 +22009,7 @@ CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 
   METHOD get_popups.
@@ -21949,6 +22059,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   METHOD clean_up.
 
@@ -22215,6 +22326,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
@@ -22614,6 +22726,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD commit.
 
@@ -22892,6 +23005,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD do_install.
 
@@ -23124,6 +23238,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
@@ -24175,6 +24290,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   METHOD popup.
 
@@ -24185,7 +24301,8 @@ CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
+
+CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
@@ -24340,6 +24457,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
@@ -24541,7 +24659,8 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_html IMPLEMENTATION.
+
+CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD a.
 
     DATA: lv_class TYPE string,
@@ -24653,7 +24772,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
           lv_name          TYPE string,
           lv_color         TYPE string,
           lv_class         TYPE string,
-          lv_octicon_class TYPE string,
+          lv_large_icon    TYPE string,
           lv_xpixel        TYPE i.
 
     SPLIT iv_name AT '/' INTO lv_name lv_color.
@@ -24670,12 +24789,10 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
     lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X' in = 1 ).
     IF lv_xpixel >= 2.
-      lv_octicon_class = 'mega-octicon'.
-    ELSE.
-      lv_octicon_class = 'octicon'.
+      lv_large_icon = ' large'.
     ENDIF.
 
-    rv_str = |<i class="{ lv_octicon_class } octicon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
+    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
 
   ENDMETHOD.
   METHOD indent_line.
@@ -24803,6 +24920,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   METHOD get_default_hotkeys_from_pages.
 
@@ -24897,6 +25015,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   METHOD render_content.
 
@@ -24927,7 +25046,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '<h2>Repository list and favorites</h2>' ).
     ro_html->add( '<p><ul>' ).
     ro_html->add( |<li>To choose a repo press {
-                  zcl_abapgit_html=>icon( 'three-bars/blue' ) } at the favorite bar.</li>| ).
+                  zcl_abapgit_html=>icon( 'bars/blue' ) } at the favorite bar.</li>| ).
     ro_html->add( |<li>To favorite a repo click {
                   zcl_abapgit_html=>icon( 'star/darkgrey' ) } icon at repo toolbar.</li>| ).
     ro_html->add( '</ul></p>' ).
@@ -24963,6 +25082,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   METHOD build_dir_jump_link.
 
@@ -25149,7 +25269,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                      io_sub = lo_tb_advanced ) ##NO_TEXT.
     ro_toolbar->add( iv_txt = 'Refresh'
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh }?{ lv_key }| ).
-    ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'settings/grey70' )
+    ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'cog/grey70' )
                      io_sub = build_grid_menu( ) ).
 
   ENDMETHOD.
@@ -25157,7 +25277,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
     IF is_item-inactive = abap_true.
       rv_inactive_html_code = zcl_abapgit_html=>icon(
-        iv_name  = 'zap/orange'
+        iv_name  = 'bolt/orange'
         iv_hint  = 'Object or object part is inactive'
         iv_class = 'inactive' ).
     ENDIF.
@@ -25214,15 +25334,15 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       WHEN 'PROG' OR 'CLAS' OR 'FUGR'.
         rv_html = zcl_abapgit_html=>icon( 'file-code/darkgrey' ).
       WHEN 'W3MI' OR 'W3HT'.
-        rv_html = zcl_abapgit_html=>icon( 'file-binary/darkgrey' ).
+        rv_html = zcl_abapgit_html=>icon( 'file-image/darkgrey' ).
       WHEN ''.
         rv_html = space. " no icon
       WHEN OTHERS.
-        rv_html = zcl_abapgit_html=>icon( 'file/darkgrey' ).
+        rv_html = zcl_abapgit_html=>icon( 'file-alt/darkgrey' ).
     ENDCASE.
 
     IF is_item-is_dir = abap_true.
-      rv_html = zcl_abapgit_html=>icon( 'file-directory/darkgrey' ).
+      rv_html = zcl_abapgit_html=>icon( 'folder/darkgrey' ).
     ENDIF.
 
   ENDMETHOD.
@@ -25477,7 +25597,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->add( '<tr class="folder">' ).
-    ro_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'dir' ) }</td>| ).
+    ro_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'folder' ) }</td>| ).
     ro_html->add( |<td class="object" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
     IF mo_repo->has_remote_source( ) = abap_true.
       ro_html->add( |<td colspan="1"></td>| ). " Dummy for online
@@ -25623,6 +25743,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
@@ -26066,6 +26187,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -26378,6 +26500,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -26409,6 +26532,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
@@ -26848,6 +26972,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -27404,6 +27529,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK DEFINITION DEFERRED.
 * renamed: zcl_abapgit_gui_page_repo_sett :: lcl_requirements
 CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK DEFINITION CREATE PRIVATE.
@@ -27479,6 +27605,7 @@ CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -27736,6 +27863,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD add_direction_option.
 
@@ -28030,7 +28158,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       IF <ls_overview>-type = abap_true.
         lv_type_icon = 'plug/darkgrey'.
       ELSE.
-        lv_type_icon = 'cloud-upload/blue'.
+        lv_type_icon = 'cloud-upload-alt/darkgrey'.
       ENDIF.
 
       IF <ls_overview>-favorite = abap_true.
@@ -28169,6 +28297,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD apply_merged_content.
 
@@ -28608,6 +28737,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   METHOD build_menu.
 
@@ -28781,6 +28911,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
@@ -28925,7 +29056,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
       IF lo_repo->is_offline( ) = abap_true.
         lv_icon = 'plug/darkgrey'.
       ELSE.
-        lv_icon = 'cloud-upload/blue'.
+        lv_icon = 'cloud-upload-alt/blue'.
       ENDIF.
 
       lo_allbar->add( iv_txt = lv_repo_title
@@ -28963,7 +29094,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
     ro_html->add( '<td>' ).
     ro_html->add( lo_allbar->render_as_droplist(
-      iv_label  = zcl_abapgit_html=>icon( iv_name = 'three-bars/blue' )
+      iv_label  = zcl_abapgit_html=>icon( iv_name = 'bars/blue' )
       iv_action = c_actions-overview
       iv_right  = abap_true
       iv_sort   = abap_true ) ).
@@ -29128,6 +29259,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -29140,6 +29272,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_to_stage.
 
@@ -30021,6 +30154,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -30090,6 +30224,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -30367,6 +30502,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   METHOD jump.
     DATA: lo_test               TYPE REF TO cl_ci_test_root,
@@ -30526,6 +30662,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD ask_user_for_check_variant.
 
@@ -30752,6 +30889,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD body.
 
@@ -31064,6 +31202,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -31112,6 +31251,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   METHOD build_menu.
 
@@ -31339,13 +31479,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
-  METHOD constructor.
-
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD add_hotkeys.
 
     DATA: lv_json    TYPE string,
@@ -31394,6 +31529,11 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD constructor.
+
+    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+  ENDMETHOD.
   METHOD footer.
 
     CREATE OBJECT ro_html.
@@ -31436,16 +31576,8 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
-
-    IF mo_settings->get_octicons_disabled( ) = abap_false.
-
-      lv_font = |<link rel="stylesheet" type="text/css" href="|
-        && 'https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css'
-        && '">'.                                            "#EC NOTEXT
-      ro_html->add( lv_font ). " Web fonts
-
-    ENDIF.
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
@@ -31572,6 +31704,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 
   METHOD zif_abapgit_gui_functions~gui_is_available.
@@ -31583,6 +31716,7 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_branch_span.
 
@@ -31599,7 +31733,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
     ro_html->add( |<span class="{ lv_class }">| ).
-    ro_html->add_icon( iv_name = 'git-branch/darkgrey' iv_hint = 'Current branch' ).
+    ro_html->add_icon( iv_name = 'code-branch/grey70' iv_hint = 'Current branch' ).
     IF iv_interactive = abap_true.
       ro_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?{ io_repo->get_key( ) }|
                       iv_txt = lv_text ).
@@ -31640,7 +31774,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ENDIF.
 
     ro_html->add( '<div class="dummydiv error">' ).
-    ro_html->add( |{ zcl_abapgit_html=>icon( 'alert/red' ) } Error: { lv_error }| ).
+    ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-circle/red' ) } Error: { lv_error }| ).
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
@@ -31728,7 +31862,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     IF iv_hint IS NOT INITIAL.
       ro_html->add( '<div class="info-hint">'
-        && zcl_abapgit_html=>icon( iv_name = 'alert' iv_class = 'pad-right' )
+        && zcl_abapgit_html=>icon( iv_name = 'exclamation-triangle' iv_class = 'pad-right' )
         && iv_hint
         && '</div>' ).
     ENDIF.
@@ -31780,7 +31914,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_js_error_banner.
     CREATE OBJECT ro_html.
     ro_html->add( '<div id="js-error-banner" class="dummydiv error">' ).
-    ro_html->add( |{ zcl_abapgit_html=>icon( 'alert/red' ) }| &&
+    ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-triangle/red' ) }| &&
                   ' If this does not disappear soon,' &&
                   ' then there is a JS init error, please log an issue' ).
     ro_html->add( '</div>' ).
@@ -31843,7 +31977,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lv_icon = 'plug/darkgrey' ##NO_TEXT.
       lv_hint = 'Offline repository' ##NO_TEXT.
     ELSE.
-      lv_icon = 'cloud-upload/blue' ##NO_TEXT.
+      lv_icon = 'cloud-upload-alt/blue' ##NO_TEXT.
       lv_hint = 'On-line repository' ##NO_TEXT.
     ENDIF.
 
@@ -31867,9 +32001,9 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     " News
     IF io_news IS BOUND AND io_news->has_news( ) = abap_true.
       IF io_news->has_updates( ) = abap_true.
-        lv_icon = 'arrow-up/warning'.
+        lv_icon = 'arrow-circle-up/warning'.
       ELSE.
-        lv_icon = 'arrow-up/grey80'.
+        lv_icon = 'arrow-circle-up/grey80'.
       ENDIF.
       ro_html->add_a( iv_act = |toggleDisplay('news')|
                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
@@ -31899,7 +32033,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     " Write protect
     IF io_repo->get_local_settings( )-write_protected = abap_true.
-      ro_html->add_icon( iv_name = 'lock/darkgrey' iv_hint = 'Locked from pulls' ).
+      ro_html->add_icon( iv_name = 'lock/grey70' iv_hint = 'Locked from pulls' ).
     ENDIF.
 
     " Branch
@@ -31920,7 +32054,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     " Package
     IF iv_show_package = abap_true.
-      ro_html->add_icon( iv_name = 'package/darkgrey' iv_hint = 'SAP package' ).
+      ro_html->add_icon( iv_name = 'box/grey70' iv_hint = 'SAP package' ).
       ro_html->add( '<span>' ).
       ro_html->add_a( iv_txt = io_repo->get_package( )
                       iv_act = |{ zif_abapgit_definitions=>c_action-jump_pkg }?{ io_repo->get_package( ) }| ).
@@ -31932,6 +32066,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD get_inline_images.
 
@@ -32237,7 +32372,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  border-radius: 4px;'.
         _inline '}'.
         _inline 'div.log > span   { display:block; }'.
-        _inline 'div.log .octicon { padding-right: 6px; }'.
+        _inline 'div.log .icon { padding-right: 6px; }'.
         _inline ''.
         _inline '/* REPOSITORY */'.
         _inline 'div.repo {'.
@@ -32261,9 +32396,8 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '  font-size: 12pt;'.
         _inline '  margin-left: 0.5em;'.
         _inline '}'.
-        _inline '.repo_name img {'.
-        _inline '  vertical-align: baseline;'.
-        _inline '  margin: 0 5px 0 5px;'.
+        _inline '.repo_name .icon {'.
+        _inline '  padding-right: 4px;'.
         _inline '}'.
         _inline '.repo_attr {'.
         _inline '  color: grey;'.
@@ -32880,7 +33014,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '/* icons - text-align strictly left - otherwise look ugly'.
         _inline '   + bite a bit of left padding for nicer look '.
         _inline '   + forbids item text wrapping (maybe can be done differently) */'.
-        _inline '.nav-container ul ul li a .octicon {'.
+        _inline '.nav-container ul ul li a .icon {'.
         _inline '  padding-right: 10px;'.
         _inline '  margin-left: -3px;'.
         _inline '}'.
@@ -34473,13 +34607,159 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
         _inline '  this.toggleCommit();'.
         _inline '};'.
+      WHEN 'css/ag-icons.css'.
+        rs_asset-url     = iv_asset_url.
+        rs_asset-type    = 'text'.
+        rs_asset-subtype = 'css'.
+        lv_mime_name     = 'ZABAPGIT_ICON_FONT_CSS'.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
+****************************************************
+        _inline '@font-face {'.
+        _inline '    font-family: "ag-icons";'.
+        _inline '    font-weight: normal;'.
+        _inline '    font-style: normal;'.
+        _inline '    src: url("../font/ag-icons.woff") format("woff");'.
+        _inline '}'.
+        _inline ''.
+        _inline '.icon {'.
+        _inline '    line-height: 1;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.icon:before {'.
+        _inline '    font-family: ag-icons !important;'.
+        _inline '    font-style: normal;'.
+        _inline '    font-weight: normal !important;'.
+        _inline ''.
+        _inline '    display: inline-block;'.
+        _inline '    text-decoration: none;'.
+        _inline '    text-align: center;'.
+        _inline '    vertical-align: text-top;'.
+        _inline '    width: 1em;'.
+        _inline ''.
+        _inline '    /* For safety - reset parent styles, that can break glyph codes*/'.
+        _inline '    font-variant: normal;'.
+        _inline '    text-transform: none;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.icon.large { font-size: 200%; }'.
+        _inline ''.
+        _inline '.icon-arrow-circle-up:before { content: "\f101"; }'.
+        _inline '.icon-bars:before { content: "\f102"; }'.
+        _inline '.icon-bolt:before { content: "\f103"; }'.
+        _inline '.icon-box:before { content: "\f104"; }'.
+        _inline '.icon-briefcase:before { content: "\f105"; }'.
+        _inline '.icon-check:before { content: "\f106"; }'.
+        _inline '.icon-cloud-upload-alt:before { content: "\f107"; }'.
+        _inline '.icon-code-branch:before { content: "\f108"; }'.
+        _inline '.icon-cog:before { content: "\f109"; }'.
+        _inline '.icon-exclamation-circle:before { content: "\f10a"; }'.
+        _inline '.icon-exclamation-triangle:before { content: "\f10b"; }'.
+        _inline '.icon-file-alt:before { content: "\f10c"; }'.
+        _inline '.icon-file-code:before { content: "\f10d"; }'.
+        _inline '.icon-file-image:before { content: "\f10e"; }'.
+        _inline '.icon-file:before { content: "\f10f"; }'.
+        _inline '.icon-fire-alt:before { content: "\f110"; }'.
+        _inline '.icon-folder:before { content: "\f111"; }'.
+        _inline '.icon-lock:before { content: "\f112"; }'.
+        _inline '.icon-plug:before { content: "\f113"; }'.
+        _inline '.icon-sliders-h:before { content: "\f114"; }'.
+        _inline '.icon-snowflake:before { content: "\f115"; }'.
+        _inline '.icon-star:before { content: "\f116"; }'.
+      WHEN 'font/ag-icons.woff'.
+        rs_asset-url     = iv_asset_url.
+        rs_asset-type    = 'font'.
+        rs_asset-subtype = 'woff'.
+        lv_mime_name     = 'ZABAPGIT_ICON_FONT'.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
+****************************************************
+        _inline 'd09GRgABAAAAAAzkAAsAAAAAFhwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH'.
+        _inline 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3MY21hcAAA'.
+        _inline 'AYQAAACqAAAClmGy9uBnbHlmAAACMAAAB+kAAA3cBej0JmhlYWQAAAocAAAA'.
+        _inline 'MAAAADYS4J/baGhlYQAACkwAAAAdAAAAJASAApRobXR4AAAKbAAAADcAAABc'.
+        _inline 'KET/92xvY2EAAAqkAAAAMAAAADAh7iUMbWF4cAAACtQAAAAfAAAAIAEnALpu'.
+        _inline 'YW1lAAAK9AAAASgAAAIWQeF35nBvc3QAAAwcAAAAyAAAASDY9xFneJxjYGRg'.
+        _inline 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm'.
+        _inline 'g4gCACY7BUgAeJxjYGQ8wDiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV'.
+        _inline 'BKS5pjA4fGT8KMYE4uoxMTOAVDKCOADC1wkJAHic7ZHtDcIwDAUvbSgUWspX'.
+        _inline 'I4ZgFAbiFztnAvDLYwwsnU+xnCiygQ3QB48gQ3qTULyimlq9Z9/qmWfryarX'.
+        _inline '8vlETspxzi130ZvjxYEtO8a4d2Bi5sjCiTMXrtxYKdE88I9JKd1/p6J5mjbh'.
+        _inline 'ziD3Rpuq2WjmdWO0xToY5K1B3hnk0SDvjbZbDwZ5MvpdnQ3y0SAvBvlkkM8G'.
+        _inline '+WKQrwb5ZpBXg1wM5QvE7TXiAAB4nKVWTWwkRxWu191T1T0z7vnpvxnPjD0/'.
+        _inline '6+5xO/LYnp/ejL3eHzteezHSJLKEObHSIjkyF2sRQkIBOWRBORDJWiSUC8hS'.
+        _inline 'xM8FtAdEOARhokhBAiRfl5NvHJBYc8Ic0uZV9bR/1rtEiHG76lXVq1ffe1X1'.
+        _inline 'vSISwR+cwAlJE58Qo7MIc2Ng6lCfhptgmfY8zPVugGPP3YRepwVuPQPUHAd7'.
+        _inline 'Tl16+P2HS6LYW9WT2aS+yiyWYux7zMR/lCwgS0ONpYfu+odJXU9+uM5HTPaI'.
+        _inline '4WeiiMvLAsMBfEIyZJy0EEWNr9lxG7U6rYBpO5/TzsI+0zQW3uflS2R4S2NN'.
+        _inline '3sJi/4UigdMQcSxjSBysG0HPnYI6RX8xCIza7bnA6LnQ/Lov6+k9TYcq6Klv'.
+        _inline 'TmNDZ0+YDve/mzLS2nEq+3E6n4aZdIHEvklEAsLQuyLa9aZhCqz2RANNS22G'.
+        _inline 'IW4LdyBsJ4rZ956F/3wvW0zMSc+Oyybsm2W4+34mf3CQz7zPqsdmuWweX7AL'.
+        _inline 'R8QgHpkiZMKkiNa9AY0zi42g0e0IHyrQ4EVNNLttuKUxjMlBxYB9o3KwN6gY'.
+        _inline 'WA+MikQqH+zuPuEBmdkzKhVjb3+GVzMVY4DDVYQ/XPf3xCQk8NwOHou5cQh4'.
+        _inline 'YZsMaP1XP2dsglnqzrFqocDCp8xe+xmz2TWV96nXUAz/qgozvHgbfSiTOTTd'.
+        _inline 'Q3iNOpuGug4V0PH0jQF6sgjYz9Ct2MG6Gy1qU2mUXm9WCta9L92b8nveHQ92'.
+        _inline 'GvP1/u9uI36m3U6pbFvRlW2mQiWXb17PXntl6t6UmrnXQtX6fGN6pbPDfd0x'.
+        _inline 'UQ/V0CXlFH+wi/sVkFtkjbyBuDpunWJQHR1PgfjrCkhRp8Vx2nMcu7eIcQja'.
+        _inline 'vYD/LcLEnG3SutvpGbzgDSPugd3WnVZ1FKxC5lpZd7LFcWyPF0VVdhKmkSrC'.
+        _inline 'lNUwLCiMhYcIUUeUUfU0qmCn1mrVSr5aGKUy/hS2x/xS1Mf+OBSLk5qaVEBW'.
+        _inline 'aNIZ9VV/m8/UtXA3qvEYiJrEewHP4JTcJQM8TV7PQxc8F09rBlyPe+cyvi2U'.
+        _inline 'ea6Igj0O1MEux3bGkCowEhgNGyfdgF7g2CIKLotdh7/5lPqKDDlXVhW/VE8o'.
+        _inline 'QaAk6iVfUWU3hxifH0/0xPiUHI3/HR2602p9Umw0ipKqdCdlSSo66VmFQToN'.
+        _inline 'TJlNO0VJkie7iio9r5OgXIcmhA4oXCfPjd1pDbnnBP6N/GeRCZQj7ot4kNUp'.
+        _inline '31t03omYsBtEFwpOztnvxCiV3FLppsoSMwmG5a0Eu8h83+Cjbumn7yqMKe9S'.
+        _inline 'xsT9Pf0Mg74kyURHtvEw4rYOyGfTEBiLGEz5ZStLfZWO5sNqfpSqx1qtpvkv'.
+        _inline 'WH41W3OcGtJiNpXKhr95AYCE8Ptt3HbOubOkQ25g++yOdXq4ps0aEb9GOaDj'.
+        _inline 'BjmTIka3mxPjeAM9q23kGuJW5qDKEr9IMFGkY4Ftlc3wiNPWn019Q99dV95M'.
+        _inline '6vuglvk4L74YVbz4KPw1V+Skh6oL6+ETqOrJN8P7CJUKvPxeWhgtn7TJEvky'.
+        _inline 'MtAsP6YX0xJPU8hLPFRWLmJChOs5DaOWa4t8xlzB6ajcQ2XXs2b5MY7nxrZ+'.
+        _inline 'VKtJIOVlJvVluS8xOSc/3dDRC46wapZ319cH4dE+4vuOQiHAA1wY1nwiajP5'.
+        _inline 'VRk/PvGDSkVSJUOWe1gFkoxWww0dA3NfWFs3ha/7GBkX53+EdtiwXrk6M947'.
+        _inline 'HoscsnBFRAPzyvM+s0ZXHrqcm2h3Pe6XKIL4bMHDix511g+5O6fkyFGS8qan'.
+        _inline 'JBVvBgeb5TL85BLc7Hr4VQE3PJrZLcjyZlOWm0+4YrN8ls/P8X0OtheiePmK'.
+        _inline 'MVf9Aas8qaNEmetF2SLKFZ4rUzyT3Q5SkBMgKVFYHiv5r659ZWHrW1sLtdJY'.
+        _inline 'rz51/Qv5TPNBn1IzD38pV/vd5f3e4vYifqUNfzr8U+G166Xx4sy3l1JaczPO'.
+        _inline 'Vbgq5tsSfx1cdonfDhkPmIMOweFBoI38MD7K3IsfYMensBto8WXAIjyGanCB'.
+        _inline 'ew+wKpIat93tDHPg8P7FK2Du5mxqwV5hcuWNlcmCWIPH6K09f8GH6urkyiR+'.
+        _inline 'q2XzgA9hsTrm+2Nne8LvOyMN/l6ITFXAqcV3XGSzdpcTeDtazxNZrgJAjFFj'.
+        _inline 'JhSPqexacCtYy6L4L+yEnZ0RwxjZyWqsyrRqfzP14EFqs18VzWw0hlx3Onyr'.
+        _inline 'NDC7fA25rnb5XTJcPaKZoa/e+dulFkfhTKd9ReeqnaEOHIdPBJoBRz8QIlyQ'.
+        _inline 'Q/HagcG5zqEQDy+Lu1nhfOTXubj/P3XzLTgN8X3xMe7DL3mWFeTFU6zHUyan'.
+        _inline 'oxac9QW8hWQldYOYl8789WLGsyJdTmBeTGyCznhSdtjVPjakPsliMWNefeZ3'.
+        _inline 'I12OZIgLfuvVKZMUKUUHq6sDmkKR0bqHrw9VHkk0k3gNM9hrrfYTiVRiRCmi'.
+        _inline '11QropRWlP5dG9I0w6ikeXQEZ8j0v5vTpMicfbevKJfMJVKKMr8qzKEBNJfG'.
+        _inline 'F4T8Y0eTUgwXANv3LT6ZpSTNUdJUR5NOY7jA6/7GAr4IEdHoNN+X6aIAm5jf'.
+        _inline '8F+P4LC6g+B0BBlblCzft+H/t5gWV5CQ08+kVzDvc17k+8b3horNsnm4cffd'.
+        _inline 'ljQNFOTbj0cyoG0XpZFC6p13UoURqbitQWbk8W3qOPCPR5ZkFrStx2mL0uVl'.
+        _inline 'Sq304y2tYIL9KK3y5/V/ADtO5qcAAAB4nGNgZGBgAOKLKRHJ8fw2Xxm4mRhA'.
+        _inline '4MbC9fkw+v/f/3+ZGpmYgVwOBrA0AGLTDVd4nGNgZGBgYgABpob/f///YWpk'.
+        _inline 'YGRABeIAcFcFGAAAAHicTYzBCQAwCAOjkzmao7lYm6ZSio+D5CABABdWIrj9'.
+        _inline '9Sblkvw9uKzdoMY+byat9BPAAaAvEVQAAAAAAABCAIYAsADcARgBPgGIAgQC'.
+        _inline 'gAK8AvwDVAPaBCoEWgSUBMIE9AUyBbgGuAbueJxjYGRgYBBnWMfAxgACTEDM'.
+        _inline 'BYQMDP/BfAYAHD8B4gB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNm'.
+        _inline 'HYTghKAkjhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1'.
+        _inline 'cM3un5uke+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/h'.
+        _inline 'FvlTuI1HfAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5q'.
+        _inline 'rkttI6fXanVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANk'.
+        _inline 'iGFQosYCmmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2Qmt'.
+        _inline 'Q8I+YcagIM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3R'.
+        _inline 'UsIwFESzNEUKKogo/kQ+6uY2bTO99DJJO/D5luqDD+7TmZ0zu2ZlflKa/3PG'.
+        _inline 'CgUsSqzxhA0qbLHDM17wij0OeMMR7zjhA58448vsKSW9OY6JJbjpaj2lbL3K'.
+        _inline 'WHi9Vz7F0DDlUHIXuD+w6FTPmijVjmTcsdbB+UQDdwVrewx3FrrQGHX4HT39'.
+        _inline 'rcYUaWglbJo4380D1QKPle1C8UJtsA+clbQo60alDsmKcm+vMrVVljgX2XVV'.
+        _inline 'HvTWCPXB5pGSMd9ld0sQ'.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_url }| ).
     ENDCASE.
 
     IF lt_data IS NOT INITIAL.
-      CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
-      rs_asset-content = zcl_abapgit_string_utils=>string_to_xstring( lv_str ).
+      IF rs_asset-type = 'text'. " TODO refactor
+        CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
+        rs_asset-content = zcl_abapgit_string_utils=>string_to_xstring( lv_str ).
+      ELSE.
+        CONCATENATE LINES OF lt_data INTO lv_str.
+        rs_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( lv_str ).
+      ENDIF.
     ELSE.
       rs_asset-content = get_mime_asset( lv_mime_name ).
     ENDIF.
@@ -34499,12 +34779,17 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
     APPEND ls_asset TO rt_assets.
     ls_asset = get_textlike_asset( 'js/common.js' ).
     APPEND ls_asset TO rt_assets.
+    ls_asset = get_textlike_asset( 'css/ag-icons.css' ).
+    APPEND ls_asset TO rt_assets.
+    ls_asset = get_textlike_asset( 'font/ag-icons.woff' ).
+    APPEND ls_asset TO rt_assets.
 
     lt_assets = get_inline_images( ).
     APPEND LINES OF lt_assets TO rt_assets.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
@@ -34723,6 +35008,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -34826,6 +35112,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -34883,6 +35170,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -35034,6 +35322,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_test_serialize IMPLEMENTATION.
   METHOD check.
 
@@ -35048,6 +35337,7 @@ CLASS zcl_abapgit_test_serialize IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
 
@@ -35139,6 +35429,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
   METHOD add_rule.
 
@@ -35299,6 +35590,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -35529,6 +35821,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   METHOD constructor.
     mv_user = iv_user.
@@ -35827,6 +36120,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   METHOD constructor.
 
@@ -36024,6 +36318,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
 
@@ -36160,6 +36455,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
   METHOD get_instance.
 
@@ -36221,6 +36517,7 @@ CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
   METHOD distribute_settings_to_users.
 
@@ -36566,6 +36863,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSIST_INJECTOR IMPLEMENTATION.
   METHOD set_repo.
 
@@ -36573,6 +36871,7 @@ CLASS ZCL_ABAPGIT_PERSIST_INJECTOR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
   METHOD get_repo.
 
@@ -36584,6 +36883,7 @@ CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
   METHOD constructor.
     mo_db = zcl_abapgit_persistence_db=>get_instance( ).
@@ -36664,6 +36964,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
       RESULT XML rv_string.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
   METHOD are_test_classes_skipped.
     rv_return = mv_skip_testclass.
@@ -36851,6 +37152,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create.
     DATA: lt_vseoattrib TYPE seoo_attributes_r.
@@ -36921,6 +37223,7 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
   METHOD make.
     IF gi_object_oriented_object IS BOUND.
@@ -36934,6 +37237,7 @@ CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
@@ -37558,6 +37862,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     READ TEXTPOOL lv_cp INTO rt_text_pool LANGUAGE iv_language. "#EC CI_READ_REP
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
   METHOD convert_attrib_to_vseoattrib.
     FIELD-SYMBOLS: <ls_attribute>  LIKE LINE OF it_attributes,
@@ -37796,6 +38101,7 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
     INSERT seocompotx FROM TABLE it_descriptions.         "#EC CI_SUBRC
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD check_timestamp.
 
@@ -38177,6 +38483,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
   METHOD create_channel_objects.
 
@@ -38492,6 +38799,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   METHOD add_tpool.
 
@@ -39201,6 +39509,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD after_import.
 
@@ -39718,6 +40027,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   METHOD add.
     APPEND is_file TO mt_files.
@@ -39924,6 +40234,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     mt_files = it_files.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
@@ -40186,6 +40497,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
   METHOD get.
 
@@ -40364,6 +40676,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
   METHOD constructor.
 
@@ -40538,6 +40851,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   METHOD handle_endpoint.
 
@@ -40952,6 +41266,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD add_fm_exception.
 
@@ -41636,6 +41951,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
   METHOD read.
 
@@ -41821,6 +42137,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
   METHOD create_new_application.
 
@@ -42370,6 +42687,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item = is_item iv_language = iv_language ).
@@ -42784,6 +43102,7 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_w3mi IMPLEMENTATION.
 
   METHOD change_bdc_jump_data.
@@ -42802,6 +43121,7 @@ CLASS zcl_abapgit_object_w3mi IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
 
   METHOD change_bdc_jump_data.
@@ -42820,6 +43140,7 @@ CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -43030,6 +43351,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   METHOD check_lock.
 
@@ -43285,6 +43607,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD access_free.
 
@@ -43860,6 +44183,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD clear_dynamic_fields.
 
@@ -44076,6 +44400,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
   METHOD create.
 
@@ -44236,6 +44561,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -44407,6 +44733,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD add_data.
 
@@ -45043,6 +45370,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   METHOD delete_extra.
 
@@ -45329,6 +45657,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   METHOD constructor.
 
@@ -45468,6 +45797,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD check_is_idoc_segment.
 
@@ -46136,6 +46466,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -46378,6 +46709,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
   METHOD constructor.
 
@@ -46653,6 +46985,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
   METHOD delete_class.
 
@@ -46836,6 +47169,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
@@ -46909,6 +47243,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -47065,6 +47400,7 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
   METHOD validate_font.
 
@@ -47291,6 +47627,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD code_item_section_handling.
     CONSTANTS: lc_node_item TYPE string VALUE 'item' ##NO_TEXT.
@@ -47712,6 +48049,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -47864,6 +48202,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
   METHOD constructor.
 
@@ -48039,6 +48378,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   METHOD check_sprx_tadir.
 
@@ -48343,6 +48683,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -48434,6 +48775,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   METHOD create_sots.
 
@@ -48730,6 +49072,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
   METHOD build_filename.
 
@@ -49008,6 +49351,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   METHOD change_sicf.
 
@@ -49473,6 +49817,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -49726,6 +50071,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -49889,6 +50235,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
   METHOD constructor.
 
@@ -50000,6 +50347,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
   METHOD constructor.
 
@@ -50097,6 +50445,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
   METHOD clear_fields.
 
@@ -50362,6 +50711,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
   METHOD get.
 
@@ -50585,6 +50935,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
   METHOD interface_to_xstring.
 
@@ -50718,6 +51069,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   METHOD fix_oref.
 
@@ -50925,6 +51277,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
   METHOD get.
 
@@ -51111,6 +51464,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
   METHOD get.
 
@@ -51327,6 +51681,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   METHOD adjust_inbound.
 
@@ -51642,6 +51997,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SAPC IMPLEMENTATION.
   METHOD get_data_class_name.
 
@@ -51659,6 +52015,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SAPC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SAMC IMPLEMENTATION.
   METHOD get_data_class_name.
 
@@ -51676,6 +52033,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SAMC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -51865,6 +52223,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -51989,6 +52348,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
     zcx_abapgit_exception=>raise( |Pragma { ms_item-obj_name } doesn't exist| ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
   METHOD constructor.
@@ -52203,6 +52563,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   METHOD create_facade.
 
@@ -52482,6 +52843,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
@@ -52666,6 +53028,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
   METHOD delete_intervals.
 
@@ -52910,6 +53273,7 @@ CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
@@ -53295,6 +53659,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -53466,6 +53831,7 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
   METHOD get_generic.
 
@@ -53522,6 +53888,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
@@ -53792,6 +54159,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     serialize_xml( io_xml ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
   METHOD constructor.
 
@@ -53951,6 +54319,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
   METHOD clear_idoc_segement_field.
 
@@ -54150,6 +54519,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IATU IMPLEMENTATION.
   METHOD read.
 
@@ -54314,6 +54684,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IATU IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
   METHOD read.
 
@@ -54461,6 +54832,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
   METHOD read.
 
@@ -54610,6 +54982,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
   METHOD load_mime_api.
 
@@ -54858,6 +55231,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD are_exceptions_class_based.
     DATA:
@@ -55673,6 +56047,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   METHOD build_extra_from_header.
 
@@ -56064,6 +56439,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
@@ -56233,6 +56609,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -56408,6 +56785,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
 
   METHOD zif_abapgit_object_enhs~deserialize.
@@ -56495,6 +56873,7 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
   METHOD zif_abapgit_object_enhs~deserialize.
 
@@ -56573,6 +56952,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
   METHOD factory.
 
@@ -56729,6 +57109,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
@@ -56823,6 +57204,7 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
 
   METHOD constructor.
@@ -56905,6 +57287,7 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
 
   METHOD constructor.
@@ -56979,6 +57362,7 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
 
   METHOD constructor.
@@ -57135,6 +57519,7 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
@@ -57231,6 +57616,7 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
 
   METHOD serialize_includes.
@@ -57357,6 +57743,7 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
 
   METHOD constructor.
@@ -57466,6 +57853,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
 
   METHOD constructor.
@@ -57559,6 +57947,7 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   METHOD factory.
 
@@ -57749,6 +58138,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   METHOD constructor.
 
@@ -57920,6 +58310,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   METHOD constructor.
 
@@ -57954,6 +58345,7 @@ CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
 
   METHOD constructor.
@@ -57987,6 +58379,7 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   METHOD constructor.
 
@@ -58019,6 +58412,7 @@ CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
   METHOD constructor.
 
@@ -58053,6 +58447,7 @@ CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   METHOD constructor.
 
@@ -58085,6 +58480,7 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   METHOD clear_attributes.
 
@@ -58543,6 +58939,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   METHOD constructor.
 
@@ -58575,6 +58972,7 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -58844,6 +59242,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   METHOD constructor.
 
@@ -58970,6 +59369,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD deserialize_texts.
 
@@ -59289,6 +59689,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
   METHOD read.
 
@@ -59405,6 +59806,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
   METHOD read.
 
@@ -59558,6 +59960,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -59725,6 +60128,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
@@ -60359,6 +60763,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
   METHOD clear_field.
 
@@ -60598,6 +61003,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   METHOD open_adt_stob.
 
@@ -60871,6 +61277,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
@@ -61050,6 +61457,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
   METHOD constructor.
 
@@ -61157,6 +61565,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
   METHOD constructor.
 
@@ -61287,6 +61696,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   METHOD constructor.
 
@@ -61420,6 +61830,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
   METHOD constructor.
 
@@ -61599,6 +62010,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
@@ -61965,6 +62377,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   METHOD instantiate_char.
 
@@ -62186,6 +62599,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
   METHOD insert_assignments.
 
@@ -62370,6 +62784,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
   METHOD constructor.
 
@@ -62493,6 +62908,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
@@ -62566,6 +62982,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
   METHOD create_object.
 
@@ -62679,6 +63096,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD delete.
 
@@ -62799,6 +63217,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
@@ -63108,6 +63527,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD download.
 
@@ -63340,6 +63760,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
 
   METHOD upload_data_from_stream.
@@ -63356,6 +63777,7 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
   METHOD download.
 
@@ -63435,6 +63857,7 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
@@ -63605,6 +64028,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
   METHOD download.
 
@@ -63687,6 +64111,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
@@ -63701,6 +64126,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
   METHOD download.
 
@@ -64090,6 +64516,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
   METHOD build_xml_of_object.
 
@@ -64191,6 +64618,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_DATA_UPLOAD IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
@@ -64205,6 +64633,7 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_UPLOAD IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
   METHOD download.
 
@@ -64266,6 +64695,7 @@ CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_ECATT_CONFIG_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
@@ -64280,6 +64710,7 @@ CLASS ZCL_ABAPGIT_ECATT_CONFIG_UPL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
   METHOD download.
 
@@ -64342,6 +64773,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
   METHOD constructor.
 
@@ -64384,6 +64816,7 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
   METHOD enter.
 
@@ -64412,6 +64845,7 @@ CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
   METHOD constructor.
 
@@ -64508,6 +64942,7 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_http_client IMPLEMENTATION.
   METHOD check_http_200.
 
@@ -64644,6 +65079,7 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD acquire_login_details.
 
@@ -64846,6 +65282,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   METHOD constructor.
 
@@ -65112,6 +65549,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -65237,6 +65675,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
   METHOD authenticate.
     RAISE EXCEPTION TYPE zcx_abapgit_2fa_auth_failed. " Needs to be overwritten in subclasses
@@ -65322,6 +65761,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
     rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
@@ -65381,6 +65821,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
 
@@ -65599,6 +66040,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
 
@@ -65615,6 +66057,7 @@ CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   METHOD build_trees.
 
@@ -66161,6 +66604,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
 
@@ -66880,6 +67324,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
@@ -67090,6 +67535,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   METHOD calculate_patch.
 
@@ -67160,6 +67606,7 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   METHOD build_comment.
 
@@ -67278,6 +67725,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
   METHOD build_comment.
 
@@ -67471,6 +67919,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
   METHOD zif_abapgit_background~get_description.
 
@@ -67488,6 +67937,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
   METHOD list_methods.
 
@@ -67589,6 +68039,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 SELECTION-SCREEN BEGIN OF SCREEN 1001.
 * dummy for triggering screen on Java SAP GUI
 SELECTION-SCREEN END OF SCREEN 1001.
@@ -67995,5 +68446,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-04T15:14:38.871Z
+* abapmerge undefined - 2019-03-06T08:51:20.617Z
 ****************************************************
