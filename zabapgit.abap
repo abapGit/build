@@ -1422,7 +1422,6 @@ INTERFACE zif_abapgit_definitions .
       link_hint_key              TYPE char01,
       link_hint_background_color TYPE string,
       hotkeys                    TYPE tty_hotkey,
-      octicons_disabled          TYPE abap_bool,
       parallel_proc_disabled     TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
@@ -9466,9 +9465,7 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
         iv_name          TYPE string
       RETURNING
         VALUE(rv_return) TYPE abap_bool .
-    METHODS render_octicons
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+
     METHODS render_parallel_proc
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -12758,12 +12755,6 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
         RAISING
           zcx_abapgit_exception,
-      set_octicons_disabled
-        IMPORTING
-          iv_octions_disabled TYPE abap_bool,
-      get_octicons_disabled
-        RETURNING
-          VALUE(rv_octions_disabled) TYPE abap_bool,
       set_parallel_proc_disabled
         IMPORTING
           iv_disable_parallel_proc TYPE abap_bool,
@@ -14856,15 +14847,6 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD get_octicons_disabled.
-    rv_octions_disabled = ms_user_settings-octicons_disabled.
-  ENDMETHOD.
-
-  METHOD set_octicons_disabled.
-    ms_user_settings-octicons_disabled = iv_octions_disabled.
-  ENDMETHOD.
-
   METHOD set_parallel_proc_disabled.
     ms_user_settings-parallel_proc_disabled = iv_disable_parallel_proc.
   ENDMETHOD.
@@ -27078,12 +27060,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_link_hint_background_color( |{ <ls_post_field>-value }| ).
     ENDIF.
 
-    IF is_post_field_checked( 'octicons_disabled' ) = abap_true.
-      mo_settings->set_octicons_disabled( abap_true ).
-    ELSE.
-      mo_settings->set_octicons_disabled( abap_false ).
-    ENDIF.
-
     IF is_post_field_checked( 'parallel_proc_disabled' ) = abap_true.
       mo_settings->set_parallel_proc_disabled( abap_true ).
     ELSE.
@@ -27245,8 +27221,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
     ro_html->add( |<hr>| ).
-    ro_html->add( render_octicons( ) ).
-    ro_html->add( |<hr>| ).
     ro_html->add( render_parallel_proc( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_link_hints( ) ).
@@ -27401,25 +27375,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<label for="max_lines">Max. # of objects listed (0 = all)</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-  ENDMETHOD.
-  METHOD render_octicons.
-
-    DATA lv_checked TYPE string.
-
-    IF mo_settings->get_octicons_disabled( ) = abap_true.
-      lv_checked = 'checked'.
-    ENDIF.
-
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Octicons</h2>| ).
-    ro_html->add( |You should disbale octicons when your client doesn't have internet access |
-               && |or the abapGit UI hangs sometimes.| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input type="checkbox" name="octicons_disabled" value="X" `
-                   && lv_checked && ` > Disable octions` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
@@ -68446,5 +68401,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-06T19:53:34.083Z
+* abapmerge undefined - 2019-03-07T06:39:22.843Z
 ****************************************************
