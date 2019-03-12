@@ -1253,7 +1253,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_metadata,
       class        TYPE string,
       version      TYPE string,
-      late_deser   TYPE abap_bool,
+      late_deser   TYPE abap_bool, " refactor: can be removed later. replaced by steps
       delete_tadir TYPE abap_bool,
       ddic         TYPE abap_bool,
     END OF ty_metadata .
@@ -1591,8 +1591,21 @@ INTERFACE zif_abapgit_definitions .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_object .
+
+  TYPES:
+    ty_deserialization_step TYPE string.
+  TYPES:
+    ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
+                                          WITH DEFAULT KEY .
+
   DATA mo_files TYPE REF TO zcl_abapgit_objects_files .
 
+  CONSTANTS:
+    BEGIN OF gc_step_id,
+      abap TYPE zif_abapgit_object=>ty_deserialization_step VALUE `ABAP`,
+      ddic TYPE zif_abapgit_object=>ty_deserialization_step VALUE `DDIC`,
+      late TYPE zif_abapgit_object=>ty_deserialization_step VALUE `LATE`,
+    END OF gc_step_id.
   METHODS serialize
     IMPORTING
       !io_xml TYPE REF TO zcl_abapgit_xml_output
@@ -1602,6 +1615,7 @@ INTERFACE zif_abapgit_object .
     IMPORTING
       !iv_package TYPE devclass
       !io_xml     TYPE REF TO zcl_abapgit_xml_input
+      !iv_step    TYPE ty_deserialization_step
     RAISING
       zcx_abapgit_exception .
   METHODS delete
@@ -1638,6 +1652,9 @@ INTERFACE zif_abapgit_object .
       VALUE(ri_comparator) TYPE REF TO zif_abapgit_comparator
     RAISING
       zcx_abapgit_exception .
+  METHODS get_deserialize_steps
+    RETURNING
+      VALUE(rt_steps) TYPE ty_deserialization_step_tt .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_oo_object_fnc.
@@ -12088,6 +12105,19 @@ CLASS zcl_abapgit_objects DEFINITION
         item  TYPE zif_abapgit_definitions=>ty_item,
       END OF ty_serialization .
 
+    TYPES:
+      BEGIN OF ty_step_data,
+        step_id      TYPE zif_abapgit_object=>ty_deserialization_step,
+        order        TYPE i,
+        descr        TYPE string,
+        is_ddic      TYPE abap_bool,
+        syntax_check TYPE abap_bool,
+        objects      TYPE ty_deserialization_tt,
+      END OF ty_step_data.
+    TYPES:
+      ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
+                                WITH DEFAULT KEY.
+
     CLASS-METHODS serialize
       IMPORTING
         !is_item                 TYPE zif_abapgit_definitions=>ty_item
@@ -12240,11 +12270,9 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
       IMPORTING
-        it_objects TYPE ty_deserialization_tt
-        iv_ddic    TYPE abap_bool DEFAULT abap_false
-        iv_descr   TYPE string
+        is_step  TYPE ty_step_data
       CHANGING
-        ct_files   TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        ct_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS check_objects_locked
@@ -12283,6 +12311,9 @@ CLASS zcl_abapgit_objects DEFINITION
         it_results        TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
+    CLASS-METHODS get_deserialize_steps
+      RETURNING
+        VALUE(rt_steps) TYPE ty_step_data_tt.
 
 ENDCLASS.
 CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM zcl_abapgit_objects_super.
@@ -17063,16 +17094,20 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lo_files    TYPE REF TO zcl_abapgit_objects_files,
           lo_xml      TYPE REF TO zcl_abapgit_xml_input,
           lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
-          lt_ddic     TYPE TABLE OF ty_deserialization,
-          lt_rest     TYPE TABLE OF ty_deserialization,
-          lt_late     TYPE TABLE OF ty_deserialization,
           li_progress TYPE REF TO zif_abapgit_progress,
           lv_path     TYPE string,
-          lt_items    TYPE zif_abapgit_definitions=>ty_items_tt.
+          lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
+          lt_steps_id TYPE zif_abapgit_object=>ty_deserialization_step_tt,
+          lt_steps    TYPE ty_step_data_tt.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
-    FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result,
-                   <ls_deser>  LIKE LINE OF lt_late.
+    FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
+                   <lv_step_id> TYPE LINE OF zif_abapgit_object=>ty_deserialization_step_tt,
+                   <ls_step>    TYPE LINE OF ty_step_data_tt,
+                   <ls_deser>   TYPE LINE OF ty_deserialization_tt.
+
+    lt_steps = get_deserialize_steps( ).
+
     lv_package = io_repo->get_package( ).
 
     IF is_checks-transport-required = abap_true.
@@ -17139,33 +17174,50 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
       li_obj->mo_files = lo_files.
 
-      IF li_obj->get_metadata( )-late_deser = abap_true.
-        APPEND INITIAL LINE TO lt_late ASSIGNING <ls_deser>.
-      ELSEIF li_obj->get_metadata( )-ddic = abap_true.
-        APPEND INITIAL LINE TO lt_ddic ASSIGNING <ls_deser>.
-      ELSE.
-        APPEND INITIAL LINE TO lt_rest ASSIGNING <ls_deser>.
-      ENDIF.
-      <ls_deser>-item    = ls_item.
-      <ls_deser>-obj     = li_obj.
-      <ls_deser>-xml     = lo_xml.
-      <ls_deser>-package = lv_package.
+      TRY.
+* Get required steps for deserialize the object
+          lt_steps_id = li_obj->get_deserialize_steps( ).
 
-      CLEAR: lv_path, lv_package.
+          LOOP AT lt_steps_id ASSIGNING <lv_step_id>.
+            READ TABLE lt_steps WITH KEY step_id = <lv_step_id> ASSIGNING <ls_step>.
+            ASSERT sy-subrc = 0.
+            IF <ls_step>-is_ddic = abap_true AND li_obj->get_metadata( )-ddic = abap_false.
+              " DDIC only for DDIC objects
+              zcx_abapgit_exception=>raise( |Step { <lv_step_id> } is only for DDIC objects| ).
+            ENDIF.
+            APPEND INITIAL LINE TO <ls_step>-objects ASSIGNING <ls_deser>.
+            <ls_deser>-item    = ls_item.
+            <ls_deser>-obj     = li_obj.
+            <ls_deser>-xml     = lo_xml.
+            <ls_deser>-package = lv_package.
+          ENDLOOP.
+
+        CATCH cx_sy_dyn_call_illegal_method.
+          " Fallback (can be removed if all objects implement the new IF method get_deserialize_steps)
+          IF li_obj->get_metadata( )-late_deser = abap_true.
+            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-late ASSIGNING <ls_step>.
+            ASSERT sy-subrc = 0.
+          ELSEIF li_obj->get_metadata( )-ddic = abap_true.
+            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-ddic ASSIGNING <ls_step>.
+            ASSERT sy-subrc = 0.
+          ELSE.
+            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-abap ASSIGNING <ls_step>.
+            ASSERT sy-subrc = 0.
+          ENDIF.
+          APPEND INITIAL LINE TO <ls_step>-objects ASSIGNING <ls_deser>.
+          <ls_deser>-item    = ls_item.
+          <ls_deser>-obj     = li_obj.
+          <ls_deser>-xml     = lo_xml.
+          <ls_deser>-package = lv_package.
+      ENDTRY.
     ENDLOOP.
 
-    deserialize_objects( EXPORTING it_objects = lt_ddic
-                                   iv_ddic    = abap_true
-                                   iv_descr   = 'DDIC'
-                         CHANGING ct_files = rt_accessed_files ).
-
-    deserialize_objects( EXPORTING it_objects = lt_rest
-                                   iv_descr   = 'Objects'
-                         CHANGING ct_files = rt_accessed_files ).
-
-    deserialize_objects( EXPORTING it_objects = lt_late
-                                   iv_descr   = 'Late'
-                         CHANGING ct_files = rt_accessed_files ).
+* run deserialize for all step and it's objets
+    SORT lt_steps BY order.
+    LOOP AT lt_steps ASSIGNING <ls_step>.
+      deserialize_objects( EXPORTING is_step = <ls_step>
+                           CHANGING ct_files = rt_accessed_files ).
+    ENDLOOP.
 
     update_package_tree( io_repo->get_package( ) ).
 
@@ -17200,22 +17252,23 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress.
 
-    FIELD-SYMBOLS: <ls_obj> LIKE LINE OF it_objects.
+    FIELD-SYMBOLS: <ls_obj> LIKE LINE OF is_step-objects.
     zcl_abapgit_objects_activation=>clear( ).
 
-    li_progress = zcl_abapgit_progress=>get_instance( lines( it_objects ) ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( is_step-objects ) ).
 
-    LOOP AT it_objects ASSIGNING <ls_obj>.
+    LOOP AT is_step-objects ASSIGNING <ls_obj>.
       li_progress->show(
         iv_current = sy-tabix
-        iv_text    = |Deserialize { iv_descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
+        iv_text    = |Deserialize { is_step-descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
 
       <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
-                                 io_xml     = <ls_obj>-xml ).
+                                 io_xml     = <ls_obj>-xml
+                                 iv_step    = is_step-step_id ).
       APPEND LINES OF <ls_obj>-obj->mo_files->get_accessed_files( ) TO ct_files.
     ENDLOOP.
 
-    zcl_abapgit_objects_activation=>activate( iv_ddic ).
+    zcl_abapgit_objects_activation=>activate( iv_ddic         = is_step-is_ddic ).
 
   ENDMETHOD.
   METHOD exists.
@@ -17253,6 +17306,30 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DELETE rt_results WHERE obj_type IS INITIAL.
     DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
 
+  ENDMETHOD.
+  METHOD get_deserialize_steps.
+    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF ty_step_data_tt.
+
+    APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
+    <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
+    <ls_step>-descr        = 'Import DDIC objects'.
+    <ls_step>-is_ddic      = abap_true.
+    <ls_step>-syntax_check = abap_false.
+    <ls_step>-order        = 1.
+
+    APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
+    <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-abap.
+    <ls_step>-descr        = 'Import objects main'.
+    <ls_step>-is_ddic      = abap_false.
+    <ls_step>-syntax_check = abap_false.
+    <ls_step>-order        = 2.
+
+    APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
+    <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-late.
+    <ls_step>-descr        = 'Import late objects'.
+    <ls_step>-is_ddic      = abap_false.
+    <ls_step>-syntax_check = abap_true.
+    <ls_step>-order        = 3.
   ENDMETHOD.
   METHOD is_active.
 
@@ -68801,5 +68878,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-12T06:36:51.858Z
+* abapmerge undefined - 2019-03-12T09:10:36.788Z
 ****************************************************
