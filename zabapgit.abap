@@ -16803,6 +16803,21 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
@@ -17174,42 +17189,23 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
       li_obj->mo_files = lo_files.
 
-      TRY.
 * Get required steps for deserialize the object
-          lt_steps_id = li_obj->get_deserialize_steps( ).
+      lt_steps_id = li_obj->get_deserialize_steps( ).
 
-          LOOP AT lt_steps_id ASSIGNING <lv_step_id>.
-            READ TABLE lt_steps WITH KEY step_id = <lv_step_id> ASSIGNING <ls_step>.
-            ASSERT sy-subrc = 0.
-            IF <ls_step>-is_ddic = abap_true AND li_obj->get_metadata( )-ddic = abap_false.
-              " DDIC only for DDIC objects
-              zcx_abapgit_exception=>raise( |Step { <lv_step_id> } is only for DDIC objects| ).
-            ENDIF.
-            APPEND INITIAL LINE TO <ls_step>-objects ASSIGNING <ls_deser>.
-            <ls_deser>-item    = ls_item.
-            <ls_deser>-obj     = li_obj.
-            <ls_deser>-xml     = lo_xml.
-            <ls_deser>-package = lv_package.
-          ENDLOOP.
+      LOOP AT lt_steps_id ASSIGNING <lv_step_id>.
+        READ TABLE lt_steps WITH KEY step_id = <lv_step_id> ASSIGNING <ls_step>.
+        ASSERT sy-subrc = 0.
+        IF <ls_step>-is_ddic = abap_true AND li_obj->get_metadata( )-ddic = abap_false.
+          " DDIC only for DDIC objects
+          zcx_abapgit_exception=>raise( |Step { <lv_step_id> } is only for DDIC objects| ).
+        ENDIF.
+        APPEND INITIAL LINE TO <ls_step>-objects ASSIGNING <ls_deser>.
+        <ls_deser>-item    = ls_item.
+        <ls_deser>-obj     = li_obj.
+        <ls_deser>-xml     = lo_xml.
+        <ls_deser>-package = lv_package.
+      ENDLOOP.
 
-        CATCH cx_sy_dyn_call_illegal_method.
-          " Fallback (can be removed if all objects implement the new IF method get_deserialize_steps)
-          IF li_obj->get_metadata( )-late_deser = abap_true.
-            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-late ASSIGNING <ls_step>.
-            ASSERT sy-subrc = 0.
-          ELSEIF li_obj->get_metadata( )-ddic = abap_true.
-            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-ddic ASSIGNING <ls_step>.
-            ASSERT sy-subrc = 0.
-          ELSE.
-            READ TABLE lt_steps WITH KEY step_id = zif_abapgit_object=>gc_step_id-abap ASSIGNING <ls_step>.
-            ASSERT sy-subrc = 0.
-          ENDIF.
-          APPEND INITIAL LINE TO <ls_step>-objects ASSIGNING <ls_deser>.
-          <ls_deser>-item    = ls_item.
-          <ls_deser>-obj     = li_obj.
-          <ls_deser>-xml     = lo_xml.
-          <ls_deser>-package = lv_package.
-      ENDTRY.
     ENDLOOP.
 
 * run deserialize for all step and it's objets
@@ -38878,6 +38874,21 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -40794,6 +40805,21 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -40955,6 +40981,21 @@ CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -41321,6 +41362,21 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -42080,6 +42136,21 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -42265,6 +42336,21 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -42763,6 +42849,21 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -43105,6 +43206,21 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -43414,6 +43530,21 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -43626,6 +43757,21 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -44277,6 +44423,21 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -44495,6 +44656,21 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -44691,6 +44867,21 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -44828,6 +45019,21 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -45425,6 +45631,21 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -45706,6 +45927,21 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -46482,6 +46718,21 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         io_local = lo_local_version_input.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -46756,6 +47007,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -47076,6 +47342,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -47290,6 +47571,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -47373,6 +47669,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -47476,6 +47787,21 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -47685,6 +48011,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -48063,6 +48404,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -48297,6 +48653,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -48490,6 +48861,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -48776,6 +49162,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -48892,6 +49293,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -49173,6 +49589,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -49436,6 +49867,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -49894,6 +50340,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -50157,6 +50618,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -50319,6 +50795,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -50470,6 +50961,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -50575,6 +51081,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -50800,6 +51321,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -51034,6 +51570,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -51192,6 +51743,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -51401,6 +51967,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -51557,6 +52138,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -51758,6 +52354,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -52096,6 +52707,21 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -52340,6 +52966,21 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -52453,6 +53094,21 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -52932,6 +53588,21 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -53138,6 +53809,21 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -53359,6 +54045,21 @@ CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -53758,6 +54459,21 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -53908,6 +54624,21 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -54024,6 +54755,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -54268,6 +55014,21 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -54408,6 +55169,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -54605,6 +55381,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -54809,6 +55600,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IATU IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -54958,6 +55764,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -55105,6 +55926,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -55359,6 +56195,21 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -56136,6 +56987,21 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -56408,6 +57274,21 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -56710,6 +57591,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -56855,6 +57751,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -57226,6 +58137,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -58247,6 +59173,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -58402,6 +59343,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -59029,6 +59985,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -59316,6 +60287,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -59484,6 +60470,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -59781,6 +60782,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-ddic = abap_true.
@@ -59934,6 +60950,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -60047,6 +61078,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -60233,6 +61279,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -60779,6 +61840,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -61088,6 +62164,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -61348,6 +62439,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
@@ -61533,6 +62639,21 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
 
@@ -61688,6 +62809,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -61818,6 +62954,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -61942,6 +63093,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -62115,6 +63281,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -62449,6 +63630,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -62700,6 +63896,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
@@ -62891,6 +64102,21 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
     rs_metadata = get_metadata( ).
@@ -63037,6 +64263,21 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
     rs_metadata-delete_tadir = abap_true.
@@ -63112,6 +64353,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -63217,6 +64473,21 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+
+    ls_meta = get_metadata( ).
+
+    IF ls_meta-late_deser = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+    ELSEIF ls_meta-ddic = abap_true.
+      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    ELSE.
+      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -68878,5 +70149,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-12T09:10:36.788Z
+* abapmerge undefined - 2019-03-12T14:40:34.229Z
 ****************************************************
