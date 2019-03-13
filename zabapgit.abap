@@ -10403,11 +10403,11 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
         zcx_abapgit_cancel .
     CLASS-METHODS is_installed
       RETURNING
-        VALUE(rv_installed) TYPE abap_bool .
+        VALUE(rv_devclass) TYPE tadir-devclass .
     CLASS-METHODS prepare_gui_startup
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS do_install
       IMPORTING iv_title   TYPE c
@@ -16807,7 +16807,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -23191,7 +23191,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD do_install.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
@@ -23227,16 +23227,72 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.
+  METHOD get_package_from_adt.
+
+    DATA: ls_item    TYPE zif_abapgit_definitions=>ty_item,
+          lr_context TYPE REF TO data,
+          lt_fields  TYPE tihttpnvp.
+    FIELD-SYMBOLS: <ls_context>    TYPE any,
+                   <lv_parameters> TYPE string,
+                   <ls_field>      LIKE LINE OF lt_fields.
+
+    ls_item-obj_type = 'CLAS'.
+    ls_item-obj_name = 'CL_ADT_GUI_INTEGRATION_CONTEXT'.
+
+    IF zcl_abapgit_objects=>exists( ls_item  ) = abap_false.
+      " ADT is not supported in this NW release
+      RETURN.
+    ENDIF.
+
+    TRY.
+        CREATE DATA lr_context TYPE ('CL_ADT_GUI_INTEGRATION_CONTEXT=>TY_CONTEXT_INFO').
+
+        ASSIGN lr_context->* TO <ls_context>.
+        ASSERT sy-subrc = 0.
+
+        CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>read_context
+          RECEIVING
+            result = <ls_context>.
+
+        ASSIGN COMPONENT 'PARAMETERS'
+               OF STRUCTURE <ls_context>
+               TO <lv_parameters>.
+        ASSERT sy-subrc = 0.
+
+        lt_fields = cl_http_utility=>string_to_fields(
+                        cl_http_utility=>unescape_url(
+                            <lv_parameters> ) ).
+
+        READ TABLE lt_fields ASSIGNING <ls_field>
+                             WITH KEY name = 'p_package_name'.
+        IF sy-subrc = 0.
+          rv_package = <ls_field>-value.
+
+          " We want to open the repo just once. Therefore we delete the parameters
+          " and initialize the ADT context.
+          CLEAR <lv_parameters>.
+          CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>initialize_instance
+            EXPORTING
+              context_info = <ls_context>.
+
+        ENDIF.
+
+      CATCH cx_root.
+        " Some problems with dynamic ADT access.
+        " Let's ignore it for now and fail silently
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD install_abapgit.
 
     CONSTANTS lc_title TYPE c LENGTH 40 VALUE 'Install abapGit'.
     DATA lv_text       TYPE c LENGTH 100.
 
-    IF is_installed( ) = abap_true.
+    IF NOT is_installed( ) IS INITIAL.
       lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
       zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
-        iv_titlebar              = lc_title
-        iv_text_message          = lv_text ).
+        iv_titlebar     = lc_title
+        iv_text_message = lv_text ).
       RETURN.
     ENDIF.
 
@@ -23248,17 +23304,12 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
                 iv_package = c_package_abapgit ).
 
   ENDMETHOD.
-
   METHOD is_installed.
 
-    DATA: ls_item TYPE zif_abapgit_definitions=>ty_item.
-
-    ls_item-obj_type = 'TRAN'.
-    ls_item-obj_name = c_abapgit_tcode.
-    rv_installed = zcl_abapgit_objects=>exists( ls_item ).
+    SELECT SINGLE devclass FROM tadir INTO rv_devclass
+      WHERE object = 'TRAN' AND obj_name = c_abapgit_tcode.
 
   ENDMETHOD.
-
   METHOD open_abapgit_homepage.
 
     cl_gui_frontend_services=>execute(
@@ -23279,7 +23330,6 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD prepare_gui_startup.
 
     DATA: lv_repo_key    TYPE zif_abapgit_persistence=>ty_value,
@@ -23365,63 +23415,6 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD get_package_from_adt.
-
-    DATA: ls_item    TYPE zif_abapgit_definitions=>ty_item,
-          lr_context TYPE REF TO data,
-          lt_fields  TYPE tihttpnvp.
-    FIELD-SYMBOLS: <ls_context>    TYPE any,
-                   <lv_parameters> TYPE string,
-                   <ls_field>      LIKE LINE OF lt_fields.
-
-    ls_item-obj_type = 'CLAS'.
-    ls_item-obj_name = 'CL_ADT_GUI_INTEGRATION_CONTEXT'.
-
-    IF zcl_abapgit_objects=>exists( ls_item  ) = abap_false.
-      " ADT is not supported in this NW release
-      RETURN.
-    ENDIF.
-
-    TRY.
-        CREATE DATA lr_context TYPE ('CL_ADT_GUI_INTEGRATION_CONTEXT=>TY_CONTEXT_INFO').
-
-        ASSIGN lr_context->* TO <ls_context>.
-        ASSERT sy-subrc = 0.
-
-        CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>read_context
-          RECEIVING
-            result = <ls_context>.
-
-        ASSIGN COMPONENT 'PARAMETERS'
-               OF STRUCTURE <ls_context>
-               TO <lv_parameters>.
-        ASSERT sy-subrc = 0.
-
-        lt_fields = cl_http_utility=>string_to_fields(
-                        cl_http_utility=>unescape_url(
-                            <lv_parameters> ) ).
-
-        READ TABLE lt_fields ASSIGNING <ls_field>
-                             WITH KEY name = 'p_package_name'.
-        IF sy-subrc = 0.
-          rv_package = <ls_field>-value.
-
-          " We want to open the repo just once. Therefore we delete the parameters
-          " and initialize the ADT context.
-          CLEAR <lv_parameters>.
-          CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>initialize_instance
-            EXPORTING
-              context_info = <ls_context>.
-
-        ENDIF.
-
-      CATCH cx_root.
-        " Some problems with dynamic ADT access.
-        " Let's ignore it for now and fail silently
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
@@ -25204,6 +25197,8 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   METHOD render_content.
 
+    DATA: lv_devclass TYPE tadir-devclass.
+
     CREATE OBJECT ro_html.
 
     ro_html->add( '<h1>Tutorial</h1>' ).
@@ -25239,14 +25234,17 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '<h2>abapGit repository</h2>' ).
     ro_html->add( '<p><ul>' ).
     ro_html->add( '<li>' ).
-    IF zcl_abapgit_services_abapgit=>is_installed( ) = abap_true.
+
+    lv_devclass = zcl_abapgit_services_abapgit=>is_installed( ).
+    IF NOT lv_devclass IS INITIAL.
       ro_html->add( 'abapGit installed in package&nbsp;' ).
-      ro_html->add( zcl_abapgit_services_abapgit=>c_package_abapgit ).
+      ro_html->add( lv_devclass ).
     ELSE.
       ro_html->add_a( iv_txt = 'install abapGit repo' iv_act = zif_abapgit_definitions=>c_action-abapgit_install ).
       ro_html->add( ' - To keep abapGit up-to-date (or also to contribute) you need to' ).
       ro_html->add( 'install it as a repository.' ).
     ENDIF.
+
     ro_html->add( '</li>' ).
     ro_html->add( '</ul></p>' ).
 
@@ -38878,7 +38876,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -40809,7 +40807,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -40986,7 +40984,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XINX IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -41367,7 +41365,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -42140,7 +42138,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -42341,7 +42339,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -42853,7 +42851,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -43210,7 +43208,7 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -43534,7 +43532,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -43762,7 +43760,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -44427,7 +44425,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -44660,7 +44658,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -44871,7 +44869,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -45024,7 +45022,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -45635,7 +45633,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -45932,7 +45930,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -46722,7 +46720,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -47012,7 +47010,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -47346,7 +47344,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -47575,7 +47573,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -47674,7 +47672,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -47792,7 +47790,7 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -48016,7 +48014,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -48408,7 +48406,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -48657,7 +48655,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -48866,7 +48864,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -49166,7 +49164,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -49298,7 +49296,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -49593,7 +49591,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -49872,7 +49870,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -50344,7 +50342,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -50622,7 +50620,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -50799,7 +50797,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -50965,7 +50963,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -51086,7 +51084,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -51326,7 +51324,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -51574,7 +51572,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -51748,7 +51746,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -51971,7 +51969,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -52143,7 +52141,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -52359,7 +52357,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -52711,7 +52709,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -52970,7 +52968,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -53099,7 +53097,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -53592,7 +53590,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -53814,7 +53812,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -54050,7 +54048,7 @@ CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -54463,7 +54461,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -54628,7 +54626,7 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -54760,7 +54758,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55018,7 +55016,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55174,7 +55172,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55386,7 +55384,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55604,7 +55602,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IATU IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55768,7 +55766,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -55931,7 +55929,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -56200,7 +56198,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -56991,7 +56989,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -57279,7 +57277,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -57595,7 +57593,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -57756,7 +57754,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -58142,7 +58140,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -59177,7 +59175,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -59348,7 +59346,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -59989,7 +59987,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -60291,7 +60289,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -60475,7 +60473,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -60786,7 +60784,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -60954,7 +60952,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -61083,7 +61081,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -61284,7 +61282,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -61844,7 +61842,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -62168,7 +62166,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -62443,7 +62441,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -62643,7 +62641,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -62813,7 +62811,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -62958,7 +62956,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -63098,7 +63096,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -63286,7 +63284,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -63634,7 +63632,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -63900,7 +63898,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -64106,7 +64104,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -64267,7 +64265,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -64358,7 +64356,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -64478,7 +64476,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
 
     DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
 
-    ls_meta = get_metadata( ).
+    ls_meta = zif_abapgit_object~get_metadata( ).
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -70149,5 +70147,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-12T14:40:34.229Z
+* abapmerge undefined - 2019-03-13T04:51:46.130Z
 ****************************************************
