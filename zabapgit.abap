@@ -1050,6 +1050,7 @@ INTERFACE zif_abapgit_auth.
 
   CONSTANTS: BEGIN OF gc_authorization,
                uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
+               create_repo           TYPE ty_authorization VALUE 'CREATE_REPO',
                transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
                update_local_checksum TYPE ty_authorization VALUE 'UPDATE_LOCAL_CHECKSUM',
              END OF gc_authorization.
@@ -15690,6 +15691,10 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
+
     validate_package( iv_package ).
 
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
@@ -15718,6 +15723,10 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_branch_name IS INITIAL
       AND NOT iv_package IS INITIAL.
+
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
+      zcx_abapgit_exception=>raise( 'Not authorized' ).
+    ENDIF.
 
     validate_package( iv_package ).
     zcl_abapgit_url=>validate( |{ iv_url }| ).
@@ -70188,5 +70197,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-14T09:16:39.341Z
+* abapmerge undefined - 2019-03-14T09:47:55.469Z
 ****************************************************
