@@ -438,12 +438,12 @@ INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_progress DEFERRED.
-INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_router DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
+INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
@@ -513,7 +513,6 @@ CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
 CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
-CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
@@ -554,6 +553,7 @@ CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
+CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
@@ -948,6 +948,39 @@ INTERFACE zif_abapgit_object_enhs.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_frontend_services.
+  METHODS file_upload
+    IMPORTING
+      !iv_path       TYPE string
+    RETURNING
+      VALUE(rv_xstr) TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS file_download
+    IMPORTING
+      !iv_path TYPE string
+      !iv_xstr TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_save_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_extension        TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_open_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
@@ -1000,39 +1033,6 @@ INTERFACE zif_abapgit_gui_router .
       zcx_abapgit_exception
       zcx_abapgit_cancel.
 
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_frontend_services.
-  METHODS file_upload
-    IMPORTING
-      !iv_path       TYPE string
-    RETURNING
-      VALUE(rv_xstr) TYPE xstring
-    RAISING
-      zcx_abapgit_exception .
-  METHODS file_download
-    IMPORTING
-      !iv_path TYPE string
-      !iv_xstr TYPE xstring
-    RAISING
-      zcx_abapgit_exception .
-  METHODS show_file_save_dialog
-    IMPORTING
-      !iv_title            TYPE string
-      !iv_extension        TYPE string
-      !iv_default_filename TYPE string
-    RETURNING
-      VALUE(rv_path)       TYPE string
-    RAISING
-      zcx_abapgit_exception .
-  METHODS show_file_open_dialog
-    IMPORTING
-      !iv_title            TYPE string
-      !iv_default_filename TYPE string
-    RETURNING
-      VALUE(rv_path)       TYPE string
-    RAISING
-      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_progress .
@@ -8264,6 +8264,17 @@ CLASS zcl_abapgit_test_serialize DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_frontend_services DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_frontend_services.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
   FINAL .
 
@@ -10654,34 +10665,35 @@ CLASS zcl_abapgit_tag_popups DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_ui_factory DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_ui_injector.
+  FRIENDS ZCL_ABAPGIT_ui_injector .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      get_popups
-        RETURNING
-          VALUE(ri_popups) TYPE REF TO zif_abapgit_popups,
 
-      get_tag_popups
-        RETURNING
-          VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups,
-
-      get_gui_functions
-        RETURNING
-          VALUE(ri_gui_functions) TYPE REF TO zif_abapgit_gui_functions.
-
-    CLASS-METHODS: get_gui
+    CLASS-METHODS get_popups
+      RETURNING
+        VALUE(ri_popups) TYPE REF TO zif_abapgit_popups .
+    CLASS-METHODS get_tag_popups
+      RETURNING
+        VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups .
+    CLASS-METHODS get_gui_functions
+      RETURNING
+        VALUE(ri_gui_functions) TYPE REF TO zif_abapgit_gui_functions .
+    CLASS-METHODS get_gui
       RETURNING
         VALUE(ro_gui) TYPE REF TO zcl_abapgit_gui
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
+    CLASS-METHODS get_frontend_services
+      RETURNING
+        VALUE(ri_fe_serv) TYPE REF TO zif_abapgit_frontend_services .
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    CLASS-DATA:
-      gi_popups        TYPE REF TO zif_abapgit_popups,
-      gi_tag_popups    TYPE REF TO zif_abapgit_tag_popups,
-      gi_gui_functions TYPE REF TO zif_abapgit_gui_functions,
-      go_gui           TYPE REF TO zcl_abapgit_gui.
 
+    CLASS-DATA gi_popups TYPE REF TO zif_abapgit_popups .
+    CLASS-DATA gi_tag_popups TYPE REF TO zif_abapgit_tag_popups .
+    CLASS-DATA gi_gui_functions TYPE REF TO zif_abapgit_gui_functions .
+    CLASS-DATA go_gui TYPE REF TO zcl_abapgit_gui .
+    CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
   CREATE PRIVATE.
@@ -10814,17 +10826,6 @@ CLASS zcl_abapgit_diff DEFINITION
     METHODS calculate_line_num_and_stats .
     METHODS map_beacons .
     METHODS shortlist .
-ENDCLASS.
-CLASS zcl_abapgit_frontend_services DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_frontend_services.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_hash DEFINITION
   CREATE PUBLIC .
@@ -11768,9 +11769,6 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_cts_api
       RETURNING
         VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api .
-    CLASS-METHODS get_frontend_services
-      RETURNING
-        VALUE(ri_fe_serv) TYPE REF TO zif_abapgit_frontend_services .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -11781,7 +11779,7 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_sap_package .
     TYPES:
       tty_sap_package TYPE HASHED TABLE OF ty_sap_package
-                            WITH UNIQUE KEY package .
+                              WITH UNIQUE KEY package .
     TYPES:
       BEGIN OF ty_code_inspector,
         package  TYPE devclass,
@@ -11789,14 +11787,13 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_code_inspector .
     TYPES:
       tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
-                               WITH UNIQUE KEY package .
+                                 WITH UNIQUE KEY package .
 
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
     CLASS-DATA gt_sap_package TYPE tty_sap_package .
     CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
-    CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -14058,7 +14055,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     TRANSLATE lv_package USING '/#'.
     CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
 
-    lo_fe_serv = zcl_abapgit_factory=>get_frontend_services( ).
+    lo_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
     lv_path = lo_fe_serv->show_file_save_dialog(
       iv_title            = 'Export ZIP'
@@ -14075,11 +14072,11 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     DATA: lv_path TYPE string,
           lv_xstr TYPE xstring.
 
-    lv_path = zcl_abapgit_factory=>get_frontend_services( )->show_file_open_dialog(
+    lv_path = zcl_abapgit_ui_factory=>get_frontend_services( )->show_file_open_dialog(
       iv_title            = 'Import ZIP'
       iv_default_filename = '*.zip' ).
 
-    lv_xstr = zcl_abapgit_factory=>get_frontend_services( )->file_upload( lv_path ).
+    lv_xstr = zcl_abapgit_ui_factory=>get_frontend_services( )->file_upload( lv_path ).
 
     rt_files = unzip_file( lv_xstr ).
 
@@ -18907,15 +18904,6 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
 
     ri_cts_api = gi_cts_api.
   ENDMETHOD.
-  METHOD get_frontend_services.
-
-    IF gi_fe_services IS INITIAL.
-      CREATE OBJECT gi_fe_services TYPE zcl_abapgit_frontend_services.
-    ENDIF.
-
-    ri_fe_serv = gi_fe_services.
-
-  ENDMETHOD.
   METHOD get_sap_package.
 
     DATA: ls_sap_package TYPE ty_sap_package.
@@ -21645,160 +21633,6 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
-  METHOD zif_abapgit_frontend_services~file_download.
-
-    DATA:
-      lt_rawdata  TYPE solix_tab.
-
-    lt_rawdata = cl_bcs_convert=>xstring_to_solix( iv_xstr ).
-
-    cl_gui_frontend_services=>gui_download(
-      EXPORTING
-        bin_filesize              = xstrlen( iv_xstr )
-        filename                  = iv_path
-        filetype                  = 'BIN'
-      CHANGING
-        data_tab                  = lt_rawdata
-      EXCEPTIONS
-        file_write_error          = 1
-        no_batch                  = 2
-        gui_refuse_filetransfer   = 3
-        invalid_type              = 4
-        no_authority              = 5
-        unknown_error             = 6
-        header_not_allowed        = 7
-        separator_not_allowed     = 8
-        filesize_not_allowed      = 9
-        header_too_long           = 10
-        dp_error_create           = 11
-        dp_error_send             = 12
-        dp_error_write            = 13
-        unknown_dp_error          = 14
-        access_denied             = 15
-        dp_out_of_memory          = 16
-        disk_full                 = 17
-        dp_timeout                = 18
-        file_not_found            = 19
-        dataprovider_exception    = 20
-        control_flush_error       = 21
-        not_supported_by_gui      = 22
-        error_no_gui              = 23
-        OTHERS                    = 24 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_download' ). "#EC NOTEXT
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_frontend_services~file_upload.
-
-    TYPES: ty_hex TYPE x LENGTH 255.
-
-    DATA: lt_data   TYPE TABLE OF ty_hex WITH DEFAULT KEY,
-          lv_length TYPE i.
-
-    cl_gui_frontend_services=>gui_upload(
-      EXPORTING
-        filename                = iv_path
-        filetype                = 'BIN'
-      IMPORTING
-        filelength              = lv_length
-      CHANGING
-        data_tab                = lt_data
-      EXCEPTIONS
-        file_open_error         = 1
-        file_read_error         = 2
-        no_batch                = 3
-        gui_refuse_filetransfer = 4
-        invalid_type            = 5
-        no_authority            = 6
-        unknown_error           = 7
-        bad_data_format         = 8
-        header_not_allowed      = 9
-        separator_not_allowed   = 10
-        header_too_long         = 11
-        unknown_dp_error        = 12
-        access_denied           = 13
-        dp_out_of_memory        = 14
-        disk_full               = 15
-        dp_timeout              = 16
-        not_supported_by_gui    = 17
-        error_no_gui            = 18
-        OTHERS                  = 19 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_upload' ). "#EC NOTEXT
-    ENDIF.
-
-    CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
-    rv_xstr = rv_xstr(lv_length).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_frontend_services~show_file_open_dialog.
-
-    DATA:
-      lt_file_table TYPE filetable,
-      ls_file_table LIKE LINE OF lt_file_table,
-      lv_action     TYPE i,
-      lv_rc         TYPE i.
-
-    cl_gui_frontend_services=>file_open_dialog(
-      EXPORTING
-        window_title            = iv_title
-        default_filename        = iv_default_filename
-      CHANGING
-        file_table              = lt_file_table
-        rc                      = lv_rc
-        user_action             = lv_action
-      EXCEPTIONS
-        file_open_dialog_failed = 1
-        cntl_error              = 2
-        error_no_gui            = 3
-        not_supported_by_gui    = 4
-        OTHERS                  = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ). "#EC NOTEXT
-    ENDIF.
-    IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ). "#EC NOTEXT
-    ENDIF.
-
-    READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
-    ASSERT sy-subrc = 0.
-    rv_path = ls_file_table-filename.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_frontend_services~show_file_save_dialog.
-
-    DATA:
-      lv_action   TYPE i,
-      lv_filename TYPE string,
-      lv_path     TYPE string.
-
-    cl_gui_frontend_services=>file_save_dialog(
-      EXPORTING
-        window_title         = iv_title
-        default_extension    = iv_extension
-        default_file_name    = iv_default_filename
-      CHANGING
-        filename             = lv_filename
-        path                 = lv_path
-        fullpath             = rv_path
-        user_action          = lv_action
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ). "#EC NOTEXT
-    ENDIF.
-    IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   METHOD calculate_line_num_and_stats.
 
@@ -22232,8 +22066,42 @@ CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
+  METHOD get_frontend_services.
 
+    IF gi_fe_services IS INITIAL.
+      CREATE OBJECT gi_fe_services TYPE zcl_abapgit_frontend_services.
+    ENDIF.
+
+    ri_fe_serv = gi_fe_services.
+
+  ENDMETHOD.
+  METHOD get_gui.
+
+    DATA:
+      li_router    TYPE REF TO zif_abapgit_gui_router,
+      li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
+
+    IF go_gui IS INITIAL.
+      CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
+      CREATE OBJECT li_asset_man TYPE zcl_abapgit_gui_asset_manager.
+      CREATE OBJECT go_gui
+        EXPORTING
+          ii_router    = li_router
+          ii_asset_man = li_asset_man.
+    ENDIF.
+    ro_gui = go_gui.
+
+  ENDMETHOD.
+  METHOD get_gui_functions.
+
+    IF gi_gui_functions IS INITIAL.
+      CREATE OBJECT gi_gui_functions TYPE zcl_abapgit_gui_functions.
+    ENDIF.
+
+    ri_gui_functions = gi_gui_functions.
+
+  ENDMETHOD.
   METHOD get_popups.
 
     IF gi_popups IS INITIAL.
@@ -22252,34 +22120,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     ri_tag_popups = gi_tag_popups.
 
   ENDMETHOD.
-  METHOD get_gui_functions.
-
-    IF gi_gui_functions IS INITIAL.
-      CREATE OBJECT gi_gui_functions TYPE zcl_abapgit_gui_functions.
-    ENDIF.
-
-    ri_gui_functions = gi_gui_functions.
-
-  ENDMETHOD.
-
-  METHOD get_gui.
-
-    DATA:
-          li_router    TYPE REF TO zif_abapgit_gui_router,
-          li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
-
-    IF go_gui IS INITIAL.
-      CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
-      CREATE OBJECT li_asset_man TYPE zcl_abapgit_gui_asset_manager.
-      CREATE OBJECT go_gui
-        EXPORTING
-          ii_router    = li_router
-          ii_asset_man = li_asset_man.
-    ENDIF.
-    ro_gui = go_gui.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
@@ -35208,6 +35048,160 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     mo_html_viewer->set_registered_events( lt_events ).
     SET HANDLER me->on_event FOR mo_html_viewer.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
+  METHOD zif_abapgit_frontend_services~file_download.
+
+    DATA:
+      lt_rawdata  TYPE solix_tab.
+
+    lt_rawdata = cl_bcs_convert=>xstring_to_solix( iv_xstr ).
+
+    cl_gui_frontend_services=>gui_download(
+      EXPORTING
+        bin_filesize              = xstrlen( iv_xstr )
+        filename                  = iv_path
+        filetype                  = 'BIN'
+      CHANGING
+        data_tab                  = lt_rawdata
+      EXCEPTIONS
+        file_write_error          = 1
+        no_batch                  = 2
+        gui_refuse_filetransfer   = 3
+        invalid_type              = 4
+        no_authority              = 5
+        unknown_error             = 6
+        header_not_allowed        = 7
+        separator_not_allowed     = 8
+        filesize_not_allowed      = 9
+        header_too_long           = 10
+        dp_error_create           = 11
+        dp_error_send             = 12
+        dp_error_write            = 13
+        unknown_dp_error          = 14
+        access_denied             = 15
+        dp_out_of_memory          = 16
+        disk_full                 = 17
+        dp_timeout                = 18
+        file_not_found            = 19
+        dataprovider_exception    = 20
+        control_flush_error       = 21
+        not_supported_by_gui      = 22
+        error_no_gui              = 23
+        OTHERS                    = 24 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from gui_download' ). "#EC NOTEXT
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~file_upload.
+
+    TYPES: ty_hex TYPE x LENGTH 255.
+
+    DATA: lt_data   TYPE TABLE OF ty_hex WITH DEFAULT KEY,
+          lv_length TYPE i.
+
+    cl_gui_frontend_services=>gui_upload(
+      EXPORTING
+        filename                = iv_path
+        filetype                = 'BIN'
+      IMPORTING
+        filelength              = lv_length
+      CHANGING
+        data_tab                = lt_data
+      EXCEPTIONS
+        file_open_error         = 1
+        file_read_error         = 2
+        no_batch                = 3
+        gui_refuse_filetransfer = 4
+        invalid_type            = 5
+        no_authority            = 6
+        unknown_error           = 7
+        bad_data_format         = 8
+        header_not_allowed      = 9
+        separator_not_allowed   = 10
+        header_too_long         = 11
+        unknown_dp_error        = 12
+        access_denied           = 13
+        dp_out_of_memory        = 14
+        disk_full               = 15
+        dp_timeout              = 16
+        not_supported_by_gui    = 17
+        error_no_gui            = 18
+        OTHERS                  = 19 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from gui_upload' ). "#EC NOTEXT
+    ENDIF.
+
+    CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
+    rv_xstr = rv_xstr(lv_length).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~show_file_open_dialog.
+
+    DATA:
+      lt_file_table TYPE filetable,
+      ls_file_table LIKE LINE OF lt_file_table,
+      lv_action     TYPE i,
+      lv_rc         TYPE i.
+
+    cl_gui_frontend_services=>file_open_dialog(
+      EXPORTING
+        window_title            = iv_title
+        default_filename        = iv_default_filename
+      CHANGING
+        file_table              = lt_file_table
+        rc                      = lv_rc
+        user_action             = lv_action
+      EXCEPTIONS
+        file_open_dialog_failed = 1
+        cntl_error              = 2
+        error_no_gui            = 3
+        not_supported_by_gui    = 4
+        OTHERS                  = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ). "#EC NOTEXT
+    ENDIF.
+    IF lv_action = cl_gui_frontend_services=>action_cancel.
+      zcx_abapgit_exception=>raise( 'cancelled' ). "#EC NOTEXT
+    ENDIF.
+
+    READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
+    ASSERT sy-subrc = 0.
+    rv_path = ls_file_table-filename.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~show_file_save_dialog.
+
+    DATA:
+      lv_action   TYPE i,
+      lv_filename TYPE string,
+      lv_path     TYPE string.
+
+    cl_gui_frontend_services=>file_save_dialog(
+      EXPORTING
+        window_title         = iv_title
+        default_extension    = iv_extension
+        default_file_name    = iv_default_filename
+      CHANGING
+        filename             = lv_filename
+        path                 = lv_path
+        fullpath             = rv_path
+        user_action          = lv_action
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ). "#EC NOTEXT
+    ENDIF.
+    IF lv_action = cl_gui_frontend_services=>action_cancel.
+      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -70194,5 +70188,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-14T08:35:46.752Z
+* abapmerge undefined - 2019-03-14T08:37:49.523Z
 ****************************************************
