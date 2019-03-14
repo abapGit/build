@@ -17309,14 +17309,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     rt_results = it_results.
 
     DELETE rt_results WHERE match = abap_true.     " Full match
+    DELETE rt_results WHERE obj_type IS INITIAL.
+    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
+
     SORT rt_results
       BY obj_type ASCENDING
          obj_name ASCENDING
          rstate   DESCENDING. " ensures that non-empty rstate is kept
     DELETE ADJACENT DUPLICATES FROM rt_results COMPARING obj_type obj_name.
-
-    DELETE rt_results WHERE obj_type IS INITIAL.
-    DELETE rt_results WHERE lstate = zif_abapgit_definitions=>c_state-added AND rstate IS INITIAL.
 
   ENDMETHOD.
   METHOD get_deserialize_steps.
@@ -70188,5 +70188,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-14T08:37:49.523Z
+* abapmerge undefined - 2019-03-14T09:16:39.341Z
 ****************************************************
