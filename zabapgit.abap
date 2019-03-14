@@ -489,6 +489,7 @@ CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
+CLASS zcl_abapgit_environment DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
@@ -1606,6 +1607,10 @@ INTERFACE zif_abapgit_object .
       ddic TYPE zif_abapgit_object=>ty_deserialization_step VALUE `DDIC`,
       late TYPE zif_abapgit_object=>ty_deserialization_step VALUE `LATE`,
     END OF gc_step_id.
+
+  CONSTANTS c_abap_version_sap_cp TYPE progdir-uccheck VALUE '5' ##NO_TEXT.
+  CONSTANTS c_abap_version_default TYPE progdir-uccheck VALUE 'X' ##NO_TEXT.
+
   METHODS serialize
     IMPORTING
       !io_xml TYPE REF TO zcl_abapgit_xml_output
@@ -11703,6 +11708,19 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         RETURNING VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
 ENDCLASS.
+CLASS zcl_abapgit_environment DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS is_cloud
+      RETURNING
+        VALUE(rv_cloud) TYPE abap_bool .
+  PROTECTED SECTION.
+
+    CLASS-DATA gv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_exit DEFINITION
   CREATE PUBLIC .
 
@@ -19048,6 +19066,24 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
           ii_client = ii_client ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
+  METHOD is_cloud.
+
+    IF gv_cloud = abap_undefined.
+      TRY.
+          CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
+            RECEIVING
+              rv_is_sap_cloud_platform = gv_cloud.
+        CATCH cx_sy_dyn_call_illegal_method.
+          gv_cloud = abap_false.
+      ENDTRY.
+    ENDIF.
+
+    rv_cloud = gv_cloud.
 
   ENDMETHOD.
 ENDCLASS.
@@ -70158,5 +70194,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-14T07:23:41.833Z
+* abapmerge undefined - 2019-03-14T08:35:46.752Z
 ****************************************************
