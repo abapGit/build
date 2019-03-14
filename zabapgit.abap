@@ -30963,9 +30963,16 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
 
     ro_html->add( '<br>' ).
     ro_html->add( build_menu( )->render( ) ).
+    "CSS gitGraph-scrollWrapper, gitGraph-HTopScroller and gitGraph-Wrapper
+    " - Used to manage the Horizonal Scroll bar on top of gitGraph Element
+    ro_html->add( '<div class="gitGraph-scrollWrapper" onscroll="GitGraphScroller()">' ).
+    "see http://stackoverflow.com/questions/6081483/maximum-size-of-a-canvas-element
+    ro_html->add( '<div class="gitGraph-HTopScroller"></div>' ).
+    ro_html->add( '</div>' ).
 
-* see http://stackoverflow.com/questions/6081483/maximum-size-of-a-canvas-element
+    ro_html->add( '<div class="gitGraph-Wrapper">' ).
     ro_html->add( '<canvas id="gitGraph"></canvas>' ).
+    ro_html->add( '</div>' ).
 
     ro_html->add( '<script type="text/javascript" src="https://cdnjs.' &&
       'cloudflare.com/ajax/libs/gitgraph.js/1.14.0/gitgraph.min.js">' &&
@@ -31052,6 +31059,10 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ro_html->add(
        |gitGraph.addEventListener( "commit:mouseout",  gBranchOveriew.hideCommit.bind(gBranchOveriew) );| ).
 
+    ro_html->add( '</script>' ).
+
+    ro_html->add( '<script>' ).
+    ro_html->add( 'setGitGraphScroller();' ).
     ro_html->add( '</script>' ).
 
     ro_html->add( render_commit_popups( ) ).
@@ -33275,6 +33286,25 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline '.ro-detail {'.
         _inline '  display: none;'.
         _inline '}'.
+        _inline ''.
+        _inline '/* Branch Overview Page */'.
+        _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
+        _inline '  overflow-y:hidden;'.
+        _inline '}'.
+        _inline ''.
+        _inline '.gitGraph-scrollWrapper{'.
+        _inline '  overflow-x: auto; '.
+        _inline '  height: 20px; '.
+        _inline '}'.
+        _inline ''.
+        _inline '.gitGraph-Wrapper{'.
+        _inline '  overflow-x: hidden; '.
+        _inline '}'.
+        _inline ' '.
+        _inline '.gitGraph-HTopScroller {'.
+        _inline '  width:1000px; '.
+        _inline '  height: 20px; '.
+        _inline '}'.
       WHEN 'js/common.js'.
         rs_asset-url     = iv_asset_url.
         rs_asset-type    = 'text'.
@@ -34659,6 +34689,26 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
         _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
         _inline '  this.toggleCommit();'.
         _inline '};'.
+        _inline ''.
+        _inline '// Initialize Top Horizontal Scroller on GitGraph'.
+        _inline 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars'.
+        _inline ''.
+        _inline '  // Get gitGraph Element Canvas Width'.
+        _inline '  var gitGraphEl = document.getElementById("gitGraph");'.
+        _inline '  var gitGraphWidth = gitGraphEl.offsetWidth;'.
+        _inline ''.
+        _inline '  // Initialize gitGraph-HTopScroller Element width as gitGraph'.
+        _inline '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");'.
+        _inline '  HTopScrollerEl.style.width = gitGraphWidth + "px";'.
+        _inline ''.
+        _inline '}'.
+        _inline ''.
+        _inline '// Setup Top Horizontal Scroller on GitGraph event'.
+        _inline 'function GitGraphScroller() { // eslint-disable-line no-unused-vars'.
+        _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
+        _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
+        _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
+        _inline '}'.
       WHEN 'css/ag-icons.css'.
         rs_asset-url     = iv_asset_url.
         rs_asset-type    = 'text'.
@@ -70197,5 +70247,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-14T09:47:55.469Z
+* abapmerge undefined - 2019-03-14T09:54:58.816Z
 ****************************************************
