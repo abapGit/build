@@ -1036,12 +1036,13 @@ INTERFACE zif_abapgit_gui_router .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_progress .
-
   METHODS show
     IMPORTING
-      iv_current TYPE i
-      iv_text    TYPE csequence .
-
+      !iv_current TYPE i
+      !iv_text    TYPE csequence .
+  METHODS set_total
+    IMPORTING
+      !iv_total TYPE i .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_auth.
@@ -11021,6 +11022,9 @@ CLASS zcl_abapgit_progress DEFINITION
 
     INTERFACES zif_abapgit_progress .
 
+    CLASS-METHODS set_instance
+      IMPORTING
+        !ii_progress TYPE REF TO zif_abapgit_progress .
     CLASS-METHODS get_instance
       IMPORTING
         !iv_total          TYPE i
@@ -11029,10 +11033,8 @@ CLASS zcl_abapgit_progress DEFINITION
   PROTECTED SECTION.
 
     DATA mv_total TYPE i .
+    CLASS-DATA gi_progress TYPE REF TO zif_abapgit_progress .
 
-    METHODS constructor
-      IMPORTING
-        !iv_total TYPE i .
     METHODS calc_pct
       IMPORTING
         !iv_current   TYPE i
@@ -21163,16 +21165,30 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD constructor.
+  METHOD get_instance.
+
+* max one progress indicator at a time is supported
+
+    IF gi_progress IS INITIAL.
+      CREATE OBJECT gi_progress TYPE zcl_abapgit_progress.
+    ENDIF.
+
+    gi_progress->set_total( iv_total ).
+
+    ri_progress = gi_progress.
+
+  ENDMETHOD.
+  METHOD set_instance.
+
+    gi_progress = ii_progress.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~set_total.
 
     mv_total = iv_total.
 
-  ENDMETHOD.
-  METHOD get_instance.
-
-    CREATE OBJECT ri_progress TYPE zcl_abapgit_progress
-      EXPORTING
-        iv_total = iv_total.
+    CLEAR mv_cv_time_next.
+    CLEAR mv_cv_datum_next.
 
   ENDMETHOD.
   METHOD zif_abapgit_progress~show.
@@ -70232,5 +70248,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-15T08:15:28.102Z
+* abapmerge undefined - 2019-03-15T08:17:42.852Z
 ****************************************************
