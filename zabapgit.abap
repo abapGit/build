@@ -9778,82 +9778,89 @@ CLASS zcl_abapgit_gui_router DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_event_data,
-             action    TYPE string,
-             prev_page TYPE string,
-             getdata   TYPE string,
-             postdata  TYPE cnht_post_data_tab,
-           END OF ty_event_data.
+    TYPES:
+      BEGIN OF ty_event_data,
+        action    TYPE string,
+        prev_page TYPE string,
+        getdata   TYPE string,
+        postdata  TYPE cnht_post_data_tab,
+      END OF ty_event_data .
 
     METHODS general_page_routing
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS abapgit_services_actions
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS db_actions
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
+    CLASS-METHODS file_download
+      IMPORTING
+        !iv_package TYPE devclass
+        !iv_xstr    TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     METHODS git_services
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS remote_origin_manipulations
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS sap_gui_actions
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS zip_services
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     METHODS repository_services
       IMPORTING
-        is_event_data TYPE ty_event_data
+        !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page      TYPE REF TO zif_abapgit_gui_page
-        !ev_state     TYPE i
+        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
@@ -13095,6 +13102,8 @@ CLASS zcl_abapgit_transport DEFINITION
   PUBLIC SECTION.
 
     CLASS-METHODS zip
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS to_tadir
@@ -13184,8 +13193,10 @@ CLASS zcl_abapgit_zip DEFINITION
 
     CLASS-METHODS export
       IMPORTING
-        !io_repo   TYPE REF TO zcl_abapgit_repo
-        !it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+        !io_repo       TYPE REF TO zcl_abapgit_repo
+        !it_filter     TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS export_object
@@ -13193,10 +13204,15 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     CLASS-METHODS export_package
+      EXPORTING
+        !ev_xstr    TYPE xstring
+        !ev_package TYPE devclass
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     CLASS-METHODS load
+      IMPORTING
+        !iv_xstr        TYPE xstring
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
@@ -13217,12 +13233,6 @@ CLASS zcl_abapgit_zip DEFINITION
       EXPORTING
         !ev_path     TYPE string
         !ev_filename TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS file_download
-      IMPORTING
-        !iv_package TYPE devclass
-        !iv_xstr    TYPE xstring
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS normalize_path
@@ -13914,8 +13924,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       lo_log->show( ).
     ENDIF.
 
-    file_download( iv_package = io_repo->get_package( )
-                   iv_xstr    = encode_files( lt_zip ) ).
+    rv_xstr = encode_files( lt_zip ).
 
   ENDMETHOD.
   METHOD export_object.
@@ -14025,7 +14034,8 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       EXPORTING
         is_data = ls_data.
 
-    export( lo_repo ).
+    ev_xstr = export( lo_repo ).
+    ev_package = ls_data-package.
 
   ENDMETHOD.
   METHOD filename.
@@ -14046,42 +14056,9 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     TRANSLATE ev_filename TO LOWER CASE.
 
   ENDMETHOD.
-  METHOD file_download.
-
-    DATA:
-      lv_path    TYPE string,
-      lv_default TYPE string,
-      lo_fe_serv TYPE REF TO zif_abapgit_frontend_services,
-      lv_package TYPE devclass.
-
-    lv_package = iv_package.
-    TRANSLATE lv_package USING '/#'.
-    CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
-
-    lo_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-
-    lv_path = lo_fe_serv->show_file_save_dialog(
-      iv_title            = 'Export ZIP'
-      iv_extension        = 'zip'
-      iv_default_filename = lv_default ).
-
-    lo_fe_serv->file_download(
-      iv_path = lv_path
-      iv_xstr = iv_xstr ).
-
-  ENDMETHOD.
   METHOD load.
 
-    DATA: lv_path TYPE string,
-          lv_xstr TYPE xstring.
-
-    lv_path = zcl_abapgit_ui_factory=>get_frontend_services( )->show_file_open_dialog(
-      iv_title            = 'Import ZIP'
-      iv_default_filename = '*.zip' ).
-
-    lv_xstr = zcl_abapgit_ui_factory=>get_frontend_services( )->file_upload( lv_path ).
-
-    rt_files = unzip_file( lv_xstr ).
+    rt_files = unzip_file( iv_xstr ).
 
   ENDMETHOD.
   METHOD normalize_path.
@@ -14421,8 +14398,10 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
       EXPORTING
         is_data = ls_data.
 
-    zcl_abapgit_zip=>export( io_repo   = lo_repo
-                             it_filter = lt_tadir ).
+    rv_xstr = zcl_abapgit_zip=>export(
+      io_repo   = lo_repo
+      it_filter = lt_tadir ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -25873,6 +25852,30 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD file_download.
+
+    DATA:
+      lv_path    TYPE string,
+      lv_default TYPE string,
+      lo_fe_serv TYPE REF TO zif_abapgit_frontend_services,
+      lv_package TYPE devclass.
+
+    lv_package = iv_package.
+    TRANSLATE lv_package USING '/#'.
+    CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
+
+    lo_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    lv_path = lo_fe_serv->show_file_save_dialog(
+      iv_title            = 'Export ZIP'
+      iv_extension        = 'zip'
+      iv_default_filename = lv_default ).
+
+    lo_fe_serv->file_download(
+      iv_path = lv_path
+      iv_xstr = iv_xstr ).
+
+  ENDMETHOD.
   METHOD general_page_routing.
 
     DATA: lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
@@ -26254,26 +26257,41 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip_services.
 
-    DATA: lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
-
+    DATA: lv_key     TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_repo    TYPE REF TO zcl_abapgit_repo,
+          lv_package TYPE devclass,
+          lv_path    TYPE string,
+          lv_xstr    TYPE xstring.
     lv_key = is_event_data-getdata. " TODO refactor
 
     CASE is_event_data-action.
         " ZIP services actions
       WHEN zif_abapgit_definitions=>c_action-zip_import.                      " Import repo from ZIP
         lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        lo_repo->set_files_remote( zcl_abapgit_zip=>load( ) ).
+        lv_path = zcl_abapgit_ui_factory=>get_frontend_services( )->show_file_open_dialog(
+          iv_title            = 'Import ZIP'
+          iv_default_filename = '*.zip' ).
+        lv_xstr = zcl_abapgit_ui_factory=>get_frontend_services( )->file_upload( lv_path ).
+        lo_repo->set_files_remote( zcl_abapgit_zip=>load( lv_xstr ) ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
         ev_state = zif_abapgit_definitions=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
-        zcl_abapgit_zip=>export( zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ) ).
+        lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        lv_xstr = zcl_abapgit_zip=>export( lo_repo ).
+        file_download( iv_package = lo_repo->get_package( )
+                       iv_xstr    = lv_xstr ).
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_package.                     " Export package as ZIP
-        zcl_abapgit_zip=>export_package( ).
+        zcl_abapgit_zip=>export_package( IMPORTING
+          ev_xstr    = lv_xstr
+          ev_package = lv_package ).
+        file_download( iv_package = lv_package
+                       iv_xstr    = lv_xstr ).
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_transport.                   " Export transport as ZIP
-        zcl_abapgit_transport=>zip( ).
+        lv_xstr = zcl_abapgit_transport=>zip( ).
+        file_download( iv_package = 'TRANSPORT'
+                       iv_xstr    = lv_xstr ).
         ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_object.                      " Export object as ZIP
         zcl_abapgit_zip=>export_object( ).
@@ -70248,5 +70266,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-15T08:17:42.852Z
+* abapmerge undefined - 2019-03-15T08:54:52.977Z
 ****************************************************
