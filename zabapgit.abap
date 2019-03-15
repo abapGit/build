@@ -440,6 +440,7 @@ INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
+INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_router DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
@@ -1035,6 +1036,64 @@ INTERFACE zif_abapgit_gui_router .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_html.
+
+  CONSTANTS:
+    BEGIN OF c_action_type,
+      sapevent  TYPE c VALUE 'E',
+      url       TYPE c VALUE 'U',
+      onclick   TYPE c VALUE 'C',
+      separator TYPE c VALUE 'S',
+      dummy     TYPE c VALUE '_',
+    END OF c_action_type .
+  CONSTANTS:
+    BEGIN OF c_html_opt,
+      strong   TYPE c VALUE 'E',
+      cancel   TYPE c VALUE 'C',
+      crossout TYPE c VALUE 'X',
+    END OF c_html_opt .
+
+  METHODS add
+    IMPORTING
+      !ig_chunk TYPE any .
+  METHODS render
+    IMPORTING
+      !iv_no_indent_jscss TYPE abap_bool OPTIONAL
+    RETURNING
+      VALUE(rv_html)      TYPE string .
+  METHODS is_empty
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool .
+  METHODS add_a
+    IMPORTING
+      !iv_txt   TYPE string
+      !iv_act   TYPE string
+      !iv_typ   TYPE char1 DEFAULT c_action_type-sapevent
+      !iv_opt   TYPE clike OPTIONAL
+      !iv_class TYPE string OPTIONAL
+      !iv_id    TYPE string OPTIONAL
+      !iv_style TYPE string OPTIONAL.
+  CLASS-METHODS a
+    IMPORTING
+      !iv_txt       TYPE string
+      !iv_act       TYPE string
+      !iv_typ       TYPE char1 DEFAULT zif_abapgit_html=>c_action_type-sapevent
+      !iv_opt       TYPE clike OPTIONAL
+      !iv_class     TYPE string OPTIONAL
+      !iv_id        TYPE string OPTIONAL
+      !iv_style     TYPE string OPTIONAL
+    RETURNING
+      VALUE(rv_str) TYPE string .
+  CLASS-METHODS icon
+    IMPORTING
+      !iv_name      TYPE string
+      !iv_hint      TYPE string OPTIONAL
+      !iv_class     TYPE string OPTIONAL
+    RETURNING
+      VALUE(rv_str) TYPE string .
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_progress .
   METHODS show
     IMPORTING
@@ -1500,31 +1559,6 @@ INTERFACE zif_abapgit_definitions .
       executable TYPE ty_chmod VALUE '100755',
       dir        TYPE ty_chmod VALUE '40000 ',
     END OF c_chmod .
-  CONSTANTS:
-    BEGIN OF c_event_state,
-      not_handled         VALUE 0,
-      re_render           VALUE 1,
-      new_page            VALUE 2,
-      go_back             VALUE 3,
-      no_more_act         VALUE 4,
-      new_page_w_bookmark VALUE 5,
-      go_back_to_bookmark VALUE 6,
-      new_page_replacing  VALUE 7,
-    END OF c_event_state .
-  CONSTANTS:
-    BEGIN OF c_html_opt,
-      strong   TYPE c VALUE 'E',
-      cancel   TYPE c VALUE 'C',
-      crossout TYPE c VALUE 'X',
-    END OF c_html_opt .
-  CONSTANTS:
-    BEGIN OF c_action_type,
-      sapevent  TYPE c VALUE 'E',
-      url       TYPE c VALUE 'U',
-      onclick   TYPE c VALUE 'C',
-      separator TYPE c VALUE 'S',
-      dummy     TYPE c VALUE '_',
-    END OF c_action_type .
   CONSTANTS c_crlf TYPE abap_cr_lf VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
   CONSTANTS c_newline TYPE abap_char1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
@@ -1567,7 +1601,6 @@ INTERFACE zif_abapgit_definitions .
       db_display               TYPE string VALUE 'db_display',
       db_edit                  TYPE string VALUE 'db_edit',
       bg_update                TYPE string VALUE 'bg_update',
-      go_main                  TYPE string VALUE 'go_main',
       go_explore               TYPE string VALUE 'go_explore',
       go_repo_overview         TYPE string VALUE 'go_repo_overview',
       go_db                    TYPE string VALUE 'go_db',
@@ -8281,6 +8314,22 @@ CLASS zcl_abapgit_gui DEFINITION
   FINAL .
 
   PUBLIC SECTION.
+    CONSTANTS:
+      BEGIN OF c_event_state,
+        not_handled         VALUE 0,
+        re_render           VALUE 1,
+        new_page            VALUE 2,
+        go_back             VALUE 3,
+        no_more_act         VALUE 4,
+        new_page_w_bookmark VALUE 5,
+        go_back_to_bookmark VALUE 6,
+        new_page_replacing  VALUE 7,
+      END OF c_event_state .
+
+    CONSTANTS:
+      BEGIN OF c_action,
+        go_home TYPE string VALUE 'go_home',
+      END OF c_action.
 
     METHODS go_home
       RAISING zcx_abapgit_exception.
@@ -10042,53 +10091,24 @@ CLASS zcl_abapgit_html DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
+    INTERFACES zif_abapgit_html.
+
+    ALIASES:
+      add      FOR zif_abapgit_html~add,
+      render   FOR zif_abapgit_html~render,
+      is_empty FOR zif_abapgit_html~is_empty,
+      add_a    FOR zif_abapgit_html~add_a,
+      a        FOR zif_abapgit_html~a,
+      icon     FOR zif_abapgit_html~icon.
 
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
-    METHODS add
-      IMPORTING
-        !ig_chunk TYPE any .
-    METHODS render
-      IMPORTING
-        !iv_no_indent_jscss TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(rv_html)      TYPE string .
-    METHODS is_empty
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
-    METHODS add_a
-      IMPORTING
-        !iv_txt   TYPE string
-        !iv_act   TYPE string
-        !iv_typ   TYPE char1 DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
-        !iv_opt   TYPE clike OPTIONAL
-        !iv_class TYPE string OPTIONAL
-        !iv_id    TYPE string OPTIONAL
-        !iv_style TYPE string OPTIONAL.
     METHODS add_icon
       IMPORTING
         !iv_name  TYPE string
         !iv_hint  TYPE string OPTIONAL
         !iv_class TYPE string OPTIONAL .
-    CLASS-METHODS a
-      IMPORTING
-        !iv_txt       TYPE string
-        !iv_act       TYPE string
-        !iv_typ       TYPE char1 DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
-        !iv_opt       TYPE clike OPTIONAL
-        !iv_class     TYPE string OPTIONAL
-        !iv_id        TYPE string OPTIONAL
-        !iv_style     TYPE string OPTIONAL
-      RETURNING
-        VALUE(rv_str) TYPE string .
-    CLASS-METHODS icon
-      IMPORTING
-        !iv_name      TYPE string
-        !iv_hint      TYPE string OPTIONAL
-        !iv_class     TYPE string OPTIONAL
-      RETURNING
-        VALUE(rv_str) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
@@ -10244,7 +10264,7 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         IMPORTING
           iv_txt TYPE string
           io_sub TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-          iv_typ TYPE c         DEFAULT zif_abapgit_definitions=>c_action_type-sapevent
+          iv_typ TYPE c         DEFAULT zif_abapgit_html=>c_action_type-sapevent
           iv_act TYPE string    OPTIONAL
           iv_ico TYPE string    OPTIONAL
           iv_cur TYPE abap_bool OPTIONAL
@@ -24365,9 +24385,9 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
-    ASSERT iv_typ = zif_abapgit_definitions=>c_action_type-separator  " sep doesn't have action
-      OR iv_typ = zif_abapgit_definitions=>c_action_type-onclick      " click may have no action (assigned in JS)
-      OR iv_typ = zif_abapgit_definitions=>c_action_type-dummy        " dummy may have no action
+    ASSERT iv_typ = zif_abapgit_html=>c_action_type-separator  " sep doesn't have action
+      OR iv_typ = zif_abapgit_html=>c_action_type-onclick      " click may have no action (assigned in JS)
+      OR iv_typ = zif_abapgit_html=>c_action_type-dummy        " dummy may have no action
       OR iv_act IS INITIAL AND io_sub IS NOT INITIAL
       OR iv_act IS NOT INITIAL AND io_sub IS INITIAL. " Only one supplied
 
@@ -24426,7 +24446,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
     ro_html->add( |<div class="{ lv_class }">| ).
     ro_html->add( '<ul><li>' ).
     ro_html->add_a( iv_txt = iv_label
-                    iv_typ = zif_abapgit_definitions=>c_action_type-sapevent
+                    iv_typ = zif_abapgit_html=>c_action_type-sapevent
                     iv_act = iv_action ).
     ro_html->add( '<div class="minizone"></div>' ).
     ro_html->add( render_items( iv_sort = iv_sort ) ).
@@ -24468,7 +24488,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
     LOOP AT mt_items ASSIGNING <ls_item>.
       CLEAR: lv_class, lv_icon.
 
-      IF <ls_item>-typ = zif_abapgit_definitions=>c_action_type-separator.
+      IF <ls_item>-typ = zif_abapgit_html=>c_action_type-separator.
         ro_html->add( |<li class="separator">{ <ls_item>-txt }</li>| ).
         CONTINUE.
       ENDIF.
@@ -24502,7 +24522,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
                         iv_opt   = <ls_item>-opt ).
       ELSE.
         ro_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
-                        iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
+                        iv_typ   = zif_abapgit_html=>c_action_type-dummy
                         iv_act   = ''
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt ).
@@ -24741,13 +24761,13 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     lv_class = iv_class.
 
-    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-strong.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
       lv_class = lv_class && ' emphasis' ##NO_TEXT.
     ENDIF.
-    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-cancel.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
       lv_class = lv_class && ' attention' ##NO_TEXT.
     ENDIF.
-    IF iv_opt CA zif_abapgit_definitions=>c_html_opt-crossout.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
       lv_class = lv_class && ' crossout grey' ##NO_TEXT.
     ENDIF.
     IF lv_class IS NOT INITIAL.
@@ -24756,16 +24776,16 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
     lv_href  = ' href="#"'. " Default, dummy
-    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_definitions=>c_action_type-dummy.
+    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
       CASE iv_typ.
-        WHEN zif_abapgit_definitions=>c_action_type-url.
+        WHEN zif_abapgit_html=>c_action_type-url.
           lv_href  = | href="{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>c_action_type-sapevent.
+        WHEN zif_abapgit_html=>c_action_type-sapevent.
           lv_href  = | href="sapevent:{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>c_action_type-onclick.
+        WHEN zif_abapgit_html=>c_action_type-onclick.
           lv_href  = ' href="#"'.
           lv_click = | onclick="{ iv_act }"|.
-        WHEN zif_abapgit_definitions=>c_action_type-dummy.
+        WHEN zif_abapgit_html=>c_action_type-dummy.
           lv_href  = ' href="#"'.
       ENDCASE.
     ENDIF.
@@ -24928,7 +24948,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
     ENDLOOP.
 
-    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY zif_abapgit_definitions=>c_newline.
+    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
   METHOD study_line.
@@ -25144,7 +25164,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+    ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
@@ -25199,9 +25219,9 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
           lo_tb_branch   TYPE REF TO zcl_abapgit_html_toolbar,
           lo_tb_tag      TYPE REF TO zcl_abapgit_html_toolbar,
           lv_key         TYPE zif_abapgit_persistence=>ty_value,
-          lv_wp_opt      LIKE zif_abapgit_definitions=>c_html_opt-crossout,
-          lv_crossout    LIKE zif_abapgit_definitions=>c_html_opt-crossout,
-          lv_pull_opt    LIKE zif_abapgit_definitions=>c_html_opt-crossout.
+          lv_wp_opt      LIKE zif_abapgit_html=>c_html_opt-crossout,
+          lv_crossout    LIKE zif_abapgit_html=>c_html_opt-crossout,
+          lv_pull_opt    LIKE zif_abapgit_html=>c_html_opt-crossout.
 
     CREATE OBJECT ro_toolbar.
     CREATE OBJECT lo_tb_branch.
@@ -25211,10 +25231,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     lv_key = mo_repo->get_key( ).
 
     IF mo_repo->get_local_settings( )-write_protected = abap_true.
-      lv_wp_opt   = zif_abapgit_definitions=>c_html_opt-crossout.
-      lv_pull_opt = zif_abapgit_definitions=>c_html_opt-crossout.
+      lv_wp_opt   = zif_abapgit_html=>c_html_opt-crossout.
+      lv_pull_opt = zif_abapgit_html=>c_html_opt-crossout.
     ELSE.
-      lv_pull_opt = zif_abapgit_definitions=>c_html_opt-strong.
+      lv_pull_opt = zif_abapgit_html=>c_html_opt-strong.
     ENDIF.
 
     " Build branch drop-down ========================
@@ -25259,7 +25279,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
       CLEAR lv_crossout.
       IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
-        lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
+        lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
       ENDIF.
       lo_tb_advanced->add( iv_txt = 'Transport to Branch'
                            iv_act = |{ zif_abapgit_definitions=>c_action-repo_transport_to_branch }?{ lv_key }|
@@ -25278,7 +25298,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
     CLEAR lv_crossout.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
-      lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
+      lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Update local checksums'
                          iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh_checksums }?{ lv_key }|
@@ -25295,7 +25315,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     CLEAR lv_crossout.
     IF mo_repo->get_local_settings( )-write_protected = abap_true
         OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
-      lv_crossout = zif_abapgit_definitions=>c_html_opt-crossout.
+      lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
     lo_tb_advanced->add( iv_txt = 'Uninstall'
                          iv_act = |{ zif_abapgit_definitions=>c_action-repo_purge }?{ lv_key }|
@@ -25311,12 +25331,12 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       IF iv_lstate IS NOT INITIAL. " Something new at local
         ro_toolbar->add( iv_txt = 'Stage'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?{ lv_key }|
-                         iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
       IF iv_rstate IS NOT INITIAL OR iv_lstate IS NOT INITIAL. " Any changes
         ro_toolbar->add( iv_txt = 'Show diff'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ lv_key }|
-                         iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
       ro_toolbar->add( iv_txt = 'Branch'
                        io_sub = lo_tb_branch ) ##NO_TEXT.
@@ -25326,17 +25346,17 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       IF mo_repo->has_remote_source( ) = abap_true AND iv_rstate IS NOT INITIAL.
         ro_toolbar->add( iv_txt = 'Pull <sup>zip</sup>'
                          iv_act = |{ zif_abapgit_definitions=>c_action-git_pull }?{ lv_key }|
-                         iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
         ro_toolbar->add( iv_txt = 'Show diff'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ lv_key }|
-                         iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
       ro_toolbar->add( iv_txt = 'Import <sup>zip</sup>'
                        iv_act = |{ zif_abapgit_definitions=>c_action-zip_import }?{ lv_key }|
-                       iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ro_toolbar->add( iv_txt = 'Export <sup>zip</sup>'
                        iv_act = |{ zif_abapgit_definitions=>c_action-zip_export }?{ lv_key }|
-                       iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
     ENDIF.
 
     ro_toolbar->add( iv_txt = 'Advanced'
@@ -25689,24 +25709,24 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     CASE iv_action.
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
         mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->toggle_hide_files( ).
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-change_dir.        " Change dir
         lv_path         = zcl_abapgit_html_action_utils=>dir_decode( iv_getdata ).
         mv_cur_dir      = zcl_abapgit_path=>change_dir( iv_cur_dir = mv_cur_dir iv_cd = lv_path ).
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-toggle_folders.    " Toggle folder view
         mv_show_folders = boolc( mv_show_folders <> abap_true ).
         mv_cur_dir      = '/'. " Root
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-toggle_changes.    " Toggle changes only view
         mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->toggle_changes_only( ).
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-display_more.      " Increase MAX lines limit
         mv_max_lines    = mv_max_lines + mv_max_setting.
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_open_in_master_lang.
         open_in_master_language( ).
-        ev_state        = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -25825,10 +25845,10 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         " ABAPGIT services actions
       WHEN zif_abapgit_definitions=>c_action-abapgit_home.                    " Go abapGit homepage
         zcl_abapgit_services_abapgit=>open_abapgit_homepage( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-abapgit_install.                 " Install abapGit
         zcl_abapgit_services_abapgit=>install_abapgit( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -25840,15 +25860,15 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db_edit
           EXPORTING
             is_key = zcl_abapgit_html_action_utils=>dbkey_decode( is_event_data-getdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
         IF is_event_data-prev_page = 'PAGE_DB_DIS'.
-          ev_state = zif_abapgit_definitions=>c_event_state-new_page_replacing.
+          ev_state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
         ENDIF.
       WHEN zif_abapgit_definitions=>c_action-db_display.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db_dis
           EXPORTING
             is_key = zcl_abapgit_html_action_utils=>dbkey_decode( is_event_data-getdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -25883,51 +25903,51 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     CASE is_event_data-action.
         " General PAGE routing
-      WHEN zif_abapgit_definitions=>c_action-go_main.                          " Go Main page
+      WHEN zcl_abapgit_gui=>c_action-go_home.                          " Go Main page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_main.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_explore.                     " Go Explore page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_explore.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_repo_overview.               " Go Repository overview
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_over.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_debuginfo.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_debuginfo.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_settings.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_settings.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_background_run.              " Go background run page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_bkg_run.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_background.                   " Go Background page
         ei_page  = get_page_background( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_diff.                         " Go Diff page
         ei_page  = get_page_diff(
           iv_getdata   = is_event_data-getdata
           iv_prev_page = is_event_data-prev_page ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
       WHEN zif_abapgit_definitions=>c_action-go_stage.                        " Go Staging page
         ei_page  = get_page_stage( is_event_data-getdata ).
         IF is_event_data-prev_page = 'PAGE_DIFF'.
-          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+          ev_state = zcl_abapgit_gui=>c_event_state-new_page.
         ELSE.
-          ev_state = zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
+          ev_state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
         ENDIF.
       WHEN zif_abapgit_definitions=>c_action-go_branch_overview.              " Go repo branch overview
         ei_page  = get_page_branch_overview( is_event_data-getdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_playground.                   " Create playground page
         ei_page  = get_page_playground( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_tutorial.                     " Go to tutorial
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( '' ).        " Clear show_id
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.          " Assume we are on main page
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.          " Assume we are on main page
     ENDCASE.
 
   ENDMETHOD.
@@ -26051,34 +26071,34 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         " GIT actions
       WHEN zif_abapgit_definitions=>c_action-git_pull.                      " GIT Pull
         zcl_abapgit_services_git=>pull( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_reset.                     " GIT Reset
         zcl_abapgit_services_git=>reset( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_create.             " GIT Create new branch
         zcl_abapgit_services_git=>create_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_delete.             " GIT Delete remote branch
         zcl_abapgit_services_git=>delete_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_switch.             " GIT Switch branch
         zcl_abapgit_services_git=>switch_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-go_tag_overview.               " GIT Tag overview
         zcl_abapgit_services_git=>tag_overview( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_tag_create.                " GIT Tag create
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_tag
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-git_tag_delete.                " GIT Tag create
         zcl_abapgit_services_git=>delete_tag( lv_key ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_tag_switch.                " GIT Switch Tag
         zcl_abapgit_services_git=>switch_tag( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -26100,13 +26120,13 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         " Remote ORIGIN manipulations
       WHEN zif_abapgit_definitions=>c_action-repo_remote_attach.            " Remote attach
         zcl_abapgit_services_repo=>remote_attach( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_remote_detach.            " Remote detach
         zcl_abapgit_services_repo=>remote_detach( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_remote_change.            " Remote change
         zcl_abapgit_services_repo=>remote_change( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -26121,46 +26141,46 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         " REPOSITORY services actions
       WHEN zif_abapgit_definitions=>c_action-repo_newoffline.                 " New offline repo
         zcl_abapgit_services_repo=>new_offline( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh.                    " Repo refresh
         zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_syntax
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_code_inspector.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_code_insp
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo remove & purge all objects
         zcl_abapgit_services_repo=>purge( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.
         zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN 'install'.    " 'install' is for explore page
         zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuil local checksums
         zcl_abapgit_services_repo=>refresh_local_checksums( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_toggle_fav.                 " Toggle repo as favorite
         zcl_abapgit_services_repo=>toggle_favorite( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_transport_to_branch.
         zcl_abapgit_services_repo=>transport_to_branch( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_settings.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_sett
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -26176,13 +26196,13 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
           IMPORTING ev_obj_type = ls_item-obj_type
                     ev_obj_name = ls_item-obj_name ).
         zcl_abapgit_objects=>jump( ls_item ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-jump_pkg.                      " Open SE80
         zcl_abapgit_services_repo=>open_se80( |{ is_event_data-getdata }| ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-jump_transport.
         jump_display_transport( is_event_data-getdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
   ENDMETHOD.
@@ -26251,7 +26271,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         ev_state     = ev_state ).
 
     IF ev_state IS INITIAL.
-      ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+      ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
     ENDIF.
 
   ENDMETHOD.
@@ -26274,28 +26294,28 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         lv_xstr = zcl_abapgit_ui_factory=>get_frontend_services( )->file_upload( lv_path ).
         lo_repo->set_files_remote( zcl_abapgit_zip=>load( lv_xstr ) ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
         lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         lv_xstr = zcl_abapgit_zip=>export( lo_repo ).
         file_download( iv_package = lo_repo->get_package( )
                        iv_xstr    = lv_xstr ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_package.                     " Export package as ZIP
         zcl_abapgit_zip=>export_package( IMPORTING
           ev_xstr    = lv_xstr
           ev_package = lv_package ).
         file_download( iv_package = lv_package
                        iv_xstr    = lv_xstr ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_transport.                   " Export transport as ZIP
         lv_xstr = zcl_abapgit_transport=>zip( ).
         file_download( iv_package = 'TRANSPORT'
                        iv_xstr    = lv_xstr ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_object.                      " Export object as ZIP
         zcl_abapgit_zip=>export_object( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
   ENDMETHOD.
@@ -26548,12 +26568,12 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Create'
-                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_html=>c_action_type-onclick
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_definitions=>c_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ) ##NO_TEXT.
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -26594,16 +26614,16 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
         create_tag( it_postdata ).
 
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_action-change_tag_type.
 
         parse_change_tag_type_request( it_postdata ).
 
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_action-commit_cancel.
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -26821,11 +26841,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     " Action buttons
     ro_html->add( '<td class="indent5em">' ).
     ro_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
+                    iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_id    = 'commitButton'
                     iv_style = 'display: none'
                     iv_txt   = 'Commit (<span id="fileCounter"></span>)'
-                    iv_opt   = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
+                    iv_opt   = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
     ro_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
                     iv_txt = lv_add_all_txt ) ##NO_TEXT.
@@ -27046,9 +27066,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           EXPORTING
             io_repo  = mo_repo
             io_stage = lo_stage.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_action-stage_commit.
 
@@ -27058,7 +27078,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           EXPORTING
             io_repo  = mo_repo
             io_stage = lo_stage.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_action-stage_filter.
 
@@ -27070,14 +27090,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                                                             it_field = lt_fields
                                                   CHANGING  cg_field = mv_filter_value ).
 
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
       WHEN zif_abapgit_definitions=>c_action-go_patch.                         " Go Patch page
 
         ei_page  = get_page_patch(
           iv_getdata   = iv_getdata
           iv_prev_page = iv_prev_page ).
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
         RETURN.
@@ -27610,7 +27630,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
           persist_settings( ).
         ENDIF.
 
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -27944,7 +27964,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     CASE iv_action.
       WHEN c_action-save_settings.
         save( it_postdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -28159,7 +28179,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     io_html->add( zcl_abapgit_html=>a(
       iv_txt = 'Toggle detail'
       iv_act = |toggleRepoListDetail()|
-      iv_typ = zif_abapgit_definitions=>c_action_type-onclick ) ).
+      iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
 
     io_html->add( |</div>| ).
 
@@ -28350,22 +28370,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_action-change_order_by.
 
         parse_change_order_by( it_postdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_action-direction.
 
         parse_direction( it_postdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_action-apply_filter.
 
         parse_filter( it_postdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN OTHERS.
 
@@ -28548,8 +28568,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
         ro_html->add( '<th>Merge - ' ).                     "#EC NOTEXT
         ro_html->add_a( iv_act = 'submitFormById(''merge_form'');' "#EC NOTEXT
                         iv_txt = 'Apply'
-                        iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                        iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                        iv_typ = zif_abapgit_html=>c_action_type-onclick
+                        iv_opt = zif_abapgit_html=>c_html_opt-strong ).
         ro_html->add( '</th> ' ).                           "#EC NOTEXT
         ro_html->add( '</tr>' ).                            "#EC NOTEXT
         ro_html->add( '</thead>' ).                         "#EC NOTEXT
@@ -28705,8 +28725,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''target_form'');' "#EC NOTEXT
                       iv_txt = 'Apply'
-                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                      iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                      iv_typ = zif_abapgit_html=>c_action_type-onclick
+                      iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ro_html->add( '</th> ' ).                             "#EC NOTEXT
       ro_html->add( '</form>' ).                            "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
@@ -28714,8 +28734,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''source_form'');' "#EC NOTEXT
                       iv_txt = 'Apply'
-                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                      iv_opt = zif_abapgit_definitions=>c_html_opt-strong ).
+                      iv_typ = zif_abapgit_html=>c_action_type-onclick
+                      iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ro_html->add( '</th> ' ).                             "#EC NOTEXT
       ro_html->add( '</form>' ).                            "#EC NOTEXT
     ELSE.
@@ -28809,15 +28829,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
         ENDIF.
 
         IF mv_current_conflict_index IS NOT INITIAL.
-          ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render.
         ELSE.
           ei_page = mo_merge_page.
-          ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+          ev_state = zcl_abapgit_gui=>c_event_state-go_back.
         ENDIF.
 
       WHEN c_actions-toggle_mode.
         toggle_merge_mode( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
     ENDCASE.
 
@@ -28982,7 +29002,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
         ENDIF.
 
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_actions-res_conflicts.
 
@@ -28991,7 +29011,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
             io_repo       = mo_repo
             io_merge_page = me
             io_merge      = mo_merge.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
     ENDCASE.
 
@@ -29306,7 +29326,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
           ei_page      = ei_page
           ev_state     = ev_state ).
 
-      IF ev_state <> zif_abapgit_definitions=>c_event_state-not_handled.
+      IF ev_state <> zcl_abapgit_gui=>c_event_state-not_handled.
         RETURN.
       ENDIF.
     ENDIF.
@@ -29320,17 +29340,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
             zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->refresh( ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-changed_by.
         test_changed_by( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN c_actions-documentation.
         zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN c_actions-overview.
         CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
         ei_page = li_repo_overview.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN OTHERS.
         super->zif_abapgit_gui_page~on_event(
           EXPORTING
@@ -29569,10 +29589,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
       " File types
       IF lines( lt_types ) > 1.
-        lo_sub->add( iv_txt = 'TYPE' iv_typ = zif_abapgit_definitions=>c_action_type-separator ).
+        lo_sub->add( iv_txt = 'TYPE' iv_typ = zif_abapgit_html=>c_action_type-separator ).
         LOOP AT lt_types ASSIGNING <lv_i>.
           lo_sub->add( iv_txt = <lv_i>
-                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                       iv_typ = zif_abapgit_html=>c_action_type-onclick
                        iv_aux = 'type'
                        iv_chk = abap_true ).
         ENDLOOP.
@@ -29580,10 +29600,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
       " Changed by
       IF lines( lt_users ) > 1.
-        lo_sub->add( iv_txt = 'CHANGED BY' iv_typ = zif_abapgit_definitions=>c_action_type-separator ).
+        lo_sub->add( iv_txt = 'CHANGED BY' iv_typ = zif_abapgit_html=>c_action_type-separator ).
         LOOP AT lt_users ASSIGNING <lv_i>.
           lo_sub->add( iv_txt = <lv_i>
-                       iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                       iv_typ = zif_abapgit_html=>c_action_type-onclick
                        iv_aux = 'changed-by'
                        iv_chk = abap_true ).
         ENDLOOP.
@@ -29597,7 +29617,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ro_menu->add( iv_txt = 'Stage'
                     iv_act = c_actions-stage
                     iv_id  = 'stage'
-                    iv_typ = zif_abapgit_definitions=>c_action_type-dummy
+                    iv_typ = zif_abapgit_html=>c_action_type-dummy
                      ) ##NO_TEXT.
     ENDIF.
 
@@ -29781,13 +29801,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
                       iv_act   = |patch_section_add('{ is_diff-filename }','{ mv_section_count }')|
                       iv_id    = |patch_section_add_{ is_diff-filename }_{ mv_section_count }|
                       iv_class = |patch_section_add|
-                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+                      iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
 
       ro_html->add_a( iv_txt   = |{ c_patch_action-remove }|
                       iv_act   = |patch_section_remove('{ is_diff-filename }', '{ mv_section_count }')|
                       iv_id    = |patch_section_remove_{ is_diff-filename }_{ mv_section_count }|
                       iv_class = |patch_section_remove|
-                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+                      iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
 
       ro_html->add( '</th>' ).
 
@@ -30090,12 +30110,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       io_html->add_a( iv_txt   = |{ c_patch_action-add }|
                       iv_act   = ||
                       iv_id    = |patch_line_{ c_patch_action-add }_{ lv_id }|
-                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
+                      iv_typ   = zif_abapgit_html=>c_action_type-dummy
                       iv_class = lv_left_class ).
       io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
                       iv_act   = ||
                       iv_id    = |patch_line_{ c_patch_action-remove }_{ lv_id }|
-                      iv_typ   = zif_abapgit_definitions=>c_action_type-dummy
+                      iv_typ   = zif_abapgit_html=>c_action_type-dummy
                       iv_class = lv_right_class ).
 
       io_html->add( |</td>| ).
@@ -30116,13 +30136,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
                     iv_act   = |patch_file_add('{ is_diff-filename }')|
                     iv_id    = |patch_file_add_{ is_diff-filename }|
                     iv_class = |patch_file_add|
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+                    iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
 
     io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
                     iv_act   = |patch_file_remove('{ is_diff-filename }')|
                     iv_id    = |patch_file_remove_{ is_diff-filename }|
                     iv_class = |patch_file_remove|
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-dummy ).
+                    iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
 
     io_html->add( '</th>' ).
 
@@ -30223,7 +30243,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       WHEN c_actions-toggle_unified. " Toggle file diplay
 
         mv_unified = zcl_abapgit_persistence_user=>get_instance( )->toggle_diff_unified( ).
-        ev_state   = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state   = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_actions-stage.
 
@@ -30234,7 +30254,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
           EXPORTING
             io_repo  = lo_repo
             io_stage = mo_stage.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
     ENDCASE.
 
@@ -30489,12 +30509,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Commit'
-                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_html=>c_action_type-onclick
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_definitions=>c_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ) ##NO_TEXT.
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -30580,10 +30600,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
                                   io_repo     = mo_repo
                                   io_stage    = mo_stage ).
 
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back_to_bookmark.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
 
       WHEN c_action-commit_cancel.
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -30677,7 +30697,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
         io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
                         iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
                                  |{ c_object_separator }{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+                        iv_typ = zif_abapgit_html=>c_action_type-sapevent ).
 
       ELSE.
         io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }| &&
@@ -30685,7 +30705,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
                         iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
                                  |{ c_object_separator }{ <ls_result>-sobjtype }{ <ls_result>-sobjname }| &&
                                  |{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_definitions=>c_action_type-sapevent ).
+                        iv_typ = zif_abapgit_html=>c_action_type-sapevent ).
 
       ENDIF.
       io_html->add( '</div>' ).
@@ -30742,7 +30762,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
               is_sub_item    = ls_sub_item
               iv_line_number = lv_line_number ).
 
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
     ENDCASE.
 
@@ -30793,7 +30813,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
                   iv_cur = abap_false ) ##NO_TEXT.
 
     IF is_stage_allowed( ) = abap_false.
-      lv_opt = zif_abapgit_definitions=>c_html_opt-crossout.
+      lv_opt = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -30921,12 +30941,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
           CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_stage
             EXPORTING
               io_repo = lo_repo_online.
-          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+          ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
         ELSE.
 
           ei_page = me.
-          ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
         ENDIF.
 
@@ -30940,12 +30960,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
             EXPORTING
               io_repo  = lo_repo_online
               io_stage = mo_stage.
-          ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+          ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
         ELSE.
 
           ei_page = me.
-          ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
         ENDIF.
 
@@ -30954,7 +30974,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
         run_code_inspector( ).
 
         ei_page = me.
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN OTHERS.
         super->zif_abapgit_gui_page~on_event(
           EXPORTING
@@ -31220,15 +31240,15 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     CASE iv_action.
       WHEN c_actions-refresh.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-uncompress.
         mv_compress = abap_false.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-compress.
         mv_compress = abap_true.
         refresh( ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-merge.
         ls_merge = decode_merge( it_postdata ).
         CREATE OBJECT lo_merge
@@ -31237,7 +31257,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
             iv_source = ls_merge-source
             iv_target = ls_merge-target.
         ei_page = lo_merge.
-        ev_state = zif_abapgit_definitions=>c_event_state-new_page.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -31571,7 +31591,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     CASE iv_action.
       WHEN zif_abapgit_definitions=>c_action-bg_update.
         update( decode( iv_getdata ) ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -31756,11 +31776,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-url.
 
         call_browser( iv_getdata ).
-        ev_state = zif_abapgit_definitions=>c_event_state-no_more_act.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
       WHEN OTHERS.
 
-        ev_state = zif_abapgit_definitions=>c_event_state-not_handled.
+        ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
 
     ENDCASE.
 
@@ -31952,7 +31972,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                && '<div class="float-right">'
                && zcl_abapgit_html=>a(
                     iv_txt   = '&#x274c;'
-                    iv_typ   = zif_abapgit_definitions=>c_action_type-onclick
+                    iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_act   = |toggleDisplay('{ iv_div_id }')|
                     iv_class = 'close-btn' )
                && '</div></div>' ).
@@ -32103,7 +32123,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         lv_icon = 'arrow-circle-up/grey80'.
       ENDIF.
       ro_html->add_a( iv_act = |toggleDisplay('news')|
-                      iv_typ = zif_abapgit_definitions=>c_action_type-onclick
+                      iv_typ = zif_abapgit_html=>c_action_type-onclick
                       iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
                                                        iv_class = 'pad-sides'
                                                        iv_hint  = 'Display changelog' ) ).
@@ -35032,7 +35052,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD go_home.
 
-    on_event( action = |{ zif_abapgit_definitions=>c_action-go_main }| ). " doesn't accept strings directly
+    on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
 
   ENDMETHOD.
   METHOD handle_action.
@@ -35067,19 +35087,19 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         ENDIF.
 
         CASE lv_state.
-          WHEN zif_abapgit_definitions=>c_event_state-re_render.
+          WHEN c_event_state-re_render.
             render( ).
-          WHEN zif_abapgit_definitions=>c_event_state-new_page.
+          WHEN c_event_state-new_page.
             call_page( li_page ).
-          WHEN zif_abapgit_definitions=>c_event_state-new_page_w_bookmark.
+          WHEN c_event_state-new_page_w_bookmark.
             call_page( ii_page = li_page iv_with_bookmark = abap_true ).
-          WHEN zif_abapgit_definitions=>c_event_state-new_page_replacing.
+          WHEN c_event_state-new_page_replacing.
             call_page( ii_page = li_page iv_replacing = abap_true ).
-          WHEN zif_abapgit_definitions=>c_event_state-go_back.
+          WHEN c_event_state-go_back.
             back( ).
-          WHEN zif_abapgit_definitions=>c_event_state-go_back_to_bookmark.
+          WHEN c_event_state-go_back_to_bookmark.
             back( abap_true ).
-          WHEN zif_abapgit_definitions=>c_event_state-no_more_act.
+          WHEN c_event_state-no_more_act.
             " Do nothing, handling completed
           WHEN OTHERS.
             zcx_abapgit_exception=>raise( |Unknown action: { iv_action }| ).
@@ -35352,8 +35372,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     CREATE OBJECT lo_toolbar.
     lo_toolbar->add( iv_act = 'submitFormById(''db_form'');'
                      iv_txt = 'Save'
-                     iv_typ = zif_abapgit_definitions=>c_action_type-onclick
-                     iv_opt = zif_abapgit_definitions=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_typ = zif_abapgit_html=>c_action_type-onclick
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
 
     ro_html->add( '<div class="db_entry">' ).
 
@@ -35397,7 +35417,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
       WHEN c_action-update.
         ls_db = dbcontent_decode( it_postdata ).
         update( ls_db ).
-        ev_state = zif_abapgit_definitions=>c_event_state-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -35607,7 +35627,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
       WHEN c_action-delete.
         ls_db = zcl_abapgit_html_action_utils=>dbkey_decode( iv_getdata ).
         delete( ls_db ).
-        ev_state = zif_abapgit_definitions=>c_event_state-re_render.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -70266,5 +70286,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-15T08:54:52.977Z
+* abapmerge undefined - 2019-03-15T09:24:16.829Z
 ****************************************************
