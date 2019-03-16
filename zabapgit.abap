@@ -438,6 +438,7 @@ INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_progress DEFERRED.
+INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
@@ -1092,6 +1093,39 @@ INTERFACE zif_abapgit_html.
     RETURNING
       VALUE(rv_str) TYPE string .
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_log .
+  METHODS add
+    IMPORTING
+      !iv_msg  TYPE csequence
+      !iv_type TYPE symsgty DEFAULT 'E'
+      !iv_rc   TYPE balsort OPTIONAL .
+  METHODS add_error
+    IMPORTING
+      !iv_msg TYPE csequence .
+  METHODS add_info
+    IMPORTING
+      !iv_msg TYPE csequence .
+  METHODS add_warning
+    IMPORTING
+      !iv_msg TYPE csequence .
+  METHODS clear .
+  METHODS count
+    RETURNING
+      VALUE(rv_count) TYPE i .
+  METHODS has_rc
+    IMPORTING
+      !iv_rc        TYPE balsort
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool .
+  METHODS show
+    IMPORTING
+      !iv_header_text TYPE csequence DEFAULT 'Log' .
+  METHODS to_html
+    RETURNING
+      VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+  METHODS write .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_progress .
@@ -4275,23 +4309,27 @@ CLASS zcl_abapgit_objects_files DEFINITION
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
   PROTECTED SECTION.
+
+    METHODS read_file
+      IMPORTING
+        !iv_filename   TYPE string
+        !iv_error      TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS filename
+      IMPORTING
+        !iv_extra          TYPE clike OPTIONAL
+        !iv_ext            TYPE string
+      RETURNING
+        VALUE(rv_filename) TYPE string .
   PRIVATE SECTION.
-    DATA: ms_item           TYPE zif_abapgit_definitions=>ty_item,
-          mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          mt_files          TYPE zif_abapgit_definitions=>ty_files_tt,
-          mv_path           TYPE string.
 
-    METHODS:
-      read_file
-        IMPORTING iv_filename TYPE string
-                  iv_error    TYPE abap_bool DEFAULT abap_true
-        EXPORTING ev_data     TYPE xstring
-        RAISING   zcx_abapgit_exception,
-      filename
-        IMPORTING iv_extra           TYPE clike OPTIONAL
-                  iv_ext             TYPE string
-        RETURNING VALUE(rv_filename) TYPE string.
-
+    DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
+    DATA mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_tt .
+    DATA mv_path TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_objects_generic DEFINITION
   CREATE PUBLIC .
@@ -8175,51 +8213,55 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
         offset   TYPE i,      " Beginning position of the string that should be formatted
         length   TYPE i,      " Length of the string that should be formatted
         text_tag TYPE string, " Type of text tag
-      END OF ty_match.
-
+      END OF ty_match .
     TYPES:
-      ty_match_tt  TYPE STANDARD TABLE OF ty_match WITH DEFAULT KEY.
-
+      ty_match_tt  TYPE STANDARD TABLE OF ty_match WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_rule,
         regex             TYPE REF TO cl_abap_regex,
         token             TYPE char1,
         style             TYPE string,
         relevant_submatch TYPE i,
-      END OF ty_rule.
+      END OF ty_rule .
 
-    CONSTANTS c_token_none TYPE c VALUE '.'.
-
-    DATA mt_rules TYPE STANDARD TABLE OF ty_rule.
+    CONSTANTS c_token_none TYPE c VALUE '.' ##NO_TEXT.
+    DATA:
+      mt_rules TYPE STANDARD TABLE OF ty_rule .
 
     METHODS add_rule
       IMPORTING
-        iv_regex    TYPE string
-        iv_token    TYPE c
-        iv_style    TYPE string
-        iv_submatch TYPE i OPTIONAL.
-
+        !iv_regex    TYPE string
+        !iv_token    TYPE c
+        !iv_style    TYPE string
+        !iv_submatch TYPE i OPTIONAL .
     METHODS parse_line
-      IMPORTING iv_line    TYPE string
-      EXPORTING et_matches TYPE ty_match_tt.
-
-    METHODS order_matches ABSTRACT
-      IMPORTING iv_line    TYPE string
-      CHANGING  ct_matches TYPE ty_match_tt.
-
+      IMPORTING
+        !iv_line          TYPE string
+      RETURNING
+        VALUE(rt_matches) TYPE ty_match_tt .
+    METHODS order_matches
+          ABSTRACT
+      IMPORTING
+        !iv_line    TYPE string
+      CHANGING
+        !ct_matches TYPE ty_match_tt .
     METHODS extend_matches
-      IMPORTING iv_line    TYPE string
-      CHANGING  ct_matches TYPE ty_match_tt.
-
+      IMPORTING
+        !iv_line    TYPE string
+      CHANGING
+        !ct_matches TYPE ty_match_tt .
     METHODS format_line
-      IMPORTING iv_line        TYPE string
-                it_matches     TYPE ty_match_tt
-      RETURNING VALUE(rv_line) TYPE string.
-
+      IMPORTING
+        !iv_line       TYPE string
+        !it_matches    TYPE ty_match_tt
+      RETURNING
+        VALUE(rv_line) TYPE string .
     METHODS apply_style
-      IMPORTING iv_line        TYPE string
-                iv_class       TYPE string
-      RETURNING VALUE(rv_line) TYPE string.
+      IMPORTING
+        !iv_line       TYPE string
+        !iv_class      TYPE string
+      RETURNING
+        VALUE(rv_line) TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_syntax_abap DEFINITION
   INHERITING FROM zcl_abapgit_syntax_highlighter
@@ -10916,36 +10958,28 @@ CLASS zcl_abapgit_log DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS add
-      IMPORTING
-        !iv_msg  TYPE csequence
-        !iv_type TYPE symsgty DEFAULT 'E'
-        !iv_rc   TYPE balsort OPTIONAL .
-    METHODS add_error
-      IMPORTING
-        !iv_msg TYPE csequence .
-    METHODS add_info
-      IMPORTING
-        !iv_msg TYPE csequence .
-    METHODS add_warning
-      IMPORTING
-        !iv_msg TYPE csequence .
-    METHODS clear .
-    METHODS count
-      RETURNING
-        VALUE(rv_count) TYPE i .
-    METHODS has_rc
-      IMPORTING
-        !iv_rc        TYPE balsort
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
-    METHODS show
-      IMPORTING
-        !iv_header_text TYPE csequence DEFAULT 'Log' .
-    METHODS to_html
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
-    METHODS write .
+    INTERFACES zif_abapgit_log .
+
+    ALIASES add
+      FOR zif_abapgit_log~add .
+    ALIASES add_error
+      FOR zif_abapgit_log~add_error .
+    ALIASES add_info
+      FOR zif_abapgit_log~add_info .
+    ALIASES add_warning
+      FOR zif_abapgit_log~add_warning .
+    ALIASES clear
+      FOR zif_abapgit_log~clear .
+    ALIASES count
+      FOR zif_abapgit_log~count .
+    ALIASES has_rc
+      FOR zif_abapgit_log~has_rc .
+    ALIASES show
+      FOR zif_abapgit_log~show .
+    ALIASES to_html
+      FOR zif_abapgit_log~to_html .
+    ALIASES write
+      FOR zif_abapgit_log~write .
   PROTECTED SECTION.
 
     TYPES:
@@ -10961,7 +10995,7 @@ CLASS zcl_abapgit_log DEFINITION
       END OF ty_log_out .
     TYPES:
       tty_log_out TYPE STANDARD TABLE OF ty_log_out
-                              WITH NON-UNIQUE DEFAULT KEY .
+                                WITH NON-UNIQUE DEFAULT KEY .
 
     DATA:
       mt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
@@ -10969,7 +11003,6 @@ CLASS zcl_abapgit_log DEFINITION
     METHODS prepare_log_for_display
       RETURNING
         VALUE(rt_log_out) TYPE zcl_abapgit_log=>tty_log_out .
-
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_login_manager DEFINITION
@@ -21396,46 +21429,6 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
-  METHOD add.
-
-    FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
-
-    APPEND INITIAL LINE TO mt_log ASSIGNING <ls_log>.
-    <ls_log>-msg  = iv_msg.
-    <ls_log>-type = iv_type.
-    <ls_log>-rc   = iv_rc.
-
-  ENDMETHOD.
-  METHOD add_error.
-
-    add( iv_msg  = iv_msg
-         iv_type = 'E' ).
-
-  ENDMETHOD.
-  METHOD add_info.
-
-    add( iv_msg  = iv_msg
-         iv_type = 'I' ).
-
-  ENDMETHOD.
-  METHOD add_warning.
-
-    add( iv_msg  = iv_msg
-         iv_type = 'W' ).
-
-  ENDMETHOD.
-  METHOD clear.
-    CLEAR mt_log.
-  ENDMETHOD.
-  METHOD count.
-    rv_count = lines( mt_log ).
-  ENDMETHOD.
-  METHOD has_rc.
-* todo, this method is only used in unit tests
-
-    READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
-    rv_yes = boolc( sy-subrc = 0 ).
-  ENDMETHOD.
   METHOD prepare_log_for_display.
 
     DATA: ls_log TYPE ty_log_out.
@@ -21464,7 +21457,47 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD show.
+  METHOD zif_abapgit_log~add.
+
+    FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
+
+    APPEND INITIAL LINE TO mt_log ASSIGNING <ls_log>.
+    <ls_log>-msg  = iv_msg.
+    <ls_log>-type = iv_type.
+    <ls_log>-rc   = iv_rc.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_log~add_error.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'E' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_log~add_info.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'I' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_log~add_warning.
+
+    add( iv_msg  = iv_msg
+         iv_type = 'W' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_log~clear.
+    CLEAR mt_log.
+  ENDMETHOD.
+  METHOD zif_abapgit_log~count.
+    rv_count = lines( mt_log ).
+  ENDMETHOD.
+  METHOD zif_abapgit_log~has_rc.
+* todo, this method is only used in unit tests
+
+    READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
+    rv_yes = boolc( sy-subrc = 0 ).
+  ENDMETHOD.
+  METHOD zif_abapgit_log~show.
 
     DATA: lt_log         TYPE tty_log_out,
           lo_alv         TYPE REF TO cl_salv_table,
@@ -21514,7 +21547,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD to_html.
+  METHOD zif_abapgit_log~to_html.
 
     DATA: lv_class TYPE string,
           lv_icon  TYPE string.
@@ -21547,7 +21580,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD write.
+  METHOD zif_abapgit_log~write.
 
     DATA: ls_log  LIKE LINE OF mt_log,
           lv_text TYPE string.
@@ -35846,8 +35879,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       <ls_regex>    LIKE LINE OF mt_rules,
       <ls_result>   TYPE match_result,
       <ls_submatch> LIKE LINE OF <ls_result>-submatches.
-    CLEAR et_matches.
-
     " Process syntax-dependent regex table and find all matches
     LOOP AT mt_rules ASSIGNING <ls_regex>.
       lo_regex   = <ls_regex>-regex.
@@ -35861,7 +35892,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
           ls_match-token  = <ls_regex>-token.
           ls_match-offset = <ls_result>-offset.
           ls_match-length = <ls_result>-length.
-          APPEND ls_match TO et_matches.
+          APPEND ls_match TO rt_matches.
         ELSE.
           READ TABLE <ls_result>-submatches ASSIGNING <ls_submatch> INDEX <ls_regex>-relevant_submatch.
           "submatch might be empty if only discarted parts matched
@@ -35869,7 +35900,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
             ls_match-token  = <ls_regex>-token.
             ls_match-offset = <ls_submatch>-offset.
             ls_match-length = <ls_submatch>-length.
-            APPEND ls_match TO et_matches.
+            APPEND ls_match TO rt_matches.
           ENDIF.
         ENDIF.
       ENDLOOP.
@@ -35884,8 +35915,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    me->parse_line( EXPORTING iv_line    = iv_line
-                    IMPORTING et_matches = lt_matches ).
+    lt_matches = me->parse_line( iv_line ).
 
     me->order_matches( EXPORTING iv_line    = iv_line
                        CHANGING  ct_matches = lt_matches ).
@@ -36112,18 +36142,17 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
 
     DATA lv_index TYPE i.
 
-    FIELD-SYMBOLS <ls_match> LIKE LINE OF et_matches.
+    FIELD-SYMBOLS <ls_match> LIKE LINE OF rt_matches.
 
-    super->parse_line( EXPORTING iv_line    = iv_line
-                       IMPORTING et_matches = et_matches ).
+    rt_matches = super->parse_line( iv_line ).
 
     " Remove non-keywords
-    LOOP AT et_matches ASSIGNING <ls_match> WHERE token = c_token-keyword.
+    LOOP AT rt_matches ASSIGNING <ls_match> WHERE token = c_token-keyword.
       lv_index = sy-tabix.
       IF abap_false = is_keyword( substring( val = iv_line
                                              off = <ls_match>-offset
                                              len = <ls_match>-length ) ).
-        DELETE et_matches INDEX lv_index.
+        DELETE rt_matches INDEX lv_index.
       ENDIF.
     ENDLOOP.
 
@@ -40463,9 +40492,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     lv_filename = filename( iv_extra = iv_extra
                             iv_ext   = 'abap' ).            "#EC NOTEXT
 
-    read_file( EXPORTING iv_filename = lv_filename
-                         iv_error    = iv_error
-               IMPORTING ev_data     = lv_data ).
+    lv_data = read_file( iv_filename = lv_filename
+                         iv_error    = iv_error ).
 
     IF lv_data IS INITIAL. " Post-handling of iv_error = false
       RETURN.
@@ -40480,9 +40508,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_file>     LIKE LINE OF mt_files,
                    <ls_accessed> LIKE LINE OF mt_accessed_files.
-
-    CLEAR ev_data.
-
     IF mv_path IS NOT INITIAL.
       READ TABLE mt_files ASSIGNING <ls_file> WITH KEY path     = mv_path
                                                        filename = iv_filename.
@@ -40506,7 +40531,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       MOVE-CORRESPONDING <ls_file> TO <ls_accessed>.
     ENDIF.
 
-    ev_data = <ls_file>-data.
+    rv_data = <ls_file>-data.
 
   ENDMETHOD.
   METHOD read_raw.
@@ -40516,8 +40541,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     lv_filename = filename( iv_extra = iv_extra
                             iv_ext   = iv_ext ).
 
-    read_file( EXPORTING iv_filename = lv_filename
-               IMPORTING ev_data     = rv_data ).
+    rv_data = read_file( lv_filename ).
 
   ENDMETHOD.
   METHOD read_string.
@@ -40528,8 +40552,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     lv_filename = filename( iv_extra = iv_extra
                             iv_ext   = iv_ext ).            "#EC NOTEXT
 
-    read_file( EXPORTING iv_filename = lv_filename
-               IMPORTING ev_data     = lv_data ).
+    lv_data = read_file( lv_filename ).
 
     rv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
@@ -40543,8 +40566,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     lv_filename = filename( iv_extra = iv_extra
                             iv_ext   = 'xml' ).             "#EC NOTEXT
 
-    read_file( EXPORTING iv_filename = lv_filename
-               IMPORTING ev_data     = lv_data ).
+    lv_data = read_file( lv_filename ).
 
     lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
@@ -70279,5 +70301,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-15T12:57:12.154Z
+* abapmerge undefined - 2019-03-16T10:36:43.663Z
 ****************************************************
