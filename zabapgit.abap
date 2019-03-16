@@ -987,10 +987,11 @@ INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
     BEGIN OF ty_web_asset,
-      url     TYPE w3url,
-      type    TYPE char50,
-      subtype TYPE char50,
-      content TYPE xstring,
+      url          TYPE w3url,
+      type         TYPE char50,
+      subtype      TYPE char50,
+      content      TYPE xstring,
+      is_cacheable TYPE abap_bool,
     END OF ty_web_asset .
   TYPES:
     tt_web_assets TYPE STANDARD TABLE OF ty_web_asset WITH DEFAULT KEY .
@@ -998,6 +999,22 @@ INTERFACE zif_abapgit_gui_asset_manager .
   METHODS get_all_assets
     RETURNING
       VALUE(rt_assets) TYPE tt_web_assets
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get_asset
+    IMPORTING
+      iv_url          TYPE string
+    RETURNING
+      VALUE(rs_asset) TYPE ty_web_asset
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get_text_asset
+    IMPORTING
+      iv_url          TYPE string
+    RETURNING
+      VALUE(rv_asset) TYPE string
     RAISING
       zcx_abapgit_exception.
 
@@ -8455,16 +8472,26 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     INTERFACES zif_abapgit_gui_asset_manager.
 
+    TYPES:
+      BEGIN OF ty_asset_entry.
+        INCLUDE TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
+    TYPES:  mime_name TYPE wwwdatatab-objid,
+      END OF ty_asset_entry ,
+      tt_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url .
+
+    METHODS register_asset
+      IMPORTING
+        !iv_url TYPE string
+        !iv_type TYPE string
+        !iv_cachable TYPE abap_bool DEFAULT abap_true
+        !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
+        !iv_base64 TYPE string OPTIONAL
+        !iv_inline TYPE string OPTIONAL .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    METHODS get_textlike_asset
-      IMPORTING
-        iv_asset_url    TYPE string
-      RETURNING
-        VALUE(rs_asset) TYPE zif_abapgit_gui_asset_manager=>ty_web_asset
-      RAISING
-        zcx_abapgit_exception.
+    DATA mt_asset_register TYPE tt_asset_register.
 
     METHODS get_mime_asset
       IMPORTING
@@ -8474,8 +8501,13 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
       RAISING
         zcx_abapgit_exception.
 
-    METHODS get_inline_images
-      RETURNING VALUE(rt_images) TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
+    METHODS load_asset
+      IMPORTING
+        is_asset_entry TYPE ty_asset_entry
+      RETURNING
+        VALUE(rs_asset) TYPE zif_abapgit_gui_asset_manager~ty_web_asset
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION
@@ -10774,6 +10806,13 @@ CLASS zcl_abapgit_ui_factory DEFINITION
     CLASS-DATA gi_gui_functions TYPE REF TO zif_abapgit_gui_functions .
     CLASS-DATA go_gui TYPE REF TO zcl_abapgit_gui .
     CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
+
+    CLASS-METHODS init_asset_manager
+      RETURNING
+        VALUE(ro_asset_man) TYPE REF TO zcl_abapgit_gui_asset_manager
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
   CREATE PRIVATE.
@@ -22150,8 +22189,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
     IF go_gui IS INITIAL.
+      li_asset_man ?= init_asset_manager( ).
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
-      CREATE OBJECT li_asset_man TYPE zcl_abapgit_gui_asset_manager.
       CREATE OBJECT go_gui
         EXPORTING
           ii_router    = li_router
@@ -22185,6 +22224,2676 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     ENDIF.
 
     ri_tag_popups = gi_tag_popups.
+
+  ENDMETHOD.
+  METHOD init_asset_manager.
+    " used by abapmerge
+    DEFINE _inline.
+      APPEND &1 TO lt_inline.
+    END-OF-DEFINITION.
+
+    DATA lt_inline TYPE string_table.
+
+    CREATE OBJECT ro_asset_man.
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
+****************************************************
+    _inline '/*'.
+    _inline ' * ABAPGIT COMMON CSS'.
+    _inline ' */'.
+    _inline ''.
+    _inline '/* GLOBALS */'.
+    _inline ''.
+    _inline 'body {'.
+    _inline '  font-family: Arial,Helvetica,sans-serif;'.
+    _inline '  font-size:   12pt;'.
+    _inline '  background:  #E8E8E8;'.
+    _inline '  overflow-x:  hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'a, a:visited {'.
+    _inline '  color:            #4078c0;'.
+    _inline '  text-decoration:  none;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'a:hover, a:active {'.
+    _inline '  cursor: pointer;'.
+    _inline '  text-decoration: underline;'.
+    _inline '}'.
+    _inline ''.
+    _inline '#abapGitLogo {'.
+    _inline '  outline: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'img               { border: 0px; vertical-align: middle; }'.
+    _inline 'table             { border-collapse: collapse; }'.
+    _inline 'pre               { display: inline; }'.
+    _inline 'sup {'.
+    _inline '  vertical-align: top;'.
+    _inline '  position: relative;'.
+    _inline '  top: -0.5em;'.
+    _inline '  font-size: 75%;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'input, textarea, select {'.
+    _inline '  padding: 3px 6px;'.
+    _inline '  border: 1px solid #ddd;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'input:focus, textarea:focus {'.
+    _inline '  border: 1px solid #8cadd9;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* COLOR PALETTE */'.
+    _inline '.grey             { color: lightgrey  !important; }'.
+    _inline '.grey70           { color: #b3b3b3    !important; }'.
+    _inline '.grey80           { color: #ccc       !important; }'.
+    _inline '.bgorange         { background-color: orange; }'.
+    _inline '.darkgrey         { color: #808080    !important; }'.
+    _inline '.attention        { color: red        !important; }'.
+    _inline '.error            { color: #d41919    !important; }'.
+    _inline '.warning          { color: #efb301    !important; }'.
+    _inline '.success          { color: green       !important; }'.
+    _inline '.blue             { color: #5e8dc9    !important; }'.
+    _inline '.red              { color: red        !important; }'.
+    _inline '.white            { color: white      !important; }'.
+    _inline ''.
+    _inline '/* MODIFIERS */'.
+    _inline '.emphasis         { font-weight: bold !important; }'.
+    _inline '.crossout         { text-decoration: line-through !important; }'.
+    _inline '.right            { text-align:right; }'.
+    _inline '.center           { text-align:center; }'.
+    _inline '.paddings         { padding: 0.5em 0.5em; }'.
+    _inline '.pad-sides        { padding-left: 0.3em; padding-right: 0.3em; }'.
+    _inline '.margin-v5        { margin-top: 0.5em; margin-bottom: 0.5em; }'.
+    _inline '.indent5em        { padding-left: 0.5em; }'.
+    _inline '.pad4px           { padding: 4px; }'.
+    _inline '.w100             { width: 100%; }'.
+    _inline '.wmin             { width: 1%; }'.
+    _inline '.w40              { width: 40%; }'.
+    _inline '.float-right      { float: right; }'.
+    _inline '.pad-right        { padding-right: 6px; }'.
+    _inline '.inline           { display: inline; }'.
+    _inline ''.
+    _inline '/* PANELS */'.
+    _inline 'div.panel {'.
+    _inline '  border-radius: 3px;'.
+    _inline '}'.
+    _inline 'div.panel.success {'.
+    _inline '  color: #589a58 !important;'.
+    _inline '  background: #c5eac5;'.
+    _inline '}'.
+    _inline '/* TODO: add warning and error colors */'.
+    _inline ''.
+    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
+    _inline 'div#header {'.
+    _inline '  padding:          0.5em 0.5em;'.
+    _inline '  border-bottom:    3px double lightgrey;'.
+    _inline '}'.
+    _inline 'div#header td.logo       { width: 164px; }'.
+    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
+    _inline 'div#header span.page_title {'.
+    _inline '  font-weight: normal;'.
+    _inline '  font-size: 18pt;'.
+    _inline '  color: #bbb;'.
+    _inline '  padding-left: 0.4em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div#toc {'.
+    _inline '  padding:          0.5em 1em;'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '}'.
+    _inline 'div#toc .favorites a { opacity: 0.5; }'.
+    _inline 'div#toc .favorites:hover a { opacity: 1; }'.
+    _inline ''.
+    _inline 'div#footer {'.
+    _inline '  padding:          0.5em 1em;'.
+    _inline '  border-top:       3px double lightgrey;'.
+    _inline '  text-align:       center;'.
+    _inline '}'.
+    _inline 'div#footer span.version {'.
+    _inline '  display: block;'.
+    _inline '  color: grey;'.
+    _inline '  margin-top: 0.3em;'.
+    _inline '}'.
+    _inline ''.
+    _inline '#debug-output {'.
+    _inline '  text-align: right;'.
+    _inline '  padding-right: 0.5em;'.
+    _inline '  color: #ccc;'.
+    _inline '  font-style: italic;'.
+    _inline '  font-size: small;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.dummydiv {'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding:          0.5em 1em;'.
+    _inline '  text-align:       center;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* ERROR LOG */'.
+    _inline ''.
+    _inline 'div.log {'.
+    _inline '  padding: 6px;'.
+    _inline '  margin: 4px;'.
+    _inline '  background-color: #fee6e6;'.
+    _inline '  border: 1px #fdcece solid;'.
+    _inline '  border-radius: 4px;'.
+    _inline '}'.
+    _inline 'div.log > span   { display:block; }'.
+    _inline 'div.log .icon { padding-right: 6px; }'.
+    _inline ''.
+    _inline '/* REPOSITORY */'.
+    _inline 'div.repo {'.
+    _inline '  margin-top:       3px;'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding: 0.5em 1em 0.5em 1em;'.
+    _inline '  position: relative;'.
+    _inline '}'.
+    _inline '.repo_name span.name {'.
+    _inline '  font-weight: bold;'.
+    _inline '  color: #333;'.
+    _inline '  font-size: 14pt;'.
+    _inline '}'.
+    _inline '.repo_name a.url {'.
+    _inline '  color: #ccc;'.
+    _inline '  font-size: 12pt;'.
+    _inline '  margin-left: 0.5em;'.
+    _inline '}'.
+    _inline '.repo_name span.url {'.
+    _inline '  color: #ccc;'.
+    _inline '  font-size: 12pt;'.
+    _inline '  margin-left: 0.5em;'.
+    _inline '}'.
+    _inline '.repo_name .icon {'.
+    _inline '  padding-right: 4px;'.
+    _inline '}'.
+    _inline '.repo_attr {'.
+    _inline '  color: grey;'.
+    _inline '  font-size: 12pt;'.
+    _inline '}'.
+    _inline '.repo_attr span {'.
+    _inline '  margin-left: 0.2em;'.
+    _inline '  margin-right: 0.5em;'.
+    _inline '}'.
+    _inline '.repo_attr span.bg_marker {'.
+    _inline '  border: 1px solid #d2d2d2;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  background: #d8d8d8;'.
+    _inline '  color: #fff;'.
+    _inline '  font-size: 8pt;'.
+    _inline '  padding: 4px 2px 3px 2px;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch {'.
+    _inline '  padding: 2px 4px;'.
+    _inline '  border: 1px solid #d9d9d9;'.
+    _inline '  border-radius: 4px;'.
+    _inline '  background-color: #e2e2e2;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch_head {'.
+    _inline '  border-color: #d8dff3;'.
+    _inline '  background-color: #eceff9;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch_branch {'.
+    _inline '  border-color: #e7d9b1;'.
+    _inline '  background-color: #f8f0d8;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* MISC AND REFACTOR */'.
+    _inline '.hidden-submit {'.
+    _inline '  border: 0 none;'.
+    _inline '  height: 0;'.
+    _inline '  width: 0;'.
+    _inline '  padding: 0;'.
+    _inline '  margin: 0;'.
+    _inline '  overflow: hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* REPOSITORY TABLE*/'.
+    _inline 'div.repo_container {'.
+    _inline '  position: relative;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.repo_banner {'.
+    _inline '  margin: 0em 1.2em 1em;'.
+    _inline '  padding: 0.5em 0.5em;'.
+    _inline '  text-align: center;'.
+    _inline '  font-size: 85%;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.repo_tab {'.
+    _inline '  border: 1px solid #DDD;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  background: #fff;'.
+    _inline '  width: 100%;'.
+    _inline '}'.
+    _inline '.repo_tab td {'.
+    _inline '  border-top: 1px solid #eee;'.
+    _inline '  vertical-align: middle;'.
+    _inline '  color: #333;'.
+    _inline '  padding-top: 2px;'.
+    _inline '  padding-bottom: 2px;'.
+    _inline '}'.
+    _inline '.repo_tab td.icon {'.
+    _inline '  width: 1px;'.
+    _inline '  text-align: center;'.
+    _inline '  padding-left: 8px;'.
+    _inline '  padding-right: 4px;'.
+    _inline '}'.
+    _inline '.repo_tab td.icon:not(:first-child) {'.
+    _inline '  width: 26px;'.
+    _inline '  text-align: left;'.
+    _inline '}'.
+    _inline '.repo_tab td.type {'.
+    _inline '  width: 3em;'.
+    _inline '}'.
+    _inline '.repo_tab td.object {'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '}'.
+    _inline '.repo_tab td.files {'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd {'.
+    _inline '  text-align: right;'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  padding-right: 0.7em;'.
+    _inline '}'.
+    _inline '.repo_tab tr.unsupported    { color: lightgrey; }'.
+    _inline '.repo_tab tr.modified       { background: #fbf7e9; }'.
+    _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
+    _inline '.repo_tab td.current_dir    { color: #ccc; }'.
+    _inline '.repo_tab td.cmd span.state-block {'.
+    _inline '  margin-left: 1em;'.
+    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+    _inline '  font-size: x-small;'.
+    _inline '  vertical-align: 13%;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span {'.
+    _inline '  display: inline-block;'.
+    _inline '  padding: 0px 2px;'.
+    _inline '  border: 1px solid #000;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span.added {'.
+    _inline '  background-color: #69ad74;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span.changed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #d4af25;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span.mixed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: #69ad74;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span.deleted {'.
+    _inline '  background-color: #c76861;'.
+    _inline '  border-color: #b8605a;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline '.repo_tab td.cmd span.state-block span.none {'.
+    _inline '  background-color: #e8e8e8;'.
+    _inline '  border-color: #dbdbdb;'.
+    _inline '  color: #c8c8c8;'.
+    _inline '}'.
+    _inline '.repo_tab .inactive       { color: orange; }'.
+    _inline ''.
+    _inline '/* STAGE */'.
+    _inline 'div.stage-container { width: 850px; }'.
+    _inline 'input.stage-filter { width: 18em; }'.
+    _inline ''.
+    _inline '.stage_tab {'.
+    _inline '  border: 1px solid #DDD;'.
+    _inline '  background: #fff;'.
+    _inline '  margin-top: 0.2em;'.
+    _inline '}'.
+    _inline '.stage_tab td {'.
+    _inline '  border-top: 1px solid #eee;'.
+    _inline '  color: #333;'.
+    _inline '  vertical-align: middle;'.
+    _inline '  padding: 2px 0.5em;'.
+    _inline '}'.
+    _inline '.stage_tab th {'.
+    _inline '  color: #BBB;'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: normal;'.
+    _inline '  background-color: #edf2f9;'.
+    _inline '  padding: 4px 0.5em;'.
+    _inline '}'.
+    _inline '.stage_tab td.status {'.
+    _inline '  width: 2em;'.
+    _inline '  text-align: center;'.
+    _inline '  color: #ccc;'.
+    _inline '  background-color: #fafafa;'.
+    _inline '}'.
+    _inline '.stage_tab td.highlight {'.
+    _inline '  color: #444 !important;'.
+    _inline '  font-weight: bold;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.stage_tab td.cmd {  cursor: pointer; }'.
+    _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
+    _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
+    _inline '.stage_tab td.method { color: #ccc; }'.
+    _inline '.stage_tab td.user { color: #aaa; }'.
+    _inline '.stage_tab td.type { color: #aaa; }'.
+    _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+    _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+    _inline '.stage_tab mark {'.
+    _inline '  color: white;'.
+    _inline '  background-color: #79a0d2;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* COMMIT */'.
+    _inline 'div.form-container {'.
+    _inline '  background-color: #F8F8F8;'.
+    _inline '  padding: 1em 1em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form {'.
+    _inline '  display: table;'.
+    _inline '  border-spacing: 2px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form label {'.
+    _inline '  color: #BBB;'.
+    _inline '  padding-right: 1em;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form select {'.
+    _inline '  padding-right: 1em;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form span.sub-title {'.
+    _inline '  color: #BBB;'.
+    _inline '  font-size: smaller;'.
+    _inline '  padding-top: 8px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form div.row { display: table-row; }'.
+    _inline 'form.aligned-form label { display: table-cell; }'.
+    _inline 'form.aligned-form input { display: table-cell; }'.
+    _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
+    _inline 'form.aligned-form span.cell { display: table-cell; }'.
+    _inline ''.
+    _inline '/* SETTINGS STYLES */'.
+    _inline 'div.settings_container {'.
+    _inline '  padding: 0.5em;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  color: #444;'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.settings_section {'.
+    _inline '  margin-left:50px'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DIFF */'.
+    _inline 'div.diff {'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding: 0.7em'.
+    _inline '}'.
+    _inline 'div.diff_head {'.
+    _inline '  padding-bottom: 0.7em;'.
+    _inline '}'.
+    _inline 'span.diff_name {'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  color: grey;'.
+    _inline '}'.
+    _inline 'span.diff_changed_by {'.
+    _inline '  color: grey;'.
+    _inline '  float: right;'.
+    _inline '}'.
+    _inline 'span.diff_changed_by span.user {'.
+    _inline '  border-radius: 3px;'.
+    _inline '  border: solid 1px #c2d4ea;'.
+    _inline '  background-color: #d9e4f2;'.
+    _inline '  padding: 1px 0.4em;'.
+    _inline '}'.
+    _inline 'span.diff_name strong {'.
+    _inline '  color: #333;'.
+    _inline '}'.
+    _inline 'span.diff_banner {'.
+    _inline '  border-style: solid;'.
+    _inline '  border-width: 1px;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding-left: 0.3em;'.
+    _inline '  padding-right: 0.3em;'.
+    _inline '}'.
+    _inline '.diff_ins {'.
+    _inline '  border-color: #abf2ab;'.
+    _inline '  background-color: #e0ffe0;'.
+    _inline '}'.
+    _inline '.diff_del {'.
+    _inline '  border-color: #ff667d;'.
+    _inline '  background-color: #ffccd4;'.
+    _inline '}'.
+    _inline '.diff_upd {'.
+    _inline '  border-color: #dada00;'.
+    _inline '  background-color: #ffffcc;'.
+    _inline '}'.
+    _inline 'div.diff_content {'.
+    _inline '  background: #fff;'.
+    _inline '  border-top: 1px solid #DDD;'.
+    _inline '  border-bottom: 1px solid #DDD;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.diff_content tbody tr td{'.
+    _inline '  width: 50%;'.
+    _inline '  vertical-align: top'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.diff_head span.state-block {'.
+    _inline '  margin-left: 0.5em;'.
+    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span {'.
+    _inline '  display: inline-block;'.
+    _inline '  padding: 0px 4px;'.
+    _inline '  border: 1px solid #000;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span.added {'.
+    _inline '  background-color: #69ad74;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span.changed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #d4af25;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span.mixed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: #69ad74;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span.deleted {'.
+    _inline '  background-color: #c76861;'.
+    _inline '  border-color: #b8605a;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span.none {'.
+    _inline '  background-color: #e8e8e8;'.
+    _inline '  border-color: #dbdbdb;'.
+    _inline '  color: #c8c8c8;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DIFF TABLE */'.
+    _inline 'table.diff_tab {'.
+    _inline '  font-family: Consolas, Courier, monospace;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  width: 100%;'.
+    _inline '}'.
+    _inline 'table.diff_tab td,th {'.
+    _inline '  color: #444;'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  padding-right: 0.5em;'.
+    _inline '}'.
+    _inline 'table.diff_tab th {'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: normal;'.
+    _inline '  padding-top: 3px;'.
+    _inline '  padding-bottom: 3px;'.
+    _inline '}'.
+    _inline 'table.diff_tab thead.header th {'.
+    _inline '  color: #EEE;'.
+    _inline '  background-color: #BBB;'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: bold;'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  font-size: 9pt;'.
+    _inline '}'.
+    _inline 'table.diff_tab thead.nav_line {'.
+    _inline '  background-color: #edf2f9;'.
+    _inline '}'.
+    _inline 'table.diff_tab thead.nav_line th {'.
+    _inline '  color: #bbb;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.num, th.num {'.
+    _inline '  width: 1%;'.
+    _inline '  min-width: 2em;'.
+    _inline '  padding-right: 8px;'.
+    _inline '  padding-left:  8px;'.
+    _inline '  text-align: right !important;'.
+    _inline '  color: #ccc;'.
+    _inline '  border-left: 1px solid #eee;'.
+    _inline '  border-right: 1px solid #eee;'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.patch, th.patch {'.
+    _inline '  width: 1%;'.
+    _inline '  min-width: 6em;'.
+    _inline '  padding-right: 8px;'.
+    _inline '  padding-left:  8px;'.
+    _inline '  text-align: right !important;'.
+    _inline '  color: #ccc;'.
+    _inline '  border-left: 1px solid #eee;'.
+    _inline '  border-right: 1px solid #eee;'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.num::before {'.
+    _inline '  content: attr(line-num);'.
+    _inline '}'.
+    _inline 'table.diff_tab code {'.
+    _inline '  font-family: inherit;'.
+    _inline '  white-space: pre;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.code {'.
+    _inline '  word-wrap: break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  overflow: visible;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+    _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+    _inline ''.
+    _inline '/* STYLES for Syntax Highlighting */'.
+    _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
+    _inline '.syntax-hl span.text     { color: #48ce4f; }'.
+    _inline '.syntax-hl span.comment  { color: #808080; font-style: italic; }'.
+    _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
+    _inline '.syntax-hl span.attr     { color: #b777fb; }'.
+    _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
+    _inline ''.
+    _inline '/* DEBUG INFO STYLES */'.
+    _inline 'div.debug_container {'.
+    _inline '  padding: 0.5em;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  color: #444;'.
+    _inline '  font-family: Consolas, Courier, monospace;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.debug_container p {'.
+    _inline '  margin: 0px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DB ENTRIES */'.
+    _inline 'div.db_list {'.
+    _inline '  background-color: #fff;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  overflow-x: auto;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.db_tab pre {'.
+    _inline '  display: inline-block;'.
+    _inline '  overflow: hidden;'.
+    _inline '  word-wrap:break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  margin: 0px;'.
+    _inline '  width: 30em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
+    _inline 'table.db_tab th {'.
+    _inline '  color: #888888;'.
+    _inline '  text-align: left;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  border-bottom: 1px #ddd solid;'.
+    _inline '}'.
+    _inline 'table.db_tab td {'.
+    _inline '  color: #333;'.
+    _inline '  padding: 4px 8px;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline 'table.db_tab td.data {'.
+    _inline '  color: #888;'.
+    _inline '  font-style: italic;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.db_tab tbody tr:hover, tr:active {'.
+    _inline '  background-color: #f4f4f4;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DB ENTRY DISPLAY */'.
+    _inline 'div.db_entry {'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding: 0.5em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.db_entry pre {'.
+    _inline '  display: block;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  overflow: hidden;'.
+    _inline '  word-wrap:break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  background-color: #fcfcfc;'.
+    _inline '  border: 1px #eaeaea solid;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  margin: 0.5em 0em;'.
+    _inline '  width: 60em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.db_entry table.toolbar {'.
+    _inline '  width: 50em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.tag {'.
+    _inline '  display: inline-block;'.
+    _inline '  border: 1px #b3c1cc solid;'.
+    _inline '  background-color: #eee;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  margin-right: 0.5em;'.
+    _inline '}'.
+    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
+    _inline 'table.tag td.label { background-color: #b3c1cc; }'.
+    _inline ''.
+    _inline '/* DB ENTRY DISPLAY */'.
+    _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
+    _inline 'table.tag {'.
+    _inline '  display: inline-block;'.
+    _inline '  border: 1px #b3c1cc solid;'.
+    _inline '  background-color: #eee;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  margin-right: 0.5em;'.
+    _inline '}'.
+    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
+    _inline 'table.tag td.label { background-color: #b3c1cc; }'.
+    _inline ''.
+    _inline '/* TUTORIAL */'.
+    _inline ''.
+    _inline 'div.tutorial {'.
+    _inline '  margin-top:       3px;'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding: 0.5em 1em 0.5em 1em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.tutorial hr { border-color: #CCC; }'.
+    _inline 'div.tutorial li { margin: 2px 0px }'.
+    _inline 'div.tutorial h1 {'.
+    _inline '  font-size: 18pt;'.
+    _inline '  color: #404040;'.
+    _inline '}'.
+    _inline 'div.tutorial h2 {'.
+    _inline '  font-size: 14pt;'.
+    _inline '  color: #404040;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* NEW MENU */'.
+    _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
+    _inline '/* container div, aligned left, '.
+    _inline '   but with .float-right modifier alignes right */'.
+    _inline '.nav-container ul'.
+    _inline '{'.
+    _inline '  list-style: none;'.
+    _inline '  position: relative;'.
+    _inline '  float: left;'.
+    _inline '  margin: 0;'.
+    _inline '  padding: 0;'.
+    _inline '}'.
+    _inline '.nav-container.float-right ul { float: right; }'.
+    _inline ''.
+    _inline '.nav-container ul a'.
+    _inline '{'.
+    _inline '  display: block;'.
+    _inline '  text-decoration: none;'.
+    _inline '  line-height: 30px;'.
+    _inline '  padding: 0 12px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
+    _inline '.nav-container:after { clear: both; display: block; content: ""; } '.
+    _inline ''.
+    _inline '/* submenues align to left or right border of the active item'.
+    _inline '   depending on .float-right modifier */'.
+    _inline '.nav-container ul li'.
+    _inline '{'.
+    _inline '  position: relative;'.
+    _inline '  float: left;'.
+    _inline '  margin: 0;'.
+    _inline '  padding: 0;'.
+    _inline '}'.
+    _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
+    _inline ''.
+    _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
+    _inline '.nav-container ul li.block ul { display: block; }'.
+    _inline '.nav-container ul li:hover > ul { display: block; }'.
+    _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
+    _inline ''.
+    _inline '/* special selection style for 1st level items (see also .corner below) */'.
+    _inline '.nav-container > ul > li:hover > a { '.
+    _inline '  background-color: rgba(255, 255, 255, 0.5); '.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul'.
+    _inline '{'.
+    _inline '  display: none;'.
+    _inline '  position: absolute;'.
+    _inline '  top: 100%;'.
+    _inline '  left: 0;'.
+    _inline '  z-index: 1;'.
+    _inline '  background: #fff;'.
+    _inline '  padding: 0;'.
+    _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul li'.
+    _inline '{'.
+    _inline '  float: none;'.
+    _inline '  min-width: 160px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul a'.
+    _inline '{'.
+    _inline '  line-height: 120%;'.
+    _inline '  padding: 8px 15px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul ul'.
+    _inline '{'.
+    _inline '  top: 0;'.
+    _inline '  left: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container.float-right ul ul ul'.
+    _inline '{'.
+    _inline '  left: auto;'.
+    _inline '  right: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Minizone to extent hover area, '.
+    _inline '   aligned to the left or to the right of the selected item '.
+    _inline '   depending on .float-right modifier */'.
+    _inline '.nav-container > ul > li > div.minizone {'.
+    _inline '  display: none;'.
+    _inline '  z-index: 1;'.
+    _inline '  position: absolute;'.
+    _inline '  padding: 0px;'.
+    _inline '  width: 16px;'.
+    _inline '  height: 100%;'.
+    _inline '  bottom: 0px;'.
+    _inline '  left: 100%;'.
+    _inline '}'.
+    _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
+    _inline '.nav-container.float-right > ul > li > div.minizone {'.
+    _inline '  left: auto;'.
+    _inline '  right: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* icons - text-align strictly left - otherwise look ugly'.
+    _inline '   + bite a bit of left padding for nicer look '.
+    _inline '   + forbids item text wrapping (maybe can be done differently) */'.
+    _inline '.nav-container ul ul li a .icon {'.
+    _inline '  padding-right: 10px;'.
+    _inline '  margin-left: -3px;'.
+    _inline '}'.
+    _inline '.nav-container ul.with-icons li {'.
+    _inline '  text-align: left;'.
+    _inline '  white-space: nowrap;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Special .corner modifier - hangs menu at the top right corner'.
+    _inline '   and cancels 1st level background coloring */'.
+    _inline '.nav-container.corner {'.
+    _inline '  position: absolute;'.
+    _inline '  right: 0px;'.
+    _inline '}'.
+    _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
+    _inline ''.
+    _inline '/* Toolbar separator style */'.
+    _inline '.nav-container ul ul li.separator'.
+    _inline '{'.
+    _inline '  font-size: x-small;'.
+    _inline '  text-align: center;'.
+    _inline '  padding: 4px 0;'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  color: #bbb;'.
+    _inline '  border-bottom: 1px solid #eee;'.
+    _inline '  border-top: 1px solid #eee;'.
+    _inline '}'.
+    _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
+    _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
+    _inline ''.
+    _inline '/* News Announcement */'.
+    _inline ''.
+    _inline 'div.info-panel { '.
+    _inline '  position: absolute;'.
+    _inline '  z-index: 99;'.
+    _inline '  top: 36px;'.
+    _inline '  left: 50%;'.
+    _inline '  width: 40em;'.
+    _inline '  margin-left: -20em;'.
+    _inline '  background-color: white;'.
+    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel-fixed { '.
+    _inline '  position: fixed;'.
+    _inline '  top: 15%;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-hint {'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  font-size: small;'.
+    _inline '  padding: 8px 6px 0px;'.
+    _inline '  text-align: center;'.
+    _inline '  color: #ccc;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-title {'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  font-size: small;'.
+    _inline '  padding: 6px;'.
+    _inline '  text-align: center;'.
+    _inline '  color: #f8f8f8;'.
+    _inline '  background-color: #888;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-title a.close-btn { '.
+    _inline '  color: #d8d8d8; '.
+    _inline '  padding-left: 12px; '.
+    _inline '  padding-right: 2px;'.
+    _inline '  position: relative;'.
+    _inline '  bottom: 1px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-list {'.
+    _inline '  padding: 0.8em 0.7em 1em;'.
+    _inline '  color: #444;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel li {'.
+    _inline '  padding-left: 10px;'.
+    _inline '  list-style-type: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel h1:first-child { margin: auto; }'.
+    _inline 'div.info-panel h1 { '.
+    _inline '  font-size: inherit;'.
+    _inline '  padding: 6px 4px;'.
+    _inline '  margin: 4px auto auto;'.
+    _inline '  text-decoration: underline;'.
+    _inline '  font-weight: normal;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel .version-marker {'.
+    _inline '  color: white;'.
+    _inline '  display: inline-block;'.
+    _inline '  margin-left: 20px;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 0px 6px;'.
+    _inline '  border: #c0c0c0 1px solid;'.
+    _inline '  background-color: #ccc;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel .update {'.
+    _inline '  border: #e8ba30 1px solid;'.
+    _inline '  background-color: #f5c538;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-list td {'.
+    _inline '  padding-right: 1em'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Tooltip text */'.
+    _inline '.tooltiptext {'.
+    _inline '    line-height: 15px;'.
+    _inline '    width: 60px;'.
+    _inline '    color: #000;'.
+    _inline '    text-align: center;'.
+    _inline '    padding: 5px 0;'.
+    _inline '    border-radius: 6px;'.
+    _inline ''.
+    _inline '    /* Position the tooltip text */'.
+    _inline '    position: absolute;'.
+    _inline '    z-index: 1;'.
+    _inline '    margin-left: -60px;'.
+    _inline '    margin-top: -30px;'.
+    _inline ''.
+    _inline '    /* Fade in tooltip */'.
+    _inline '    opacity: 1;'.
+    _inline '    transition: opacity 0.3s;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.hidden {'.
+    _inline '  visibility: hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Tooltip arrow */'.
+    _inline '.tooltiptext::after {'.
+    _inline '    content: "";'.
+    _inline '    position: absolute;'.
+    _inline '    top: 100%;'.
+    _inline '    left: 50%;'.
+    _inline '    margin-left: -5px;'.
+    _inline '    border-width: 5px;'.
+    _inline '    border-style: solid;'.
+    _inline '    border-color: #555 transparent transparent transparent;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* diff-patch */'.
+    _inline '.patch-active {'.
+    _inline '  color: lightgrey !important; '.
+    _inline '}'.
+    _inline ''.
+    _inline ''.
+    _inline '/* HOTKEYS */'.
+    _inline 'ul.hotkeys {'.
+    _inline '  list-style-type: none;'.
+    _inline '  padding: 0;'.
+    _inline '  margin: 0;'.
+    _inline '  font-size: smaller;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'ul.hotkeys span.key-id {'.
+    _inline '  background: #f0f0f0;'.
+    _inline '  border: 1px solid #dcdcdc;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 1px 7px;'.
+    _inline '  width: 0.5em;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '  margin-top: 0.2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'ul.hotkeys span.key-descr {'.
+    _inline '  margin-left: 1.2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.corner-hint {'.
+    _inline '  position: fixed;'.
+    _inline '  bottom: 10px;'.
+    _inline '  right: 10px;'.
+    _inline '  color: #aaa;'.
+    _inline '  border: 1px solid #ccc;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 4px;'.
+    _inline '  font-size: smaller;'.
+    _inline '  opacity: 0.5;'.
+    _inline '  background: white;'.
+    _inline '  z-index: 99;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Commit popup */'.
+    _inline 'table.commit tr .title {'.
+    _inline '  font-weight: bold;'.
+    _inline '  vertical-align: top;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Repo overview */'.
+    _inline '.repo-overview {'.
+    _inline '  font-size: smaller;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.repo-overview tbody td {'.
+    _inline '  height: 2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.ro-detail {'.
+    _inline '  display: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Branch Overview Page */'.
+    _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
+    _inline '  overflow-y:hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.gitGraph-scrollWrapper{'.
+    _inline '  overflow-x: auto; '.
+    _inline '  height: 20px; '.
+    _inline '}'.
+    _inline ''.
+    _inline '.gitGraph-Wrapper{'.
+    _inline '  overflow-x: hidden; '.
+    _inline '}'.
+    _inline ' '.
+    _inline '.gitGraph-HTopScroller {'.
+    _inline '  width:1000px; '.
+    _inline '  height: 20px; '.
+    _inline '}'.
+    ro_asset_man->register_asset(
+      iv_url       = 'css/common.css'
+      iv_type      = 'text/css'
+      iv_mime_name = 'ZABAPGIT_CSS_COMMON'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
+****************************************************
+    _inline '/**********************************************************'.
+    _inline ' * ABAPGIT JS function library'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline '  Global variables used from outside'.
+    _inline ' **********************************************************/'.
+    _inline '/* exported setInitialFocus */'.
+    _inline '/* exported setInitialFocusWithQuerySelector */'.
+    _inline '/* exported submitFormById */'.
+    _inline '/* exported errorStub */'.
+    _inline '/* exported confirmInitialized */'.
+    _inline '/* exported perfOut */'.
+    _inline '/* exported perfLog */'.
+    _inline '/* exported perfClear */'.
+    _inline '/* exported enableArrowListNavigation */'.
+    _inline '/* exported setLinkHints */'.
+    _inline '/* exported setKeyBindings */'.
+    _inline '/* exported preparePatch */'.
+    _inline '/* exported registerStagePatch */'.
+    _inline '/* exported toggleRepoListDetail */'.
+    _inline '/* exported onDirectionChange */'.
+    _inline '/* exported onOrderByChange  */'.
+    _inline '/* exported onTagTypeChange */'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Polyfills'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/'.
+    _inline 'if (!Function.prototype.bind) {'.
+    _inline '  Function.prototype.bind = function(oThis) {'.
+    _inline '    if (typeof this !== "function") {'.
+    _inline '      throw new TypeError("Function.prototype.bind - subject is not callable");'.
+    _inline '    }'.
+    _inline ''.
+    _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
+    _inline '      fToBind = this,'.
+    _inline '      fNOP    = function() {},'.
+    _inline '      fBound  = function() {'.
+    _inline '        return fToBind.apply('.
+    _inline '          this instanceof fNOP'.
+    _inline '            ? this'.
+    _inline '            : oThis,'.
+    _inline '          aArgs.concat(Array.prototype.slice.call(arguments))'.
+    _inline '        );'.
+    _inline '      };'.
+    _inline ''.
+    _inline '    if (this.prototype) {'.
+    _inline '      fNOP.prototype = this.prototype;'.
+    _inline '    }'.
+    _inline '    fBound.prototype = new fNOP();'.
+    _inline ''.
+    _inline '    return fBound;'.
+    _inline '  };'.
+    _inline '}'.
+    _inline ''.
+    _inline '// String includes polyfill, taken from https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/String/includes'.
+    _inline 'if (!String.prototype.includes) {'.
+    _inline '  String.prototype.includes = function(search, start) {'.
+    _inline '    "use strict";'.
+    _inline '    if (typeof start !== "number") {'.
+    _inline '      start = 0;'.
+    _inline '    }'.
+    _inline ''.
+    _inline '    if (start + search.length > this.length) {'.
+    _inline '      return false;'.
+    _inline '    } else {'.
+    _inline '      return this.indexOf(search, start) !== -1;'.
+    _inline '    }'.
+    _inline '  };'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Common functions'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// Output text to the debug div'.
+    _inline 'function debugOutput(text, dstID) {'.
+    _inline '  var stdout       = document.getElementById(dstID || "debug-output");'.
+    _inline '  var wrapped      = "<p>" + text + "</p>";'.
+    _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Create hidden form and submit with sapevent'.
+    _inline 'function submitSapeventForm(params, action, method) {'.
+    _inline '  var form = document.createElement("form");'.
+    _inline '  form.setAttribute("method", method || "post");'.
+    _inline '  form.setAttribute("action", "sapevent:" + action);'.
+    _inline ''.
+    _inline '  for(var key in params) {'.
+    _inline '    var hiddenField = document.createElement("input");'.
+    _inline '    hiddenField.setAttribute("type", "hidden");'.
+    _inline '    hiddenField.setAttribute("name", key);'.
+    _inline '    hiddenField.setAttribute("value", params[key]);'.
+    _inline '    form.appendChild(hiddenField);'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  document.body.appendChild(form);'.
+    _inline '  form.submit();'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Set focus to a control'.
+    _inline 'function setInitialFocus(id) {'.
+    _inline '  document.getElementById(id).focus();'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Set focus to a element with query selector'.
+    _inline 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {'.
+    _inline '  var oSelected = document.querySelector(sSelector);'.
+    _inline ''.
+    _inline '  if (oSelected) {'.
+    _inline '    if (bFocusParent) {'.
+    _inline '      oSelected.parentElement.focus();'.
+    _inline '    } else {'.
+    _inline '      oSelected.focus();'.
+    _inline '    }'.
+    _inline '  }'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline '// Submit an existing form'.
+    _inline 'function submitFormById(id) {'.
+    _inline '  document.getElementById(id).submit();'.
+    _inline '}'.
+    _inline ''.
+    _inline '// JS error stub'.
+    _inline 'function errorStub(event) {'.
+    _inline '  var element    = event.target || event.srcElement;'.
+    _inline '  var targetName = element.id || element.name || "???";'.
+    _inline '  alert("JS Error, please log an issue (@" + targetName + ")");'.
+    _inline '}'.
+    _inline ''.
+    _inline '// confirm JS initilization'.
+    _inline 'function confirmInitialized() {'.
+    _inline '  var errorBanner = document.getElementById("js-error-banner");'.
+    _inline '  if (errorBanner) {'.
+    _inline '    errorBanner.style.display = "none";'.
+    _inline '  }'.
+    _inline '  debugOutput("js: OK"); // Final final confirmation :)'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Performance utils (for debugging)'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline 'var gPerf = [];'.
+    _inline ''.
+    _inline 'function perfOut(prefix) {'.
+    _inline '  var totals = {};'.
+    _inline '  for (var i = gPerf.length - 1; i >= 0; i--) {'.
+    _inline '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};'.
+    _inline '    totals[gPerf[i].name].time  += gPerf[i].time;'.
+    _inline '    totals[gPerf[i].name].count += 1;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var keys = Object.keys(totals);'.
+    _inline '  for (var j = keys.length - 1; j >= 0; j--) {'.
+    _inline '    console.log(prefix'.
+    _inline '      + " " + keys[j] + ": "'.
+    _inline '      + totals[keys[j]].time.toFixed(3) + "ms"'.
+    _inline '      + " (" + totals[keys[j]].count.toFixed() +")");'.
+    _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function perfLog(name, startTime) {'.
+    _inline '  gPerf.push({name: name, time: window.performance.now() - startTime});'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function perfClear() {'.
+    _inline '  gPerf = [];'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * TAG PAGE Logic'.
+    _inline ' **********************************************************/'.
+    _inline 'function onTagTypeChange(oSelectObject){'.
+    _inline '  var sValue = oSelectObject.value;'.
+    _inline '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Repo Overview Logic'.
+    _inline ' **********************************************************/'.
+    _inline 'function onOrderByChange(oSelectObject){'.
+    _inline '  var sValue = oSelectObject.value;'.
+    _inline '  submitSapeventForm({ orderBy: sValue }, "change_order_by", "post");'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function onDirectionChange(oSelectObject){'.
+    _inline '  var sValue = oSelectObject.value;'.
+    _inline '  submitSapeventForm({ direction: sValue }, "direction", "post");'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function findStyleSheetByName(name) {'.
+    _inline '  var classes = document.styleSheets[0].cssRules || document.styleSheets[0].rules;'.
+    _inline '  for (var i = 0; i < classes.length; i++) {'.
+    _inline '    if (classes[i].selectorText === name) return classes[i];'.
+    _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function toggleRepoListDetail() {'.
+    _inline '  var detailClass = findStyleSheetByName(".ro-detail");'.
+    _inline '  if (detailClass) {'.
+    _inline '    detailClass.style.display = detailClass.style.display === "none" ? "" : "none";'.
+    _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * STAGE PAGE Logic'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// Stage helper constructor'.
+    _inline 'function StageHelper(params) {'.
+    _inline '  this.pageSeed        = params.seed;'.
+    _inline '  this.formAction      = params.formAction;'.
+    _inline '  this.choiseCount     = 0;'.
+    _inline '  this.lastFilterValue = "";'.
+    _inline ''.
+    _inline '  // DOM nodes'.
+    _inline '  this.dom = {'.
+    _inline '    stageTab:     document.getElementById(params.ids.stageTab),'.
+    _inline '    commitBtn:    document.getElementById(params.ids.commitBtn),'.
+    _inline '    commitAllBtn: document.getElementById(params.ids.commitAllBtn),'.
+    _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
+    _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
+    _inline '  };'.
+    _inline ''.
+    _inline '  // Table columns (autodetection)'.
+    _inline '  this.colIndex      = this.detectColumns();'.
+    _inline '  this.filterTargets = ["name", "user", "transport"];'.
+    _inline ''.
+    _inline '  // Constants'.
+    _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
+    _inline '  this.STATUS = {'.
+    _inline '    add:    "A",'.
+    _inline '    remove: "R",'.
+    _inline '    ignore: "I",'.
+    _inline '    reset:  "?",'.
+    _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }'.
+    _inline '  };'.
+    _inline ''.
+    _inline '  this.TEMPLATES = {'.
+    _inline '    cmdReset:  "<a>reset</a>",'.
+    _inline '    cmdLocal:  "<a>add</a>",'.
+    _inline '    cmdRemote: "<a>ignore</a><a>remove</a>"'.
+    _inline '  };'.
+    _inline ''.
+    _inline '  this.setHooks();'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Hook global click listener on table, load/unload actions'.
+    _inline 'StageHelper.prototype.setHooks = function() {'.
+    _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
+    _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
+    _inline '  this.dom.objectSearch.oninput    = this.onFilter.bind(this);'.
+    _inline '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);'.
+    _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
+    _inline '  window.onload                    = this.onPageLoad.bind(this);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Detect column index'.
+    _inline 'StageHelper.prototype.detectColumns = function() {'.
+    _inline '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];'.
+    _inline '  var colIndex = {};'.
+    _inline ''.
+    _inline '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {'.
+    _inline '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  return colIndex;'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Store table state on leaving the page'.
+    _inline 'StageHelper.prototype.onPageUnload = function() {'.
+    _inline '  if (!window.sessionStorage) return;'.
+    _inline ''.
+    _inline '  var data = this.collectData();'.
+    _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Re-store table state on entering the page'.
+    _inline 'StageHelper.prototype.onPageLoad = function() {'.
+    _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));'.
+    _inline ''.
+    _inline '  this.iterateStageTab(true, function (row) {'.
+    _inline '    var status = data && data[row.cells[this.colIndex["name"]].innerText];'.
+    _inline '    this.updateRow(row, status || this.STATUS.reset);'.
+    _inline '  });'.
+    _inline ''.
+    _inline '  this.updateMenu();'.
+    _inline '  if (this.dom.objectSearch.value) {'.
+    _inline '    this.applyFilterValue(this.dom.objectSearch.value);'.
+    _inline '  }'.
+    _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Table event handler, change status'.
+    _inline 'StageHelper.prototype.onTableClick = function (event) {'.
+    _inline '  var target = event.target || event.srcElement;'.
+    _inline '  if (!target) return;'.
+    _inline ''.
+    _inline '  var td;'.
+    _inline '  if (target.tagName === "A") {'.
+    _inline '    td = target.parentNode;'.
+    _inline '  } else if (target.tagName === "TD") {'.
+    _inline '    td = target;'.
+    _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
+    _inline '      target = td.children[0];'.
+    _inline '    } else return;'.
+    _inline '  } else return;'.
+    _inline ''.
+    _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
+    _inline ''.
+    _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
+    _inline '  var targetRow = td.parentNode;'.
+    _inline ''.
+    _inline '  if (td.tagName === "TD") {'.
+    _inline '    this.updateRow(targetRow, status);'.
+    _inline '  } else { // TH'.
+    _inline '    this.iterateStageTab(true, function (row) {'.
+    _inline '      if (row.style.display !== "none"            // Not filtered out'.
+    _inline '        && row.className === targetRow.className  // Same context as header'.
+    _inline '      ) {'.
+    _inline '        this.updateRow(row, status);'.
+    _inline '      }'.
+    _inline '    });'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  this.updateMenu();'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Search object'.
+    _inline 'StageHelper.prototype.onFilter = function (e) {'.
+    _inline '  if ( // Enter hit or clear, IE SUCKS !'.
+    _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
+    _inline '    || e.type === "keypress" && e.which === 13 ) {'.
+    _inline ''.
+    _inline '    this.applyFilterValue(e.target.value);'.
+    _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {'.
+    _inline ''.
+    _inline '  this.lastFilterValue = sFilterValue;'.
+    _inline '  this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline '// Apply filter to a single stage line - hide or show'.
+    _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
+    _inline '  // Collect data cells'.
+    _inline '  var targets = this.filterTargets.map(function(attr) {'.
+    _inline '    var elem = row.cells[this.colIndex[attr]];'.
+    _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
+    _inline '    return {'.
+    _inline '      elem:      elem,'.
+    _inline '      plainText: elem.innerText, // without tags'.
+    _inline '      curHtml:   elem.innerHTML'.
+    _inline '    };'.
+    _inline '  }, this);'.
+    _inline ''.
+    _inline '  var isVisible = false;'.
+    _inline ''.
+    _inline '  // Apply filter to cells, mark filtered text'.
+    _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
+    _inline '    var target = targets[i];'.
+    _inline '    target.newHtml = (filter)'.
+    _inline '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")'.
+    _inline '      : target.plainText;'.
+    _inline '    target.isChanged = target.newHtml !== target.curHtml;'.
+    _inline '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // Update DOM'.
+    _inline '  row.style.display = isVisible ? "" : "none";'.
+    _inline '  for (var j = targets.length - 1; j >= 0; j--) {'.
+    _inline '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Get how status should affect object counter'.
+    _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
+    _inline '  if (typeof status !== "string"'.
+    _inline '    || status.length !== 1'.
+    _inline '    || this.STATUS.isValid(status) ) {'.
+    _inline '    alert("Unknown status");'.
+    _inline '  } else {'.
+    _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Update table line'.
+    _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
+    _inline '  var oldStatus = row.cells[this.colIndex["status"]].innerText;'.
+    _inline ''.
+    _inline '  if (oldStatus !== newStatus) {'.
+    _inline '    this.updateRowStatus(row, newStatus);'.
+    _inline '    this.updateRowCommand(row, newStatus);'.
+    _inline '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {'.
+    _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Update Status cell (render set of commands)'.
+    _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
+    _inline '  row.cells[this.colIndex["status"]].innerText = status;'.
+    _inline '  if (status === this.STATUS.reset) {'.
+    _inline '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);'.
+    _inline '  } else {'.
+    _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Update Command cell (render set of commands)'.
+    _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
+    _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
+    _inline '  if (status === this.STATUS.reset) {'.
+    _inline '    cell.innerHTML = (row.className == "local")'.
+    _inline '      ? this.TEMPLATES.cmdLocal'.
+    _inline '      : this.TEMPLATES.cmdRemote;'.
+    _inline '  } else {'.
+    _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Update menu items visibility'.
+    _inline 'StageHelper.prototype.updateMenu = function () {'.
+    _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
+    _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
+    _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Submit stage state to the server'.
+    _inline 'StageHelper.prototype.submit = function () {'.
+    _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Extract data from the table'.
+    _inline 'StageHelper.prototype.collectData = function () {'.
+    _inline '  var data  = {};'.
+    _inline '  this.iterateStageTab(false, function (row) {'.
+    _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
+    _inline '  });'.
+    _inline '  return data;'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Table iteration helper'.
+    _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
+    _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
+    _inline '  var table    = this.dom.stageTab;'.
+    _inline ''.
+    _inline '  if (changeMode) {'.
+    _inline '    var scrollOffset = window.pageYOffset;'.
+    _inline '    this.dom.stageTab.style.display = "none";'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
+    _inline '    var tbody = table.tBodies[b];'.
+    _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
+    _inline '      var args = [tbody.rows[r]].concat(restArgs);'.
+    _inline '      cb.apply(this, args); // callback'.
+    _inline '    }'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  if (changeMode) {'.
+    _inline '    this.dom.stageTab.style.display = "";'.
+    _inline '    window.scrollTo(0, scrollOffset);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Check list wrapper'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline 'function CheckListWrapper(id, cbAction) {'.
+    _inline '  this.id         = document.getElementById(id);'.
+    _inline '  this.cbAction   = cbAction;'.
+    _inline '  this.id.onclick = this.onClick.bind(this);'.
+    _inline '}'.
+    _inline ''.
+    _inline 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars'.
+    _inline '  // Get nodes'.
+    _inline '  var target = event.target || event.srcElement;'.
+    _inline '  if (!target) return;'.
+    _inline '  if (target.tagName !== "A") { target = target.parentNode } // icon clicked'.
+    _inline '  if (target.tagName !== "A") return;'.
+    _inline '  if (target.parentNode.tagName !== "LI") return;'.
+    _inline ''.
+    _inline '  var nodeA    = target;'.
+    _inline '  var nodeLi   = target.parentNode;'.
+    _inline '  var nodeIcon = target.children[0];'.
+    _inline '  if (!nodeIcon.classList.contains("octicon")) return;'.
+    _inline ''.
+    _inline '  // Node updates'.
+    _inline '  var option   = nodeA.innerText;'.
+    _inline '  var oldState = nodeLi.getAttribute("data-check");'.
+    _inline '  if (oldState === null) return; // no data-check attribute - non-checkbox'.
+    _inline '  var newState = oldState === "X" ? false : true;'.
+    _inline ''.
+    _inline '  if (newState) {'.
+    _inline '    nodeIcon.classList.remove("grey");'.
+    _inline '    nodeIcon.classList.add("blue");'.
+    _inline '    nodeLi.setAttribute("data-check", "X");'.
+    _inline '  } else {'.
+    _inline '    nodeIcon.classList.remove("blue");'.
+    _inline '    nodeIcon.classList.add("grey");'.
+    _inline '    nodeLi.setAttribute("data-check", "");'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // Action callback'.
+    _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
+    _inline '};'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Diff page logic'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// Diff helper constructor'.
+    _inline 'function DiffHelper(params) {'.
+    _inline '  this.pageSeed    = params.seed;'.
+    _inline '  this.counter     = 0;'.
+    _inline '  this.stageAction = params.stageAction;'.
+    _inline ''.
+    _inline '  // DOM nodes'.
+    _inline '  this.dom = {'.
+    _inline '    diffList:    document.getElementById(params.ids.diffList),'.
+    _inline '    stageButton: document.getElementById(params.ids.stageButton)'.
+    _inline '  };'.
+    _inline ''.
+    _inline '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");'.
+    _inline '  if (!this.repoKey) return; // Unexpected'.
+    _inline ''.
+    _inline '  // Checklist wrapper'.
+    _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
+    _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
+    _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // Hijack stage command'.
+    _inline '  if (this.dom.stageButton) {'.
+    _inline '    this.dom.stageButton.href    = "#";'.
+    _inline '    this.dom.stageButton.onclick = this.onStage.bind(this);'.
+    _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Action on filter click'.
+    _inline 'DiffHelper.prototype.onFilter = function(attr, target, state) {'.
+    _inline '  this.applyFilter(attr, target, state);'.
+    _inline '  this.highlightButton(state);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Hide/show diff based on params'.
+    _inline 'DiffHelper.prototype.applyFilter = function (attr, target, state) {'.
+    _inline '  this.iterateDiffList(function(div) {'.
+    _inline '    if (div.getAttribute("data-"+attr) === target) {'.
+    _inline '      div.style.display = state ? "" : "none";'.
+    _inline '    }'.
+    _inline '  });'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Action on stage -> save visible diffs as state for stage page'.
+    _inline 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars'.
+    _inline '  if (window.sessionStorage) {'.
+    _inline '    var data = this.buildStageCache();'.
+    _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
+    _inline '  }'.
+    _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
+    _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Collect visible diffs'.
+    _inline 'DiffHelper.prototype.buildStageCache = function () {'.
+    _inline '  var list = {};'.
+    _inline '  this.iterateDiffList(function(div) {'.
+    _inline '    var filename = div.getAttribute("data-file");'.
+    _inline '    if (!div.style.display && filename) { // No display override - visible !!'.
+    _inline '      list[filename] = "A"; // Add'.
+    _inline '    }'.
+    _inline '  });'.
+    _inline '  return list;'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Table iterator'.
+    _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
+    _inline '  var restArgs = Array.prototype.slice.call(arguments, 1);'.
+    _inline '  var diffList = this.dom.diffList;'.
+    _inline ''.
+    _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
+    _inline '    var div = diffList.children[i];'.
+    _inline '    if (div.className !== "diff") continue;'.
+    _inline '    var args = [div].concat(restArgs);'.
+    _inline '    cb.apply(this, args); // callback'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Highlight Filter button if filter is activate'.
+    _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
+    _inline '  this.counter += state ? -1 : 1;'.
+    _inline '  if (this.counter > 0) {'.
+    _inline '    this.dom.filterButton.classList.add("bgorange");'.
+    _inline '  } else {'.
+    _inline '    this.dom.filterButton.classList.remove("bgorange");'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Other functions'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// News announcement'.
+    _inline 'function toggleDisplay(divId) {'.
+    _inline '  var div = document.getElementById(divId);'.
+    _inline '  if (div) div.style.display = (div.style.display) ? "" : "none";'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function KeyNavigation() {'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onkeydown = function(oEvent) {'.
+    _inline ''.
+    _inline '  if (oEvent.defaultPrevented) {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
+    _inline '  if (oEvent.key === "ENTER" || oEvent.key === "") {'.
+    _inline '    this.onEnterOrSpace();'.
+    _inline '  } else if (/Down$/.test(oEvent.key)) {'.
+    _inline '    this.onArrowDown(oEvent);'.
+    _inline '  } else if (/Up$/.test(oEvent.key)) {'.
+    _inline '    this.onArrowUp(oEvent);'.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.getLiSelected = function() {'.
+    _inline '  return document.querySelector("li .selected");'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.getActiveElement = function () {'.
+    _inline '  return document.activeElement;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.getActiveElementParent = function () {'.
+    _inline '  return this.getActiveElement().parentElement;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onEnterOrSpace = function () {'.
+    _inline ''.
+    _inline '  // Enter or space clicks the selected link'.
+    _inline ''.
+    _inline '  var liSelected = this.getLiSelected();'.
+    _inline ''.
+    _inline '  if (liSelected) {'.
+    _inline '    liSelected.firstElementChild.click();'.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onArrowDown = function (oEvent) {'.
+    _inline ''.
+    _inline '  var'.
+    _inline '    liNext,'.
+    _inline '    liSelected = this.getLiSelected(),'.
+    _inline '    oActiveElementParent = this.getActiveElementParent();'.
+    _inline ''.
+    _inline '  if (liSelected) {'.
+    _inline ''.
+    _inline '    // we deselect the current li and select the next sibling'.
+    _inline '    liNext = oActiveElementParent.nextElementSibling;'.
+    _inline '    if (liNext) {'.
+    _inline '      liSelected.classList.toggle("selected");'.
+    _inline '      liNext.firstElementChild.focus();'.
+    _inline '      oActiveElementParent.classList.toggle("selected");'.
+    _inline '      oEvent.preventDefault();'.
+    _inline '    }'.
+    _inline ''.
+    _inline '  } else {'.
+    _inline ''.
+    _inline '    // we don''t have any li selected, we have lookup where to start...'.
+    _inline '    // the right element should have been activated in fnTooltipActivate'.
+    _inline '    liNext = this.getActiveElement().nextElementSibling;'.
+    _inline '    if (liNext) {'.
+    _inline '      liNext.classList.toggle("selected");'.
+    _inline '      liNext.firstElementChild.firstElementChild.focus();'.
+    _inline '      oEvent.preventDefault();'.
+    _inline '    }'.
+    _inline ''.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onArrowUp = function (oEvent) {'.
+    _inline ''.
+    _inline '  var'.
+    _inline '    liSelected = this.getLiSelected(),'.
+    _inline '    liPrevious = this.getActiveElementParent().previousElementSibling;'.
+    _inline ''.
+    _inline '  if (liSelected && liPrevious) {'.
+    _inline ''.
+    _inline '    liSelected.classList.toggle("selected");'.
+    _inline '    liPrevious.firstElementChild.focus();'.
+    _inline '    this.getActiveElementParent().classList.toggle("selected");'.
+    _inline '    oEvent.preventDefault();'.
+    _inline ''.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline '// this functions enables the navigation with arrows through list items (li)'.
+    _inline '// e.g. in dropdown menus'.
+    _inline 'function enableArrowListNavigation() {'.
+    _inline ''.
+    _inline '  var oKeyNavigation = new KeyNavigation();'.
+    _inline ''.
+    _inline '  document.addEventListener("keydown", oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline 'function LinkHints(sLinkHintKey, sColor){'.
+    _inline '  this.sLinkHintKey = sLinkHintKey;'.
+    _inline '  this.sColor = sColor;'.
+    _inline '  this.oTooltipMap = {};'.
+    _inline '  this.bTooltipsOn = false;'.
+    _inline '  this.sPending = "";'.
+    _inline '  this.aTooltipElements = document.querySelectorAll("a span");'.
+    _inline '}'.
+    _inline ''.
+    _inline 'LinkHints.prototype.renderTooltip = function (oTooltip, iTooltipCounter) {'.
+    _inline '  if (this.bTooltipsOn) {'.
+    _inline '    oTooltip.classList.remove("hidden");'.
+    _inline '  } else {'.
+    _inline '    oTooltip.classList.add("hidden");'.
+    _inline '  }'.
+    _inline '  oTooltip.innerHTML = iTooltipCounter;'.
+    _inline '  oTooltip.style.backgroundColor = this.sColor;'.
+    _inline '  this.oTooltipMap[iTooltipCounter] = oTooltip;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.getTooltipStartValue = function(iToolTipCount){'.
+    _inline ''.
+    _inline '  // if whe have 333 tooltips we start from 100'.
+    _inline '  return Math.pow(10,iToolTipCount.toString().length - 1);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.renderTooltips = function () {'.
+    _inline ''.
+    _inline '  // all possible links which should be accessed via tooltip have'.
+    _inline '  // sub span which is hidden by default. If we like to show the'.
+    _inline '  // tooltip we have to toggle the css class ''hidden''.'.
+    _inline '  //'.
+    _inline '  // We use numeric values for the tooltip label. Maybe we can'.
+    _inline '  // support also alphanumeric chars in the future. Then we have to'.
+    _inline '  // calculate permutations and that''s work. So for the sake of simplicity'.
+    _inline '  // we stick to numeric values and just increment them.'.
+    _inline ''.
+    _inline '  var'.
+    _inline '    iTooltipCounter = this.getTooltipStartValue(this.aTooltipElements.length);'.
+    _inline ''.
+    _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
+    _inline '    iTooltipCounter += 1;'.
+    _inline '    this.renderTooltip(oTooltip, iTooltipCounter);'.
+    _inline '  }.bind(this));'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.toggleAllTooltips = function () {'.
+    _inline ''.
+    _inline '  this.sPending = "";'.
+    _inline '  this.bTooltipsOn = !this.bTooltipsOn;'.
+    _inline '  this.renderTooltips();'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.disableTooltips = function(){'.
+    _inline '  this.sPending = "";'.
+    _inline '  this.bTooltipsOn = false;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.removeAllTooltips = function () {'.
+    _inline ''.
+    _inline '  this.disableTooltips();'.
+    _inline ''.
+    _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
+    _inline '    oTooltip.classList.add("hidden");'.
+    _inline '  });'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.filterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
+    _inline ''.
+    _inline '  Object'.
+    _inline '    .keys(this.oTooltipMap)'.
+    _inline '    .forEach(function (sKey) {'.
+    _inline ''.
+    _inline '      // we try to partially match, but only from the beginning!'.
+    _inline '      var regex = new RegExp("^" + this.sPending);'.
+    _inline '      var oTooltip = this.oTooltipMap[sKey];'.
+    _inline ''.
+    _inline '      if (regex.test(sKey)) {'.
+    _inline '        // we have a partial match, grey out the matched part'.
+    _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + "</div>");'.
+    _inline '      } else {'.
+    _inline '        // and hide the not matched tooltips'.
+    _inline '        oTooltip.classList.add("hidden");'.
+    _inline '      }'.
+    _inline ''.
+    _inline '    }.bind(this));'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.activateDropDownMenu = function (oTooltip) {'.
+    _inline '  // to enable link hint navigation for drop down menu, we must expand'.
+    _inline '  // like if they were hovered'.
+    _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
+    _inline '};'.
+    _inline ''.
+    _inline ''.
+    _inline 'LinkHints.prototype.tooltipActivate = function (oTooltip) {'.
+    _inline ''.
+    _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
+    _inline '  // and remove all tooltips'.
+    _inline '  this.removeAllTooltips();'.
+    _inline '  oTooltip.parentElement.click();'.
+    _inline ''.
+    _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
+    _inline '  this.activateDropDownMenu(oTooltip);'.
+    _inline '  oTooltip.parentElement.focus();'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.onkeypress = function(oEvent){'.
+    _inline ''.
+    _inline '  if (oEvent.defaultPrevented) {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
+    _inline ''.
+    _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
+    _inline '  // Maybe we must add other types here in the future'.
+    _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
+    _inline ''.
+    _inline '    this.toggleAllTooltips();'.
+    _inline ''.
+    _inline '  } else if (this.bTooltipsOn === true) {'.
+    _inline ''.
+    _inline '    // the user tries to reach a tooltip'.
+    _inline '    this.sPending += oEvent.key;'.
+    _inline '    var oTooltip = this.oTooltipMap[this.sPending];'.
+    _inline ''.
+    _inline '    if (oTooltip) {'.
+    _inline '      // we are there, we have a fully specified tooltip. Let''s activate it'.
+    _inline '      this.tooltipActivate(oTooltip);'.
+    _inline '    } else {'.
+    _inline '      // we are not there yet, but let''s filter the link so that only'.
+    _inline '      // the partially matched are shown'.
+    _inline '      this.filterTooltips(this.sPending);'.
+    _inline '      this.disableTooltipsIfNoTooltipIsVisible();'.
+    _inline '    }'.
+    _inline ''.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.disableTooltipsIfNoTooltipIsVisible = function(){'.
+    _inline ''.
+    _inline '  if (!this.isAnyTooltipVisible()) {'.
+    _inline '    this.disableTooltips();'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'LinkHints.prototype.isAnyTooltipVisible = function(){'.
+    _inline ''.
+    _inline '  return (Object'.
+    _inline '    .keys(this.oTooltipMap)'.
+    _inline '    .filter(function (key) {'.
+    _inline '      return !this.oTooltipMap[key].classList.contains("hidden");'.
+    _inline '    }.bind(this)).length > 0);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline '// Vimium like link hints'.
+    _inline 'function setLinkHints(sLinkHintKey, sColor) {'.
+    _inline ''.
+    _inline '  if (!sLinkHintKey || !sColor) {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var oLinkHint = new LinkHints(sLinkHintKey, sColor);'.
+    _inline ''.
+    _inline '  document.addEventListener("keypress", oLinkHint.onkeypress.bind(oLinkHint));'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline 'function Hotkeys(oKeyMap){'.
+    _inline ''.
+    _inline '  this.oKeyMap = oKeyMap || {};'.
+    _inline ''.
+    _inline '  // these are the hotkeys provided by the backend'.
+    _inline '  Object.keys(this.oKeyMap).forEach(function(sKey){'.
+    _inline ''.
+    _inline '    var action = this.oKeyMap[sKey];'.
+    _inline ''.
+    _inline '    // We replace the actions with callback functions to unify'.
+    _inline '    // the hotkey execution'.
+    _inline '    this.oKeyMap[sKey] = function(oEvent) {'.
+    _inline ''.
+    _inline '      // We have either a js function on this'.
+    _inline '      if (this[action]) {'.
+    _inline '        this[action].call(this);'.
+    _inline '        return;'.
+    _inline '      }'.
+    _inline ''.
+    _inline '      // Or a global function'.
+    _inline '      if (window[action]) {'.
+    _inline '        window[action].call(this);'.
+    _inline '      }'.
+    _inline ''.
+    _inline '      // Or a SAP event'.
+    _inline '      var sUiSapEvent = this.getSapEvent(action);'.
+    _inline '      if (sUiSapEvent) {'.
+    _inline '        submitSapeventForm({}, sUiSapEvent, "post");'.
+    _inline '        oEvent.preventDefault();'.
+    _inline '        return;'.
+    _inline '      }'.
+    _inline ''.
+    _inline '    };'.
+    _inline ''.
+    _inline '  }.bind(this));'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline 'Hotkeys.prototype.showHotkeys = function() {'.
+    _inline '  var elHotkeys = document.querySelector("#hotkeys");'.
+    _inline ''.
+    _inline '  if (elHotkeys) {'.
+    _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
+    _inline ''.
+    _inline '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {'.
+    _inline '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)'.
+    _inline '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {'.
+    _inline '      return oSapEvent.href.replace("sapevent:","");'.
+    _inline '    }'.
+    _inline '  };'.
+    _inline ''.
+    _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
+    _inline ''.
+    _inline '  var aFilteredAndNormalizedSapEvents ='.
+    _inline '    [].map.call(aSapEvents, function(oSapEvent){'.
+    _inline '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
+    _inline '    }).filter(function(elem){'.
+    _inline '      // remove false positives'.
+    _inline '      return (elem && !elem.includes("sapevent:"));'.
+    _inline '    });'.
+    _inline ''.
+    _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
+    _inline ''.
+    _inline '  if (oEvent.defaultPrevented) {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
+    _inline ''.
+    _inline '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var'.
+    _inline '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),'.
+    _inline '    fnHotkey = this.oKeyMap[sKey];'.
+    _inline ''.
+    _inline '  if (fnHotkey) {'.
+    _inline '    fnHotkey.call(this, oEvent);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'function setKeyBindings(oKeyMap){'.
+    _inline ''.
+    _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
+    _inline ''.
+    _inline '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));'.
+    _inline '  setTimeout(function(){'.
+    _inline '    var div = document.getElementById("hotkeys-hint");'.
+    _inline '    if (div) div.style.opacity = 0.2;'.
+    _inline '  }, 4900);'.
+    _inline '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);'.
+    _inline '}'.
+    _inline ''.
+    _inline '/*'.
+    _inline '  Patch / git add -p'.
+    _inline '  */'.
+    _inline ''.
+    _inline 'function Patch() { }'.
+    _inline ''.
+    _inline 'Patch.prototype.ID = {'.
+    _inline '  STAGE: "stage"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.ACTION = {'.
+    _inline '  PATCH_STAGE: "patch_stage"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.escape = function(sFileName){'.
+    _inline '  return sFileName'.
+    _inline '    .replace(/\./g, "\\.")'.
+    _inline '    .replace(/#/g, "\\#");'.
+    _inline '};'.
+    _inline ''.
+    _inline '/*'.
+    _inline '  We have three type of cascading links, each of them has two verbs, add and remove.'.
+    _inline '  Which means that by clicking a file or section link all corresponding line links are clicked.'.
+    _inline ''.
+    _inline '  The id of the link indicates its semantics and its membership.'.
+    _inline ''.
+    _inline '  */'.
+    _inline ''.
+    _inline '/*'.
+    _inline '  1) file links'.
+    _inline ''.
+    _inline '      example id of file link'.
+    _inline ''.
+    _inline '      patch_file_add_zcl_abapgit_user_exit.clas.abap'.
+    _inline '      \________/  ^  \_____________________________/'.
+    _inline '          |       |              |'.
+    _inline '          |       |              |____ file name'.
+    _inline '          |       |'.
+    _inline '          |     verb [add|remove]'.
+    _inline '          |'.
+    _inline '      constant prefix'.
+    _inline ''.
+    _inline '  */'.
+    _inline ''.
+    _inline 'function PatchFile(sId){'.
+    _inline '  var oRegex = new RegExp("(" + this.ID.FILE + ")_(add|remove)_(.*$)");'.
+    _inline '  var oMatch = sId.match(oRegex);'.
+    _inline '  this.id        = sId;'.
+    _inline '  this.prefix    = oMatch[1];'.
+    _inline '  this.verb      = oMatch[2];'.
+    _inline '  this.file_name = oMatch[3];'.
+    _inline '}'.
+    _inline ''.
+    _inline 'PatchFile.prototype.ID = {'.
+    _inline '  FILE:   "patch_file",'.
+    _inline '  ADD:    "patch_file_add",'.
+    _inline '  REMOVE: "patch_file_remove"'.
+    _inline '};'.
+    _inline ''.
+    _inline '/*'.
+    _inline '  2) section links within a file'.
+    _inline ''.
+    _inline '      example id of section link'.
+    _inline ''.
+    _inline '      patch_section_add_zcl_abapgit_user_exit.clas.abap_1'.
+    _inline '      \___________/  ^  \_____________________________/ ^'.
+    _inline '            |        |              |                   |'.
+    _inline '            |        |          file name               |'.
+    _inline '            |        |                                  |'.
+    _inline '            |      verb [add|remove]                    ------ section'.
+    _inline '            |'.
+    _inline '      constant prefix'.
+    _inline ''.
+    _inline '    */'.
+    _inline ''.
+    _inline 'function PatchSection(sId){'.
+    _inline '  var oRegex = new RegExp("(" + this.ID.SECTION + ")_(add|remove)_(.*)_(\\d+$)");'.
+    _inline '  var oMatch = sId.match(oRegex);'.
+    _inline '  this.id        = sId;'.
+    _inline '  this.prefix    = oMatch[1];'.
+    _inline '  this.verb      = oMatch[2];'.
+    _inline '  this.file_name = oMatch[3];'.
+    _inline '  this.section   = oMatch[4];'.
+    _inline '}'.
+    _inline ''.
+    _inline 'PatchSection.prototype.ID = {'.
+    _inline '  SECTION: "patch_section",'.
+    _inline '  ADD:     "patch_section_add",'.
+    _inline '  REMOVE:  "patch_section_remove"'.
+    _inline '};'.
+    _inline ''.
+    _inline '/*'.
+    _inline '  3) line links within a section'.
+    _inline ''.
+    _inline '      example id of line link'.
+    _inline ''.
+    _inline '      patch_line_add_zcl_abapgit_user_exit.clas.abap_1_25'.
+    _inline '      \________/  ^  \_____________________________/ ^  ^'.
+    _inline '            ^     |                ^                 |  |'.
+    _inline '            |     |                |                 |  ------- line number'.
+    _inline '            |     |             file name            |'.
+    _inline '            |     |                               section'.
+    _inline '            |   verb [add|remove]'.
+    _inline '            |'.
+    _inline '      constant prefix'.
+    _inline ''.
+    _inline '  */'.
+    _inline 'function PatchLine(sId){'.
+    _inline '  var oRegex = new RegExp("(" + this.ID.LINE + ")_(add|remove)_(.*)_(\\d+)_(\\d+$)");'.
+    _inline '  var oMatch = sId.match(oRegex);'.
+    _inline ''.
+    _inline '  this.id        = sId;'.
+    _inline '  this.prefix    = oMatch[1];'.
+    _inline '  this.verb      = oMatch[2];'.
+    _inline '  this.file_name = oMatch[3];'.
+    _inline '  this.section   = oMatch[4];'.
+    _inline '  this.line      = oMatch[5];'.
+    _inline ''.
+    _inline '  this.corresponding_verb = this.CORRESPONDING_VERBS[this.verb];'.
+    _inline '  this.elem               = document.querySelector("#" + Patch.prototype.escape(this.id));'.
+    _inline '  this.correspondingLink  = this.getCorrespodingLink();'.
+    _inline '}'.
+    _inline ''.
+    _inline 'PatchLine.prototype.ID = {'.
+    _inline '  LINE:   "patch_line",'.
+    _inline '  ADD:    "patch_line_add",'.
+    _inline '  REMOVE: "patch_line_remove"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'PatchLine.prototype.CSS_CLASS = {'.
+    _inline '  PATCH:        "patch",'.
+    _inline '  PATCH_ACTIVE: "patch-active"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'PatchLine.prototype.CORRESPONDING_VERBS = {'.
+    _inline '  add:    "remove",'.
+    _inline '  remove: "add"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'PatchLine.prototype.getCorrespodingLinkId = function(){'.
+    _inline ''.
+    _inline '  // e.g.'.
+    _inline '  //'.
+    _inline '  //   patch_line_add_z_test_git_add_p.prog.abap_3_28 => patch_line_remove_z_test_git_add_p.prog.abap_3_28'.
+    _inline '  //'.
+    _inline '  // and vice versa'.
+    _inline ''.
+    _inline '  var oRegexPatchIdPrefix = new RegExp("^" + this.ID.LINE + "_" + this.verb );'.
+    _inline '  return this.id.replace(oRegexPatchIdPrefix, this.ID.LINE + "_" + this.corresponding_verb);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'PatchLine.prototype.toggle = function(){'.
+    _inline ''.
+    _inline '  if (!this.elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
+    _inline '    this.elem.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
+    _inline '    this.correspondingLink.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'PatchLine.prototype.getCorrespodingLink = function(){'.
+    _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId();'.
+    _inline '  return document.querySelector(''[ID="'' + Patch.prototype.escape(sCorrespondingLinkId) + ''"]'');'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.preparePatch = function(){'.
+    _inline ''.
+    _inline '  this.registerClickHandlerForFiles();'.
+    _inline '  this.registerClickHandlerForSections();'.
+    _inline '  this.registerClickHandlerForLines();'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
+    _inline '  // registers the link handlers for add and remove files'.
+    _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.ADD + "'']");'.
+    _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.REMOVE + "'']");'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
+    _inline '  // registers the link handlers for add and remove sections'.
+    _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.ADD + "'']");'.
+    _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.REMOVE + "'']");'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
+    _inline '  // registers the link handlers for add and remove lines'.
+    _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.ADD + "'']");'.
+    _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.REMOVE + "'']");'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForSelector = function(sSelector, fnCallback){'.
+    _inline ''.
+    _inline '  var elAll = document.querySelectorAll(sSelector);'.
+    _inline ''.
+    _inline '  [].forEach.call(elAll, function(elem){'.
+    _inline '    elem.addEventListener("click", fnCallback.bind(this));'.
+    _inline '  }.bind(this));'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForPatchFile = function(sSelector){'.
+    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickFile);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForPatchSection = function(sSelector){'.
+    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickSection);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForPatchLine = function(sSelector) {'.
+    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickLine);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.patchLinkClickLine = function(oEvent){'.
+    _inline '  this.togglePatchForElem(oEvent.srcElement);'.
+    _inline '  oEvent.preventDefault();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.togglePatchForElem = function(elLink) {'.
+    _inline '  new PatchLine(elLink.id).toggle();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.getAllLineLinksForId = function(sId, sIdPrefix){'.
+    _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
+    _inline '  sId = sId.replace(oRegex, PatchLine.prototype.ID.LINE);'.
+    _inline '  return document.querySelectorAll("a[id^=''"+ this.escape(sId) + "'']");'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.getAllLineLinksForFile = function(oFile){'.
+    _inline '  return this.getAllLineLinksForId(oFile.id, PatchFile.prototype.ID.FILE);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.getAllLineLinksForSection = function(oSection){'.
+    _inline '  return this.getAllLineLinksForId(oSection.id, PatchSection.prototype.ID.SECTION);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.patchLinkClickFile = function(oEvent) {'.
+    _inline ''.
+    _inline '  var oFile = new PatchFile(oEvent.srcElement.id);'.
+    _inline '  var elAllLineLinksOfFile = this.getAllLineLinksForFile(oFile);'.
+    _inline ''.
+    _inline '  [].forEach.call(elAllLineLinksOfFile,function(elem){'.
+    _inline '    this.togglePatchForElem(elem);'.
+    _inline '  }.bind(this));'.
+    _inline ''.
+    _inline '  oEvent.preventDefault();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.patchLinkClickSection = function(oEvent){'.
+    _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
+    _inline '  this.clickAllLineLinksInSection(oEvent, oSection.section);'.
+    _inline '  oEvent.preventDefault();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.clickAllLineLinksInSection = function(oEvent){'.
+    _inline ''.
+    _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
+    _inline '  var elAllLineLinksOfSection = this.getAllLineLinksForSection(oSection);'.
+    _inline ''.
+    _inline '  [].forEach.call(elAllLineLinksOfSection,function(elem){'.
+    _inline '    this.togglePatchForElem(elem);'.
+    _inline '    oEvent.preventDefault();'.
+    _inline '  }.bind(this));'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerStagePatch = function registerStagePatch(){'.
+    _inline ''.
+    _inline '  var elStage = document.querySelector("#" + this.ID.STAGE);'.
+    _inline '  elStage.addEventListener("click", this.stagePatch.bind(this));'.
+    _inline ''.
+    _inline '  // for hotkeys'.
+    _inline '  window.stagePatch = function(){'.
+    _inline '    this.stagePatch();'.
+    _inline '  }.bind(this);'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.stagePatch = function() {'.
+    _inline ''.
+    _inline '  // Collect add and remove info and submit to backend'.
+    _inline ''.
+    _inline '  var aAddPatch = this.collectActiveElementsForId( PatchLine.prototype.ID.ADD );'.
+    _inline '  var aRemovePatch = this.collectActiveElementsForId( PatchLine.prototype.ID.REMOVE );'.
+    _inline ''.
+    _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.collectActiveElementsForId = function(sId){'.
+    _inline ''.
+    _inline '  var sSelector = "." + PatchLine.prototype.CSS_CLASS.PATCH + " a[id^=''" + sId + "'']";'.
+    _inline ''.
+    _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
+    _inline '    .filter(function(elem){'.
+    _inline '      return elem.classList.contains(PatchLine.prototype.CSS_CLASS.PATCH_ACTIVE);'.
+    _inline '    }).map(function(elem){'.
+    _inline '      return elem.id;'.
+    _inline '    });'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline 'function preparePatch(){'.
+    _inline '  var oPatch = new Patch();'.
+    _inline '  oPatch.preparePatch();'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function registerStagePatch(){'.
+    _inline '  var oPatch = new Patch();'.
+    _inline '  oPatch.registerStagePatch();'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Page branch overview'.
+    _inline ' *'.
+    _inline ' * Hovering a commit node in the branch overview will show'.
+    _inline ' * a popup with the commit details. Single click on a node'.
+    _inline ' * will fix the popup, so that users can select text. The'.
+    _inline ' * fixation is removed when any node is hovered or the popup'.
+    _inline ' * is closed via ''X''.'.
+    _inline ' *'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline 'function BranchOverview() {'.
+    _inline '  this.bFixed = false;'.
+    _inline '  this.elCurrentCommit = {'.
+    _inline '    style : {'.
+    _inline '      display: "none"'.
+    _inline '    }'.
+    _inline '  };'.
+    _inline '}'.
+    _inline ''.
+    _inline 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {'.
+    _inline ''.
+    _inline '  // If the popup is fixed, we just remove the fixation.'.
+    _inline '  // The popup will then be hidden by the next call of hideCommit'.
+    _inline '  if (this.bFixed) {'.
+    _inline '    this.bFixed = false;'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // We hide the previous shown commit popup'.
+    _inline '  this.elCurrentCommit.style.display = "none";'.
+    _inline ''.
+    _inline '  // Display the new commit popup if sha1 is supplied'.
+    _inline '  if (sSha1){'.
+    _inline '    this.elCurrentCommit = document.getElementById(sSha1);'.
+    _inline '    this.elCurrentCommit.style.display = "";'.
+    _inline ''.
+    _inline '    // and fix the popup so that the next hideCommit won''t hide it.'.
+    _inline '    this.bFixed = bFixPopup;'.
+    _inline ''.
+    _inline '  }'.
+    _inline ''.
+    _inline '};'.
+    _inline ''.
+    _inline '// called by onClick of commit nodes in branch overview'.
+    _inline 'BranchOverview.prototype.onCommitClick = function(commit){'.
+    _inline '  this.toggleCommit(commit.sha1, true);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Called by commit:mouseover'.
+    _inline 'BranchOverview.prototype.showCommit = function(event){'.
+    _inline '  this.toggleCommit(event.data.sha1);'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Called by commit:mouseout'.
+    _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
+    _inline '  this.toggleCommit();'.
+    _inline '};'.
+    _inline ''.
+    _inline '// Initialize Top Horizontal Scroller on GitGraph'.
+    _inline 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars'.
+    _inline ''.
+    _inline '  // Get gitGraph Element Canvas Width'.
+    _inline '  var gitGraphEl = document.getElementById("gitGraph");'.
+    _inline '  var gitGraphWidth = gitGraphEl.offsetWidth;'.
+    _inline ''.
+    _inline '  // Initialize gitGraph-HTopScroller Element width as gitGraph'.
+    _inline '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");'.
+    _inline '  HTopScrollerEl.style.width = gitGraphWidth + "px";'.
+    _inline ''.
+    _inline '}'.
+    _inline ''.
+    _inline '// Setup Top Horizontal Scroller on GitGraph event'.
+    _inline 'function GitGraphScroller() { // eslint-disable-line no-unused-vars'.
+    _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
+    _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
+    _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
+    _inline '}'.
+    ro_asset_man->register_asset(
+      iv_url       = 'js/common.js'
+      iv_type      = 'text/javascript'
+      iv_mime_name = 'ZABAPGIT_JS_COMMON'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
+****************************************************
+    _inline '@font-face {'.
+    _inline '    font-family: "ag-icons";'.
+    _inline '    font-weight: normal;'.
+    _inline '    font-style: normal;'.
+    _inline '    src: url("../font/ag-icons.woff") format("woff");'.
+    _inline '}'.
+    _inline ''.
+    _inline '.icon {'.
+    _inline '    line-height: 1;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.icon:before {'.
+    _inline '    font-family: ag-icons !important;'.
+    _inline '    font-style: normal;'.
+    _inline '    font-weight: normal !important;'.
+    _inline ''.
+    _inline '    display: inline-block;'.
+    _inline '    text-decoration: none;'.
+    _inline '    text-align: center;'.
+    _inline '    vertical-align: text-top;'.
+    _inline '    width: 1em;'.
+    _inline ''.
+    _inline '    /* For safety - reset parent styles, that can break glyph codes*/'.
+    _inline '    font-variant: normal;'.
+    _inline '    text-transform: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.icon.large { font-size: 200%; }'.
+    _inline ''.
+    _inline '.icon-arrow-circle-up:before { content: "\f101"; }'.
+    _inline '.icon-bars:before { content: "\f102"; }'.
+    _inline '.icon-bolt:before { content: "\f103"; }'.
+    _inline '.icon-box:before { content: "\f104"; }'.
+    _inline '.icon-briefcase:before { content: "\f105"; }'.
+    _inline '.icon-check:before { content: "\f106"; }'.
+    _inline '.icon-cloud-upload-alt:before { content: "\f107"; }'.
+    _inline '.icon-code-branch:before { content: "\f108"; }'.
+    _inline '.icon-cog:before { content: "\f109"; }'.
+    _inline '.icon-exclamation-circle:before { content: "\f10a"; }'.
+    _inline '.icon-exclamation-triangle:before { content: "\f10b"; }'.
+    _inline '.icon-file-alt:before { content: "\f10c"; }'.
+    _inline '.icon-file-code:before { content: "\f10d"; }'.
+    _inline '.icon-file-image:before { content: "\f10e"; }'.
+    _inline '.icon-file:before { content: "\f10f"; }'.
+    _inline '.icon-fire-alt:before { content: "\f110"; }'.
+    _inline '.icon-folder:before { content: "\f111"; }'.
+    _inline '.icon-lock:before { content: "\f112"; }'.
+    _inline '.icon-plug:before { content: "\f113"; }'.
+    _inline '.icon-sliders-h:before { content: "\f114"; }'.
+    _inline '.icon-snowflake:before { content: "\f115"; }'.
+    _inline '.icon-star:before { content: "\f116"; }'.
+    ro_asset_man->register_asset(
+      iv_url       = 'css/ag-icons.css'
+      iv_type      = 'text/css'
+      iv_mime_name = 'ZABAPGIT_ICON_FONT_CSS'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
+****************************************************
+    _inline 'd09GRgABAAAAAAzkAAsAAAAAFhwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH'.
+    _inline 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3MY21hcAAA'.
+    _inline 'AYQAAACqAAAClmGy9uBnbHlmAAACMAAAB+kAAA3cBej0JmhlYWQAAAocAAAA'.
+    _inline 'MAAAADYS4J/baGhlYQAACkwAAAAdAAAAJASAApRobXR4AAAKbAAAADcAAABc'.
+    _inline 'KET/92xvY2EAAAqkAAAAMAAAADAh7iUMbWF4cAAACtQAAAAfAAAAIAEnALpu'.
+    _inline 'YW1lAAAK9AAAASgAAAIWQeF35nBvc3QAAAwcAAAAyAAAASDY9xFneJxjYGRg'.
+    _inline 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm'.
+    _inline 'g4gCACY7BUgAeJxjYGQ8wDiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV'.
+    _inline 'BKS5pjA4fGT8KMYE4uoxMTOAVDKCOADC1wkJAHic7ZHtDcIwDAUvbSgUWspX'.
+    _inline 'I4ZgFAbiFztnAvDLYwwsnU+xnCiygQ3QB48gQ3qTULyimlq9Z9/qmWfryarX'.
+    _inline '8vlETspxzi130ZvjxYEtO8a4d2Bi5sjCiTMXrtxYKdE88I9JKd1/p6J5mjbh'.
+    _inline 'ziD3Rpuq2WjmdWO0xToY5K1B3hnk0SDvjbZbDwZ5MvpdnQ3y0SAvBvlkkM8G'.
+    _inline '+WKQrwb5ZpBXg1wM5QvE7TXiAAB4nKVWTWwkRxWu191T1T0z7vnpvxnPjD0/'.
+    _inline '6+5xO/LYnp/ejL3eHzteezHSJLKEObHSIjkyF2sRQkIBOWRBORDJWiSUC8hS'.
+    _inline 'xM8FtAdEOARhokhBAiRfl5NvHJBYc8Ic0uZV9bR/1rtEiHG76lXVq1ffe1X1'.
+    _inline 'vSISwR+cwAlJE58Qo7MIc2Ng6lCfhptgmfY8zPVugGPP3YRepwVuPQPUHAd7'.
+    _inline 'Tl16+P2HS6LYW9WT2aS+yiyWYux7zMR/lCwgS0ONpYfu+odJXU9+uM5HTPaI'.
+    _inline '4WeiiMvLAsMBfEIyZJy0EEWNr9lxG7U6rYBpO5/TzsI+0zQW3uflS2R4S2NN'.
+    _inline '3sJi/4UigdMQcSxjSBysG0HPnYI6RX8xCIza7bnA6LnQ/Lov6+k9TYcq6Klv'.
+    _inline 'TmNDZ0+YDve/mzLS2nEq+3E6n4aZdIHEvklEAsLQuyLa9aZhCqz2RANNS22G'.
+    _inline 'IW4LdyBsJ4rZ956F/3wvW0zMSc+Oyybsm2W4+34mf3CQz7zPqsdmuWweX7AL'.
+    _inline 'R8QgHpkiZMKkiNa9AY0zi42g0e0IHyrQ4EVNNLttuKUxjMlBxYB9o3KwN6gY'.
+    _inline 'WA+MikQqH+zuPuEBmdkzKhVjb3+GVzMVY4DDVYQ/XPf3xCQk8NwOHou5cQh4'.
+    _inline 'YZsMaP1XP2dsglnqzrFqocDCp8xe+xmz2TWV96nXUAz/qgozvHgbfSiTOTTd'.
+    _inline 'Q3iNOpuGug4V0PH0jQF6sgjYz9Ct2MG6Gy1qU2mUXm9WCta9L92b8nveHQ92'.
+    _inline 'GvP1/u9uI36m3U6pbFvRlW2mQiWXb17PXntl6t6UmrnXQtX6fGN6pbPDfd0x'.
+    _inline 'UQ/V0CXlFH+wi/sVkFtkjbyBuDpunWJQHR1PgfjrCkhRp8Vx2nMcu7eIcQja'.
+    _inline 'vYD/LcLEnG3SutvpGbzgDSPugd3WnVZ1FKxC5lpZd7LFcWyPF0VVdhKmkSrC'.
+    _inline 'lNUwLCiMhYcIUUeUUfU0qmCn1mrVSr5aGKUy/hS2x/xS1Mf+OBSLk5qaVEBW'.
+    _inline 'aNIZ9VV/m8/UtXA3qvEYiJrEewHP4JTcJQM8TV7PQxc8F09rBlyPe+cyvi2U'.
+    _inline 'ea6Igj0O1MEux3bGkCowEhgNGyfdgF7g2CIKLotdh7/5lPqKDDlXVhW/VE8o'.
+    _inline 'QaAk6iVfUWU3hxifH0/0xPiUHI3/HR2602p9Umw0ipKqdCdlSSo66VmFQToN'.
+    _inline 'TJlNO0VJkie7iio9r5OgXIcmhA4oXCfPjd1pDbnnBP6N/GeRCZQj7ot4kNUp'.
+    _inline '31t03omYsBtEFwpOztnvxCiV3FLppsoSMwmG5a0Eu8h83+Cjbumn7yqMKe9S'.
+    _inline 'xsT9Pf0Mg74kyURHtvEw4rYOyGfTEBiLGEz5ZStLfZWO5sNqfpSqx1qtpvkv'.
+    _inline 'WH41W3OcGtJiNpXKhr95AYCE8Ptt3HbOubOkQ25g++yOdXq4ps0aEb9GOaDj'.
+    _inline 'BjmTIka3mxPjeAM9q23kGuJW5qDKEr9IMFGkY4Ftlc3wiNPWn019Q99dV95M'.
+    _inline '6vuglvk4L74YVbz4KPw1V+Skh6oL6+ETqOrJN8P7CJUKvPxeWhgtn7TJEvky'.
+    _inline 'MtAsP6YX0xJPU8hLPFRWLmJChOs5DaOWa4t8xlzB6ajcQ2XXs2b5MY7nxrZ+'.
+    _inline 'VKtJIOVlJvVluS8xOSc/3dDRC46wapZ319cH4dE+4vuOQiHAA1wY1nwiajP5'.
+    _inline 'VRk/PvGDSkVSJUOWe1gFkoxWww0dA3NfWFs3ha/7GBkX53+EdtiwXrk6M947'.
+    _inline 'HoscsnBFRAPzyvM+s0ZXHrqcm2h3Pe6XKIL4bMHDix511g+5O6fkyFGS8qan'.
+    _inline 'JBVvBgeb5TL85BLc7Hr4VQE3PJrZLcjyZlOWm0+4YrN8ls/P8X0OtheiePmK'.
+    _inline 'MVf9Aas8qaNEmetF2SLKFZ4rUzyT3Q5SkBMgKVFYHiv5r659ZWHrW1sLtdJY'.
+    _inline 'rz51/Qv5TPNBn1IzD38pV/vd5f3e4vYifqUNfzr8U+G166Xx4sy3l1JaczPO'.
+    _inline 'Vbgq5tsSfx1cdonfDhkPmIMOweFBoI38MD7K3IsfYMensBto8WXAIjyGanCB'.
+    _inline 'ew+wKpIat93tDHPg8P7FK2Du5mxqwV5hcuWNlcmCWIPH6K09f8GH6urkyiR+'.
+    _inline 'q2XzgA9hsTrm+2Nne8LvOyMN/l6ITFXAqcV3XGSzdpcTeDtazxNZrgJAjFFj'.
+    _inline 'JhSPqexacCtYy6L4L+yEnZ0RwxjZyWqsyrRqfzP14EFqs18VzWw0hlx3Onyr'.
+    _inline 'NDC7fA25rnb5XTJcPaKZoa/e+dulFkfhTKd9ReeqnaEOHIdPBJoBRz8QIlyQ'.
+    _inline 'Q/HagcG5zqEQDy+Lu1nhfOTXubj/P3XzLTgN8X3xMe7DL3mWFeTFU6zHUyan'.
+    _inline 'oxac9QW8hWQldYOYl8789WLGsyJdTmBeTGyCznhSdtjVPjakPsliMWNefeZ3'.
+    _inline 'I12OZIgLfuvVKZMUKUUHq6sDmkKR0bqHrw9VHkk0k3gNM9hrrfYTiVRiRCmi'.
+    _inline '11QropRWlP5dG9I0w6ikeXQEZ8j0v5vTpMicfbevKJfMJVKKMr8qzKEBNJfG'.
+    _inline 'F4T8Y0eTUgwXANv3LT6ZpSTNUdJUR5NOY7jA6/7GAr4IEdHoNN+X6aIAm5jf'.
+    _inline '8F+P4LC6g+B0BBlblCzft+H/t5gWV5CQ08+kVzDvc17k+8b3horNsnm4cffd'.
+    _inline 'ljQNFOTbj0cyoG0XpZFC6p13UoURqbitQWbk8W3qOPCPR5ZkFrStx2mL0uVl'.
+    _inline 'Sq304y2tYIL9KK3y5/V/ADtO5qcAAAB4nGNgZGBgAOKLKRHJ8fw2Xxm4mRhA'.
+    _inline '4MbC9fkw+v/f/3+ZGpmYgVwOBrA0AGLTDVd4nGNgZGBgYgABpob/f///YWpk'.
+    _inline 'YGRABeIAcFcFGAAAAHicTYzBCQAwCAOjkzmao7lYm6ZSio+D5CABABdWIrj9'.
+    _inline '9Sblkvw9uKzdoMY+byat9BPAAaAvEVQAAAAAAABCAIYAsADcARgBPgGIAgQC'.
+    _inline 'gAK8AvwDVAPaBCoEWgSUBMIE9AUyBbgGuAbueJxjYGRgYBBnWMfAxgACTEDM'.
+    _inline 'BYQMDP/BfAYAHD8B4gB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNm'.
+    _inline 'HYTghKAkjhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1'.
+    _inline 'cM3un5uke+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/h'.
+    _inline 'FvlTuI1HfAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5q'.
+    _inline 'rkttI6fXanVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANk'.
+    _inline 'iGFQosYCmmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2Qmt'.
+    _inline 'Q8I+YcagIM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3R'.
+    _inline 'UsIwFESzNEUKKogo/kQ+6uY2bTO99DJJO/D5luqDD+7TmZ0zu2ZlflKa/3PG'.
+    _inline 'CgUsSqzxhA0qbLHDM17wij0OeMMR7zjhA58448vsKSW9OY6JJbjpaj2lbL3K'.
+    _inline 'WHi9Vz7F0DDlUHIXuD+w6FTPmijVjmTcsdbB+UQDdwVrewx3FrrQGHX4HT39'.
+    _inline 'rcYUaWglbJo4380D1QKPle1C8UJtsA+clbQo60alDsmKcm+vMrVVljgX2XVV'.
+    _inline 'HvTWCPXB5pGSMd9ld0sQ'.
+    ro_asset_man->register_asset(
+      iv_url       = 'font/ag-icons.woff'
+      iv_type      = 'font/woff'
+      iv_mime_name = 'ZABAPGIT_ICON_FONT'
+      iv_base64    = concat_lines_of( table = lt_inline ) ).
+
+    " see https://github.com/larshp/abapGit/issues/201 for source SVG
+    ro_asset_man->register_asset(
+      iv_url       = 'img/logo'
+      iv_type      = 'image/png'
+      iv_base64    =
+           'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
+        && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
+        && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
+        && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
+        && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
+        && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
+        && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
+        && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
+        && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
+        && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
+        && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
+        && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
+        && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
+        && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
+        && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
+        && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
+        && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
+        && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
+        && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
+        && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
+        && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
+        && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
+        && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
+        && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
+        && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
+        && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
+        && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
+        && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
+        && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
+        && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
+        && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
+        && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
+        && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
+        && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
+        && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
+        && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
+        && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
+        && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
+        && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
+        && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
+        && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
+        && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
+        && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
+        && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
+        && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
+        && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
+        && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
+        && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
+        && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
+        && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
+        && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
+        && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
+        && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
+        && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
+        && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
+        && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
+        && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
+        && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
+        && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
+        && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
+        && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
+        && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
+        && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
+        && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
+        && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
+        && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
+        && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
+        && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
+        && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
+        && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
+        && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
+        && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
+        && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
+        && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
+        && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
+        && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
+        && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
+        && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
+        && 'cpUAAAAASUVORK5CYII=' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -32216,100 +34925,6 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
-  METHOD get_inline_images.
-
-    DATA:
-      lv_base64 TYPE string,
-      ls_image  LIKE LINE OF rt_images.
-
-* see https://github.com/larshp/abapGit/issues/201 for source SVG
-    ls_image-url     = 'img/logo' ##NO_TEXT.
-    ls_image-type    = 'image'.
-    ls_image-subtype = 'pmg'.
-    lv_base64 =
-         'iVBORw0KGgoAAAANSUhEUgAAAKMAAAAoCAYAAACSG0qbAAAABHNCSVQICAgIfAhkiAAA'
-      && 'AAlwSFlzAAAEJQAABCUBprHeCQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9y'
-      && 'Z5vuPBoAAA8VSURBVHic7Zx7cJzVeYef31nJAtvYko1JjM3FYHlXimwZkLWyLEMcwIGQ'
-      && 'cEkDJWmTltLStGkoDCkzwBAuCemUlksDNCkhJTTTljJpZhIuBQxxAWPvyuYiW7UkG8Il'
-      && 'UByIsS1sLEu75+0fu5JXu9/etAJz0TOzM/rOec85765+37m+3yczY8w0NU3qrwv9npfa'
-      && 'Hfx02pPPd469sgk+7misYnyjpWXy5IOG7kd8ZjjNjEtr13TdOm7eTfCxwo2lUJAQASRu'
-      && '2dnRfMn4uDbBx42yxZhPiMNMCHKCsVK2GGuqqqoQUwrZTAhygrFQshjfaGmZ/M7yxQtm'
-      && 'xGL9/qDqzwLxQvYTgpygXEoS4/DQ7LE1O05atLBu1YZdE4KcYLwpupoOmCO+5Z2dXPfE'
-      && 'xk07Tm2ZroGhBwX1wAygKqiOiVX2Rw9Jam/gyH0wuGGzvTEudRYSY4HFyogghxN2n7Sw'
-      && 'IendvcCioLoOtCCXNeqohOf0oDwPq9f3Wt/77dOHlWhYzUj/BRybTnrGEnZO5wv2m0rq'
-      && 'DezJoOiqeZbzegzpk6TVPPWJTT39y5svMogF1ZcesjlQgkwYp4F+EJQXwv4E+MiLUZJa'
-      && 'F7AIcRq4hWZ2mMRhQD/oZcErXv7FScaja3rt/wpU9E/sFyLACQq57wB/XIl/gWIstn2T'
-      && 'xpHVre7ZW71p8sFDeQscSEHKu3pTBadNH2Lq61VT57iwNazLgaNSqYaUaWXLDZCJIbBo'
-      && 'g3tK2A2xHns0oMrm3CRrqdTPnAVMiUIEmLlz2XGLMxNmH7YrifFcoUIHalHj8f8p6UfA'
-      && 'O+932weStno1zghps6Q7GBFiUYRxopkeaZ2vIwLyfxtQ4vV8lbWHNScacf+T/vwqn90o'
-      && 'MZYhRADJ+bv725vmj6Q8tHWffPKUD6IgO/tsfawneRHYd97Pdg8kSyJaZiGtBY4pYPYO'
-      && 'kH84C0Cyv8tKSiK7OZ99EpYAJ2V8AhkRY5lCHGaxhaq+BLCzY/EXd5y0aOG0td1vf1AF'
-      && 'CWCw7/1u80DQEtahQvcB03MyjQfM7Hwnmxfv9dPivX5SssqOwuzPSqk71mN3ymw5ZtdK'
-      && 'dmVIdly8xx7JZ29yy0qptwrGLMRRCA6T1w93nLTo5Lq13Zv625tOMRd6DLF4v0lWmQO8'
-      && 'qPko45y7TWaHZyUnwa6M99mN2fYbuu1V4K5oxF1B4Z4UgFifrQHWFLNbvkh1QheV5DNN'
-      && 'TZMqFWIGs5zX48M95PTqGa3TZ4erzbvj8/WUErf0L2++uNyGJLn2Js1oDeuYlkbNbmlR'
-      && 'deXup2hq0qS2es2VlHMDFaOlRdXL5uuwlnodG23QTEljCkbJV3d7WHOK+dXWqHqZnZeb'
-      && 'Y1fGe3OFOArRU5GTGbSHNWdwUL8Epo1qIQ9V/bXu3HES4jCznNfjb7e1zZ8Ri/UD1MLz'
-      && 'u05s/huMx4IKGNy4+8Tj/2Pqk8++Vaji86TQqxEuNNM5rWGtSCaokSDkgd0QjbidoPvN'
-      && '+5s7t9jz5TgdbdBMvLsG2cop6FgLUdUaZk804jYKuyrWa6vzlT2+XrOqQnxd6KwQOj5R'
-      && 'hULpL9Yaxkcj7g3QT6zK397ZbdtGtbtAZ+B0U3adkt0c67E7OyI6fFDuSpktC6HGpJjU'
-      && 'GmZ3NOI2mdnVnX32eHZZ7903hGXfBG8mp3J7sd/B0DPCTgUmBf9O7lmMybk56or3Jn8f'
-      && 'oLVB7Q5dZ9Iy4OBsw2jYbUUk96fwQrzHf955iBZzsDA+aL9k1owZ20fNzaY/tfFXwK48'
-      && 'ldQkSZ5YqJXmZk15JaJfmOmfgdOAmgCzWrCvyum5aIO+Uor3AIbOx7QV2TeBMPu3vKYA'
-      && 'Sw091hbWt4PKRhu0oDqkmND1wAnk3vkOmAN2lRLa2hrWMVm5Tek2R3286YzWiK4eQltk'
-      && '9g1gMfsFMhVYKunR1obQddk+SXZqwLe8acMGe7fYb9HZk7wm3utrBmpsqiXsyClHMHK6'
-      && '0hLWoRjHBfmLbP9K3bPYjFPIFWLaQeZnlZ8H4JyFflrMwcK4wG63v3/ycZnXOzqalxE0'
-      && 'mU7x9rvvVv93oVZqBtzNGGeU7Jbp9pZGzS7ReiVQVyDfmXRda4PaA9p5mBLmWGmmSron'
-      && 'M0FytUGGgjPTAi8UIeVk9u1og5YOJ0QbNBOjIac+Y22JPgLQ1WV7Ol+w36xebYnhtGpj'
-      && 'FjBYTj3l4KY9/dx6My4d74pN/Ki/Y9HpSG5HR/Nyh/1DHtO9OM6dvWFDwbtWslOykt6U'
-      && 's5VWZbOFnQtsyMqvc56Ty3T7NeBhLGAfDZDpe5nX6V5uXpbZ43K2NGQ2V9glwLas/I62'
-      && 'hfrE8EWsJ3mFsGYs+OQqze+A1cBLgbmma4f/9AmOJGBe5vKVLYN1W6wnOWSHmdkVhexM'
-      && 'PG6yC0x2AbmjoQ3njdh4uwrSw1Htmq5bd3Y0I3FLpQ5n0GTSQ7s6Fva70RPYTPbi+Pz0'
-      && 'J7ryboRC+m5PnRfsJjVEAfp5bLNflTb52dKIBj36RWY5ZyX2WCLukvbX67ZYHFLHZtGw'
-      && '+1fD/jDL8qQljWpav9m6Uw3wKYzXgUNJTxsk+0Fssw0L6x+j4dCx6eF/BEtwDBkbx7Fe'
-      && '29gWCa0yrC2rvXXO26WZfrWG3V2kji8zWbm0QUev67GX5ZgZ8A0H121hXIIZNrxou9oW'
-      && '6m4b4m/z2aTP+fsAohF3PaNHROvssZ8ElRs5DnyPBAkovxDFF4oJESDeY9tJD4Ur5umg'
-      && 'PSFm1Uy23Zk2SaM7e43p5Y4uxUMzu2f4H56+tuZmff2gfTqHrGEy5DkW6Abo7LH7gfsB'
-      && '2uo1LQGzBmoYFSwg57vNcjqqo4F1JXh2S7Zfx83TZZNqdD6MXkQkU369jONgcmfxe83M'
-      && 'B7XQEdEhg1B0HzDk2ZHpy3vBqLPpMQhyi/f2AIA3WyPZG6KkeVpKiE925awEi7H6JRsA'
-      && 'cqJDfIi9oayfW8ZB5dY/TFeX7YlGQg+RmgJkcnSQfWyr9QP92enmGcgeNCvx67mXbGdb'
-      && 'xD1hjI5AklJ+ydgTUGz6iiZNXd09+gYGGIRlQgXn6wDesZYSRFsJOYES5QjSw7fqnu7q'
-      && 'Bqh7uqu7f3nzdw3uKFJszEIcpqVRs12SRuAYiTrJ1YXMzSGgS6iQnHmWyQWe70pySz/F'
-      && 'MZagMWnMlaiTuTqTTih7s7IIHm1T1ncVI37l3BAAA4McAYF7iAvG17uxExi1U6Igd9XN'
-      && 'Dj+UmZA8qPrf3MDQbeSPIN8Ldub0JzeWLcT2I3Swn8JFhr4VQnMze5uKnv0ugOHfUXa3'
-      && 'ZhySedkR0eGDuMtbw/rTZCI1pA9PF0yWf4e3MnJ7YKXm0pOr6H03QRIIZeYnUj1njhid'
-      && '8aaRscKX/VGWSRLsCjnK2rcdC3njGUsQ5PSdv92yqJaMk5WBoRMpJsSnNgZufBdCkmsN'
-      && '60FgRbllK8PNzOlttT/qpz2sOUnpeWGHvq9ewcyc28/7XQCru213NOL+l6wgZ0kXAjnD'
-      && 'cazP7gXuTdu41rCyxbgr3mt/P16+F6LgUVXtmq5bC237yNsNu5YtPBZgx4kLFznZ1XlM'
-      && 'BzB/1liECBAN801yhfiq0HflbKXz1ojZ4qCylSBsbm6q/93wX0n0Q1Ir6UzWYXaZyZaF'
-      && 'qqxeZn813n4ZlhPWJWXMo00P5OTDF5c0qmm8fRlPip6bFhHk6Ti3ddfy5i3OXBemJQE2'
-      && 'A5g/c/qaTasC8krC0KdzE+3qWG/y6thmW7Vui/UkQ7w51vqDaGnRZFInPdlshNQ2C8oJ'
-      && 'h0oqaefF++zmzh5bu7bbXrBxjp88bp5qgZzNdyfWD/9t+B+TO4GW8/p+R0SHcGBxLWEF'
-      && 'jiQlHeIXEaRIPZAVRMVCTDcQCUh8LfOyaqjgCcr+YpY7NRFa2VY/egsqtNtdw8ie5gjJ'
-      && 'oUTqicjofOYA2f/YgcR03s5MMBF4wlIa7rMr5mnUyru6xl0LZAeFvDG3l83DF5199muk'
-      && 'oJO1FUMoviSi8Nh9Kg+Ru7qvUvCqPO+cMZsxbPsM4HXW9KcrEyKApTa7s9BVSyLaF3Ik'
-      && 'SbLSQros18RyInkkV2u5q+6zLaS+aCT0oJl/QVI78IWcsvDos1vtLYCE551QKNuCKW63'
-      && '+157g36cMOYI9yWhC3K+j4KDEHKxC9+t0altDaFHwL/kvVZIBJw761/uM5/MTJlU7S/Z'
-      && 'N6hTBNlhZA0OPReNuGdM6nL4jR4G5ZnRusAtKmVHwg1Slcxe11nODZJKh1fJ6kwM3dQa'
-      && 'VgOw3omjkGuL9/o/L/vFTzs7mi8pQZBpIT4f9PxE2bRFQncY9pdjKDoExDH7ebzPbgFo'
-      && 'bQjdng48KBfvzZau77ORN61FI66PsW2N7ARiZnZTZ589BtAWCV1v5J1zF+JNVdui2CbL'
-      && 'OcJsq1ejD2lVgCDL4e14r58J0N6k+cmEu0HYIssdrbxgnaGeeG9yJEg32hC6GbOix81y'
-      && 'trTsWLtiixpgQNLZ4yVEgCT++xSP0H7C0N1ZadVAh6SR3kRm2WfJO0H/XqTuQcn+IlOI'
-      && 'AFjRVaZhus3g2az0WuA0wcIi5QP3DDNIIPtakBABYltts7AO4OEi9eTFYGCksSRzwM4L'
-      && 'ECKAM1gG9tVR5UP+RkqZN5s7a0yBnwUEOSDp7GlPPp83BH0srO+1PmQrDIIen9wOdnln'
-      && 'n31G5n9ZtDLL6ck2x3uTf6DUee8rASX6vNnyWI/dmZ0R77O7LNXLBkWy9CE7Pd6XvNih'
-      && 'QkEQeZHZl9PBFtsDstebtyWFwv0B4r32UrzXn+6xDtBdwIslNL0N+JnMvravxiraFO/s'
-      && 'tm0y+xzQlcfkddCNCe/vGfP7GQH6lzdfbHAjqSCBHZK+PN5CzESSlixgnhMLzXAeXp+3'
-      && 'hWfuM0sWL10abQv1CdtHixzvmtiYPhcvSFOTJk1NEPEQkWdPUry4oc96y2o3YJiWs5Wx'
-      && 'zbYq83THHHu9Y1N2kG45tDRqdsgzxxuznKPOGbsTsN2M7d6zfXhePJ5Ici1h6mUcAcw0'
-      && '8Zo5fp35NoqKxAjwTrRhZmLSpPY9ySmPzV27dm+lTn9cKSTGA+XT+03Jq+l8HBLv2Q7c'
-      && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
-      && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
-      && 'cpUAAAAASUVORK5CYII='.
-    ls_image-content = zcl_abapgit_string_utils=>base64_to_xstring( lv_base64 ).
-    APPEND ls_image TO rt_images.
-
-  ENDMETHOD.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -32356,2623 +34971,63 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       it_bintab = lt_w3mime ).
 
   ENDMETHOD.
-  METHOD get_textlike_asset.
+  METHOD load_asset.
 
-* used by abapmerge
-    DEFINE _inline.
-      APPEND &1 TO lt_data.
-    END-OF-DEFINITION.
-
-    DATA:
-          lt_data      TYPE string_table,
-          lv_mime_name TYPE wwwdatatab-objid,
-          lv_str       TYPE string.
-
-    CASE iv_asset_url.
-      WHEN 'css/common.css'.
-        rs_asset-url     = iv_asset_url.
-        rs_asset-type    = 'text'.
-        rs_asset-subtype = 'css'.
-        lv_mime_name     = 'ZABAPGIT_CSS_COMMON'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
-****************************************************
-        _inline '/*'.
-        _inline ' * ABAPGIT COMMON CSS'.
-        _inline ' */'.
-        _inline ''.
-        _inline '/* GLOBALS */'.
-        _inline ''.
-        _inline 'body {'.
-        _inline '  font-family: Arial,Helvetica,sans-serif;'.
-        _inline '  font-size:   12pt;'.
-        _inline '  background:  #E8E8E8;'.
-        _inline '  overflow-x:  hidden;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'a, a:visited {'.
-        _inline '  color:            #4078c0;'.
-        _inline '  text-decoration:  none;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'a:hover, a:active {'.
-        _inline '  cursor: pointer;'.
-        _inline '  text-decoration: underline;'.
-        _inline '}'.
-        _inline ''.
-        _inline '#abapGitLogo {'.
-        _inline '  outline: none;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'img               { border: 0px; vertical-align: middle; }'.
-        _inline 'table             { border-collapse: collapse; }'.
-        _inline 'pre               { display: inline; }'.
-        _inline 'sup {'.
-        _inline '  vertical-align: top;'.
-        _inline '  position: relative;'.
-        _inline '  top: -0.5em;'.
-        _inline '  font-size: 75%;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'input, textarea, select {'.
-        _inline '  padding: 3px 6px;'.
-        _inline '  border: 1px solid #ddd;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'input:focus, textarea:focus {'.
-        _inline '  border: 1px solid #8cadd9;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* COLOR PALETTE */'.
-        _inline '.grey             { color: lightgrey  !important; }'.
-        _inline '.grey70           { color: #b3b3b3    !important; }'.
-        _inline '.grey80           { color: #ccc       !important; }'.
-        _inline '.bgorange         { background-color: orange; }'.
-        _inline '.darkgrey         { color: #808080    !important; }'.
-        _inline '.attention        { color: red        !important; }'.
-        _inline '.error            { color: #d41919    !important; }'.
-        _inline '.warning          { color: #efb301    !important; }'.
-        _inline '.success          { color: green       !important; }'.
-        _inline '.blue             { color: #5e8dc9    !important; }'.
-        _inline '.red              { color: red        !important; }'.
-        _inline '.white            { color: white      !important; }'.
-        _inline ''.
-        _inline '/* MODIFIERS */'.
-        _inline '.emphasis         { font-weight: bold !important; }'.
-        _inline '.crossout         { text-decoration: line-through !important; }'.
-        _inline '.right            { text-align:right; }'.
-        _inline '.center           { text-align:center; }'.
-        _inline '.paddings         { padding: 0.5em 0.5em; }'.
-        _inline '.pad-sides        { padding-left: 0.3em; padding-right: 0.3em; }'.
-        _inline '.margin-v5        { margin-top: 0.5em; margin-bottom: 0.5em; }'.
-        _inline '.indent5em        { padding-left: 0.5em; }'.
-        _inline '.pad4px           { padding: 4px; }'.
-        _inline '.w100             { width: 100%; }'.
-        _inline '.wmin             { width: 1%; }'.
-        _inline '.w40              { width: 40%; }'.
-        _inline '.float-right      { float: right; }'.
-        _inline '.pad-right        { padding-right: 6px; }'.
-        _inline '.inline           { display: inline; }'.
-        _inline ''.
-        _inline '/* PANELS */'.
-        _inline 'div.panel {'.
-        _inline '  border-radius: 3px;'.
-        _inline '}'.
-        _inline 'div.panel.success {'.
-        _inline '  color: #589a58 !important;'.
-        _inline '  background: #c5eac5;'.
-        _inline '}'.
-        _inline '/* TODO: add warning and error colors */'.
-        _inline ''.
-        _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-        _inline 'div#header {'.
-        _inline '  padding:          0.5em 0.5em;'.
-        _inline '  border-bottom:    3px double lightgrey;'.
-        _inline '}'.
-        _inline 'div#header td.logo       { width: 164px; }'.
-        _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
-        _inline 'div#header span.page_title {'.
-        _inline '  font-weight: normal;'.
-        _inline '  font-size: 18pt;'.
-        _inline '  color: #bbb;'.
-        _inline '  padding-left: 0.4em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div#toc {'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '}'.
-        _inline 'div#toc .favorites a { opacity: 0.5; }'.
-        _inline 'div#toc .favorites:hover a { opacity: 1; }'.
-        _inline ''.
-        _inline 'div#footer {'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  border-top:       3px double lightgrey;'.
-        _inline '  text-align:       center;'.
-        _inline '}'.
-        _inline 'div#footer span.version {'.
-        _inline '  display: block;'.
-        _inline '  color: grey;'.
-        _inline '  margin-top: 0.3em;'.
-        _inline '}'.
-        _inline ''.
-        _inline '#debug-output {'.
-        _inline '  text-align: right;'.
-        _inline '  padding-right: 0.5em;'.
-        _inline '  color: #ccc;'.
-        _inline '  font-style: italic;'.
-        _inline '  font-size: small;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.dummydiv {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding:          0.5em 1em;'.
-        _inline '  text-align:       center;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* ERROR LOG */'.
-        _inline ''.
-        _inline 'div.log {'.
-        _inline '  padding: 6px;'.
-        _inline '  margin: 4px;'.
-        _inline '  background-color: #fee6e6;'.
-        _inline '  border: 1px #fdcece solid;'.
-        _inline '  border-radius: 4px;'.
-        _inline '}'.
-        _inline 'div.log > span   { display:block; }'.
-        _inline 'div.log .icon { padding-right: 6px; }'.
-        _inline ''.
-        _inline '/* REPOSITORY */'.
-        _inline 'div.repo {'.
-        _inline '  margin-top:       3px;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em 1em 0.5em 1em;'.
-        _inline '  position: relative;'.
-        _inline '}'.
-        _inline '.repo_name span.name {'.
-        _inline '  font-weight: bold;'.
-        _inline '  color: #333;'.
-        _inline '  font-size: 14pt;'.
-        _inline '}'.
-        _inline '.repo_name a.url {'.
-        _inline '  color: #ccc;'.
-        _inline '  font-size: 12pt;'.
-        _inline '  margin-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_name span.url {'.
-        _inline '  color: #ccc;'.
-        _inline '  font-size: 12pt;'.
-        _inline '  margin-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_name .icon {'.
-        _inline '  padding-right: 4px;'.
-        _inline '}'.
-        _inline '.repo_attr {'.
-        _inline '  color: grey;'.
-        _inline '  font-size: 12pt;'.
-        _inline '}'.
-        _inline '.repo_attr span {'.
-        _inline '  margin-left: 0.2em;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_attr span.bg_marker {'.
-        _inline '  border: 1px solid #d2d2d2;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  background: #d8d8d8;'.
-        _inline '  color: #fff;'.
-        _inline '  font-size: 8pt;'.
-        _inline '  padding: 4px 2px 3px 2px;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch {'.
-        _inline '  padding: 2px 4px;'.
-        _inline '  border: 1px solid #d9d9d9;'.
-        _inline '  border-radius: 4px;'.
-        _inline '  background-color: #e2e2e2;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch_head {'.
-        _inline '  border-color: #d8dff3;'.
-        _inline '  background-color: #eceff9;'.
-        _inline '}'.
-        _inline '.repo_attr span.branch_branch {'.
-        _inline '  border-color: #e7d9b1;'.
-        _inline '  background-color: #f8f0d8;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* MISC AND REFACTOR */'.
-        _inline '.hidden-submit {'.
-        _inline '  border: 0 none;'.
-        _inline '  height: 0;'.
-        _inline '  width: 0;'.
-        _inline '  padding: 0;'.
-        _inline '  margin: 0;'.
-        _inline '  overflow: hidden;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* REPOSITORY TABLE*/'.
-        _inline 'div.repo_container {'.
-        _inline '  position: relative;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.repo_banner {'.
-        _inline '  margin: 0em 1.2em 1em;'.
-        _inline '  padding: 0.5em 0.5em;'.
-        _inline '  text-align: center;'.
-        _inline '  font-size: 85%;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.repo_tab {'.
-        _inline '  border: 1px solid #DDD;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  background: #fff;'.
-        _inline '  width: 100%;'.
-        _inline '}'.
-        _inline '.repo_tab td {'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '  vertical-align: middle;'.
-        _inline '  color: #333;'.
-        _inline '  padding-top: 2px;'.
-        _inline '  padding-bottom: 2px;'.
-        _inline '}'.
-        _inline '.repo_tab td.icon {'.
-        _inline '  width: 1px;'.
-        _inline '  text-align: center;'.
-        _inline '  padding-left: 8px;'.
-        _inline '  padding-right: 4px;'.
-        _inline '}'.
-        _inline '.repo_tab td.icon:not(:first-child) {'.
-        _inline '  width: 26px;'.
-        _inline '  text-align: left;'.
-        _inline '}'.
-        _inline '.repo_tab td.type {'.
-        _inline '  width: 3em;'.
-        _inline '}'.
-        _inline '.repo_tab td.object {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_tab td.files {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd {'.
-        _inline '  text-align: right;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  padding-right: 0.7em;'.
-        _inline '}'.
-        _inline '.repo_tab tr.unsupported    { color: lightgrey; }'.
-        _inline '.repo_tab tr.modified       { background: #fbf7e9; }'.
-        _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
-        _inline '.repo_tab td.current_dir    { color: #ccc; }'.
-        _inline '.repo_tab td.cmd span.state-block {'.
-        _inline '  margin-left: 1em;'.
-        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-        _inline '  font-size: x-small;'.
-        _inline '  vertical-align: 13%;'.
-        _inline '  display: inline-block;'.
-        _inline '  text-align: center;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span {'.
-        _inline '  display: inline-block;'.
-        _inline '  padding: 0px 2px;'.
-        _inline '  border: 1px solid #000;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.added {'.
-        _inline '  background-color: #69ad74;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.changed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #d4af25;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.mixed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: #69ad74;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.deleted {'.
-        _inline '  background-color: #c76861;'.
-        _inline '  border-color: #b8605a;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline '.repo_tab td.cmd span.state-block span.none {'.
-        _inline '  background-color: #e8e8e8;'.
-        _inline '  border-color: #dbdbdb;'.
-        _inline '  color: #c8c8c8;'.
-        _inline '}'.
-        _inline '.repo_tab .inactive       { color: orange; }'.
-        _inline ''.
-        _inline '/* STAGE */'.
-        _inline 'div.stage-container { width: 850px; }'.
-        _inline 'input.stage-filter { width: 18em; }'.
-        _inline ''.
-        _inline '.stage_tab {'.
-        _inline '  border: 1px solid #DDD;'.
-        _inline '  background: #fff;'.
-        _inline '  margin-top: 0.2em;'.
-        _inline '}'.
-        _inline '.stage_tab td {'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '  color: #333;'.
-        _inline '  vertical-align: middle;'.
-        _inline '  padding: 2px 0.5em;'.
-        _inline '}'.
-        _inline '.stage_tab th {'.
-        _inline '  color: #BBB;'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: normal;'.
-        _inline '  background-color: #edf2f9;'.
-        _inline '  padding: 4px 0.5em;'.
-        _inline '}'.
-        _inline '.stage_tab td.status {'.
-        _inline '  width: 2em;'.
-        _inline '  text-align: center;'.
-        _inline '  color: #ccc;'.
-        _inline '  background-color: #fafafa;'.
-        _inline '}'.
-        _inline '.stage_tab td.highlight {'.
-        _inline '  color: #444 !important;'.
-        _inline '  font-weight: bold;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.stage_tab td.cmd {  cursor: pointer; }'.
-        _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
-        _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
-        _inline '.stage_tab td.method { color: #ccc; }'.
-        _inline '.stage_tab td.user { color: #aaa; }'.
-        _inline '.stage_tab td.type { color: #aaa; }'.
-        _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-        _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-        _inline '.stage_tab mark {'.
-        _inline '  color: white;'.
-        _inline '  background-color: #79a0d2;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* COMMIT */'.
-        _inline 'div.form-container {'.
-        _inline '  background-color: #F8F8F8;'.
-        _inline '  padding: 1em 1em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form {'.
-        _inline '  display: table;'.
-        _inline '  border-spacing: 2px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form label {'.
-        _inline '  color: #BBB;'.
-        _inline '  padding-right: 1em;'.
-        _inline '  vertical-align: middle;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form select {'.
-        _inline '  padding-right: 1em;'.
-        _inline '  vertical-align: middle;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form span.sub-title {'.
-        _inline '  color: #BBB;'.
-        _inline '  font-size: smaller;'.
-        _inline '  padding-top: 8px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'form.aligned-form div.row { display: table-row; }'.
-        _inline 'form.aligned-form label { display: table-cell; }'.
-        _inline 'form.aligned-form input { display: table-cell; }'.
-        _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
-        _inline 'form.aligned-form span.cell { display: table-cell; }'.
-        _inline ''.
-        _inline '/* SETTINGS STYLES */'.
-        _inline 'div.settings_container {'.
-        _inline '  padding: 0.5em;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  color: #444;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.settings_section {'.
-        _inline '  margin-left:50px'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DIFF */'.
-        _inline 'div.diff {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.7em'.
-        _inline '}'.
-        _inline 'div.diff_head {'.
-        _inline '  padding-bottom: 0.7em;'.
-        _inline '}'.
-        _inline 'span.diff_name {'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  color: grey;'.
-        _inline '}'.
-        _inline 'span.diff_changed_by {'.
-        _inline '  color: grey;'.
-        _inline '  float: right;'.
-        _inline '}'.
-        _inline 'span.diff_changed_by span.user {'.
-        _inline '  border-radius: 3px;'.
-        _inline '  border: solid 1px #c2d4ea;'.
-        _inline '  background-color: #d9e4f2;'.
-        _inline '  padding: 1px 0.4em;'.
-        _inline '}'.
-        _inline 'span.diff_name strong {'.
-        _inline '  color: #333;'.
-        _inline '}'.
-        _inline 'span.diff_banner {'.
-        _inline '  border-style: solid;'.
-        _inline '  border-width: 1px;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding-left: 0.3em;'.
-        _inline '  padding-right: 0.3em;'.
-        _inline '}'.
-        _inline '.diff_ins {'.
-        _inline '  border-color: #abf2ab;'.
-        _inline '  background-color: #e0ffe0;'.
-        _inline '}'.
-        _inline '.diff_del {'.
-        _inline '  border-color: #ff667d;'.
-        _inline '  background-color: #ffccd4;'.
-        _inline '}'.
-        _inline '.diff_upd {'.
-        _inline '  border-color: #dada00;'.
-        _inline '  background-color: #ffffcc;'.
-        _inline '}'.
-        _inline 'div.diff_content {'.
-        _inline '  background: #fff;'.
-        _inline '  border-top: 1px solid #DDD;'.
-        _inline '  border-bottom: 1px solid #DDD;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.diff_content tbody tr td{'.
-        _inline '  width: 50%;'.
-        _inline '  vertical-align: top'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.diff_head span.state-block {'.
-        _inline '  margin-left: 0.5em;'.
-        _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-        _inline '  display: inline-block;'.
-        _inline '  text-align: center;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span {'.
-        _inline '  display: inline-block;'.
-        _inline '  padding: 0px 4px;'.
-        _inline '  border: 1px solid #000;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.added {'.
-        _inline '  background-color: #69ad74;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.changed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #d4af25;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.mixed {'.
-        _inline '  background-color: #e0c150;'.
-        _inline '  border-color: #579e64;'.
-        _inline '  color: #69ad74;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.deleted {'.
-        _inline '  background-color: #c76861;'.
-        _inline '  border-color: #b8605a;'.
-        _inline '  color: white;'.
-        _inline '}'.
-        _inline 'div.diff_head span.state-block span.none {'.
-        _inline '  background-color: #e8e8e8;'.
-        _inline '  border-color: #dbdbdb;'.
-        _inline '  color: #c8c8c8;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DIFF TABLE */'.
-        _inline 'table.diff_tab {'.
-        _inline '  font-family: Consolas, Courier, monospace;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  width: 100%;'.
-        _inline '}'.
-        _inline 'table.diff_tab td,th {'.
-        _inline '  color: #444;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  padding-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.diff_tab th {'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: normal;'.
-        _inline '  padding-top: 3px;'.
-        _inline '  padding-bottom: 3px;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.header th {'.
-        _inline '  color: #EEE;'.
-        _inline '  background-color: #BBB;'.
-        _inline '  text-align: left;'.
-        _inline '  font-weight: bold;'.
-        _inline '  padding-left: 0.5em;'.
-        _inline '  font-size: 9pt;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.nav_line {'.
-        _inline '  background-color: #edf2f9;'.
-        _inline '}'.
-        _inline 'table.diff_tab thead.nav_line th {'.
-        _inline '  color: #bbb;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.num, th.num {'.
-        _inline '  width: 1%;'.
-        _inline '  min-width: 2em;'.
-        _inline '  padding-right: 8px;'.
-        _inline '  padding-left:  8px;'.
-        _inline '  text-align: right !important;'.
-        _inline '  color: #ccc;'.
-        _inline '  border-left: 1px solid #eee;'.
-        _inline '  border-right: 1px solid #eee;'.
-        _inline '  -ms-user-select: none;'.
-        _inline '  user-select: none;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.patch, th.patch {'.
-        _inline '  width: 1%;'.
-        _inline '  min-width: 6em;'.
-        _inline '  padding-right: 8px;'.
-        _inline '  padding-left:  8px;'.
-        _inline '  text-align: right !important;'.
-        _inline '  color: #ccc;'.
-        _inline '  border-left: 1px solid #eee;'.
-        _inline '  border-right: 1px solid #eee;'.
-        _inline '  -ms-user-select: none;'.
-        _inline '  user-select: none;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.num::before {'.
-        _inline '  content: attr(line-num);'.
-        _inline '}'.
-        _inline 'table.diff_tab code {'.
-        _inline '  font-family: inherit;'.
-        _inline '  white-space: pre;'.
-        _inline '}'.
-        _inline 'table.diff_tab td.code {'.
-        _inline '  word-wrap: break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  overflow: visible;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-        _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-        _inline ''.
-        _inline '/* STYLES for Syntax Highlighting */'.
-        _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
-        _inline '.syntax-hl span.text     { color: #48ce4f; }'.
-        _inline '.syntax-hl span.comment  { color: #808080; font-style: italic; }'.
-        _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
-        _inline '.syntax-hl span.attr     { color: #b777fb; }'.
-        _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
-        _inline ''.
-        _inline '/* DEBUG INFO STYLES */'.
-        _inline 'div.debug_container {'.
-        _inline '  padding: 0.5em;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  color: #444;'.
-        _inline '  font-family: Consolas, Courier, monospace;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.debug_container p {'.
-        _inline '  margin: 0px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DB ENTRIES */'.
-        _inline 'div.db_list {'.
-        _inline '  background-color: #fff;'.
-        _inline '  padding: 0.5em;'.
-        _inline '  overflow-x: auto;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab pre {'.
-        _inline '  display: inline-block;'.
-        _inline '  overflow: hidden;'.
-        _inline '  word-wrap:break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  margin: 0px;'.
-        _inline '  width: 30em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
-        _inline 'table.db_tab th {'.
-        _inline '  color: #888888;'.
-        _inline '  text-align: left;'.
-        _inline '  padding: 0.5em;'.
-        _inline '  border-bottom: 1px #ddd solid;'.
-        _inline '}'.
-        _inline 'table.db_tab td {'.
-        _inline '  color: #333;'.
-        _inline '  padding: 4px 8px;'.
-        _inline '  vertical-align: middle;'.
-        _inline '}'.
-        _inline 'table.db_tab td.data {'.
-        _inline '  color: #888;'.
-        _inline '  font-style: italic;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.db_tab tbody tr:hover, tr:active {'.
-        _inline '  background-color: #f4f4f4;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* DB ENTRY DISPLAY */'.
-        _inline 'div.db_entry {'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.db_entry pre {'.
-        _inline '  display: block;'.
-        _inline '  font-size: 10pt;'.
-        _inline '  overflow: hidden;'.
-        _inline '  word-wrap:break-word;'.
-        _inline '  white-space: pre-wrap;'.
-        _inline '  background-color: #fcfcfc;'.
-        _inline '  border: 1px #eaeaea solid;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 0.5em;'.
-        _inline '  margin: 0.5em 0em;'.
-        _inline '  width: 60em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.db_entry table.toolbar {'.
-        _inline '  width: 50em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'table.tag {'.
-        _inline '  display: inline-block;'.
-        _inline '  border: 1px #b3c1cc solid;'.
-        _inline '  background-color: #eee;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-        _inline ''.
-        _inline '/* DB ENTRY DISPLAY */'.
-        _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
-        _inline 'table.tag {'.
-        _inline '  display: inline-block;'.
-        _inline '  border: 1px #b3c1cc solid;'.
-        _inline '  background-color: #eee;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  margin-right: 0.5em;'.
-        _inline '}'.
-        _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-        _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-        _inline ''.
-        _inline '/* TUTORIAL */'.
-        _inline ''.
-        _inline 'div.tutorial {'.
-        _inline '  margin-top:       3px;'.
-        _inline '  background-color: #f2f2f2;'.
-        _inline '  padding: 0.5em 1em 0.5em 1em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.tutorial hr { border-color: #CCC; }'.
-        _inline 'div.tutorial li { margin: 2px 0px }'.
-        _inline 'div.tutorial h1 {'.
-        _inline '  font-size: 18pt;'.
-        _inline '  color: #404040;'.
-        _inline '}'.
-        _inline 'div.tutorial h2 {'.
-        _inline '  font-size: 14pt;'.
-        _inline '  color: #404040;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* NEW MENU */'.
-        _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
-        _inline '/* container div, aligned left, '.
-        _inline '   but with .float-right modifier alignes right */'.
-        _inline '.nav-container ul'.
-        _inline '{'.
-        _inline '  list-style: none;'.
-        _inline '  position: relative;'.
-        _inline '  float: left;'.
-        _inline '  margin: 0;'.
-        _inline '  padding: 0;'.
-        _inline '}'.
-        _inline '.nav-container.float-right ul { float: right; }'.
-        _inline ''.
-        _inline '.nav-container ul a'.
-        _inline '{'.
-        _inline '  display: block;'.
-        _inline '  text-decoration: none;'.
-        _inline '  line-height: 30px;'.
-        _inline '  padding: 0 12px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
-        _inline '.nav-container:after { clear: both; display: block; content: ""; } '.
-        _inline ''.
-        _inline '/* submenues align to left or right border of the active item'.
-        _inline '   depending on .float-right modifier */'.
-        _inline '.nav-container ul li'.
-        _inline '{'.
-        _inline '  position: relative;'.
-        _inline '  float: left;'.
-        _inline '  margin: 0;'.
-        _inline '  padding: 0;'.
-        _inline '}'.
-        _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
-        _inline ''.
-        _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
-        _inline '.nav-container ul li.block ul { display: block; }'.
-        _inline '.nav-container ul li:hover > ul { display: block; }'.
-        _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
-        _inline ''.
-        _inline '/* special selection style for 1st level items (see also .corner below) */'.
-        _inline '.nav-container > ul > li:hover > a { '.
-        _inline '  background-color: rgba(255, 255, 255, 0.5); '.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul'.
-        _inline '{'.
-        _inline '  display: none;'.
-        _inline '  position: absolute;'.
-        _inline '  top: 100%;'.
-        _inline '  left: 0;'.
-        _inline '  z-index: 1;'.
-        _inline '  background: #fff;'.
-        _inline '  padding: 0;'.
-        _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul li'.
-        _inline '{'.
-        _inline '  float: none;'.
-        _inline '  min-width: 160px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul a'.
-        _inline '{'.
-        _inline '  line-height: 120%;'.
-        _inline '  padding: 8px 15px;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container ul ul ul'.
-        _inline '{'.
-        _inline '  top: 0;'.
-        _inline '  left: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.nav-container.float-right ul ul ul'.
-        _inline '{'.
-        _inline '  left: auto;'.
-        _inline '  right: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Minizone to extent hover area, '.
-        _inline '   aligned to the left or to the right of the selected item '.
-        _inline '   depending on .float-right modifier */'.
-        _inline '.nav-container > ul > li > div.minizone {'.
-        _inline '  display: none;'.
-        _inline '  z-index: 1;'.
-        _inline '  position: absolute;'.
-        _inline '  padding: 0px;'.
-        _inline '  width: 16px;'.
-        _inline '  height: 100%;'.
-        _inline '  bottom: 0px;'.
-        _inline '  left: 100%;'.
-        _inline '}'.
-        _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
-        _inline '.nav-container.float-right > ul > li > div.minizone {'.
-        _inline '  left: auto;'.
-        _inline '  right: 100%;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* icons - text-align strictly left - otherwise look ugly'.
-        _inline '   + bite a bit of left padding for nicer look '.
-        _inline '   + forbids item text wrapping (maybe can be done differently) */'.
-        _inline '.nav-container ul ul li a .icon {'.
-        _inline '  padding-right: 10px;'.
-        _inline '  margin-left: -3px;'.
-        _inline '}'.
-        _inline '.nav-container ul.with-icons li {'.
-        _inline '  text-align: left;'.
-        _inline '  white-space: nowrap;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Special .corner modifier - hangs menu at the top right corner'.
-        _inline '   and cancels 1st level background coloring */'.
-        _inline '.nav-container.corner {'.
-        _inline '  position: absolute;'.
-        _inline '  right: 0px;'.
-        _inline '}'.
-        _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
-        _inline ''.
-        _inline '/* Toolbar separator style */'.
-        _inline '.nav-container ul ul li.separator'.
-        _inline '{'.
-        _inline '  font-size: x-small;'.
-        _inline '  text-align: center;'.
-        _inline '  padding: 4px 0;'.
-        _inline '  text-transform: uppercase;'.
-        _inline '  color: #bbb;'.
-        _inline '  border-bottom: 1px solid #eee;'.
-        _inline '  border-top: 1px solid #eee;'.
-        _inline '}'.
-        _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
-        _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
-        _inline ''.
-        _inline '/* News Announcement */'.
-        _inline ''.
-        _inline 'div.info-panel { '.
-        _inline '  position: absolute;'.
-        _inline '  z-index: 99;'.
-        _inline '  top: 36px;'.
-        _inline '  left: 50%;'.
-        _inline '  width: 40em;'.
-        _inline '  margin-left: -20em;'.
-        _inline '  background-color: white;'.
-        _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel-fixed { '.
-        _inline '  position: fixed;'.
-        _inline '  top: 15%;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel div.info-hint {'.
-        _inline '  text-transform: uppercase;'.
-        _inline '  font-size: small;'.
-        _inline '  padding: 8px 6px 0px;'.
-        _inline '  text-align: center;'.
-        _inline '  color: #ccc;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel div.info-title {'.
-        _inline '  text-transform: uppercase;'.
-        _inline '  font-size: small;'.
-        _inline '  padding: 6px;'.
-        _inline '  text-align: center;'.
-        _inline '  color: #f8f8f8;'.
-        _inline '  background-color: #888;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel div.info-title a.close-btn { '.
-        _inline '  color: #d8d8d8; '.
-        _inline '  padding-left: 12px; '.
-        _inline '  padding-right: 2px;'.
-        _inline '  position: relative;'.
-        _inline '  bottom: 1px;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel div.info-list {'.
-        _inline '  padding: 0.8em 0.7em 1em;'.
-        _inline '  color: #444;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel li {'.
-        _inline '  padding-left: 10px;'.
-        _inline '  list-style-type: none;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel h1:first-child { margin: auto; }'.
-        _inline 'div.info-panel h1 { '.
-        _inline '  font-size: inherit;'.
-        _inline '  padding: 6px 4px;'.
-        _inline '  margin: 4px auto auto;'.
-        _inline '  text-decoration: underline;'.
-        _inline '  font-weight: normal;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel .version-marker {'.
-        _inline '  color: white;'.
-        _inline '  display: inline-block;'.
-        _inline '  margin-left: 20px;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 0px 6px;'.
-        _inline '  border: #c0c0c0 1px solid;'.
-        _inline '  background-color: #ccc;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel .update {'.
-        _inline '  border: #e8ba30 1px solid;'.
-        _inline '  background-color: #f5c538;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.info-panel div.info-list td {'.
-        _inline '  padding-right: 1em'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Tooltip text */'.
-        _inline '.tooltiptext {'.
-        _inline '    line-height: 15px;'.
-        _inline '    width: 60px;'.
-        _inline '    color: #000;'.
-        _inline '    text-align: center;'.
-        _inline '    padding: 5px 0;'.
-        _inline '    border-radius: 6px;'.
-        _inline ''.
-        _inline '    /* Position the tooltip text */'.
-        _inline '    position: absolute;'.
-        _inline '    z-index: 1;'.
-        _inline '    margin-left: -60px;'.
-        _inline '    margin-top: -30px;'.
-        _inline ''.
-        _inline '    /* Fade in tooltip */'.
-        _inline '    opacity: 1;'.
-        _inline '    transition: opacity 0.3s;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.hidden {'.
-        _inline '  visibility: hidden;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Tooltip arrow */'.
-        _inline '.tooltiptext::after {'.
-        _inline '    content: "";'.
-        _inline '    position: absolute;'.
-        _inline '    top: 100%;'.
-        _inline '    left: 50%;'.
-        _inline '    margin-left: -5px;'.
-        _inline '    border-width: 5px;'.
-        _inline '    border-style: solid;'.
-        _inline '    border-color: #555 transparent transparent transparent;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* diff-patch */'.
-        _inline '.patch-active {'.
-        _inline '  color: lightgrey !important; '.
-        _inline '}'.
-        _inline ''.
-        _inline ''.
-        _inline '/* HOTKEYS */'.
-        _inline 'ul.hotkeys {'.
-        _inline '  list-style-type: none;'.
-        _inline '  padding: 0;'.
-        _inline '  margin: 0;'.
-        _inline '  font-size: smaller;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'ul.hotkeys span.key-id {'.
-        _inline '  background: #f0f0f0;'.
-        _inline '  border: 1px solid #dcdcdc;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 1px 7px;'.
-        _inline '  width: 0.5em;'.
-        _inline '  display: inline-block;'.
-        _inline '  text-align: center;'.
-        _inline '  margin-top: 0.2em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'ul.hotkeys span.key-descr {'.
-        _inline '  margin-left: 1.2em;'.
-        _inline '}'.
-        _inline ''.
-        _inline 'div.corner-hint {'.
-        _inline '  position: fixed;'.
-        _inline '  bottom: 10px;'.
-        _inline '  right: 10px;'.
-        _inline '  color: #aaa;'.
-        _inline '  border: 1px solid #ccc;'.
-        _inline '  border-radius: 3px;'.
-        _inline '  padding: 4px;'.
-        _inline '  font-size: smaller;'.
-        _inline '  opacity: 0.5;'.
-        _inline '  background: white;'.
-        _inline '  z-index: 99;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Commit popup */'.
-        _inline 'table.commit tr .title {'.
-        _inline '  font-weight: bold;'.
-        _inline '  vertical-align: top;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Repo overview */'.
-        _inline '.repo-overview {'.
-        _inline '  font-size: smaller;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.repo-overview tbody td {'.
-        _inline '  height: 2em;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.ro-detail {'.
-        _inline '  display: none;'.
-        _inline '}'.
-        _inline ''.
-        _inline '/* Branch Overview Page */'.
-        _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
-        _inline '  overflow-y:hidden;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.gitGraph-scrollWrapper{'.
-        _inline '  overflow-x: auto; '.
-        _inline '  height: 20px; '.
-        _inline '}'.
-        _inline ''.
-        _inline '.gitGraph-Wrapper{'.
-        _inline '  overflow-x: hidden; '.
-        _inline '}'.
-        _inline ' '.
-        _inline '.gitGraph-HTopScroller {'.
-        _inline '  width:1000px; '.
-        _inline '  height: 20px; '.
-        _inline '}'.
-      WHEN 'js/common.js'.
-        rs_asset-url     = iv_asset_url.
-        rs_asset-type    = 'text'.
-        rs_asset-subtype = 'javascript'.
-        lv_mime_name     = 'ZABAPGIT_JS_COMMON'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
-****************************************************
-        _inline '/**********************************************************'.
-        _inline ' * ABAPGIT JS function library'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline '  Global variables used from outside'.
-        _inline ' **********************************************************/'.
-        _inline '/* exported setInitialFocus */'.
-        _inline '/* exported setInitialFocusWithQuerySelector */'.
-        _inline '/* exported submitFormById */'.
-        _inline '/* exported errorStub */'.
-        _inline '/* exported confirmInitialized */'.
-        _inline '/* exported perfOut */'.
-        _inline '/* exported perfLog */'.
-        _inline '/* exported perfClear */'.
-        _inline '/* exported enableArrowListNavigation */'.
-        _inline '/* exported setLinkHints */'.
-        _inline '/* exported setKeyBindings */'.
-        _inline '/* exported preparePatch */'.
-        _inline '/* exported registerStagePatch */'.
-        _inline '/* exported toggleRepoListDetail */'.
-        _inline '/* exported onDirectionChange */'.
-        _inline '/* exported onOrderByChange  */'.
-        _inline '/* exported onTagTypeChange */'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Polyfills'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/'.
-        _inline 'if (!Function.prototype.bind) {'.
-        _inline '  Function.prototype.bind = function(oThis) {'.
-        _inline '    if (typeof this !== "function") {'.
-        _inline '      throw new TypeError("Function.prototype.bind - subject is not callable");'.
-        _inline '    }'.
-        _inline ''.
-        _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
-        _inline '      fToBind = this,'.
-        _inline '      fNOP    = function() {},'.
-        _inline '      fBound  = function() {'.
-        _inline '        return fToBind.apply('.
-        _inline '          this instanceof fNOP'.
-        _inline '            ? this'.
-        _inline '            : oThis,'.
-        _inline '          aArgs.concat(Array.prototype.slice.call(arguments))'.
-        _inline '        );'.
-        _inline '      };'.
-        _inline ''.
-        _inline '    if (this.prototype) {'.
-        _inline '      fNOP.prototype = this.prototype;'.
-        _inline '    }'.
-        _inline '    fBound.prototype = new fNOP();'.
-        _inline ''.
-        _inline '    return fBound;'.
-        _inline '  };'.
-        _inline '}'.
-        _inline ''.
-        _inline '// String includes polyfill, taken from https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/String/includes'.
-        _inline 'if (!String.prototype.includes) {'.
-        _inline '  String.prototype.includes = function(search, start) {'.
-        _inline '    "use strict";'.
-        _inline '    if (typeof start !== "number") {'.
-        _inline '      start = 0;'.
-        _inline '    }'.
-        _inline ''.
-        _inline '    if (start + search.length > this.length) {'.
-        _inline '      return false;'.
-        _inline '    } else {'.
-        _inline '      return this.indexOf(search, start) !== -1;'.
-        _inline '    }'.
-        _inline '  };'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Common functions'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Output text to the debug div'.
-        _inline 'function debugOutput(text, dstID) {'.
-        _inline '  var stdout       = document.getElementById(dstID || "debug-output");'.
-        _inline '  var wrapped      = "<p>" + text + "</p>";'.
-        _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Create hidden form and submit with sapevent'.
-        _inline 'function submitSapeventForm(params, action, method) {'.
-        _inline '  var form = document.createElement("form");'.
-        _inline '  form.setAttribute("method", method || "post");'.
-        _inline '  form.setAttribute("action", "sapevent:" + action);'.
-        _inline ''.
-        _inline '  for(var key in params) {'.
-        _inline '    var hiddenField = document.createElement("input");'.
-        _inline '    hiddenField.setAttribute("type", "hidden");'.
-        _inline '    hiddenField.setAttribute("name", key);'.
-        _inline '    hiddenField.setAttribute("value", params[key]);'.
-        _inline '    form.appendChild(hiddenField);'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  document.body.appendChild(form);'.
-        _inline '  form.submit();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Set focus to a control'.
-        _inline 'function setInitialFocus(id) {'.
-        _inline '  document.getElementById(id).focus();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Set focus to a element with query selector'.
-        _inline 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {'.
-        _inline '  var oSelected = document.querySelector(sSelector);'.
-        _inline ''.
-        _inline '  if (oSelected) {'.
-        _inline '    if (bFocusParent) {'.
-        _inline '      oSelected.parentElement.focus();'.
-        _inline '    } else {'.
-        _inline '      oSelected.focus();'.
-        _inline '    }'.
-        _inline '  }'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline '// Submit an existing form'.
-        _inline 'function submitFormById(id) {'.
-        _inline '  document.getElementById(id).submit();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// JS error stub'.
-        _inline 'function errorStub(event) {'.
-        _inline '  var element    = event.target || event.srcElement;'.
-        _inline '  var targetName = element.id || element.name || "???";'.
-        _inline '  alert("JS Error, please log an issue (@" + targetName + ")");'.
-        _inline '}'.
-        _inline ''.
-        _inline '// confirm JS initilization'.
-        _inline 'function confirmInitialized() {'.
-        _inline '  var errorBanner = document.getElementById("js-error-banner");'.
-        _inline '  if (errorBanner) {'.
-        _inline '    errorBanner.style.display = "none";'.
-        _inline '  }'.
-        _inline '  debugOutput("js: OK"); // Final final confirmation :)'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Performance utils (for debugging)'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline 'var gPerf = [];'.
-        _inline ''.
-        _inline 'function perfOut(prefix) {'.
-        _inline '  var totals = {};'.
-        _inline '  for (var i = gPerf.length - 1; i >= 0; i--) {'.
-        _inline '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};'.
-        _inline '    totals[gPerf[i].name].time  += gPerf[i].time;'.
-        _inline '    totals[gPerf[i].name].count += 1;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var keys = Object.keys(totals);'.
-        _inline '  for (var j = keys.length - 1; j >= 0; j--) {'.
-        _inline '    console.log(prefix'.
-        _inline '      + " " + keys[j] + ": "'.
-        _inline '      + totals[keys[j]].time.toFixed(3) + "ms"'.
-        _inline '      + " (" + totals[keys[j]].count.toFixed() +")");'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function perfLog(name, startTime) {'.
-        _inline '  gPerf.push({name: name, time: window.performance.now() - startTime});'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function perfClear() {'.
-        _inline '  gPerf = [];'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * TAG PAGE Logic'.
-        _inline ' **********************************************************/'.
-        _inline 'function onTagTypeChange(oSelectObject){'.
-        _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Repo Overview Logic'.
-        _inline ' **********************************************************/'.
-        _inline 'function onOrderByChange(oSelectObject){'.
-        _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ orderBy: sValue }, "change_order_by", "post");'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function onDirectionChange(oSelectObject){'.
-        _inline '  var sValue = oSelectObject.value;'.
-        _inline '  submitSapeventForm({ direction: sValue }, "direction", "post");'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function findStyleSheetByName(name) {'.
-        _inline '  var classes = document.styleSheets[0].cssRules || document.styleSheets[0].rules;'.
-        _inline '  for (var i = 0; i < classes.length; i++) {'.
-        _inline '    if (classes[i].selectorText === name) return classes[i];'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function toggleRepoListDetail() {'.
-        _inline '  var detailClass = findStyleSheetByName(".ro-detail");'.
-        _inline '  if (detailClass) {'.
-        _inline '    detailClass.style.display = detailClass.style.display === "none" ? "" : "none";'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * STAGE PAGE Logic'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Stage helper constructor'.
-        _inline 'function StageHelper(params) {'.
-        _inline '  this.pageSeed        = params.seed;'.
-        _inline '  this.formAction      = params.formAction;'.
-        _inline '  this.choiseCount     = 0;'.
-        _inline '  this.lastFilterValue = "";'.
-        _inline ''.
-        _inline '  // DOM nodes'.
-        _inline '  this.dom = {'.
-        _inline '    stageTab:     document.getElementById(params.ids.stageTab),'.
-        _inline '    commitBtn:    document.getElementById(params.ids.commitBtn),'.
-        _inline '    commitAllBtn: document.getElementById(params.ids.commitAllBtn),'.
-        _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
-        _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  // Table columns (autodetection)'.
-        _inline '  this.colIndex      = this.detectColumns();'.
-        _inline '  this.filterTargets = ["name", "user", "transport"];'.
-        _inline ''.
-        _inline '  // Constants'.
-        _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
-        _inline '  this.STATUS = {'.
-        _inline '    add:    "A",'.
-        _inline '    remove: "R",'.
-        _inline '    ignore: "I",'.
-        _inline '    reset:  "?",'.
-        _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.TEMPLATES = {'.
-        _inline '    cmdReset:  "<a>reset</a>",'.
-        _inline '    cmdLocal:  "<a>add</a>",'.
-        _inline '    cmdRemote: "<a>ignore</a><a>remove</a>"'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.setHooks();'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Hook global click listener on table, load/unload actions'.
-        _inline 'StageHelper.prototype.setHooks = function() {'.
-        _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
-        _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
-        _inline '  this.dom.objectSearch.oninput    = this.onFilter.bind(this);'.
-        _inline '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);'.
-        _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
-        _inline '  window.onload                    = this.onPageLoad.bind(this);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Detect column index'.
-        _inline 'StageHelper.prototype.detectColumns = function() {'.
-        _inline '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];'.
-        _inline '  var colIndex = {};'.
-        _inline ''.
-        _inline '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {'.
-        _inline '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  return colIndex;'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Store table state on leaving the page'.
-        _inline 'StageHelper.prototype.onPageUnload = function() {'.
-        _inline '  if (!window.sessionStorage) return;'.
-        _inline ''.
-        _inline '  var data = this.collectData();'.
-        _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Re-store table state on entering the page'.
-        _inline 'StageHelper.prototype.onPageLoad = function() {'.
-        _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));'.
-        _inline ''.
-        _inline '  this.iterateStageTab(true, function (row) {'.
-        _inline '    var status = data && data[row.cells[this.colIndex["name"]].innerText];'.
-        _inline '    this.updateRow(row, status || this.STATUS.reset);'.
-        _inline '  });'.
-        _inline ''.
-        _inline '  this.updateMenu();'.
-        _inline '  if (this.dom.objectSearch.value) {'.
-        _inline '    this.applyFilterValue(this.dom.objectSearch.value);'.
-        _inline '  }'.
-        _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Table event handler, change status'.
-        _inline 'StageHelper.prototype.onTableClick = function (event) {'.
-        _inline '  var target = event.target || event.srcElement;'.
-        _inline '  if (!target) return;'.
-        _inline ''.
-        _inline '  var td;'.
-        _inline '  if (target.tagName === "A") {'.
-        _inline '    td = target.parentNode;'.
-        _inline '  } else if (target.tagName === "TD") {'.
-        _inline '    td = target;'.
-        _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
-        _inline '      target = td.children[0];'.
-        _inline '    } else return;'.
-        _inline '  } else return;'.
-        _inline ''.
-        _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
-        _inline ''.
-        _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
-        _inline '  var targetRow = td.parentNode;'.
-        _inline ''.
-        _inline '  if (td.tagName === "TD") {'.
-        _inline '    this.updateRow(targetRow, status);'.
-        _inline '  } else { // TH'.
-        _inline '    this.iterateStageTab(true, function (row) {'.
-        _inline '      if (row.style.display !== "none"            // Not filtered out'.
-        _inline '        && row.className === targetRow.className  // Same context as header'.
-        _inline '      ) {'.
-        _inline '        this.updateRow(row, status);'.
-        _inline '      }'.
-        _inline '    });'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  this.updateMenu();'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Search object'.
-        _inline 'StageHelper.prototype.onFilter = function (e) {'.
-        _inline '  if ( // Enter hit or clear, IE SUCKS !'.
-        _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
-        _inline '    || e.type === "keypress" && e.which === 13 ) {'.
-        _inline ''.
-        _inline '    this.applyFilterValue(e.target.value);'.
-        _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {'.
-        _inline ''.
-        _inline '  this.lastFilterValue = sFilterValue;'.
-        _inline '  this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline '// Apply filter to a single stage line - hide or show'.
-        _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
-        _inline '  // Collect data cells'.
-        _inline '  var targets = this.filterTargets.map(function(attr) {'.
-        _inline '    var elem = row.cells[this.colIndex[attr]];'.
-        _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
-        _inline '    return {'.
-        _inline '      elem:      elem,'.
-        _inline '      plainText: elem.innerText, // without tags'.
-        _inline '      curHtml:   elem.innerHTML'.
-        _inline '    };'.
-        _inline '  }, this);'.
-        _inline ''.
-        _inline '  var isVisible = false;'.
-        _inline ''.
-        _inline '  // Apply filter to cells, mark filtered text'.
-        _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
-        _inline '    var target = targets[i];'.
-        _inline '    target.newHtml = (filter)'.
-        _inline '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")'.
-        _inline '      : target.plainText;'.
-        _inline '    target.isChanged = target.newHtml !== target.curHtml;'.
-        _inline '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // Update DOM'.
-        _inline '  row.style.display = isVisible ? "" : "none";'.
-        _inline '  for (var j = targets.length - 1; j >= 0; j--) {'.
-        _inline '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Get how status should affect object counter'.
-        _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
-        _inline '  if (typeof status !== "string"'.
-        _inline '    || status.length !== 1'.
-        _inline '    || this.STATUS.isValid(status) ) {'.
-        _inline '    alert("Unknown status");'.
-        _inline '  } else {'.
-        _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Update table line'.
-        _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
-        _inline '  var oldStatus = row.cells[this.colIndex["status"]].innerText;'.
-        _inline ''.
-        _inline '  if (oldStatus !== newStatus) {'.
-        _inline '    this.updateRowStatus(row, newStatus);'.
-        _inline '    this.updateRowCommand(row, newStatus);'.
-        _inline '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {'.
-        _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Update Status cell (render set of commands)'.
-        _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
-        _inline '  row.cells[this.colIndex["status"]].innerText = status;'.
-        _inline '  if (status === this.STATUS.reset) {'.
-        _inline '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);'.
-        _inline '  } else {'.
-        _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Update Command cell (render set of commands)'.
-        _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
-        _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
-        _inline '  if (status === this.STATUS.reset) {'.
-        _inline '    cell.innerHTML = (row.className == "local")'.
-        _inline '      ? this.TEMPLATES.cmdLocal'.
-        _inline '      : this.TEMPLATES.cmdRemote;'.
-        _inline '  } else {'.
-        _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Update menu items visibility'.
-        _inline 'StageHelper.prototype.updateMenu = function () {'.
-        _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
-        _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
-        _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Submit stage state to the server'.
-        _inline 'StageHelper.prototype.submit = function () {'.
-        _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Extract data from the table'.
-        _inline 'StageHelper.prototype.collectData = function () {'.
-        _inline '  var data  = {};'.
-        _inline '  this.iterateStageTab(false, function (row) {'.
-        _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
-        _inline '  });'.
-        _inline '  return data;'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Table iteration helper'.
-        _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
-        _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
-        _inline '  var table    = this.dom.stageTab;'.
-        _inline ''.
-        _inline '  if (changeMode) {'.
-        _inline '    var scrollOffset = window.pageYOffset;'.
-        _inline '    this.dom.stageTab.style.display = "none";'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
-        _inline '    var tbody = table.tBodies[b];'.
-        _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
-        _inline '      var args = [tbody.rows[r]].concat(restArgs);'.
-        _inline '      cb.apply(this, args); // callback'.
-        _inline '    }'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  if (changeMode) {'.
-        _inline '    this.dom.stageTab.style.display = "";'.
-        _inline '    window.scrollTo(0, scrollOffset);'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Check list wrapper'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline 'function CheckListWrapper(id, cbAction) {'.
-        _inline '  this.id         = document.getElementById(id);'.
-        _inline '  this.cbAction   = cbAction;'.
-        _inline '  this.id.onclick = this.onClick.bind(this);'.
-        _inline '}'.
-        _inline ''.
-        _inline 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars'.
-        _inline '  // Get nodes'.
-        _inline '  var target = event.target || event.srcElement;'.
-        _inline '  if (!target) return;'.
-        _inline '  if (target.tagName !== "A") { target = target.parentNode } // icon clicked'.
-        _inline '  if (target.tagName !== "A") return;'.
-        _inline '  if (target.parentNode.tagName !== "LI") return;'.
-        _inline ''.
-        _inline '  var nodeA    = target;'.
-        _inline '  var nodeLi   = target.parentNode;'.
-        _inline '  var nodeIcon = target.children[0];'.
-        _inline '  if (!nodeIcon.classList.contains("octicon")) return;'.
-        _inline ''.
-        _inline '  // Node updates'.
-        _inline '  var option   = nodeA.innerText;'.
-        _inline '  var oldState = nodeLi.getAttribute("data-check");'.
-        _inline '  if (oldState === null) return; // no data-check attribute - non-checkbox'.
-        _inline '  var newState = oldState === "X" ? false : true;'.
-        _inline ''.
-        _inline '  if (newState) {'.
-        _inline '    nodeIcon.classList.remove("grey");'.
-        _inline '    nodeIcon.classList.add("blue");'.
-        _inline '    nodeLi.setAttribute("data-check", "X");'.
-        _inline '  } else {'.
-        _inline '    nodeIcon.classList.remove("blue");'.
-        _inline '    nodeIcon.classList.add("grey");'.
-        _inline '    nodeLi.setAttribute("data-check", "");'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // Action callback'.
-        _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
-        _inline '};'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Diff page logic'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// Diff helper constructor'.
-        _inline 'function DiffHelper(params) {'.
-        _inline '  this.pageSeed    = params.seed;'.
-        _inline '  this.counter     = 0;'.
-        _inline '  this.stageAction = params.stageAction;'.
-        _inline ''.
-        _inline '  // DOM nodes'.
-        _inline '  this.dom = {'.
-        _inline '    diffList:    document.getElementById(params.ids.diffList),'.
-        _inline '    stageButton: document.getElementById(params.ids.stageButton)'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");'.
-        _inline '  if (!this.repoKey) return; // Unexpected'.
-        _inline ''.
-        _inline '  // Checklist wrapper'.
-        _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
-        _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
-        _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // Hijack stage command'.
-        _inline '  if (this.dom.stageButton) {'.
-        _inline '    this.dom.stageButton.href    = "#";'.
-        _inline '    this.dom.stageButton.onclick = this.onStage.bind(this);'.
-        _inline '  }'.
-        _inline '}'.
-        _inline ''.
-        _inline '// Action on filter click'.
-        _inline 'DiffHelper.prototype.onFilter = function(attr, target, state) {'.
-        _inline '  this.applyFilter(attr, target, state);'.
-        _inline '  this.highlightButton(state);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Hide/show diff based on params'.
-        _inline 'DiffHelper.prototype.applyFilter = function (attr, target, state) {'.
-        _inline '  this.iterateDiffList(function(div) {'.
-        _inline '    if (div.getAttribute("data-"+attr) === target) {'.
-        _inline '      div.style.display = state ? "" : "none";'.
-        _inline '    }'.
-        _inline '  });'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Action on stage -> save visible diffs as state for stage page'.
-        _inline 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars'.
-        _inline '  if (window.sessionStorage) {'.
-        _inline '    var data = this.buildStageCache();'.
-        _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-        _inline '  }'.
-        _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
-        _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Collect visible diffs'.
-        _inline 'DiffHelper.prototype.buildStageCache = function () {'.
-        _inline '  var list = {};'.
-        _inline '  this.iterateDiffList(function(div) {'.
-        _inline '    var filename = div.getAttribute("data-file");'.
-        _inline '    if (!div.style.display && filename) { // No display override - visible !!'.
-        _inline '      list[filename] = "A"; // Add'.
-        _inline '    }'.
-        _inline '  });'.
-        _inline '  return list;'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Table iterator'.
-        _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
-        _inline '  var restArgs = Array.prototype.slice.call(arguments, 1);'.
-        _inline '  var diffList = this.dom.diffList;'.
-        _inline ''.
-        _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
-        _inline '    var div = diffList.children[i];'.
-        _inline '    if (div.className !== "diff") continue;'.
-        _inline '    var args = [div].concat(restArgs);'.
-        _inline '    cb.apply(this, args); // callback'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Highlight Filter button if filter is activate'.
-        _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
-        _inline '  this.counter += state ? -1 : 1;'.
-        _inline '  if (this.counter > 0) {'.
-        _inline '    this.dom.filterButton.classList.add("bgorange");'.
-        _inline '  } else {'.
-        _inline '    this.dom.filterButton.classList.remove("bgorange");'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Other functions'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline '// News announcement'.
-        _inline 'function toggleDisplay(divId) {'.
-        _inline '  var div = document.getElementById(divId);'.
-        _inline '  if (div) div.style.display = (div.style.display) ? "" : "none";'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function KeyNavigation() {'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.onkeydown = function(oEvent) {'.
-        _inline ''.
-        _inline '  if (oEvent.defaultPrevented) {'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
-        _inline '  if (oEvent.key === "ENTER" || oEvent.key === "") {'.
-        _inline '    this.onEnterOrSpace();'.
-        _inline '  } else if (/Down$/.test(oEvent.key)) {'.
-        _inline '    this.onArrowDown(oEvent);'.
-        _inline '  } else if (/Up$/.test(oEvent.key)) {'.
-        _inline '    this.onArrowUp(oEvent);'.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.getLiSelected = function() {'.
-        _inline '  return document.querySelector("li .selected");'.
-        _inline '};'.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.getActiveElement = function () {'.
-        _inline '  return document.activeElement;'.
-        _inline '};'.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.getActiveElementParent = function () {'.
-        _inline '  return this.getActiveElement().parentElement;'.
-        _inline '};'.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.onEnterOrSpace = function () {'.
-        _inline ''.
-        _inline '  // Enter or space clicks the selected link'.
-        _inline ''.
-        _inline '  var liSelected = this.getLiSelected();'.
-        _inline ''.
-        _inline '  if (liSelected) {'.
-        _inline '    liSelected.firstElementChild.click();'.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.onArrowDown = function (oEvent) {'.
-        _inline ''.
-        _inline '  var'.
-        _inline '    liNext,'.
-        _inline '    liSelected = this.getLiSelected(),'.
-        _inline '    oActiveElementParent = this.getActiveElementParent();'.
-        _inline ''.
-        _inline '  if (liSelected) {'.
-        _inline ''.
-        _inline '    // we deselect the current li and select the next sibling'.
-        _inline '    liNext = oActiveElementParent.nextElementSibling;'.
-        _inline '    if (liNext) {'.
-        _inline '      liSelected.classList.toggle("selected");'.
-        _inline '      liNext.firstElementChild.focus();'.
-        _inline '      oActiveElementParent.classList.toggle("selected");'.
-        _inline '      oEvent.preventDefault();'.
-        _inline '    }'.
-        _inline ''.
-        _inline '  } else {'.
-        _inline ''.
-        _inline '    // we don''t have any li selected, we have lookup where to start...'.
-        _inline '    // the right element should have been activated in fnTooltipActivate'.
-        _inline '    liNext = this.getActiveElement().nextElementSibling;'.
-        _inline '    if (liNext) {'.
-        _inline '      liNext.classList.toggle("selected");'.
-        _inline '      liNext.firstElementChild.firstElementChild.focus();'.
-        _inline '      oEvent.preventDefault();'.
-        _inline '    }'.
-        _inline ''.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline ''.
-        _inline 'KeyNavigation.prototype.onArrowUp = function (oEvent) {'.
-        _inline ''.
-        _inline '  var'.
-        _inline '    liSelected = this.getLiSelected(),'.
-        _inline '    liPrevious = this.getActiveElementParent().previousElementSibling;'.
-        _inline ''.
-        _inline '  if (liSelected && liPrevious) {'.
-        _inline ''.
-        _inline '    liSelected.classList.toggle("selected");'.
-        _inline '    liPrevious.firstElementChild.focus();'.
-        _inline '    this.getActiveElementParent().classList.toggle("selected");'.
-        _inline '    oEvent.preventDefault();'.
-        _inline ''.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline '// this functions enables the navigation with arrows through list items (li)'.
-        _inline '// e.g. in dropdown menus'.
-        _inline 'function enableArrowListNavigation() {'.
-        _inline ''.
-        _inline '  var oKeyNavigation = new KeyNavigation();'.
-        _inline ''.
-        _inline '  document.addEventListener("keydown", oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline 'function LinkHints(sLinkHintKey, sColor){'.
-        _inline '  this.sLinkHintKey = sLinkHintKey;'.
-        _inline '  this.sColor = sColor;'.
-        _inline '  this.oTooltipMap = {};'.
-        _inline '  this.bTooltipsOn = false;'.
-        _inline '  this.sPending = "";'.
-        _inline '  this.aTooltipElements = document.querySelectorAll("a span");'.
-        _inline '}'.
-        _inline ''.
-        _inline 'LinkHints.prototype.renderTooltip = function (oTooltip, iTooltipCounter) {'.
-        _inline '  if (this.bTooltipsOn) {'.
-        _inline '    oTooltip.classList.remove("hidden");'.
-        _inline '  } else {'.
-        _inline '    oTooltip.classList.add("hidden");'.
-        _inline '  }'.
-        _inline '  oTooltip.innerHTML = iTooltipCounter;'.
-        _inline '  oTooltip.style.backgroundColor = this.sColor;'.
-        _inline '  this.oTooltipMap[iTooltipCounter] = oTooltip;'.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.getTooltipStartValue = function(iToolTipCount){'.
-        _inline ''.
-        _inline '  // if whe have 333 tooltips we start from 100'.
-        _inline '  return Math.pow(10,iToolTipCount.toString().length - 1);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.renderTooltips = function () {'.
-        _inline ''.
-        _inline '  // all possible links which should be accessed via tooltip have'.
-        _inline '  // sub span which is hidden by default. If we like to show the'.
-        _inline '  // tooltip we have to toggle the css class ''hidden''.'.
-        _inline '  //'.
-        _inline '  // We use numeric values for the tooltip label. Maybe we can'.
-        _inline '  // support also alphanumeric chars in the future. Then we have to'.
-        _inline '  // calculate permutations and that''s work. So for the sake of simplicity'.
-        _inline '  // we stick to numeric values and just increment them.'.
-        _inline ''.
-        _inline '  var'.
-        _inline '    iTooltipCounter = this.getTooltipStartValue(this.aTooltipElements.length);'.
-        _inline ''.
-        _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
-        _inline '    iTooltipCounter += 1;'.
-        _inline '    this.renderTooltip(oTooltip, iTooltipCounter);'.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.toggleAllTooltips = function () {'.
-        _inline ''.
-        _inline '  this.sPending = "";'.
-        _inline '  this.bTooltipsOn = !this.bTooltipsOn;'.
-        _inline '  this.renderTooltips();'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.disableTooltips = function(){'.
-        _inline '  this.sPending = "";'.
-        _inline '  this.bTooltipsOn = false;'.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.removeAllTooltips = function () {'.
-        _inline ''.
-        _inline '  this.disableTooltips();'.
-        _inline ''.
-        _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
-        _inline '    oTooltip.classList.add("hidden");'.
-        _inline '  });'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.filterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
-        _inline ''.
-        _inline '  Object'.
-        _inline '    .keys(this.oTooltipMap)'.
-        _inline '    .forEach(function (sKey) {'.
-        _inline ''.
-        _inline '      // we try to partially match, but only from the beginning!'.
-        _inline '      var regex = new RegExp("^" + this.sPending);'.
-        _inline '      var oTooltip = this.oTooltipMap[sKey];'.
-        _inline ''.
-        _inline '      if (regex.test(sKey)) {'.
-        _inline '        // we have a partial match, grey out the matched part'.
-        _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + "</div>");'.
-        _inline '      } else {'.
-        _inline '        // and hide the not matched tooltips'.
-        _inline '        oTooltip.classList.add("hidden");'.
-        _inline '      }'.
-        _inline ''.
-        _inline '    }.bind(this));'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.activateDropDownMenu = function (oTooltip) {'.
-        _inline '  // to enable link hint navigation for drop down menu, we must expand'.
-        _inline '  // like if they were hovered'.
-        _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
-        _inline '};'.
-        _inline ''.
-        _inline ''.
-        _inline 'LinkHints.prototype.tooltipActivate = function (oTooltip) {'.
-        _inline ''.
-        _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
-        _inline '  // and remove all tooltips'.
-        _inline '  this.removeAllTooltips();'.
-        _inline '  oTooltip.parentElement.click();'.
-        _inline ''.
-        _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
-        _inline '  this.activateDropDownMenu(oTooltip);'.
-        _inline '  oTooltip.parentElement.focus();'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.onkeypress = function(oEvent){'.
-        _inline ''.
-        _inline '  if (oEvent.defaultPrevented) {'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
-        _inline ''.
-        _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
-        _inline '  // Maybe we must add other types here in the future'.
-        _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
-        _inline ''.
-        _inline '    this.toggleAllTooltips();'.
-        _inline ''.
-        _inline '  } else if (this.bTooltipsOn === true) {'.
-        _inline ''.
-        _inline '    // the user tries to reach a tooltip'.
-        _inline '    this.sPending += oEvent.key;'.
-        _inline '    var oTooltip = this.oTooltipMap[this.sPending];'.
-        _inline ''.
-        _inline '    if (oTooltip) {'.
-        _inline '      // we are there, we have a fully specified tooltip. Let''s activate it'.
-        _inline '      this.tooltipActivate(oTooltip);'.
-        _inline '    } else {'.
-        _inline '      // we are not there yet, but let''s filter the link so that only'.
-        _inline '      // the partially matched are shown'.
-        _inline '      this.filterTooltips(this.sPending);'.
-        _inline '      this.disableTooltipsIfNoTooltipIsVisible();'.
-        _inline '    }'.
-        _inline ''.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.disableTooltipsIfNoTooltipIsVisible = function(){'.
-        _inline ''.
-        _inline '  if (!this.isAnyTooltipVisible()) {'.
-        _inline '    this.disableTooltips();'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline 'LinkHints.prototype.isAnyTooltipVisible = function(){'.
-        _inline ''.
-        _inline '  return (Object'.
-        _inline '    .keys(this.oTooltipMap)'.
-        _inline '    .filter(function (key) {'.
-        _inline '      return !this.oTooltipMap[key].classList.contains("hidden");'.
-        _inline '    }.bind(this)).length > 0);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline '// Vimium like link hints'.
-        _inline 'function setLinkHints(sLinkHintKey, sColor) {'.
-        _inline ''.
-        _inline '  if (!sLinkHintKey || !sColor) {'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var oLinkHint = new LinkHints(sLinkHintKey, sColor);'.
-        _inline ''.
-        _inline '  document.addEventListener("keypress", oLinkHint.onkeypress.bind(oLinkHint));'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline 'function Hotkeys(oKeyMap){'.
-        _inline ''.
-        _inline '  this.oKeyMap = oKeyMap || {};'.
-        _inline ''.
-        _inline '  // these are the hotkeys provided by the backend'.
-        _inline '  Object.keys(this.oKeyMap).forEach(function(sKey){'.
-        _inline ''.
-        _inline '    var action = this.oKeyMap[sKey];'.
-        _inline ''.
-        _inline '    // We replace the actions with callback functions to unify'.
-        _inline '    // the hotkey execution'.
-        _inline '    this.oKeyMap[sKey] = function(oEvent) {'.
-        _inline ''.
-        _inline '      // We have either a js function on this'.
-        _inline '      if (this[action]) {'.
-        _inline '        this[action].call(this);'.
-        _inline '        return;'.
-        _inline '      }'.
-        _inline ''.
-        _inline '      // Or a global function'.
-        _inline '      if (window[action]) {'.
-        _inline '        window[action].call(this);'.
-        _inline '      }'.
-        _inline ''.
-        _inline '      // Or a SAP event'.
-        _inline '      var sUiSapEvent = this.getSapEvent(action);'.
-        _inline '      if (sUiSapEvent) {'.
-        _inline '        submitSapeventForm({}, sUiSapEvent, "post");'.
-        _inline '        oEvent.preventDefault();'.
-        _inline '        return;'.
-        _inline '      }'.
-        _inline ''.
-        _inline '    };'.
-        _inline ''.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline 'Hotkeys.prototype.showHotkeys = function() {'.
-        _inline '  var elHotkeys = document.querySelector("#hotkeys");'.
-        _inline ''.
-        _inline '  if (elHotkeys) {'.
-        _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
-        _inline ''.
-        _inline '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {'.
-        _inline '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)'.
-        _inline '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {'.
-        _inline '      return oSapEvent.href.replace("sapevent:","");'.
-        _inline '    }'.
-        _inline '  };'.
-        _inline ''.
-        _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
-        _inline ''.
-        _inline '  var aFilteredAndNormalizedSapEvents ='.
-        _inline '    [].map.call(aSapEvents, function(oSapEvent){'.
-        _inline '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
-        _inline '    }).filter(function(elem){'.
-        _inline '      // remove false positives'.
-        _inline '      return (elem && !elem.includes("sapevent:"));'.
-        _inline '    });'.
-        _inline ''.
-        _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
-        _inline ''.
-        _inline '  if (oEvent.defaultPrevented) {'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
-        _inline ''.
-        _inline '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  var'.
-        _inline '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),'.
-        _inline '    fnHotkey = this.oKeyMap[sKey];'.
-        _inline ''.
-        _inline '  if (fnHotkey) {'.
-        _inline '    fnHotkey.call(this, oEvent);'.
-        _inline '  }'.
-        _inline '};'.
-        _inline ''.
-        _inline 'function setKeyBindings(oKeyMap){'.
-        _inline ''.
-        _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
-        _inline ''.
-        _inline '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));'.
-        _inline '  setTimeout(function(){'.
-        _inline '    var div = document.getElementById("hotkeys-hint");'.
-        _inline '    if (div) div.style.opacity = 0.2;'.
-        _inline '  }, 4900);'.
-        _inline '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);'.
-        _inline '}'.
-        _inline ''.
-        _inline '/*'.
-        _inline '  Patch / git add -p'.
-        _inline '  */'.
-        _inline ''.
-        _inline 'function Patch() { }'.
-        _inline ''.
-        _inline 'Patch.prototype.ID = {'.
-        _inline '  STAGE: "stage"'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.ACTION = {'.
-        _inline '  PATCH_STAGE: "patch_stage"'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.escape = function(sFileName){'.
-        _inline '  return sFileName'.
-        _inline '    .replace(/\./g, "\\.")'.
-        _inline '    .replace(/#/g, "\\#");'.
-        _inline '};'.
-        _inline ''.
-        _inline '/*'.
-        _inline '  We have three type of cascading links, each of them has two verbs, add and remove.'.
-        _inline '  Which means that by clicking a file or section link all corresponding line links are clicked.'.
-        _inline ''.
-        _inline '  The id of the link indicates its semantics and its membership.'.
-        _inline ''.
-        _inline '  */'.
-        _inline ''.
-        _inline '/*'.
-        _inline '  1) file links'.
-        _inline ''.
-        _inline '      example id of file link'.
-        _inline ''.
-        _inline '      patch_file_add_zcl_abapgit_user_exit.clas.abap'.
-        _inline '      \________/  ^  \_____________________________/'.
-        _inline '          |       |              |'.
-        _inline '          |       |              |____ file name'.
-        _inline '          |       |'.
-        _inline '          |     verb [add|remove]'.
-        _inline '          |'.
-        _inline '      constant prefix'.
-        _inline ''.
-        _inline '  */'.
-        _inline ''.
-        _inline 'function PatchFile(sId){'.
-        _inline '  var oRegex = new RegExp("(" + this.ID.FILE + ")_(add|remove)_(.*$)");'.
-        _inline '  var oMatch = sId.match(oRegex);'.
-        _inline '  this.id        = sId;'.
-        _inline '  this.prefix    = oMatch[1];'.
-        _inline '  this.verb      = oMatch[2];'.
-        _inline '  this.file_name = oMatch[3];'.
-        _inline '}'.
-        _inline ''.
-        _inline 'PatchFile.prototype.ID = {'.
-        _inline '  FILE:   "patch_file",'.
-        _inline '  ADD:    "patch_file_add",'.
-        _inline '  REMOVE: "patch_file_remove"'.
-        _inline '};'.
-        _inline ''.
-        _inline '/*'.
-        _inline '  2) section links within a file'.
-        _inline ''.
-        _inline '      example id of section link'.
-        _inline ''.
-        _inline '      patch_section_add_zcl_abapgit_user_exit.clas.abap_1'.
-        _inline '      \___________/  ^  \_____________________________/ ^'.
-        _inline '            |        |              |                   |'.
-        _inline '            |        |          file name               |'.
-        _inline '            |        |                                  |'.
-        _inline '            |      verb [add|remove]                    ------ section'.
-        _inline '            |'.
-        _inline '      constant prefix'.
-        _inline ''.
-        _inline '    */'.
-        _inline ''.
-        _inline 'function PatchSection(sId){'.
-        _inline '  var oRegex = new RegExp("(" + this.ID.SECTION + ")_(add|remove)_(.*)_(\\d+$)");'.
-        _inline '  var oMatch = sId.match(oRegex);'.
-        _inline '  this.id        = sId;'.
-        _inline '  this.prefix    = oMatch[1];'.
-        _inline '  this.verb      = oMatch[2];'.
-        _inline '  this.file_name = oMatch[3];'.
-        _inline '  this.section   = oMatch[4];'.
-        _inline '}'.
-        _inline ''.
-        _inline 'PatchSection.prototype.ID = {'.
-        _inline '  SECTION: "patch_section",'.
-        _inline '  ADD:     "patch_section_add",'.
-        _inline '  REMOVE:  "patch_section_remove"'.
-        _inline '};'.
-        _inline ''.
-        _inline '/*'.
-        _inline '  3) line links within a section'.
-        _inline ''.
-        _inline '      example id of line link'.
-        _inline ''.
-        _inline '      patch_line_add_zcl_abapgit_user_exit.clas.abap_1_25'.
-        _inline '      \________/  ^  \_____________________________/ ^  ^'.
-        _inline '            ^     |                ^                 |  |'.
-        _inline '            |     |                |                 |  ------- line number'.
-        _inline '            |     |             file name            |'.
-        _inline '            |     |                               section'.
-        _inline '            |   verb [add|remove]'.
-        _inline '            |'.
-        _inline '      constant prefix'.
-        _inline ''.
-        _inline '  */'.
-        _inline 'function PatchLine(sId){'.
-        _inline '  var oRegex = new RegExp("(" + this.ID.LINE + ")_(add|remove)_(.*)_(\\d+)_(\\d+$)");'.
-        _inline '  var oMatch = sId.match(oRegex);'.
-        _inline ''.
-        _inline '  this.id        = sId;'.
-        _inline '  this.prefix    = oMatch[1];'.
-        _inline '  this.verb      = oMatch[2];'.
-        _inline '  this.file_name = oMatch[3];'.
-        _inline '  this.section   = oMatch[4];'.
-        _inline '  this.line      = oMatch[5];'.
-        _inline ''.
-        _inline '  this.corresponding_verb = this.CORRESPONDING_VERBS[this.verb];'.
-        _inline '  this.elem               = document.querySelector("#" + Patch.prototype.escape(this.id));'.
-        _inline '  this.correspondingLink  = this.getCorrespodingLink();'.
-        _inline '}'.
-        _inline ''.
-        _inline 'PatchLine.prototype.ID = {'.
-        _inline '  LINE:   "patch_line",'.
-        _inline '  ADD:    "patch_line_add",'.
-        _inline '  REMOVE: "patch_line_remove"'.
-        _inline '};'.
-        _inline ''.
-        _inline 'PatchLine.prototype.CSS_CLASS = {'.
-        _inline '  PATCH:        "patch",'.
-        _inline '  PATCH_ACTIVE: "patch-active"'.
-        _inline '};'.
-        _inline ''.
-        _inline 'PatchLine.prototype.CORRESPONDING_VERBS = {'.
-        _inline '  add:    "remove",'.
-        _inline '  remove: "add"'.
-        _inline '};'.
-        _inline ''.
-        _inline 'PatchLine.prototype.getCorrespodingLinkId = function(){'.
-        _inline ''.
-        _inline '  // e.g.'.
-        _inline '  //'.
-        _inline '  //   patch_line_add_z_test_git_add_p.prog.abap_3_28 => patch_line_remove_z_test_git_add_p.prog.abap_3_28'.
-        _inline '  //'.
-        _inline '  // and vice versa'.
-        _inline ''.
-        _inline '  var oRegexPatchIdPrefix = new RegExp("^" + this.ID.LINE + "_" + this.verb );'.
-        _inline '  return this.id.replace(oRegexPatchIdPrefix, this.ID.LINE + "_" + this.corresponding_verb);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'PatchLine.prototype.toggle = function(){'.
-        _inline ''.
-        _inline '  if (!this.elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
-        _inline '    this.elem.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '    this.correspondingLink.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'PatchLine.prototype.getCorrespodingLink = function(){'.
-        _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId();'.
-        _inline '  return document.querySelector(''[ID="'' + Patch.prototype.escape(sCorrespondingLinkId) + ''"]'');'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.preparePatch = function(){'.
-        _inline ''.
-        _inline '  this.registerClickHandlerForFiles();'.
-        _inline '  this.registerClickHandlerForSections();'.
-        _inline '  this.registerClickHandlerForLines();'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
-        _inline '  // registers the link handlers for add and remove files'.
-        _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.ADD + "'']");'.
-        _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.REMOVE + "'']");'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
-        _inline '  // registers the link handlers for add and remove sections'.
-        _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.ADD + "'']");'.
-        _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.REMOVE + "'']");'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
-        _inline '  // registers the link handlers for add and remove lines'.
-        _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.ADD + "'']");'.
-        _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.REMOVE + "'']");'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForSelector = function(sSelector, fnCallback){'.
-        _inline ''.
-        _inline '  var elAll = document.querySelectorAll(sSelector);'.
-        _inline ''.
-        _inline '  [].forEach.call(elAll, function(elem){'.
-        _inline '    elem.addEventListener("click", fnCallback.bind(this));'.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForPatchFile = function(sSelector){'.
-        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickFile);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForPatchSection = function(sSelector){'.
-        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickSection);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerClickHandlerForPatchLine = function(sSelector) {'.
-        _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickLine);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.patchLinkClickLine = function(oEvent){'.
-        _inline '  this.togglePatchForElem(oEvent.srcElement);'.
-        _inline '  oEvent.preventDefault();'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.togglePatchForElem = function(elLink) {'.
-        _inline '  new PatchLine(elLink.id).toggle();'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.getAllLineLinksForId = function(sId, sIdPrefix){'.
-        _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
-        _inline '  sId = sId.replace(oRegex, PatchLine.prototype.ID.LINE);'.
-        _inline '  return document.querySelectorAll("a[id^=''"+ this.escape(sId) + "'']");'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.getAllLineLinksForFile = function(oFile){'.
-        _inline '  return this.getAllLineLinksForId(oFile.id, PatchFile.prototype.ID.FILE);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.getAllLineLinksForSection = function(oSection){'.
-        _inline '  return this.getAllLineLinksForId(oSection.id, PatchSection.prototype.ID.SECTION);'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.patchLinkClickFile = function(oEvent) {'.
-        _inline ''.
-        _inline '  var oFile = new PatchFile(oEvent.srcElement.id);'.
-        _inline '  var elAllLineLinksOfFile = this.getAllLineLinksForFile(oFile);'.
-        _inline ''.
-        _inline '  [].forEach.call(elAllLineLinksOfFile,function(elem){'.
-        _inline '    this.togglePatchForElem(elem);'.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '  oEvent.preventDefault();'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.patchLinkClickSection = function(oEvent){'.
-        _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
-        _inline '  this.clickAllLineLinksInSection(oEvent, oSection.section);'.
-        _inline '  oEvent.preventDefault();'.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.clickAllLineLinksInSection = function(oEvent){'.
-        _inline ''.
-        _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
-        _inline '  var elAllLineLinksOfSection = this.getAllLineLinksForSection(oSection);'.
-        _inline ''.
-        _inline '  [].forEach.call(elAllLineLinksOfSection,function(elem){'.
-        _inline '    this.togglePatchForElem(elem);'.
-        _inline '    oEvent.preventDefault();'.
-        _inline '  }.bind(this));'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.registerStagePatch = function registerStagePatch(){'.
-        _inline ''.
-        _inline '  var elStage = document.querySelector("#" + this.ID.STAGE);'.
-        _inline '  elStage.addEventListener("click", this.stagePatch.bind(this));'.
-        _inline ''.
-        _inline '  // for hotkeys'.
-        _inline '  window.stagePatch = function(){'.
-        _inline '    this.stagePatch();'.
-        _inline '  }.bind(this);'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.stagePatch = function() {'.
-        _inline ''.
-        _inline '  // Collect add and remove info and submit to backend'.
-        _inline ''.
-        _inline '  var aAddPatch = this.collectActiveElementsForId( PatchLine.prototype.ID.ADD );'.
-        _inline '  var aRemovePatch = this.collectActiveElementsForId( PatchLine.prototype.ID.REMOVE );'.
-        _inline ''.
-        _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'Patch.prototype.collectActiveElementsForId = function(sId){'.
-        _inline ''.
-        _inline '  var sSelector = "." + PatchLine.prototype.CSS_CLASS.PATCH + " a[id^=''" + sId + "'']";'.
-        _inline ''.
-        _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
-        _inline '    .filter(function(elem){'.
-        _inline '      return elem.classList.contains(PatchLine.prototype.CSS_CLASS.PATCH_ACTIVE);'.
-        _inline '    }).map(function(elem){'.
-        _inline '      return elem.id;'.
-        _inline '    });'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline 'function preparePatch(){'.
-        _inline '  var oPatch = new Patch();'.
-        _inline '  oPatch.preparePatch();'.
-        _inline '}'.
-        _inline ''.
-        _inline 'function registerStagePatch(){'.
-        _inline '  var oPatch = new Patch();'.
-        _inline '  oPatch.registerStagePatch();'.
-        _inline '}'.
-        _inline ''.
-        _inline '/**********************************************************'.
-        _inline ' * Page branch overview'.
-        _inline ' *'.
-        _inline ' * Hovering a commit node in the branch overview will show'.
-        _inline ' * a popup with the commit details. Single click on a node'.
-        _inline ' * will fix the popup, so that users can select text. The'.
-        _inline ' * fixation is removed when any node is hovered or the popup'.
-        _inline ' * is closed via ''X''.'.
-        _inline ' *'.
-        _inline ' **********************************************************/'.
-        _inline ''.
-        _inline 'function BranchOverview() {'.
-        _inline '  this.bFixed = false;'.
-        _inline '  this.elCurrentCommit = {'.
-        _inline '    style : {'.
-        _inline '      display: "none"'.
-        _inline '    }'.
-        _inline '  };'.
-        _inline '}'.
-        _inline ''.
-        _inline 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {'.
-        _inline ''.
-        _inline '  // If the popup is fixed, we just remove the fixation.'.
-        _inline '  // The popup will then be hidden by the next call of hideCommit'.
-        _inline '  if (this.bFixed) {'.
-        _inline '    this.bFixed = false;'.
-        _inline '    return;'.
-        _inline '  }'.
-        _inline ''.
-        _inline '  // We hide the previous shown commit popup'.
-        _inline '  this.elCurrentCommit.style.display = "none";'.
-        _inline ''.
-        _inline '  // Display the new commit popup if sha1 is supplied'.
-        _inline '  if (sSha1){'.
-        _inline '    this.elCurrentCommit = document.getElementById(sSha1);'.
-        _inline '    this.elCurrentCommit.style.display = "";'.
-        _inline ''.
-        _inline '    // and fix the popup so that the next hideCommit won''t hide it.'.
-        _inline '    this.bFixed = bFixPopup;'.
-        _inline ''.
-        _inline '  }'.
-        _inline ''.
-        _inline '};'.
-        _inline ''.
-        _inline '// called by onClick of commit nodes in branch overview'.
-        _inline 'BranchOverview.prototype.onCommitClick = function(commit){'.
-        _inline '  this.toggleCommit(commit.sha1, true);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Called by commit:mouseover'.
-        _inline 'BranchOverview.prototype.showCommit = function(event){'.
-        _inline '  this.toggleCommit(event.data.sha1);'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Called by commit:mouseout'.
-        _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
-        _inline '  this.toggleCommit();'.
-        _inline '};'.
-        _inline ''.
-        _inline '// Initialize Top Horizontal Scroller on GitGraph'.
-        _inline 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars'.
-        _inline ''.
-        _inline '  // Get gitGraph Element Canvas Width'.
-        _inline '  var gitGraphEl = document.getElementById("gitGraph");'.
-        _inline '  var gitGraphWidth = gitGraphEl.offsetWidth;'.
-        _inline ''.
-        _inline '  // Initialize gitGraph-HTopScroller Element width as gitGraph'.
-        _inline '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");'.
-        _inline '  HTopScrollerEl.style.width = gitGraphWidth + "px";'.
-        _inline ''.
-        _inline '}'.
-        _inline ''.
-        _inline '// Setup Top Horizontal Scroller on GitGraph event'.
-        _inline 'function GitGraphScroller() { // eslint-disable-line no-unused-vars'.
-        _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
-        _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
-        _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
-        _inline '}'.
-      WHEN 'css/ag-icons.css'.
-        rs_asset-url     = iv_asset_url.
-        rs_asset-type    = 'text'.
-        rs_asset-subtype = 'css'.
-        lv_mime_name     = 'ZABAPGIT_ICON_FONT_CSS'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
-****************************************************
-        _inline '@font-face {'.
-        _inline '    font-family: "ag-icons";'.
-        _inline '    font-weight: normal;'.
-        _inline '    font-style: normal;'.
-        _inline '    src: url("../font/ag-icons.woff") format("woff");'.
-        _inline '}'.
-        _inline ''.
-        _inline '.icon {'.
-        _inline '    line-height: 1;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.icon:before {'.
-        _inline '    font-family: ag-icons !important;'.
-        _inline '    font-style: normal;'.
-        _inline '    font-weight: normal !important;'.
-        _inline ''.
-        _inline '    display: inline-block;'.
-        _inline '    text-decoration: none;'.
-        _inline '    text-align: center;'.
-        _inline '    vertical-align: text-top;'.
-        _inline '    width: 1em;'.
-        _inline ''.
-        _inline '    /* For safety - reset parent styles, that can break glyph codes*/'.
-        _inline '    font-variant: normal;'.
-        _inline '    text-transform: none;'.
-        _inline '}'.
-        _inline ''.
-        _inline '.icon.large { font-size: 200%; }'.
-        _inline ''.
-        _inline '.icon-arrow-circle-up:before { content: "\f101"; }'.
-        _inline '.icon-bars:before { content: "\f102"; }'.
-        _inline '.icon-bolt:before { content: "\f103"; }'.
-        _inline '.icon-box:before { content: "\f104"; }'.
-        _inline '.icon-briefcase:before { content: "\f105"; }'.
-        _inline '.icon-check:before { content: "\f106"; }'.
-        _inline '.icon-cloud-upload-alt:before { content: "\f107"; }'.
-        _inline '.icon-code-branch:before { content: "\f108"; }'.
-        _inline '.icon-cog:before { content: "\f109"; }'.
-        _inline '.icon-exclamation-circle:before { content: "\f10a"; }'.
-        _inline '.icon-exclamation-triangle:before { content: "\f10b"; }'.
-        _inline '.icon-file-alt:before { content: "\f10c"; }'.
-        _inline '.icon-file-code:before { content: "\f10d"; }'.
-        _inline '.icon-file-image:before { content: "\f10e"; }'.
-        _inline '.icon-file:before { content: "\f10f"; }'.
-        _inline '.icon-fire-alt:before { content: "\f110"; }'.
-        _inline '.icon-folder:before { content: "\f111"; }'.
-        _inline '.icon-lock:before { content: "\f112"; }'.
-        _inline '.icon-plug:before { content: "\f113"; }'.
-        _inline '.icon-sliders-h:before { content: "\f114"; }'.
-        _inline '.icon-snowflake:before { content: "\f115"; }'.
-        _inline '.icon-star:before { content: "\f116"; }'.
-      WHEN 'font/ag-icons.woff'.
-        rs_asset-url     = iv_asset_url.
-        rs_asset-type    = 'font'.
-        rs_asset-subtype = 'woff'.
-        lv_mime_name     = 'ZABAPGIT_ICON_FONT'.
-****************************************************
-* abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
-****************************************************
-        _inline 'd09GRgABAAAAAAzkAAsAAAAAFhwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH'.
-        _inline 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3MY21hcAAA'.
-        _inline 'AYQAAACqAAAClmGy9uBnbHlmAAACMAAAB+kAAA3cBej0JmhlYWQAAAocAAAA'.
-        _inline 'MAAAADYS4J/baGhlYQAACkwAAAAdAAAAJASAApRobXR4AAAKbAAAADcAAABc'.
-        _inline 'KET/92xvY2EAAAqkAAAAMAAAADAh7iUMbWF4cAAACtQAAAAfAAAAIAEnALpu'.
-        _inline 'YW1lAAAK9AAAASgAAAIWQeF35nBvc3QAAAwcAAAAyAAAASDY9xFneJxjYGRg'.
-        _inline 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm'.
-        _inline 'g4gCACY7BUgAeJxjYGQ8wDiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV'.
-        _inline 'BKS5pjA4fGT8KMYE4uoxMTOAVDKCOADC1wkJAHic7ZHtDcIwDAUvbSgUWspX'.
-        _inline 'I4ZgFAbiFztnAvDLYwwsnU+xnCiygQ3QB48gQ3qTULyimlq9Z9/qmWfryarX'.
-        _inline '8vlETspxzi130ZvjxYEtO8a4d2Bi5sjCiTMXrtxYKdE88I9JKd1/p6J5mjbh'.
-        _inline 'ziD3Rpuq2WjmdWO0xToY5K1B3hnk0SDvjbZbDwZ5MvpdnQ3y0SAvBvlkkM8G'.
-        _inline '+WKQrwb5ZpBXg1wM5QvE7TXiAAB4nKVWTWwkRxWu191T1T0z7vnpvxnPjD0/'.
-        _inline '6+5xO/LYnp/ejL3eHzteezHSJLKEObHSIjkyF2sRQkIBOWRBORDJWiSUC8hS'.
-        _inline 'xM8FtAdEOARhokhBAiRfl5NvHJBYc8Ic0uZV9bR/1rtEiHG76lXVq1ffe1X1'.
-        _inline 'vSISwR+cwAlJE58Qo7MIc2Ng6lCfhptgmfY8zPVugGPP3YRepwVuPQPUHAd7'.
-        _inline 'Tl16+P2HS6LYW9WT2aS+yiyWYux7zMR/lCwgS0ONpYfu+odJXU9+uM5HTPaI'.
-        _inline '4WeiiMvLAsMBfEIyZJy0EEWNr9lxG7U6rYBpO5/TzsI+0zQW3uflS2R4S2NN'.
-        _inline '3sJi/4UigdMQcSxjSBysG0HPnYI6RX8xCIza7bnA6LnQ/Lov6+k9TYcq6Klv'.
-        _inline 'TmNDZ0+YDve/mzLS2nEq+3E6n4aZdIHEvklEAsLQuyLa9aZhCqz2RANNS22G'.
-        _inline 'IW4LdyBsJ4rZ956F/3wvW0zMSc+Oyybsm2W4+34mf3CQz7zPqsdmuWweX7AL'.
-        _inline 'R8QgHpkiZMKkiNa9AY0zi42g0e0IHyrQ4EVNNLttuKUxjMlBxYB9o3KwN6gY'.
-        _inline 'WA+MikQqH+zuPuEBmdkzKhVjb3+GVzMVY4DDVYQ/XPf3xCQk8NwOHou5cQh4'.
-        _inline 'YZsMaP1XP2dsglnqzrFqocDCp8xe+xmz2TWV96nXUAz/qgozvHgbfSiTOTTd'.
-        _inline 'Q3iNOpuGug4V0PH0jQF6sgjYz9Ct2MG6Gy1qU2mUXm9WCta9L92b8nveHQ92'.
-        _inline 'GvP1/u9uI36m3U6pbFvRlW2mQiWXb17PXntl6t6UmrnXQtX6fGN6pbPDfd0x'.
-        _inline 'UQ/V0CXlFH+wi/sVkFtkjbyBuDpunWJQHR1PgfjrCkhRp8Vx2nMcu7eIcQja'.
-        _inline 'vYD/LcLEnG3SutvpGbzgDSPugd3WnVZ1FKxC5lpZd7LFcWyPF0VVdhKmkSrC'.
-        _inline 'lNUwLCiMhYcIUUeUUfU0qmCn1mrVSr5aGKUy/hS2x/xS1Mf+OBSLk5qaVEBW'.
-        _inline 'aNIZ9VV/m8/UtXA3qvEYiJrEewHP4JTcJQM8TV7PQxc8F09rBlyPe+cyvi2U'.
-        _inline 'ea6Igj0O1MEux3bGkCowEhgNGyfdgF7g2CIKLotdh7/5lPqKDDlXVhW/VE8o'.
-        _inline 'QaAk6iVfUWU3hxifH0/0xPiUHI3/HR2602p9Umw0ipKqdCdlSSo66VmFQToN'.
-        _inline 'TJlNO0VJkie7iio9r5OgXIcmhA4oXCfPjd1pDbnnBP6N/GeRCZQj7ot4kNUp'.
-        _inline '31t03omYsBtEFwpOztnvxCiV3FLppsoSMwmG5a0Eu8h83+Cjbumn7yqMKe9S'.
-        _inline 'xsT9Pf0Mg74kyURHtvEw4rYOyGfTEBiLGEz5ZStLfZWO5sNqfpSqx1qtpvkv'.
-        _inline 'WH41W3OcGtJiNpXKhr95AYCE8Ptt3HbOubOkQ25g++yOdXq4ps0aEb9GOaDj'.
-        _inline 'BjmTIka3mxPjeAM9q23kGuJW5qDKEr9IMFGkY4Ftlc3wiNPWn019Q99dV95M'.
-        _inline '6vuglvk4L74YVbz4KPw1V+Skh6oL6+ETqOrJN8P7CJUKvPxeWhgtn7TJEvky'.
-        _inline 'MtAsP6YX0xJPU8hLPFRWLmJChOs5DaOWa4t8xlzB6ajcQ2XXs2b5MY7nxrZ+'.
-        _inline 'VKtJIOVlJvVluS8xOSc/3dDRC46wapZ319cH4dE+4vuOQiHAA1wY1nwiajP5'.
-        _inline 'VRk/PvGDSkVSJUOWe1gFkoxWww0dA3NfWFs3ha/7GBkX53+EdtiwXrk6M947'.
-        _inline 'HoscsnBFRAPzyvM+s0ZXHrqcm2h3Pe6XKIL4bMHDix511g+5O6fkyFGS8qan'.
-        _inline 'JBVvBgeb5TL85BLc7Hr4VQE3PJrZLcjyZlOWm0+4YrN8ls/P8X0OtheiePmK'.
-        _inline 'MVf9Aas8qaNEmetF2SLKFZ4rUzyT3Q5SkBMgKVFYHiv5r659ZWHrW1sLtdJY'.
-        _inline 'rz51/Qv5TPNBn1IzD38pV/vd5f3e4vYifqUNfzr8U+G166Xx4sy3l1JaczPO'.
-        _inline 'Vbgq5tsSfx1cdonfDhkPmIMOweFBoI38MD7K3IsfYMensBto8WXAIjyGanCB'.
-        _inline 'ew+wKpIat93tDHPg8P7FK2Du5mxqwV5hcuWNlcmCWIPH6K09f8GH6urkyiR+'.
-        _inline 'q2XzgA9hsTrm+2Nne8LvOyMN/l6ITFXAqcV3XGSzdpcTeDtazxNZrgJAjFFj'.
-        _inline 'JhSPqexacCtYy6L4L+yEnZ0RwxjZyWqsyrRqfzP14EFqs18VzWw0hlx3Onyr'.
-        _inline 'NDC7fA25rnb5XTJcPaKZoa/e+dulFkfhTKd9ReeqnaEOHIdPBJoBRz8QIlyQ'.
-        _inline 'Q/HagcG5zqEQDy+Lu1nhfOTXubj/P3XzLTgN8X3xMe7DL3mWFeTFU6zHUyan'.
-        _inline 'oxac9QW8hWQldYOYl8789WLGsyJdTmBeTGyCznhSdtjVPjakPsliMWNefeZ3'.
-        _inline 'I12OZIgLfuvVKZMUKUUHq6sDmkKR0bqHrw9VHkk0k3gNM9hrrfYTiVRiRCmi'.
-        _inline '11QropRWlP5dG9I0w6ikeXQEZ8j0v5vTpMicfbevKJfMJVKKMr8qzKEBNJfG'.
-        _inline 'F4T8Y0eTUgwXANv3LT6ZpSTNUdJUR5NOY7jA6/7GAr4IEdHoNN+X6aIAm5jf'.
-        _inline '8F+P4LC6g+B0BBlblCzft+H/t5gWV5CQ08+kVzDvc17k+8b3horNsnm4cffd'.
-        _inline 'ljQNFOTbj0cyoG0XpZFC6p13UoURqbitQWbk8W3qOPCPR5ZkFrStx2mL0uVl'.
-        _inline 'Sq304y2tYIL9KK3y5/V/ADtO5qcAAAB4nGNgZGBgAOKLKRHJ8fw2Xxm4mRhA'.
-        _inline '4MbC9fkw+v/f/3+ZGpmYgVwOBrA0AGLTDVd4nGNgZGBgYgABpob/f///YWpk'.
-        _inline 'YGRABeIAcFcFGAAAAHicTYzBCQAwCAOjkzmao7lYm6ZSio+D5CABABdWIrj9'.
-        _inline '9Sblkvw9uKzdoMY+byat9BPAAaAvEVQAAAAAAABCAIYAsADcARgBPgGIAgQC'.
-        _inline 'gAK8AvwDVAPaBCoEWgSUBMIE9AUyBbgGuAbueJxjYGRgYBBnWMfAxgACTEDM'.
-        _inline 'BYQMDP/BfAYAHD8B4gB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNm'.
-        _inline 'HYTghKAkjhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1'.
-        _inline 'cM3un5uke+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/h'.
-        _inline 'FvlTuI1HfAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5q'.
-        _inline 'rkttI6fXanVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANk'.
-        _inline 'iGFQosYCmmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2Qmt'.
-        _inline 'Q8I+YcagIM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3R'.
-        _inline 'UsIwFESzNEUKKogo/kQ+6uY2bTO99DJJO/D5luqDD+7TmZ0zu2ZlflKa/3PG'.
-        _inline 'CgUsSqzxhA0qbLHDM17wij0OeMMR7zjhA58448vsKSW9OY6JJbjpaj2lbL3K'.
-        _inline 'WHi9Vz7F0DDlUHIXuD+w6FTPmijVjmTcsdbB+UQDdwVrewx3FrrQGHX4HT39'.
-        _inline 'rcYUaWglbJo4380D1QKPle1C8UJtsA+clbQo60alDsmKcm+vMrVVljgX2XVV'.
-        _inline 'HvTWCPXB5pGSMd9ld0sQ'.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |No inline resource: { iv_asset_url }| ).
-    ENDCASE.
-
-    IF lt_data IS NOT INITIAL.
-      IF rs_asset-type = 'text'. " TODO refactor
-        CONCATENATE LINES OF lt_data INTO lv_str SEPARATED BY zif_abapgit_definitions=>c_newline.
-        rs_asset-content = zcl_abapgit_string_utils=>string_to_xstring( lv_str ).
-      ELSE.
-        CONCATENATE LINES OF lt_data INTO lv_str.
-        rs_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( lv_str ).
-      ENDIF.
-    ELSE.
-      rs_asset-content = get_mime_asset( lv_mime_name ).
+    MOVE-CORRESPONDING is_asset_entry TO rs_asset.
+    IF rs_asset-content IS INITIAL AND is_asset_entry-mime_name IS NOT INITIAL.
+      " inline content has the priority
+      rs_asset-content = get_mime_asset( is_asset_entry-mime_name ).
     ENDIF.
-
     IF rs_asset-content IS INITIAL.
-      zcx_abapgit_exception=>raise( |Failed to get GUI resource: { iv_asset_url }| ).
+      zcx_abapgit_exception=>raise( |failed to load GUI asset: { is_asset_entry-url }| ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD register_asset.
+
+    DATA ls_asset LIKE LINE OF mt_asset_register.
+
+    SPLIT iv_type AT '/' INTO ls_asset-type ls_asset-subtype.
+    ls_asset-url          = iv_url.
+    ls_asset-mime_name    = iv_mime_name.
+    ls_asset-is_cacheable = iv_cachable.
+    IF iv_base64 IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( iv_base64 ).
+    ELSEIF iv_inline IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_string_utils=>string_to_xstring( iv_inline ).
+    ENDIF.
+
+    APPEND ls_asset TO mt_asset_register.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_asset_manager~get_all_assets.
 
-    DATA:
-          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets,
-          ls_asset  LIKE LINE OF lt_assets.
+    FIELD-SYMBOLS <ls_a> LIKE LINE OF mt_asset_register.
 
-    ls_asset = get_textlike_asset( 'css/common.css' ).
-    APPEND ls_asset TO rt_assets.
-    ls_asset = get_textlike_asset( 'js/common.js' ).
-    APPEND ls_asset TO rt_assets.
-    ls_asset = get_textlike_asset( 'css/ag-icons.css' ).
-    APPEND ls_asset TO rt_assets.
-    ls_asset = get_textlike_asset( 'font/ag-icons.woff' ).
-    APPEND ls_asset TO rt_assets.
+    LOOP AT mt_asset_register ASSIGNING <ls_a>.
+      APPEND load_asset( <ls_a> ) TO rt_assets.
+    ENDLOOP.
 
-    lt_assets = get_inline_images( ).
-    APPEND LINES OF lt_assets TO rt_assets.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~get_asset.
+
+    FIELD-SYMBOLS <ls_a> LIKE LINE of mt_asset_register.
+
+    READ TABLE mt_asset_register WITH KEY url = iv_url ASSIGNING <ls_a>.
+    IF <ls_a> IS NOT ASSIGNED.
+      zcx_abapgit_exception=>raise( |Cannot find GUI asset: { iv_url }| ).
+    ENDIF.
+    rs_asset = load_asset( <ls_a> ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~get_text_asset.
+
+    DATA ls_asset TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
+    ls_asset = me->zif_abapgit_gui_asset_manager~get_asset( iv_url ).
+
+    rv_asset = cl_bcs_convert=>xstring_to_string(
+      iv_xstr = ls_asset-content
+      iv_cp   = '4110' ). " UTF8
 
   ENDMETHOD.
 ENDCLASS.
@@ -35179,7 +35234,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         parent               = cl_gui_container=>screen0.
 
     lt_assets = mi_asset_man->get_all_assets( ).
-    LOOP AT lt_assets ASSIGNING <ls_asset>.
+    LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
       cache_asset( iv_xdata   = <ls_asset>-content
                    iv_url     = <ls_asset>-url
                    iv_type    = <ls_asset>-type
@@ -70301,5 +70356,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-16T10:36:43.663Z
+* abapmerge undefined - 2019-03-16T10:47:11.917Z
 ****************************************************
