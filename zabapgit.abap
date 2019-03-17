@@ -767,7 +767,7 @@ INTERFACE zif_abapgit_background .
   METHODS run
     IMPORTING
       !io_repo     TYPE REF TO zcl_abapgit_repo_online
-      !io_log      TYPE REF TO zcl_abapgit_log
+      !ii_log      TYPE REF TO zif_abapgit_log
       !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
@@ -2406,7 +2406,7 @@ INTERFACE zif_abapgit_exit .
   METHODS change_tadir
     IMPORTING
       !iv_package TYPE devclass
-      !io_log     TYPE REF TO zcl_abapgit_log
+      !ii_log     TYPE REF TO zif_abapgit_log
     CHANGING
       !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt .
   METHODS get_ssl_id
@@ -2578,7 +2578,7 @@ INTERFACE zif_abapgit_tadir .
       !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
       !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
       !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
-      !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+      !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
     RETURNING
       VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
     RAISING
@@ -2686,6 +2686,7 @@ CLASS zcl_abapgit_background DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS list_methods
       RETURNING VALUE(rt_methods) TYPE ty_methods_tt.
+  PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_background_pull DEFINITION
@@ -2706,7 +2707,7 @@ CLASS zcl_abapgit_background_push_au DEFINITION
     INTERFACES zif_abapgit_background .
   PROTECTED SECTION.
 
-    DATA mo_log TYPE REF TO zcl_abapgit_log .
+    DATA mi_log TYPE REF TO zif_abapgit_log .
 
     METHODS build_comment
       IMPORTING
@@ -2745,7 +2746,7 @@ CLASS zcl_abapgit_background_push_fi DEFINITION
         name  TYPE string VALUE 'NAME',
         email TYPE string VALUE 'EMAIL',
       END OF c_settings .
-    DATA mo_log TYPE REF TO zcl_abapgit_log .
+    DATA mi_log TYPE REF TO zif_abapgit_log .
 
     METHODS build_comment
       IMPORTING
@@ -10999,26 +11000,6 @@ CLASS zcl_abapgit_log DEFINITION
 
     INTERFACES zif_abapgit_log .
 
-    ALIASES add
-      FOR zif_abapgit_log~add .
-    ALIASES add_error
-      FOR zif_abapgit_log~add_error .
-    ALIASES add_info
-      FOR zif_abapgit_log~add_info .
-    ALIASES add_warning
-      FOR zif_abapgit_log~add_warning .
-    ALIASES clear
-      FOR zif_abapgit_log~clear .
-    ALIASES count
-      FOR zif_abapgit_log~count .
-    ALIASES has_rc
-      FOR zif_abapgit_log~has_rc .
-    ALIASES show
-      FOR zif_abapgit_log~show .
-    ALIASES to_html
-      FOR zif_abapgit_log~to_html .
-    ALIASES write
-      FOR zif_abapgit_log~write .
   PROTECTED SECTION.
 
     TYPES:
@@ -11914,7 +11895,7 @@ CLASS zcl_abapgit_file_status DEFINITION
 
     CLASS-METHODS status
       IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo
-                io_log            TYPE REF TO zcl_abapgit_log OPTIONAL
+                ii_log            TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING   zcx_abapgit_exception.
 
@@ -11931,7 +11912,7 @@ CLASS zcl_abapgit_file_status DEFINITION
         RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
         RAISING   zcx_abapgit_exception,
       run_checks
-        IMPORTING io_log     TYPE REF TO zcl_abapgit_log
+        IMPORTING ii_log     TYPE REF TO zif_abapgit_log
                   it_results TYPE zif_abapgit_definitions=>ty_results_tt
                   io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
                   iv_top     TYPE devclass
@@ -12501,7 +12482,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS get_files_local
       IMPORTING
-        !io_log         TYPE REF TO zcl_abapgit_log OPTIONAL
+        !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
         !it_filter      TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
@@ -12571,7 +12552,7 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rv_yes) TYPE abap_bool .
     METHODS status
       IMPORTING
-        !io_log           TYPE REF TO zcl_abapgit_log OPTIONAL
+        !ii_log           TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
@@ -12652,7 +12633,8 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
       RAISING   zcx_abapgit_exception.
 
     METHODS get_log
-      RETURNING VALUE(ro_log) TYPE REF TO zcl_abapgit_log.
+      RETURNING VALUE(ri_log) TYPE REF TO zif_abapgit_log.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: BEGIN OF c_sortkey,
                  default    TYPE i VALUE 9999,
@@ -12664,7 +12646,7 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
                END OF c_sortkey.
 
     DATA: mo_repo TYPE REF TO zcl_abapgit_repo,
-          mo_log  TYPE REF TO zcl_abapgit_log.
+          mi_log  TYPE REF TO zif_abapgit_log.
 
     METHODS build_repo_items_local_only
       RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>tt_repo_items
@@ -12860,7 +12842,7 @@ CLASS zcl_abapgit_serialize DEFINITION
       IMPORTING
         !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
         !iv_language         TYPE langu DEFAULT sy-langu
-        !io_log              TYPE REF TO zcl_abapgit_log OPTIONAL
+        !ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
         !iv_force_sequential TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_files)      TYPE zif_abapgit_definitions=>ty_files_item_tt
@@ -12872,7 +12854,7 @@ CLASS zcl_abapgit_serialize DEFINITION
     CLASS-DATA gv_max_threads TYPE i .
     DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mv_free TYPE i .
-    DATA mo_log TYPE REF TO zcl_abapgit_log .
+    DATA mi_log TYPE REF TO zif_abapgit_log .
     DATA mv_group TYPE rzlli_apcl .
 
     METHODS add_to_return
@@ -13051,9 +13033,10 @@ CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
       skip_sadl_generated_objects
         IMPORTING
           it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-          io_log          TYPE REF TO zcl_abapgit_log OPTIONAL
+          ii_log          TYPE REF TO zif_abapgit_log OPTIONAL
         RETURNING
           VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       has_sadl_superclass
@@ -13192,7 +13175,7 @@ CLASS zcl_abapgit_tadir DEFINITION
         !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
         !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
         !iv_only_local_objects TYPE abap_bool
-        !io_log                TYPE REF TO zcl_abapgit_log OPTIONAL
+        !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING
         VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
@@ -14009,10 +13992,10 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
   METHOD export.
 
-    DATA: lo_log     TYPE REF TO zcl_abapgit_log,
+    DATA: li_log     TYPE REF TO zif_abapgit_log,
           lt_zip     TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lv_package TYPE devclass.
-    CREATE OBJECT lo_log.
+    CREATE OBJECT li_log TYPE zcl_abapgit_log.
 
     lv_package = io_repo->get_package( ).
 
@@ -14020,11 +14003,11 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Package { lv_package } doesn't exist| ).
     ENDIF.
 
-    lt_zip = io_repo->get_files_local( io_log    = lo_log
+    lt_zip = io_repo->get_files_local( ii_log    = li_log
                                        it_filter = it_filter ).
 
-    IF lo_log->count( ) > 0.
-      lo_log->show( ).
+    IF li_log->count( ) > 0.
+      li_log->show( ).
     ENDIF.
 
     rv_xstr = encode_files( lt_zip ).
@@ -14565,7 +14548,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     CREATE OBJECT lo_skip_objects.
     rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
       it_tadir = rt_tadir
-      io_log   = io_log ).
+      ii_log   = ii_log ).
 
     LOOP AT lt_packages ASSIGNING <lv_package>.
       " Local packages are not in TADIR, only in TDEVC, act as if they were
@@ -14690,13 +14673,13 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
                       io_dot                = io_dot
                       iv_ignore_subpackages = iv_ignore_subpackages
                       iv_only_local_objects = iv_only_local_objects
-                      io_log                = io_log ).
+                      ii_log                = ii_log ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_tadir(
       EXPORTING
         iv_package = iv_package
-        io_log     = io_log
+        ii_log     = ii_log
       CHANGING
         ct_tadir   = rt_tadir ).
 
@@ -14901,8 +14884,8 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
     LOOP AT lt_lines_to_delete INTO ls_tadir_class.
       DELETE TABLE rt_tadir FROM ls_tadir_class.
-      IF io_log IS BOUND.
-        io_log->add(
+      IF ii_log IS BOUND.
+        ii_log->add(
           iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
           iv_type = 'W' ).
       ENDIF.
@@ -15203,8 +15186,8 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
         error     = 1
         OTHERS    = 2.
     IF sy-subrc <> 0.
-      IF NOT mo_log IS INITIAL.
-        mo_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }| ).
+      IF NOT mi_log IS INITIAL.
+        mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }| ).
       ENDIF.
     ELSE.
       IMPORT data = ls_fils_item FROM DATA BUFFER lv_result. "#EC CI_SUBRC
@@ -15267,8 +15250,8 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
         add_to_return( is_fils_item = ls_fils_item
                        iv_path      = is_tadir-path ).
       CATCH zcx_abapgit_exception INTO lx_error.
-        IF NOT mo_log IS INITIAL.
-          mo_log->add_error( lx_error->get_text( ) ).
+        IF NOT mi_log IS INITIAL.
+          mi_log->add_error( lx_error->get_text( ) ).
         ENDIF.
     ENDTRY.
 
@@ -15283,7 +15266,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
 
     lv_max = determine_max_threads( iv_force_sequential ).
     mv_free = lv_max.
-    mo_log = io_log.
+    mi_log = ii_log.
 
     li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
 
@@ -16219,12 +16202,12 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_repo_items_with_remote.
 
     DATA:
-          ls_file        TYPE zif_abapgit_definitions=>ty_repo_file,
-          lt_status      TYPE zif_abapgit_definitions=>ty_results_tt.
+      ls_file   TYPE zif_abapgit_definitions=>ty_repo_file,
+      lt_status TYPE zif_abapgit_definitions=>ty_results_tt.
 
     FIELD-SYMBOLS: <ls_status>    LIKE LINE OF lt_status,
                    <ls_repo_item> LIKE LINE OF rt_repo_items.
-    lt_status       = mo_repo->status( mo_log ).
+    lt_status = mo_repo->status( mi_log ).
 
     LOOP AT lt_status ASSIGNING <ls_status>.
       AT NEW obj_name. "obj_type + obj_name
@@ -16271,7 +16254,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
     mo_repo = io_repo.
-    CREATE OBJECT mo_log.
+    CREATE OBJECT mi_log TYPE zcl_abapgit_log.
   ENDMETHOD.
   METHOD filter_changes.
 
@@ -16279,11 +16262,11 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_log.
-    ro_log = mo_log.
+    ri_log = mi_log.
   ENDMETHOD.
   METHOD list.
 
-    mo_log->clear( ).
+    mi_log->clear( ).
 
     IF mo_repo->has_remote_source( ) = abap_true.
       rt_repo_items = build_repo_items_with_remote( ).
@@ -16490,7 +16473,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       iv_ignore_subpackages = get_local_settings( )-ignore_subpackages
       iv_only_local_objects = get_local_settings( )-only_local_objects
       io_dot                = get_dot_abapgit( )
-      io_log                = io_log ).
+      ii_log                = ii_log ).
 
     apply_filter( EXPORTING it_filter = it_filter
                   CHANGING ct_tadir  = lt_tadir ).
@@ -16500,7 +16483,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     lt_found = lo_serialize->serialize(
       it_tadir    = lt_tadir
       iv_language = get_dot_abapgit( )->get_master_language( )
-      io_log      = io_log ).
+      ii_log      = ii_log ).
     APPEND LINES OF lt_found TO rt_files.
 
     mt_local                 = rt_files.
@@ -16687,7 +16670,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     IF lines( mt_status ) = 0.
       mt_status = zcl_abapgit_file_status=>status(
         io_repo = me
-        io_log  = io_log ).
+        ii_log  = ii_log ).
     ENDIF.
 
     rt_results = mt_status.
@@ -18850,16 +18833,17 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   ENDMETHOD.
   METHOD run_checks.
 
-    DATA: lv_path     TYPE string,
-          ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          ls_file     TYPE zif_abapgit_definitions=>ty_file_signature,
-          lt_res_sort LIKE it_results,
-          lt_item_idx LIKE it_results.
-    DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
+    DATA: lv_path         TYPE string,
+          ls_item         TYPE zif_abapgit_definitions=>ty_item,
+          ls_file         TYPE zif_abapgit_definitions=>ty_file_signature,
+          lt_res_sort     LIKE it_results,
+          lt_item_idx     LIKE it_results,
+          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
                    <ls_res2> LIKE LINE OF it_results.
-    IF io_log IS INITIAL.
+    IF ii_log IS INITIAL.
+* huh?
       RETURN.
     ENDIF.
 
@@ -18886,7 +18870,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         BINARY SEARCH. " Sorted above
 
       IF sy-subrc <> 0 OR <ls_res1>-path <> <ls_res2>-path. " All paths are same
-        io_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
+        ii_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
                        <ls_res1>-obj_name } are not placed in the same folder|
                      iv_type = 'W'
                      iv_rc    = '1' ) ##no_text.
@@ -18902,7 +18886,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         io_dot     = io_dot
         iv_package = <ls_res1>-package ).
       IF lv_path <> <ls_res1>-path.
-        io_log->add( iv_msg = |Package and path does not match for object, {
+        ii_log->add( iv_msg = |Package and path does not match for object, {
                        <ls_res1>-obj_type } { <ls_res1>-obj_name }|
                      iv_type = 'W'
                      iv_rc    = '2' ) ##no_text.
@@ -18914,13 +18898,13 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     LOOP AT lt_res_sort ASSIGNING <ls_res1> WHERE obj_type <> 'DEVC'.
       IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
-        io_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
+        ii_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
                      iv_type = 'W'
                      iv_rc   = '3' ) ##no_text.
       ENDIF.
 
       IF <ls_res1>-filename IS INITIAL.
-        io_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+        ii_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
                      iv_type = 'W'
                      iv_rc   = '4' ) ##no_text.
       ENDIF.
@@ -18938,7 +18922,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rt_results = calculate_status(
       iv_devclass  = io_repo->get_package( )
       io_dot       = io_repo->get_dot_abapgit( )
-      it_local     = io_repo->get_files_local( io_log = io_log )
+      it_local     = io_repo->get_files_local( ii_log = ii_log )
       it_remote    = io_repo->get_files_remote( )
       it_cur_state = io_repo->get_local_checksums_per_file( ) ).
 
@@ -18956,7 +18940,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     ENDLOOP.
 
     run_checks(
-      io_log     = io_log
+      ii_log     = ii_log
       it_results = rt_results
       io_dot     = lo_dot_abapgit
       iv_top     = io_repo->get_package( ) ).
@@ -19118,7 +19102,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
         gi_exit->change_tadir(
           EXPORTING
             iv_package = iv_package
-            io_log     = io_log
+            ii_log     = ii_log
           CHANGING
             ct_tadir   = ct_tadir ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
@@ -21515,20 +21499,23 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_log~add_error.
 
-    add( iv_msg  = iv_msg
-         iv_type = 'E' ).
+    zif_abapgit_log~add(
+      iv_msg  = iv_msg
+      iv_type = 'E' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_log~add_info.
 
-    add( iv_msg  = iv_msg
-         iv_type = 'I' ).
+    zif_abapgit_log~add(
+      iv_msg  = iv_msg
+      iv_type = 'I' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_log~add_warning.
 
-    add( iv_msg  = iv_msg
-         iv_type = 'W' ).
+    zif_abapgit_log~add(
+      iv_msg  = iv_msg
+      iv_type = 'W' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_log~clear.
@@ -21602,7 +21589,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
-    IF count( ) = 0.
+    IF zif_abapgit_log~count( ) = 0.
       RETURN.
     ENDIF.
 
@@ -28495,9 +28482,8 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
           lv_max               TYPE abap_bool,
           lv_max_str           TYPE string,
           lv_add_str           TYPE string,
-          lo_log               TYPE REF TO zcl_abapgit_log,
+          li_log               TYPE REF TO zif_abapgit_log,
           lv_render_transports TYPE abap_bool.
-
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
     " Reinit, for the case of type change
@@ -28528,10 +28514,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
         ro_html->add( render_head_line( iv_lstate = lv_lstate
                                         iv_rstate = lv_rstate ) ).
 
-        lo_log = lo_browser->get_log( ).
-        IF mo_repo->is_offline( ) = abap_false AND lo_log->count( ) > 0.
+        li_log = lo_browser->get_log( ).
+        IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
           ro_html->add( '<div class="log">' ).
-          ro_html->add( lo_log->to_html( ) ). " shows eg. list of unsupported objects
+          ro_html->add( li_log->to_html( ) ). " shows eg. list of unsupported objects
           ro_html->add( '</div>' ).
         ENDIF.
 
@@ -40827,10 +40813,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
     DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
           lv_logname_db TYPE ddprh-protname,
-          lo_log        TYPE REF TO zcl_abapgit_log.
+          li_log        TYPE REF TO zif_abapgit_log.
 
     FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
-
     lv_logname_db = iv_logname.
 
     CALL FUNCTION 'TR_READ_LOG'
@@ -40850,14 +40835,14 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
     DELETE lt_lines WHERE severity <> 'E'.
 
-    CREATE OBJECT lo_log.
+    CREATE OBJECT li_log TYPE zcl_abapgit_log.
 
     LOOP AT lt_lines ASSIGNING <ls_line>.
-      lo_log->add( <ls_line>-line ).
+      li_log->add( <ls_line>-line ).
     ENDLOOP.
 
-    IF lo_log->count( ) > 0.
-      lo_log->show( ).
+    IF li_log->count( ) > 0.
+      li_log->show( ).
     ENDIF.
 
   ENDMETHOD.
@@ -69294,7 +69279,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
     CREATE OBJECT lo_stage.
 
     LOOP AT ls_files-local ASSIGNING <ls_local>.
-      mo_log->add_info( |stage: {
+      mi_log->add_info( |stage: {
         <ls_local>-file-path } {
         <ls_local>-file-filename }| ).
       lo_stage->add( iv_path     = <ls_local>-file-path
@@ -69304,7 +69289,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
 
     LOOP AT ls_files-remote ASSIGNING <ls_remote>.
 
-      mo_log->add_info( |removed: {
+      mi_log->add_info( |removed: {
         <ls_remote>-path } {
         <ls_remote>-filename }| ).
 
@@ -69351,11 +69336,11 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
           lv_name    TYPE string,
           lv_email   TYPE string.
 
-    mo_log = io_log.
+    mi_log = ii_log.
     ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
-      io_log->add_info( 'Nothing to stage' ).
+      ii_log->add_info( 'Nothing to stage' ).
       RETURN.
     ENDIF.
 
@@ -69466,7 +69451,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
           changed_by = lv_changed_by
           TRANSPORTING NO FIELDS.
         IF sy-subrc = 0.
-          mo_log->add_info( |stage: {
+          mi_log->add_info( |stage: {
             ls_comment-committer-name } {
             <ls_local>-file-path } {
             <ls_local>-file-filename }| ).
@@ -69481,7 +69466,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
               WHERE filename = <ls_local>-file-filename
               AND path <> <ls_local>-file-path
               AND filename <> 'package.devc.xml'.
-            mo_log->add_info( |rm: {
+            mi_log->add_info( |rm: {
               <ls_remote>-path } {
               <ls_remote>-filename }| ).
 
@@ -69521,7 +69506,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     LOOP AT is_files-remote ASSIGNING <ls_remote>.
 
-      mo_log->add_info( |removed: {
+      mi_log->add_info( |removed: {
         <ls_remote>-path } {
         <ls_remote>-filename }| ).
 
@@ -69554,11 +69539,11 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     DATA: ls_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
-    mo_log = io_log.
+    mi_log = ii_log.
     ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
-      io_log->add_info( 'Nothing to stage' ) ##NO_TEXT.
+      ii_log->add_info( 'Nothing to stage' ) ##NO_TEXT.
       RETURN.
     ENDIF.
 
@@ -69632,7 +69617,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
           lo_repo       TYPE REF TO zcl_abapgit_repo_online,
           lt_list       TYPE zcl_abapgit_persist_background=>tt_background,
           li_background TYPE REF TO zif_abapgit_background,
-          lo_log        TYPE REF TO zcl_abapgit_log,
+          li_log        TYPE REF TO zif_abapgit_log,
           lv_repo_name  TYPE string.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
@@ -69665,15 +69650,15 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
         iv_username = <ls_list>-username
         iv_password = <ls_list>-password ).
 
-      CREATE OBJECT lo_log.
+      CREATE OBJECT li_log TYPE zcl_abapgit_log.
       CREATE OBJECT li_background TYPE (<ls_list>-method).
 
       li_background->run(
         io_repo     = lo_repo
-        io_log      = lo_log
+        ii_log      = li_log
         it_settings = <ls_list>-settings ).
 
-      lo_log->write( ).
+      li_log->write( ).
     ENDLOOP.
 
     IF lines( lt_list ) = 0.
@@ -70363,5 +70348,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-16T10:54:10.899Z
+* abapmerge undefined - 2019-03-17T08:41:39.885Z
 ****************************************************
