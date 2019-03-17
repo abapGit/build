@@ -428,7 +428,6 @@ INTERFACE zif_abapgit_stage_logic DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
-INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
@@ -442,8 +441,10 @@ INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
-INTERFACE zif_abapgit_gui_router DEFERRED.
+INTERFACE zif_abapgit_gui_renderable DEFERRED.
+INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
+INTERFACE zif_abapgit_gui_event_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
@@ -531,6 +532,7 @@ CLASS zcl_abapgit_html DEFINITION DEFERRED.
 CLASS zcl_abapgit_hotkeys DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
@@ -1020,24 +1022,7 @@ INTERFACE zif_abapgit_gui_asset_manager .
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_gui_page.
-
-  METHODS on_event
-    IMPORTING iv_action    TYPE clike
-              iv_prev_page TYPE clike
-              iv_getdata   TYPE clike OPTIONAL
-              it_postdata  TYPE cnht_post_data_tab OPTIONAL
-    EXPORTING ei_page      TYPE REF TO zif_abapgit_gui_page
-              ev_state     TYPE i
-    RAISING   zcx_abapgit_exception zcx_abapgit_cancel.
-
-  METHODS render
-    RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-    RAISING   zcx_abapgit_exception.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_router .
+INTERFACE zif_abapgit_gui_event_handler .
 
   METHODS on_event
     IMPORTING
@@ -1046,11 +1031,50 @@ INTERFACE zif_abapgit_gui_router .
       iv_getdata   TYPE clike OPTIONAL
       it_postdata  TYPE cnht_post_data_tab OPTIONAL
     EXPORTING
-      ei_page      TYPE REF TO zif_abapgit_gui_page
+      ei_page      TYPE REF TO zif_abapgit_gui_renderable
       ev_state     TYPE i
     RAISING
       zcx_abapgit_exception
       zcx_abapgit_cancel.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_page.
+
+  INTERFACES zif_abapgit_gui_event_handler.
+  INTERFACES zif_abapgit_gui_renderable.
+  ALIASES on_event FOR zif_abapgit_gui_event_handler~on_event.
+  ALIASES render FOR zif_abapgit_gui_renderable~render.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_page_hotkey.
+
+  TYPES:
+    BEGIN OF ty_hotkey_action,
+      name           TYPE string,
+      action         TYPE string,
+      default_hotkey TYPE string,
+    END OF ty_hotkey_action,
+    tty_hotkey_action TYPE STANDARD TABLE OF ty_hotkey_action
+                           WITH NON-UNIQUE DEFAULT KEY
+                           WITH NON-UNIQUE SORTED KEY action
+                                COMPONENTS action.
+
+  CLASS-METHODS
+    get_hotkey_actions
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_renderable .
+
+  METHODS render
+    RETURNING
+      VALUE(ro_html) TYPE REF TO zif_abapgit_html
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -2429,26 +2453,6 @@ INTERFACE zif_abapgit_git_operations .
       !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
     RAISING
       zcx_abapgit_exception .
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_page_hotkey.
-
-  TYPES:
-    BEGIN OF ty_hotkey_action,
-      name           TYPE string,
-      action         TYPE string,
-      default_hotkey TYPE string,
-    END OF ty_hotkey_action,
-    tty_hotkey_action TYPE STANDARD TABLE OF ty_hotkey_action
-                           WITH NON-UNIQUE DEFAULT KEY
-                           WITH NON-UNIQUE SORTED KEY action
-                                COMPONENTS action.
-
-  CLASS-METHODS
-    get_hotkey_actions
-      RETURNING
-        VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
 
@@ -8413,8 +8417,8 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS constructor
       IMPORTING
-        ii_router    TYPE REF TO zif_abapgit_gui_router
-        ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager
+        io_component TYPE REF TO object OPTIONAL
+        ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -8422,13 +8426,13 @@ CLASS zcl_abapgit_gui DEFINITION
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_page_stack,
-             page     TYPE REF TO zif_abapgit_gui_page,
+             page     TYPE REF TO zif_abapgit_gui_renderable,
              bookmark TYPE abap_bool,
            END OF ty_page_stack.
 
-    DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_page,
+    DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_renderable,
           mt_stack       TYPE STANDARD TABLE OF ty_page_stack,
-          mi_router      TYPE REF TO zif_abapgit_gui_router,
+          mi_router      TYPE REF TO zif_abapgit_gui_event_handler,
           mi_asset_man   TYPE REF TO zif_abapgit_gui_asset_manager,
           mo_html_viewer TYPE REF TO cl_gui_html_viewer.
 
@@ -8454,7 +8458,7 @@ CLASS zcl_abapgit_gui DEFINITION
       RETURNING VALUE(rv_page_name) TYPE string.
 
     METHODS call_page
-      IMPORTING ii_page          TYPE REF TO zif_abapgit_gui_page
+      IMPORTING ii_page          TYPE REF TO zif_abapgit_gui_renderable
                 iv_with_bookmark TYPE abap_bool DEFAULT abap_false
                 iv_replacing     TYPE abap_bool DEFAULT abap_false
       RAISING   zcx_abapgit_exception.
@@ -9906,7 +9910,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_router.
+    INTERFACES zif_abapgit_gui_event_handler.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -9923,7 +9927,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9932,7 +9936,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9941,7 +9945,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9956,7 +9960,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9965,7 +9969,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9974,7 +9978,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9983,7 +9987,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -9992,7 +9996,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !is_event_data TYPE ty_event_data
       EXPORTING
-        !ei_page       TYPE REF TO zif_abapgit_gui_page
+        !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
         zcx_abapgit_exception
@@ -10002,39 +10006,59 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !iv_getdata    TYPE clike
         !iv_prev_page  TYPE clike
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_branch_overview
       IMPORTING
         !iv_getdata    TYPE clike
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_stage
       IMPORTING
         !iv_getdata    TYPE clike
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_background
       IMPORTING
         !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_playground
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception
         zcx_abapgit_cancel .
     CLASS-METHODS jump_display_transport
       IMPORTING
         !iv_getdata TYPE clike .
+ENDCLASS.
+CLASS zcl_abapgit_gui_utils DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS is_renderable
+      IMPORTING
+        !io_obj TYPE REF TO object
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+    CLASS-METHODS is_event_handler
+      IMPORTING
+        !io_obj TYPE REF TO object
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_repo DEFINITION
   FINAL
@@ -22179,7 +22203,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_gui.
 
     DATA:
-      li_router    TYPE REF TO zif_abapgit_gui_router,
+      li_router    TYPE REF TO zif_abapgit_gui_event_handler,
       li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
     IF go_gui IS INITIAL.
@@ -22187,7 +22211,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
       CREATE OBJECT go_gui
         EXPORTING
-          ii_router    = li_router
+          io_component = li_router
           ii_asset_man = li_asset_man.
     ENDIF.
     ro_gui = go_gui.
@@ -22926,6 +22950,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  float: left;'.
     _inline '  margin: 0;'.
     _inline '  padding: 0;'.
+    _inline '  white-space: nowrap;'.
+    _inline '  text-align: left;'.
     _inline '}'.
     _inline '.nav-container.float-right ul { float: right; }'.
     _inline ''.
@@ -27910,7 +27936,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~render.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
 
     ro_html->add( '<div class="tutorial">' ).
     ro_html->add( render_content( ) ).
@@ -28489,7 +28515,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
 
     TRY.
 
@@ -28576,6 +28602,25 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
         ro_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
     ENDTRY.
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
+  METHOD is_event_handler.
+    DATA li_event_handler TYPE REF TO zif_abapgit_gui_event_handler.
+    TRY.
+        li_event_handler ?= io_obj.
+        rv_yes = abap_true.
+      CATCH cx_sy_move_cast_error ##NO_HANDLER.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD is_renderable.
+    DATA li_renderable TYPE REF TO zif_abapgit_gui_renderable.
+    TRY.
+        li_renderable ?= io_obj.
+        rv_yes = abap_true.
+      CATCH cx_sy_move_cast_error ##NO_HANDLER.
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -28947,7 +28992,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_router~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_event_data TYPE ty_event_data.
 
@@ -34529,7 +34574,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ENDIF.
 
     " Real page
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
 
     ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
     ro_html->add( '<html>' ).                               "#EC NOTEXT
@@ -35116,7 +35161,17 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    mi_router    = ii_router.
+    IF io_component IS BOUND.
+      IF zcl_abapgit_gui_utils=>is_renderable( io_component ) = abap_true.
+        mi_cur_page ?= io_component. " direct page
+      ELSE.
+        IF zcl_abapgit_gui_utils=>is_event_handler( io_component ) = abap_false.
+          zcx_abapgit_exception=>raise( 'Component must be renderable or be an event handler' ).
+        ENDIF.
+        mi_router ?= io_component.
+      ENDIF.
+    ENDIF.
+
     mi_asset_man = ii_asset_man.
     startup( ).
 
@@ -35131,18 +35186,32 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD go_home.
 
-    on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
+    DATA ls_stack LIKE LINE OF mt_stack.
+
+    IF mi_router IS BOUND.
+      on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
+    ELSE.
+      IF lines( mt_stack ) > 0.
+        READ TABLE mt_stack INTO ls_stack INDEX 1.
+        mi_cur_page = ls_stack-page.
+      ENDIF.
+      render( ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD handle_action.
 
     DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
-          li_page      TYPE REF TO zif_abapgit_gui_page,
+          li_page_eh   TYPE REF TO zif_abapgit_gui_event_handler,
+          li_page      TYPE REF TO zif_abapgit_gui_renderable,
           lv_state     TYPE i.
 
     TRY.
-        IF mi_cur_page IS BOUND.
-          mi_cur_page->on_event(
+        " Home must be processed by router if it presents
+        IF ( iv_action <> c_action-go_home OR mi_router IS NOT BOUND )
+          AND mi_cur_page IS BOUND AND zcl_abapgit_gui_utils=>is_event_handler( mi_cur_page ) = abap_true.
+          li_page_eh ?= mi_cur_page.
+          li_page_eh->on_event(
             EXPORTING
               iv_action    = iv_action
               iv_prev_page = get_current_page_name( )
@@ -35153,7 +35222,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
               ev_state     = lv_state ).
         ENDIF.
 
-        IF lv_state IS INITIAL.
+        IF lv_state IS INITIAL AND mi_router IS BOUND.
           mi_router->on_event(
             EXPORTING
               iv_action    = iv_action
@@ -35205,10 +35274,14 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD render.
 
     DATA: lv_url  TYPE w3url,
-          lo_html TYPE REF TO zcl_abapgit_html.
+          li_html TYPE REF TO zif_abapgit_html.
 
-    lo_html = mi_cur_page->render( ).
-    lv_url  = cache_html( lo_html->render( iv_no_indent_jscss = abap_true ) ).
+    IF mi_cur_page IS NOT BOUND.
+      zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
+    ENDIF.
+
+    li_html = mi_cur_page->render( ).
+    lv_url  = cache_html( li_html->render( iv_no_indent_jscss = abap_true ) ).
 
     mo_html_viewer->show_url( lv_url ).
 
@@ -35226,13 +35299,15 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         query_table_disabled = abap_true
         parent               = cl_gui_container=>screen0.
 
-    lt_assets = mi_asset_man->get_all_assets( ).
-    LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
-      cache_asset( iv_xdata   = <ls_asset>-content
-                   iv_url     = <ls_asset>-url
-                   iv_type    = <ls_asset>-type
-                   iv_subtype = <ls_asset>-subtype ).
-    ENDLOOP.
+    IF mi_asset_man IS BOUND.
+      lt_assets = mi_asset_man->get_all_assets( ).
+      LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
+        cache_asset( iv_xdata   = <ls_asset>-content
+                     iv_url     = <ls_asset>-url
+                     iv_type    = <ls_asset>-type
+                     iv_subtype = <ls_asset>-subtype ).
+      ENDLOOP.
+    ENDIF.
 
     ls_event-eventid    = mo_html_viewer->m_id_sapevent.
     ls_event-appl_event = abap_true.
@@ -70348,5 +70423,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-17T08:41:39.885Z
+* abapmerge undefined - 2019-03-17T08:45:04.126Z
 ****************************************************
