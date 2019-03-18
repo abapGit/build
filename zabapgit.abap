@@ -30502,9 +30502,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
           lv_check_variant TYPE sci_chkv.
     ls_settings = mo_repo->get_local_settings( ).
 
-    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'display_name'.
-    ASSERT sy-subrc = 0.
-    ls_settings-display_name = ls_post_field-value.
+    IF mo_repo->is_offline( ) = abap_false.
+      READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'display_name'.
+      ASSERT sy-subrc = 0.
+      ls_settings-display_name = ls_post_field-value.
+    ENDIF.
 
     READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'write_protected' value = 'on'.
     IF sy-subrc = 0.
@@ -70532,5 +70534,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-18T15:01:10.191Z
+* abapmerge undefined - 2019-03-18T15:13:19.612Z
 ****************************************************
