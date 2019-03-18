@@ -440,13 +440,13 @@ INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
+INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
+INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_renderable DEFERRED.
-INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_gui_event_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
-INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
@@ -528,11 +528,9 @@ CLASS zcl_abapgit_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_html DEFINITION DEFERRED.
 CLASS zcl_abapgit_hotkeys DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_view_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
@@ -555,12 +553,14 @@ CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
+CLASS zcl_abapgit_html DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui DEFINITION DEFERRED.
 CLASS zcl_abapgit_test_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
@@ -952,39 +952,6 @@ INTERFACE zif_abapgit_object_enhs.
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_frontend_services.
-  METHODS file_upload
-    IMPORTING
-      !iv_path       TYPE string
-    RETURNING
-      VALUE(rv_xstr) TYPE xstring
-    RAISING
-      zcx_abapgit_exception .
-  METHODS file_download
-    IMPORTING
-      !iv_path TYPE string
-      !iv_xstr TYPE xstring
-    RAISING
-      zcx_abapgit_exception .
-  METHODS show_file_save_dialog
-    IMPORTING
-      !iv_title            TYPE string
-      !iv_extension        TYPE string
-      !iv_default_filename TYPE string
-    RETURNING
-      VALUE(rv_path)       TYPE string
-    RAISING
-      zcx_abapgit_exception .
-  METHODS show_file_open_dialog
-    IMPORTING
-      !iv_title            TYPE string
-      !iv_default_filename TYPE string
-    RETURNING
-      VALUE(rv_path)       TYPE string
-    RAISING
-      zcx_abapgit_exception .
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
@@ -1036,26 +1003,6 @@ INTERFACE zif_abapgit_gui_event_handler .
     RAISING
       zcx_abapgit_exception
       zcx_abapgit_cancel.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_page_hotkey.
-
-  TYPES:
-    BEGIN OF ty_hotkey_action,
-      name           TYPE string,
-      action         TYPE string,
-      default_hotkey TYPE string,
-    END OF ty_hotkey_action,
-    tty_hotkey_action TYPE STANDARD TABLE OF ty_hotkey_action
-                           WITH NON-UNIQUE DEFAULT KEY
-                           WITH NON-UNIQUE SORTED KEY action
-                                COMPONENTS action.
-
-  CLASS-METHODS
-    get_hotkey_actions
-      RETURNING
-        VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
 
@@ -1133,6 +1080,59 @@ INTERFACE zif_abapgit_html.
       !iv_class     TYPE string OPTIONAL
     RETURNING
       VALUE(rv_str) TYPE string .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_frontend_services.
+  METHODS file_upload
+    IMPORTING
+      !iv_path       TYPE string
+    RETURNING
+      VALUE(rv_xstr) TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS file_download
+    IMPORTING
+      !iv_path TYPE string
+      !iv_xstr TYPE xstring
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_save_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_extension        TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS show_file_open_dialog
+    IMPORTING
+      !iv_title            TYPE string
+      !iv_default_filename TYPE string
+    RETURNING
+      VALUE(rv_path)       TYPE string
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_page_hotkey.
+
+  TYPES:
+    BEGIN OF ty_hotkey_action,
+      name           TYPE string,
+      action         TYPE string,
+      default_hotkey TYPE string,
+    END OF ty_hotkey_action,
+    tty_hotkey_action TYPE STANDARD TABLE OF ty_hotkey_action
+                           WITH NON-UNIQUE DEFAULT KEY
+                           WITH NON-UNIQUE SORTED KEY action
+                                COMPONENTS action.
+
+  CLASS-METHODS
+    get_hotkey_actions
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE tty_hotkey_action.
 
 ENDINTERFACE.
 
@@ -8372,17 +8372,6 @@ CLASS zcl_abapgit_test_serialize DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_frontend_services DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_frontend_services.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
   FINAL .
 
@@ -8405,15 +8394,24 @@ CLASS zcl_abapgit_gui DEFINITION
       END OF c_action.
 
     METHODS go_home
-      RAISING zcx_abapgit_exception.
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS back
-      IMPORTING iv_to_bookmark TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(rv_exit) TYPE abap_bool
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        iv_to_bookmark TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_exit) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
-      IMPORTING action frame getdata postdata query_table.
+      IMPORTING
+        action
+        frame
+        getdata
+        postdata
+        query_table.
 
     METHODS constructor
       IMPORTING
@@ -8425,10 +8423,11 @@ CLASS zcl_abapgit_gui DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_page_stack,
-             page     TYPE REF TO zif_abapgit_gui_renderable,
-             bookmark TYPE abap_bool,
-           END OF ty_page_stack.
+    TYPES:
+      BEGIN OF ty_page_stack,
+        page     TYPE REF TO zif_abapgit_gui_renderable,
+        bookmark TYPE abap_bool,
+      END OF ty_page_stack.
 
     DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_renderable,
           mt_stack       TYPE STANDARD TABLE OF ty_page_stack,
@@ -8437,38 +8436,48 @@ CLASS zcl_abapgit_gui DEFINITION
           mo_html_viewer TYPE REF TO cl_gui_html_viewer.
 
     METHODS startup
-      RAISING zcx_abapgit_exception.
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS cache_html
-      IMPORTING iv_text       TYPE string
-      RETURNING VALUE(rv_url) TYPE w3url.
+      IMPORTING
+        iv_text       TYPE string
+      RETURNING
+        VALUE(rv_url) TYPE w3url.
 
     METHODS cache_asset
-      IMPORTING iv_text       TYPE string OPTIONAL
-                iv_xdata      TYPE xstring OPTIONAL
-                iv_url        TYPE w3url OPTIONAL
-                iv_type       TYPE c
-                iv_subtype    TYPE c
-      RETURNING VALUE(rv_url) TYPE w3url.
+      IMPORTING
+        iv_text       TYPE string OPTIONAL
+        iv_xdata      TYPE xstring OPTIONAL
+        iv_url        TYPE w3url OPTIONAL
+        iv_type       TYPE c
+        iv_subtype    TYPE c
+      RETURNING
+        VALUE(rv_url) TYPE w3url.
 
     METHODS render
-      RAISING zcx_abapgit_exception.
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS get_current_page_name
-      RETURNING VALUE(rv_page_name) TYPE string.
+      RETURNING
+        VALUE(rv_page_name) TYPE string.
 
     METHODS call_page
-      IMPORTING ii_page          TYPE REF TO zif_abapgit_gui_renderable
-                iv_with_bookmark TYPE abap_bool DEFAULT abap_false
-                iv_replacing     TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        ii_page          TYPE REF TO zif_abapgit_gui_renderable
+        iv_with_bookmark TYPE abap_bool DEFAULT abap_false
+        iv_replacing     TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS handle_action
-      IMPORTING iv_action      TYPE c
-                iv_frame       TYPE c OPTIONAL
-                iv_getdata     TYPE c OPTIONAL
-                it_postdata    TYPE cnht_post_data_tab OPTIONAL
-                it_query_table TYPE cnht_query_table OPTIONAL.
+      IMPORTING
+        iv_action      TYPE c
+        iv_frame       TYPE c OPTIONAL
+        iv_getdata     TYPE c OPTIONAL
+        it_postdata    TYPE cnht_post_data_tab OPTIONAL
+        it_query_table TYPE cnht_query_table OPTIONAL.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
@@ -8514,6 +8523,99 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
       RAISING
         zcx_abapgit_exception.
 
+ENDCLASS.
+CLASS zcl_abapgit_gui_utils DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS is_renderable
+      IMPORTING
+        !io_obj TYPE REF TO object
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+    CLASS-METHODS is_event_handler
+      IMPORTING
+        !io_obj TYPE REF TO object
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_html DEFINITION
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_html.
+
+    ALIASES:
+      add      FOR zif_abapgit_html~add,
+      render   FOR zif_abapgit_html~render,
+      is_empty FOR zif_abapgit_html~is_empty,
+      add_a    FOR zif_abapgit_html~add_a,
+      a        FOR zif_abapgit_html~a,
+      icon     FOR zif_abapgit_html~icon.
+
+    CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
+
+    CLASS-METHODS class_constructor .
+    METHODS add_icon
+      IMPORTING
+        !iv_name  TYPE string
+        !iv_hint  TYPE string OPTIONAL
+        !iv_class TYPE string OPTIONAL .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
+
+    DATA: mt_buffer TYPE string_table.
+
+    TYPES:
+      BEGIN OF ty_indent_context,
+        no_indent_jscss TYPE abap_bool,
+        within_style    TYPE abap_bool,
+        within_js       TYPE abap_bool,
+        indent          TYPE i,
+        indent_str      TYPE string,
+      END OF ty_indent_context,
+
+      BEGIN OF ty_study_result,
+        style_open   TYPE abap_bool,
+        style_close  TYPE abap_bool,
+        script_open  TYPE abap_bool,
+        script_close TYPE abap_bool,
+        tag_close    TYPE abap_bool,
+        curly_close  TYPE abap_bool,
+        openings     TYPE i,
+        closings     TYPE i,
+        singles      TYPE i,
+      END OF ty_study_result.
+
+    METHODS indent_line
+      CHANGING
+        cs_context TYPE ty_indent_context
+        cv_line    TYPE string.
+
+    METHODS study_line
+      IMPORTING
+        iv_line          TYPE string
+        is_context       TYPE ty_indent_context
+      RETURNING
+        VALUE(rs_result) TYPE ty_study_result.
+
+ENDCLASS.
+CLASS zcl_abapgit_frontend_services DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_frontend_services.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION
   FINAL
@@ -8933,6 +9035,15 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
       IMPORTING
         !io_html   TYPE REF TO zcl_abapgit_html
         !it_result TYPE scit_alvlist .
+    METHODS render_result_line
+      IMPORTING
+        !io_html   TYPE REF TO zcl_abapgit_html
+        !is_result TYPE scir_alvlist .
+    METHODS build_nav_link
+      IMPORTING
+        !is_result TYPE scir_alvlist
+      RETURNING
+        VALUE(rv_link) TYPE string.
     METHODS jump
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
@@ -8941,7 +9052,8 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
-    CONSTANTS: c_object_separator TYPE char1 VALUE '|'.
+    CONSTANTS c_object_separator TYPE char1 VALUE '|'.
+    CONSTANTS c_ci_sig TYPE string VALUE 'cinav:'.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
@@ -10040,26 +10152,6 @@ CLASS zcl_abapgit_gui_router DEFINITION
       IMPORTING
         !iv_getdata TYPE clike .
 ENDCLASS.
-CLASS zcl_abapgit_gui_utils DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS is_renderable
-      IMPORTING
-        !io_obj TYPE REF TO object
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
-    CLASS-METHODS is_event_handler
-      IMPORTING
-        !io_obj TYPE REF TO object
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_gui_view_repo DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -10193,66 +10285,6 @@ CLASS zcl_abapgit_hotkeys DEFINITION
 
   PRIVATE SECTION.
     CLASS-DATA gv_hint_was_shown TYPE abap_bool.
-
-ENDCLASS.
-CLASS zcl_abapgit_html DEFINITION
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_html.
-
-    ALIASES:
-      add      FOR zif_abapgit_html~add,
-      render   FOR zif_abapgit_html~render,
-      is_empty FOR zif_abapgit_html~is_empty,
-      add_a    FOR zif_abapgit_html~add_a,
-      a        FOR zif_abapgit_html~a,
-      icon     FOR zif_abapgit_html~icon.
-
-    CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
-
-    CLASS-METHODS class_constructor .
-    METHODS add_icon
-      IMPORTING
-        !iv_name  TYPE string
-        !iv_hint  TYPE string OPTIONAL
-        !iv_class TYPE string OPTIONAL .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
-
-    DATA: mt_buffer TYPE string_table.
-
-    TYPES:
-      BEGIN OF ty_indent_context,
-        no_indent_jscss TYPE abap_bool,
-        within_style    TYPE abap_bool,
-        within_js       TYPE abap_bool,
-        indent          TYPE i,
-        indent_str      TYPE string,
-      END OF ty_indent_context,
-
-      BEGIN OF ty_study_result,
-        style_open   TYPE abap_bool,
-        style_close  TYPE abap_bool,
-        script_open  TYPE abap_bool,
-        script_close TYPE abap_bool,
-        tag_close    TYPE abap_bool,
-        curly_close  TYPE abap_bool,
-        openings     TYPE i,
-        closings     TYPE i,
-        singles      TYPE i,
-      END OF ty_study_result.
-
-    METHODS indent_line
-      CHANGING
-        cs_context TYPE ty_indent_context
-        cv_line    TYPE string.
-
-    METHODS study_line
-      IMPORTING iv_line          TYPE string
-                is_context       TYPE ty_indent_context
-      RETURNING VALUE(rs_result) TYPE ty_study_result.
 
 ENDCLASS.
 CLASS zcl_abapgit_html_action_utils DEFINITION
@@ -10904,6 +10936,11 @@ CLASS zcl_abapgit_convert DEFINITION
         iv_spras        TYPE spras
       RETURNING
         VALUE(rv_spras) TYPE laiso.
+    CLASS-METHODS alpha_output
+      IMPORTING
+        iv_val        TYPE clike
+      RETURNING
+        VALUE(rv_str) TYPE string.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -22049,6 +22086,17 @@ CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
+  METHOD alpha_output.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+      EXPORTING
+        input  = iv_val
+      IMPORTING
+        output = rv_str.
+
+    CONDENSE rv_str.
+
+  ENDMETHOD.
   METHOD bitbyte_to_int.
 
     DATA: lv_bitbyte TYPE string,
@@ -23272,6 +23320,46 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.gitGraph-HTopScroller {'.
     _inline '  width:1000px; '.
     _inline '  height: 20px; '.
+    _inline '}'.
+    _inline ''.
+    _inline '/* code inspector */'.
+    _inline '.ci-head {'.
+    _inline '  background-color: #f2f2f2;'.
+    _inline '  padding: 0.5em 1em;'.
+    _inline '}'.
+    _inline '.ci-head .package-name span {'.
+    _inline '  margin-left: 0.3em;'.
+    _inline '  color: grey;'.
+    _inline '}'.
+    _inline '.ci-variant {'.
+    _inline '  font-weight: bold;'.
+    _inline '  color: #444;'.
+    _inline '}'.
+    _inline '.ci-result {'.
+    _inline '  background-color: #f6f6f6;'.
+    _inline '  padding: 6px;'.
+    _inline '  margin-top: 4px;'.
+    _inline '}'.
+    _inline '.ci-result li {'.
+    _inline '  list-style-type: none;'.
+    _inline '  padding: 0.3em 0.8em;'.
+    _inline '  margin-top: 6px;'.
+    _inline '  color: #444;'.
+    _inline '}'.
+    _inline '.ci-result li:first-child {'.
+    _inline '  margin-top: 0px;'.
+    _inline '}'.
+    _inline '.ci-result li.ci-error {'.
+    _inline '  border-left: 4px solid #cd5353;'.
+    _inline '}'.
+    _inline '.ci-result li.ci-warning {'.
+    _inline '  border-left: 4px solid #ecd227;'.
+    _inline '}'.
+    _inline '.ci-result li.ci-info {'.
+    _inline '  border-left: 4px solid #acacac;'.
+    _inline '}'.
+    _inline '.ci-result li span {'.
+    _inline '  display: block;'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
@@ -27517,267 +27605,6 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
-  METHOD a.
-
-    DATA: lv_class TYPE string,
-          lv_href  TYPE string,
-          lv_click TYPE string,
-          lv_id    TYPE string,
-          lv_style TYPE string,
-          lv_span  TYPE string.
-
-    lv_class = iv_class.
-
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
-      lv_class = lv_class && ' emphasis' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
-      lv_class = lv_class && ' attention' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
-      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
-    ENDIF.
-    IF lv_class IS NOT INITIAL.
-      SHIFT lv_class LEFT DELETING LEADING space.
-      lv_class = | class="{ lv_class }"|.
-    ENDIF.
-
-    lv_href  = ' href="#"'. " Default, dummy
-    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
-      CASE iv_typ.
-        WHEN zif_abapgit_html=>c_action_type-url.
-          lv_href  = | href="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-sapevent.
-          lv_href  = | href="sapevent:{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-onclick.
-          lv_href  = ' href="#"'.
-          lv_click = | onclick="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-dummy.
-          lv_href  = ' href="#"'.
-      ENDCASE.
-    ENDIF.
-
-    IF iv_id IS NOT INITIAL.
-      lv_id = | id="{ iv_id }"|.
-    ENDIF.
-
-    IF iv_style IS NOT INITIAL.
-      lv_style = | style="{ iv_style }"|.
-    ENDIF.
-
-    lv_span = |<span class="tooltiptext hidden"></span>|.
-
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ lv_span }</a>|.
-
-  ENDMETHOD.
-  METHOD add.
-
-    DATA: lv_type TYPE c,
-          lo_html TYPE REF TO zcl_abapgit_html.
-
-    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
-
-    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
-
-    CASE lv_type.
-      WHEN 'C' OR 'g'.  " Char or string
-        APPEND ig_chunk TO mt_buffer.
-      WHEN 'h'.         " Table
-        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
-        APPEND LINES OF <lt_tab> TO mt_buffer.
-      WHEN 'r'.         " Object ref
-        ASSERT ig_chunk IS BOUND. " Dev mistake
-        TRY.
-            lo_html ?= ig_chunk.
-          CATCH cx_sy_move_cast_error.
-            ASSERT 1 = 0. " Dev mistake
-        ENDTRY.
-        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
-      WHEN OTHERS.
-        ASSERT 1 = 0. " Dev mistake
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD add_a.
-
-    add( a( iv_txt   = iv_txt
-            iv_act   = iv_act
-            iv_typ   = iv_typ
-            iv_opt   = iv_opt
-            iv_class = iv_class
-            iv_id    = iv_id
-            iv_style = iv_style ) ).
-
-  ENDMETHOD.
-  METHOD add_icon.
-
-    add( icon( iv_name  = iv_name
-               iv_class = iv_class
-               iv_hint  = iv_hint ) ).
-
-  ENDMETHOD.
-  METHOD class_constructor.
-    CREATE OBJECT go_single_tags_re
-      EXPORTING
-        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
-        ignore_case = abap_false.
-  ENDMETHOD.
-  METHOD icon.
-
-    DATA: lv_hint          TYPE string,
-          lv_name          TYPE string,
-          lv_color         TYPE string,
-          lv_class         TYPE string,
-          lv_large_icon    TYPE string,
-          lv_xpixel        TYPE i.
-
-    SPLIT iv_name AT '/' INTO lv_name lv_color.
-
-    IF iv_hint IS NOT INITIAL.
-      lv_hint  = | title="{ iv_hint }"|.
-    ENDIF.
-    IF iv_class IS NOT INITIAL.
-      lv_class = | { iv_class }|.
-    ENDIF.
-    IF lv_color IS NOT INITIAL.
-      lv_color = | { lv_color }|.
-    ENDIF.
-
-    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X' in = 1 ).
-    IF lv_xpixel >= 2.
-      lv_large_icon = ' large'.
-    ENDIF.
-
-    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
-
-  ENDMETHOD.
-  METHOD indent_line.
-
-    DATA: ls_study TYPE ty_study_result,
-          lv_x_str TYPE string.
-
-    ls_study = study_line(
-      is_context = cs_context
-      iv_line    = cv_line ).
-
-    " First closing tag - shift back exceptionally
-    IF (  ls_study-script_close = abap_true
-       OR ls_study-style_close = abap_true
-       OR ls_study-curly_close = abap_true
-       OR ls_study-tag_close = abap_true )
-       AND cs_context-indent > 0.
-      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
-      cv_line  = lv_x_str && cv_line.
-    ELSE.
-      cv_line = cs_context-indent_str && cv_line.
-    ENDIF.
-
-    " Context status update
-    CASE abap_true.
-      WHEN ls_study-script_open.
-        cs_context-within_js    = abap_true.
-        cs_context-within_style = abap_false.
-      WHEN ls_study-style_open.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_true.
-      WHEN ls_study-script_close OR ls_study-style_close.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_false.
-        ls_study-closings       = ls_study-closings + 1.
-    ENDCASE.
-
-    " More-less logic chosen due to possible double tags in a line '<a><b>'
-    IF ls_study-openings <> ls_study-closings.
-      IF ls_study-openings > ls_study-closings.
-        cs_context-indent = cs_context-indent + 1.
-      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
-        cs_context-indent = cs_context-indent - 1.
-      ENDIF.
-      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD is_empty.
-    rv_yes = boolc( lines( mt_buffer ) = 0 ).
-  ENDMETHOD.
-  METHOD render.
-
-    DATA: ls_context TYPE ty_indent_context,
-          lt_temp    TYPE string_table.
-
-    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
-                   <lv_line_c> LIKE LINE OF lt_temp.
-
-    ls_context-no_indent_jscss = iv_no_indent_jscss.
-
-    LOOP AT mt_buffer ASSIGNING <lv_line>.
-      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
-      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
-    ENDLOOP.
-
-    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
-
-  ENDMETHOD.
-  METHOD study_line.
-
-    DATA: lv_line TYPE string,
-          lv_len  TYPE i.
-
-    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
-    lv_len  = strlen( lv_line ).
-
-    " Some assumptions for simplification and speed
-    " - style & scripts tag should be opened/closed in a separate line
-    " - style & scripts opening and closing in one line is possible but only once
-
-    " TODO & Issues
-    " - What if the string IS a well formed html already not just single line ?
-
-    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
-
-      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
-        rs_result-script_close = abap_true.
-      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
-        rs_result-style_close = abap_true.
-      ENDIF.
-
-      IF is_context-no_indent_jscss = abap_false.
-        IF lv_len >= 1 AND lv_line(1) = '}'.
-          rs_result-curly_close = abap_true.
-        ENDIF.
-
-        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
-        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
-      ENDIF.
-
-    ELSE.
-      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
-        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-script_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
-        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-style_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 2 AND lv_line(2) = '</'.
-        rs_result-tag_close = abap_true.
-      ENDIF.
-
-      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
-      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
-      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
-      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
-
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   METHOD get_default_hotkeys_from_pages.
 
@@ -28602,25 +28429,6 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
         ro_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
     ENDTRY.
 
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
-  METHOD is_event_handler.
-    DATA li_event_handler TYPE REF TO zif_abapgit_gui_event_handler.
-    TRY.
-        li_event_handler ?= io_obj.
-        rv_yes = abap_true.
-      CATCH cx_sy_move_cast_error ##NO_HANDLER.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD is_renderable.
-    DATA li_renderable TYPE REF TO zif_abapgit_gui_renderable.
-    TRY.
-        li_renderable ?= io_obj.
-        rv_yes = abap_true.
-      CATCH cx_sy_move_cast_error ##NO_HANDLER.
-    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -32096,6 +31904,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     ls_hotkey_action-default_hotkey = |d|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-name           = |Run code inspector|.
+    ls_hotkey_action-action         = zif_abapgit_definitions=>c_action-repo_code_inspector.
+    ls_hotkey_action-default_hotkey = |i|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
 
@@ -33396,6 +33209,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
+  METHOD build_nav_link.
+
+    rv_link = |{ c_ci_sig }| &&
+      |{ is_result-objtype }{ is_result-objname }| &&
+      |{ c_object_separator }{ is_result-sobjtype }{ is_result-sobjname }| &&
+      |{ c_object_separator }{ is_result-line }|.
+
+  ENDMETHOD.
   METHOD jump.
 
     DATA: lo_test               TYPE REF TO cl_ci_test_root,
@@ -33463,88 +33284,93 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   METHOD render_result.
 
     CONSTANTS: lc_limit TYPE i VALUE 500.
-
-    DATA: lv_class TYPE string,
-          lv_line  TYPE string.
-
     FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+
+    io_html->add( '<div class="ci-result">' ).
+
     LOOP AT it_result ASSIGNING <ls_result> TO lc_limit.
-
-      io_html->add( '<div>' ).
-      IF <ls_result>-sobjname IS INITIAL OR
-         ( <ls_result>-sobjname = <ls_result>-objname AND
-           <ls_result>-sobjtype = <ls_result>-sobjtype ).
-        io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }|
-                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
-                                 |{ c_object_separator }{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_html=>c_action_type-sapevent ).
-
-      ELSE.
-        io_html->add_a( iv_txt = |{ <ls_result>-objtype } { <ls_result>-objname }| &&
-                                 | < { <ls_result>-sobjtype } { <ls_result>-sobjname }|
-                        iv_act = |{ <ls_result>-objtype }{ <ls_result>-objname }| &&
-                                 |{ c_object_separator }{ <ls_result>-sobjtype }{ <ls_result>-sobjname }| &&
-                                 |{ c_object_separator }{ <ls_result>-line }|
-                        iv_typ = zif_abapgit_html=>c_action_type-sapevent ).
-
-      ENDIF.
-      io_html->add( '</div>' ).
-
-      CASE <ls_result>-kind.
-        WHEN 'E'.
-          lv_class = 'error'.
-        WHEN 'W'.
-          lv_class = 'warning'.
-        WHEN OTHERS.
-          lv_class = 'grey'.
-      ENDCASE.
-
-      CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
-        EXPORTING
-          input  = <ls_result>-line
-        IMPORTING
-          output = lv_line.
-
-      io_html->add( |<div class="{ lv_class }">Line { lv_line }: { <ls_result>-text }</div><br>| ).
-
+      render_result_line(
+        io_html = io_html
+        is_result = <ls_result> ).
     ENDLOOP.
 
+    io_html->add( '</div>' ).
+
     IF lines( it_result ) > lc_limit.
+      io_html->add( '<div class="dummydiv warning">' ).
+      io_html->add( zcl_abapgit_html=>icon( 'exclamation-triangle' ) ).
       io_html->add( |Only first { lc_limit } findings shown in list!| ).
+      io_html->add( '</div>' ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD render_result_line.
+
+    DATA: lv_class   TYPE string,
+          lv_obj_txt TYPE string,
+          lv_msg     TYPE string.
+
+    CASE is_result-kind.
+      WHEN 'E'.
+        lv_class = 'ci-error'.
+      WHEN 'W'.
+        lv_class = 'ci-warning'.
+      WHEN OTHERS.
+        lv_class = 'ci-info'.
+    ENDCASE.
+
+    lv_msg = escape( val = is_result-text format = cl_abap_format=>e_html_attr ).
+
+    IF is_result-sobjname IS INITIAL OR
+       ( is_result-sobjname = is_result-objname AND
+         is_result-sobjtype = is_result-sobjtype ).
+      lv_obj_txt = |{ is_result-objtype } { is_result-objname }|.
+    ELSE.
+      lv_obj_txt = |{ is_result-objtype } { is_result-objname } &gt; { is_result-sobjtype } { is_result-sobjname }|.
+    ENDIF.
+    lv_obj_txt = |{ lv_obj_txt } [ @{ zcl_abapgit_convert=>alpha_output( is_result-line ) } ]|.
+
+    io_html->add( |<li class="{ lv_class }">| ).
+    io_html->add_a(
+      iv_txt = lv_obj_txt
+      iv_act = build_nav_link( is_result )
+      iv_typ = zif_abapgit_html=>c_action_type-sapevent ).
+    io_html->add( |<span>{ lv_msg }</span>| ).
+    io_html->add( '</li>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_page~on_event.
     DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
           ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
+          lv_temp          TYPE string,
           lv_main_object   TYPE string,
           lv_sub_object    TYPE string,
           lv_line_number_s TYPE string,
           lv_line_number   TYPE i.
-    CASE iv_action.
 
-      WHEN zif_abapgit_definitions=>c_action-abapgit_home.
-        RETURN.
+    lv_temp = iv_action.
+    SHIFT lv_temp LEFT DELETING LEADING c_ci_sig.
 
-      WHEN OTHERS.
-        SPLIT iv_action AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
-        ls_item-obj_type = lv_main_object(4).
-        ls_item-obj_name = lv_main_object+4(*).
+    IF lv_temp <> iv_action. " CI navigation request detected
 
-        IF lv_sub_object IS NOT INITIAL.
-          ls_sub_item-obj_type = lv_sub_object(4).
-          ls_sub_item-obj_name = lv_sub_object+4(*).
-        ENDIF.
+      SPLIT lv_temp AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
+      ls_item-obj_type = lv_main_object(4).
+      ls_item-obj_name = lv_main_object+4(*).
 
-        lv_line_number = lv_line_number_s.
+      IF lv_sub_object IS NOT INITIAL.
+        ls_sub_item-obj_type = lv_sub_object(4).
+        ls_sub_item-obj_name = lv_sub_object+4(*).
+      ENDIF.
 
-        jump( is_item        = ls_item
-              is_sub_item    = ls_sub_item
-              iv_line_number = lv_line_number ).
+      lv_line_number = lv_line_number_s.
 
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      jump( is_item        = ls_item
+            is_sub_item    = ls_sub_item
+            iv_line_number = lv_line_number ).
 
-    ENDCASE.
+      ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -33655,26 +33481,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     IF mv_check_variant IS INITIAL.
-      ro_html->add( |No check variant supplied.| ).
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_error( iv_error = 'No check variant supplied.' ) ).
       RETURN.
     ENDIF.
 
-    ro_html->add( '<div class="toc"><br/>' ).
-
-    ro_html->add( |Code inspector check variant: {
-                    mv_check_variant
-                  }<br/>| ).
+    ro_html->add( '<div class="ci-head">' ).
+    ro_html->add( |Code inspector check variant: <span class="ci-variant">{ mv_check_variant }</span>| ).
+    ro_html->add( |<div class="float-right package-name">{
+      zcl_abapgit_html=>icon( 'box/grey70' ) }<span>{
+      mo_repo->get_package( ) }</span></div>| ).
+    ro_html->add( '</div>' ).
 
     IF lines( mt_result ) = 0.
-      ro_html->add( '<br/><div class="success">No code inspector findings</div>' ).
+      ro_html->add( '<div class="dummydiv success">' ).
+      ro_html->add( zcl_abapgit_html=>icon( 'check' ) ).
+      ro_html->add( 'No code inspector findings' ).
+      ro_html->add( '</div>' ).
+    ELSE.
+      render_result(
+        io_html   = ro_html
+        it_result = mt_result ).
     ENDIF.
-
-    ro_html->add( |<br/>| ).
-
-    render_result( io_html   = ro_html
-                   it_result = mt_result ).
-
-    ro_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD run_code_inspector.
@@ -34962,363 +34789,6 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
-  METHOD get_mime_asset.
-
-    DATA: ls_key    TYPE wwwdatatab,
-          lv_size_c TYPE wwwparams-value,
-          lv_size   TYPE i,
-          lt_w3mime TYPE STANDARD TABLE OF w3mime.
-
-    ls_key-relid = 'MI'.
-    ls_key-objid = iv_mime_name.
-
-    " Get exact file size
-    CALL FUNCTION 'WWWPARAMS_READ'
-      EXPORTING
-        relid            = ls_key-relid
-        objid            = ls_key-objid
-        name             = 'filesize'
-      IMPORTING
-        value            = lv_size_c
-      EXCEPTIONS
-        entry_not_exists = 1.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    lv_size = lv_size_c.
-
-    " Get binary data
-    CALL FUNCTION 'WWWDATA_IMPORT'
-      EXPORTING
-        key               = ls_key
-      TABLES
-        mime              = lt_w3mime
-      EXCEPTIONS
-        wrong_object_type = 1
-        import_error      = 2.
-
-    IF sy-subrc IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-
-    rv_xdata = zcl_abapgit_string_utils=>bintab_to_xstring(
-      iv_size   = lv_size
-      it_bintab = lt_w3mime ).
-
-  ENDMETHOD.
-  METHOD load_asset.
-
-    MOVE-CORRESPONDING is_asset_entry TO rs_asset.
-    IF rs_asset-content IS INITIAL AND is_asset_entry-mime_name IS NOT INITIAL.
-      " inline content has the priority
-      rs_asset-content = get_mime_asset( is_asset_entry-mime_name ).
-    ENDIF.
-    IF rs_asset-content IS INITIAL.
-      zcx_abapgit_exception=>raise( |failed to load GUI asset: { is_asset_entry-url }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD register_asset.
-
-    DATA ls_asset LIKE LINE OF mt_asset_register.
-
-    SPLIT iv_type AT '/' INTO ls_asset-type ls_asset-subtype.
-    ls_asset-url          = iv_url.
-    ls_asset-mime_name    = iv_mime_name.
-    ls_asset-is_cacheable = iv_cachable.
-    IF iv_base64 IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( iv_base64 ).
-    ELSEIF iv_inline IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_string_utils=>string_to_xstring( iv_inline ).
-    ENDIF.
-
-    APPEND ls_asset TO mt_asset_register.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_asset_manager~get_all_assets.
-
-    FIELD-SYMBOLS <ls_a> LIKE LINE OF mt_asset_register.
-
-    LOOP AT mt_asset_register ASSIGNING <ls_a>.
-      APPEND load_asset( <ls_a> ) TO rt_assets.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_asset_manager~get_asset.
-
-    FIELD-SYMBOLS <ls_a> LIKE LINE of mt_asset_register.
-
-    READ TABLE mt_asset_register WITH KEY url = iv_url ASSIGNING <ls_a>.
-    IF <ls_a> IS NOT ASSIGNED.
-      zcx_abapgit_exception=>raise( |Cannot find GUI asset: { iv_url }| ).
-    ENDIF.
-    rs_asset = load_asset( <ls_a> ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_asset_manager~get_text_asset.
-
-    DATA ls_asset TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
-    ls_asset = me->zif_abapgit_gui_asset_manager~get_asset( iv_url ).
-
-    rv_asset = cl_bcs_convert=>xstring_to_string(
-      iv_xstr = ls_asset-content
-      iv_cp   = '4110' ). " UTF8
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
-  METHOD back.
-
-    DATA: lv_index TYPE i,
-          ls_stack LIKE LINE OF mt_stack.
-
-    lv_index = lines( mt_stack ).
-
-    IF lv_index = 0.
-      rv_exit = abap_true.
-      RETURN.
-    ENDIF.
-
-    DO lv_index TIMES.
-      READ TABLE mt_stack INDEX lv_index INTO ls_stack.
-      ASSERT sy-subrc = 0.
-
-      DELETE mt_stack INDEX lv_index.
-      ASSERT sy-subrc = 0.
-
-      lv_index = lv_index - 1.
-
-      IF iv_to_bookmark = abap_false OR ls_stack-bookmark = abap_true.
-        EXIT.
-      ENDIF.
-    ENDDO.
-
-    mi_cur_page = ls_stack-page. " last page always stays
-    render( ).
-
-  ENDMETHOD.
-  METHOD cache_asset.
-
-    DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE int4.
-
-    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
-
-    IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_string_utils=>string_to_xstring( iv_text ).
-    ELSE. " Raw input
-      lv_xstr = iv_xdata.
-    ENDIF.
-
-    zcl_abapgit_string_utils=>xstring_to_bintab(
-      EXPORTING
-        iv_xstr   = lv_xstr
-      IMPORTING
-        ev_size   = lv_size
-        et_bintab = lt_xdata ).
-
-    mo_html_viewer->load_data(
-      EXPORTING
-        type         = iv_type
-        subtype      = iv_subtype
-        size         = lv_size
-        url          = iv_url
-      IMPORTING
-        assigned_url = rv_url
-      CHANGING
-        data_table   = lt_xdata
-      EXCEPTIONS
-        OTHERS       = 1 ) ##NO_TEXT.
-
-    ASSERT sy-subrc = 0. " Image data error
-
-  ENDMETHOD.
-  METHOD cache_html.
-
-    rv_url = cache_asset( iv_text    = iv_text
-                          iv_type    = 'text'
-                          iv_subtype = 'html' ).
-
-  ENDMETHOD.
-  METHOD call_page.
-
-    DATA: ls_stack TYPE ty_page_stack.
-
-    IF iv_replacing = abap_false AND NOT mi_cur_page IS INITIAL.
-      ls_stack-page     = mi_cur_page.
-      ls_stack-bookmark = iv_with_bookmark.
-      APPEND ls_stack TO mt_stack.
-    ENDIF.
-
-    mi_cur_page = ii_page.
-    render( ).
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    IF io_component IS BOUND.
-      IF zcl_abapgit_gui_utils=>is_renderable( io_component ) = abap_true.
-        mi_cur_page ?= io_component. " direct page
-      ELSE.
-        IF zcl_abapgit_gui_utils=>is_event_handler( io_component ) = abap_false.
-          zcx_abapgit_exception=>raise( 'Component must be renderable or be an event handler' ).
-        ENDIF.
-        mi_router ?= io_component.
-      ENDIF.
-    ENDIF.
-
-    mi_asset_man = ii_asset_man.
-    startup( ).
-
-  ENDMETHOD.
-  METHOD get_current_page_name.
-    IF mi_cur_page IS BOUND.
-      rv_page_name =
-        cl_abap_classdescr=>describe_by_object_ref( mi_cur_page
-          )->get_relative_name( ).
-    ENDIF." ELSE - return is empty => initial page
-
-  ENDMETHOD.
-  METHOD go_home.
-
-    DATA ls_stack LIKE LINE OF mt_stack.
-
-    IF mi_router IS BOUND.
-      on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
-    ELSE.
-      IF lines( mt_stack ) > 0.
-        READ TABLE mt_stack INTO ls_stack INDEX 1.
-        mi_cur_page = ls_stack-page.
-      ENDIF.
-      render( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD handle_action.
-
-    DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
-          li_page_eh   TYPE REF TO zif_abapgit_gui_event_handler,
-          li_page      TYPE REF TO zif_abapgit_gui_renderable,
-          lv_state     TYPE i.
-
-    TRY.
-        " Home must be processed by router if it presents
-        IF ( iv_action <> c_action-go_home OR mi_router IS NOT BOUND )
-          AND mi_cur_page IS BOUND AND zcl_abapgit_gui_utils=>is_event_handler( mi_cur_page ) = abap_true.
-          li_page_eh ?= mi_cur_page.
-          li_page_eh->on_event(
-            EXPORTING
-              iv_action    = iv_action
-              iv_prev_page = get_current_page_name( )
-              iv_getdata   = iv_getdata
-              it_postdata  = it_postdata
-            IMPORTING
-              ei_page      = li_page
-              ev_state     = lv_state ).
-        ENDIF.
-
-        IF lv_state IS INITIAL AND mi_router IS BOUND.
-          mi_router->on_event(
-            EXPORTING
-              iv_action    = iv_action
-              iv_prev_page = get_current_page_name( )
-              iv_getdata   = iv_getdata
-              it_postdata  = it_postdata
-            IMPORTING
-              ei_page      = li_page
-              ev_state     = lv_state ).
-        ENDIF.
-
-        CASE lv_state.
-          WHEN c_event_state-re_render.
-            render( ).
-          WHEN c_event_state-new_page.
-            call_page( li_page ).
-          WHEN c_event_state-new_page_w_bookmark.
-            call_page( ii_page = li_page iv_with_bookmark = abap_true ).
-          WHEN c_event_state-new_page_replacing.
-            call_page( ii_page = li_page iv_replacing = abap_true ).
-          WHEN c_event_state-go_back.
-            back( ).
-          WHEN c_event_state-go_back_to_bookmark.
-            back( abap_true ).
-          WHEN c_event_state-no_more_act.
-            " Do nothing, handling completed
-          WHEN OTHERS.
-            zcx_abapgit_exception=>raise( |Unknown action: { iv_action }| ).
-        ENDCASE.
-
-      CATCH zcx_abapgit_exception INTO lx_exception.
-        ROLLBACK WORK.
-        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
-      CATCH zcx_abapgit_cancel ##NO_HANDLER.
-        " Do nothing = gc_event_state-no_more_act
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD on_event.
-
-    handle_action(
-      iv_action      = action
-      iv_frame       = frame
-      iv_getdata     = getdata
-      it_postdata    = postdata
-      it_query_table = query_table ).
-
-  ENDMETHOD.
-  METHOD render.
-
-    DATA: lv_url  TYPE w3url,
-          li_html TYPE REF TO zif_abapgit_html.
-
-    IF mi_cur_page IS NOT BOUND.
-      zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
-    ENDIF.
-
-    li_html = mi_cur_page->render( ).
-    lv_url  = cache_html( li_html->render( iv_no_indent_jscss = abap_true ) ).
-
-    mo_html_viewer->show_url( lv_url ).
-
-  ENDMETHOD.
-  METHOD startup.
-
-    DATA: lt_events TYPE cntl_simple_events,
-          ls_event  LIKE LINE OF lt_events,
-          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
-
-    FIELD-SYMBOLS <ls_asset> LIKE LINE OF lt_assets.
-
-    CREATE OBJECT mo_html_viewer
-      EXPORTING
-        query_table_disabled = abap_true
-        parent               = cl_gui_container=>screen0.
-
-    IF mi_asset_man IS BOUND.
-      lt_assets = mi_asset_man->get_all_assets( ).
-      LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
-        cache_asset( iv_xdata   = <ls_asset>-content
-                     iv_url     = <ls_asset>-url
-                     iv_type    = <ls_asset>-type
-                     iv_subtype = <ls_asset>-subtype ).
-      ENDLOOP.
-    ENDIF.
-
-    ls_event-eventid    = mo_html_viewer->m_id_sapevent.
-    ls_event-appl_event = abap_true.
-    APPEND ls_event TO lt_events.
-
-    mo_html_viewer->set_registered_events( lt_events ).
-    SET HANDLER me->on_event FOR mo_html_viewer.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
   METHOD zif_abapgit_frontend_services~file_download.
 
@@ -35783,6 +35253,645 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
         delete( ls_db ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
+  METHOD add_icon.
+
+    add( icon( iv_name  = iv_name
+               iv_class = iv_class
+               iv_hint  = iv_hint ) ).
+
+  ENDMETHOD.
+  METHOD class_constructor.
+    CREATE OBJECT go_single_tags_re
+      EXPORTING
+        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
+        ignore_case = abap_false.
+  ENDMETHOD.
+  METHOD indent_line.
+
+    DATA: ls_study TYPE ty_study_result,
+          lv_x_str TYPE string.
+
+    ls_study = study_line(
+      is_context = cs_context
+      iv_line    = cv_line ).
+
+    " First closing tag - shift back exceptionally
+    IF (  ls_study-script_close = abap_true
+       OR ls_study-style_close = abap_true
+       OR ls_study-curly_close = abap_true
+       OR ls_study-tag_close = abap_true )
+       AND cs_context-indent > 0.
+      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
+      cv_line  = lv_x_str && cv_line.
+    ELSE.
+      cv_line = cs_context-indent_str && cv_line.
+    ENDIF.
+
+    " Context status update
+    CASE abap_true.
+      WHEN ls_study-script_open.
+        cs_context-within_js    = abap_true.
+        cs_context-within_style = abap_false.
+      WHEN ls_study-style_open.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_true.
+      WHEN ls_study-script_close OR ls_study-style_close.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_false.
+        ls_study-closings       = ls_study-closings + 1.
+    ENDCASE.
+
+    " More-less logic chosen due to possible double tags in a line '<a><b>'
+    IF ls_study-openings <> ls_study-closings.
+      IF ls_study-openings > ls_study-closings.
+        cs_context-indent = cs_context-indent + 1.
+      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
+        cs_context-indent = cs_context-indent - 1.
+      ENDIF.
+      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD study_line.
+
+    DATA: lv_line TYPE string,
+          lv_len  TYPE i.
+
+    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
+    lv_len  = strlen( lv_line ).
+
+    " Some assumptions for simplification and speed
+    " - style & scripts tag should be opened/closed in a separate line
+    " - style & scripts opening and closing in one line is possible but only once
+
+    " TODO & Issues
+    " - What if the string IS a well formed html already not just single line ?
+
+    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
+
+      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
+        rs_result-script_close = abap_true.
+      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
+        rs_result-style_close = abap_true.
+      ENDIF.
+
+      IF is_context-no_indent_jscss = abap_false.
+        IF lv_len >= 1 AND lv_line(1) = '}'.
+          rs_result-curly_close = abap_true.
+        ENDIF.
+
+        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
+        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
+      ENDIF.
+
+    ELSE.
+      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
+        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-script_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
+        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-style_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 2 AND lv_line(2) = '</'.
+        rs_result-tag_close = abap_true.
+      ENDIF.
+
+      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
+      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
+      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
+      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD a.
+
+    DATA: lv_class TYPE string,
+          lv_href  TYPE string,
+          lv_click TYPE string,
+          lv_id    TYPE string,
+          lv_style TYPE string,
+          lv_span  TYPE string.
+
+    lv_class = iv_class.
+
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
+      lv_class = lv_class && ' emphasis' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
+      lv_class = lv_class && ' attention' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
+      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
+    ENDIF.
+    IF lv_class IS NOT INITIAL.
+      SHIFT lv_class LEFT DELETING LEADING space.
+      lv_class = | class="{ lv_class }"|.
+    ENDIF.
+
+    lv_href  = ' href="#"'. " Default, dummy
+    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
+      CASE iv_typ.
+        WHEN zif_abapgit_html=>c_action_type-url.
+          lv_href  = | href="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-sapevent.
+          lv_href  = | href="sapevent:{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-onclick.
+          lv_href  = ' href="#"'.
+          lv_click = | onclick="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-dummy.
+          lv_href  = ' href="#"'.
+      ENDCASE.
+    ENDIF.
+
+    IF iv_id IS NOT INITIAL.
+      lv_id = | id="{ iv_id }"|.
+    ENDIF.
+
+    IF iv_style IS NOT INITIAL.
+      lv_style = | style="{ iv_style }"|.
+    ENDIF.
+
+    lv_span = |<span class="tooltiptext hidden"></span>|.
+
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ lv_span }</a>|.
+
+  ENDMETHOD.
+  METHOD add.
+
+    DATA: lv_type TYPE c,
+          lo_html TYPE REF TO zcl_abapgit_html.
+
+    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
+
+    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
+
+    CASE lv_type.
+      WHEN 'C' OR 'g'.  " Char or string
+        APPEND ig_chunk TO mt_buffer.
+      WHEN 'h'.         " Table
+        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
+        APPEND LINES OF <lt_tab> TO mt_buffer.
+      WHEN 'r'.         " Object ref
+        ASSERT ig_chunk IS BOUND. " Dev mistake
+        TRY.
+            lo_html ?= ig_chunk.
+          CATCH cx_sy_move_cast_error.
+            ASSERT 1 = 0. " Dev mistake
+        ENDTRY.
+        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
+      WHEN OTHERS.
+        ASSERT 1 = 0. " Dev mistake
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD add_a.
+
+    add( a( iv_txt   = iv_txt
+            iv_act   = iv_act
+            iv_typ   = iv_typ
+            iv_opt   = iv_opt
+            iv_class = iv_class
+            iv_id    = iv_id
+            iv_style = iv_style ) ).
+
+  ENDMETHOD.
+  METHOD icon.
+
+    DATA: lv_hint          TYPE string,
+          lv_name          TYPE string,
+          lv_color         TYPE string,
+          lv_class         TYPE string,
+          lv_large_icon    TYPE string,
+          lv_xpixel        TYPE i.
+
+    SPLIT iv_name AT '/' INTO lv_name lv_color.
+
+    IF iv_hint IS NOT INITIAL.
+      lv_hint  = | title="{ iv_hint }"|.
+    ENDIF.
+    IF iv_class IS NOT INITIAL.
+      lv_class = | { iv_class }|.
+    ENDIF.
+    IF lv_color IS NOT INITIAL.
+      lv_color = | { lv_color }|.
+    ENDIF.
+
+    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X' in = 1 ).
+    IF lv_xpixel >= 2.
+      lv_large_icon = ' large'.
+    ENDIF.
+
+    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
+
+  ENDMETHOD.
+  METHOD is_empty.
+    rv_yes = boolc( lines( mt_buffer ) = 0 ).
+  ENDMETHOD.
+  METHOD render.
+
+    DATA: ls_context TYPE ty_indent_context,
+          lt_temp    TYPE string_table.
+
+    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
+                   <lv_line_c> LIKE LINE OF lt_temp.
+
+    ls_context-no_indent_jscss = iv_no_indent_jscss.
+
+    LOOP AT mt_buffer ASSIGNING <lv_line>.
+      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
+      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
+    ENDLOOP.
+
+    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
+  METHOD is_event_handler.
+    DATA li_event_handler TYPE REF TO zif_abapgit_gui_event_handler.
+    TRY.
+        li_event_handler ?= io_obj.
+        rv_yes = abap_true.
+      CATCH cx_sy_move_cast_error.
+        rv_yes = abap_false.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD is_renderable.
+    DATA li_renderable TYPE REF TO zif_abapgit_gui_renderable.
+    TRY.
+        li_renderable ?= io_obj.
+        rv_yes = abap_true.
+      CATCH cx_sy_move_cast_error.
+        rv_yes = abap_false.
+    ENDTRY.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+  METHOD get_mime_asset.
+
+    DATA: ls_key    TYPE wwwdatatab,
+          lv_size_c TYPE wwwparams-value,
+          lv_size   TYPE i,
+          lt_w3mime TYPE STANDARD TABLE OF w3mime.
+
+    ls_key-relid = 'MI'.
+    ls_key-objid = iv_mime_name.
+
+    " Get exact file size
+    CALL FUNCTION 'WWWPARAMS_READ'
+      EXPORTING
+        relid            = ls_key-relid
+        objid            = ls_key-objid
+        name             = 'filesize'
+      IMPORTING
+        value            = lv_size_c
+      EXCEPTIONS
+        entry_not_exists = 1.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_size = lv_size_c.
+
+    " Get binary data
+    CALL FUNCTION 'WWWDATA_IMPORT'
+      EXPORTING
+        key               = ls_key
+      TABLES
+        mime              = lt_w3mime
+      EXCEPTIONS
+        wrong_object_type = 1
+        import_error      = 2.
+
+    IF sy-subrc IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
+    rv_xdata = zcl_abapgit_string_utils=>bintab_to_xstring(
+      iv_size   = lv_size
+      it_bintab = lt_w3mime ).
+
+  ENDMETHOD.
+  METHOD load_asset.
+
+    MOVE-CORRESPONDING is_asset_entry TO rs_asset.
+    IF rs_asset-content IS INITIAL AND is_asset_entry-mime_name IS NOT INITIAL.
+      " inline content has the priority
+      rs_asset-content = get_mime_asset( is_asset_entry-mime_name ).
+    ENDIF.
+    IF rs_asset-content IS INITIAL.
+      zcx_abapgit_exception=>raise( |failed to load GUI asset: { is_asset_entry-url }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD register_asset.
+
+    DATA ls_asset LIKE LINE OF mt_asset_register.
+
+    SPLIT iv_type AT '/' INTO ls_asset-type ls_asset-subtype.
+    ls_asset-url          = iv_url.
+    ls_asset-mime_name    = iv_mime_name.
+    ls_asset-is_cacheable = iv_cachable.
+    IF iv_base64 IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( iv_base64 ).
+    ELSEIF iv_inline IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_string_utils=>string_to_xstring( iv_inline ).
+    ENDIF.
+
+    APPEND ls_asset TO mt_asset_register.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~get_all_assets.
+
+    FIELD-SYMBOLS <ls_a> LIKE LINE OF mt_asset_register.
+
+    LOOP AT mt_asset_register ASSIGNING <ls_a>.
+      APPEND load_asset( <ls_a> ) TO rt_assets.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~get_asset.
+
+    FIELD-SYMBOLS <ls_a> LIKE LINE of mt_asset_register.
+
+    READ TABLE mt_asset_register WITH KEY url = iv_url ASSIGNING <ls_a>.
+    IF <ls_a> IS NOT ASSIGNED.
+      zcx_abapgit_exception=>raise( |Cannot find GUI asset: { iv_url }| ).
+    ENDIF.
+    rs_asset = load_asset( <ls_a> ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~get_text_asset.
+
+    DATA ls_asset TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
+    ls_asset = me->zif_abapgit_gui_asset_manager~get_asset( iv_url ).
+
+    rv_asset = cl_bcs_convert=>xstring_to_string(
+      iv_xstr = ls_asset-content
+      iv_cp   = '4110' ). " UTF8
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+  METHOD back.
+
+    DATA: lv_index TYPE i,
+          ls_stack LIKE LINE OF mt_stack.
+
+    lv_index = lines( mt_stack ).
+
+    IF lv_index = 0.
+      rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    DO lv_index TIMES.
+      READ TABLE mt_stack INDEX lv_index INTO ls_stack.
+      ASSERT sy-subrc = 0.
+
+      DELETE mt_stack INDEX lv_index.
+      ASSERT sy-subrc = 0.
+
+      lv_index = lv_index - 1.
+
+      IF iv_to_bookmark = abap_false OR ls_stack-bookmark = abap_true.
+        EXIT.
+      ENDIF.
+    ENDDO.
+
+    mi_cur_page = ls_stack-page. " last page always stays
+    render( ).
+
+  ENDMETHOD.
+  METHOD cache_asset.
+
+    DATA: lv_xstr  TYPE xstring,
+          lt_xdata TYPE lvc_t_mime,
+          lv_size  TYPE int4.
+
+    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
+
+    IF iv_text IS SUPPLIED. " String input
+      lv_xstr = zcl_abapgit_string_utils=>string_to_xstring( iv_text ).
+    ELSE. " Raw input
+      lv_xstr = iv_xdata.
+    ENDIF.
+
+    zcl_abapgit_string_utils=>xstring_to_bintab(
+      EXPORTING
+        iv_xstr   = lv_xstr
+      IMPORTING
+        ev_size   = lv_size
+        et_bintab = lt_xdata ).
+
+    mo_html_viewer->load_data(
+      EXPORTING
+        type         = iv_type
+        subtype      = iv_subtype
+        size         = lv_size
+        url          = iv_url
+      IMPORTING
+        assigned_url = rv_url
+      CHANGING
+        data_table   = lt_xdata
+      EXCEPTIONS
+        OTHERS       = 1 ) ##NO_TEXT.
+
+    ASSERT sy-subrc = 0. " Image data error
+
+  ENDMETHOD.
+  METHOD cache_html.
+
+    rv_url = cache_asset(
+      iv_text    = iv_text
+      iv_type    = 'text'
+      iv_subtype = 'html' ).
+
+  ENDMETHOD.
+  METHOD call_page.
+
+    DATA: ls_stack TYPE ty_page_stack.
+
+    IF iv_replacing = abap_false AND NOT mi_cur_page IS INITIAL.
+      ls_stack-page     = mi_cur_page.
+      ls_stack-bookmark = iv_with_bookmark.
+      APPEND ls_stack TO mt_stack.
+    ENDIF.
+
+    mi_cur_page = ii_page.
+    render( ).
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    IF io_component IS BOUND.
+      IF zcl_abapgit_gui_utils=>is_renderable( io_component ) = abap_true.
+        mi_cur_page ?= io_component. " direct page
+      ELSE.
+        IF zcl_abapgit_gui_utils=>is_event_handler( io_component ) = abap_false.
+          zcx_abapgit_exception=>raise( 'Component must be renderable or be an event handler' ).
+        ENDIF.
+        mi_router ?= io_component.
+      ENDIF.
+    ENDIF.
+
+    mi_asset_man = ii_asset_man.
+    startup( ).
+
+  ENDMETHOD.
+  METHOD get_current_page_name.
+
+    IF mi_cur_page IS BOUND.
+      rv_page_name = cl_abap_classdescr=>describe_by_object_ref( mi_cur_page )->get_relative_name( ).
+    ENDIF." ELSE - return is empty => initial page
+
+  ENDMETHOD.
+  METHOD go_home.
+
+    DATA ls_stack LIKE LINE OF mt_stack.
+
+    IF mi_router IS BOUND.
+      on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
+    ELSE.
+      IF lines( mt_stack ) > 0.
+        READ TABLE mt_stack INTO ls_stack INDEX 1.
+        mi_cur_page = ls_stack-page.
+      ENDIF.
+      render( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD handle_action.
+
+    DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
+          li_page_eh   TYPE REF TO zif_abapgit_gui_event_handler,
+          li_page      TYPE REF TO zif_abapgit_gui_renderable,
+          lv_state     TYPE i.
+
+    TRY.
+        " Home must be processed by router if it presents
+        IF ( iv_action <> c_action-go_home OR mi_router IS NOT BOUND )
+          AND mi_cur_page IS BOUND AND zcl_abapgit_gui_utils=>is_event_handler( mi_cur_page ) = abap_true.
+          li_page_eh ?= mi_cur_page.
+          li_page_eh->on_event(
+            EXPORTING
+              iv_action    = iv_action
+              iv_prev_page = get_current_page_name( )
+              iv_getdata   = iv_getdata
+              it_postdata  = it_postdata
+            IMPORTING
+              ei_page      = li_page
+              ev_state     = lv_state ).
+        ENDIF.
+
+        IF lv_state IS INITIAL AND mi_router IS BOUND.
+          mi_router->on_event(
+            EXPORTING
+              iv_action    = iv_action
+              iv_prev_page = get_current_page_name( )
+              iv_getdata   = iv_getdata
+              it_postdata  = it_postdata
+            IMPORTING
+              ei_page      = li_page
+              ev_state     = lv_state ).
+        ENDIF.
+
+        CASE lv_state.
+          WHEN c_event_state-re_render.
+            render( ).
+          WHEN c_event_state-new_page.
+            call_page( li_page ).
+          WHEN c_event_state-new_page_w_bookmark.
+            call_page( ii_page = li_page iv_with_bookmark = abap_true ).
+          WHEN c_event_state-new_page_replacing.
+            call_page( ii_page = li_page iv_replacing = abap_true ).
+          WHEN c_event_state-go_back.
+            back( ).
+          WHEN c_event_state-go_back_to_bookmark.
+            back( abap_true ).
+          WHEN c_event_state-no_more_act.
+            " Do nothing, handling completed
+          WHEN OTHERS.
+            zcx_abapgit_exception=>raise( |Unknown action: { iv_action }| ).
+        ENDCASE.
+
+      CATCH zcx_abapgit_exception INTO lx_exception.
+        ROLLBACK WORK.
+        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
+      CATCH zcx_abapgit_cancel ##NO_HANDLER.
+        " Do nothing = gc_event_state-no_more_act
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD on_event.
+
+    handle_action(
+      iv_action      = action
+      iv_frame       = frame
+      iv_getdata     = getdata
+      it_postdata    = postdata
+      it_query_table = query_table ).
+
+  ENDMETHOD.
+  METHOD render.
+
+    DATA: lv_url  TYPE w3url,
+          li_html TYPE REF TO zif_abapgit_html.
+
+    IF mi_cur_page IS NOT BOUND.
+      zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
+    ENDIF.
+
+    li_html = mi_cur_page->render( ).
+    lv_url  = cache_html( li_html->render( iv_no_indent_jscss = abap_true ) ).
+
+    mo_html_viewer->show_url( lv_url ).
+
+  ENDMETHOD.
+  METHOD startup.
+
+    DATA: lt_events TYPE cntl_simple_events,
+          ls_event  LIKE LINE OF lt_events,
+          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
+
+    FIELD-SYMBOLS <ls_asset> LIKE LINE OF lt_assets.
+
+    CREATE OBJECT mo_html_viewer
+      EXPORTING
+        query_table_disabled = abap_true
+        parent               = cl_gui_container=>screen0.
+
+    IF mi_asset_man IS BOUND.
+      lt_assets = mi_asset_man->get_all_assets( ).
+      LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
+        cache_asset( iv_xdata   = <ls_asset>-content
+                     iv_url     = <ls_asset>-url
+                     iv_type    = <ls_asset>-type
+                     iv_subtype = <ls_asset>-subtype ).
+      ENDLOOP.
+    ENDIF.
+
+    ls_event-eventid    = mo_html_viewer->m_id_sapevent.
+    ls_event-appl_event = abap_true.
+    APPEND ls_event TO lt_events.
+
+    mo_html_viewer->set_registered_events( lt_events ).
+    SET HANDLER me->on_event FOR mo_html_viewer.
 
   ENDMETHOD.
 ENDCLASS.
@@ -70423,5 +70532,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-18T12:10:55.239Z
+* abapmerge undefined - 2019-03-18T15:01:10.191Z
 ****************************************************
