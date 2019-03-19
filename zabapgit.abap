@@ -6600,10 +6600,10 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       CHANGING
         !ct_dd03p TYPE ty_dd03p_tt .
     "! Check if structure is an IDoc segment
-    "! @raising zcx_abapgit_exception | It's not an IDoc segment
-    METHODS check_is_idoc_segment
-      RAISING
-        zcx_abapgit_exception .
+    "! @parameter rv_is_idoc_segment | It's an IDoc segment or not
+    METHODS is_idoc_segment
+      RETURNING
+        VALUE(rv_is_idoc_segment) TYPE abap_bool.
     METHODS clear_dd03p_fields_common
       CHANGING
         !cs_dd03p TYPE dd03p .
@@ -46597,8 +46597,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
-  METHOD check_is_idoc_segment.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
+  METHOD is_idoc_segment.
 
     DATA lv_segment_type TYPE edilsegtyp.
 
@@ -46608,9 +46608,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
            FROM edisegment
            INTO lv_segment_type
            WHERE segtyp = lv_segment_type.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'No IDoc segment' ).
-    ENDIF.
+    rv_is_idoc_segment = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD clear_dd03p_fields.
@@ -46697,13 +46695,10 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     DATA lv_segment_type        TYPE edilsegtyp.
     DATA lv_result              LIKE sy-subrc.
 
-    TRY.
-        check_is_idoc_segment( ).
-
-      CATCH zcx_abapgit_exception ##no_handler.
-        rv_deleted = abap_false.
-        RETURN. "previous XML version or no IDoc segment
-    ENDTRY.
+    IF is_idoc_segment( ) = abap_false.
+      rv_deleted = abap_false.
+      RETURN. "previous XML version or no IDoc segment
+    ENDIF.
 
     rv_deleted = abap_true.
     lv_segment_type = ms_item-obj_name.
@@ -46821,59 +46816,56 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     DATA lt_segment_definitions TYPE ty_segment_definitions.
     FIELD-SYMBOLS: <ls_segemtndefinition> TYPE edisegmdef.
 
-    TRY.
-        check_is_idoc_segment( ).
+    IF is_idoc_segment( ) = abap_false.
+      RETURN.
+    ENDIF.
 
-        lv_segment_type = ms_item-obj_name.
-        CALL FUNCTION 'SEGMENT_READ'
-          EXPORTING
-            segmenttyp        = lv_segment_type
-          IMPORTING
-            result            = lv_result
-          TABLES
-            segmentdefinition = lt_segmentdefinitions
-          EXCEPTIONS
-            OTHERS            = 1.
-        IF sy-subrc <> 0 OR lv_result <> 0.
-          zcx_abapgit_exception=>raise_t100( ).
-        ENDIF.
+    lv_segment_type = ms_item-obj_name.
+    CALL FUNCTION 'SEGMENT_READ'
+      EXPORTING
+        segmenttyp        = lv_segment_type
+      IMPORTING
+        result            = lv_result
+      TABLES
+        segmentdefinition = lt_segmentdefinitions
+      EXCEPTIONS
+        OTHERS            = 1.
+    IF sy-subrc <> 0 OR lv_result <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
-        LOOP AT lt_segmentdefinitions ASSIGNING <ls_segemtndefinition>.
-          CLEAR ls_segment_definition.
-          CALL FUNCTION 'SEGMENTDEFINITION_READ'
-            EXPORTING
-              segmenttyp           = <ls_segemtndefinition>-segtyp
-            IMPORTING
-              result               = lv_result
-              devclass             = lv_devclass
-              segmentheader        = ls_segment_definition-segmentheader
-              segmentdefinition    = ls_segment_definition-segmentdefinition
-            TABLES
-              segmentstructure     = ls_segment_definition-segmentstructures
-            CHANGING
-              version              = <ls_segemtndefinition>-version
-            EXCEPTIONS
-              no_authority         = 1
-              segment_not_existing = 2
-              OTHERS               = 3.
-          IF sy-subrc <> 0 OR lv_result <> 0.
-            zcx_abapgit_exception=>raise_t100( ).
-          ENDIF.
+    LOOP AT lt_segmentdefinitions ASSIGNING <ls_segemtndefinition>.
+      CLEAR ls_segment_definition.
+      CALL FUNCTION 'SEGMENTDEFINITION_READ'
+        EXPORTING
+          segmenttyp           = <ls_segemtndefinition>-segtyp
+        IMPORTING
+          result               = lv_result
+          devclass             = lv_devclass
+          segmentheader        = ls_segment_definition-segmentheader
+          segmentdefinition    = ls_segment_definition-segmentdefinition
+        TABLES
+          segmentstructure     = ls_segment_definition-segmentstructures
+        CHANGING
+          version              = <ls_segemtndefinition>-version
+        EXCEPTIONS
+          no_authority         = 1
+          segment_not_existing = 2
+          OTHERS               = 3.
+      IF sy-subrc <> 0 OR lv_result <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
 
-          zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
-                                     CHANGING cs_structure = ls_segment_definition-segmentdefinition ).
-          zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
-                                     CHANGING cs_structure = ls_segment_definition-segmentheader ).
+      zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
+                                 CHANGING cs_structure = ls_segment_definition-segmentdefinition ).
+      zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
+                                 CHANGING cs_structure = ls_segment_definition-segmentheader ).
 
-          APPEND ls_segment_definition TO lt_segment_definitions.
-        ENDLOOP.
+      APPEND ls_segment_definition TO lt_segment_definitions.
+    ENDLOOP.
 
-        io_xml->add( iv_name = c_s_dataname-segment_definition
-                     ig_data = lt_segment_definitions ).
-
-      CATCH zcx_abapgit_exception ##no_handler.
-        "ok, no Idoc segment
-    ENDTRY.
+    io_xml->add( iv_name = c_s_dataname-segment_definition
+                 ig_data = lt_segment_definitions ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -70534,5 +70526,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-18T15:13:19.612Z
+* abapmerge undefined - 2019-03-19T17:07:32.720Z
 ****************************************************
