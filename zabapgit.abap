@@ -33786,6 +33786,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
 
     rv_string = iv_string.
 
+    REPLACE ALL OCCURRENCES OF '\' IN rv_string WITH '\\'.
     REPLACE ALL OCCURRENCES OF '"' IN rv_string WITH '\"'.
 
   ENDMETHOD.
@@ -70526,5 +70527,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-19T17:07:32.720Z
+* abapmerge undefined - 2019-03-20T18:49:00.642Z
 ****************************************************
