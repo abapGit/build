@@ -8397,6 +8397,13 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+    METHODS go_page
+      IMPORTING
+        io_page TYPE REF TO zif_abapgit_gui_renderable
+        iv_clear_stack TYPE abap_bool DEFAULT abap_true
+      RAISING
+        zcx_abapgit_exception.
+
     METHODS back
       IMPORTING
         iv_to_bookmark TYPE abap_bool DEFAULT abap_false
@@ -8419,6 +8426,12 @@ CLASS zcl_abapgit_gui DEFINITION
         ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
       RAISING
         zcx_abapgit_exception.
+
+    METHODS free.
+
+    EVENTS on_handle_error
+      EXPORTING
+        VALUE(io_exception) TYPE REF TO cx_root.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -22238,6 +22251,22 @@ CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION DEFERRED.
+* renamed: zcl_abapgit_ui_factory :: lcl_gui_error_handler
+CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION.
+  PUBLIC SECTION.
+    METHODS on_gui_error FOR EVENT on_handle_error OF zcl_abapgit_gui
+      IMPORTING
+        io_exception.
+ENDCLASS.
+
+CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY IMPLEMENTATION.
+  METHOD on_gui_error.
+    ROLLBACK WORK.
+    MESSAGE io_exception TYPE 'S' DISPLAY LIKE 'E'.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_frontend_services.
 
@@ -22254,6 +22283,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       li_router    TYPE REF TO zif_abapgit_gui_event_handler,
       li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
+    DATA lo_error_handler TYPE REF TO kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY.
+
     IF go_gui IS INITIAL.
       li_asset_man ?= init_asset_manager( ).
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
@@ -22261,6 +22292,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
         EXPORTING
           io_component = li_router
           ii_asset_man = li_asset_man.
+      CREATE OBJECT lo_error_handler.
+      SET HANDLER lo_error_handler->on_gui_error FOR go_gui.
     ENDIF.
     ro_gui = go_gui.
 
@@ -35757,6 +35790,14 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     startup( ).
 
   ENDMETHOD.
+  METHOD free.
+
+    SET HANDLER me->on_event FOR mo_html_viewer ACTIVATION space.
+    mo_html_viewer->close_document( ).
+    mo_html_viewer->free( ).
+    FREE mo_html_viewer.
+
+  ENDMETHOD.
   METHOD get_current_page_name.
 
     IF mi_cur_page IS BOUND.
@@ -35777,6 +35818,16 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       ENDIF.
       render( ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD go_page.
+
+    IF iv_clear_stack = abap_true.
+      CLEAR mt_stack.
+    ENDIF.
+
+    mi_cur_page = io_page.
+    render( ).
 
   ENDMETHOD.
   METHOD handle_action.
@@ -35834,8 +35885,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         ENDCASE.
 
       CATCH zcx_abapgit_exception INTO lx_exception.
-        ROLLBACK WORK.
-        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
+        RAISE EVENT on_handle_error EXPORTING io_exception = lx_exception.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
     ENDTRY.
@@ -70421,7 +70471,9 @@ ENDFORM.
 FORM exit RAISING zcx_abapgit_exception.
   CASE sy-ucomm.
     WHEN 'CBAC'.  "Back
-      IF zcl_abapgit_ui_factory=>get_gui( )->back( ) IS INITIAL.
+      IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
+        zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
+      ELSE.
         LEAVE TO SCREEN 1001.
       ENDIF.
   ENDCASE.
@@ -70527,5 +70579,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-22T07:13:15.559Z
+* abapmerge undefined - 2019-03-22T12:51:43.729Z
 ****************************************************
