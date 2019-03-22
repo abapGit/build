@@ -2254,6 +2254,7 @@ INTERFACE zif_abapgit_popups .
       branch_name  TYPE string,
       display_name TYPE string,
       folder_logic TYPE string,
+      ign_subpkg   TYPE abap_bool,
       cancel       TYPE abap_bool,
     END OF ty_popup .
 
@@ -2504,10 +2505,12 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS new_online
     IMPORTING
-      !iv_url         TYPE string
-      !iv_branch_name TYPE string
-      iv_display_name TYPE string OPTIONAL
-      !iv_package     TYPE devclass
+      !iv_url          TYPE string
+      !iv_branch_name  TYPE string
+      iv_display_name  TYPE string OPTIONAL
+      !iv_package      TYPE devclass
+      !iv_folder_logic TYPE string DEFAULT 'PREFIX'
+      !iv_ign_subpkg   TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_online
     RAISING
@@ -2520,7 +2523,8 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS validate_package
     IMPORTING
-      !iv_package TYPE devclass
+      !iv_package    TYPE devclass
+      !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -10560,7 +10564,9 @@ CLASS zcl_abapgit_popups DEFINITION
         ev_url          TYPE abaptxt255-line
         ev_package      TYPE tdevc-devclass
         ev_branch       TYPE textl-line
-        ev_display_name TYPE trm255-text.
+        ev_display_name TYPE trm255-text
+        ev_folder_logic TYPE string
+        ev_ign_subpkg   TYPE abap_bool.
     TYPES:
       ty_lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
     METHODS _popup_2_get_values
@@ -12879,8 +12885,9 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         zcx_abapgit_exception .
     METHODS validate_sub_super_packages
       IMPORTING
-        !iv_package TYPE devclass
-        !it_repos   TYPE zif_abapgit_persistence=>tt_repo
+        !iv_package    TYPE devclass
+        !it_repos      TYPE zif_abapgit_persistence=>tt_repo
+        !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
 
@@ -15732,7 +15739,10 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       IF lo_repo->get_local_settings( )-ignore_subpackages = abap_false.
         APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
       ENDIF.
-      APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+
+      IF iv_ign_subpkg = abap_false.
+        APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+      ENDIF.
 
       READ TABLE lt_packages TRANSPORTING NO FIELDS
         WITH KEY table_line = iv_package.
@@ -15860,8 +15870,9 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~new_online.
 
-    DATA: ls_repo TYPE zif_abapgit_persistence=>ty_repo,
-          lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
+          lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
+          ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_branch_name IS INITIAL
       AND NOT iv_package IS INITIAL.
@@ -15870,8 +15881,13 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    validate_package( iv_package ).
+    validate_package( iv_package = iv_package
+                      iv_ign_subpkg = iv_ign_subpkg ).
+
     zcl_abapgit_url=>validate( |{ iv_url }| ).
+
+    ls_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
+    ls_dot_abapgit-folder_logic = iv_folder_logic.
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
       iv_url          = iv_url
@@ -15879,14 +15895,18 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       iv_display_name = iv_display_name
       iv_package      = iv_package
       iv_offline      = abap_false
-      is_dot_abapgit  = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ) ).
+      is_dot_abapgit  = ls_dot_abapgit ).
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
       CATCH zcx_abapgit_not_found.
         zcx_abapgit_exception=>raise( 'new_online not found' ).
     ENDTRY.
-
     ro_repo ?= instantiate_and_add( ls_repo ).
+
+    IF ls_repo-local_settings-ignore_subpackages <> iv_ign_subpkg.
+      ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
+      ro_repo->set_local_settings( ls_repo-local_settings ).
+    ENDIF.
 
     ro_repo->refresh( ).
     ro_repo->find_remote_dot_abapgit( ).
@@ -15950,8 +15970,9 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDIF.
 
     validate_sub_super_packages(
-      iv_package = iv_package
-      it_repos   = lt_repos ).
+      iv_package    = iv_package
+      it_repos      = lt_repos
+      iv_ign_subpkg = iv_ign_subpkg ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -25373,7 +25394,9 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       iv_url          = ls_popup-url
       iv_branch_name  = ls_popup-branch_name
       iv_package      = ls_popup-package
-      iv_display_name = ls_popup-display_name ).
+      iv_display_name = ls_popup-display_name
+      iv_folder_logic = ls_popup-folder_logic
+      iv_ign_subpkg   = ls_popup-ign_subpkg ).
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -26271,7 +26294,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     CLEAR: ev_url,
            ev_package,
            ev_branch,
-           ev_display_name.
+           ev_display_name,
+           ev_folder_logic,
+           ev_ign_subpkg.
 
     READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
     ASSERT sy-subrc = 0.
@@ -26289,6 +26314,16 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     READ TABLE it_fields INDEX 4 ASSIGNING <ls_field>.
     ASSERT sy-subrc = 0.
     ev_display_name = <ls_field>-value.
+
+    READ TABLE it_fields INDEX 5 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_folder_logic = <ls_field>-value.
+    TRANSLATE ev_folder_logic TO UPPER CASE.
+
+    READ TABLE it_fields INDEX 6 ASSIGNING <ls_field>.
+    ASSERT sy-subrc = 0.
+    ev_ign_subpkg = <ls_field>-value.
+    TRANSLATE ev_ign_subpkg TO UPPER CASE.
 
   ENDMETHOD.
   METHOD get_selected_rows.
@@ -27083,6 +27118,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           lv_url          TYPE abaptxt255-line,
           lv_branch       TYPE textl-line,
           lv_display_name TYPE trm255-text,
+          lv_folder_logic TYPE string,
+          lv_ign_subpkg   TYPE abap_bool,
           lv_finished     TYPE abap_bool,
           lx_error        TYPE REF TO zcx_abapgit_exception.
 
@@ -27134,6 +27171,19 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                            iv_value      = lv_display_name
                  CHANGING ct_fields      = lt_fields ).
 
+      add_field( EXPORTING iv_tabname    = 'ZABAPGIT'
+                           iv_fieldname  = 'VALUE'
+                           iv_fieldtext  = 'Folder logic'
+                           iv_obligatory = abap_true
+                           iv_value      = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+                 CHANGING ct_fields      = lt_fields ).
+
+      add_field( EXPORTING iv_tabname    = 'TDEVC'
+                           iv_fieldname  = 'IS_ENHANCEABLE'
+                           iv_fieldtext  = 'Ignore subpackages'
+                           iv_value      = abap_false
+                 CHANGING ct_fields      = lt_fields ).
+
       lv_icon_ok  = icon_okay.
       lv_icon_br  = icon_workflow_fork.
 
@@ -27172,15 +27222,19 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           ev_url          = lv_url
           ev_package      = lv_package
           ev_branch       = lv_branch
-          ev_display_name = lv_display_name ).
+          ev_display_name = lv_display_name
+          ev_folder_logic = lv_folder_logic
+          ev_ign_subpkg   = lv_ign_subpkg ).
 
       lv_finished = abap_true.
 
       TRY.
           zcl_abapgit_url=>validate( |{ lv_url }| ).
           IF iv_freeze_package = abap_false.
-            zcl_abapgit_repo_srv=>get_instance( )->validate_package( lv_package ).
+            zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = lv_package
+                                                                     iv_ign_subpkg = lv_ign_subpkg ).
           ENDIF.
+          validate_folder_logic( lv_folder_logic ).
         CATCH zcx_abapgit_exception INTO lx_error.
           MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
           " in case of validation errors we display the popup again
@@ -27193,6 +27247,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     rs_popup-package      = lv_package.
     rs_popup-branch_name  = lv_branch.
     rs_popup-display_name = lv_display_name.
+    rs_popup-folder_logic = lv_folder_logic.
+    rs_popup-ign_subpkg   = lv_ign_subpkg.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~run_page_class_popup.
@@ -70579,5 +70635,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-22T12:51:43.729Z
+* abapmerge undefined - 2019-03-22T12:54:03.885Z
 ****************************************************
