@@ -4334,6 +4334,12 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS get_accessed_files
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+    METHODS contains
+      IMPORTING
+        !iv_extra TYPE clike OPTIONAL
+        !iv_ext   TYPE string
+      RETURNING
+        VALUE(rv_present) TYPE abap_bool.
   PROTECTED SECTION.
 
     METHODS read_file
@@ -5958,6 +5964,9 @@ CLASS zcl_abapgit_object_sfpf DEFINITION
         zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CONSTANTS c_layout_file_ext TYPE string VALUE 'xdp'.
+
     METHODS:
       load
         RETURNING VALUE(ri_wb_form) TYPE REF TO if_fp_wb_form
@@ -40919,6 +40928,25 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   METHOD set_files.
     mt_files = it_files.
   ENDMETHOD.
+
+  METHOD contains.
+    DATA: lv_filename TYPE string.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = iv_ext ).
+
+    IF mv_path IS NOT INITIAL.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
+                                                          filename = lv_filename.
+    ELSE.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
+    ENDIF.
+
+    IF sy-subrc = 0.
+      rv_present = abap_true.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
@@ -52369,16 +52397,49 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   ENDMETHOD.
   METHOD form_to_xstring.
 
-    DATA: li_fp_form TYPE REF TO if_fp_form,
-          li_wb_form TYPE REF TO if_fp_wb_form.
+    CONSTANTS: lc_empty_data TYPE xstring VALUE ''.
+
+    DATA: li_fp_form     TYPE REF TO if_fp_form,
+          li_wb_form     TYPE REF TO if_fp_wb_form,
+          li_fp_layout   TYPE REF TO if_fp_layout,
+          lx_fp_err      TYPE REF TO cx_fp_api,
+          lx_fp_conv_err TYPE REF TO cx_fp_api,
+          lv_layout_data TYPE xstring.
+
+    li_wb_form = load( ).
+    li_fp_form ?= li_wb_form->get_object( ).
+    li_fp_layout = li_fp_form->get_layout( ).
+    lv_layout_data = li_fp_layout->get_layout_data( ).
+
+    mo_files->add_raw( iv_ext = c_layout_file_ext
+                       iv_data = lv_layout_data ).
+
     TRY.
-        li_wb_form = load( ).
-        li_fp_form ?= li_wb_form->get_object( ).
-        rv_xstr = cl_fp_helper=>convert_form_to_xstring( li_fp_form ).
-      CATCH cx_fp_api.
-        zcx_abapgit_exception=>raise( 'SFPF error, form_to_xstring' ).
+        li_fp_layout->set_layout_data( i_layout_data   = lc_empty_data
+                                       i_set_xliff_ids = abap_false ).
+      CATCH cx_fp_api INTO lx_fp_err.
+        zcx_abapgit_exception=>raise( |SFPF remove layout: { lx_fp_err->get_text( ) }| ).
     ENDTRY.
 
+    TRY.
+        rv_xstr = cl_fp_helper=>convert_form_to_xstring( li_fp_form ).
+      CATCH cx_fp_api INTO lx_fp_conv_err.
+        " Pass - the exception is handled below!
+    ENDTRY.
+
+    TRY.
+        li_fp_layout->set_layout_data( i_layout_data   = lv_layout_data
+                                       i_set_xliff_ids = abap_false ).
+      CATCH cx_fp_api INTO lx_fp_err.
+        " Be aware that there might be another exception
+        " raised by cl_fp_helper=>convert_form_to_xstring( )
+        zcx_abapgit_exception=>raise( |SFPF recover layout: { lx_fp_err->get_text( ) }| ).
+    ENDTRY.
+
+    IF lx_fp_conv_err IS BOUND.
+      " This statement handles the exception raised from cl_fp_helper=>convert_form_to_xstring( )
+      zcx_abapgit_exception=>raise( |SFPF convert_form_to_xstring: { lx_fp_conv_err->get_text( ) }| ).
+    ENDIF.
   ENDMETHOD.
   METHOD load.
 
@@ -52427,6 +52488,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_xstr      TYPE xstring,
+          lv_layout    TYPE xstring,
           lv_name      TYPE fpname,
           li_wb_object TYPE REF TO if_fp_wb_form,
           li_form      TYPE REF TO if_fp_form.
@@ -52435,6 +52497,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 
     TRY.
         li_form = cl_fp_helper=>convert_xstring_to_form( lv_xstr ).
+
+        IF mo_files->contains( c_layout_file_ext ) = abap_true.
+          lv_layout = mo_files->read_raw( c_layout_file_ext ).
+          li_form->get_layout( )->set_layout_data( lv_layout ).
+        ENDIF.
 
         IF zif_abapgit_object~exists( ) = abap_true.
           cl_fp_wb_form=>delete( lv_name ).
@@ -59242,13 +59309,19 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
   METHOD serialize.
 
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
+          lt_tab_types      TYPE enhtype_tab,
           lt_tab_methods    TYPE enhnewmeth_tab.
 
     FIELD-SYMBOLS: <ls_attr> LIKE LINE OF lt_tab_attributes,
+                   <ls_type> LIKE LINE OF lt_tab_types,
                    <ls_meth> LIKE LINE OF lt_tab_methods.
     io_clif->get_enhattributes(
       IMPORTING
         tab_attributes = lt_tab_attributes ).
+
+    io_clif->get_enhatypes(
+      IMPORTING
+        tab_types = lt_tab_types ).
 
     io_clif->get_enh_new_methodes(
       IMPORTING
@@ -59258,6 +59331,13 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
                         io_files = io_files ).
 
     LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
+      CLEAR: <ls_attr>-author,
+             <ls_attr>-createdon,
+             <ls_attr>-changedby,
+             <ls_attr>-changedon.
+    ENDLOOP.
+
+    LOOP AT lt_tab_types ASSIGNING <ls_type>.
       CLEAR: <ls_attr>-author,
              <ls_attr>-createdon,
              <ls_attr>-changedby,
@@ -59274,6 +59354,8 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
 
     io_xml->add( iv_name = 'TAB_ATTRIBUTES'
                  ig_data = lt_tab_attributes ).
+    io_xml->add( iv_name = 'TAB_TYPES'
+                 ig_data = lt_tab_types ).
     io_xml->add( iv_name = 'TAB_METHODS'
                  ig_data = lt_tab_methods ).
 
@@ -59282,18 +59364,33 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
   METHOD deserialize.
 
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
+          lt_tab_types      TYPE enhtype_tab,
           lt_tab_methods    TYPE enhnewmeth_tab,
+          ls_type_line      TYPE vseotype,
           ls_header         TYPE vseomethod,
           ls_param          TYPE vseomepara,
           ls_exc            TYPE vseoexcep.
 
-    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods,
+    FIELD-SYMBOLS: <ls_type>   LIKE LINE OF lt_tab_types,
+                   <ls_method> LIKE LINE OF lt_tab_methods,
                    <ls_param>  LIKE LINE OF <ls_method>-meth_param,
                    <ls_exc>    LIKE LINE OF <ls_method>-meth_exc.
     io_xml->read( EXPORTING iv_name = 'TAB_ATTRIBUTES'
                   CHANGING cg_data = lt_tab_attributes ).
+    io_xml->read( EXPORTING iv_name = 'TAB_TYPES'
+                  CHANGING cg_data = lt_tab_types ).
     io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
                   CHANGING cg_data = lt_tab_methods ).
+
+    LOOP AT lt_tab_types ASSIGNING <ls_type>.
+      MOVE-CORRESPONDING <ls_type> TO ls_type_line.
+      TRY.
+          io_clif->add_change_enha_type( type_line = ls_type_line ).
+        CATCH cx_enh_mod_not_allowed
+        cx_enh_is_not_enhanceable.
+          " TODO
+      ENDTRY.
+    ENDLOOP.
 
     io_clif->set_enhattributes( lt_tab_attributes ).
 
@@ -70635,5 +70732,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-22T12:54:03.885Z
+* abapmerge undefined - 2019-03-25T08:42:55.421Z
 ****************************************************
