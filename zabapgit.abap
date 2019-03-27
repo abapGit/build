@@ -268,18 +268,6 @@ MV_TEXT = MV_TEXT
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcx_abapgit_cancel DEFINITION
-  INHERITING FROM cx_static_check
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-CLASS zcx_abapgit_cancel IMPLEMENTATION.
-ENDCLASS.
-
 "! abapGit general error
 CLASS zcx_abapgit_exception DEFINITION
   INHERITING FROM cx_static_check
@@ -408,6 +396,18 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
         msgv3  = iv_msgv3
         msgv4  = iv_msgv4.
   ENDMETHOD.
+ENDCLASS.
+
+CLASS zcx_abapgit_cancel DEFINITION
+  INHERITING FROM zcx_abapgit_exception
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS ZCX_ABAPGIT_CANCEL IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcx_abapgit_not_found DEFINITION
@@ -1001,8 +1001,7 @@ INTERFACE zif_abapgit_gui_event_handler .
       ei_page      TYPE REF TO zif_abapgit_gui_renderable
       ev_state     TYPE i
     RAISING
-      zcx_abapgit_exception
-      zcx_abapgit_cancel.
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -2348,8 +2347,7 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
     RAISING
-      zcx_abapgit_exception
-      zcx_abapgit_cancel .
+      zcx_abapgit_exception.
   METHODS popup_to_select_transports
     RETURNING
       VALUE(rt_trkorr) TYPE trwbo_request_headers .
@@ -2362,7 +2360,6 @@ INTERFACE zif_abapgit_popups .
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
     RAISING
-      zcx_abapgit_cancel
       zcx_abapgit_exception .
   METHODS branch_popup_callback
     IMPORTING
@@ -2388,8 +2385,7 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rv_transport) TYPE trkorr
     RAISING
-      zcx_abapgit_exception
-      zcx_abapgit_cancel .
+      zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -8836,8 +8832,7 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
       IMPORTING
         !is_key TYPE zif_abapgit_persistence=>ty_content
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS explain_content
       IMPORTING
         !is_data       TYPE zif_abapgit_persistence=>ty_content
@@ -10068,8 +10063,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS abapgit_services_actions
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10077,8 +10071,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS db_actions
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10086,8 +10079,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS file_download
       IMPORTING
         !iv_package TYPE devclass
@@ -10101,8 +10093,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS remote_origin_manipulations
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10110,8 +10101,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS sap_gui_actions
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10119,8 +10109,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS zip_services
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10128,8 +10117,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS repository_services
       IMPORTING
         !is_event_data TYPE ty_event_data
@@ -10137,8 +10125,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ei_page       TYPE REF TO zif_abapgit_gui_renderable
         !ev_state      TYPE i
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     METHODS get_page_diff
       IMPORTING
         !iv_getdata    TYPE clike
@@ -10172,8 +10159,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS jump_display_transport
       IMPORTING
         !iv_getdata TYPE clike .
@@ -10584,14 +10570,12 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING ev_value_1        TYPE spo_value
                 ev_value_2        TYPE spo_value
       CHANGING  ct_fields         TYPE ty_lt_fields
-      RAISING   zcx_abapgit_exception
-                zcx_abapgit_cancel.
+      RAISING   zcx_abapgit_exception.
     METHODS validate_folder_logic
       IMPORTING
         iv_folder_logic TYPE string
       RAISING
         zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
   FINAL
@@ -10613,8 +10597,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS install_abapgit
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS is_installed
       RETURNING
         VALUE(rv_devclass) TYPE tadir-devclass .
@@ -10661,60 +10644,50 @@ CLASS zcl_abapgit_services_git DEFINITION
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS reset
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS create_branch
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS switch_branch
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS delete_branch
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
 
     CLASS-METHODS delete_tag
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS switch_tag
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS tag_overview
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS commit
       IMPORTING
         !io_repo   TYPE REF TO zcl_abapgit_repo_online
         !is_commit TYPE ty_commit_fields
         !io_stage  TYPE REF TO zcl_abapgit_stage
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel.
-
+        zcx_abapgit_exception.
   PROTECTED SECTION.
 
     CLASS-METHODS get_unnecessary_local_objs
@@ -10738,8 +10711,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
       RETURNING
         VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_online
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS refresh
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -10749,42 +10721,35 @@ CLASS zcl_abapgit_services_repo DEFINITION
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS purge
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS new_offline
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS remote_attach
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS remote_detach
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS remote_change
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS refresh_local_checksums
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS toggle_favorite
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -10799,27 +10764,25 @@ CLASS zcl_abapgit_services_repo DEFINITION
       IMPORTING
         !iv_repository_key TYPE zif_abapgit_persistence=>ty_value
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS gui_deserialize
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-METHODS popup_overwrite
       CHANGING
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS popup_package_overwrite
       CHANGING
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_tag_popups DEFINITION
   FINAL
@@ -13377,15 +13340,13 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS export_object
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS export_package
       EXPORTING
         !ev_xstr    TYPE xstring
         !ev_package TYPE devclass
       RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_cancel .
+        zcx_abapgit_exception.
     CLASS-METHODS load
       IMPORTING
         !iv_xstr        TYPE xstring
@@ -35949,10 +35910,10 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
             zcx_abapgit_exception=>raise( |Unknown action: { iv_action }| ).
         ENDCASE.
 
-      CATCH zcx_abapgit_exception INTO lx_exception.
-        RAISE EVENT on_handle_error EXPORTING io_exception = lx_exception.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
+      CATCH zcx_abapgit_exception INTO lx_exception.
+        RAISE EVENT on_handle_error EXPORTING io_exception = lx_exception.
     ENDTRY.
 
   ENDMETHOD.
@@ -70732,5 +70693,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-25T08:42:55.421Z
+* abapmerge undefined - 2019-03-27T06:53:49.885Z
 ****************************************************
