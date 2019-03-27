@@ -29753,7 +29753,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
-        RETURN.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
     ENDCASE.
 
   ENDMETHOD.
@@ -31668,6 +31676,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
             io_merge      = mo_merge.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
+      WHEN OTHERS.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
+
     ENDCASE.
 
   ENDMETHOD.
@@ -33264,6 +33283,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
       WHEN c_action-commit_cancel.
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN OTHERS.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
     ENDCASE.
 
   ENDMETHOD.
@@ -33927,6 +33957,16 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
             iv_target = ls_merge-target.
         ei_page = lo_merge.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN OTHERS.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
     ENDCASE.
 
   ENDMETHOD.
@@ -34261,6 +34301,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-bg_update.
         update( decode( iv_getdata ) ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN OTHERS.
+        super->zif_abapgit_gui_page~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state  ).
     ENDCASE.
 
   ENDMETHOD.
@@ -70693,5 +70743,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-27T06:53:49.885Z
+* abapmerge undefined - 2019-03-27T07:05:49.197Z
 ****************************************************
