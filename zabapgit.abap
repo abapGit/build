@@ -11858,7 +11858,7 @@ CLASS zcl_abapgit_environment DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS is_cloud
+    CLASS-METHODS is_sap_cloud_platform
       RETURNING
         VALUE(rv_cloud) TYPE abap_bool .
   PROTECTED SECTION.
@@ -19207,7 +19207,7 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
-  METHOD is_cloud.
+  METHOD is_sap_cloud_platform.
 
     IF gv_cloud = abap_undefined.
       TRY.
@@ -39780,7 +39780,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         IF sy-msgid = 'EU' AND sy-msgno = '510'.
           zcx_abapgit_exception=>raise( 'User is currently editing program' ).
         ELSE.
-          zcx_abapgit_exception=>raise( 'PROG, error updating' ).
+          zcx_abapgit_exception=>raise( |PROG { is_progdir-name }, updating error: { sy-msgid } { sy-msgno }| ).
         ENDIF.
       ENDIF.
 
@@ -52502,7 +52502,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
           lv_layout    TYPE xstring,
           lv_name      TYPE fpname,
           li_wb_object TYPE REF TO if_fp_wb_form,
-          li_form      TYPE REF TO if_fp_form.
+          li_form      TYPE REF TO if_fp_form,
+          lx_fp_err    TYPE REF TO cx_fp_api.
     lv_name = ms_item-obj_name.
     lv_xstr = cl_ixml_80_20=>render_to_xstring( io_xml->get_raw( ) ).
 
@@ -52523,8 +52524,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
                                               i_form = li_form ).
         li_wb_object->save( ).
         li_wb_object->free( ).
-      CATCH cx_fp_api.
-        zcx_abapgit_exception=>raise( 'SFPF error, deserialize' ).
+      CATCH cx_fp_api INTO lx_fp_err.
+        zcx_abapgit_exception=>raise( |SFPF deserialization error: { lx_fp_err->get_text( ) }| ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -70743,5 +70744,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-27T07:05:49.197Z
+* abapmerge undefined - 2019-03-29T05:58:16.217Z
 ****************************************************
