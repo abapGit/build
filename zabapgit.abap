@@ -59385,10 +59385,11 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
     ENDLOOP.
 
     LOOP AT lt_tab_types ASSIGNING <ls_type>.
-      CLEAR: <ls_attr>-author,
-             <ls_attr>-createdon,
-             <ls_attr>-changedby,
-             <ls_attr>-changedon.
+      CLEAR: <ls_type>-author,
+             <ls_type>-createdon,
+             <ls_type>-changedby,
+             <ls_type>-changedon,
+             <ls_type>-descript_id.
     ENDLOOP.
 
     LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
@@ -70779,5 +70780,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-29T06:51:12.973Z
+* abapmerge undefined - 2019-03-29T10:35:19.844Z
 ****************************************************
