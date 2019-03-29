@@ -446,6 +446,7 @@ INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_renderable DEFERRED.
 INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_gui_event_handler DEFERRED.
+INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
@@ -986,6 +987,14 @@ INTERFACE zif_abapgit_gui_asset_manager .
       VALUE(rv_asset) TYPE string
     RAISING
       zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_error_handler .
+
+  METHODS handle_error
+    IMPORTING
+      ix_error TYPE REF TO zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -8433,14 +8442,11 @@ CLASS zcl_abapgit_gui DEFINITION
       IMPORTING
         io_component TYPE REF TO object OPTIONAL
         ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
+        ii_error_handler TYPE REF TO zif_abapgit_gui_error_handler OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
     METHODS free.
-
-    EVENTS on_handle_error
-      EXPORTING
-        VALUE(io_exception) TYPE REF TO cx_root.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -8451,11 +8457,12 @@ CLASS zcl_abapgit_gui DEFINITION
         bookmark TYPE abap_bool,
       END OF ty_page_stack.
 
-    DATA: mi_cur_page    TYPE REF TO zif_abapgit_gui_renderable,
-          mt_stack       TYPE STANDARD TABLE OF ty_page_stack,
-          mi_router      TYPE REF TO zif_abapgit_gui_event_handler,
-          mi_asset_man   TYPE REF TO zif_abapgit_gui_asset_manager,
-          mo_html_viewer TYPE REF TO cl_gui_html_viewer.
+    DATA: mi_cur_page      TYPE REF TO zif_abapgit_gui_renderable,
+          mt_stack         TYPE STANDARD TABLE OF ty_page_stack,
+          mi_router        TYPE REF TO zif_abapgit_gui_event_handler,
+          mi_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager,
+          mi_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+          mo_html_viewer   TYPE REF TO cl_gui_html_viewer.
 
     METHODS startup
       RAISING
@@ -22246,16 +22253,16 @@ CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION DEFERRED.
 * renamed: zcl_abapgit_ui_factory :: lcl_gui_error_handler
 CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION.
   PUBLIC SECTION.
-    METHODS on_gui_error FOR EVENT on_handle_error OF zcl_abapgit_gui
-      IMPORTING
-        io_exception.
+    INTERFACES zif_abapgit_gui_error_handler.
 ENDCLASS.
 
 CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY IMPLEMENTATION.
-  METHOD on_gui_error.
+
+  METHOD zif_abapgit_gui_error_handler~handle_error.
     ROLLBACK WORK.
-    MESSAGE io_exception TYPE 'S' DISPLAY LIKE 'E'.
+    MESSAGE ix_error TYPE 'S' DISPLAY LIKE 'E'.
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
@@ -22279,12 +22286,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     IF go_gui IS INITIAL.
       li_asset_man ?= init_asset_manager( ).
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
+      CREATE OBJECT lo_error_handler.
       CREATE OBJECT go_gui
         EXPORTING
-          io_component = li_router
-          ii_asset_man = li_asset_man.
-      CREATE OBJECT lo_error_handler.
-      SET HANDLER lo_error_handler->on_gui_error FOR go_gui.
+          io_component     = li_router
+          ii_error_handler = lo_error_handler
+          ii_asset_man     = li_asset_man.
     ENDIF.
     ro_gui = go_gui.
 
@@ -35863,6 +35870,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ENDIF.
 
     mi_asset_man = ii_asset_man.
+    mi_error_handler = ii_error_handler.
     startup( ).
 
   ENDMETHOD.
@@ -35963,7 +35971,9 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
       CATCH zcx_abapgit_exception INTO lx_exception.
-        RAISE EVENT on_handle_error EXPORTING io_exception = lx_exception.
+        IF mi_error_handler IS BOUND.
+          mi_error_handler->handle_error( lx_exception ).
+        ENDIF.
     ENDTRY.
 
   ENDMETHOD.
@@ -70744,5 +70754,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-29T05:58:16.217Z
+* abapmerge undefined - 2019-03-29T06:00:31.378Z
 ****************************************************
