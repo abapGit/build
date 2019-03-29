@@ -444,7 +444,6 @@ INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_renderable DEFERRED.
-INTERFACE zif_abapgit_gui_page DEFERRED.
 INTERFACE zif_abapgit_gui_event_handler DEFERRED.
 INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
@@ -1021,15 +1020,6 @@ INTERFACE zif_abapgit_gui_renderable .
       VALUE(ro_html) TYPE REF TO zif_abapgit_html
     RAISING
       zcx_abapgit_exception.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_page.
-
-  INTERFACES zif_abapgit_gui_event_handler.
-  INTERFACES zif_abapgit_gui_renderable.
-  ALIASES on_event FOR zif_abapgit_gui_event_handler~on_event.
-  ALIASES render FOR zif_abapgit_gui_renderable~render.
 
 ENDINTERFACE.
 
@@ -8740,7 +8730,8 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES:
-      zif_abapgit_gui_page.
+      zif_abapgit_gui_renderable,
+      zif_abapgit_gui_event_handler.
 
     CONSTANTS:
       BEGIN OF c_global_page_action,
@@ -8822,7 +8813,7 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
 
     METHODS constructor .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
 
@@ -8881,7 +8872,7 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
       IMPORTING
         is_key TYPE zif_abapgit_persistence=>ty_content .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
 
@@ -8919,7 +8910,7 @@ CLASS zcl_abapgit_gui_page_bkg DEFINITION
       IMPORTING
         iv_key TYPE zif_abapgit_persistence=>ty_repo-key .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
 
@@ -8975,7 +8966,7 @@ CLASS zcl_abapgit_gui_page_bkg_run DEFINITION
 
     METHODS constructor .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
     METHODS render_content        REDEFINITION.
@@ -8997,7 +8988,7 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
       constructor
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
         RAISING   zcx_abapgit_exception,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+      zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
@@ -9051,7 +9042,7 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
-      zif_abapgit_gui_page~on_event
+      zif_abapgit_gui_event_handler~on_event
         REDEFINITION.
 
   PROTECTED SECTION.
@@ -9098,10 +9089,10 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         RAISING
           zcx_abapgit_exception,
 
-      zif_abapgit_gui_page~on_event
+      zif_abapgit_gui_event_handler~on_event
         REDEFINITION,
 
-      zif_abapgit_gui_page~render
+      zif_abapgit_gui_renderable~render
         REDEFINITION.
 
   PROTECTED SECTION.
@@ -9172,7 +9163,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
 
@@ -9269,7 +9260,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       RAISING
         zcx_abapgit_exception .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
     METHODS:
@@ -9416,7 +9407,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
     METHODS:
       constructor
         RAISING zcx_abapgit_exception,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+      zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -9465,7 +9456,7 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
       RAISING
         zcx_abapgit_exception .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
          REDEFINITION.
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
@@ -9502,7 +9493,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
          REDEFINITION .
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
@@ -9605,7 +9596,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
     METHODS constructor .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
 
   PROTECTED SECTION.
@@ -9732,7 +9723,7 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo .
 
-    METHODS zif_abapgit_gui_page~on_event
+    METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION .
   PROTECTED SECTION.
 
@@ -9790,7 +9781,7 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
       END OF c_action.
 
     METHODS constructor.
-    METHODS zif_abapgit_gui_page~on_event REDEFINITION.
+    METHODS zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS render_content REDEFINITION.
@@ -9899,7 +9890,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
                   io_repo TYPE REF TO zcl_abapgit_repo_online
                   iv_seed TYPE string OPTIONAL
         RAISING   zcx_abapgit_exception,
-      zif_abapgit_gui_page~on_event REDEFINITION.
+      zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -9964,7 +9955,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS get_page_patch
       IMPORTING iv_getdata     TYPE clike
                 iv_prev_page   TYPE clike
-      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_page
+      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
@@ -10001,7 +9992,7 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
         IMPORTING io_repo TYPE REF TO zcl_abapgit_repo
         RAISING   zcx_abapgit_exception,
 
-      zif_abapgit_gui_page~on_event REDEFINITION.
+      zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -10177,11 +10168,12 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_page .
+    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_event_handler .
     INTERFACES zif_abapgit_gui_page_hotkey.
 
     ALIASES render
-      FOR zif_abapgit_gui_page~render .
+      FOR zif_abapgit_gui_renderable~render .
 
     CONSTANTS:
       BEGIN OF c_actions,
@@ -10266,9 +10258,10 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_page.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_event_handler.
     INTERFACES zif_abapgit_gui_page_hotkey.
-    ALIASES render FOR zif_abapgit_gui_page~render.
+    ALIASES render FOR zif_abapgit_gui_renderable~render.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -27821,13 +27814,13 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '</ul></p>' ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+    ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
-    ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_page~render.
+  METHOD zif_abapgit_gui_renderable~render.
 
     CREATE OBJECT ro_html TYPE zcl_abapgit_html.
 
@@ -28360,10 +28353,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ro_html->add( '</tr>' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_path TYPE string.
 
@@ -28391,7 +28381,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~render.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
 
     DATA: lt_repo_items        TYPE zif_abapgit_definitions=>tt_repo_items,
           lo_browser           TYPE REF TO zcl_abapgit_repo_content_list,
@@ -29267,7 +29260,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ro_html->add( 'setInitialFocus("name");' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
       WHEN c_action-commit_post.
@@ -29702,7 +29695,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_stage  TYPE REF TO zcl_abapgit_stage,
           lv_string TYPE string,
@@ -29760,7 +29753,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -30279,7 +30272,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
     RETURN.
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 * todo, check input values eg INT
 
     DATA:
@@ -30629,7 +30622,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
       WHEN c_action-save_settings.
@@ -31024,7 +31017,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_key  TYPE zif_abapgit_persistence=>ty_value.
 
@@ -31059,7 +31052,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -31465,7 +31458,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
@@ -31644,7 +31637,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
       WHEN c_actions-merge.
@@ -31684,7 +31677,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -31997,12 +31990,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
-          li_repo_overview TYPE REF TO zif_abapgit_gui_page.
+          li_repo_overview TYPE REF TO zif_abapgit_gui_renderable.
     IF NOT mo_repo_content IS INITIAL.
-      mo_repo_content->zif_abapgit_gui_page~on_event(
+      mo_repo_content->zif_abapgit_gui_event_handler~on_event(
         EXPORTING
           iv_action    = iv_action
           iv_prev_page = iv_prev_page
@@ -32038,7 +32031,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
         ei_page = li_repo_overview.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -32921,7 +32914,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
 
@@ -33269,7 +33262,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_commit TYPE zcl_abapgit_services_git=>ty_commit_fields.
 
@@ -33292,7 +33285,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -33437,7 +33430,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
     io_html->add( '</li>' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
     DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
           ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
           lv_temp          TYPE string,
@@ -33630,7 +33623,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
 
@@ -33681,7 +33674,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
         ei_page = me.
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action             = iv_action
             iv_prev_page          = iv_prev_page
@@ -33693,10 +33686,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~render.
+  METHOD zif_abapgit_gui_renderable~render.
 
     ms_control-page_menu = build_menu( ).
-    ro_html = super->zif_abapgit_gui_page~render( ).
+    ro_html = super->zif_abapgit_gui_renderable~render( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -33939,7 +33932,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_merge TYPE ty_merge,
           lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
@@ -33965,7 +33958,7 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
         ei_page = lo_merge.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -34080,7 +34073,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
     RETURN.
   ENDMETHOD.
 ENDCLASS.
@@ -34302,14 +34295,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
       WHEN zif_abapgit_definitions=>c_action-bg_update.
         update( decode( iv_getdata ) ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN OTHERS.
-        super->zif_abapgit_gui_page~on_event(
+        super->zif_abapgit_gui_event_handler~on_event(
           EXPORTING
             iv_action    = iv_action
             iv_prev_page = iv_prev_page
@@ -34494,7 +34487,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
       WHEN zif_abapgit_definitions=>c_action-url.
@@ -34509,7 +34502,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~render.
+  METHOD zif_abapgit_gui_renderable~render.
 
     DATA lo_script TYPE REF TO zcl_abapgit_html.
 
@@ -35152,7 +35145,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
 
@@ -35362,7 +35355,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page~on_event.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
 
@@ -70754,5 +70747,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-29T06:00:31.378Z
+* abapmerge undefined - 2019-03-29T06:10:14.027Z
 ****************************************************
