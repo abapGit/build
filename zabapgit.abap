@@ -19254,6 +19254,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     APPEND '/.travis.yml' TO ls_data-ignore.
     APPEND '/.gitlab-ci.yml' TO ls_data-ignore.
     APPEND '/abaplint.json' TO ls_data-ignore.
+    APPEND '/azure-pipelines.yml' TO ls_data-ignore.
 
     CREATE OBJECT ro_dot_abapgit
       EXPORTING
@@ -70779,5 +70780,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-30T10:19:07.873Z
+* abapmerge undefined - 2019-03-30T10:21:43.867Z
 ****************************************************
