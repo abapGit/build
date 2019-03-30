@@ -4013,6 +4013,19 @@ CLASS zcl_abapgit_object_enho_class DEFINITION.
     INTERFACES: zif_abapgit_object_enho.
 
   PRIVATE SECTION.
+    METHODS:
+      serialize_includes
+        IMPORTING
+          io_class TYPE REF TO cl_enh_tool_class
+        RAISING
+          zcx_abapgit_exception,
+      deserialize_includes
+        IMPORTING
+          io_xml   TYPE REF TO zcl_abapgit_xml_input
+          io_class TYPE REF TO cl_enh_tool_class
+        RAISING
+          zcx_abapgit_exception.
+
     DATA: ms_item TYPE zif_abapgit_definitions=>ty_item.
     DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
 
@@ -4033,10 +4046,6 @@ CLASS zcl_abapgit_object_enho_clif DEFINITION.
         RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
-    CLASS-METHODS: serialize_includes
-      IMPORTING io_files TYPE REF TO zcl_abapgit_objects_files
-                io_clif  TYPE REF TO cl_enh_tool_clif
-      RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_fugr DEFINITION.
@@ -59122,6 +59131,8 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
           ls_original_object TYPE enh_hook_admin,
           lt_spaces          TYPE ty_spaces_tt,
           lt_enhancements    TYPE enh_hook_impl_it.
+
+    FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
     lo_hook_impl ?= ii_enh_tool.
 
     lv_shorttext = lo_hook_impl->if_enh_object_docu~get_shorttext( ).
@@ -59135,6 +59146,11 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
         program   = ls_original_object-programname ).
     ls_original_object-include_bound = lo_hook_impl->get_include_bound( ).
     lt_enhancements = lo_hook_impl->get_hook_impls( ).
+
+    LOOP AT lt_enhancements ASSIGNING <ls_enhancement>.
+      CLEAR: <ls_enhancement>-extid,
+             <ls_enhancement>-id.
+    ENDLOOP.
 
     hook_impl_serialize(
       IMPORTING et_spaces = lt_spaces
@@ -59364,48 +59380,19 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
 
-  METHOD serialize_includes.
-
-    DATA: lt_includes TYPE enhnewmeth_tabincl_plus_enha,
-          lt_source   TYPE TABLE OF abaptxt255,
-          lv_include  TYPE programm.
-
-    FIELD-SYMBOLS: <ls_include> LIKE LINE OF lt_includes.
-    lt_includes = io_clif->get_enh_method_includes( ).
-    LOOP AT lt_includes ASSIGNING <ls_include>.
-      lv_include = io_clif->if_enh_tool~get_name( ).
-      TRANSLATE lv_include USING ' ='.
-      lv_include+30 = 'EM'.
-      lv_include+32(8) = <ls_include>-includenr.
-
-      CALL FUNCTION 'RPY_PROGRAM_READ'
-        EXPORTING
-          program_name     = lv_include
-          with_lowercase   = abap_true
-        TABLES
-          source_extended  = lt_source
-        EXCEPTIONS
-          cancelled        = 1
-          not_found        = 2
-          permission_error = 3
-          OTHERS           = 4.
-      IF sy-subrc = 0.
-        io_files->add_abap( iv_extra = |EM{ <ls_include>-includenr }|
-                            it_abap  = lt_source ).
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
   METHOD serialize.
 
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
           lt_tab_types      TYPE enhtype_tab,
-          lt_tab_methods    TYPE enhnewmeth_tab.
+          lt_tab_methods    TYPE enhnewmeth_tab,
+          lt_tab_eventdata  TYPE enhevent_tab.
 
-    FIELD-SYMBOLS: <ls_attr> LIKE LINE OF lt_tab_attributes,
-                   <ls_type> LIKE LINE OF lt_tab_types,
-                   <ls_meth> LIKE LINE OF lt_tab_methods.
+    FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
+                   <ls_type>        LIKE LINE OF lt_tab_types,
+                   <ls_meth>        LIKE LINE OF lt_tab_methods,
+                   <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
+                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
+                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
     io_clif->get_enhattributes(
       IMPORTING
         tab_attributes = lt_tab_attributes ).
@@ -59418,14 +59405,16 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
       IMPORTING
         tab_methodes = lt_tab_methods ).
 
-    serialize_includes( io_clif  = io_clif
-                        io_files = io_files ).
+    io_clif->get_enhevents(
+      IMPORTING
+        tab_eventdata = lt_tab_eventdata ).
 
     LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
       CLEAR: <ls_attr>-author,
              <ls_attr>-createdon,
              <ls_attr>-changedby,
-             <ls_attr>-changedon.
+             <ls_attr>-changedon,
+             <ls_attr>-descript_id.
     ENDLOOP.
 
     LOOP AT lt_tab_types ASSIGNING <ls_type>.
@@ -59442,6 +59431,28 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
              <ls_meth>-meth_header-changedby,
              <ls_meth>-meth_header-changedon,
              <ls_meth>-meth_header-descript_id.
+      LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
+        CLEAR: <ls_param>-author,
+               <ls_param>-createdon,
+               <ls_param>-changedby,
+               <ls_param>-changedon,
+               <ls_param>-descript_id.
+      ENDLOOP.
+    ENDLOOP.
+
+    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
+      CLEAR: <ls_event>-event_header-author,
+             <ls_event>-event_header-createdon,
+             <ls_event>-event_header-changedby,
+             <ls_event>-event_header-changedon,
+             <ls_event>-event_header-descript_id.
+      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
+        CLEAR: <ls_event_param>-author,
+               <ls_event_param>-createdon,
+               <ls_event_param>-changedby,
+               <ls_event_param>-changedon,
+               <ls_event_param>-descript_id.
+      ENDLOOP.
     ENDLOOP.
 
     io_xml->add( iv_name = 'TAB_ATTRIBUTES'
@@ -59450,6 +59461,8 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
                  ig_data = lt_tab_types ).
     io_xml->add( iv_name = 'TAB_METHODS'
                  ig_data = lt_tab_methods ).
+    io_xml->add( iv_name = 'TAB_EVENTDATA'
+                 ig_data = lt_tab_eventdata ).
 
   ENDMETHOD.
 
@@ -59461,18 +59474,25 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
           ls_type_line      TYPE vseotype,
           ls_header         TYPE vseomethod,
           ls_param          TYPE vseomepara,
-          ls_exc            TYPE vseoexcep.
+          ls_exc            TYPE vseoexcep,
+          lt_tab_eventdata  TYPE enhevent_tab,
+          ls_event_line     TYPE vseoevent,
+          ls_event_param    TYPE vseoeparam.
 
-    FIELD-SYMBOLS: <ls_type>   LIKE LINE OF lt_tab_types,
-                   <ls_method> LIKE LINE OF lt_tab_methods,
-                   <ls_param>  LIKE LINE OF <ls_method>-meth_param,
-                   <ls_exc>    LIKE LINE OF <ls_method>-meth_exc.
+    FIELD-SYMBOLS: <ls_type>        LIKE LINE OF lt_tab_types,
+                   <ls_method>      LIKE LINE OF lt_tab_methods,
+                   <ls_param>       LIKE LINE OF <ls_method>-meth_param,
+                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
+                   <ls_exc>         LIKE LINE OF <ls_method>-meth_exc,
+                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
     io_xml->read( EXPORTING iv_name = 'TAB_ATTRIBUTES'
                   CHANGING cg_data = lt_tab_attributes ).
     io_xml->read( EXPORTING iv_name = 'TAB_TYPES'
                   CHANGING cg_data = lt_tab_types ).
     io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
                   CHANGING cg_data = lt_tab_methods ).
+    io_xml->read( EXPORTING iv_name = 'TAB_EVENTDATA'
+                  CHANGING cg_data = lt_tab_eventdata ).
 
     LOOP AT lt_tab_types ASSIGNING <ls_type>.
       MOVE-CORRESPONDING <ls_type> TO ls_type_line.
@@ -59485,8 +59505,6 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
     ENDLOOP.
 
     io_clif->set_enhattributes( lt_tab_attributes ).
-
-* todo: deserialize includes
 
 * SAP standard SET_ENH_NEW_METHOS does not work
 
@@ -59512,6 +59530,25 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
         io_clif->add_change_enh_methexc(
           methname    = <ls_method>-methkey-cmpname
           except_line = ls_exc ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+    " events are renumbered based on
+    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
+
+      MOVE-CORRESPONDING <ls_event>-event_header TO ls_event_line.
+
+      io_clif->add_change_enha_event(
+        event_key  = <ls_event>-eventkey
+        event_line = ls_event_line ).
+
+* parameters
+      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
+        MOVE-CORRESPONDING <ls_event_param> TO ls_event_param.
+        io_clif->add_change_enh_eventparam(
+          eventname   = <ls_event>-eventkey-cmpname
+          event_param = ls_event_param ).
       ENDLOOP.
 
     ENDLOOP.
@@ -59564,6 +59601,8 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
       io_xml   = io_xml
       io_files = mo_files
       io_clif  = lo_enh_class ).
+
+    serialize_includes( lo_enh_class ).
 
   ENDMETHOD.
 
@@ -59620,11 +59659,80 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
           io_xml  = io_xml
           io_clif = lo_enh_class ).
 
+        deserialize_includes(
+          io_xml   = io_xml
+          io_class = lo_enh_class ).
+
         lo_enh_class->if_enh_object~save( run_dark = abap_true ).
         lo_enh_class->if_enh_object~unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO class' ).
     ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD serialize_includes.
+
+    DATA: lt_includes TYPE enhnewmeth_tabincl_plus_enha,
+          lt_source   TYPE TABLE OF abaptxt255,
+          lv_include  TYPE programm.
+
+    FIELD-SYMBOLS: <ls_include> LIKE LINE OF lt_includes.
+    lt_includes = io_class->get_enh_method_includes( ).
+    LOOP AT lt_includes ASSIGNING <ls_include>.
+      lv_include = io_class->if_enh_tool~get_name( ).
+      TRANSLATE lv_include USING ' ='.
+      lv_include+30 = 'EM'.
+      lv_include+32(8) = <ls_include>-includenr.
+
+      CALL FUNCTION 'RPY_PROGRAM_READ'
+        EXPORTING
+          program_name     = lv_include
+          with_lowercase   = abap_true
+        TABLES
+          source_extended  = lt_source
+        EXCEPTIONS
+          cancelled        = 1
+          not_found        = 2
+          permission_error = 3
+          OTHERS           = 4.
+      IF sy-subrc = 0.
+        mo_files->add_abap( iv_extra = |EM{ <ls_include>-includenr }|
+                            it_abap  = lt_source ).
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD deserialize_includes.
+
+    DATA: lt_tab_methods TYPE enhnewmeth_tab,
+          lv_editorder   TYPE n LENGTH 3,
+          lv_methname    TYPE seocpdname,
+          lt_abap        TYPE rswsourcet,
+          lx_enh         TYPE REF TO cx_enh_root.
+
+    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods.
+
+    io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
+                  CHANGING cg_data = lt_tab_methods ).
+
+    LOOP AT lt_tab_methods ASSIGNING <ls_method>.
+
+      lv_editorder = <ls_method>-meth_header-editorder.
+      lv_methname = <ls_method>-methkey-cmpname.
+      lt_abap = mo_files->read_abap( iv_extra = 'em' && lv_editorder ).
+
+      TRY.
+          io_class->add_change_new_method_source(
+              clsname    = <ls_method>-methkey-clsname
+              methname   = lv_methname
+              methsource = lt_abap ).
+        CATCH cx_enh_mod_not_allowed cx_enh_is_not_enhanceable INTO lx_enh.
+          zcx_abapgit_exception=>raise( iv_text = 'Error deserializing ENHO method include' ix_previous = lx_enh ).
+      ENDTRY.
+
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -70824,5 +70932,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-30T10:24:05.286Z
+* abapmerge undefined - 2019-03-30T10:28:20.405Z
 ****************************************************
