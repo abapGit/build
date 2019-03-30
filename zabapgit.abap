@@ -14427,8 +14427,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
-    SORT lt_super.
-    READ TABLE lt_super INDEX 1 INTO rv_package.
+    READ TABLE lt_super INDEX lines( lt_super ) INTO rv_package.
   ENDMETHOD.
   METHOD read_requests.
     DATA lt_requests LIKE rt_requests.
@@ -70780,5 +70779,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-29T10:35:19.844Z
+* abapmerge undefined - 2019-03-30T10:19:07.873Z
 ****************************************************
