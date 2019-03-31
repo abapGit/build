@@ -40081,7 +40081,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
            rs_progdir-sdate,
            rs_progdir-stime,
            rs_progdir-idate,
-           rs_progdir-itime.
+           rs_progdir-itime,
+           rs_progdir-varcl,
+           rs_progdir-state.
 
   ENDMETHOD.
   METHOD read_tpool.
@@ -54904,7 +54906,8 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     DATA: lv_object  TYPE dokhl-object,
           lt_objects TYPE STANDARD TABLE OF dokhl-object
                           WITH NON-UNIQUE DEFAULT KEY,
-          lt_dokil   TYPE zif_abapgit_definitions=>tty_dokil.
+          lt_dokil   TYPE zif_abapgit_definitions=>tty_dokil,
+          ls_dokil   LIKE LINE OF lt_dokil.
 
     FIELD-SYMBOLS: <ls_t100>  TYPE t100.
 
@@ -54924,6 +54927,9 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
              FOR ALL ENTRIES IN lt_objects
              WHERE id     = 'NA'
              AND   object = lt_objects-table_line.
+
+    CLEAR ls_dokil-dokstate.
+    MODIFY lt_dokil FROM ls_dokil TRANSPORTING dokstate WHERE dokstate IS NOT INITIAL.
 
     IF lines( lt_dokil ) > 0.
       serialize_longtexts( io_xml   = io_xml
@@ -55570,7 +55576,8 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
            ls_vseointerf-changedon,
            ls_vseointerf-chgdanyby,
            ls_vseointerf-chgdanyon,
-           ls_vseointerf-r3release.
+           ls_vseointerf-r3release,
+           ls_vseointerf-version.
 
     io_xml->add( iv_name = 'VSEOINTERF'
                  ig_data = ls_vseointerf ).
@@ -58482,7 +58489,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
 
     CLEAR: ls_dd25v-as4user,
            ls_dd25v-as4date,
-           ls_dd25v-as4time.
+           ls_dd25v-as4time,
+           ls_dd25v-as4local,
+           ls_dd25v-as4vers.
 
     _clear_dd27p_fields( CHANGING ct_dd27p = lt_dd27p ).
 
@@ -62826,6 +62835,15 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
     clear_field( EXPORTING iv_fieldname = 'CONTAINER_REF-PACKAGE_NAME'
                  CHANGING  cs_metadata  = <lg_metadata> ).
 
+    clear_field( EXPORTING iv_fieldname = 'VERSION'
+                 CHANGING  cs_metadata  = <lg_metadata> ).
+
+    clear_field( EXPORTING iv_fieldname = 'RESPONSIBLE'
+                 CHANGING  cs_metadata  = <lg_metadata> ).
+
+    clear_field( EXPORTING iv_fieldname = 'MASTER_SYSTEM'
+                 CHANGING  cs_metadata  = <lg_metadata> ).
+
   ENDMETHOD.
   METHOD get_persistence.
 
@@ -63305,6 +63323,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     APPEND 'AS4TIME' TO lt_clr_comps.
     APPEND 'ACTFLAG' TO lt_clr_comps.
     APPEND 'CHGFLAG' TO lt_clr_comps.
+    APPEND 'ABAP_LANGUAGE_VERSION' TO lt_clr_comps.
 
     LOOP AT lt_clr_comps ASSIGNING <lv_comp>.
       ASSIGN COMPONENT <lv_comp> OF STRUCTURE <lg_data> TO <lg_field>.
@@ -63503,6 +63522,15 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
         ASSIGN COMPONENT 'CREATED_DATE' OF STRUCTURE <lg_data> TO <lg_field>.
         ASSERT sy-subrc = 0.
         CLEAR <lg_field>.
+
+        ASSIGN COMPONENT 'AS4LOCAL' OF STRUCTURE <lg_data> TO <lg_field>.
+        ASSERT sy-subrc = 0.
+        CLEAR <lg_field>.
+
+        ASSIGN COMPONENT 'ABAP_LANGUAGE_VERSION' OF STRUCTURE <lg_data> TO <lg_field>.
+        IF sy-subrc = 0.
+          CLEAR <lg_field>.
+        ENDIF.
 
         ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
         ASSERT sy-subrc = 0.
@@ -64307,7 +64335,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
            ls_vseoclass-chgdanyon,
            ls_vseoclass-clsfinal,
            ls_vseoclass-clsabstrct,
-           ls_vseoclass-exposure.
+           ls_vseoclass-exposure,
+           ls_vseoclass-version.
 
     IF mv_skip_testclass = abap_true.
       CLEAR ls_vseoclass-with_unit_tests.
@@ -70932,5 +70961,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-30T10:28:20.405Z
+* abapmerge undefined - 2019-03-31T08:19:58.344Z
 ****************************************************
