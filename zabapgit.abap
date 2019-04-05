@@ -1588,6 +1588,7 @@ INTERFACE zif_abapgit_definitions .
       link_hint_background_color TYPE string,
       hotkeys                    TYPE tty_hotkey,
       parallel_proc_disabled     TYPE abap_bool,
+      icon_scaling               TYPE c LENGTH 1,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -9819,6 +9820,9 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     METHODS render_max_lines
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS render_icon_scaling
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_adt_jump_enabled
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -12955,6 +12959,12 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
     CONSTANTS: c_commitmsg_comment_length_dft TYPE i VALUE 50.
     CONSTANTS: c_commitmsg_body_size_dft      TYPE i VALUE 72.
 
+    CONSTANTS:
+      BEGIN OF c_icon_scaling,
+        large TYPE c VALUE 'L',
+        small TYPE c VALUE 'S',
+      END OF c_icon_scaling.
+
     METHODS:
       set_proxy_url
         IMPORTING
@@ -13067,8 +13077,14 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           iv_disable_parallel_proc TYPE abap_bool,
       get_parallel_proc_disabled
         RETURNING
-          VALUE(rv_disable_parallel_proc) TYPE abap_bool.
-
+          VALUE(rv_disable_parallel_proc) TYPE abap_bool,
+      get_icon_scaling
+        RETURNING
+          VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
+      set_icon_scaling
+        IMPORTING
+          iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
              proxy_url                TYPE string,
@@ -14996,7 +15012,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_settings IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
   ENDMETHOD.
@@ -15009,14 +15025,50 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_experimental_features.
     rv_run = ms_settings-experimental_features.
   ENDMETHOD.
+  METHOD get_hotkeys.
+
+    DATA: lt_default_hotkeys TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
+          ls_hotkey          LIKE LINE OF rt_hotkeys.
+
+    FIELD-SYMBOLS: <ls_default_hotkey> LIKE LINE OF lt_default_hotkeys.
+
+    IF lines( ms_user_settings-hotkeys ) > 0.
+
+      rt_hotkeys = ms_user_settings-hotkeys.
+
+    ELSE.
+
+      " provide default hotkeys
+      lt_default_hotkeys = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
+
+      LOOP AT lt_default_hotkeys ASSIGNING <ls_default_hotkey>.
+
+        ls_hotkey-action   = <ls_default_hotkey>-action.
+        ls_hotkey-sequence = <ls_default_hotkey>-default_hotkey.
+        INSERT ls_hotkey INTO TABLE rt_hotkeys.
+
+      ENDLOOP.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_icon_scaling.
+    rv_scaling = ms_user_settings-icon_scaling.
+  ENDMETHOD.
   METHOD get_link_hints_enabled.
     rv_link_hints_enabled = ms_user_settings-link_hints_enabled.
+  ENDMETHOD.
+  METHOD get_link_hint_background_color.
+    rv_background_color = ms_user_settings-link_hint_background_color.
   ENDMETHOD.
   METHOD get_link_hint_key.
     rv_link_hint_key = ms_user_settings-link_hint_key.
   ENDMETHOD.
   METHOD get_max_lines.
     rv_lines = ms_user_settings-max_lines.
+  ENDMETHOD.
+  METHOD get_parallel_proc_disabled.
+    rv_disable_parallel_proc = ms_user_settings-parallel_proc_disabled.
   ENDMETHOD.
   METHOD get_proxy_authentication.
     rv_auth = ms_settings-proxy_auth.
@@ -15070,6 +15122,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
     set_default_link_hint_key( ).
     set_default_link_hint_bg_color( ).
+    set_icon_scaling( '' ).
 
   ENDMETHOD.
   METHOD set_default_link_hint_bg_color.
@@ -15081,14 +15134,29 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD set_experimental_features.
     ms_settings-experimental_features = iv_run.
   ENDMETHOD.
+  METHOD set_hotkeys.
+    ms_user_settings-hotkeys = it_hotkeys.
+  ENDMETHOD.
+  METHOD set_icon_scaling.
+    ms_user_settings-icon_scaling = iv_scaling.
+    IF ms_user_settings-icon_scaling NA c_icon_scaling.
+      ms_user_settings-icon_scaling = ''. " Reset to default
+    ENDIF.
+  ENDMETHOD.
   METHOD set_link_hints_enabled.
     ms_user_settings-link_hints_enabled = iv_link_hints_enabled.
+  ENDMETHOD.
+  METHOD set_link_hint_background_color.
+    ms_user_settings-link_hint_background_color = iv_background_color.
   ENDMETHOD.
   METHOD set_link_hint_key.
     ms_user_settings-link_hint_key = iv_link_hint_key.
   ENDMETHOD.
   METHOD set_max_lines.
     ms_user_settings-max_lines = iv_lines.
+  ENDMETHOD.
+  METHOD set_parallel_proc_disabled.
+    ms_user_settings-parallel_proc_disabled = iv_disable_parallel_proc.
   ENDMETHOD.
   METHOD set_proxy_authentication.
     ms_settings-proxy_auth = iv_auth.
@@ -15130,52 +15198,6 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
         cg_data = ms_settings ).
 
   ENDMETHOD.
-
-  METHOD get_link_hint_background_color.
-    rv_background_color = ms_user_settings-link_hint_background_color.
-  ENDMETHOD.
-  METHOD set_link_hint_background_color.
-    ms_user_settings-link_hint_background_color = iv_background_color.
-  ENDMETHOD.
-  METHOD set_hotkeys.
-    ms_user_settings-hotkeys = it_hotkeys.
-  ENDMETHOD.
-
-  METHOD get_hotkeys.
-
-    DATA: lt_default_hotkeys TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_action,
-          ls_hotkey          LIKE LINE OF rt_hotkeys.
-
-    FIELD-SYMBOLS: <ls_default_hotkey> LIKE LINE OF lt_default_hotkeys.
-
-    IF lines( ms_user_settings-hotkeys ) > 0.
-
-      rt_hotkeys = ms_user_settings-hotkeys.
-
-    ELSE.
-
-      " provide default hotkeys
-      lt_default_hotkeys = zcl_abapgit_hotkeys=>get_default_hotkeys_from_pages( ).
-
-      LOOP AT lt_default_hotkeys ASSIGNING <ls_default_hotkey>.
-
-        ls_hotkey-action   = <ls_default_hotkey>-action.
-        ls_hotkey-sequence = <ls_default_hotkey>-default_hotkey.
-        INSERT ls_hotkey INTO TABLE rt_hotkeys.
-
-      ENDLOOP.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD set_parallel_proc_disabled.
-    ms_user_settings-parallel_proc_disabled = iv_disable_parallel_proc.
-  ENDMETHOD.
-
-  METHOD get_parallel_proc_disabled.
-    rv_disable_parallel_proc = ms_user_settings-parallel_proc_disabled.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
@@ -29911,7 +29933,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD post.
 
-    DATA: lv_i_param_value TYPE i.
+    DATA lv_i_param_value TYPE i.
+    DATA lv_c_param_value TYPE c.
 
     FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
     CREATE OBJECT mo_settings.
@@ -29961,6 +29984,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_parallel_proc_disabled( abap_true ).
     ELSE.
       mo_settings->set_parallel_proc_disabled( abap_false ).
+    ENDIF.
+
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'icon_scaling'.
+    IF sy-subrc = 0.
+      lv_c_param_value = <ls_post_field>-value.
+      mo_settings->set_icon_scaling( lv_c_param_value ).
+    ELSE.
+      mo_settings->set_icon_scaling( '' ).
     ENDIF.
 
     post_hotkeys( ).
@@ -30115,6 +30146,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( render_section_begin( |User specific settings| ) ).
     ro_html->add( render_start_up( ) ).
     ro_html->add( render_max_lines( ) ).
+    ro_html->add( render_icon_scaling( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
     ro_html->add( |<hr>| ).
@@ -30229,6 +30261,39 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( '</tr>' ).
 
     ro_html->add( '</table>' ).
+
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+
+  ENDMETHOD.
+  METHOD render_icon_scaling.
+
+    DATA:
+      BEGIN OF ls_sel,
+        auto TYPE string,
+        large TYPE string,
+        small TYPE string,
+      END OF ls_sel.
+
+    CASE mo_settings->get_icon_scaling( ).
+      WHEN zcl_abapgit_settings=>c_icon_scaling-large.
+        ls_sel-large = ' selected'.
+      WHEN zcl_abapgit_settings=>c_icon_scaling-small.
+        ls_sel-small = ' selected'.
+      WHEN OTHERS.
+        ls_sel-auto = ' selected'.
+    ENDCASE.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( |<h2>UI Icon scaling</h2>| ).
+    ro_html->add( |<label for="icon_scaling">High DPI icon scaling</label>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<select name="icon_scaling" size="3">| ).
+    ro_html->add( |<option value=""{ ls_sel-auto }>Auto</option>| ).
+    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-large }"{ ls_sel-large }>Large</option>| ).
+    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-small }"{ ls_sel-small }>Small</option>| ).
+    ro_html->add( |</select>| ).
 
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
@@ -30354,9 +30419,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-    RETURN.
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 * todo, check input values eg INT
 
@@ -30379,6 +30441,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -34497,6 +34562,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
+
+    CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
+      WHEN mo_settings->c_icon_scaling-large.
+        ro_html->add( '<style>.icon { font-size: 200% }</style>' ).
+      WHEN mo_settings->c_icon_scaling-small.
+        ro_html->add( '<style>.icon.large { font-size: inherit }</style>' ).
+    ENDCASE.
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
@@ -52343,6 +52415,10 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
           li_interface TYPE REF TO if_fp_interface.
     lv_name = ms_item-obj_name.
     lv_xstr = cl_ixml_80_20=>render_to_xstring( io_xml->get_raw( ) ).
+
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( ).
+    ENDIF.
 
     TRY.
         li_interface = cl_fp_helper=>convert_xstring_to_interface( lv_xstr ).
@@ -70961,5 +71037,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-03-31T08:33:43.371Z
+* abapmerge undefined - 2019-04-05T10:49:53.191Z
 ****************************************************
