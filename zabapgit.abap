@@ -23489,6 +23489,30 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.ci-result li span {'.
     _inline '  display: block;'.
     _inline '}'.
+    _inline ''.
+    _inline '/* Floating buttons and color sets */'.
+    _inline ''.
+    _inline '.floating-button {'.
+    _inline '  position: fixed;'.
+    _inline '  top: 6em;'.
+    _inline '  right: 2.8em;'.
+    _inline '  padding: 1em 1.8em;'.
+    _inline '  border-radius: 4px;'.
+    _inline '  border-width: 1px;'.
+    _inline '  border-style: solid;'.
+    _inline '  box-shadow: 2px 2px 6px 0px #ccc;'.
+    _inline '  cursor: pointer;'.
+    _inline '}'.
+    _inline '.blue-set {'.
+    _inline '  border-color: #abc3e3;'.
+    _inline '  color: #5e8dc9;'.
+    _inline '  background-color: #d9e4f2;'.
+    _inline '}'.
+    _inline '.grey-set {'.
+    _inline '  border-color: #c7c7c7;'.
+    _inline '  color: #808080;'.
+    _inline '  background-color: #e6e6e6;'.
+    _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -30209,7 +30233,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD render_form_end.
 
     CREATE OBJECT ro_html.
-    ro_html->add( '<input type="submit" value="Save" class="submit">' ).
+    ro_html->add( '<input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
     ro_html->add( '</form>' ).
     ro_html->add( '</div>' ).
 
@@ -30563,7 +30587,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     render_dot_abapgit( ro_html ).
     render_local_settings( ro_html ).
 
-    ro_html->add( '<br><input type="submit" value="Save" class="submit">' ).
+    ro_html->add( '<br><input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
     ro_html->add( '</form>' ).
     ro_html->add( '</div>' ).
 
@@ -30785,9 +30809,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     mo_repo->set_local_settings( ls_settings ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
@@ -30795,6 +30816,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
         save( it_postdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -71065,5 +71089,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-08T14:23:26.775Z
+* abapmerge undefined - 2019-04-09T18:46:45.005Z
 ****************************************************
