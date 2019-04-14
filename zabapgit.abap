@@ -11409,7 +11409,7 @@ CLASS zcl_abapgit_xml DEFINITION
   PROTECTED SECTION.
     DATA: mi_ixml     TYPE REF TO if_ixml,
           mi_xml_doc  TYPE REF TO if_ixml_document,
-          ms_metadata TYPE if_abapgit_definitions=>ty_metadata,
+          ms_metadata TYPE zif_abapgit_definitions=>ty_metadata,
           mv_filename TYPE string.
 
     CONSTANTS: c_abapgit_tag             TYPE string VALUE 'abapGit' ##NO_TEXT,
@@ -11425,7 +11425,6 @@ CLASS zcl_abapgit_xml DEFINITION
       IMPORTING iv_normalize TYPE abap_bool DEFAULT abap_true
                 iv_xml       TYPE string
       RAISING   zcx_abapgit_exception.
-
   PRIVATE SECTION.
 
     METHODS error
@@ -71130,5 +71129,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-14T07:16:41.212Z
+* abapmerge undefined - 2019-04-14T07:32:52.923Z
 ****************************************************
