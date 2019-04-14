@@ -11403,12 +11403,14 @@ CLASS zcl_abapgit_xml DEFINITION
 
   PUBLIC SECTION.
     METHODS:
-      constructor.
+      constructor
+        IMPORTING iv_filename TYPE string OPTIONAL.
 
   PROTECTED SECTION.
     DATA: mi_ixml     TYPE REF TO if_ixml,
           mi_xml_doc  TYPE REF TO if_ixml_document,
-          ms_metadata TYPE zif_abapgit_definitions=>ty_metadata.
+          ms_metadata TYPE if_abapgit_definitions=>ty_metadata,
+          mv_filename TYPE string.
 
     CONSTANTS: c_abapgit_tag             TYPE string VALUE 'abapGit' ##NO_TEXT,
                c_attr_version            TYPE string VALUE 'version' ##NO_TEXT,
@@ -11425,12 +11427,12 @@ CLASS zcl_abapgit_xml DEFINITION
       RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
+
     METHODS error
       IMPORTING ii_parser TYPE REF TO if_ixml_parser
       RAISING   zcx_abapgit_exception.
-
-    METHODS display_xml_error
-      RAISING zcx_abapgit_exception.
+    METHODS display_version_mismatch
+      RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_xml_input DEFINITION
@@ -11441,7 +11443,8 @@ CLASS zcl_abapgit_xml_input DEFINITION
 
     METHODS constructor
       IMPORTING
-        !iv_xml TYPE clike
+        !iv_xml      TYPE clike
+        !iv_filename TYPE string OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS read
@@ -11458,6 +11461,7 @@ CLASS zcl_abapgit_xml_input DEFINITION
     METHODS get_metadata
       RETURNING
         VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
+
   PRIVATE SECTION.
     METHODS: fix_xml.
 
@@ -17194,7 +17198,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
       CREATE OBJECT lo_remote_version
         EXPORTING
-          iv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data ).
+          iv_xml      = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data )
+          iv_filename = ls_remote_file-filename.
 
       ls_result = li_comparator->compare( lo_remote_version ).
       IF ls_result-text IS INITIAL.
@@ -20862,7 +20867,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
   METHOD constructor.
 
-    super->constructor( ).
+    super->constructor( iv_filename ).
     parse( iv_xml ).
     fix_xml( ).
 
@@ -20905,7 +20910,11 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
           SOURCE XML mi_xml_doc
           RESULT (lt_rtab) ##no_text.
       CATCH cx_transformation_error INTO lx_error.
-        zcx_abapgit_exception=>raise( lx_error->if_message~get_text( ) ).
+        IF mv_filename IS INITIAL.
+          zcx_abapgit_exception=>raise( lx_error->if_message~get_text( ) ).
+        ELSE.
+          zcx_abapgit_exception=>raise( |File { mv_filename }: { lx_error->if_message~get_text( ) }| ).
+        ENDIF.
     ENDTRY.
 
   ENDMETHOD.
@@ -20913,54 +20922,87 @@ ENDCLASS.
 
 CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
   METHOD constructor.
-    mi_ixml = cl_ixml=>create( ).
-    mi_xml_doc = mi_ixml->create_document( ).
+    mi_ixml     = cl_ixml=>create( ).
+    mi_xml_doc  = mi_ixml->create_document( ).
+    mv_filename = iv_filename.
   ENDMETHOD.
-  METHOD display_xml_error.
+  METHOD display_version_mismatch.
 
     DATA: lv_version TYPE string.
-    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|.
+    DATA: lv_file    TYPE string.
+
+    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|. "#EC NOTEXT
+    IF mv_filename IS NOT INITIAL.
+      lv_file = |File: { mv_filename }|.  "#EC NOTEXT
+    ENDIF.
 
     CALL FUNCTION 'POPUP_TO_INFORM'
       EXPORTING
-        titel = 'abapGit XML version mismatch'
-        txt1  = 'abapGit XML version mismatch'
-        txt2  = 'See http://larshp.github.io/abapGit/other-xml-mismatch.html'
-        txt3  = lv_version.                                 "#EC NOTEXT
+        titel = 'abapGit XML version mismatch'  "#EC NOTEXT
+        txt1  = 'abapGit XML version mismatch'  "#EC NOTEXT
+        txt2  = 'See http://larshp.github.io/abapGit/other-xml-mismatch.html' "#EC NOTEXT
+        txt3  = lv_version
+        txt4  = lv_file.
 
-    zcx_abapgit_exception=>raise( 'XML error' ).
+    IF mv_filename IS INITIAL.
+      zcx_abapgit_exception=>raise( 'abapGit XML version mismatch' ). "#EC NOTEXT
+    ELSE.
+      zcx_abapgit_exception=>raise( |abapGit XML version mismatch in file { mv_filename }| ). "#EC NOTEXT
+    ENDIF.
 
   ENDMETHOD.
   METHOD error.
 
-    DATA: lv_error TYPE i,
-          lv_txt1  TYPE string,
-          lv_txt2  TYPE string,
-          lv_txt3  TYPE string,
-          lv_times TYPE i,
-          li_error TYPE REF TO if_ixml_parse_error.
+    DATA: lv_error  TYPE i,
+          lv_column TYPE string,
+          lv_line   TYPE string,
+          lv_reason TYPE string,
+          lv_txt1   TYPE string,
+          lv_txt2   TYPE string,
+          lv_txt3   TYPE string,
+          lv_txt4   TYPE string,
+          lv_times  TYPE i,
+          li_error  TYPE REF TO if_ixml_parse_error.
+
     IF ii_parser->num_errors( ) <> 0.
       lv_times = ii_parser->num_errors( ).
+
       DO lv_times TIMES.
         lv_error = sy-index - 1.
         li_error = ii_parser->get_error( lv_error ).
 
-        lv_txt1 = li_error->get_column( ).
-        CONCATENATE 'Column:' lv_txt1 INTO lv_txt1.         "#EC NOTEXT
-        lv_txt2 = li_error->get_line( ).
-        CONCATENATE 'Line:' lv_txt2 INTO lv_txt2.           "#EC NOTEXT
-        lv_txt3 = li_error->get_reason( ).
+        lv_column = li_error->get_column( ).
+        lv_line   = li_error->get_line( ).
+        lv_reason = li_error->get_reason( ).
+
+        IF mv_filename IS NOT INITIAL.
+          lv_txt1 = |File: { mv_filename }|.  "#EC NOTEXT
+          lv_txt2 = |Column: { lv_column }|.  "#EC NOTEXT
+          lv_txt3 = |Line: { lv_line }|.      "#EC NOTEXT
+          lv_txt4 = lv_reason.
+        ELSE.
+          lv_txt1 = |Column: { lv_column }|.  "#EC NOTEXT
+          lv_txt2 = |Line: { lv_line }|.      "#EC NOTEXT
+          lv_txt3 = lv_reason.
+          CLEAR lv_txt4.
+        ENDIF.
 
         CALL FUNCTION 'POPUP_TO_INFORM'
           EXPORTING
-            titel = 'Error from XML parser'                 "#EC NOTEXT
+            titel = |Error from XML parser|   "#EC NOTEXT
             txt1  = lv_txt1
             txt2  = lv_txt2
-            txt3  = lv_txt3.
+            txt3  = lv_txt3
+            txt4  = lv_txt4.
       ENDDO.
     ENDIF.
 
-    zcx_abapgit_exception=>raise( 'Error while parsing XML' ).
+    IF mv_filename IS INITIAL.
+      zcx_abapgit_exception=>raise( |Error while parsing XML| ). "#EC NOTEXT
+    ELSE.
+      zcx_abapgit_exception=>raise( |Error while parsing XML file { mv_filename }| ). "#EC NOTEXT
+    ENDIF.
+
   ENDMETHOD.
   METHOD parse.
 
@@ -20986,7 +21028,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     li_version = li_element->if_ixml_node~get_attributes(
       )->get_named_item_ns( c_attr_version ) ##no_text.
     IF li_version->get_value( ) <> zif_abapgit_version=>gc_xml_version.
-      display_xml_error( ).
+      display_version_mismatch( ).
     ENDIF.
 
 * buffer serializer metadata. Git node will be removed lateron
@@ -41012,6 +41054,23 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     ms_item = is_item.
     mv_path = iv_path.
   ENDMETHOD.
+  METHOD contains.
+    DATA: lv_filename TYPE string.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = iv_ext ).
+
+    IF mv_path IS NOT INITIAL.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
+                                                          filename = lv_filename.
+    ELSE.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
+    ENDIF.
+
+    IF sy-subrc = 0.
+      rv_present = abap_true.
+    ENDIF.
+  ENDMETHOD.
   METHOD filename.
 
     DATA: lv_obj_name TYPE string.
@@ -41135,31 +41194,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     CREATE OBJECT ro_xml
       EXPORTING
-        iv_xml = lv_xml.
+        iv_xml      = lv_xml
+        iv_filename = lv_filename.
 
   ENDMETHOD.
   METHOD set_files.
     mt_files = it_files.
   ENDMETHOD.
-
-  METHOD contains.
-    DATA: lv_filename TYPE string.
-
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = iv_ext ).
-
-    IF mv_path IS NOT INITIAL.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
-                                                          filename = lv_filename.
-    ELSE.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
-    ENDIF.
-
-    IF sy-subrc = 0.
-      rv_present = abap_true.
-    ENDIF.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
@@ -71089,5 +71130,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-09T18:46:45.005Z
+* abapmerge undefined - 2019-04-14T07:16:41.212Z
 ****************************************************
