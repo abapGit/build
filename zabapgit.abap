@@ -2434,6 +2434,13 @@ INTERFACE zif_abapgit_exit .
   METHODS get_ssl_id
     RETURNING
       VALUE(rv_ssl_id) TYPE ssfapplssl .
+  METHODS custom_serialize_abap_clif
+    IMPORTING
+      is_class_key     TYPE seoclskey
+    RETURNING
+      VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
+    RAISING
+      zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_git_operations .
@@ -19175,7 +19182,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -19282,6 +19289,13 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
+  ENDMETHOD.
+
+  METHOD zif_abapgit_exit~custom_serialize_abap_clif.
+    TRY.
+        rt_source = gi_exit->custom_serialize_abap_clif( is_class_key ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -38010,6 +38024,11 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD serialize_abap_clif_source.
+    rt_source = zcl_abapgit_exit=>get_instance( )->custom_serialize_abap_clif( is_class_key ).
+    IF rt_source IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+
     TRY.
         rt_source = serialize_abap_new( is_class_key ).
       CATCH cx_sy_dyn_call_error.
@@ -71129,5 +71148,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-15T14:20:24.263Z
+* abapmerge undefined - 2019-04-16T12:16:39.167Z
 ****************************************************
