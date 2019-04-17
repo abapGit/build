@@ -38127,6 +38127,7 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
       EXPORTING
         devclass        = iv_package
         overwrite       = iv_overwrite
+        suppress_dialog = abap_true
       CHANGING
         interface       = cg_properties
         attributes      = lt_vseoattrib
@@ -39110,7 +39111,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
         devclass            = iv_package
         master_language     = mv_language
         global_lock         = abap_true
-        author              = sy-uname
         mode                = 'I'
         suppress_dialog     = abap_true
       EXCEPTIONS
@@ -39629,6 +39629,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
             global_lock         = abap_true
             devclass            = iv_package
             master_language     = mv_language
+            suppress_dialog     = abap_true
           EXCEPTIONS
             cancelled           = 1
             permission_failure  = 2
@@ -40585,6 +40586,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
         global_lock         = abap_true
         devclass            = iv_package
         master_language     = sy-langu
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -44527,6 +44529,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
         master_language     = mv_language
         mode                = 'INSERT'
         global_lock         = abap_true
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -44825,6 +44828,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         master_language     = mv_language
         mode                = 'INSERT'
         global_lock         = abap_true
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -54576,6 +54580,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
         object              = lv_paramid
         object_class        = 'PARA'
         mode                = 'D'
+        suppress_dialog     = abap_true
       IMPORTING
         transport_key       = ls_transpkey
       EXCEPTIONS
@@ -54626,6 +54631,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
         global_lock         = abap_true
         devclass            = iv_package
         master_language     = mv_language
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -55209,6 +55215,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
         object             = lv_message_id
         object_class       = 'MSAG'
         mode               = 'D'
+        suppress_dialog    = abap_true
       EXCEPTIONS
         cancelled          = 01
         permission_failure = 02.
@@ -63925,6 +63932,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
         global_lock         = abap_true
         devclass            = iv_package
         master_language     = sy-langu
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -64064,6 +64072,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
         global_lock         = abap_true
         devclass            = iv_package
         master_language     = sy-langu
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -64249,6 +64258,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
         global_lock         = abap_true
         devclass            = iv_package
         master_language     = mv_language
+        suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
         permission_failure  = 2
@@ -71148,5 +71158,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-16T12:16:39.167Z
+* abapmerge undefined - 2019-04-17T05:24:07.352Z
 ****************************************************
