@@ -11436,13 +11436,12 @@ CLASS zcl_abapgit_user_master_record DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_xml DEFINITION
   ABSTRACT
-  CREATE PUBLIC.
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
     METHODS:
       constructor
         IMPORTING iv_filename TYPE string OPTIONAL.
-
   PROTECTED SECTION.
     DATA: mi_ixml     TYPE REF TO if_ixml,
           mi_xml_doc  TYPE REF TO if_ixml_document,
@@ -11459,8 +11458,7 @@ CLASS zcl_abapgit_xml DEFINITION
       RETURNING VALUE(rv_xml) TYPE string.
 
     METHODS parse
-      IMPORTING iv_normalize TYPE abap_bool DEFAULT abap_true
-                iv_xml       TYPE string
+      IMPORTING iv_xml TYPE string
       RAISING   zcx_abapgit_exception.
   PRIVATE SECTION.
 
@@ -20946,7 +20944,7 @@ CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
+CLASS zcl_abapgit_xml IMPLEMENTATION.
   METHOD constructor.
     mi_ixml     = cl_ixml=>create( ).
     mi_xml_doc  = mi_ixml->create_document( ).
@@ -21044,7 +21042,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     li_parser = mi_ixml->create_parser( stream_factory = li_stream_factory
                                         istream        = li_istream
                                         document       = mi_xml_doc ).
-    li_parser->set_normalizing( iv_normalize ).
+    li_parser->add_strip_space_element( ).
     IF li_parser->parse( ) <> 0.
       error( li_parser ).
     ENDIF.
@@ -71308,5 +71306,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-19T07:56:14.815Z
+* abapmerge undefined - 2019-04-19T09:51:31.291Z
 ****************************************************
