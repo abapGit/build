@@ -21013,7 +21013,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
         CALL FUNCTION 'POPUP_TO_INFORM'
           EXPORTING
-            titel = |Error from XML parser|   "#EC NOTEXT
+            titel = 'Error from XML parser'   "#EC NOTEXT
             txt1  = lv_txt1
             txt2  = lv_txt2
             txt3  = lv_txt3
@@ -71306,5 +71306,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-19T09:51:31.291Z
+* abapmerge undefined - 2019-04-22T08:47:35.848Z
 ****************************************************
