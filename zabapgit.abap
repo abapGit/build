@@ -29561,7 +29561,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SYNTAX CHECK'.
@@ -29579,11 +29579,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     ro_html->add( '<div class="toc">' ).
 
     IF lines( mt_result ) = 0.
-      ro_html->add( 'No errors' ).
+      ro_html->add( '<div class="dummydiv success">' ).
+      ro_html->add( zcl_abapgit_html=>icon( 'check' ) ).
+      ro_html->add( 'No syntax errors' ).
+    ELSE.
+      render_result( io_html   = ro_html
+                     it_result = mt_result ).
     ENDIF.
-
-    render_result( io_html   = ro_html
-                   it_result = mt_result ).
 
     ro_html->add( '</div>' ).
 
@@ -49212,42 +49214,45 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
                                     IMPORTING ei_code_item_element   = li_element
                                     CHANGING  cv_within_code_section = cv_within_code_section ).
 
+* for downwards compatibility, this code can be removed sometime in the future
         lv_leading_spaces = li_element->get_attribute_ns(
           name = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces ).
 
         lv_coding_line = li_element->get_value( ).
-        SHIFT lv_coding_line RIGHT BY lv_leading_spaces PLACES.
-        li_element->set_value( lv_coding_line ).
+        IF strlen( lv_coding_line ) >= 1 AND lv_coding_line(1) <> | |.
+          SHIFT lv_coding_line RIGHT BY lv_leading_spaces PLACES.
+          li_element->set_value( lv_coding_line ).
+        ENDIF.
       CATCH zcx_abapgit_exception ##no_handler.
     ENDTRY.
 
   ENDMETHOD.
   METHOD set_attribute_leading_spaces.
 
-    DATA: li_element             TYPE REF TO if_ixml_element.
-    DATA: lv_code_line           TYPE string.
-    DATA: lv_offset              TYPE i.
-
-    TRY.
-        code_item_section_handling( EXPORTING iv_name                = iv_name
-                                              ii_node                = ii_node
-                                    IMPORTING ei_code_item_element   = li_element
-                                    CHANGING  cv_within_code_section = cv_within_code_section ).
-
-        lv_code_line = ii_node->get_value( ).
-        "find 1st non space char
-        FIND FIRST OCCURRENCE OF REGEX '\S' IN lv_code_line MATCH OFFSET lv_offset.
-        IF sy-subrc = 0 AND lv_offset > 0.
-          TRY.
-              li_element ?= ii_node.
-              li_element->set_attribute( name  = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces
-                                      value = |{ lv_offset }| ).
-
-            CATCH cx_sy_move_cast_error ##no_handler.
-          ENDTRY.
-        ENDIF.
-      CATCH zcx_abapgit_exception ##no_handler.
-    ENDTRY.
+*    DATA: li_element             TYPE REF TO if_ixml_element.
+*    DATA: lv_code_line           TYPE string.
+*    DATA: lv_offset              TYPE i.
+*
+*    TRY.
+*        code_item_section_handling( EXPORTING iv_name                = iv_name
+*                                              ii_node                = ii_node
+*                                    IMPORTING ei_code_item_element   = li_element
+*                                    CHANGING  cv_within_code_section = cv_within_code_section ).
+*
+*        lv_code_line = ii_node->get_value( ).
+*        "find 1st non space char
+*        FIND FIRST OCCURRENCE OF REGEX '\S' IN lv_code_line MATCH OFFSET lv_offset.
+*        IF sy-subrc = 0 AND lv_offset > 0.
+*          TRY.
+*              li_element ?= ii_node.
+*              li_element->set_attribute( name  = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces
+*                                      value = |{ lv_offset }| ).
+*
+*            CATCH cx_sy_move_cast_error ##no_handler.
+*          ENDTRY.
+*        ENDIF.
+*      CATCH zcx_abapgit_exception ##no_handler.
+*    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -71306,5 +71311,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-22T11:28:40.188Z
+* abapmerge undefined - 2019-04-23T05:48:19.547Z
 ****************************************************
