@@ -39407,7 +39407,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
         suppress_protocol         = abap_false
         with_program_includes     = abap_false
         suppress_dictionary_check = abap_false
-        phased_activation         = abap_false
       TABLES
         p_e071                    = lt_e071_tadirs
         p_xmsg                    = lt_messages.
@@ -71464,5 +71463,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-23T07:38:21.754Z
+* abapmerge undefined - 2019-04-23T10:50:35.896Z
 ****************************************************
