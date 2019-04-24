@@ -507,7 +507,6 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_master_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
-CLASS zcl_abapgit_string_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
@@ -10994,6 +10993,33 @@ CLASS zcl_abapgit_convert DEFINITION
         iv_val        TYPE clike
       RETURNING
         VALUE(rv_str) TYPE string.
+
+    CLASS-METHODS string_to_xstring
+      IMPORTING
+        iv_str         TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS base64_to_xstring
+      IMPORTING
+        iv_base64      TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS bintab_to_xstring
+      IMPORTING
+        it_bintab      TYPE lvc_t_mime
+        iv_size        TYPE i
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
+
+    CLASS-METHODS xstring_to_bintab
+      IMPORTING
+        iv_xstr   TYPE xstring
+      EXPORTING
+        ev_size   TYPE i
+        et_bintab TYPE lvc_t_mime.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -11312,41 +11338,6 @@ CLASS zcl_abapgit_state DEFINITION
         CHANGING
           !cv_prev TYPE char1 .
 
-ENDCLASS.
-CLASS zcl_abapgit_string_utils DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS string_to_xstring
-      IMPORTING
-        iv_str         TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS base64_to_xstring
-      IMPORTING
-        iv_base64      TYPE string
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS bintab_to_xstring
-      IMPORTING
-        it_bintab      TYPE lvc_t_mime
-        iv_size        TYPE i
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
-    CLASS-METHODS xstring_to_bintab
-      IMPORTING
-        iv_xstr   TYPE xstring
-      EXPORTING
-        ev_size   TYPE i
-        et_bintab TYPE lvc_t_mime.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
   CREATE PUBLIC .
@@ -21236,58 +21227,6 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_STRING_UTILS IMPLEMENTATION.
-  METHOD base64_to_xstring.
-
-    CALL FUNCTION 'SSFC_BASE64_DECODE'
-      EXPORTING
-        b64data = iv_base64
-      IMPORTING
-        bindata = rv_xstr
-      EXCEPTIONS
-        OTHERS  = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD bintab_to_xstring.
-
-    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = iv_size
-      IMPORTING
-        buffer       = rv_xstr
-      TABLES
-        binary_tab   = it_bintab
-      EXCEPTIONS
-        failed       = 1 ##FM_SUBRC_OK.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD string_to_xstring.
-
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = iv_str
-      IMPORTING
-        buffer = rv_xstr
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD xstring_to_bintab.
-
-    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-    EXPORTING
-      buffer        = iv_xstr
-    IMPORTING
-      output_length = ev_size
-    TABLES
-      binary_tab    = et_bintab.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   METHOD reduce.
 
@@ -22282,6 +22221,32 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     CONDENSE rv_str.
 
   ENDMETHOD.
+  METHOD base64_to_xstring.
+
+    CALL FUNCTION 'SSFC_BASE64_DECODE'
+      EXPORTING
+        b64data = iv_base64
+      IMPORTING
+        bindata = rv_xstr
+      EXCEPTIONS
+        OTHERS  = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD bintab_to_xstring.
+
+    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
+      EXPORTING
+        input_length = iv_size
+      IMPORTING
+        buffer       = rv_xstr
+      TABLES
+        binary_tab   = it_bintab
+      EXCEPTIONS
+        failed       = 1 ##FM_SUBRC_OK.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
   METHOD bitbyte_to_int.
 
     DATA: lv_bitbyte TYPE string,
@@ -22341,6 +22306,18 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD string_to_xstring.
+
+    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+      EXPORTING
+        text   = iv_str
+      IMPORTING
+        buffer = rv_xstr
+      EXCEPTIONS
+        OTHERS = 1.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
   METHOD string_to_xstring_utf8.
 
     DATA: lo_obj TYPE REF TO cl_abap_conv_out_ce.
@@ -22355,6 +22332,17 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
             cx_sy_conversion_codepage
             cx_parameter_invalid_type.                  "#EC NO_HANDLER
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD xstring_to_bintab.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      buffer        = iv_xstr
+    IMPORTING
+      output_length = ev_size
+    TABLES
+      binary_tab    = et_bintab.
 
   ENDMETHOD.
   METHOD xstring_to_int.
@@ -36106,7 +36094,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    rv_xdata = zcl_abapgit_string_utils=>bintab_to_xstring(
+    rv_xdata = zcl_abapgit_convert=>bintab_to_xstring(
       iv_size   = lv_size
       it_bintab = lt_w3mime ).
 
@@ -36132,9 +36120,9 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
     ls_asset-mime_name    = iv_mime_name.
     ls_asset-is_cacheable = iv_cachable.
     IF iv_base64 IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_string_utils=>base64_to_xstring( iv_base64 ).
+      ls_asset-content = zcl_abapgit_convert=>base64_to_xstring( iv_base64 ).
     ELSEIF iv_inline IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_string_utils=>string_to_xstring( iv_inline ).
+      ls_asset-content = zcl_abapgit_convert=>string_to_xstring( iv_inline ).
     ENDIF.
 
     APPEND ls_asset TO mt_asset_register.
@@ -36210,12 +36198,12 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
     IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_string_utils=>string_to_xstring( iv_text ).
+      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
     ELSE. " Raw input
       lv_xstr = iv_xdata.
     ENDIF.
 
-    zcl_abapgit_string_utils=>xstring_to_bintab(
+    zcl_abapgit_convert=>xstring_to_bintab(
       EXPORTING
         iv_xstr   = lv_xstr
       IMPORTING
@@ -71466,5 +71454,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-24T15:00:04.729Z
+* abapmerge undefined - 2019-04-24T15:02:36.672Z
 ****************************************************
