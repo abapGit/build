@@ -15218,7 +15218,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_serialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
   METHOD add_to_return.
 
     FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_fils_item-files,
@@ -15307,6 +15307,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     DATA: lv_result    TYPE xstring,
           lv_path      TYPE string,
+          lv_mess      TYPE c LENGTH 200,
           ls_fils_item TYPE zcl_abapgit_objects=>ty_serialization.
     RECEIVE RESULTS FROM FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
       IMPORTING
@@ -15314,10 +15315,16 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         ev_path   = lv_path
       EXCEPTIONS
         error     = 1
-        OTHERS    = 2.
+        system_failure = 2 MESSAGE lv_mess
+        communication_failure = 3 MESSAGE lv_mess
+        OTHERS = 4.
     IF sy-subrc <> 0.
       IF NOT mi_log IS INITIAL.
-        mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }| ).
+        IF NOT lv_mess IS INITIAL.
+          mi_log->add_error( lv_mess ).
+        ELSE.
+          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }, { sy-subrc }| ).
+        ENDIF.
       ENDIF.
     ELSE.
       IMPORT data = ls_fils_item FROM DATA BUFFER lv_result. "#EC CI_SUBRC
@@ -71462,5 +71469,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-04-30T05:38:39.874Z
+* abapmerge undefined - 2019-05-01T06:08:29.659Z
 ****************************************************
