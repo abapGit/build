@@ -24090,7 +24090,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  var nodeA    = target;'.
     _inline '  var nodeLi   = target.parentNode;'.
     _inline '  var nodeIcon = target.children[0];'.
-    _inline '  if (!nodeIcon.classList.contains("octicon")) return;'.
+    _inline '  if (!nodeIcon.classList.contains("icon")) return;'.
     _inline ''.
     _inline '  // Node updates'.
     _inline '  var option   = nodeA.innerText;'.
@@ -70461,5 +70461,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-06T18:09:51.400Z
+* abapmerge undefined - 2019-05-07T15:04:02.152Z
 ****************************************************
