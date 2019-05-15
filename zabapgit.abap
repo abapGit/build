@@ -11914,15 +11914,19 @@ CLASS zcl_abapgit_environment DEFINITION
 
     CLASS-METHODS is_sap_cloud_platform
       RETURNING
-        VALUE(rv_cloud) TYPE abap_bool .
+        VALUE(rv_cloud) TYPE abap_bool.
 
     CLASS-METHODS is_merged
       RETURNING
-        VALUE(rv_is_merged) TYPE abap_bool .
+        VALUE(rv_is_merged) TYPE abap_bool.
+
+    CLASS-METHODS is_repo_object_changes_allowed
+      RETURNING VALUE(rv_allowed) TYPE abap_bool.
   PROTECTED SECTION.
 
     CLASS-DATA gv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
     CLASS-DATA gv_is_merged TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+    CLASS-DATA gv_client_modifiable TYPE abap_bool VALUE abap_undefined.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_exit DEFINITION
@@ -19300,22 +19304,7 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_environment IMPLEMENTATION.
-  METHOD is_sap_cloud_platform.
-
-    IF gv_cloud = abap_undefined.
-      TRY.
-          CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
-            RECEIVING
-              rv_is_sap_cloud_platform = gv_cloud.
-        CATCH cx_sy_dyn_call_illegal_method.
-          gv_cloud = abap_false.
-      ENDTRY.
-    ENDIF.
-
-    rv_cloud = gv_cloud.
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
   METHOD is_merged.
 
     DATA lo_marker TYPE REF TO data ##NEEDED.
@@ -19334,7 +19323,36 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
     rv_is_merged = gv_is_merged.
 
   ENDMETHOD.
+  METHOD is_repo_object_changes_allowed.
+    DATA lv_ind TYPE t000-ccnocliind.
 
+    IF gv_client_modifiable = abap_undefined.
+      SELECT SINGLE ccnocliind FROM t000 INTO lv_ind
+             WHERE mandt = sy-mandt.
+      IF sy-subrc = 0
+          AND ( lv_ind = ' ' OR lv_ind = '1' ). "check changes allowed
+        gv_client_modifiable = abap_true.
+      ELSE.
+        gv_client_modifiable = abap_false.
+      ENDIF.
+    ENDIF.
+    rv_allowed = gv_client_modifiable.
+  ENDMETHOD.
+  METHOD is_sap_cloud_platform.
+
+    IF gv_cloud = abap_undefined.
+      TRY.
+          CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
+            RECEIVING
+              rv_is_sap_cloud_platform = gv_cloud.
+        CATCH cx_sy_dyn_call_illegal_method.
+          gv_cloud = abap_false.
+      ENDTRY.
+    ENDIF.
+
+    rv_cloud = gv_cloud.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
@@ -30822,7 +30840,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     CLEAR lv_checked.
     IF ls_settings-write_protected = abap_true.
-      lv_checked = | checked|.
+      IF zcl_abapgit_environment=>is_repo_object_changes_allowed( ) = abap_true.
+        lv_checked = | checked|.
+      ELSE.
+        lv_checked = | checked disabled|.
+      ENDIF.
     ENDIF.
     io_html->add( |Write protected <input name="write_protected" type="checkbox"{ lv_checked }><br>| ).
 
@@ -37355,6 +37377,10 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
     LOOP AT lt_content INTO ls_content.
       MOVE-CORRESPONDING from_xml( ls_content-data_str ) TO ls_repo.
+      IF ls_repo-local_settings-write_protected = abap_false AND
+         zcl_abapgit_environment=>is_repo_object_changes_allowed( ) = abap_false.
+        ls_repo-local_settings-write_protected = abap_true.
+      ENDIF.
       ls_repo-key = ls_content-value.
       INSERT ls_repo INTO TABLE rt_repos.
     ENDLOOP.
@@ -70238,14 +70264,6 @@ FORM run.
 
   DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
         lv_ind       TYPE t000-ccnocliind.
-  SELECT SINGLE ccnocliind FROM t000 INTO lv_ind
-    WHERE mandt = sy-mandt.
-  IF sy-subrc = 0
-      AND lv_ind <> ' '
-      AND lv_ind <> '1'. " check changes allowed
-    WRITE: / 'Wrong client, changes to repository objects not allowed'. "#EC NOTEXT
-    RETURN.
-  ENDIF.
 
   TRY.
       zcl_abapgit_migrations=>run( ).
@@ -70463,5 +70481,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-14T13:46:17.037Z
+* abapmerge undefined - 2019-05-15T18:35:04.867Z
 ****************************************************
