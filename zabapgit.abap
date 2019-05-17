@@ -2637,50 +2637,65 @@ CLASS zcl_abapgit_apack_migration DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_apack_reader DEFINITION
   FINAL
-  CREATE PRIVATE.
+  CREATE PRIVATE .
 
   PUBLIC SECTION.
 
-    TYPES: ty_package_name TYPE devclass.
+    TYPES ty_package_name TYPE devclass .
 
-    CLASS-METHODS: create_instance IMPORTING iv_package_name           TYPE ty_package_name
-                                   RETURNING VALUE(ro_manifest_reader) TYPE REF TO zcl_abapgit_apack_reader.
-    METHODS:
-      get_manifest_descriptor RETURNING VALUE(rs_manifest_descriptor)
-                                        TYPE zif_abapgit_apack_definitions=>ty_descriptor,
-      set_manifest_descriptor IMPORTING is_manifest_descriptor  TYPE zif_abapgit_apack_definitions=>ty_descriptor,
-      has_manifest RETURNING VALUE(rv_has_manifest) TYPE abap_bool.
-
+    CLASS-METHODS create_instance
+      IMPORTING
+        !iv_package_name          TYPE ty_package_name
+      RETURNING
+        VALUE(ro_manifest_reader) TYPE REF TO zcl_abapgit_apack_reader .
+    METHODS get_manifest_descriptor
+      RETURNING
+        VALUE(rs_manifest_descriptor) TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+    METHODS set_manifest_descriptor
+      IMPORTING
+        !is_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+    METHODS has_manifest
+      RETURNING
+        VALUE(rv_has_manifest) TYPE abap_bool .
+    METHODS constructor
+      IMPORTING
+        !iv_package_name TYPE ty_package_name .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_s_manifest_declaration,
-             clsname  TYPE seometarel-clsname,
-             devclass TYPE devclass,
-           END OF ty_s_manifest_declaration.
+    TYPES:
+      BEGIN OF ty_s_manifest_declaration,
+        clsname  TYPE seometarel-clsname,
+        devclass TYPE devclass,
+      END OF ty_s_manifest_declaration .
 
-    DATA: mv_package_name      TYPE ty_package_name,
-          ms_cached_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor,
-          mv_is_cached         TYPE abap_bool.
-
-    METHODS: constructor IMPORTING iv_package_name TYPE ty_package_name.
+    DATA mv_package_name TYPE ty_package_name .
+    DATA ms_cached_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+    DATA mv_is_cached TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_apack_writer DEFINITION
   FINAL
-  CREATE PRIVATE.
+  CREATE PRIVATE .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-       create_instance IMPORTING is_apack_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor
-                       RETURNING VALUE(ro_manifest_writer)    TYPE REF TO zcl_abapgit_apack_writer.
-    METHODS:
-      serialize RETURNING VALUE(rv_xml) TYPE string RAISING zcx_abapgit_exception.
 
+    CLASS-METHODS create_instance
+      IMPORTING
+        !is_apack_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor
+      RETURNING
+        VALUE(ro_manifest_writer)     TYPE REF TO zcl_abapgit_apack_writer .
+    METHODS serialize
+      RETURNING
+        VALUE(rv_xml) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !is_apack_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: ms_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor.
-    METHODS:
-      constructor IMPORTING is_apack_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    DATA ms_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
 ENDCLASS.
 CLASS zcl_abapgit_background DEFINITION
   CREATE PUBLIC .
@@ -6929,6 +6944,39 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+    TYPES: tty_dd26v TYPE STANDARD TABLE OF dd26v
+                          WITH NON-UNIQUE DEFAULT KEY,
+           tty_dd27p TYPE STANDARD TABLE OF dd27p
+                          WITH NON-UNIQUE DEFAULT KEY,
+           tty_dd28j TYPE STANDARD TABLE OF dd28j
+                          WITH NON-UNIQUE DEFAULT KEY,
+           tty_dd28v TYPE STANDARD TABLE OF dd28v
+                          WITH NON-UNIQUE DEFAULT KEY.
+    CONSTANTS: BEGIN OF co_viewclass,
+                 help         TYPE viewclass VALUE 'H',
+                 database     TYPE viewclass VALUE 'D',
+                 projection   TYPE viewclass VALUE 'P',
+                 structure    TYPE viewclass VALUE 'S',
+                 maintenance  TYPE viewclass VALUE 'C',
+                 entity       TYPE viewclass VALUE 'E',
+                 view_variant TYPE viewclass VALUE 'V',
+                 append       TYPE viewclass VALUE 'A',
+                 external     TYPE viewclass VALUE 'X',
+                 replication  TYPE viewclass VALUE 'R',
+               END OF co_viewclass.
+
+    METHODS:
+      read_view
+        EXPORTING
+          es_dd25v TYPE dd25v
+          es_dd09l TYPE dd09l
+          et_dd26v TYPE zcl_abapgit_object_view=>tty_dd26v
+          et_dd27p TYPE zcl_abapgit_object_view=>tty_dd27p
+          et_dd28j TYPE zcl_abapgit_object_view=>tty_dd28j
+          et_dd28v TYPE zcl_abapgit_object_view=>tty_dd28v
+        RAISING
+          zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_w3super DEFINITION INHERITING FROM zcl_abapgit_objects_super ABSTRACT.
 
@@ -8184,6 +8232,10 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         !iv_user       TYPE xubname DEFAULT sy-uname
       RETURNING
         VALUE(ri_user) TYPE REF TO zif_abapgit_persist_user .
+    METHODS constructor
+      IMPORTING
+        !iv_user TYPE xubname DEFAULT sy-uname .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     TYPES:
@@ -8210,9 +8262,6 @@ CLASS zcl_abapgit_persistence_user DEFINITION
     DATA mv_user TYPE xubname .
     CLASS-DATA gi_current_user TYPE REF TO zif_abapgit_persist_user .
 
-    METHODS constructor
-      IMPORTING
-        !iv_user TYPE xubname DEFAULT sy-uname .
     METHODS from_xml
       IMPORTING
         !iv_xml        TYPE string
@@ -12232,9 +12281,9 @@ CLASS zcl_abapgit_news DEFINITION
     TYPES:
       tt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
 
-    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.   " Number of versions to display if no updates
+    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.     " Number of versions to display if no updates
 
-    CLASS-METHODS create   " TODO REFACTOR
+    CLASS-METHODS create     " TODO REFACTOR
       IMPORTING
         !io_repo           TYPE REF TO zcl_abapgit_repo
       RETURNING
@@ -12256,6 +12305,11 @@ CLASS zcl_abapgit_news DEFINITION
     METHODS has_unseen
       RETURNING
         VALUE(rv_boolean) TYPE abap_bool .
+    METHODS constructor
+      IMPORTING
+        !iv_rawdata          TYPE xstring
+        !iv_lastseen_version TYPE string
+        !iv_current_version  TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -12272,11 +12326,6 @@ CLASS zcl_abapgit_news DEFINITION
     METHODS latest_version
       RETURNING
         VALUE(rv_version) TYPE string .
-    METHODS constructor
-      IMPORTING
-        !iv_rawdata          TYPE xstring
-        !iv_lastseen_version TYPE string
-        !iv_current_version  TYPE string .
     CLASS-METHODS version_to_numeric
       IMPORTING
         !iv_version       TYPE string
@@ -44611,42 +44660,58 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-VIMA'
-               iv_field = 'RSRD1-VIMA_VAL' ).
+    DATA: ls_dd25v TYPE dd25v.
+
+    read_view(
+      IMPORTING
+        es_dd25v              = ls_dd25v ).
+
+    CASE ls_dd25v-viewclass.
+      WHEN co_viewclass-view_variant.
+
+        CALL FUNCTION 'RS_TOOL_ACCESS'
+          EXPORTING
+            operation           = 'SHOW'
+            object_name         = ms_item-obj_name
+            object_type         = ms_item-obj_type
+            in_new_window       = abap_true
+          EXCEPTIONS
+            not_executed        = 1
+            invalid_object_type = 2
+            OTHERS              = 3.
+
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS. Subrc={ sy-subrc }| ).
+        ENDIF.
+
+      WHEN OTHERS.
+
+        jump_se11( iv_radio = 'RSRD1-VIMA'
+                   iv_field = 'RSRD1-VIMA_VAL' ).
+
+    ENDCASE.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lv_name  TYPE ddobjname,
-          ls_dd25v TYPE dd25v,
+    DATA: ls_dd25v TYPE dd25v,
           ls_dd09l TYPE dd09l,
-          lt_dd26v TYPE TABLE OF dd26v,
-          lt_dd27p TYPE TABLE OF dd27p,
-          lt_dd28j TYPE TABLE OF dd28j,
-          lt_dd28v TYPE TABLE OF dd28v.
+          lt_dd26v TYPE tty_dd26v,
+          lt_dd27p TYPE tty_dd27p,
+          lt_dd28j TYPE tty_dd28j,
+          lt_dd28v TYPE tty_dd28v.
 
     FIELD-SYMBOLS: <ls_dd27p> LIKE LINE OF lt_dd27p.
-    lv_name = ms_item-obj_name.
 
-    CALL FUNCTION 'DDIF_VIEW_GET'
-      EXPORTING
-        name          = lv_name
-        state         = 'A'
-        langu         = mv_language
+    read_view(
       IMPORTING
-        dd25v_wa      = ls_dd25v
-        dd09l_wa      = ls_dd09l
-      TABLES
-        dd26v_tab     = lt_dd26v
-        dd27p_tab     = lt_dd27p
-        dd28j_tab     = lt_dd28j
-        dd28v_tab     = lt_dd28v
-      EXCEPTIONS
-        illegal_input = 1
-        OTHERS        = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_GET' ).
-    ENDIF.
+        es_dd25v = ls_dd25v
+        es_dd09l = ls_dd09l
+        et_dd26v = lt_dd26v
+        et_dd27p = lt_dd27p
+        et_dd28j = lt_dd28j
+        et_dd28v = lt_dd28v ).
+
     IF ls_dd25v IS INITIAL.
       RETURN. " does not exist in system
     ENDIF.
@@ -44697,6 +44762,35 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
                  iv_name = 'DD28V_TABLE' ).
 
   ENDMETHOD.
+
+  METHOD read_view.
+
+    DATA: lv_name TYPE ddobjname.
+
+    lv_name = ms_item-obj_name.
+
+    CALL FUNCTION 'DDIF_VIEW_GET'
+      EXPORTING
+        name          = lv_name
+        state         = 'A'
+        langu         = mv_language
+      IMPORTING
+        dd25v_wa      = es_dd25v
+        dd09l_wa      = es_dd09l
+      TABLES
+        dd26v_tab     = et_dd26v
+        dd27p_tab     = et_dd27p
+        dd28j_tab     = et_dd28j
+        dd28v_tab     = et_dd28v
+      EXCEPTIONS
+        illegal_input = 1
+        OTHERS        = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_GET' ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
@@ -46923,42 +47017,22 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    DATA: ls_bcdata TYPE bdcdata,
-          lt_bcdata TYPE STANDARD TABLE OF bdcdata.
+    DATA: lv_object_name TYPE e071-obj_name.
 
-    ls_bcdata-program  = 'SAPMSVIM'.
-    ls_bcdata-dynpro   = '0050'.
-    ls_bcdata-dynbegin = 'X'.
-    APPEND ls_bcdata TO lt_bcdata.
+    lv_object_name = ms_item-obj_name.
 
-    CLEAR ls_bcdata.
-    ls_bcdata-fnam = 'VIMDYNFLDS-VIEWNAME'.
-    ls_bcdata-fval = substring( val = ms_item-obj_name
-                                len = strlen( ms_item-obj_name ) - 1 ).
-    APPEND ls_bcdata TO lt_bcdata.
-
-    CLEAR ls_bcdata.
-    ls_bcdata-fnam = 'VIMDYNFLDS-ELEM_GEN'.
-    ls_bcdata-fval = abap_true.
-    APPEND ls_bcdata TO lt_bcdata.
-
-    CLEAR ls_bcdata.
-    ls_bcdata-fnam = 'BDC_OKCODE'.
-    ls_bcdata-fval = '=SHOW'.
-    APPEND ls_bcdata TO lt_bcdata.
-
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
+    CALL FUNCTION 'TR_OBJECT_JUMP_TO_TOOL'
       EXPORTING
-        tcode     = 'SE54'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
+        iv_pgmid          = 'R3TR'
+        iv_object         = ms_item-obj_type
+        iv_obj_name       = lv_object_name
       EXCEPTIONS
-        OTHERS    = 1.
+        jump_not_possible = 1
+        OTHERS            = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, TOBJ' ).
+      zcx_abapgit_exception=>raise( |Jump not possible. Subrc={ sy-subrc } |
+                                 && |from TR_OBJECT_JUMP_TO_TOOL| ).
     ENDIF.
 
   ENDMETHOD.
@@ -57125,6 +57199,11 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
               AND object = 'PROG'
               AND obj_name = rt_includes-table_line.
       LOOP AT rt_includes ASSIGNING <lv_include>.
+        " skip autogenerated includes from Table Maintenance Generator
+        IF <lv_include> CP 'LSVIM*'.
+          DELETE rt_includes INDEX sy-tabix.
+          CONTINUE.
+        ENDIF.
         READ TABLE lt_tadir_includes WITH KEY table_line = <lv_include> TRANSPORTING NO FIELDS.
         IF sy-subrc = 0.
           DELETE rt_includes.
@@ -57148,10 +57227,10 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     LOOP AT rt_includes ASSIGNING <lv_include>.
       lv_tabix = sy-tabix.
 
-* skip SAP standard includes and also make sure the include exists
+* make sure the include exists
       READ TABLE lt_reposrc INTO ls_reposrc
         WITH KEY progname = <lv_include> BINARY SEARCH.
-      IF sy-subrc <> 0 OR ls_reposrc-cnam = 'SAP'.
+      IF sy-subrc <> 0.
         DELETE rt_includes INDEX lv_tabix.
       ENDIF.
 
@@ -69811,8 +69890,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_APACK_WRITER IMPLEMENTATION.
   METHOD constructor.
     me->ms_manifest_descriptor = is_apack_manifest_descriptor.
   ENDMETHOD.
@@ -69837,17 +69915,15 @@ CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
 
   ENDMETHOD.
-
 ENDCLASS.
 
-CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
   METHOD constructor.
     me->mv_package_name = iv_package_name.
   ENDMETHOD.
   METHOD create_instance.
     CREATE OBJECT ro_manifest_reader EXPORTING iv_package_name = iv_package_name.
   ENDMETHOD.
-
   METHOD get_manifest_descriptor.
 
     DATA: lo_manifest_provider       TYPE REF TO object,
@@ -69894,12 +69970,10 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD set_manifest_descriptor.
     me->mv_is_cached = abap_true.
     me->ms_cached_descriptor = is_manifest_descriptor.
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
@@ -70481,5 +70555,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-15T18:35:04.867Z
+* abapmerge undefined - 2019-05-17T06:22:30.146Z
 ****************************************************
