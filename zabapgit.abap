@@ -24459,7 +24459,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '};'.
     _inline ''.
-    _inline 'LinkHints.prototype.filterTooltips = function (sPending) { // eslint-disable-line no-unused-vars'.
+    _inline 'LinkHints.prototype.filterTooltips = function () {'.
     _inline ''.
     _inline '  Object'.
     _inline '    .keys(this.oTooltipMap)'.
@@ -24527,7 +24527,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    } else {'.
     _inline '      // we are not there yet, but let''s filter the link so that only'.
     _inline '      // the partially matched are shown'.
-    _inline '      this.filterTooltips(this.sPending);'.
+    _inline '      this.filterTooltips();'.
     _inline '      this.disableTooltipsIfNoTooltipIsVisible();'.
     _inline '    }'.
     _inline ''.
@@ -25035,7 +25035,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '};'.
     _inline ''.
     _inline '// Called by commit:mouseout'.
-    _inline 'BranchOverview.prototype.hideCommit = function (event){ // eslint-disable-line no-unused-vars'.
+    _inline 'BranchOverview.prototype.hideCommit = function (){'.
     _inline '  this.toggleCommit();'.
     _inline '};'.
     _inline ''.
@@ -70555,5 +70555,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-17T06:22:30.146Z
+* abapmerge undefined - 2019-05-20T15:46:42.663Z
 ****************************************************
