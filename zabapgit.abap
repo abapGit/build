@@ -1059,6 +1059,9 @@ INTERFACE zif_abapgit_html.
       !iv_class TYPE string OPTIONAL
       !iv_id    TYPE string OPTIONAL
       !iv_style TYPE string OPTIONAL.
+  METHODS add_checkbox
+    IMPORTING
+      iv_id TYPE string.
   CLASS-METHODS a
     IMPORTING
       !iv_txt       TYPE string
@@ -8649,12 +8652,13 @@ CLASS zcl_abapgit_html DEFINITION
     INTERFACES zif_abapgit_html.
 
     ALIASES:
-      add      FOR zif_abapgit_html~add,
-      render   FOR zif_abapgit_html~render,
-      is_empty FOR zif_abapgit_html~is_empty,
-      add_a    FOR zif_abapgit_html~add_a,
-      a        FOR zif_abapgit_html~a,
-      icon     FOR zif_abapgit_html~icon.
+      add          FOR zif_abapgit_html~add,
+      render       FOR zif_abapgit_html~render,
+      is_empty     FOR zif_abapgit_html~is_empty,
+      add_a        FOR zif_abapgit_html~add_a,
+      add_checkbox FOR zif_abapgit_html~add_checkbox,
+      a            FOR zif_abapgit_html~a,
+      icon         FOR zif_abapgit_html~icon.
 
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
@@ -8666,6 +8670,7 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_class TYPE string OPTIONAL .
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS: co_span_link_hint TYPE string VALUE `<span class="tooltiptext hidden"></span>`.
     CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
 
     DATA: mt_buffer TYPE string_table.
@@ -8702,6 +8707,11 @@ CLASS zcl_abapgit_html DEFINITION
         is_context       TYPE ty_indent_context
       RETURNING
         VALUE(rs_result) TYPE ty_study_result.
+    METHODS checkbox
+      IMPORTING
+        iv_id          TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
@@ -9429,7 +9439,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         zcx_abapgit_exception .
     METHODS apply_patch_all
       IMPORTING
-        iv_action     TYPE ty_patch_action
         iv_patch      TYPE string
         iv_patch_flag TYPE abap_bool
       RAISING
@@ -9463,7 +9472,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     CLASS-METHODS get_patch_data
       IMPORTING
         iv_patch      TYPE string
-        iv_action     TYPE string
       EXPORTING
         ev_filename   TYPE string
         ev_line_index TYPE string
@@ -23106,7 +23114,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline 'table.diff_tab td.patch, th.patch {'.
     _inline '  width: 1%;'.
-    _inline '  min-width: 6em;'.
+    _inline '  min-width: 1.5em;'.
     _inline '  padding-right: 8px;'.
     _inline '  padding-left:  8px;'.
     _inline '  text-align: right !important;'.
@@ -23507,12 +23515,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    border-style: solid;'.
     _inline '    border-color: #555 transparent transparent transparent;'.
     _inline '}'.
-    _inline ''.
-    _inline '/* diff-patch */'.
-    _inline '.patch-active {'.
-    _inline '  color: lightgrey !important; '.
-    _inline '}'.
-    _inline ''.
     _inline ''.
     _inline '/* HOTKEYS */'.
     _inline 'ul.hotkeys {'.
@@ -24394,7 +24396,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  this.oTooltipMap = {};'.
     _inline '  this.bTooltipsOn = false;'.
     _inline '  this.sPending = "";'.
-    _inline '  this.aTooltipElements = document.querySelectorAll("a span");'.
+    _inline '  this.aTooltipElements = document.querySelectorAll("span.tooltiptext");'.
     _inline '}'.
     _inline ''.
     _inline 'LinkHints.prototype.renderTooltip = function (oTooltip, iTooltipCounter) {'.
@@ -24493,7 +24495,21 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
     _inline '  // and remove all tooltips'.
     _inline '  this.removeAllTooltips();'.
-    _inline '  oTooltip.parentElement.click();'.
+    _inline ''.
+    _inline '  // we have technically 2 scenarios'.
+    _inline '  // 1) hint to a checkbox: as input field cannot include tags'.
+    _inline '  //    we place the span after input'.
+    _inline '  // 2) hint to a link: the span in included in the anchor tag'.
+    _inline ''.
+    _inline '  var elInput = oTooltip.parentElement.querySelector("input");'.
+    _inline ''.
+    _inline '  if (elInput) {'.
+    _inline '    // case 1) toggle the checkbox'.
+    _inline '    elInput.click();'.
+    _inline '  } else {'.
+    _inline '    // case 2) click the link'.
+    _inline '    oTooltip.parentElement.click();'.
+    _inline '  }'.
     _inline ''.
     _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
     _inline '  this.activateDropDownMenu(oTooltip);'.
@@ -24688,10 +24704,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '};'.
     _inline ''.
     _inline '/*'.
-    _inline '  We have three type of cascading links, each of them has two verbs, add and remove.'.
-    _inline '  Which means that by clicking a file or section link all corresponding line links are clicked.'.
+    _inline '  We have three type of cascading checkboxes.'.
+    _inline '  Which means that by clicking a file or section checkbox all corresponding line checkboxes are checked.'.
     _inline ''.
-    _inline '  The id of the link indicates its semantics and its membership.'.
+    _inline '  The id of the checkbox indicates its semantics and its membership.'.
     _inline ''.
     _inline '  */'.
     _inline ''.
@@ -24700,163 +24716,90 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '      example id of file link'.
     _inline ''.
-    _inline '      patch_file_add_zcl_abapgit_user_exit.clas.abap'.
-    _inline '      \________/  ^  \_____________________________/'.
-    _inline '          |       |              |'.
-    _inline '          |       |              |____ file name'.
-    _inline '          |       |'.
-    _inline '          |     verb [add|remove]'.
+    _inline '      patch_file_zcl_abapgit_user_exit.clas.abap'.
+    _inline '      \________/ \_____________________________/'.
+    _inline '          |                   |'.
+    _inline '          |                   |____ file name'.
+    _inline '          |'.
+    _inline '          |'.
     _inline '          |'.
     _inline '      constant prefix'.
     _inline ''.
     _inline '  */'.
     _inline ''.
     _inline 'function PatchFile(sId){'.
-    _inline '  var oRegex = new RegExp("(" + this.ID.FILE + ")_(add|remove)_(.*$)");'.
+    _inline '  var oRegex = new RegExp("(" + this.ID + ")_(.*$)");'.
     _inline '  var oMatch = sId.match(oRegex);'.
     _inline '  this.id        = sId;'.
     _inline '  this.prefix    = oMatch[1];'.
-    _inline '  this.verb      = oMatch[2];'.
-    _inline '  this.file_name = oMatch[3];'.
+    _inline '  this.file_name = oMatch[2];'.
     _inline '}'.
     _inline ''.
-    _inline 'PatchFile.prototype.ID = {'.
-    _inline '  FILE:   "patch_file",'.
-    _inline '  ADD:    "patch_file_add",'.
-    _inline '  REMOVE: "patch_file_remove"'.
-    _inline '};'.
+    _inline 'PatchFile.prototype.ID = "patch_file";'.
     _inline ''.
     _inline '/*'.
     _inline '  2) section links within a file'.
     _inline ''.
     _inline '      example id of section link'.
     _inline ''.
-    _inline '      patch_section_add_zcl_abapgit_user_exit.clas.abap_1'.
-    _inline '      \___________/  ^  \_____________________________/ ^'.
-    _inline '            |        |              |                   |'.
-    _inline '            |        |          file name               |'.
-    _inline '            |        |                                  |'.
-    _inline '            |      verb [add|remove]                    ------ section'.
+    _inline '      patch_section_zcl_abapgit_user_exit.clas.abap_1'.
+    _inline '      \___________/ \_____________________________/ ^'.
+    _inline '            |                   |                   |'.
+    _inline '            |               file name               |'.
+    _inline '            |                                       |'.
+    _inline '            |                                       ------ section'.
     _inline '            |'.
     _inline '      constant prefix'.
     _inline ''.
     _inline '    */'.
     _inline ''.
     _inline 'function PatchSection(sId){'.
-    _inline '  var oRegex = new RegExp("(" + this.ID.SECTION + ")_(add|remove)_(.*)_(\\d+$)");'.
+    _inline '  var oRegex = new RegExp("(" + this.ID + ")_(.*)_(\\d+$)");'.
     _inline '  var oMatch = sId.match(oRegex);'.
     _inline '  this.id        = sId;'.
     _inline '  this.prefix    = oMatch[1];'.
-    _inline '  this.verb      = oMatch[2];'.
-    _inline '  this.file_name = oMatch[3];'.
-    _inline '  this.section   = oMatch[4];'.
+    _inline '  this.file_name = oMatch[2];'.
+    _inline '  this.section   = oMatch[3];'.
     _inline '}'.
     _inline ''.
-    _inline 'PatchSection.prototype.ID = {'.
-    _inline '  SECTION: "patch_section",'.
-    _inline '  ADD:     "patch_section_add",'.
-    _inline '  REMOVE:  "patch_section_remove"'.
-    _inline '};'.
+    _inline 'PatchSection.prototype.ID = "patch_section";'.
     _inline ''.
     _inline '/*'.
     _inline '  3) line links within a section'.
     _inline ''.
     _inline '      example id of line link'.
     _inline ''.
-    _inline '      patch_line_add_zcl_abapgit_user_exit.clas.abap_1_25'.
-    _inline '      \________/  ^  \_____________________________/ ^  ^'.
-    _inline '            ^     |                ^                 |  |'.
-    _inline '            |     |                |                 |  ------- line number'.
-    _inline '            |     |             file name            |'.
-    _inline '            |     |                               section'.
-    _inline '            |   verb [add|remove]'.
+    _inline '      patch_line_zcl_abapgit_user_exit.clas.abap_1_25'.
+    _inline '      \________/ \_____________________________/ ^  ^'.
+    _inline '            ^                  ^                 |  |'.
+    _inline '            |                  |                 |  ------- line number'.
+    _inline '            |               file name            |'.
+    _inline '            |                                 section'.
+    _inline '            |'.
     _inline '            |'.
     _inline '      constant prefix'.
     _inline ''.
     _inline '  */'.
-    _inline 'function PatchLine(sId){'.
-    _inline '  var oRegex = new RegExp("(" + this.ID.LINE + ")_(add|remove)_(.*)_(\\d+)_(\\d+$)");'.
-    _inline '  var oMatch = sId.match(oRegex);'.
-    _inline ''.
-    _inline '  this.id        = sId;'.
-    _inline '  this.prefix    = oMatch[1];'.
-    _inline '  this.verb      = oMatch[2];'.
-    _inline '  this.file_name = oMatch[3];'.
-    _inline '  this.section   = oMatch[4];'.
-    _inline '  this.line      = oMatch[5];'.
-    _inline ''.
-    _inline '  this.corresponding_verb = this.CORRESPONDING_VERBS[this.verb];'.
-    _inline '  this.elem               = document.querySelector("#" + Patch.prototype.escape(this.id));'.
-    _inline '  this.correspondingLink  = this.getCorrespodingLink();'.
+    _inline 'function PatchLine(){'.
     _inline '}'.
     _inline ''.
-    _inline 'PatchLine.prototype.ID = {'.
-    _inline '  LINE:   "patch_line",'.
-    _inline '  ADD:    "patch_line_add",'.
-    _inline '  REMOVE: "patch_line_remove"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'PatchLine.prototype.CSS_CLASS = {'.
-    _inline '  PATCH:        "patch",'.
-    _inline '  PATCH_ACTIVE: "patch-active"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'PatchLine.prototype.CORRESPONDING_VERBS = {'.
-    _inline '  add:    "remove",'.
-    _inline '  remove: "add"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'PatchLine.prototype.getCorrespodingLinkId = function(){'.
-    _inline ''.
-    _inline '  // e.g.'.
-    _inline '  //'.
-    _inline '  //   patch_line_add_z_test_git_add_p.prog.abap_3_28 => patch_line_remove_z_test_git_add_p.prog.abap_3_28'.
-    _inline '  //'.
-    _inline '  // and vice versa'.
-    _inline ''.
-    _inline '  var oRegexPatchIdPrefix = new RegExp("^" + this.ID.LINE + "_" + this.verb );'.
-    _inline '  return this.id.replace(oRegexPatchIdPrefix, this.ID.LINE + "_" + this.corresponding_verb);'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'PatchLine.prototype.toggle = function(){'.
-    _inline ''.
-    _inline '  if (!this.elem.classList.contains(this.CSS_CLASS.PATCH_ACTIVE)){'.
-    _inline '    this.elem.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-    _inline '    this.correspondingLink.classList.toggle(this.CSS_CLASS.PATCH_ACTIVE);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'PatchLine.prototype.getCorrespodingLink = function(){'.
-    _inline '  var sCorrespondingLinkId = this.getCorrespodingLinkId();'.
-    _inline '  return document.querySelector(''[ID="'' + Patch.prototype.escape(sCorrespondingLinkId) + ''"]'');'.
-    _inline '};'.
+    _inline 'PatchLine.prototype.ID = "patch_line";'.
     _inline ''.
     _inline 'Patch.prototype.preparePatch = function(){'.
     _inline ''.
     _inline '  this.registerClickHandlerForFiles();'.
     _inline '  this.registerClickHandlerForSections();'.
-    _inline '  this.registerClickHandlerForLines();'.
     _inline ''.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
     _inline '  // registers the link handlers for add and remove files'.
-    _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.ADD + "'']");'.
-    _inline '  this.registerClickHandlerForPatchFile("a[id^=''" + PatchFile.prototype.ID.REMOVE + "'']");'.
+    _inline '  this.registerClickHandlerForSelector("input[id^=''" + PatchFile.prototype.ID + "'']", this.onClickFileCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
     _inline '  // registers the link handlers for add and remove sections'.
-    _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.ADD + "'']");'.
-    _inline '  this.registerClickHandlerForPatchSection("a[id^=''" + PatchSection.prototype.ID.REMOVE + "'']");'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
-    _inline '  // registers the link handlers for add and remove lines'.
-    _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.ADD + "'']");'.
-    _inline '  this.registerClickHandlerForPatchLine("a[id^=''" + PatchLine.prototype.ID.REMOVE + "'']");'.
+    _inline '  this.registerClickHandlerForSelector("input[id^=''" + PatchSection.prototype.ID + "'']", this.onClickSectionCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForSelector = function(sSelector, fnCallback){'.
@@ -24869,67 +24812,60 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForPatchFile = function(sSelector){'.
-    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickFile);'.
+    _inline 'Patch.prototype.getAllLineCheckboxesForFile = function(oFile){'.
+    _inline '  return this.getAllLineCheckboxesForId(oFile.id, PatchFile.prototype.ID);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForPatchSection = function(sSelector){'.
-    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickSection);'.
+    _inline 'Patch.prototype.getAllSectionCheckboxesForFile = function(oFile){'.
+    _inline '  return this.getAllSectionCheckboxesForId(oFile.id, PatchFile.prototype.ID);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForPatchLine = function(sSelector) {'.
-    _inline '  this.registerClickHandlerForSelector(sSelector, this.patchLinkClickLine);'.
+    _inline 'Patch.prototype.getAllLineCheckboxesForSection = function(oSection){'.
+    _inline '  return this.getAllLineCheckboxesForId(oSection.id, PatchSection.prototype.ID);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.patchLinkClickLine = function(oEvent){'.
-    _inline '  this.togglePatchForElem(oEvent.srcElement);'.
-    _inline '  oEvent.preventDefault();'.
+    _inline 'Patch.prototype.getAllLineCheckboxesForId = function(sId, sIdPrefix){'.
+    _inline '  return this.getAllCheckboxesForId(sId, sIdPrefix,PatchLine.prototype.ID);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.togglePatchForElem = function(elLink) {'.
-    _inline '  new PatchLine(elLink.id).toggle();'.
+    _inline 'Patch.prototype.getAllSectionCheckboxesForId = function(sId, sIdPrefix){'.
+    _inline '  return this.getAllCheckboxesForId(sId, sIdPrefix, PatchSection.prototype.ID);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.getAllLineLinksForId = function(sId, sIdPrefix){'.
+    _inline 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix){'.
     _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
-    _inline '  sId = sId.replace(oRegex, PatchLine.prototype.ID.LINE);'.
-    _inline '  return document.querySelectorAll("a[id^=''"+ this.escape(sId) + "'']");'.
+    _inline '  sId = sId.replace(oRegex, sNewIdPrefix);'.
+    _inline '  return document.querySelectorAll("input[id^=''"+ this.escape(sId) + "'']");'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.getAllLineLinksForFile = function(oFile){'.
-    _inline '  return this.getAllLineLinksForId(oFile.id, PatchFile.prototype.ID.FILE);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllLineLinksForSection = function(oSection){'.
-    _inline '  return this.getAllLineLinksForId(oSection.id, PatchSection.prototype.ID.SECTION);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.patchLinkClickFile = function(oEvent) {'.
+    _inline 'Patch.prototype.onClickFileCheckbox = function(oEvent) {'.
     _inline ''.
     _inline '  var oFile = new PatchFile(oEvent.srcElement.id);'.
-    _inline '  var elAllLineLinksOfFile = this.getAllLineLinksForFile(oFile);'.
+    _inline '  var elAllLineCheckboxesOfFile = this.getAllLineCheckboxesForFile(oFile);'.
+    _inline '  var elAllSectionCheckboxesOfFile = this.getAllSectionCheckboxesForFile(oFile);'.
     _inline ''.
-    _inline '  [].forEach.call(elAllLineLinksOfFile,function(elem){'.
-    _inline '    this.togglePatchForElem(elem);'.
+    _inline '  [].forEach.call(elAllLineCheckboxesOfFile,function(elem){'.
+    _inline '    elem.checked = oEvent.srcElement.checked;'.
     _inline '  }.bind(this));'.
     _inline ''.
-    _inline '  oEvent.preventDefault();'.
+    _inline '  [].forEach.call(elAllSectionCheckboxesOfFile,function(elem){'.
+    _inline '    elem.checked = oEvent.srcElement.checked;'.
+    _inline '  }.bind(this));'.
+    _inline ''.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.patchLinkClickSection = function(oEvent){'.
+    _inline 'Patch.prototype.onClickSectionCheckbox = function(oEvent){'.
     _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
-    _inline '  this.clickAllLineLinksInSection(oEvent, oSection.section);'.
-    _inline '  oEvent.preventDefault();'.
+    _inline '  this.clickAllLineCheckboxesInSection(oEvent, oSection.section);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.clickAllLineLinksInSection = function(oEvent){'.
+    _inline 'Patch.prototype.clickAllLineCheckboxesInSection = function(oEvent){'.
     _inline ''.
     _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
-    _inline '  var elAllLineLinksOfSection = this.getAllLineLinksForSection(oSection);'.
+    _inline '  var elAllLineCheckboxesOfSection = this.getAllLineCheckboxesForSection(oSection);'.
     _inline ''.
-    _inline '  [].forEach.call(elAllLineLinksOfSection,function(elem){'.
-    _inline '    this.togglePatchForElem(elem);'.
-    _inline '    oEvent.preventDefault();'.
+    _inline '  [].forEach.call(elAllLineCheckboxesOfSection,function(elem){'.
+    _inline '    elem.checked = oEvent.srcElement.checked;'.
     _inline '  }.bind(this));'.
     _inline ''.
     _inline '};'.
@@ -24950,20 +24886,20 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '  // Collect add and remove info and submit to backend'.
     _inline ''.
-    _inline '  var aAddPatch = this.collectActiveElementsForId( PatchLine.prototype.ID.ADD );'.
-    _inline '  var aRemovePatch = this.collectActiveElementsForId( PatchLine.prototype.ID.REMOVE );'.
+    _inline '  var aAddPatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, true);'.
+    _inline '  var aRemovePatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, false);'.
     _inline ''.
     _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
     _inline ''.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.collectActiveElementsForId = function(sId){'.
+    _inline 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked){'.
     _inline ''.
-    _inline '  var sSelector = "." + PatchLine.prototype.CSS_CLASS.PATCH + " a[id^=''" + sId + "'']";'.
+    _inline '  var sSelector = "input[id^=''" + sId + "'']";'.
     _inline ''.
     _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
     _inline '    .filter(function(elem){'.
-    _inline '      return elem.classList.contains(PatchLine.prototype.CSS_CLASS.PATCH_ACTIVE);'.
+    _inline '      return (elem.checked === bChecked);'.
     _inline '    }).map(function(elem){'.
     _inline '      return elem.id;'.
     _inline '    });'.
@@ -32460,7 +32396,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_to_stage.
 
     DATA: lo_repo              TYPE REF TO zcl_abapgit_repo_online,
@@ -32603,7 +32539,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       get_patch_data(
         EXPORTING
           iv_patch      = <lv_patch>
-          iv_action     = iv_action
         IMPORTING
           ev_filename   = lv_filename
           ev_line_index = lv_line_index ).
@@ -32808,11 +32743,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CLEAR: ev_filename, ev_line_index.
 
-    IF iv_action <> c_patch_action-add AND iv_action <> c_patch_action-remove.
-      zcx_abapgit_exception=>raise( |Invalid action { iv_action }| ).
-    ENDIF.
-
-    FIND FIRST OCCURRENCE OF REGEX `patch_line_` && iv_action && `_(.*)_(\d)+_(\d+)`
+    FIND FIRST OCCURRENCE OF REGEX `patch_line` && `_(.*)_(\d)+_(\d+)`
          IN iv_patch
          SUBMATCHES ev_filename lv_section ev_line_index.
     IF sy-subrc <> 0.
@@ -32877,19 +32808,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     IF mv_patch_mode = abap_true.
 
       ro_html->add( |<th class="patch">| ).
-
-      ro_html->add_a( iv_txt   = |{ c_patch_action-add }|
-                      iv_act   = |patch_section_add('{ is_diff-filename }','{ mv_section_count }')|
-                      iv_id    = |patch_section_add_{ is_diff-filename }_{ mv_section_count }|
-                      iv_class = |patch_section_add|
-                      iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
-
-      ro_html->add_a( iv_txt   = |{ c_patch_action-remove }|
-                      iv_act   = |patch_section_remove('{ is_diff-filename }', '{ mv_section_count }')|
-                      iv_id    = |patch_section_remove_{ is_diff-filename }_{ mv_section_count }|
-                      iv_class = |patch_section_remove|
-                      iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
-
+      ro_html->add_checkbox( iv_id = |patch_section_{ is_diff-filename }_{ mv_section_count }| ).
       ro_html->add( '</th>' ).
 
     ELSE.
@@ -33165,8 +33084,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CONSTANTS:
       BEGIN OF c_css_class,
-        patch_active TYPE string VALUE `patch-active` ##NO_TEXT,
-        patch        TYPE string VALUE `patch` ##NO_TEXT,
+        patch TYPE string VALUE `patch` ##NO_TEXT,
       END OF c_css_class.
 
     DATA: lv_id          TYPE string,
@@ -33181,24 +33099,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       lv_id = |{ lv_object }_{ mv_section_count }_{ iv_index }|.
 
       io_html->add( |<td class="{ c_css_class-patch }">| ).
-
-      IF is_diff_line-patch_flag = abap_true.
-        lv_left_class = c_css_class-patch_active.
-      ELSE.
-        lv_right_class = c_css_class-patch_active.
-      ENDIF.
-
-      io_html->add_a( iv_txt   = |{ c_patch_action-add }|
-                      iv_act   = ||
-                      iv_id    = |patch_line_{ c_patch_action-add }_{ lv_id }|
-                      iv_typ   = zif_abapgit_html=>c_action_type-dummy
-                      iv_class = lv_left_class ).
-      io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
-                      iv_act   = ||
-                      iv_id    = |patch_line_{ c_patch_action-remove }_{ lv_id }|
-                      iv_typ   = zif_abapgit_html=>c_action_type-dummy
-                      iv_class = lv_right_class ).
-
+      io_html->add_checkbox( iv_id = |patch_line_{ lv_id }| ).
       io_html->add( |</td>| ).
 
     ELSE.
@@ -33212,19 +33113,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD render_patch_head.
 
     io_html->add( |<th class="patch">| ).
-
-    io_html->add_a( iv_txt   = |{ c_patch_action-add }|
-                    iv_act   = |patch_file_add('{ is_diff-filename }')|
-                    iv_id    = |patch_file_add_{ is_diff-filename }|
-                    iv_class = |patch_file_add|
-                    iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
-
-    io_html->add_a( iv_txt   = |{ c_patch_action-remove }|
-                    iv_act   = |patch_file_remove('{ is_diff-filename }')|
-                    iv_id    = |patch_file_remove_{ is_diff-filename }|
-                    iv_class = |patch_file_remove|
-                    iv_typ   = zif_abapgit_html=>c_action_type-dummy ).
-
+    io_html->add_checkbox( iv_id = |patch_file_{ is_diff-filename }| ).
     io_html->add( '</th>' ).
 
   ENDMETHOD.
@@ -33295,12 +33184,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
                                                         it_field = lt_fields
                                               CHANGING  cg_field = lv_remove ).
 
-    apply_patch_all( iv_action     = c_patch_action-add
-                     iv_patch      = lv_add
+    apply_patch_all( iv_patch      = lv_add
                      iv_patch_flag = abap_true ).
 
-    apply_patch_all( iv_action     = c_patch_action-remove
-                     iv_patch      = lv_remove
+    apply_patch_all( iv_patch      = lv_remove
                      iv_patch_flag = abap_false ).
 
     add_to_stage( ).
@@ -35973,8 +35860,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
           lv_href  TYPE string,
           lv_click TYPE string,
           lv_id    TYPE string,
-          lv_style TYPE string,
-          lv_span  TYPE string.
+          lv_style TYPE string.
 
     lv_class = iv_class.
 
@@ -36015,9 +35901,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       lv_style = | style="{ iv_style }"|.
     ENDIF.
 
-    lv_span = |<span class="tooltiptext hidden"></span>|.
-
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ lv_span }</a>|.
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ co_span_link_hint }</a>|.
 
   ENDMETHOD.
   METHOD add.
@@ -36109,6 +35993,19 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_html~add_checkbox.
+
+    add( checkbox( iv_id ) ).
+
+  ENDMETHOD.
+  METHOD checkbox.
+
+    rv_html = |<input type="checkbox" id="{ iv_id }">|
+           && |{ co_span_link_hint }|.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
@@ -70555,5 +70452,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-20T15:46:42.663Z
+* abapmerge undefined - 2019-05-20T15:49:11.025Z
 ****************************************************
