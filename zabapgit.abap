@@ -1622,7 +1622,7 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
   CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
   CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
-  CONSTANTS c_author_regex TYPE string VALUE '^([\\\w\s\.\*\,\#@\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
+  CONSTANTS c_author_regex TYPE string VALUE '^([\\\w\s\.\*\,\#@%\-_1-9\(\) ]+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF c_action,
       repo_refresh             TYPE string VALUE 'repo_refresh',
@@ -23123,6 +23123,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-right: 1px solid #eee;'.
     _inline '  -ms-user-select: none;'.
     _inline '  user-select: none;'.
+    _inline '  cursor: pointer;'.
     _inline '}'.
     _inline 'table.diff_tab td.num::before {'.
     _inline '  content: attr(line-num);'.
@@ -24789,25 +24790,28 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '  this.registerClickHandlerForFiles();'.
     _inline '  this.registerClickHandlerForSections();'.
+    _inline '  this.registerClickHandlerForLines();'.
     _inline ''.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
-    _inline '  // registers the link handlers for add and remove files'.
-    _inline '  this.registerClickHandlerForSelector("input[id^=''" + PatchFile.prototype.ID + "'']", this.onClickFileCheckbox);'.
+    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchFile.prototype.ID + "'']", this.onClickFileCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
-    _inline '  // registers the link handlers for add and remove sections'.
-    _inline '  this.registerClickHandlerForSelector("input[id^=''" + PatchSection.prototype.ID + "'']", this.onClickSectionCheckbox);'.
+    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchSection.prototype.ID + "'']", this.onClickSectionCheckbox);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForSelector = function(sSelector, fnCallback){'.
+    _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
+    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchLine.prototype.ID + "'']", this.onClickLineCheckbox);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback){'.
     _inline ''.
     _inline '  var elAll = document.querySelectorAll(sSelector);'.
     _inline ''.
     _inline '  [].forEach.call(elAll, function(elem){'.
-    _inline '    elem.addEventListener("click", fnCallback.bind(this));'.
+    _inline '    elem.parentElement.addEventListener("click", fnCallback.bind(this));'.
     _inline '  }.bind(this));'.
     _inline ''.
     _inline '};'.
@@ -24838,34 +24842,59 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  return document.querySelectorAll("input[id^=''"+ this.escape(sId) + "'']");'.
     _inline '};'.
     _inline ''.
+    _inline 'Patch.prototype.getToggledCheckbox = function(oEvent){'.
+    _inline ''.
+    _inline '  var elCheckbox = null;'.
+    _inline ''.
+    _inline '  // We have either an input element or any element with input child'.
+    _inline '  // in the latter case we have to toggle the checkbox manually'.
+    _inline '  if (oEvent.srcElement.nodeName === "INPUT"){'.
+    _inline '    elCheckbox = oEvent.srcElement;'.
+    _inline '  } else {'.
+    _inline '    elCheckbox = this.toggleCheckbox(oEvent.srcElement.querySelector("INPUT"));'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  return elCheckbox;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.toggleCheckbox = function(elCheckbox) {'.
+    _inline '  elCheckbox.checked = !elCheckbox.checked;'.
+    _inline '  return elCheckbox;'.
+    _inline '};'.
+    _inline ''.
     _inline 'Patch.prototype.onClickFileCheckbox = function(oEvent) {'.
     _inline ''.
-    _inline '  var oFile = new PatchFile(oEvent.srcElement.id);'.
+    _inline '  var elCheckbox = this.getToggledCheckbox(oEvent);'.
+    _inline '  var oFile = new PatchFile(elCheckbox.id);'.
     _inline '  var elAllLineCheckboxesOfFile = this.getAllLineCheckboxesForFile(oFile);'.
     _inline '  var elAllSectionCheckboxesOfFile = this.getAllSectionCheckboxesForFile(oFile);'.
     _inline ''.
     _inline '  [].forEach.call(elAllLineCheckboxesOfFile,function(elem){'.
-    _inline '    elem.checked = oEvent.srcElement.checked;'.
+    _inline '    elem.checked = elCheckbox.checked;'.
     _inline '  }.bind(this));'.
     _inline ''.
     _inline '  [].forEach.call(elAllSectionCheckboxesOfFile,function(elem){'.
-    _inline '    elem.checked = oEvent.srcElement.checked;'.
+    _inline '    elem.checked = elCheckbox.checked;'.
     _inline '  }.bind(this));'.
     _inline ''.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.onClickSectionCheckbox = function(oEvent){'.
-    _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
-    _inline '  this.clickAllLineCheckboxesInSection(oEvent, oSection.section);'.
+    _inline '  var elSrcElement = this.getToggledCheckbox(oEvent);'.
+    _inline '  var oSection = new PatchSection(elSrcElement.id);'.
+    _inline '  this.clickAllLineCheckboxesInSection(oSection, elSrcElement.checked);'.
     _inline '};'.
     _inline ''.
-    _inline 'Patch.prototype.clickAllLineCheckboxesInSection = function(oEvent){'.
+    _inline 'Patch.prototype.onClickLineCheckbox = function(oEvent){'.
+    _inline '  this.getToggledCheckbox(oEvent);'.
+    _inline '};'.
     _inline ''.
-    _inline '  var oSection = new PatchSection(oEvent.srcElement.id);'.
+    _inline 'Patch.prototype.clickAllLineCheckboxesInSection = function(oSection, bChecked){'.
+    _inline ''.
     _inline '  var elAllLineCheckboxesOfSection = this.getAllLineCheckboxesForSection(oSection);'.
     _inline ''.
     _inline '  [].forEach.call(elAllLineCheckboxesOfSection,function(elem){'.
-    _inline '    elem.checked = oEvent.srcElement.checked;'.
+    _inline '    elem.checked = bChecked;'.
     _inline '  }.bind(this));'.
     _inline ''.
     _inline '};'.
@@ -70452,5 +70481,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-20T15:49:11.025Z
+* abapmerge undefined - 2019-05-21T14:25:35.159Z
 ****************************************************
