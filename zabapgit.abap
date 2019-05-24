@@ -15847,7 +15847,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       lo_repo = get( ls_repo-key ).
 
       lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
-      IF lo_package->exists( ) EQ abap_false.
+      IF lo_package->exists( ) = abap_false.
         " Skip dangling repository
         CONTINUE.
       ENDIF.
@@ -18409,7 +18409,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    IF iv_source_branch EQ io_repo->get_branch_name( ).
+    IF iv_source_branch = io_repo->get_branch_name( ).
       zcx_abapgit_exception=>raise( 'source = target' ).
     ENDIF.
 
@@ -18538,22 +18538,22 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         AND is_conflict-result_data IS NOT INITIAL.
       READ TABLE mt_conflicts ASSIGNING <ls_conflict> WITH KEY path = is_conflict-path
                                                                filename = is_conflict-filename.
-      IF sy-subrc EQ 0.
+      IF sy-subrc = 0.
         READ TABLE ms_merge-result ASSIGNING <ls_result> WITH KEY path = is_conflict-path
                                                                   name = is_conflict-filename.
-        IF sy-subrc EQ 0.
+        IF sy-subrc = 0.
           <ls_result>-sha1 = is_conflict-result_sha1.
 
           ms_merge-stage->add( iv_path     = <ls_conflict>-path
                                iv_filename = <ls_conflict>-filename
                                iv_data     = is_conflict-result_data ).
 
-          DELETE mt_conflicts WHERE path     EQ is_conflict-path
-                                AND filename EQ is_conflict-filename.
+          DELETE mt_conflicts WHERE path     = is_conflict-path
+                                AND filename = is_conflict-filename.
         ENDIF.
 
         READ TABLE ms_merge-result ASSIGNING <ls_result> WITH KEY sha1 = space.
-        IF sy-subrc EQ 0.
+        IF sy-subrc = 0.
           ms_merge-conflict = |{ <ls_result>-name } merge conflict, changed in source and target branch|.
         ELSE.
           CLEAR ms_merge-conflict.
@@ -31584,7 +31584,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     " Content
     IF is_diff-type <> 'binary'.
 
-      IF mv_merge_mode EQ c_merge_mode-selection.
+      IF mv_merge_mode = c_merge_mode-selection.
         ro_html->add( '<div class="diff_content">' ).       "#EC NOTEXT
         ro_html->add( '<table class="diff_tab syntax-hl">' ). "#EC NOTEXT
         ro_html->add( render_table_head( ) ).
@@ -31616,7 +31616,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
         ro_html->add( '</table>' ).                         "#EC NOTEXT
 
         READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
-        IF sy-subrc EQ 0.
+        IF sy-subrc = 0.
           lv_target_content = zcl_abapgit_convert=>xstring_to_string_utf8( <ls_conflict>-target_data ).
           lv_target_content = escape( val = lv_target_content format = cl_abap_format=>e_html_text ).
         ENDIF.
@@ -31754,7 +31754,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ro_html->add( '<tr>' ).                                 "#EC NOTEXT
     ro_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
 
-    IF mv_merge_mode EQ c_merge_mode-selection.
+    IF mv_merge_mode = c_merge_mode-selection.
       ro_html->add( '<form id="target_form" method="post" action="sapevent:apply_target">' ). "#EC NOTEXT
       ro_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ). "#EC NOTEXT
       ro_html->add_a( iv_act = 'submitFormById(''target_form'');' "#EC NOTEXT
@@ -31790,7 +31790,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     CLEAR ms_diff_file.
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       RETURN.
     ENDIF.
 
@@ -31819,7 +31819,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   ENDMETHOD.
   METHOD toggle_merge_mode.
 
-    IF mv_merge_mode EQ c_merge_mode-selection.
+    IF mv_merge_mode = c_merge_mode-selection.
       mv_merge_mode = c_merge_mode-merge.
     ELSE.
       mv_merge_mode = c_merge_mode-selection.
@@ -31885,7 +31885,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
     ro_menu->add( iv_txt = 'Merge' iv_act = c_actions-merge iv_cur = abap_false ) ##NO_TEXT.
 
-    IF iv_with_conflict EQ abap_true.
+    IF iv_with_conflict = abap_true.
       ro_menu->add( iv_txt = 'Resolve Conflicts' iv_act = c_actions-res_conflicts ) ##NO_TEXT.
     ENDIF.
 
@@ -32012,11 +32012,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
     CASE iv_action.
       WHEN c_actions-merge.
-        IF mo_merge->has_conflicts( ) EQ abap_true.
+        IF mo_merge->has_conflicts( ) = abap_true.
           zcx_abapgit_exception=>raise( 'conflicts exists' ).
         ENDIF.
 
-        IF mo_merge->get_result( )-stage->count( ) EQ 0.
+        IF mo_merge->get_result( )-stage->count( ) = 0.
           zcx_abapgit_exception=>raise( 'nothing to merge' ).
         ENDIF.
 
@@ -45005,7 +45005,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         request_language_denied  = 9
         OTHERS                   = 10.
 
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ELSE.
       rv_result = abap_true.
@@ -45041,7 +45041,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         request_language_denied  = 9
         OTHERS                   = 10.
 
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ELSE.
       rv_result = abap_true.
@@ -45198,14 +45198,14 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       SELECT SINGLE *
         FROM dm40t
         INTO ls_dm40t
-        WHERE sprache  EQ ls_udmo_text-sprache
-        AND   dmoid    EQ ls_udmo_text-dmoid
-        AND   as4local EQ me->mv_activation_state.
+        WHERE sprache  = ls_udmo_text-sprache
+        AND   dmoid    = ls_udmo_text-dmoid
+        AND   as4local = me->mv_activation_state.
 
-      IF sy-subrc EQ 0.
+      IF sy-subrc = 0.
         " There is already an active description for this language
         " but the provided description differs
-        IF ls_dm40t-langbez NE ls_udmo_text-langbez.
+        IF ls_dm40t-langbez <> ls_udmo_text-langbez.
 
           ls_dm40t-langbez = ls_udmo_text-langbez.
           ls_dm40t-lstdate = sy-datum.
@@ -45256,8 +45256,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     SELECT * FROM dm41s
       INTO TABLE lt_udmo_entities
-      WHERE dmoid EQ me->mv_data_model
-      AND as4local EQ me->mv_activation_state.
+      WHERE dmoid = me->mv_data_model
+      AND as4local = me->mv_activation_state.
     LOOP AT lt_udmo_entities ASSIGNING <ls_udmo_entity>.
 
       " You are reminded that administrative information, such as last changed by user, date, time is not serialised.
@@ -45302,8 +45302,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT sprache AS language
       FROM dm40t
       INTO TABLE lt_udmo_languages
-      WHERE dmoid    EQ me->mv_data_model
-      AND   as4local EQ me->mv_activation_state
+      WHERE dmoid    = me->mv_data_model
+      AND   as4local = me->mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " For every language for which a short text is maintained,
@@ -45325,7 +45325,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
           content = ls_udmo_long_text-content
           pstatus = lv_error_status.
 
-      CHECK lv_error_status EQ 'S'. "Success
+      CHECK lv_error_status = 'S'. "Success
 
       " Administrative information is not serialised
       CLEAR ls_udmo_long_text-header-tdfuser.
@@ -45354,9 +45354,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT SINGLE *
     FROM dm40l
     INTO ls_dm40l
-    WHERE dmoid    EQ me->mv_data_model
-    AND   as4local EQ me->mv_activation_state.
-    IF sy-subrc NE 0.
+    WHERE dmoid    = me->mv_data_model
+    AND   as4local = me->mv_activation_state.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from UDMO - model serialisation' ).
     ENDIF.
 
@@ -45382,8 +45382,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT sprache dmoid as4local langbez
       FROM dm40t
       INTO CORRESPONDING FIELDS OF TABLE lt_udmo_texts
-      WHERE dmoid    EQ me->mv_data_model
-      AND   as4local EQ me->mv_activation_state
+      WHERE dmoid    = me->mv_data_model
+      AND   as4local = me->mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " You are reminded that descriptions in other languages do not have to be in existence.
@@ -45408,7 +45408,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       WHERE  dmoid    = me->mv_data_model
       AND    as4local = me->mv_activation_state.
 
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ENDIF.
 
@@ -45433,7 +45433,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         is_used          = 4
         OTHERS           = 5.
 
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
@@ -54972,12 +54972,12 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 * parameter SUPPRESS_DIALOG doesnt exist in all versions of FM RS_DELETE_MESSAGE_ID
 * replaced with a copy
     lv_message_id = ms_item-obj_name.
-    IF ms_item-obj_name EQ space.
+    IF ms_item-obj_name = space.
       zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."blank message id
     ENDIF.
 
     SELECT SINGLE * FROM t100a INTO lv_t100a WHERE arbgb = ms_item-obj_name.
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."not found
     ENDIF.
 
@@ -54994,7 +54994,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
       EXCEPTIONS
         OTHERS          = 1.
 
-    IF sy-subrc NE 0 OR lv_frozen NE space.
+    IF sy-subrc <> 0 OR lv_frozen <> space.
       zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."can't access
     ENDIF.
 
@@ -55011,7 +55011,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
         cancelled          = 01
         permission_failure = 02.
 
-    IF sy-subrc NE 0.
+    IF sy-subrc <> 0.
       IF lv_access_granted = abap_true.
         free_access_permission( lv_message_id ).
       ENDIF.
@@ -57053,7 +57053,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       ELSEIF rv_abap_version IS INITIAL.
         rv_abap_version = ls_progdir-uccheck.
         CONTINUE.
-      ELSEIF rv_abap_version NE ls_progdir-uccheck.
+      ELSEIF rv_abap_version <> ls_progdir-uccheck.
 *** All includes need to have the same ABAP language version
         zcx_abapgit_exception=>raise( 'different ABAP Language Versions' ).
       ENDIF.
@@ -65260,7 +65260,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
                 im_obj_type           = ch_object-s_obj_type
                 im_exists_any_version = 'X' ).
 
-        IF lv_exists EQ space.
+        IF lv_exists = space.
           CALL METHOD lo_ecatt_vo->('SET_TADIR_FOR_NEW_OBJECT')
             EXPORTING
               im_tadir_for_new_object = tadir_preset.
@@ -65755,7 +65755,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
                       im_obj_type           = ch_object-s_obj_type
                       im_exists_any_version = 'X' ).
 
-        IF lv_exists EQ space.
+        IF lv_exists = space.
           CALL METHOD lo_ecatt_sp->('SET_TADIR_FOR_NEW_OBJECT')
             EXPORTING
               im_tadir_for_new_object = tadir_preset.
@@ -65930,7 +65930,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
     toolname = ecatt_object->attrib->get_tool_name( ).
     set_attributes_to_template( ).
 
-    IF toolname EQ cl_apl_ecatt_const=>toolname_ecatt.
+    IF toolname = cl_apl_ecatt_const=>toolname_ecatt.
 
       ecatt_script ?= ecatt_object.
 
@@ -65951,7 +65951,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
             IF NOT wa_parm-pstruc_typ IS INITIAL.
               set_deep_stru_to_dom( ecatt_script->params ).
               set_deep_data_to_dom( ecatt_script->params ).
-              IF wa_parm-xmlref_typ EQ cl_apl_ecatt_const=>ref_type_c_tcd.
+              IF wa_parm-xmlref_typ = cl_apl_ecatt_const=>ref_type_c_tcd.
                 set_control_data_for_tcd( is_param  =  wa_parm
                                           io_params = ecatt_script->params ).
 
@@ -66390,7 +66390,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
       RECEIVING
         rval = lv_count.
 
-    WHILE lv_index LT lv_count.
+    WHILE lv_index < lv_count.
       li_n_xmlref_typ = li_nc_xmlref_typ->get_item( lv_index ).
       li_n_xmlref_typ->set_name( 'X-MLREF_TYP' ).
       lv_index = lv_index + 1.
@@ -70485,5 +70485,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-24T10:05:46.114Z
+* abapmerge undefined - 2019-05-24T13:52:27.715Z
 ****************************************************
