@@ -24688,22 +24688,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  Patch / git add -p'.
     _inline '  */'.
     _inline ''.
-    _inline 'function Patch() { }'.
-    _inline ''.
-    _inline 'Patch.prototype.ID = {'.
-    _inline '  STAGE: "stage"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.ACTION = {'.
-    _inline '  PATCH_STAGE: "patch_stage"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.escape = function(sFileName){'.
-    _inline '  return sFileName'.
-    _inline '    .replace(/\./g, "\\.")'.
-    _inline '    .replace(/#/g, "\\#");'.
-    _inline '};'.
-    _inline ''.
     _inline '/*'.
     _inline '  We have three type of cascading checkboxes.'.
     _inline '  Which means that by clicking a file or section checkbox all corresponding line checkboxes are checked.'.
@@ -24786,6 +24770,22 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline 'PatchLine.prototype.ID = "patch_line";'.
     _inline ''.
+    _inline 'function Patch() { }'.
+    _inline ''.
+    _inline 'Patch.prototype.ID = {'.
+    _inline '  STAGE: "stage"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.ACTION = {'.
+    _inline '  PATCH_STAGE: "patch_stage"'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Patch.prototype.escape = function(sFileName){'.
+    _inline '  return sFileName'.
+    _inline '    .replace(/\./g, "\\.")'.
+    _inline '    .replace(/#/g, "\\#");'.
+    _inline '};'.
+    _inline ''.
     _inline 'Patch.prototype.preparePatch = function(){'.
     _inline ''.
     _inline '  this.registerClickHandlerForFiles();'.
@@ -24794,16 +24794,20 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '};'.
     _inline ''.
+    _inline 'Patch.prototype.buildSelectorInputStartsWithId = function(sId){'.
+    _inline '  return "input[id^=''" + sId + "'']";'.
+    _inline '};'.
+    _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchFile.prototype.ID + "'']", this.onClickFileCheckbox);'.
+    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchFile.prototype.ID), this.onClickFileCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchSection.prototype.ID + "'']", this.onClickSectionCheckbox);'.
+    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchSection.prototype.ID), this.onClickSectionCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent("input[id^=''" + PatchLine.prototype.ID + "'']", this.onClickLineCheckbox);'.
+    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchLine.prototype.ID), this.onClickLineCheckbox);'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback){'.
@@ -24839,7 +24843,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix){'.
     _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
     _inline '  sId = sId.replace(oRegex, sNewIdPrefix);'.
-    _inline '  return document.querySelectorAll("input[id^=''"+ this.escape(sId) + "'']");'.
+    _inline '  return document.querySelectorAll(this.buildSelectorInputStartsWithId(this.escape(sId)));'.
     _inline '};'.
     _inline ''.
     _inline 'Patch.prototype.getToggledCheckbox = function(oEvent){'.
@@ -24924,7 +24928,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked){'.
     _inline ''.
-    _inline '  var sSelector = "input[id^=''" + sId + "'']";'.
+    _inline '  var sSelector = this.buildSelectorInputStartsWithId(sId);'.
     _inline ''.
     _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
     _inline '    .filter(function(elem){'.
@@ -70481,5 +70485,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-21T14:25:35.159Z
+* abapmerge undefined - 2019-05-24T10:05:46.114Z
 ****************************************************
