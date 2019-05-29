@@ -21831,7 +21831,9 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
           rv_status = 'W'. "maybe
           CONTINUE.
         WHEN 'S' OR 'I'.
-          rv_status = 'S'. "okay
+          IF rv_status <> 'W'.
+            rv_status = 'S'. "okay
+          ENDIF.
           CONTINUE.
         WHEN OTHERS. "unknown
           CONTINUE.
@@ -21968,7 +21970,9 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
           rv_status = 'W'. "maybe
           CONTINUE.
         WHEN 'S' OR 'I'.
-          rv_status = 'S'. "okay
+          IF rv_status <> 'W'.
+            rv_status = 'S'. "okay
+          ENDIF.
           CONTINUE.
         WHEN OTHERS. "unknown
           CONTINUE.
@@ -70765,5 +70769,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-27T14:46:12.901Z
+* abapmerge undefined - 2019-05-29T07:12:50.734Z
 ****************************************************
