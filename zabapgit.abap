@@ -271,50 +271,57 @@ ENDCLASS.
 "! abapGit general error
 CLASS zcx_abapgit_exception DEFINITION
   INHERITING FROM cx_static_check
-  CREATE PUBLIC.
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES:
-      if_t100_message.
-    CLASS-METHODS:
-      "! Raise exception with text
-      "! @parameter iv_text | Text
-      "! @parameter ix_previous | Previous exception
-      "! @raising zcx_abapgit_exception | Exception
-      raise IMPORTING iv_text     TYPE clike
-                      ix_previous TYPE REF TO cx_root OPTIONAL
-            RAISING   zcx_abapgit_exception,
-      "! Raise exception with T100 message
-      "! <p>
-      "! Will default to sy-msg* variables. These need to be set right before calling this method.
-      "! </p>
-      "! @parameter iv_msgid | Message ID
-      "! @parameter iv_msgno | Message number
-      "! @parameter iv_msgv1 | Message variable 1
-      "! @parameter iv_msgv2 | Message variable 2
-      "! @parameter iv_msgv3 | Message variable 3
-      "! @parameter iv_msgv4 | Message variable 4
-      "! @raising zcx_abapgit_exception | Exception
-      raise_t100 IMPORTING VALUE(iv_msgid) TYPE symsgid DEFAULT sy-msgid
-                           VALUE(iv_msgno) TYPE symsgno DEFAULT sy-msgno
-                           VALUE(iv_msgv1) TYPE symsgv DEFAULT sy-msgv1
-                           VALUE(iv_msgv2) TYPE symsgv DEFAULT sy-msgv2
-                           VALUE(iv_msgv3) TYPE symsgv DEFAULT sy-msgv3
-                           VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
-                 RAISING   zcx_abapgit_exception .
-    METHODS:
-      constructor  IMPORTING textid   LIKE if_t100_message=>t100key OPTIONAL
-                             previous LIKE previous OPTIONAL
-                             msgv1    TYPE symsgv OPTIONAL
-                             msgv2    TYPE symsgv OPTIONAL
-                             msgv3    TYPE symsgv OPTIONAL
-                             msgv4    TYPE symsgv OPTIONAL.
-    DATA:
-      subrc TYPE sysubrc READ-ONLY,
-      msgv1 TYPE symsgv READ-ONLY,
-      msgv2 TYPE symsgv READ-ONLY,
-      msgv3 TYPE symsgv READ-ONLY,
-      msgv4 TYPE symsgv READ-ONLY.
+
+    INTERFACES if_t100_message .
+
+    DATA subrc TYPE sysubrc READ-ONLY .
+    DATA msgv1 TYPE symsgv READ-ONLY .
+    DATA msgv2 TYPE symsgv READ-ONLY .
+    DATA msgv3 TYPE symsgv READ-ONLY .
+    DATA msgv4 TYPE symsgv READ-ONLY .
+
+    "! Raise exception with text
+    "! @parameter iv_text | Text
+    "! @parameter ix_previous | Previous exception
+    "! @raising zcx_abapgit_exception | Exception
+    CLASS-METHODS raise
+      IMPORTING
+        !iv_text     TYPE clike
+        !ix_previous TYPE REF TO cx_root OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    "! Raise exception with T100 message
+    "! <p>
+    "! Will default to sy-msg* variables. These need to be set right before calling this method.
+    "! </p>
+    "! @parameter iv_msgid | Message ID
+    "! @parameter iv_msgno | Message number
+    "! @parameter iv_msgv1 | Message variable 1
+    "! @parameter iv_msgv2 | Message variable 2
+    "! @parameter iv_msgv3 | Message variable 3
+    "! @parameter iv_msgv4 | Message variable 4
+    "! @raising zcx_abapgit_exception | Exception
+    CLASS-METHODS raise_t100
+      IMPORTING
+        VALUE(iv_msgid) TYPE symsgid DEFAULT sy-msgid
+        VALUE(iv_msgno) TYPE symsgno DEFAULT sy-msgno
+        VALUE(iv_msgv1) TYPE symsgv DEFAULT sy-msgv1
+        VALUE(iv_msgv2) TYPE symsgv DEFAULT sy-msgv2
+        VALUE(iv_msgv3) TYPE symsgv DEFAULT sy-msgv3
+        VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !textid   LIKE if_t100_message=>t100key OPTIONAL
+        !previous LIKE previous OPTIONAL
+        !msgv1    TYPE symsgv OPTIONAL
+        !msgv2    TYPE symsgv OPTIONAL
+        !msgv3    TYPE symsgv OPTIONAL
+        !msgv4    TYPE symsgv OPTIONAL .
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
@@ -336,7 +343,6 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
       if_t100_message~t100key = textid.
     ENDIF.
   ENDMETHOD.
-
   METHOD raise.
     DATA: lv_msgv1    TYPE symsgv,
           lv_msgv2    TYPE symsgv,
@@ -373,7 +379,6 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
         msgv4    = lv_msgv4
         previous = ix_previous.
   ENDMETHOD.
-
   METHOD raise_t100.
     DATA: ls_t100_key TYPE scx_t100key.
 
@@ -645,6 +650,8 @@ CLASS zcl_abapgit_object_iatu DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_iasp DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_iarp DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_iamu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_g4bs DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_g4ba DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_fugr DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ensc DEFINITION DEFERRED.
@@ -5534,6 +5541,26 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       RAISING
         zcx_abapgit_exception.
 
+ENDCLASS.
+CLASS zcl_abapgit_object_g4ba DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_object_g4bs DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_iamu DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -40992,7 +41019,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
     SELECT * FROM objsl INTO CORRESPONDING FIELDS OF TABLE mt_object_table
       WHERE objectname = is_item-obj_type
       AND objecttype = lc_logical_transport_object
-      AND tobject = 'TABU'.
+      AND tobject = 'TABU'
+      ORDER BY PRIMARY KEY.
     IF mt_object_table IS INITIAL.
       zcx_abapgit_exception=>raise( |Obviously corrupted object-type {
         is_item-obj_type }: No tables defined| ).
@@ -41004,7 +41032,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
 * object methods
     SELECT * FROM objm INTO TABLE mt_object_method
       WHERE objectname = is_item-obj_type
-      AND   objecttype = lc_logical_transport_object.
+      AND   objecttype = lc_logical_transport_object
+      ORDER BY PRIMARY KEY.
 
     ms_item = is_item.
 
@@ -41358,7 +41387,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
 
       SELECT * FROM (<ls_object_table>-tobj_name)
         INTO TABLE <lt_data>
-        WHERE (lv_where).
+        WHERE (lv_where)
+        ORDER BY PRIMARY KEY.
 
       io_xml->add(
         iv_name = <ls_object_table>-tobj_name
@@ -57055,6 +57085,160 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECT_G4BS IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->delete( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->deserialize(
+      iv_package = iv_package
+      io_xml     = io_xml ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    rv_bool = lo_generic->exists( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->serialize( io_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->delete( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->deserialize(
+      iv_package = iv_package
+      io_xml     = io_xml ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    rv_bool = lo_generic->exists( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_generic
+      EXPORTING
+        is_item = ms_item.
+
+    lo_generic->serialize( io_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD are_exceptions_class_based.
     DATA:
@@ -70769,5 +70953,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-29T07:12:50.734Z
+* abapmerge undefined - 2019-05-30T06:56:00.541Z
 ****************************************************
