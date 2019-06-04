@@ -60776,18 +60776,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     lv_changed_date_external = ii_document->find_from_name( 'LDATE' )->get_value( ).
 
-    CALL FUNCTION 'CONVERSION_EXIT_RSDAT_INPUT'
-      EXPORTING
-        input        = lv_changed_date_external
-      IMPORTING
-        output       = rv_changed_date
-      EXCEPTIONS
-        invalid_date = 1
-        OTHERS       = 2.
-
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
+    REPLACE ALL OCCURRENCES OF '-' IN lv_changed_date_external WITH ''.
+    rv_changed_date = lv_changed_date_external.
 
   ENDMETHOD.
   METHOD get_changed_time.
@@ -70953,5 +70943,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-05-31T05:28:18.919Z
+* abapmerge undefined - 2019-06-04T05:27:15.237Z
 ****************************************************
