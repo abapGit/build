@@ -1548,6 +1548,7 @@ INTERFACE zif_abapgit_definitions .
       hotkeys                    TYPE tty_hotkey,
       parallel_proc_disabled     TYPE abap_bool,
       icon_scaling               TYPE c LENGTH 1,
+      ui_theme                   TYPE string,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -9986,6 +9987,9 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     METHODS render_icon_scaling
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS render_ui_theme
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_adt_jump_enabled
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -13186,6 +13190,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
         small TYPE c VALUE 'S',
       END OF c_icon_scaling.
 
+    CONSTANTS:
+      BEGIN OF c_ui_theme,
+        default TYPE string VALUE 'default',
+        dark TYPE string VALUE 'dark',
+        belize TYPE string VALUE 'belize',
+      END OF c_ui_theme.
+
     METHODS:
       set_proxy_url
         IMPORTING
@@ -13304,7 +13315,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
       set_icon_scaling
         IMPORTING
-          iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling.
+          iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
+      get_ui_theme
+        RETURNING
+          VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
+      set_ui_theme
+        IMPORTING
+          iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -15234,7 +15251,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_settings IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
   ENDMETHOD.
@@ -15293,6 +15310,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_show_default_repo.
     rv_show_default_repo = ms_user_settings-show_default_repo.
+  ENDMETHOD.
+  METHOD get_ui_theme.
+    rv_ui_theme = ms_user_settings-ui_theme.
   ENDMETHOD.
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
@@ -15370,6 +15390,14 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_show_default_repo.
     ms_user_settings-show_default_repo = iv_show_default_repo.
+  ENDMETHOD.
+  METHOD set_ui_theme.
+    ms_user_settings-ui_theme = iv_ui_theme.
+    IF ms_user_settings-ui_theme <> c_ui_theme-default
+      AND ms_user_settings-ui_theme <> c_ui_theme-dark
+      AND ms_user_settings-ui_theme <> c_ui_theme-belize.
+      ms_user_settings-ui_theme = c_ui_theme-default. " Reset to default
+    ENDIF.
   ENDMETHOD.
   METHOD set_user_settings.
     ms_user_settings = is_user_settings.
@@ -22711,29 +22739,24 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* GLOBALS */'.
     _inline ''.
     _inline 'body {'.
-    _inline '  font-family: Arial,Helvetica,sans-serif;'.
-    _inline '  font-size:   12pt;'.
-    _inline '  background:  #E8E8E8;'.
-    _inline '  overflow-x:  hidden;'.
+    _inline '  font-family:      Arial,Helvetica,sans-serif;'.
+    _inline '  font-size:        12pt;'.
+    _inline '  overflow-x:       hidden;'.
     _inline '}'.
-    _inline ''.
     _inline 'a, a:visited {'.
-    _inline '  color:            #4078c0;'.
     _inline '  text-decoration:  none;'.
     _inline '}'.
-    _inline ''.
     _inline 'a:hover, a:active {'.
     _inline '  cursor: pointer;'.
     _inline '  text-decoration: underline;'.
     _inline '}'.
     _inline ''.
-    _inline '#abapGitLogo {'.
-    _inline '  outline: none;'.
+    _inline 'img { '.
+    _inline '  border-width: 0px;'.
+    _inline '  vertical-align: middle;'.
     _inline '}'.
-    _inline ''.
-    _inline 'img               { border: 0px; vertical-align: middle; }'.
-    _inline 'table             { border-collapse: collapse; }'.
-    _inline 'pre               { display: inline; }'.
+    _inline 'table { border-collapse: collapse; }'.
+    _inline 'pre { display: inline; }'.
     _inline 'sup {'.
     _inline '  vertical-align: top;'.
     _inline '  position: relative;'.
@@ -22743,98 +22766,75 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline 'input, textarea, select {'.
     _inline '  padding: 3px 6px;'.
-    _inline '  border: 1px solid #ddd;'.
+    _inline '  border: 1px solid;'.
     _inline '}'.
-    _inline ''.
     _inline 'input:focus, textarea:focus {'.
-    _inline '  border: 1px solid #8cadd9;'.
+    _inline '  border: 1px solid;'.
     _inline '}'.
-    _inline ''.
-    _inline '/* COLOR PALETTE */'.
-    _inline '.grey             { color: lightgrey  !important; }'.
-    _inline '.grey70           { color: #b3b3b3    !important; }'.
-    _inline '.grey80           { color: #ccc       !important; }'.
-    _inline '.bgorange         { background-color: orange; }'.
-    _inline '.darkgrey         { color: #808080    !important; }'.
-    _inline '.attention        { color: red        !important; }'.
-    _inline '.error            { color: #d41919    !important; }'.
-    _inline '.warning          { color: #efb301    !important; }'.
-    _inline '.success          { color: green       !important; }'.
-    _inline '.blue             { color: #5e8dc9    !important; }'.
-    _inline '.red              { color: red        !important; }'.
-    _inline '.white            { color: white      !important; }'.
     _inline ''.
     _inline '/* MODIFIERS */'.
-    _inline '.emphasis         { font-weight: bold !important; }'.
-    _inline '.crossout         { text-decoration: line-through !important; }'.
-    _inline '.right            { text-align:right; }'.
-    _inline '.center           { text-align:center; }'.
-    _inline '.paddings         { padding: 0.5em 0.5em; }'.
-    _inline '.pad-sides        { padding-left: 0.3em; padding-right: 0.3em; }'.
-    _inline '.margin-v5        { margin-top: 0.5em; margin-bottom: 0.5em; }'.
-    _inline '.indent5em        { padding-left: 0.5em; }'.
-    _inline '.pad4px           { padding: 4px; }'.
-    _inline '.w100             { width: 100%; }'.
-    _inline '.wmin             { width: 1%; }'.
-    _inline '.w40              { width: 40%; }'.
-    _inline '.float-right      { float: right; }'.
-    _inline '.pad-right        { padding-right: 6px; }'.
-    _inline '.inline           { display: inline; }'.
+    _inline '.emphasis     { font-weight: bold !important; }'.
+    _inline '.crossout     { text-decoration: line-through !important; }'.
+    _inline '.right        { text-align:right; }'.
+    _inline '.center       { text-align:center; }'.
+    _inline '.paddings     { padding: 0.5em 0.5em; }'.
+    _inline '.pad-sides    { padding-left: 0.3em; padding-right: 0.3em; }'.
+    _inline '.margin-v5    { margin-top: 0.5em; margin-bottom: 0.5em; }'.
+    _inline '.indent5em    { padding-left: 0.5em; }'.
+    _inline '.pad4px       { padding: 4px; }'.
+    _inline '.w100         { width: 100%; }'.
+    _inline '.wmin         { width: 1%; }'.
+    _inline '.w40          { width: 40%; }'.
+    _inline '.float-right  { float: right; }'.
+    _inline '.pad-right    { padding-right: 6px; }'.
+    _inline '.inline       { display: inline; }'.
+    _inline '.hidden       { visibility: hidden; }'.
     _inline ''.
     _inline '/* PANELS */'.
     _inline 'div.panel {'.
     _inline '  border-radius: 3px;'.
     _inline '}'.
-    _inline 'div.panel.success {'.
-    _inline '  color: #589a58 !important;'.
-    _inline '  background: #c5eac5;'.
-    _inline '}'.
-    _inline '/* TODO: add warning and error colors */'.
-    _inline ''.
-    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-    _inline 'div#header {'.
-    _inline '  padding:          0.5em 0.5em;'.
-    _inline '  border-bottom:    3px double lightgrey;'.
-    _inline '}'.
-    _inline 'div#header td.logo       { width: 164px; }'.
-    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
-    _inline 'div#header span.page_title {'.
-    _inline '  font-weight: normal;'.
-    _inline '  font-size: 18pt;'.
-    _inline '  color: #bbb;'.
-    _inline '  padding-left: 0.4em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div#toc {'.
-    _inline '  padding:          0.5em 1em;'.
-    _inline '  background-color: #f2f2f2;'.
-    _inline '}'.
-    _inline 'div#toc .favorites a { opacity: 0.5; }'.
-    _inline 'div#toc .favorites:hover a { opacity: 1; }'.
-    _inline ''.
-    _inline 'div#footer {'.
-    _inline '  padding:          0.5em 1em;'.
-    _inline '  border-top:       3px double lightgrey;'.
-    _inline '  text-align:       center;'.
-    _inline '}'.
-    _inline 'div#footer span.version {'.
-    _inline '  display: block;'.
-    _inline '  color: grey;'.
-    _inline '  margin-top: 0.3em;'.
-    _inline '}'.
     _inline ''.
     _inline '#debug-output {'.
     _inline '  text-align: right;'.
     _inline '  padding-right: 0.5em;'.
-    _inline '  color: #ccc;'.
     _inline '  font-style: italic;'.
     _inline '  font-size: small;'.
     _inline '}'.
     _inline ''.
     _inline 'div.dummydiv {'.
-    _inline '  background-color: #f2f2f2;'.
     _inline '  padding:          0.5em 1em;'.
     _inline '  text-align:       center;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
+    _inline '#abapGitLogo { outline: none; }'.
+    _inline ''.
+    _inline 'div#header {'.
+    _inline '  padding:          0.5em 0.5em;'.
+    _inline '  border-bottom:    3px double;'.
+    _inline '}'.
+    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
+    _inline 'div#header td.logo       { width: 164px; }'.
+    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
+    _inline 'div#header span.page_title {'.
+    _inline '  font-weight: normal;'.
+    _inline '  font-size: 18pt;'.
+    _inline '  padding-left: 0.4em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div#toc { padding: 0.5em 1em; }'.
+    _inline 'div#toc .favorites a { opacity: 0.5; }'.
+    _inline 'div#toc .favorites:hover a { opacity: 1; }'.
+    _inline ''.
+    _inline 'div#footer {'.
+    _inline '  padding:          0.5em 1em;'.
+    _inline '  border-top:       3px double;'.
+    _inline '  text-align:       center;'.
+    _inline '}'.
+    _inline 'div#footer span.version {'.
+    _inline '  display: block;'.
+    _inline '  margin-top: 0.3em;'.
     _inline '}'.
     _inline ''.
     _inline '/* ERROR LOG */'.
@@ -22842,8 +22842,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'div.log {'.
     _inline '  padding: 6px;'.
     _inline '  margin: 4px;'.
-    _inline '  background-color: #fee6e6;'.
-    _inline '  border: 1px #fdcece solid;'.
+    _inline '  border: 1px  solid;'.
     _inline '  border-radius: 4px;'.
     _inline '}'.
     _inline 'div.log > span   { display:block; }'.
@@ -22851,23 +22850,19 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* REPOSITORY */'.
     _inline 'div.repo {'.
-    _inline '  margin-top:       3px;'.
-    _inline '  background-color: #f2f2f2;'.
+    _inline '  margin-top: 3px;'.
     _inline '  padding: 0.5em 1em 0.5em 1em;'.
     _inline '  position: relative;'.
     _inline '}'.
     _inline '.repo_name span.name {'.
     _inline '  font-weight: bold;'.
-    _inline '  color: #333;'.
     _inline '  font-size: 14pt;'.
     _inline '}'.
     _inline '.repo_name a.url {'.
-    _inline '  color: #ccc;'.
     _inline '  font-size: 12pt;'.
     _inline '  margin-left: 0.5em;'.
     _inline '}'.
     _inline '.repo_name span.url {'.
-    _inline '  color: #ccc;'.
     _inline '  font-size: 12pt;'.
     _inline '  margin-left: 0.5em;'.
     _inline '}'.
@@ -22875,7 +22870,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  padding-right: 4px;'.
     _inline '}'.
     _inline '.repo_attr {'.
-    _inline '  color: grey;'.
     _inline '  font-size: 12pt;'.
     _inline '}'.
     _inline '.repo_attr span {'.
@@ -22883,26 +22877,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  margin-right: 0.5em;'.
     _inline '}'.
     _inline '.repo_attr span.bg_marker {'.
-    _inline '  border: 1px solid #d2d2d2;'.
+    _inline '  border: 1px solid;'.
     _inline '  border-radius: 3px;'.
-    _inline '  background: #d8d8d8;'.
-    _inline '  color: #fff;'.
     _inline '  font-size: 8pt;'.
     _inline '  padding: 4px 2px 3px 2px;'.
     _inline '}'.
     _inline '.repo_attr span.branch {'.
     _inline '  padding: 2px 4px;'.
-    _inline '  border: 1px solid #d9d9d9;'.
+    _inline '  border: 1px solid;'.
     _inline '  border-radius: 4px;'.
-    _inline '  background-color: #e2e2e2;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch_head {'.
-    _inline '  border-color: #d8dff3;'.
-    _inline '  background-color: #eceff9;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch_branch {'.
-    _inline '  border-color: #e7d9b1;'.
-    _inline '  background-color: #f8f0d8;'.
     _inline '}'.
     _inline ''.
     _inline '/* MISC AND REFACTOR */'.
@@ -22928,15 +22911,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline 'table.repo_tab {'.
-    _inline '  border: 1px solid #DDD;'.
+    _inline '  border: 1px solid;'.
     _inline '  border-radius: 3px;'.
-    _inline '  background: #fff;'.
     _inline '  width: 100%;'.
     _inline '}'.
     _inline '.repo_tab td {'.
-    _inline '  border-top: 1px solid #eee;'.
+    _inline '  border-top: 1px solid;'.
     _inline '  vertical-align: middle;'.
-    _inline '  color: #333;'.
     _inline '  padding-top: 2px;'.
     _inline '  padding-bottom: 2px;'.
     _inline '}'.
@@ -22964,10 +22945,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  padding-left: 0.5em;'.
     _inline '  padding-right: 0.7em;'.
     _inline '}'.
-    _inline '.repo_tab tr.unsupported    { color: lightgrey; }'.
-    _inline '.repo_tab tr.modified       { background: #fbf7e9; }'.
     _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
-    _inline '.repo_tab td.current_dir    { color: #ccc; }'.
     _inline '.repo_tab td.cmd span.state-block {'.
     _inline '  margin-left: 1em;'.
     _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
@@ -22979,8 +22957,691 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.repo_tab td.cmd span.state-block span {'.
     _inline '  display: inline-block;'.
     _inline '  padding: 0px 2px;'.
-    _inline '  border: 1px solid #000;'.
+    _inline '  border: 1px solid;'.
     _inline '}'.
+    _inline ''.
+    _inline '/* STAGE */'.
+    _inline 'div.stage-container { width: 850px; }'.
+    _inline 'input.stage-filter { width: 18em; }'.
+    _inline ''.
+    _inline '.stage_tab {'.
+    _inline '  border: 1px solid;'.
+    _inline '  margin-top: 0.2em;'.
+    _inline '}'.
+    _inline '.stage_tab td {'.
+    _inline '  border-top: 1px solid;'.
+    _inline '  vertical-align: middle;'.
+    _inline '  padding: 2px 0.5em;'.
+    _inline '}'.
+    _inline '.stage_tab th {'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: normal;'.
+    _inline '  padding: 4px 0.5em;'.
+    _inline '}'.
+    _inline '.stage_tab td.status {'.
+    _inline '  width: 2em;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline '.stage_tab td.highlight {'.
+    _inline '  font-weight: bold;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.stage_tab td.cmd {  cursor: pointer; }'.
+    _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
+    _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
+    _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+    _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+    _inline ''.
+    _inline '/* COMMIT */'.
+    _inline 'div.form-container {'.
+    _inline '  padding: 1em 1em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form {'.
+    _inline '  display: table;'.
+    _inline '  border-spacing: 2px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form label {'.
+    _inline '  padding-right: 1em;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form select {'.
+    _inline '  padding-right: 1em;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form span.sub-title {'.
+    _inline '  font-size: smaller;'.
+    _inline '  padding-top: 8px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'form.aligned-form div.row { display: table-row; }'.
+    _inline 'form.aligned-form label { display: table-cell; }'.
+    _inline 'form.aligned-form input { display: table-cell; }'.
+    _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
+    _inline 'form.aligned-form span.cell { display: table-cell; }'.
+    _inline ''.
+    _inline '/* SETTINGS STYLES */'.
+    _inline 'div.settings_container {'.
+    _inline '  padding: 0.5em;'.
+    _inline '  font-size: 10pt;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.settings_section {'.
+    _inline '  margin-left:50px'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DIFF */'.
+    _inline 'div.diff {'.
+    _inline '  padding: 0.7em'.
+    _inline '}'.
+    _inline 'div.diff_head {'.
+    _inline '  padding-bottom: 0.7em;'.
+    _inline '}'.
+    _inline 'span.diff_name {'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '}'.
+    _inline 'span.diff_changed_by {'.
+    _inline '  float: right;'.
+    _inline '}'.
+    _inline 'span.diff_changed_by span.user {'.
+    _inline '  border-radius: 3px;'.
+    _inline '  border: solid 1px;'.
+    _inline '  padding: 1px 0.4em;'.
+    _inline '}'.
+    _inline 'span.diff_banner {'.
+    _inline '  border-style: solid;'.
+    _inline '  border-width: 1px;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding-left: 0.3em;'.
+    _inline '  padding-right: 0.3em;'.
+    _inline '}'.
+    _inline 'div.diff_content {'.
+    _inline '  border-top: 1px solid;'.
+    _inline '  border-bottom: 1px solid;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.diff_content tbody tr td{'.
+    _inline '  width: 50%;'.
+    _inline '  vertical-align: top'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.diff_head span.state-block {'.
+    _inline '  margin-left: 0.5em;'.
+    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline 'div.diff_head span.state-block span {'.
+    _inline '  display: inline-block;'.
+    _inline '  padding: 0px 4px;'.
+    _inline '  border: 1px solid;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DIFF TABLE */'.
+    _inline 'table.diff_tab {'.
+    _inline '  font-family: Consolas, Courier, monospace;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  width: 100%;'.
+    _inline '}'.
+    _inline 'table.diff_tab td,th {'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  padding-right: 0.5em;'.
+    _inline '}'.
+    _inline 'table.diff_tab th {'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: normal;'.
+    _inline '  padding-top: 3px;'.
+    _inline '  padding-bottom: 3px;'.
+    _inline '}'.
+    _inline 'table.diff_tab thead.header th {'.
+    _inline '  text-align: left;'.
+    _inline '  font-weight: bold;'.
+    _inline '  padding-left: 0.5em;'.
+    _inline '  font-size: 9pt;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.num, th.num {'.
+    _inline '  width: 1%;'.
+    _inline '  min-width: 2em;'.
+    _inline '  padding-right: 8px;'.
+    _inline '  padding-left:  8px;'.
+    _inline '  text-align: right !important;'.
+    _inline '  border-left: 1px solid;'.
+    _inline '  border-right: 1px solid;'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.patch, th.patch {'.
+    _inline '  width: 1%;'.
+    _inline '  min-width: 1.5em;'.
+    _inline '  padding-right: 8px;'.
+    _inline '  padding-left:  8px;'.
+    _inline '  text-align: right !important;'.
+    _inline '  border-left: 1px solid;'.
+    _inline '  border-right: 1px solid;'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '  cursor: pointer;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.num::before {'.
+    _inline '  content: attr(line-num);'.
+    _inline '}'.
+    _inline 'table.diff_tab code {'.
+    _inline '  font-family: inherit;'.
+    _inline '  white-space: pre;'.
+    _inline '}'.
+    _inline 'table.diff_tab td.code {'.
+    _inline '  word-wrap: break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  overflow: visible;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
+    _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+    _inline ''.
+    _inline '/* DEBUG INFO STYLES */'.
+    _inline 'div.debug_container {'.
+    _inline '  padding: 0.5em;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  font-family: Consolas, Courier, monospace;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.debug_container p {'.
+    _inline '  margin: 0px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DB ENTRIES */'.
+    _inline 'div.db_list {'.
+    _inline '  padding: 0.5em;'.
+    _inline '  overflow-x: auto;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.db_tab pre {'.
+    _inline '  display: inline-block;'.
+    _inline '  overflow: hidden;'.
+    _inline '  word-wrap:break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  margin: 0px;'.
+    _inline '  width: 30em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
+    _inline 'table.db_tab th {'.
+    _inline '  text-align: left;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  border-bottom: 1px solid;'.
+    _inline '}'.
+    _inline 'table.db_tab td {'.
+    _inline '  padding: 4px 8px;'.
+    _inline '  vertical-align: middle;'.
+    _inline '}'.
+    _inline 'table.db_tab td.data {'.
+    _inline '  font-style: italic;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* DB ENTRY DISPLAY */'.
+    _inline 'div.db_entry {'.
+    _inline '  padding: 0.5em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.db_entry pre {'.
+    _inline '  display: block;'.
+    _inline '  font-size: 10pt;'.
+    _inline '  overflow: hidden;'.
+    _inline '  word-wrap:break-word;'.
+    _inline '  white-space: pre-wrap;'.
+    _inline '  border: 1px  solid;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  margin: 0.5em 0em;'.
+    _inline '  width: 60em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
+    _inline 'div.db_entry table.toolbar {'.
+    _inline '  width: 50em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'table.tag {'.
+    _inline '  display: inline-block;'.
+    _inline '  border: 1px  solid;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  margin-right: 0.5em;'.
+    _inline '}'.
+    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
+    _inline ''.
+    _inline '/* TUTORIAL */'.
+    _inline ''.
+    _inline 'div.tutorial {'.
+    _inline '  margin-top:       3px;'.
+    _inline '  padding: 0.5em 1em 0.5em 1em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.tutorial li { margin: 2px 0px }'.
+    _inline 'div.tutorial h1 { font-size: 18pt; }'.
+    _inline 'div.tutorial h2 { font-size: 14pt;}'.
+    _inline ''.
+    _inline '/* MENU */'.
+    _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
+    _inline '/* container div, aligned left,'.
+    _inline '   but with .float-right modifier alignes right */'.
+    _inline ''.
+    _inline '.nav-container ul {'.
+    _inline '  list-style: none;'.
+    _inline '  position: relative;'.
+    _inline '  float: left;'.
+    _inline '  margin: 0;'.
+    _inline '  padding: 0;'.
+    _inline '  white-space: nowrap;'.
+    _inline '  text-align: left;'.
+    _inline '}'.
+    _inline '.nav-container.float-right ul { float: right; }'.
+    _inline ''.
+    _inline '.nav-container ul a {'.
+    _inline '  display: block;'.
+    _inline '  text-decoration: none;'.
+    _inline '  line-height: 30px;'.
+    _inline '  padding: 0 12px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
+    _inline '.nav-container:after { clear: both; display: block; content: ""; }'.
+    _inline ''.
+    _inline '/* submenues align to left or right border of the active item'.
+    _inline '   depending on .float-right modifier */'.
+    _inline '.nav-container ul li {'.
+    _inline '  position: relative;'.
+    _inline '  float: left;'.
+    _inline '  margin: 0;'.
+    _inline '  padding: 0;'.
+    _inline '}'.
+    _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
+    _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
+    _inline '.nav-container ul li.block ul { display: block; }'.
+    _inline '.nav-container ul li:hover > ul { display: block; }'.
+    _inline ''.
+    _inline '/* special selection style for 1st level items (see also .corner below) */'.
+    _inline ''.
+    _inline '.nav-container ul ul {'.
+    _inline '  display: none;'.
+    _inline '  position: absolute;'.
+    _inline '  top: 100%;'.
+    _inline '  left: 0;'.
+    _inline '  z-index: 1;'.
+    _inline '  padding: 0;'.
+    _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul li {'.
+    _inline '  float: none;'.
+    _inline '  min-width: 160px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul a {'.
+    _inline '  line-height: 120%;'.
+    _inline '  padding: 8px 15px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container ul ul ul {'.
+    _inline '  top: 0;'.
+    _inline '  left: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.nav-container.float-right ul ul ul {'.
+    _inline '  left: auto;'.
+    _inline '  right: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Minizone to extent hover area,'.
+    _inline '   aligned to the left or to the right of the selected item'.
+    _inline '   depending on .float-right modifier */'.
+    _inline '.nav-container > ul > li > div.minizone {'.
+    _inline '  display: none;'.
+    _inline '  z-index: 1;'.
+    _inline '  position: absolute;'.
+    _inline '  padding: 0px;'.
+    _inline '  width: 16px;'.
+    _inline '  height: 100%;'.
+    _inline '  bottom: 0px;'.
+    _inline '  left: 100%;'.
+    _inline '}'.
+    _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
+    _inline '.nav-container.float-right > ul > li > div.minizone {'.
+    _inline '  left: auto;'.
+    _inline '  right: 100%;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* icons - text-align strictly left - otherwise look ugly'.
+    _inline '   + bite a bit of left padding for nicer look'.
+    _inline '   + forbids item text wrapping (maybe can be done differently) */'.
+    _inline '.nav-container ul ul li a .icon {'.
+    _inline '  padding-right: 10px;'.
+    _inline '  margin-left: -3px;'.
+    _inline '}'.
+    _inline '.nav-container ul.with-icons li {'.
+    _inline '  text-align: left;'.
+    _inline '  white-space: nowrap;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Special .corner modifier - hangs menu at the top right corner'.
+    _inline '   and cancels 1st level background coloring */'.
+    _inline '.nav-container.corner {'.
+    _inline '  position: absolute;'.
+    _inline '  right: 0px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Toolbar separator style */'.
+    _inline '.nav-container ul ul li.separator {'.
+    _inline '  font-size: x-small;'.
+    _inline '  text-align: center;'.
+    _inline '  padding: 4px 0;'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  border-bottom: 1px solid;'.
+    _inline '  border-top: 1px solid;'.
+    _inline '}'.
+    _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
+    _inline ''.
+    _inline '/* News Announcement */'.
+    _inline ''.
+    _inline 'div.info-panel {'.
+    _inline '  position: absolute;'.
+    _inline '  z-index: 99;'.
+    _inline '  top: 36px;'.
+    _inline '  left: 50%;'.
+    _inline '  width: 40em;'.
+    _inline '  margin-left: -20em;'.
+    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel-fixed {'.
+    _inline '  position: fixed;'.
+    _inline '  top: 15%;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-hint {'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  font-size: small;'.
+    _inline '  padding: 8px 6px 0px;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-title {'.
+    _inline '  text-transform: uppercase;'.
+    _inline '  font-size: small;'.
+    _inline '  padding: 6px;'.
+    _inline '  text-align: center;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-title a.close-btn {'.
+    _inline '  padding-left: 12px;'.
+    _inline '  padding-right: 2px;'.
+    _inline '  position: relative;'.
+    _inline '  bottom: 1px;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel div.info-list {'.
+    _inline '  padding: 0.8em 0.7em 1em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel li {'.
+    _inline '  padding-left: 10px;'.
+    _inline '  list-style-type: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel h1:first-child { margin: auto; }'.
+    _inline 'div.info-panel h1 {'.
+    _inline '  font-size: inherit;'.
+    _inline '  padding: 6px 4px;'.
+    _inline '  margin: 4px auto auto;'.
+    _inline '  text-decoration: underline;'.
+    _inline '  font-weight: normal;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel .version-marker {'.
+    _inline '  display: inline-block;'.
+    _inline '  margin-left: 20px;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 0px 6px;'.
+    _inline '  border:  1px solid;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.info-panel .update { border:  1px solid; }'.
+    _inline 'div.info-panel div.info-list td { padding-right: 1em }'.
+    _inline ''.
+    _inline '/* Tooltip text */'.
+    _inline '.tooltiptext {'.
+    _inline '    line-height: 15px;'.
+    _inline '    width: 60px;'.
+    _inline '    text-align: center;'.
+    _inline '    padding: 5px 0;'.
+    _inline '    border-radius: 6px;'.
+    _inline ''.
+    _inline '    /* Position the tooltip text */'.
+    _inline '    position: absolute;'.
+    _inline '    z-index: 1;'.
+    _inline '    margin-left: -60px;'.
+    _inline '    margin-top: -30px;'.
+    _inline ''.
+    _inline '    /* Fade in tooltip */'.
+    _inline '    opacity: 1;'.
+    _inline '    transition: opacity 0.3s;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Tooltip arrow */'.
+    _inline '.tooltiptext::after {'.
+    _inline '    content: "";'.
+    _inline '    position: absolute;'.
+    _inline '    top: 100%;'.
+    _inline '    left: 50%;'.
+    _inline '    margin-left: -5px;'.
+    _inline '    border-width: 5px;'.
+    _inline '    border-style: solid;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* HOTKEYS */'.
+    _inline 'ul.hotkeys {'.
+    _inline '  list-style-type: none;'.
+    _inline '  padding: 0;'.
+    _inline '  margin: 0;'.
+    _inline '  font-size: smaller;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'ul.hotkeys span.key-id {'.
+    _inline '  border: 1px solid;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 1px 7px;'.
+    _inline '  width: 0.5em;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '  margin-top: 0.2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'ul.hotkeys span.key-descr {'.
+    _inline '  margin-left: 1.2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.corner-hint {'.
+    _inline '  position: fixed;'.
+    _inline '  bottom: 10px;'.
+    _inline '  right: 10px;'.
+    _inline '  border: 1px solid;'.
+    _inline '  border-radius: 3px;'.
+    _inline '  padding: 4px;'.
+    _inline '  font-size: smaller;'.
+    _inline '  opacity: 0.5;'.
+    _inline '  z-index: 99;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Commit popup */'.
+    _inline 'table.commit tr .title {'.
+    _inline '  font-weight: bold;'.
+    _inline '  vertical-align: top;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Repo overview */'.
+    _inline '.repo-overview { font-size: smaller; }'.
+    _inline '.repo-overview tbody td { height: 2em; }'.
+    _inline '.ro-detail { display: none; }'.
+    _inline ''.
+    _inline '/* Branch Overview Page */'.
+    _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
+    _inline '  overflow-y: hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.gitGraph-scrollWrapper{'.
+    _inline '  overflow-x: auto;'.
+    _inline '  height: 20px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.gitGraph-Wrapper{'.
+    _inline '  overflow-x: hidden;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.gitGraph-HTopScroller {'.
+    _inline '  width:1000px;'.
+    _inline '  height: 20px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* code inspector */'.
+    _inline '.ci-head { padding: 0.5em 1em; }'.
+    _inline '.ci-head .package-name span { margin-left: 0.3em; }'.
+    _inline '.ci-variant { font-weight: bold; }'.
+    _inline '.ci-result {'.
+    _inline '  padding: 6px;'.
+    _inline '  margin-top: 4px;'.
+    _inline '}'.
+    _inline '.ci-result li {'.
+    _inline '  list-style-type: none;'.
+    _inline '  padding: 0.3em 0.8em;'.
+    _inline '  margin-top: 6px;'.
+    _inline '  border-left: 4px solid;'.
+    _inline '}'.
+    _inline '.ci-result li:first-child { margin-top: 0px; }'.
+    _inline '.ci-result li span { display: block; }'.
+    _inline ''.
+    _inline '/* Floating buttons */'.
+    _inline ''.
+    _inline '.floating-button {'.
+    _inline '  position: fixed;'.
+    _inline '  top: 6em;'.
+    _inline '  right: 2.8em;'.
+    _inline '  padding: 1em 1.8em;'.
+    _inline '  border-radius: 4px;'.
+    _inline '  border-width: 1px;'.
+    _inline '  border-style: solid;'.
+    _inline '  box-shadow: 2px 2px 6px 0px #ccc;'.
+    _inline '  cursor: pointer;'.
+    _inline '}'.
+    ro_asset_man->register_asset(
+      iv_url       = 'css/common.css'
+      iv_type      = 'text/css'
+      iv_mime_name = 'ZABAPGIT_CSS_COMMON'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_CSS_THEME_DEFAULT.W3MI.DATA.CSS
+****************************************************
+    _inline '/*'.
+    _inline ' * ABAPGIT COLOR THEME CSS - DEFAULT'.
+    _inline ' */'.
+    _inline ''.
+    _inline '/* GLOBALS */'.
+    _inline 'body          { background-color: #E8E8E8; }'.
+    _inline 'a, a:visited  { color:  #4078c0; }'.
+    _inline 'input, textarea, select     { border-color: #ddd; }'.
+    _inline 'input:focus, textarea:focus { border-color: #8cadd9; }'.
+    _inline ''.
+    _inline '/* COLOR PALETTE */'.
+    _inline '.grey         { color: lightgrey  !important; }'.
+    _inline '.grey70       { color: #b3b3b3    !important; }'.
+    _inline '.grey80       { color: #ccc       !important; }'.
+    _inline '.bgorange     { background-color: orange; }'.
+    _inline '.darkgrey     { color: #808080    !important; }'.
+    _inline '.attention    { color: red        !important; }'.
+    _inline '.error        { color: #d41919    !important; }'.
+    _inline '.warning      { color: #efb301    !important; }'.
+    _inline '.success      { color: green       !important; }'.
+    _inline '.blue         { color: #5e8dc9    !important; }'.
+    _inline '.red          { color: red        !important; }'.
+    _inline '.white        { color: white      !important; }'.
+    _inline ''.
+    _inline '/* Floating buttons and color sets */'.
+    _inline '.blue-set {'.
+    _inline '  border-color: #abc3e3;'.
+    _inline '  color: #5e8dc9;'.
+    _inline '  background-color: #d9e4f2;'.
+    _inline '}'.
+    _inline '.grey-set {'.
+    _inline '  border-color: #c7c7c7;'.
+    _inline '  color: #808080;'.
+    _inline '  background-color: #e6e6e6;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* PANELS */'.
+    _inline '/* TODO: add warning and error colors */'.
+    _inline 'div.panel.success {'.
+    _inline '  color: #589a58 !important;'.
+    _inline '  background-color: #c5eac5;'.
+    _inline '}'.
+    _inline '#debug-output { color: #ccc; }'.
+    _inline 'div.dummydiv { background-color: #f2f2f2; }'.
+    _inline ''.
+    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
+    _inline 'div#header { border-bottom-color:  lightgrey; }'.
+    _inline 'div#header span.page_title { color: #bbb; }'.
+    _inline 'div#toc    { background-color: #f2f2f2; }'.
+    _inline 'div#footer span.version { color: grey; }'.
+    _inline 'div#footer { border-top-color:  lightgrey; }'.
+    _inline ''.
+    _inline '/* ERROR LOG */'.
+    _inline 'div.log {'.
+    _inline '  background-color: #fee6e6;'.
+    _inline '  border-color: #fdcece;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* REPOSITORY */'.
+    _inline 'div.repo { background-color: #f2f2f2; }'.
+    _inline '.repo_name span.name { color: #333; }'.
+    _inline '.repo_name span.url  { color: #ccc; }'.
+    _inline '.repo_name a.url { color: #ccc; }'.
+    _inline '.repo_attr       { color: grey; }'.
+    _inline ''.
+    _inline '.repo_attr span.bg_marker {'.
+    _inline '  border-color: #d2d2d2;'.
+    _inline '  background-color: #d8d8d8;'.
+    _inline '  color: #fff;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch {'.
+    _inline '  border-color: #d9d9d9;'.
+    _inline '  background-color: #e2e2e2;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch_head {'.
+    _inline '  border-color: #d8dff3;'.
+    _inline '  background-color: #eceff9;'.
+    _inline '}'.
+    _inline '.repo_attr span.branch_branch {'.
+    _inline '  border-color: #e7d9b1;'.
+    _inline '  background-color: #f8f0d8;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* REPOSITORY TABLE*/'.
+    _inline 'table.repo_tab {'.
+    _inline '  border-color: #ddd;'.
+    _inline '  background-color: #fff;'.
+    _inline '}'.
+    _inline '.repo_tab td {'.
+    _inline '  color: #333;'.
+    _inline '  border-top-color:  #eee;'.
+    _inline '}'.
+    _inline '.repo_tab .inactive      { color: orange; }'.
+    _inline '.repo_tab tr.unsupported { color: lightgrey; }'.
+    _inline '.repo_tab tr.modified    { background-color: #fbf7e9; }'.
+    _inline '.repo_tab td.current_dir { color: #ccc; }'.
+    _inline '.repo_tab td.cmd span.state-block span { border-color: #000; }'.
+    _inline ''.
     _inline '.repo_tab td.cmd span.state-block span.added {'.
     _inline '  background-color: #69ad74;'.
     _inline '  border-color: #579e64;'.
@@ -23006,131 +23667,52 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-color: #dbdbdb;'.
     _inline '  color: #c8c8c8;'.
     _inline '}'.
-    _inline '.repo_tab .inactive       { color: orange; }'.
     _inline ''.
     _inline '/* STAGE */'.
-    _inline 'div.stage-container { width: 850px; }'.
-    _inline 'input.stage-filter { width: 18em; }'.
-    _inline ''.
     _inline '.stage_tab {'.
-    _inline '  border: 1px solid #DDD;'.
-    _inline '  background: #fff;'.
-    _inline '  margin-top: 0.2em;'.
+    _inline '  border-color: #ddd;'.
+    _inline '  background-color: #fff;'.
     _inline '}'.
     _inline '.stage_tab td {'.
-    _inline '  border-top: 1px solid #eee;'.
     _inline '  color: #333;'.
-    _inline '  vertical-align: middle;'.
-    _inline '  padding: 2px 0.5em;'.
+    _inline '  border-top-color:  #eee;'.
     _inline '}'.
     _inline '.stage_tab th {'.
-    _inline '  color: #BBB;'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: normal;'.
+    _inline '  color: #bbb;'.
     _inline '  background-color: #edf2f9;'.
-    _inline '  padding: 4px 0.5em;'.
     _inline '}'.
     _inline '.stage_tab td.status {'.
-    _inline '  width: 2em;'.
-    _inline '  text-align: center;'.
     _inline '  color: #ccc;'.
     _inline '  background-color: #fafafa;'.
     _inline '}'.
-    _inline '.stage_tab td.highlight {'.
-    _inline '  color: #444 !important;'.
-    _inline '  font-weight: bold;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.stage_tab td.cmd {  cursor: pointer; }'.
-    _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
-    _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
+    _inline '.stage_tab td.highlight { color: #444 !important; }'.
     _inline '.stage_tab td.method { color: #ccc; }'.
-    _inline '.stage_tab td.user { color: #aaa; }'.
-    _inline '.stage_tab td.type { color: #aaa; }'.
-    _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-    _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
+    _inline '.stage_tab td.user   { color: #aaa; }'.
+    _inline '.stage_tab td.type   { color: #aaa; }'.
     _inline '.stage_tab mark {'.
     _inline '  color: white;'.
     _inline '  background-color: #79a0d2;'.
     _inline '}'.
     _inline ''.
     _inline '/* COMMIT */'.
-    _inline 'div.form-container {'.
-    _inline '  background-color: #F8F8F8;'.
-    _inline '  padding: 1em 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form {'.
-    _inline '  display: table;'.
-    _inline '  border-spacing: 2px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form label {'.
-    _inline '  color: #BBB;'.
-    _inline '  padding-right: 1em;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form select {'.
-    _inline '  padding-right: 1em;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form span.sub-title {'.
-    _inline '  color: #BBB;'.
-    _inline '  font-size: smaller;'.
-    _inline '  padding-top: 8px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form div.row { display: table-row; }'.
-    _inline 'form.aligned-form label { display: table-cell; }'.
-    _inline 'form.aligned-form input { display: table-cell; }'.
-    _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
-    _inline 'form.aligned-form span.cell { display: table-cell; }'.
+    _inline 'div.form-container { background-color: #F8F8F8; }'.
+    _inline 'form.aligned-form label { color: #bbb; }'.
+    _inline 'form.aligned-form span.sub-title { color: #bbb; }'.
     _inline ''.
     _inline '/* SETTINGS STYLES */'.
     _inline 'div.settings_container {'.
-    _inline '  padding: 0.5em;'.
-    _inline '  font-size: 10pt;'.
     _inline '  color: #444;'.
     _inline '  background-color: #f2f2f2;'.
     _inline '}'.
     _inline ''.
-    _inline 'div.settings_section {'.
-    _inline '  margin-left:50px'.
-    _inline '}'.
-    _inline ''.
     _inline '/* DIFF */'.
-    _inline 'div.diff {'.
-    _inline '  background-color: #f2f2f2;'.
-    _inline '  padding: 0.7em'.
-    _inline '}'.
-    _inline 'div.diff_head {'.
-    _inline '  padding-bottom: 0.7em;'.
-    _inline '}'.
-    _inline 'span.diff_name {'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  color: grey;'.
-    _inline '}'.
-    _inline 'span.diff_changed_by {'.
-    _inline '  color: grey;'.
-    _inline '  float: right;'.
-    _inline '}'.
+    _inline 'div.diff { background-color: #f2f2f2; }'.
+    _inline 'span.diff_name { color: grey; }'.
+    _inline 'span.diff_name strong { color: #333; }'.
+    _inline 'span.diff_changed_by  { color: grey; }'.
     _inline 'span.diff_changed_by span.user {'.
-    _inline '  border-radius: 3px;'.
-    _inline '  border: solid 1px #c2d4ea;'.
+    _inline '  border-color: #c2d4ea;'.
     _inline '  background-color: #d9e4f2;'.
-    _inline '  padding: 1px 0.4em;'.
-    _inline '}'.
-    _inline 'span.diff_name strong {'.
-    _inline '  color: #333;'.
-    _inline '}'.
-    _inline 'span.diff_banner {'.
-    _inline '  border-style: solid;'.
-    _inline '  border-width: 1px;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding-left: 0.3em;'.
-    _inline '  padding-right: 0.3em;'.
     _inline '}'.
     _inline '.diff_ins {'.
     _inline '  border-color: #abf2ab;'.
@@ -23145,26 +23727,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  background-color: #ffffcc;'.
     _inline '}'.
     _inline 'div.diff_content {'.
-    _inline '  background: #fff;'.
-    _inline '  border-top: 1px solid #DDD;'.
-    _inline '  border-bottom: 1px solid #DDD;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.diff_content tbody tr td{'.
-    _inline '  width: 50%;'.
-    _inline '  vertical-align: top'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.diff_head span.state-block {'.
-    _inline '  margin-left: 0.5em;'.
-    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
+    _inline '  background-color: #fff;'.
+    _inline '  border-top-color: #ddd;'.
+    _inline '  border-bottom-color: #ddd;'.
     _inline '}'.
     _inline 'div.diff_head span.state-block span {'.
-    _inline '  display: inline-block;'.
-    _inline '  padding: 0px 4px;'.
-    _inline '  border: 1px solid #000;'.
+    _inline '  border-color: #000;'.
     _inline '}'.
     _inline 'div.diff_head span.state-block span.added {'.
     _inline '  background-color: #69ad74;'.
@@ -23193,29 +23761,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline '/* DIFF TABLE */'.
-    _inline 'table.diff_tab {'.
-    _inline '  font-family: Consolas, Courier, monospace;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  width: 100%;'.
-    _inline '}'.
     _inline 'table.diff_tab td,th {'.
     _inline '  color: #444;'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  padding-right: 0.5em;'.
-    _inline '}'.
-    _inline 'table.diff_tab th {'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: normal;'.
-    _inline '  padding-top: 3px;'.
-    _inline '  padding-bottom: 3px;'.
     _inline '}'.
     _inline 'table.diff_tab thead.header th {'.
-    _inline '  color: #EEE;'.
-    _inline '  background-color: #BBB;'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: bold;'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  font-size: 9pt;'.
+    _inline '  color: #eee;'.
+    _inline '  background-color: #bbb;'.
     _inline '}'.
     _inline 'table.diff_tab thead.nav_line {'.
     _inline '  background-color: #edf2f9;'.
@@ -23224,45 +23775,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  color: #bbb;'.
     _inline '}'.
     _inline 'table.diff_tab td.num, th.num {'.
-    _inline '  width: 1%;'.
-    _inline '  min-width: 2em;'.
-    _inline '  padding-right: 8px;'.
-    _inline '  padding-left:  8px;'.
-    _inline '  text-align: right !important;'.
     _inline '  color: #ccc;'.
-    _inline '  border-left: 1px solid #eee;'.
-    _inline '  border-right: 1px solid #eee;'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
+    _inline '  border-left-color: #eee;'.
+    _inline '  border-right-color: #eee;'.
     _inline '}'.
     _inline 'table.diff_tab td.patch, th.patch {'.
-    _inline '  width: 1%;'.
-    _inline '  min-width: 1.5em;'.
-    _inline '  padding-right: 8px;'.
-    _inline '  padding-left:  8px;'.
-    _inline '  text-align: right !important;'.
     _inline '  color: #ccc;'.
-    _inline '  border-left: 1px solid #eee;'.
-    _inline '  border-right: 1px solid #eee;'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
-    _inline '  cursor: pointer;'.
+    _inline '  border-left-color: #eee;'.
+    _inline '  border-right-color: #eee;'.
     _inline '}'.
-    _inline 'table.diff_tab td.num::before {'.
-    _inline '  content: attr(line-num);'.
-    _inline '}'.
-    _inline 'table.diff_tab code {'.
-    _inline '  font-family: inherit;'.
-    _inline '  white-space: pre;'.
-    _inline '}'.
-    _inline 'table.diff_tab td.code {'.
-    _inline '  word-wrap: break-word;'.
-    _inline '  white-space: pre-wrap;'.
-    _inline '  overflow: visible;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-    _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
     _inline ''.
     _inline '/* STYLES for Syntax Highlighting */'.
     _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
@@ -23273,516 +23794,103 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
     _inline ''.
     _inline '/* DEBUG INFO STYLES */'.
-    _inline 'div.debug_container {'.
-    _inline '  padding: 0.5em;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  color: #444;'.
-    _inline '  font-family: Consolas, Courier, monospace;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.debug_container p {'.
-    _inline '  margin: 0px;'.
-    _inline '}'.
+    _inline 'div.debug_container { color: #444; }'.
     _inline ''.
     _inline '/* DB ENTRIES */'.
-    _inline 'div.db_list {'.
-    _inline '  background-color: #fff;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  overflow-x: auto;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.db_tab pre {'.
-    _inline '  display: inline-block;'.
-    _inline '  overflow: hidden;'.
-    _inline '  word-wrap:break-word;'.
-    _inline '  white-space: pre-wrap;'.
-    _inline '  margin: 0px;'.
-    _inline '  width: 30em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
+    _inline 'div.db_list { background-color: #fff; }'.
+    _inline 'table.db_tab td      { color: #333; }'.
+    _inline 'table.db_tab td.data { color: #888; }'.
+    _inline 'table.db_tab tbody tr:hover, tr:active { background-color: #f4f4f4; }'.
     _inline 'table.db_tab th {'.
     _inline '  color: #888888;'.
-    _inline '  text-align: left;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  border-bottom: 1px #ddd solid;'.
-    _inline '}'.
-    _inline 'table.db_tab td {'.
-    _inline '  color: #333;'.
-    _inline '  padding: 4px 8px;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline 'table.db_tab td.data {'.
-    _inline '  color: #888;'.
-    _inline '  font-style: italic;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.db_tab tbody tr:hover, tr:active {'.
-    _inline '  background-color: #f4f4f4;'.
+    _inline '  border-bottom-color: #ddd;'.
     _inline '}'.
     _inline ''.
     _inline '/* DB ENTRY DISPLAY */'.
     _inline 'div.db_entry {'.
     _inline '  background-color: #f2f2f2;'.
-    _inline '  padding: 0.5em;'.
     _inline '}'.
-    _inline ''.
     _inline 'div.db_entry pre {'.
-    _inline '  display: block;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  overflow: hidden;'.
-    _inline '  word-wrap:break-word;'.
-    _inline '  white-space: pre-wrap;'.
     _inline '  background-color: #fcfcfc;'.
-    _inline '  border: 1px #eaeaea solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  margin: 0.5em 0em;'.
-    _inline '  width: 60em;'.
+    _inline '  border-color: #eaeaea;'.
     _inline '}'.
-    _inline ''.
-    _inline 'div.db_entry table.toolbar {'.
-    _inline '  width: 50em;'.
-    _inline '}'.
-    _inline ''.
     _inline 'table.tag {'.
-    _inline '  display: inline-block;'.
-    _inline '  border: 1px #b3c1cc solid;'.
+    _inline '  border-color: #b3c1cc;'.
     _inline '  background-color: #eee;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  margin-right: 0.5em;'.
     _inline '}'.
-    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-    _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-    _inline ''.
-    _inline '/* DB ENTRY DISPLAY */'.
-    _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
-    _inline 'table.tag {'.
-    _inline '  display: inline-block;'.
-    _inline '  border: 1px #b3c1cc solid;'.
-    _inline '  background-color: #eee;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  margin-right: 0.5em;'.
-    _inline '}'.
-    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
     _inline 'table.tag td.label { background-color: #b3c1cc; }'.
     _inline ''.
     _inline '/* TUTORIAL */'.
+    _inline 'div.tutorial { background-color: #f2f2f2; }'.
+    _inline 'div.tutorial hr { border-color: #ccc; }'.
+    _inline 'div.tutorial h1, h2 { color: #404040; }'.
     _inline ''.
-    _inline 'div.tutorial {'.
-    _inline '  margin-top:       3px;'.
-    _inline '  background-color: #f2f2f2;'.
-    _inline '  padding: 0.5em 1em 0.5em 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.tutorial hr { border-color: #CCC; }'.
-    _inline 'div.tutorial li { margin: 2px 0px }'.
-    _inline 'div.tutorial h1 {'.
-    _inline '  font-size: 18pt;'.
-    _inline '  color: #404040;'.
-    _inline '}'.
-    _inline 'div.tutorial h2 {'.
-    _inline '  font-size: 14pt;'.
-    _inline '  color: #404040;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* NEW MENU */'.
-    _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
-    _inline '/* container div, aligned left, '.
-    _inline '   but with .float-right modifier alignes right */'.
-    _inline '.nav-container ul'.
-    _inline '{'.
-    _inline '  list-style: none;'.
-    _inline '  position: relative;'.
-    _inline '  float: left;'.
-    _inline '  margin: 0;'.
-    _inline '  padding: 0;'.
-    _inline '  white-space: nowrap;'.
-    _inline '  text-align: left;'.
-    _inline '}'.
-    _inline '.nav-container.float-right ul { float: right; }'.
-    _inline ''.
-    _inline '.nav-container ul a'.
-    _inline '{'.
-    _inline '  display: block;'.
-    _inline '  text-decoration: none;'.
-    _inline '  line-height: 30px;'.
-    _inline '  padding: 0 12px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
-    _inline '.nav-container:after { clear: both; display: block; content: ""; } '.
-    _inline ''.
-    _inline '/* submenues align to left or right border of the active item'.
-    _inline '   depending on .float-right modifier */'.
-    _inline '.nav-container ul li'.
-    _inline '{'.
-    _inline '  position: relative;'.
-    _inline '  float: left;'.
-    _inline '  margin: 0;'.
-    _inline '  padding: 0;'.
-    _inline '}'.
-    _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
-    _inline ''.
-    _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
-    _inline '.nav-container ul li.block ul { display: block; }'.
-    _inline '.nav-container ul li:hover > ul { display: block; }'.
+    _inline '/* MENU */'.
     _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
-    _inline ''.
-    _inline '/* special selection style for 1st level items (see also .corner below) */'.
-    _inline '.nav-container > ul > li:hover > a { '.
-    _inline '  background-color: rgba(255, 255, 255, 0.5); '.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul'.
-    _inline '{'.
-    _inline '  display: none;'.
-    _inline '  position: absolute;'.
-    _inline '  top: 100%;'.
-    _inline '  left: 0;'.
-    _inline '  z-index: 1;'.
-    _inline '  background: #fff;'.
-    _inline '  padding: 0;'.
-    _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul li'.
-    _inline '{'.
-    _inline '  float: none;'.
-    _inline '  min-width: 160px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul a'.
-    _inline '{'.
-    _inline '  line-height: 120%;'.
-    _inline '  padding: 8px 15px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul ul'.
-    _inline '{'.
-    _inline '  top: 0;'.
-    _inline '  left: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container.float-right ul ul ul'.
-    _inline '{'.
-    _inline '  left: auto;'.
-    _inline '  right: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Minizone to extent hover area, '.
-    _inline '   aligned to the left or to the right of the selected item '.
-    _inline '   depending on .float-right modifier */'.
-    _inline '.nav-container > ul > li > div.minizone {'.
-    _inline '  display: none;'.
-    _inline '  z-index: 1;'.
-    _inline '  position: absolute;'.
-    _inline '  padding: 0px;'.
-    _inline '  width: 16px;'.
-    _inline '  height: 100%;'.
-    _inline '  bottom: 0px;'.
-    _inline '  left: 100%;'.
-    _inline '}'.
-    _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
-    _inline '.nav-container.float-right > ul > li > div.minizone {'.
-    _inline '  left: auto;'.
-    _inline '  right: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* icons - text-align strictly left - otherwise look ugly'.
-    _inline '   + bite a bit of left padding for nicer look '.
-    _inline '   + forbids item text wrapping (maybe can be done differently) */'.
-    _inline '.nav-container ul ul li a .icon {'.
-    _inline '  padding-right: 10px;'.
-    _inline '  margin-left: -3px;'.
-    _inline '}'.
-    _inline '.nav-container ul.with-icons li {'.
-    _inline '  text-align: left;'.
-    _inline '  white-space: nowrap;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Special .corner modifier - hangs menu at the top right corner'.
-    _inline '   and cancels 1st level background coloring */'.
-    _inline '.nav-container.corner {'.
-    _inline '  position: absolute;'.
-    _inline '  right: 0px;'.
-    _inline '}'.
+    _inline '.nav-container > ul > li:hover > a { background-color: #ffffff80; } '.
+    _inline '.nav-container ul ul { background-color: #fff; }'.
     _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
     _inline ''.
     _inline '/* Toolbar separator style */'.
-    _inline '.nav-container ul ul li.separator'.
-    _inline '{'.
-    _inline '  font-size: x-small;'.
-    _inline '  text-align: center;'.
-    _inline '  padding: 4px 0;'.
-    _inline '  text-transform: uppercase;'.
+    _inline '.nav-container ul ul li.separator {'.
     _inline '  color: #bbb;'.
-    _inline '  border-bottom: 1px solid #eee;'.
-    _inline '  border-top: 1px solid #eee;'.
+    _inline '  border-bottom-color: #eee;'.
+    _inline '  border-top-color: #eee;'.
     _inline '}'.
-    _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
     _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
     _inline ''.
     _inline '/* News Announcement */'.
-    _inline ''.
-    _inline 'div.info-panel { '.
-    _inline '  position: absolute;'.
-    _inline '  z-index: 99;'.
-    _inline '  top: 36px;'.
-    _inline '  left: 50%;'.
-    _inline '  width: 40em;'.
-    _inline '  margin-left: -20em;'.
-    _inline '  background-color: white;'.
-    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel-fixed { '.
-    _inline '  position: fixed;'.
-    _inline '  top: 15%;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-hint {'.
-    _inline '  text-transform: uppercase;'.
-    _inline '  font-size: small;'.
-    _inline '  padding: 8px 6px 0px;'.
-    _inline '  text-align: center;'.
-    _inline '  color: #ccc;'.
-    _inline '}'.
-    _inline ''.
+    _inline 'div.info-panel { background-color: white; }'.
+    _inline 'div.info-panel div.info-hint { color: #ccc; }'.
     _inline 'div.info-panel div.info-title {'.
-    _inline '  text-transform: uppercase;'.
-    _inline '  font-size: small;'.
-    _inline '  padding: 6px;'.
-    _inline '  text-align: center;'.
     _inline '  color: #f8f8f8;'.
     _inline '  background-color: #888;'.
     _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-title a.close-btn { '.
-    _inline '  color: #d8d8d8; '.
-    _inline '  padding-left: 12px; '.
-    _inline '  padding-right: 2px;'.
-    _inline '  position: relative;'.
-    _inline '  bottom: 1px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-list {'.
-    _inline '  padding: 0.8em 0.7em 1em;'.
-    _inline '  color: #444;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel li {'.
-    _inline '  padding-left: 10px;'.
-    _inline '  list-style-type: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel h1:first-child { margin: auto; }'.
-    _inline 'div.info-panel h1 { '.
-    _inline '  font-size: inherit;'.
-    _inline '  padding: 6px 4px;'.
-    _inline '  margin: 4px auto auto;'.
-    _inline '  text-decoration: underline;'.
-    _inline '  font-weight: normal;'.
-    _inline '}'.
-    _inline ''.
+    _inline 'div.info-panel div.info-title a.close-btn { color: #d8d8d8; }'.
+    _inline 'div.info-panel div.info-list { color: #444; }'.
     _inline 'div.info-panel .version-marker {'.
     _inline '  color: white;'.
-    _inline '  display: inline-block;'.
-    _inline '  margin-left: 20px;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 0px 6px;'.
-    _inline '  border: #c0c0c0 1px solid;'.
+    _inline '  border-color: #c0c0c0;'.
     _inline '  background-color: #ccc;'.
     _inline '}'.
-    _inline ''.
     _inline 'div.info-panel .update {'.
-    _inline '  border: #e8ba30 1px solid;'.
+    _inline '  border-color: #e8ba30;'.
     _inline '  background-color: #f5c538;'.
     _inline '}'.
     _inline ''.
-    _inline 'div.info-panel div.info-list td {'.
-    _inline '  padding-right: 1em'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Tooltip text */'.
-    _inline '.tooltiptext {'.
-    _inline '    line-height: 15px;'.
-    _inline '    width: 60px;'.
-    _inline '    color: #000;'.
-    _inline '    text-align: center;'.
-    _inline '    padding: 5px 0;'.
-    _inline '    border-radius: 6px;'.
-    _inline ''.
-    _inline '    /* Position the tooltip text */'.
-    _inline '    position: absolute;'.
-    _inline '    z-index: 1;'.
-    _inline '    margin-left: -60px;'.
-    _inline '    margin-top: -30px;'.
-    _inline ''.
-    _inline '    /* Fade in tooltip */'.
-    _inline '    opacity: 1;'.
-    _inline '    transition: opacity 0.3s;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.hidden {'.
-    _inline '  visibility: hidden;'.
-    _inline '}'.
-    _inline ''.
+    _inline '/* Tooltips text */'.
+    _inline '.tooltiptext { color: #000; }'.
     _inline '/* Tooltip arrow */'.
-    _inline '.tooltiptext::after {'.
-    _inline '    content: "";'.
-    _inline '    position: absolute;'.
-    _inline '    top: 100%;'.
-    _inline '    left: 50%;'.
-    _inline '    margin-left: -5px;'.
-    _inline '    border-width: 5px;'.
-    _inline '    border-style: solid;'.
-    _inline '    border-color: #555 transparent transparent transparent;'.
-    _inline '}'.
+    _inline '.tooltiptext::after { border-color: #555 transparent transparent transparent; }'.
     _inline ''.
     _inline '/* HOTKEYS */'.
-    _inline 'ul.hotkeys {'.
-    _inline '  list-style-type: none;'.
-    _inline '  padding: 0;'.
-    _inline '  margin: 0;'.
-    _inline '  font-size: smaller;'.
-    _inline '}'.
-    _inline ''.
     _inline 'ul.hotkeys span.key-id {'.
-    _inline '  background: #f0f0f0;'.
-    _inline '  border: 1px solid #dcdcdc;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 1px 7px;'.
-    _inline '  width: 0.5em;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
-    _inline '  margin-top: 0.2em;'.
+    _inline '  background-color: #f0f0f0;'.
+    _inline '  border-color: #dcdcdc;'.
     _inline '}'.
-    _inline ''.
-    _inline 'ul.hotkeys span.key-descr {'.
-    _inline '  margin-left: 1.2em;'.
-    _inline '}'.
-    _inline ''.
     _inline 'div.corner-hint {'.
-    _inline '  position: fixed;'.
-    _inline '  bottom: 10px;'.
-    _inline '  right: 10px;'.
     _inline '  color: #aaa;'.
-    _inline '  border: 1px solid #ccc;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 4px;'.
-    _inline '  font-size: smaller;'.
-    _inline '  opacity: 0.5;'.
-    _inline '  background: white;'.
-    _inline '  z-index: 99;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Commit popup */'.
-    _inline 'table.commit tr .title {'.
-    _inline '  font-weight: bold;'.
-    _inline '  vertical-align: top;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Repo overview */'.
-    _inline '.repo-overview {'.
-    _inline '  font-size: smaller;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.repo-overview tbody td {'.
-    _inline '  height: 2em;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.ro-detail {'.
-    _inline '  display: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Branch Overview Page */'.
-    _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
-    _inline '  overflow-y:hidden;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.gitGraph-scrollWrapper{'.
-    _inline '  overflow-x: auto; '.
-    _inline '  height: 20px; '.
-    _inline '}'.
-    _inline ''.
-    _inline '.gitGraph-Wrapper{'.
-    _inline '  overflow-x: hidden; '.
-    _inline '}'.
-    _inline ' '.
-    _inline '.gitGraph-HTopScroller {'.
-    _inline '  width:1000px; '.
-    _inline '  height: 20px; '.
+    _inline '  border-color: #ccc;'.
+    _inline '  background-color: #fff;'.
     _inline '}'.
     _inline ''.
     _inline '/* code inspector */'.
-    _inline '.ci-head {'.
-    _inline '  background-color: #f2f2f2;'.
-    _inline '  padding: 0.5em 1em;'.
-    _inline '}'.
-    _inline '.ci-head .package-name span {'.
-    _inline '  margin-left: 0.3em;'.
-    _inline '  color: grey;'.
-    _inline '}'.
-    _inline '.ci-variant {'.
-    _inline '  font-weight: bold;'.
-    _inline '  color: #444;'.
-    _inline '}'.
-    _inline '.ci-result {'.
-    _inline '  background-color: #f6f6f6;'.
-    _inline '  padding: 6px;'.
-    _inline '  margin-top: 4px;'.
-    _inline '}'.
-    _inline '.ci-result li {'.
-    _inline '  list-style-type: none;'.
-    _inline '  padding: 0.3em 0.8em;'.
-    _inline '  margin-top: 6px;'.
-    _inline '  color: #444;'.
-    _inline '}'.
-    _inline '.ci-result li:first-child {'.
-    _inline '  margin-top: 0px;'.
-    _inline '}'.
-    _inline '.ci-result li.ci-error {'.
-    _inline '  border-left: 4px solid #cd5353;'.
-    _inline '}'.
-    _inline '.ci-result li.ci-warning {'.
-    _inline '  border-left: 4px solid #ecd227;'.
-    _inline '}'.
-    _inline '.ci-result li.ci-info {'.
-    _inline '  border-left: 4px solid #acacac;'.
-    _inline '}'.
-    _inline '.ci-result li span {'.
-    _inline '  display: block;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Floating buttons and color sets */'.
-    _inline ''.
-    _inline '.floating-button {'.
-    _inline '  position: fixed;'.
-    _inline '  top: 6em;'.
-    _inline '  right: 2.8em;'.
-    _inline '  padding: 1em 1.8em;'.
-    _inline '  border-radius: 4px;'.
-    _inline '  border-width: 1px;'.
-    _inline '  border-style: solid;'.
-    _inline '  box-shadow: 2px 2px 6px 0px #ccc;'.
-    _inline '  cursor: pointer;'.
-    _inline '}'.
-    _inline '.blue-set {'.
-    _inline '  border-color: #abc3e3;'.
-    _inline '  color: #5e8dc9;'.
-    _inline '  background-color: #d9e4f2;'.
-    _inline '}'.
-    _inline '.grey-set {'.
-    _inline '  border-color: #c7c7c7;'.
-    _inline '  color: #808080;'.
-    _inline '  background-color: #e6e6e6;'.
-    _inline '}'.
+    _inline '.ci-head { background-color: #f2f2f2; }'.
+    _inline '.ci-head .package-name span { color: grey; }'.
+    _inline '.ci-variant   { color: #444; }'.
+    _inline '.ci-result    { background-color: #f6f6f6; }'.
+    _inline '.ci-result li { color: #444; }'.
+    _inline '.ci-result li.ci-error   { border-left-color: #cd5353; }'.
+    _inline '.ci-result li.ci-warning { border-left-color: #ecd227; }'.
+    _inline '.ci-result li.ci-info    { border-left-color: #acacac; }'.
     ro_asset_man->register_asset(
-      iv_url       = 'css/common.css'
+      iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
-      iv_mime_name = 'ZABAPGIT_CSS_COMMON'
+      iv_mime_name = 'ZABAPGIT_CSS_THEME_DEFAULT'
       iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+
+    " TODO theme-dark
+    " TODO theme belize
 
     CLEAR lt_inline.
 ****************************************************
@@ -30381,7 +30489,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SETTINGS'.
@@ -30499,6 +30607,13 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
       mo_settings->set_icon_scaling( lv_c_param_value ).
     ELSE.
       mo_settings->set_icon_scaling( '' ).
+    ENDIF.
+
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'ui_theme'.
+    IF sy-subrc = 0.
+      mo_settings->set_ui_theme( <ls_post_field>-value ).
+    ELSE.
+      mo_settings->set_ui_theme( zcl_abapgit_settings=>c_ui_theme-default ).
     ENDIF.
 
     post_hotkeys( ).
@@ -30654,6 +30769,7 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
     ro_html->add( render_start_up( ) ).
     ro_html->add( render_max_lines( ) ).
     ro_html->add( render_icon_scaling( ) ).
+    ro_html->add( render_ui_theme( ) ).
     ro_html->add( |<hr>| ).
     ro_html->add( render_adt_jump_enabled( ) ).
     ro_html->add( |<hr>| ).
@@ -30917,6 +31033,44 @@ CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
                    && lv_checked && ` > Show last repo` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
+  ENDMETHOD.
+  METHOD render_ui_theme.
+
+    " TODO: unify with render_icon_scaling, make list component
+
+    DATA:
+      BEGIN OF ls_sel,
+        default TYPE string,
+        dark TYPE string,
+        belize TYPE string,
+      END OF ls_sel.
+
+    CASE mo_settings->get_ui_theme( ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-default.
+        ls_sel-default = ' selected'.
+      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
+        ls_sel-dark = ' selected'.
+      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
+        ls_sel-belize = ' selected'.
+    ENDCASE.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( |<h2>UI Theme</h2>| ).
+    ro_html->add( |<label for="ui_theme">UI Theme</label>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<select name="ui_theme" size="3">| ).
+    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-default }"{
+      ls_sel-default }>{ zcl_abapgit_settings=>c_ui_theme-default }</option>| ).
+    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-dark }"{
+      ls_sel-dark }>{ zcl_abapgit_settings=>c_ui_theme-dark }</option>| ).
+    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-belize }"{
+      ls_sel-belize }>{ zcl_abapgit_settings=>c_ui_theme-belize }</option>| ).
+    ro_html->add( |</select>| ).
+
+    ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+
   ENDMETHOD.
   METHOD validate_settings.
 
@@ -34933,30 +35087,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
-  METHOD insert_hotkeys_to_page.
-
-    DATA: lv_json TYPE string.
-
-    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF mt_hotkeys.
-
-    lv_json = `{`.
-
-    LOOP AT mt_hotkeys ASSIGNING <ls_hotkey>.
-
-      IF sy-tabix > 1.
-        lv_json = lv_json && |,|.
-      ENDIF.
-
-      lv_json = lv_json && |  "{ <ls_hotkey>-hotkey }" : "{ <ls_hotkey>-action }" |.
-
-    ENDLOOP.
-
-    lv_json = lv_json && `}`.
-
-    io_html->add( |setKeyBindings({ lv_json });| ).
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -34984,6 +35115,35 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
 
   ENDMETHOD.
+  METHOD define_hotkeys.
+
+    DATA: lo_settings             TYPE REF TO zcl_abapgit_settings,
+          lt_user_defined_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey.
+
+    FIELD-SYMBOLS: <ls_hotkey>              TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_with_name,
+                   <ls_user_defined_hotkey> LIKE LINE OF lt_user_defined_hotkeys.
+
+    rt_hotkeys = get_default_hotkeys( ).
+
+    " Override default hotkeys with user defined
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    lt_user_defined_hotkeys = lo_settings->get_hotkeys( ).
+
+    LOOP AT rt_hotkeys ASSIGNING <ls_hotkey>.
+
+      READ TABLE lt_user_defined_hotkeys ASSIGNING <ls_user_defined_hotkey>
+                                         WITH TABLE KEY action
+                                         COMPONENTS action = <ls_hotkey>-action.
+      IF sy-subrc = 0.
+        <ls_hotkey>-hotkey = <ls_user_defined_hotkey>-hotkey.
+      ELSEIF lines( lt_user_defined_hotkeys ) > 0.
+        " User removed the hotkey
+        DELETE TABLE rt_hotkeys FROM <ls_hotkey>.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD footer.
 
     CREATE OBJECT ro_html.
@@ -34999,6 +35159,24 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ro_html->add( '</tr></table>' ).                        "#EC NOTEXT
     ro_html->add( '</div>' ).                               "#EC NOTEXT
+
+  ENDMETHOD.
+  METHOD get_default_hotkeys.
+
+    DATA: lt_page_hotkeys LIKE mt_hotkeys.
+
+    rt_default_hotkeys = get_global_hotkeys( ).
+
+    TRY.
+        CALL METHOD me->('ZIF_ABAPGIT_GUI_PAGE_HOTKEY~GET_HOTKEY_ACTIONS')
+          RECEIVING
+            rt_hotkey_actions = lt_page_hotkeys.
+
+        INSERT LINES OF lt_page_hotkeys INTO TABLE rt_default_hotkeys.
+
+      CATCH cx_root.
+        " Current page doesn't implement hotkey interface, do nothing
+    ENDTRY.
 
   ENDMETHOD.
   METHOD get_global_hotkeys.
@@ -35024,6 +35202,16 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+
+    CASE mo_settings->get_ui_theme( ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
+        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). "TODO
+      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
+        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). "TODO
+      WHEN OTHERS.
+        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ).
+    ENDCASE.
+
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
 
@@ -35035,6 +35223,29 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDCASE.
 
     ro_html->add( '</head>' ).                              "#EC NOTEXT
+
+  ENDMETHOD.
+  METHOD insert_hotkeys_to_page.
+
+    DATA: lv_json TYPE string.
+
+    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF mt_hotkeys.
+
+    lv_json = `{`.
+
+    LOOP AT mt_hotkeys ASSIGNING <ls_hotkey>.
+
+      IF sy-tabix > 1.
+        lv_json = lv_json && |,|.
+      ENDIF.
+
+      lv_json = lv_json && |  "{ <ls_hotkey>-hotkey }" : "{ <ls_hotkey>-action }" |.
+
+    ENDLOOP.
+
+    lv_json = lv_json && `}`.
+
+    io_html->add( |setKeyBindings({ lv_json });| ).
 
   ENDMETHOD.
   METHOD link_hints.
@@ -35160,54 +35371,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD define_hotkeys.
-
-    DATA: lo_settings             TYPE REF TO zcl_abapgit_settings,
-          lt_user_defined_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey.
-
-    FIELD-SYMBOLS: <ls_hotkey>              TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_with_name,
-                   <ls_user_defined_hotkey> LIKE LINE OF lt_user_defined_hotkeys.
-
-    rt_hotkeys = get_default_hotkeys( ).
-
-    " Override default hotkeys with user defined
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-    lt_user_defined_hotkeys = lo_settings->get_hotkeys( ).
-
-    LOOP AT rt_hotkeys ASSIGNING <ls_hotkey>.
-
-      READ TABLE lt_user_defined_hotkeys ASSIGNING <ls_user_defined_hotkey>
-                                         WITH TABLE KEY action
-                                         COMPONENTS action = <ls_hotkey>-action.
-      IF sy-subrc = 0.
-        <ls_hotkey>-hotkey = <ls_user_defined_hotkey>-hotkey.
-      ELSEIF lines( lt_user_defined_hotkeys ) > 0.
-        " User removed the hotkey
-        DELETE TABLE rt_hotkeys FROM <ls_hotkey>.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD get_default_hotkeys.
-
-    DATA: lt_page_hotkeys LIKE mt_hotkeys.
-
-    rt_default_hotkeys = get_global_hotkeys( ).
-
-    TRY.
-        CALL METHOD me->('ZIF_ABAPGIT_GUI_PAGE_HOTKEY~GET_HOTKEY_ACTIONS')
-          RECEIVING
-            rt_hotkey_actions = lt_page_hotkeys.
-
-        INSERT LINES OF lt_page_hotkeys INTO TABLE rt_default_hotkeys.
-
-      CATCH cx_root.
-        " Current page doesn't implement hotkey interface, do nothing
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
@@ -70943,5 +71106,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-04T05:27:15.237Z
+* abapmerge undefined - 2019-06-07T10:38:47.334Z
 ****************************************************
