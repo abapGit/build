@@ -15000,8 +15000,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
           zcx_abapgit_exception=>raise( 'No transport requests selected' ).
         ENDIF.
 
-      CATCH cx_wrong_data
-            zcx_abapgit_exception INTO lo_except.
+      CATCH zcx_abapgit_exception INTO lo_except.
 
         MESSAGE lo_except->get_text( ) TYPE 'S' DISPLAY LIKE 'E'.
 
@@ -71503,5 +71502,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-11T16:00:08.029Z
+* abapmerge undefined - 2019-06-11T17:31:01.326Z
 ****************************************************
