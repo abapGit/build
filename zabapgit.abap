@@ -61343,20 +61343,10 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     DATA: lv_changed_time_external TYPE string.
 
-    lv_changed_time_external =  ii_document->find_from_name( 'LTIME' )->get_value( ).
+    lv_changed_time_external = ii_document->find_from_name( 'LTIME' )->get_value( ).
 
-    CALL FUNCTION 'CONVERSION_EXIT_TIMLO_INPUT'
-      EXPORTING
-        input       = lv_changed_time_external
-      IMPORTING
-        output      = rv_changed_time
-      EXCEPTIONS
-        wrong_input = 1
-        OTHERS      = 2.
-
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
+    REPLACE ALL OCCURRENCES OF ':' IN lv_changed_time_external WITH ''.
+    rv_changed_time = lv_changed_time_external.
 
   ENDMETHOD.
   METHOD get_change_information.
@@ -61493,7 +61483,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
             im_name          = mv_object_name
             im_obj_type      = lv_object_type
           IMPORTING
-            ex_version_info  = lt_version_info  ).
+            ex_version_info  = lt_version_info ).
 
         LOOP AT lt_version_info ASSIGNING <ls_version_info>.
 
@@ -61501,9 +61491,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
           IF is_change_more_recent_than( is_currently_changed = ls_currently_changed
                                          is_last_changed      = ls_last_changed ) = abap_true.
-
             ls_last_changed = ls_currently_changed.
-
           ENDIF.
 
         ENDLOOP.
@@ -71502,5 +71490,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-11T17:31:01.326Z
+* abapmerge undefined - 2019-06-11T17:48:10.468Z
 ****************************************************
