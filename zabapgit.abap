@@ -19636,9 +19636,21 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD status.
 
     DATA: lv_index       LIKE sy-tabix,
-          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
+          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
+          lt_local       TYPE zif_abapgit_definitions=>ty_files_item_tt.
 
-    FIELD-SYMBOLS <ls_result> LIKE LINE OF rt_results.
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
+
+    lt_local = io_repo->get_files_local( ii_log = ii_log ).
+
+    IF lines( lt_local ) <= 2.
+      " Less equal two means that we have only the .abapgit.xml and the package in
+      " our local repository. In this case we have to update our local .abapgit.xml
+      " from the remote one. Otherwise we get errors when e.g. the folder starting
+      " folder is different.
+      io_repo->find_remote_dot_abapgit( ).
+    ENDIF.
+
     rt_results = calculate_status(
       iv_devclass  = io_repo->get_package( )
       io_dot       = io_repo->get_dot_abapgit( )
@@ -37143,6 +37155,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     DATA ls_stack LIKE LINE OF mt_stack.
 
     IF mi_router IS BOUND.
+      CLEAR mt_stack.
       on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
     ELSE.
       IF lines( mt_stack ) > 0.
@@ -71380,6 +71393,7 @@ FORM output.
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
+  DATA li_page TYPE REF TO zif_abapgit_gui_renderable.
   CASE sy-ucomm.
     WHEN 'CBAC'.  "Back
       IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
@@ -71387,6 +71401,10 @@ FORM exit RAISING zcx_abapgit_exception.
       ELSE.
         LEAVE TO SCREEN 1001.
       ENDIF.
+    WHEN 'CEND'.
+      CREATE OBJECT li_page TYPE zcl_abapgit_gui_page_main.
+      zcl_abapgit_ui_factory=>get_gui( )->go_page( li_page ).
+      LEAVE TO SCREEN 1001.
   ENDCASE.
 ENDFORM.
 
@@ -71490,5 +71508,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-11T17:48:10.468Z
+* abapmerge undefined - 2019-06-14T06:03:13.864Z
 ****************************************************
