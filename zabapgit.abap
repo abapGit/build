@@ -16977,8 +16977,12 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
   METHOD filter_changes.
 
-    DELETE ct_repo_items WHERE changes = 0.
+    FIELD-SYMBOLS: <ls_item> TYPE zif_abapgit_definitions=>ty_repo_item.
 
+    DELETE ct_repo_items WHERE changes = 0.
+    LOOP AT ct_repo_items ASSIGNING <ls_item>.
+      DELETE <ls_item>-files WHERE is_changed = abap_false.
+    ENDLOOP.
   ENDMETHOD.
   METHOD get_log.
     ri_log = mi_log.
@@ -71508,5 +71512,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-14T06:20:41.494Z
+* abapmerge undefined - 2019-06-16T11:57:04.519Z
 ****************************************************
