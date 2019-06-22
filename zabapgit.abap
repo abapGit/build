@@ -40975,6 +40975,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
             <ls_field>-get_param = lc_rpyty_force_off.
           ENDIF.
         ENDIF.
+
+        IF  <ls_field>-type = 'CHECK'
+          AND <ls_field>-from_dict = abap_true
+          AND <ls_field>-text IS INITIAL
+          AND <ls_field>-modific IS INITIAL.
+              "If the previous conditions are
+              "met the value 'F' will be taken over
+              "during de-serialization potentially
+              "overlapping other fields in the screen,
+              "we set the tag to the correct value 'X':
+          <ls_field>-modific = 'X'.
+        ENDIF.
       ENDLOOP.
 
       CALL FUNCTION 'RPY_DYNPRO_INSERT'
@@ -71522,5 +71534,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-16T16:03:41.188Z
+* abapmerge undefined - 2019-06-22T06:01:55.134Z
 ****************************************************
