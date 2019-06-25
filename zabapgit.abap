@@ -558,6 +558,7 @@ CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
@@ -8583,7 +8584,7 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS go_page
       IMPORTING
-        io_page TYPE REF TO zif_abapgit_gui_renderable
+        io_page        TYPE REF TO zif_abapgit_gui_renderable
         iv_clear_stack TYPE abap_bool DEFAULT abap_true
       RAISING
         zcx_abapgit_exception.
@@ -8598,16 +8599,16 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS on_event FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING
-        action
-        frame
-        getdata
-        postdata
-        query_table.
+          action
+          frame
+          getdata
+          postdata
+          query_table.
 
     METHODS constructor
       IMPORTING
-        io_component TYPE REF TO object OPTIONAL
-        ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
+        io_component     TYPE REF TO object OPTIONAL
+        ii_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
         ii_error_handler TYPE REF TO zif_abapgit_gui_error_handler OPTIONAL
       RAISING
         zcx_abapgit_exception.
@@ -8684,18 +8685,18 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
     TYPES:
       BEGIN OF ty_asset_entry.
         INCLUDE TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
-    TYPES:  mime_name TYPE wwwdatatab-objid,
-      END OF ty_asset_entry ,
-      tt_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url .
+    TYPES: mime_name TYPE wwwdatatab-objid,
+           END OF ty_asset_entry ,
+           tt_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url.
 
     METHODS register_asset
       IMPORTING
-        !iv_url TYPE string
-        !iv_type TYPE string
-        !iv_cachable TYPE abap_bool DEFAULT abap_true
+        !iv_url       TYPE string
+        !iv_type      TYPE string
+        !iv_cachable  TYPE abap_bool DEFAULT abap_true
         !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
-        !iv_base64 TYPE string OPTIONAL
-        !iv_inline TYPE string OPTIONAL .
+        !iv_base64    TYPE string OPTIONAL
+        !iv_inline    TYPE string OPTIONAL .
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -8712,7 +8713,7 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     METHODS load_asset
       IMPORTING
-        is_asset_entry TYPE ty_asset_entry
+        is_asset_entry  TYPE ty_asset_entry
       RETURNING
         VALUE(rs_asset) TYPE zif_abapgit_gui_asset_manager~ty_web_asset
       RAISING
@@ -8900,6 +8901,35 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+"! CSS preprocessor
+CLASS zcl_abapgit_gui_css_processor DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor IMPORTING ii_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
+      add_file IMPORTING iv_url TYPE string,
+      process RETURNING VALUE(rv_result) TYPE string
+              RAISING   zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF gty_css_var,
+        name  TYPE string,
+        value TYPE string,
+      END OF gty_css_var,
+      gty_css_var_tab TYPE SORTED TABLE OF gty_css_var WITH UNIQUE KEY name.
+    METHODS:
+      get_css_vars_in_string IMPORTING iv_string           TYPE string
+                             RETURNING VALUE(rt_variables) TYPE gty_css_var_tab,
+      resolve_var_recursively IMPORTING iv_variable_name TYPE string
+                              CHANGING  ct_variables     TYPE gty_css_var_tab
+                              RAISING   zcx_abapgit_exception.
+    DATA:
+      mi_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
+      mt_files         TYPE STANDARD TABLE OF string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -14665,7 +14695,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
   METHOD constructor.
     mt_transport_objects = it_transport_objects.
   ENDMETHOD.
@@ -14684,7 +14714,7 @@ CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
           WHEN zif_abapgit_definitions=>c_state-added OR zif_abapgit_definitions=>c_state-modified.
             IF ls_transport_object-delflag = abap_true.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } should be added/modified, but has deletion flag in transport| ).
+                } should be added/modified, but has deletion flag in transport| ).
             ENDIF.
 
             READ TABLE is_stage_objects-local
@@ -14694,7 +14724,7 @@ CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
                        file-filename = ls_object_status-filename.
             IF sy-subrc <> 0.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-               } not found in the local repository files| ).
+                } not found in the local repository files| ).
             ELSE.
               io_stage->add(
                 iv_path     = ls_local_file-file-path
@@ -14704,7 +14734,7 @@ CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
           WHEN zif_abapgit_definitions=>c_state-deleted.
             IF ls_transport_object-delflag = abap_false.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } should be removed, but has NO deletion flag in transport| ).
+                } should be removed, but has NO deletion flag in transport| ).
             ENDIF.
             io_stage->rm(
               iv_path     = ls_object_status-path
@@ -14957,11 +14987,11 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD get_filename .
+  METHOD get_filename.
 
 * Generate filename
     CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' gv_timestamp gc_zip_ext
-    INTO rv_filename.
+      INTO rv_filename.
 
 * Remove reserved characters (for Windows based systems)
     TRANSLATE rv_filename USING '/ \ : " * > < ? | '.
@@ -14984,7 +15014,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
       zcl_abapgit_zip=>save_binstring_to_localfile( iv_binstring = lv_zipbinstring
                                                     iv_filename  = get_filename( ls_trkorr ) ).
 
-    ENDLOOP. "it_trkorr
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -15497,8 +15527,8 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
           iv_path     = <ls_remote>-path
           iv_filename = <ls_remote>-filename ) = abap_true.
         DELETE cs_files-remote INDEX lv_index.
-      ELSEIF <ls_remote>-path     = zif_abapgit_definitions=>c_root_dir
-         AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
+      ELSEIF <ls_remote>-path = zif_abapgit_definitions=>c_root_dir
+          AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
         " Remove .abapgit from remotes - it cannot be removed or ignored
         DELETE cs_files-remote INDEX lv_index.
       ENDIF.
@@ -15623,8 +15653,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
     rt_tadir = it_tadir.
     LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
       LOOP AT rt_tadir INTO ls_tadir_class
-       WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
-
+          WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
         IF has_sadl_superclass( ls_tadir_class ) = abap_true.
           APPEND ls_tadir_class TO lt_lines_to_delete.
         ENDIF.
@@ -15786,8 +15815,8 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD set_ui_theme.
     ms_user_settings-ui_theme = iv_ui_theme.
     IF ms_user_settings-ui_theme <> c_ui_theme-default
-      AND ms_user_settings-ui_theme <> c_ui_theme-dark
-      AND ms_user_settings-ui_theme <> c_ui_theme-belize.
+        AND ms_user_settings-ui_theme <> c_ui_theme-dark
+        AND ms_user_settings-ui_theme <> c_ui_theme-belize.
       ms_user_settings-ui_theme = c_ui_theme-default. " Reset to default
     ENDIF.
   ENDMETHOD.
@@ -16979,8 +17008,8 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
         ls_file-lstate     = <ls_status>-lstate.
         APPEND ls_file TO <ls_repo_item>-files.
 
-        IF <ls_status>-inactive = abap_true AND
-           <ls_repo_item>-sortkey > c_sortkey-changed.
+        IF <ls_status>-inactive = abap_true
+            AND <ls_repo_item>-sortkey > c_sortkey-changed.
           <ls_repo_item>-sortkey = c_sortkey-inactive.
         ENDIF.
 
@@ -19049,7 +19078,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 * added in source and target
         <ls_result>-sha1 = <ls_source>-sha1.
       ELSEIF lv_found_common = abap_false
-         AND <ls_target>-sha1 <> <ls_source>-sha1.
+          AND <ls_target>-sha1 <> <ls_source>-sha1.
 
         INSERT INITIAL LINE INTO TABLE mt_conflicts ASSIGNING <ls_conflict>.
         <ls_conflict>-path = <ls_file>-path.
@@ -19074,8 +19103,8 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
       ENDIF.
 
       IF lv_found_source = abap_false
-      OR lv_found_target = abap_false
-      OR lv_found_common = abap_false.
+          OR lv_found_target = abap_false
+          OR lv_found_common = abap_false.
         ms_merge-conflict = |{ <ls_file>-name } merge conflict, not found anywhere|.
         CONTINUE.
       ENDIF.
@@ -22153,11 +22182,13 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD show_requirement_popup.
+
     TYPES: BEGIN OF lty_color_line,
              color TYPE lvc_t_scol.
-            INCLUDE TYPE ty_requirement_status.
-    TYPES: END OF lty_color_line,
-    lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
+        INCLUDE TYPE ty_requirement_status.
+    TYPES: END OF lty_color_line.
+
+    TYPES: lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
 
     DATA: lo_alv            TYPE REF TO cl_salv_table,
           lo_column         TYPE REF TO cl_salv_column,
@@ -22301,8 +22332,9 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
     ENDIF.
 
     "We only do a progress indication if enough time has passed
-    IF lv_time  >= mv_cv_time_next  AND sy-datum = mv_cv_datum_next  OR
-       sy-datum >  mv_cv_datum_next.
+    IF lv_time >= mv_cv_time_next
+        AND sy-datum = mv_cv_datum_next
+        OR sy-datum > mv_cv_datum_next.
 
       lv_pct = calc_pct( iv_current ).
 
@@ -22519,9 +22551,9 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD zif_abapgit_log~add_error.
 
     zif_abapgit_log~add(
-     iv_msg  = iv_msg
-     iv_type = 'E'
-     is_item = is_item ).
+      iv_msg  = iv_msg
+      iv_type = 'E'
+      is_item = is_item ).
 
   ENDMETHOD.
   METHOD zif_abapgit_log~add_exception.
@@ -23117,10 +23149,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
         IF lv_bitbyte+lv_offset(1) = '1'.
           rv_int = 1.
         ENDIF.
-      ELSE.
-        IF lv_bitbyte+lv_offset(1) = '1'.
-          rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
-        ENDIF.
+      ELSEIF lv_bitbyte+lv_offset(1) = '1'.
+        rv_int = rv_int + ( 2 ** ( sy-index - 1 ) ).
       ENDIF.
 
       lv_offset = lv_offset - 1. "Move Cursor
@@ -23188,12 +23218,12 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD xstring_to_bintab.
 
     CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-    EXPORTING
-      buffer        = iv_xstr
-    IMPORTING
-      output_length = ev_size
-    TABLES
-      binary_tab    = et_bintab.
+      EXPORTING
+        buffer        = iv_xstr
+      IMPORTING
+        output_length = ev_size
+      TABLES
+        binary_tab    = et_bintab.
 
   ENDMETHOD.
   METHOD xstring_to_int.
@@ -23278,7 +23308,7 @@ CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   METHOD get_frontend_services.
 
     IF gi_fe_services IS INITIAL.
@@ -23357,9 +23387,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* GLOBALS */'.
     _inline ''.
     _inline 'body {'.
-    _inline '  font-family:      Arial,Helvetica,sans-serif;'.
-    _inline '  font-size:        12pt;'.
-    _inline '  overflow-x:       hidden;'.
+    _inline '  overflow-x: hidden;'.
     _inline '}'.
     _inline 'a, a:visited {'.
     _inline '  text-decoration:  none;'.
@@ -24166,18 +24194,39 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ' * ABAPGIT COLOR THEME CSS - DEFAULT'.
     _inline ' */'.
     _inline ''.
+    _inline ':root {'.
+    _inline '  --theme-background-color: #E8E8E8;'.
+    _inline '  --theme-container-background-color: #f2f2f2;'.
+    _inline '  --theme-container-border-color: lightgrey;'.
+    _inline '  --theme-primary-font: Arial,Helvetica,sans-serif;'.
+    _inline '  --theme-primary-font-color: #333333;'.
+    _inline '  --theme-primary-font-color-reduced: #ccc;'.
+    _inline '  --theme-font-size: 12pt;'.
+    _inline '  --theme-link-color: #4078c0;'.
+    _inline '  --theme-table-border-color: #eee;'.
+    _inline '  --theme-greyscale-dark: #808080;'.
+    _inline '  --theme-greyscale-medium: #b3b3b3;'.
+    _inline '  --theme-greyscale-light: #ccc;'.
+    _inline '  --theme-greyscale-lighter: lightgrey;'.
+    _inline '}'.
+    _inline ''.
     _inline '/* GLOBALS */'.
-    _inline 'body          { background-color: #E8E8E8; }'.
-    _inline 'a, a:visited  { color:  #4078c0; }'.
+    _inline 'body {'.
+    _inline '  background-color: var(--theme-background-color);'.
+    _inline '  font-family: var(--theme-primary-font);'.
+    _inline '  color: var(--theme-primary-font-color);'.
+    _inline '  font-size: var(--theme-font-size);'.
+    _inline '}'.
+    _inline 'a, a:visited  { color: var(--theme-link-color); }'.
     _inline 'input, textarea, select     { border-color: #ddd; }'.
     _inline 'input:focus, textarea:focus { border-color: #8cadd9; }'.
     _inline ''.
     _inline '/* COLOR PALETTE */'.
-    _inline '.grey         { color: lightgrey  !important; }'.
-    _inline '.grey70       { color: #b3b3b3    !important; }'.
-    _inline '.grey80       { color: #ccc       !important; }'.
+    _inline '.grey         { color: var(--theme-greyscale-lighter) !important; }'.
+    _inline '.grey70       { color: var(--theme-greyscale-medium)  !important; }'.
+    _inline '.grey80       { color: var(--theme-greyscale-light)   !important; }'.
+    _inline '.darkgrey     { color: var(--theme-greyscale-dark)    !important; }'.
     _inline '.bgorange     { background-color: orange; }'.
-    _inline '.darkgrey     { color: #808080    !important; }'.
     _inline '.attention    { color: red        !important; }'.
     _inline '.error        { color: #d41919    !important; }'.
     _inline '.warning      { color: #efb301    !important; }'.
@@ -24194,7 +24243,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline '.grey-set {'.
     _inline '  border-color: #c7c7c7;'.
-    _inline '  color: #808080;'.
+    _inline '  color: var(--theme-greyscale-dark);'.
     _inline '  background-color: #e6e6e6;'.
     _inline '}'.
     _inline ''.
@@ -24204,15 +24253,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  color: #589a58 !important;'.
     _inline '  background-color: #c5eac5;'.
     _inline '}'.
-    _inline '#debug-output { color: #ccc; }'.
-    _inline 'div.dummydiv { background-color: #f2f2f2; }'.
+    _inline '#debug-output { color: var(--theme-primary-font-color-reduced); }'.
+    _inline 'div.dummydiv { background-color: var(--theme-container-background-color); }'.
     _inline ''.
     _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-    _inline 'div#header { border-bottom-color:  lightgrey; }'.
-    _inline 'div#header span.page_title { color: #bbb; }'.
-    _inline 'div#toc    { background-color: #f2f2f2; }'.
+    _inline 'div#header { border-bottom-color: var(--theme-container-border-color); }'.
+    _inline 'div#header span.page_title { color: var(--theme-greyscale-medium); }'.
+    _inline 'div#toc    { background-color: var(--theme-container-background-color); }'.
     _inline 'div#footer span.version { color: grey; }'.
-    _inline 'div#footer { border-top-color:  lightgrey; }'.
+    _inline 'div#footer { border-top-color: var(--theme-container-border-color); }'.
     _inline ''.
     _inline '/* ERROR LOG */'.
     _inline 'div.log {'.
@@ -24221,10 +24270,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline '/* REPOSITORY */'.
-    _inline 'div.repo { background-color: #f2f2f2; }'.
+    _inline 'div.repo { background-color: var(--theme-container-background-color); }'.
     _inline '.repo_name span.name { color: #333; }'.
-    _inline '.repo_name span.url  { color: #ccc; }'.
-    _inline '.repo_name a.url { color: #ccc; }'.
+    _inline '.repo_name span.url  { color: var(--theme-primary-font-color-reduced); }'.
+    _inline '.repo_name a.url { color: var(--theme-primary-font-color-reduced); }'.
     _inline '.repo_attr       { color: grey; }'.
     _inline ''.
     _inline '.repo_attr span.bg_marker {'.
@@ -24252,12 +24301,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline '.repo_tab td {'.
     _inline '  color: #333;'.
-    _inline '  border-top-color:  #eee;'.
+    _inline '  border-top-color: var(--theme-table-border-color);'.
     _inline '}'.
     _inline '.repo_tab .inactive      { color: orange; }'.
-    _inline '.repo_tab tr.unsupported { color: lightgrey; }'.
+    _inline '.repo_tab tr.unsupported { color: var(--theme-greyscale-lighter); }'.
     _inline '.repo_tab tr.modified    { background-color: #fbf7e9; }'.
-    _inline '.repo_tab td.current_dir { color: #ccc; }'.
+    _inline '.repo_tab td.current_dir { color: var(--theme-primary-font-color-reduced); }'.
     _inline '.repo_tab td.cmd span.state-block span { border-color: #000; }'.
     _inline ''.
     _inline '.repo_tab td.cmd span.state-block span.added {'.
@@ -24293,20 +24342,20 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline '.stage_tab td {'.
     _inline '  color: #333;'.
-    _inline '  border-top-color:  #eee;'.
+    _inline '  border-top-color: var(--theme-table-border-color);'.
     _inline '}'.
     _inline '.stage_tab th {'.
-    _inline '  color: #bbb;'.
+    _inline '  color: var(--theme-greyscale-medium);'.
     _inline '  background-color: #edf2f9;'.
     _inline '}'.
     _inline '.stage_tab td.status {'.
-    _inline '  color: #ccc;'.
+    _inline '  color: var(--theme-primary-font-color-reduced);'.
     _inline '  background-color: #fafafa;'.
     _inline '}'.
     _inline '.stage_tab td.highlight { color: #444 !important; }'.
-    _inline '.stage_tab td.method { color: #ccc; }'.
-    _inline '.stage_tab td.user   { color: #aaa; }'.
-    _inline '.stage_tab td.type   { color: #aaa; }'.
+    _inline '.stage_tab td.method { color: var(--theme-primary-font-color-reduced); }'.
+    _inline '.stage_tab td.user   { color: var(--theme-greyscale-medium); }'.
+    _inline '.stage_tab td.type   { color: var(--theme-greyscale-medium); }'.
     _inline '.stage_tab mark {'.
     _inline '  color: white;'.
     _inline '  background-color: #79a0d2;'.
@@ -24314,17 +24363,17 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* COMMIT */'.
     _inline 'div.form-container { background-color: #F8F8F8; }'.
-    _inline 'form.aligned-form label { color: #bbb; }'.
-    _inline 'form.aligned-form span.sub-title { color: #bbb; }'.
+    _inline 'form.aligned-form label { color: var(--theme-greyscale-medium); }'.
+    _inline 'form.aligned-form span.sub-title { color: var(--theme-greyscale-medium); }'.
     _inline ''.
     _inline '/* SETTINGS STYLES */'.
     _inline 'div.settings_container {'.
     _inline '  color: #444;'.
-    _inline '  background-color: #f2f2f2;'.
+    _inline '  background-color: var(--theme-container-background-color);'.
     _inline '}'.
     _inline ''.
     _inline '/* DIFF */'.
-    _inline 'div.diff { background-color: #f2f2f2; }'.
+    _inline 'div.diff { background-color: var(--theme-container-background-color); }'.
     _inline 'span.diff_name { color: grey; }'.
     _inline 'span.diff_name strong { color: #333; }'.
     _inline 'span.diff_changed_by  { color: grey; }'.
@@ -24384,29 +24433,29 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline 'table.diff_tab thead.header th {'.
     _inline '  color: #eee;'.
-    _inline '  background-color: #bbb;'.
+    _inline '  background-color: var(--theme-greyscale-medium);'.
     _inline '}'.
     _inline 'table.diff_tab thead.nav_line {'.
     _inline '  background-color: #edf2f9;'.
     _inline '}'.
     _inline 'table.diff_tab thead.nav_line th {'.
-    _inline '  color: #bbb;'.
+    _inline '  color: var(--theme-greyscale-medium);'.
     _inline '}'.
     _inline 'table.diff_tab td.num, th.num {'.
-    _inline '  color: #ccc;'.
-    _inline '  border-left-color: #eee;'.
-    _inline '  border-right-color: #eee;'.
+    _inline '  color: var(--theme-primary-font-color-reduced);'.
+    _inline '  border-left-color: var(--theme-table-border-color);'.
+    _inline '  border-right-color: var(--theme-table-border-color);'.
     _inline '}'.
     _inline 'table.diff_tab td.patch, th.patch {'.
-    _inline '  color: #ccc;'.
-    _inline '  border-left-color: #eee;'.
-    _inline '  border-right-color: #eee;'.
+    _inline '  color: var(--theme-primary-font-color-reduced);'.
+    _inline '  border-left-color: var(--theme-table-border-color);'.
+    _inline '  border-right-color: var(--theme-table-border-color);'.
     _inline '}'.
     _inline ''.
     _inline '/* STYLES for Syntax Highlighting */'.
     _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
     _inline '.syntax-hl span.text     { color: #48ce4f; }'.
-    _inline '.syntax-hl span.comment  { color: #808080; font-style: italic; }'.
+    _inline '.syntax-hl span.comment  { color: var(--theme-greyscale-dark); font-style: italic; }'.
     _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
     _inline '.syntax-hl span.attr     { color: #b777fb; }'.
     _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
@@ -24426,7 +24475,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* DB ENTRY DISPLAY */'.
     _inline 'div.db_entry {'.
-    _inline '  background-color: #f2f2f2;'.
+    _inline '  background-color: var(--theme-container-background-color);'.
     _inline '}'.
     _inline 'div.db_entry pre {'.
     _inline '  background-color: #fcfcfc;'.
@@ -24439,8 +24488,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'table.tag td.label { background-color: #b3c1cc; }'.
     _inline ''.
     _inline '/* TUTORIAL */'.
-    _inline 'div.tutorial { background-color: #f2f2f2; }'.
-    _inline 'div.tutorial hr { border-color: #ccc; }'.
+    _inline 'div.tutorial { background-color: var(--theme-container-background-color); }'.
+    _inline 'div.tutorial hr { border-color: var(--theme-greyscale-light); }'.
     _inline 'div.tutorial h1, h2 { color: #404040; }'.
     _inline ''.
     _inline '/* MENU */'.
@@ -24451,7 +24500,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* Toolbar separator style */'.
     _inline '.nav-container ul ul li.separator {'.
-    _inline '  color: #bbb;'.
+    _inline '  color: var(--theme-greyscale-medium);'.
     _inline '  border-bottom-color: #eee;'.
     _inline '  border-top-color: #eee;'.
     _inline '}'.
@@ -24459,7 +24508,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* News Announcement */'.
     _inline 'div.info-panel { background-color: white; }'.
-    _inline 'div.info-panel div.info-hint { color: #ccc; }'.
+    _inline 'div.info-panel div.info-hint { color: var(--theme-greyscale-light); }'.
     _inline 'div.info-panel div.info-title {'.
     _inline '  color: #f8f8f8;'.
     _inline '  background-color: #888;'.
@@ -24469,7 +24518,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'div.info-panel .version-marker {'.
     _inline '  color: white;'.
     _inline '  border-color: #c0c0c0;'.
-    _inline '  background-color: #ccc;'.
+    _inline '  background-color: var(--theme-greyscale-light);'.
     _inline '}'.
     _inline 'div.info-panel .update {'.
     _inline '  border-color: #e8ba30;'.
@@ -24487,13 +24536,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-color: #dcdcdc;'.
     _inline '}'.
     _inline 'div.corner-hint {'.
-    _inline '  color: #aaa;'.
-    _inline '  border-color: #ccc;'.
+    _inline '  color: var(--theme-greyscale-medium);'.
+    _inline '  border-color: var(--theme-greyscale-light);'.
     _inline '  background-color: #fff;'.
     _inline '}'.
     _inline ''.
     _inline '/* code inspector */'.
-    _inline '.ci-head { background-color: #f2f2f2; }'.
+    _inline '.ci-head { background-color: var(--theme-container-background-color); }'.
     _inline '.ci-head .package-name span { color: grey; }'.
     _inline '.ci-variant   { color: #444; }'.
     _inline '.ci-result    { background-color: #f6f6f6; }'.
@@ -24504,11 +24553,57 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
+      iv_cachable  = abap_false
       iv_mime_name = 'ZABAPGIT_CSS_THEME_DEFAULT'
       iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
 
     " TODO theme-dark
-    " TODO theme belize
+
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_CSS_THEME_BELIZE_BLUE.W3MI.DATA.CSS
+****************************************************
+    _inline '/*'.
+    _inline ' * ABAPGIT THEME CSS - BELIZE BLUE'.
+    _inline ' */'.
+    _inline ''.
+    _inline '/* https://experience.sap.com/fiori-design-web/colors/ */'.
+    _inline ''.
+    _inline ':root {'.
+    _inline '  --fiori-color-global-light-base: #EFF4F9; /* Background in SAP GUI */'.
+    _inline '  --fiori-color-gui-tab-background: #FCFDFE; /* Tabstrip background */'.
+    _inline '  --fiori-color-gui-container-border: #D1E0EE;'.
+    _inline '  --fiori-color-gui-uneditable-background: #F2F2F2; /* Textbox not editable */'.
+    _inline '  --fiori-color-gui-editable-background: #FFFFFF; /* Textbox editable */'.
+    _inline '  --fiori-color-font-primary: #333333; /* Grayscale 1 */'.
+    _inline '  --fiori-color-font-secondary: #666666; /* Grayscale 2 */'.
+    _inline '  --fiori-color-font-highlighted: #003D84;'.
+    _inline '  --fiori-color-message-box-background: #2F3C48; /* Bottom message container */'.
+    _inline ''.
+    _inline '  --theme-background-color: var(--fiori-color-global-light-base);'.
+    _inline '  --theme-container-background-color: var(--fiori-color-gui-tab-background);'.
+    _inline '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;'.
+    _inline '  --theme-primary-font-color: var(--fiori-color-font-primary);'.
+    _inline '  --theme-primary-font-color-reduced: var(--fiori-color-font-secondary);'.
+    _inline '  --theme-font-size: 11pt;'.
+    _inline '  --theme-link-color: var(--fiori-color-font-highlighted);'.
+    _inline '  --theme-container-border-color: var(--fiori-color-gui-container-border);'.
+    _inline '  --theme-table-border-color: #E5E5E5; /* ALV border color */'.
+    _inline '  --theme-greyscale-dark: #666666;'.
+    _inline '  --theme-greyscale-medium: #BFBFBF;'.
+    _inline '  --theme-greyscale-light: #CCCCCC;'.
+    _inline '  --theme-greyscale-lighter: #E5E5E5;'.
+    _inline '}'.
+    _inline ''.
+    _inline '#header a, #header a:visited {'.
+    _inline '  color: #346187;'.
+    _inline '}'.
+    ro_asset_man->register_asset(
+      iv_url       = 'css/theme-belize-blue.css'
+      iv_type      = 'text/css'
+      iv_cachable  = abap_false
+      iv_mime_name = 'ZABAPGIT_CSS_THEME_BELIZE_BLUE'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
 
     CLEAR lt_inline.
 ****************************************************
@@ -26111,7 +26206,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
         && 'X9K+ygQTFGDcHhaaoGJyouDNV7JH+eGj4mF6gspoC+tzJt1ObsT4MDsF2zxs886+Ml5v'
         && '/PogUvEwPUGFiE+SX4gAtQa1gkhV7onQR4oJMR5oxC6stDeghd7Dh6E+CPw/HL4vVO2f'
         && 'cpUAAAAASUVORK5CYII=' ).
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -29777,8 +29871,9 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
         ro_html->add( '<div class="repo_container">' ).
 
         " Offline match banner
-        IF mo_repo->is_offline( ) = abap_true AND mo_repo->has_remote_source( ) = abap_true
-          AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
+        IF mo_repo->is_offline( ) = abap_true
+            AND mo_repo->has_remote_source( ) = abap_true
+            AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
           ro_html->add(
             |<div class="repo_banner panel success">|
             && |ZIP source is attached and completely <b>matches</b> to the local state|
@@ -35721,7 +35816,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -35837,13 +35932,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
 
+    " theme.css is created at runtime in ZCL_ABAPGIT_GUI->RENDER( )
+    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme.css">' ).
+
     CASE mo_settings->get_ui_theme( ).
       WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). "TODO
+        "TODO
       WHEN zcl_abapgit_settings=>c_ui_theme-belize.
-        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). "TODO
-      WHEN OTHERS.
-        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ).
+        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
     ENDCASE.
 
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
@@ -35970,7 +36066,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA lo_script TYPE REF TO zcl_abapgit_html.
+    DATA: lo_script TYPE REF TO zcl_abapgit_html.
 
     " Redirect
     IF ms_control-redirect_url IS NOT INITIAL.
@@ -36017,6 +36113,117 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 
   ENDMETHOD.
 
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_css_processor IMPLEMENTATION.
+  METHOD constructor.
+    mi_asset_manager = ii_asset_manager.
+  ENDMETHOD.
+
+  METHOD add_file.
+    APPEND iv_url TO mt_files.
+  ENDMETHOD.
+
+  METHOD process.
+    DATA: ls_asset            TYPE zif_abapgit_gui_asset_manager=>ty_web_asset,
+          lt_contents         TYPE STANDARD TABLE OF string,
+          lv_content          TYPE string,
+          lt_css_variables    TYPE gty_css_var_tab,
+          lt_css_vars_in_file TYPE gty_css_var_tab.
+    FIELD-SYMBOLS: <lv_url>          TYPE string,
+                   <ls_css_variable> LIKE LINE OF lt_css_vars_in_file,
+                   <lv_content>      LIKE LINE OF lt_contents.
+
+    " 1. Determine all variables and their values. Later definitions overwrite previous ones.
+    LOOP AT mt_files ASSIGNING <lv_url>.
+      ls_asset = mi_asset_manager->get_asset( <lv_url> ).
+      ASSERT ls_asset-type = 'text' AND ls_asset-subtype = 'css'.
+      lv_content = zcl_abapgit_convert=>xstring_to_string_utf8( ls_asset-content ).
+
+      lt_css_vars_in_file = get_css_vars_in_string( lv_content ).
+
+      LOOP AT lt_css_vars_in_file ASSIGNING <ls_css_variable>.
+        INSERT <ls_css_variable> INTO TABLE lt_css_variables.
+        IF sy-subrc <> 0.
+          MODIFY TABLE lt_css_variables FROM <ls_css_variable>.
+        ENDIF.
+      ENDLOOP.
+
+      APPEND lv_content TO lt_contents.
+    ENDLOOP.
+
+    " 2. Replace all variable usages in variables
+    LOOP AT lt_css_variables ASSIGNING <ls_css_variable> WHERE value CS 'var(--'.
+      resolve_var_recursively( EXPORTING iv_variable_name = <ls_css_variable>-name
+                               CHANGING  ct_variables     = lt_css_variables ).
+    ENDLOOP.
+
+    " 3. Replace all other variable usages by inlining the values.
+    LOOP AT lt_contents ASSIGNING <lv_content>.
+      LOOP AT lt_css_variables ASSIGNING <ls_css_variable>.
+        REPLACE ALL OCCURRENCES OF |var(--{ <ls_css_variable>-name })|
+                IN <lv_content>
+                WITH <ls_css_variable>-value.
+      ENDLOOP.
+    ENDLOOP.
+
+    rv_result = concat_lines_of( table = lt_contents sep = cl_abap_char_utilities=>newline ).
+  ENDMETHOD.
+
+  METHOD get_css_vars_in_string.
+    CONSTANTS: lc_root_pattern     TYPE string VALUE `:root\s*\{([^\}]*)\}`,
+               lc_variable_pattern TYPE string VALUE `\-\-([\w\d-]+)\s*:\s*([^\n\r;]*);`.
+    DATA: lv_root     TYPE string,
+          lo_matcher  TYPE REF TO cl_abap_matcher,
+          lo_regex    TYPE REF TO cl_abap_regex,
+          ls_variable LIKE LINE OF rt_variables.
+
+    " Only the :root element may define variables for now
+
+    FIND FIRST OCCURRENCE OF REGEX lc_root_pattern IN iv_string SUBMATCHES lv_root.
+    IF sy-subrc = 0 AND lv_root IS NOT INITIAL.
+      CREATE OBJECT lo_regex
+        EXPORTING
+          pattern = lc_variable_pattern.
+      lo_matcher = lo_regex->create_matcher( text = lv_root ).
+      WHILE lo_matcher->find_next( ) = abap_true.
+        ls_variable-name = lo_matcher->get_submatch( 1 ).
+        ls_variable-value = lo_matcher->get_submatch( 2 ).
+        INSERT ls_variable INTO TABLE rt_variables.
+        IF sy-subrc <> 0.
+          MODIFY TABLE rt_variables FROM ls_variable.
+        ENDIF.
+      ENDWHILE.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD resolve_var_recursively.
+    CONSTANTS: lc_variable_usage_pattern TYPE string VALUE `var\(\-\-([^\)]*)\)`.
+    DATA: lv_variable_name  TYPE string.
+    FIELD-SYMBOLS: <ls_variable>       LIKE LINE OF ct_variables,
+                   <ls_other_variable> LIKE LINE OF ct_variables.
+
+    READ TABLE ct_variables WITH TABLE KEY name = iv_variable_name ASSIGNING <ls_variable>.
+    IF sy-subrc = 0.
+      DO.
+        FIND FIRST OCCURRENCE OF REGEX lc_variable_usage_pattern
+             IN <ls_variable>-value
+             SUBMATCHES lv_variable_name.
+        IF sy-subrc = 0.
+          resolve_var_recursively( EXPORTING iv_variable_name = lv_variable_name
+                                   CHANGING  ct_variables     = ct_variables ).
+          READ TABLE ct_variables WITH TABLE KEY name = lv_variable_name ASSIGNING <ls_other_variable>.
+          REPLACE FIRST OCCURRENCE OF |var(--{ lv_variable_name })|
+                  IN <ls_variable>-value
+                  WITH <ls_other_variable>-value.
+        ELSE.
+          EXIT.
+        ENDIF.
+      ENDDO.
+    ELSE.
+      zcx_abapgit_exception=>raise( |CSS variable { iv_variable_name } not resolveable| ).
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
@@ -36858,122 +37065,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
-  METHOD add_icon.
-
-    add( icon( iv_name  = iv_name
-               iv_class = iv_class
-               iv_hint  = iv_hint ) ).
-
-  ENDMETHOD.
-  METHOD class_constructor.
-    CREATE OBJECT go_single_tags_re
-      EXPORTING
-        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
-        ignore_case = abap_false.
-  ENDMETHOD.
-  METHOD indent_line.
-
-    DATA: ls_study TYPE ty_study_result,
-          lv_x_str TYPE string.
-
-    ls_study = study_line(
-      is_context = cs_context
-      iv_line    = cv_line ).
-
-    " First closing tag - shift back exceptionally
-    IF (  ls_study-script_close = abap_true
-       OR ls_study-style_close = abap_true
-       OR ls_study-curly_close = abap_true
-       OR ls_study-tag_close = abap_true )
-       AND cs_context-indent > 0.
-      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
-      cv_line  = lv_x_str && cv_line.
-    ELSE.
-      cv_line = cs_context-indent_str && cv_line.
-    ENDIF.
-
-    " Context status update
-    CASE abap_true.
-      WHEN ls_study-script_open.
-        cs_context-within_js    = abap_true.
-        cs_context-within_style = abap_false.
-      WHEN ls_study-style_open.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_true.
-      WHEN ls_study-script_close OR ls_study-style_close.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_false.
-        ls_study-closings       = ls_study-closings + 1.
-    ENDCASE.
-
-    " More-less logic chosen due to possible double tags in a line '<a><b>'
-    IF ls_study-openings <> ls_study-closings.
-      IF ls_study-openings > ls_study-closings.
-        cs_context-indent = cs_context-indent + 1.
-      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
-        cs_context-indent = cs_context-indent - 1.
-      ENDIF.
-      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD study_line.
-
-    DATA: lv_line TYPE string,
-          lv_len  TYPE i.
-
-    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
-    lv_len  = strlen( lv_line ).
-
-    " Some assumptions for simplification and speed
-    " - style & scripts tag should be opened/closed in a separate line
-    " - style & scripts opening and closing in one line is possible but only once
-
-    " TODO & Issues
-    " - What if the string IS a well formed html already not just single line ?
-
-    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
-
-      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
-        rs_result-script_close = abap_true.
-      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
-        rs_result-style_close = abap_true.
-      ENDIF.
-
-      IF is_context-no_indent_jscss = abap_false.
-        IF lv_len >= 1 AND lv_line(1) = '}'.
-          rs_result-curly_close = abap_true.
-        ENDIF.
-
-        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
-        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
-      ENDIF.
-
-    ELSE.
-      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
-        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-script_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
-        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-style_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 2 AND lv_line(2) = '</'.
-        rs_result-tag_close = abap_true.
-      ENDIF.
-
-      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
-      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
-      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
-      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
-
-    ENDIF.
-
-  ENDMETHOD.
   METHOD a.
 
     DATA: lv_class TYPE string,
@@ -37063,6 +37154,25 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
             iv_style = iv_style ) ).
 
   ENDMETHOD.
+  METHOD add_icon.
+
+    add( icon( iv_name  = iv_name
+               iv_class = iv_class
+               iv_hint  = iv_hint ) ).
+
+  ENDMETHOD.
+  METHOD checkbox.
+
+    rv_html = |<input type="checkbox" id="{ iv_id }">|
+           && |{ co_span_link_hint }|.
+
+  ENDMETHOD.
+  METHOD class_constructor.
+    CREATE OBJECT go_single_tags_re
+      EXPORTING
+        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
+        ignore_case = abap_false.
+  ENDMETHOD.
   METHOD icon.
 
     DATA: lv_hint          TYPE string,
@@ -37092,6 +37202,52 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
 
   ENDMETHOD.
+  METHOD indent_line.
+
+    DATA: ls_study TYPE ty_study_result,
+          lv_x_str TYPE string.
+
+    ls_study = study_line(
+      is_context = cs_context
+      iv_line    = cv_line ).
+
+    " First closing tag - shift back exceptionally
+    IF ( ls_study-script_close = abap_true
+        OR ls_study-style_close = abap_true
+        OR ls_study-curly_close = abap_true
+        OR ls_study-tag_close = abap_true )
+        AND cs_context-indent > 0.
+      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
+      cv_line  = lv_x_str && cv_line.
+    ELSE.
+      cv_line = cs_context-indent_str && cv_line.
+    ENDIF.
+
+    " Context status update
+    CASE abap_true.
+      WHEN ls_study-script_open.
+        cs_context-within_js    = abap_true.
+        cs_context-within_style = abap_false.
+      WHEN ls_study-style_open.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_true.
+      WHEN ls_study-script_close OR ls_study-style_close.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_false.
+        ls_study-closings       = ls_study-closings + 1.
+    ENDCASE.
+
+    " More-less logic chosen due to possible double tags in a line '<a><b>'
+    IF ls_study-openings <> ls_study-closings.
+      IF ls_study-openings > ls_study-closings.
+        cs_context-indent = cs_context-indent + 1.
+      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
+        cs_context-indent = cs_context-indent - 1.
+      ENDIF.
+      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD is_empty.
     rv_yes = boolc( lines( mt_buffer ) = 0 ).
   ENDMETHOD.
@@ -37113,19 +37269,68 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
+  METHOD study_line.
 
+    DATA: lv_line TYPE string,
+          lv_len  TYPE i.
+
+    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
+    lv_len  = strlen( lv_line ).
+
+    " Some assumptions for simplification and speed
+    " - style & scripts tag should be opened/closed in a separate line
+    " - style & scripts opening and closing in one line is possible but only once
+
+    " TODO & Issues
+    " - What if the string IS a well formed html already not just single line ?
+
+    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
+
+      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
+        rs_result-script_close = abap_true.
+      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
+        rs_result-style_close = abap_true.
+      ENDIF.
+
+      IF is_context-no_indent_jscss = abap_false.
+        IF lv_len >= 1 AND lv_line(1) = '}'.
+          rs_result-curly_close = abap_true.
+        ENDIF.
+
+        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
+        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
+      ENDIF.
+
+    ELSE.
+      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
+        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-script_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
+        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-style_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 2 AND lv_line(2) = '</'.
+        rs_result-tag_close = abap_true.
+      ENDIF.
+
+      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
+      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
+      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
+      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
+
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
 
     add( checkbox( iv_id ) ).
 
   ENDMETHOD.
-  METHOD checkbox.
-
-    rv_html = |<input type="checkbox" id="{ iv_id }">|
-           && |{ co_span_link_hint }|.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
@@ -37149,7 +37354,7 @@ CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -37236,7 +37441,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_asset_manager~get_asset.
 
-    FIELD-SYMBOLS <ls_a> LIKE LINE of mt_asset_register.
+    FIELD-SYMBOLS <ls_a> LIKE LINE OF mt_asset_register.
 
     READ TABLE mt_asset_register WITH KEY url = iv_url ASSIGNING <ls_a>.
     IF <ls_a> IS NOT ASSIGNED.
@@ -37255,7 +37460,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -37414,7 +37619,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     TRY.
         " Home must be processed by router if it presents
         IF ( iv_action <> c_action-go_home OR mi_router IS NOT BOUND )
-          AND mi_cur_page IS BOUND AND zcl_abapgit_gui_utils=>is_event_handler( mi_cur_page ) = abap_true.
+            AND mi_cur_page IS BOUND
+            AND zcl_abapgit_gui_utils=>is_event_handler( mi_cur_page ) = abap_true.
           li_page_eh ?= mi_cur_page.
           li_page_eh->on_event(
             EXPORTING
@@ -37479,12 +37685,31 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD render.
 
-    DATA: lv_url  TYPE w3url,
-          li_html TYPE REF TO zif_abapgit_html.
+    DATA: lv_url           TYPE w3url,
+          li_html          TYPE REF TO zif_abapgit_html,
+          lo_css_processor TYPE REF TO zcl_abapgit_gui_css_processor.
 
     IF mi_cur_page IS NOT BOUND.
       zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
     ENDIF.
+
+    CREATE OBJECT lo_css_processor
+      EXPORTING
+        ii_asset_manager = mi_asset_man.
+
+    lo_css_processor->add_file( 'css/theme-default.css' ).
+
+    CASE zcl_abapgit_persist_settings=>get_instance( )->read( )->get_ui_theme( ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
+        "TODO
+      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
+        lo_css_processor->add_file( 'css/theme-belize-blue.css' ).
+    ENDCASE.
+
+    cache_asset( iv_text    = lo_css_processor->process( )
+                 iv_url     = 'css/theme.css'
+                 iv_type    = 'text'
+                 iv_subtype = 'css' ).
 
     li_html = mi_cur_page->render( ).
     lv_url  = cache_html( li_html->render( iv_no_indent_jscss = abap_true ) ).
@@ -71802,5 +72027,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-22T06:20:58.716Z
+* abapmerge undefined - 2019-06-25T10:06:56.994Z
 ****************************************************
