@@ -41456,6 +41456,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
               "we set the tag to the correct value 'X':
           <ls_field>-modific = 'X'.
         ENDIF.
+
+        "fix for issue #2747:
+        IF <ls_field>-foreignkey IS INITIAL.
+          <ls_field>-foreignkey = lc_rpyty_force_off.
+        ENDIF.
       ENDLOOP.
 
       CALL FUNCTION 'RPY_DYNPRO_INSERT'
@@ -72057,5 +72062,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-29T06:04:33.336Z
+* abapmerge undefined - 2019-06-29T06:08:16.231Z
 ****************************************************
