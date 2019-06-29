@@ -1655,7 +1655,6 @@ INTERFACE zif_abapgit_definitions .
       go_tutorial              TYPE string VALUE 'go_tutorial',
       go_patch                 TYPE string VALUE 'go_patch',
       jump                     TYPE string VALUE 'jump',
-      jump_pkg                 TYPE string VALUE 'jump_pkg',
       jump_transport           TYPE string VALUE 'jump_transport',
       url                      TYPE string VALUE 'url',
     END OF c_action .
@@ -10386,7 +10385,9 @@ CLASS zcl_abapgit_gui_router DEFINITION
         zcx_abapgit_exception.
     CLASS-METHODS jump_display_transport
       IMPORTING
-        !iv_getdata TYPE clike .
+        !iv_getdata TYPE clike
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_repo DEFINITION
   FINAL
@@ -30192,13 +30193,38 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD jump_display_transport.
-    DATA: lv_transport TYPE trkorr.
+
+    DATA: lv_transport         TYPE trkorr,
+          lv_transport_adt_uri TYPE string,
+          lv_adt_link          TYPE string,
+          lv_adt_jump_enabled  TYPE abap_bool.
 
     lv_transport = iv_getdata.
 
-    CALL FUNCTION 'TR_DISPLAY_REQUEST'
-      EXPORTING
-        i_trkorr = lv_transport.
+    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+    IF lv_adt_jump_enabled = abap_true.
+      TRY.
+          CALL METHOD ('CL_CTS_ADT_TM_URI_BUILDER')=>('CREATE_ADT_URI')
+            EXPORTING
+              trnumber = lv_transport
+            RECEIVING
+              result   = lv_transport_adt_uri.
+          lv_adt_link = |adt://{ sy-sysid }{ lv_transport_adt_uri }|.
+
+          cl_gui_frontend_services=>execute( EXPORTING  document = lv_adt_link
+                                             EXCEPTIONS OTHERS   = 1 ).
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+          ENDIF.
+        CATCH cx_root.
+          zcx_abapgit_exception=>raise( 'Jump to object not supported in your NW release' ).
+      ENDTRY.
+    ELSE.
+      CALL FUNCTION 'TR_DISPLAY_REQUEST'
+        EXPORTING
+          i_trkorr = lv_transport.
+    ENDIF.
+
   ENDMETHOD.
   METHOD remote_origin_manipulations.
 
@@ -30291,9 +30317,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
           IMPORTING ev_obj_type = ls_item-obj_type
                     ev_obj_name = ls_item-obj_name ).
         zcl_abapgit_objects=>jump( ls_item ).
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>c_action-jump_pkg.                      " Open SE80
-        zcl_abapgit_services_repo=>open_se80( |{ is_event_data-getdata }| ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-jump_transport.
         jump_display_transport( is_event_data-getdata ).
@@ -36495,10 +36518,12 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_repo_top.
 
-    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
-          lo_pback       TYPE REF TO zcl_abapgit_persist_background,
-          lv_hint        TYPE string,
-          lv_icon        TYPE string.
+    DATA: lo_repo_online       TYPE REF TO zcl_abapgit_repo_online,
+          lo_pback             TYPE REF TO zcl_abapgit_persist_background,
+          lv_hint              TYPE string,
+          lv_icon              TYPE string,
+          lv_package_jump_data TYPE string.
+
     CREATE OBJECT ro_html.
     CREATE OBJECT lo_pback.
 
@@ -36585,8 +36610,13 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     IF iv_show_package = abap_true.
       ro_html->add_icon( iv_name = 'box/grey70' iv_hint = 'SAP package' ).
       ro_html->add( '<span>' ).
+
+      lv_package_jump_data = zcl_abapgit_html_action_utils=>jump_encode(
+        iv_obj_type = 'DEVC'
+        iv_obj_name = io_repo->get_package( ) ).
+
       ro_html->add_a( iv_txt = io_repo->get_package( )
-                      iv_act = |{ zif_abapgit_definitions=>c_action-jump_pkg }?{ io_repo->get_package( ) }| ).
+                      iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_package_jump_data }| ).
       ro_html->add( '</span>' ).
     ENDIF.
 
@@ -72027,5 +72057,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-25T10:06:56.994Z
+* abapmerge undefined - 2019-06-29T06:04:33.336Z
 ****************************************************
