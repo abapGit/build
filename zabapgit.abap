@@ -448,7 +448,9 @@ INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_page_hotkey DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
+INTERFACE zif_abapgit_gui_services DEFERRED.
 INTERFACE zif_abapgit_gui_renderable DEFERRED.
+INTERFACE zif_abapgit_gui_html_processor DEFERRED.
 INTERFACE zif_abapgit_gui_event_handler DEFERRED.
 INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
@@ -558,7 +560,6 @@ CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
@@ -566,6 +567,8 @@ CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
 CLASS zcl_abapgit_html DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_html_processor DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
 CLASS zcl_abapgit_test_serialize DEFINITION DEFERRED.
@@ -991,9 +994,10 @@ INTERFACE zif_abapgit_gui_asset_manager .
 
   METHODS get_text_asset
     IMPORTING
-      iv_url          TYPE string
+      iv_url            TYPE string
+      iv_assert_subtype TYPE string OPTIONAL
     RETURNING
-      VALUE(rv_asset) TYPE string
+      VALUE(rv_asset)   TYPE string
     RAISING
       zcx_abapgit_exception.
 
@@ -1023,6 +1027,19 @@ INTERFACE zif_abapgit_gui_event_handler .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_gui_html_processor .
+
+  METHODS process
+    IMPORTING
+      !iv_html TYPE string
+      !ii_gui_services TYPE REF TO zif_abapgit_gui_services
+    RETURNING
+      VALUE(rv_html) TYPE string
+    RAISING
+      zcx_abapgit_exception.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_renderable .
 
   METHODS render
@@ -1030,6 +1047,23 @@ INTERFACE zif_abapgit_gui_renderable .
       VALUE(ro_html) TYPE REF TO zif_abapgit_html
     RAISING
       zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_services .
+
+  METHODS cache_asset
+    IMPORTING
+      iv_text       TYPE string OPTIONAL
+      iv_xdata      TYPE xstring OPTIONAL
+      iv_url        TYPE w3url OPTIONAL
+      iv_type       TYPE c
+      iv_subtype    TYPE c
+    RETURNING
+      VALUE(rv_url) TYPE w3url.
+
+  " For future refactoring
+  " Potentially also: back, go_home, go_page, +some access to page stack
 
 ENDINTERFACE.
 
@@ -8577,6 +8611,10 @@ CLASS zcl_abapgit_gui DEFINITION
         go_home TYPE string VALUE 'go_home',
       END OF c_action.
 
+    INTERFACES zif_abapgit_gui_services.
+    ALIASES:
+      cache_asset FOR zif_abapgit_gui_services~cache_asset.
+
     METHODS go_home
       RAISING
         zcx_abapgit_exception.
@@ -8609,6 +8647,7 @@ CLASS zcl_abapgit_gui DEFINITION
         io_component     TYPE REF TO object OPTIONAL
         ii_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
         ii_error_handler TYPE REF TO zif_abapgit_gui_error_handler OPTIONAL
+        ii_html_processor TYPE REF TO zif_abapgit_gui_html_processor OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -8628,6 +8667,7 @@ CLASS zcl_abapgit_gui DEFINITION
           mi_router        TYPE REF TO zif_abapgit_gui_event_handler,
           mi_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager,
           mi_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+          mi_html_processor TYPE REF TO zif_abapgit_gui_html_processor,
           mo_html_viewer   TYPE REF TO cl_gui_html_viewer.
 
     METHODS startup
@@ -8637,16 +8677,6 @@ CLASS zcl_abapgit_gui DEFINITION
     METHODS cache_html
       IMPORTING
         iv_text       TYPE string
-      RETURNING
-        VALUE(rv_url) TYPE w3url.
-
-    METHODS cache_asset
-      IMPORTING
-        iv_text       TYPE string OPTIONAL
-        iv_xdata      TYPE xstring OPTIONAL
-        iv_url        TYPE w3url OPTIONAL
-        iv_type       TYPE c
-        iv_subtype    TYPE c
       RETURNING
         VALUE(rv_url) TYPE w3url.
 
@@ -8717,6 +8747,90 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
         VALUE(rs_asset) TYPE zif_abapgit_gui_asset_manager~ty_web_asset
       RAISING
         zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_css_processor DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          ii_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
+      add_file
+        IMPORTING
+          iv_url TYPE string,
+      process
+        RETURNING
+          VALUE(rv_result) TYPE string
+        RAISING   zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF gty_css_var,
+        name  TYPE string,
+        value TYPE string,
+      END OF gty_css_var,
+      gty_css_var_tab TYPE SORTED TABLE OF gty_css_var WITH UNIQUE KEY name.
+
+    METHODS:
+      get_css_vars_in_string
+        IMPORTING
+          iv_string           TYPE string
+        RETURNING
+          VALUE(rt_variables) TYPE gty_css_var_tab,
+      resolve_var_recursively
+        IMPORTING
+          iv_variable_name TYPE string
+        CHANGING
+          ct_variables     TYPE gty_css_var_tab
+        RAISING
+          zcx_abapgit_exception.
+    DATA:
+      mi_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
+      mt_files         TYPE string_table.
+ENDCLASS.
+CLASS zcl_abapgit_gui_html_processor DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CONSTANTS c_css_build_name TYPE string VALUE 'css/bundle.css'.
+    CONSTANTS c_comment_start TYPE string VALUE `<!-- by AG HTML preprocessor `.
+    CONSTANTS c_comment_end TYPE string VALUE `-->`.
+
+    INTERFACES zif_abapgit_gui_html_processor .
+
+    METHODS constructor
+      IMPORTING
+        ii_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
+
+    METHODS preserve_css
+      IMPORTING
+        !iv_css_url TYPE string .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mt_preserve_css TYPE string_table.
+    DATA mi_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
+
+    METHODS patch_html
+      IMPORTING
+        iv_html TYPE string
+      EXPORTING
+        ev_html TYPE string
+        et_css_urls TYPE string_table
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS is_preserved
+      IMPORTING
+        !iv_css_url TYPE string
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_utils DEFINITION
@@ -8900,35 +9014,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception .
-ENDCLASS.
-"! CSS preprocessor
-CLASS zcl_abapgit_gui_css_processor DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    METHODS:
-      constructor IMPORTING ii_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
-      add_file IMPORTING iv_url TYPE string,
-      process RETURNING VALUE(rv_result) TYPE string
-              RAISING   zcx_abapgit_exception.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    TYPES:
-      BEGIN OF gty_css_var,
-        name  TYPE string,
-        value TYPE string,
-      END OF gty_css_var,
-      gty_css_var_tab TYPE SORTED TABLE OF gty_css_var WITH UNIQUE KEY name.
-    METHODS:
-      get_css_vars_in_string IMPORTING iv_string           TYPE string
-                             RETURNING VALUE(rt_variables) TYPE gty_css_var_tab,
-      resolve_var_recursively IMPORTING iv_variable_name TYPE string
-                              CHANGING  ct_variables     TYPE gty_css_var_tab
-                              RAISING   zcx_abapgit_exception.
-    DATA:
-      mi_asset_manager TYPE REF TO zif_abapgit_gui_asset_manager,
-      mt_files         TYPE STANDARD TABLE OF string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -23309,7 +23394,7 @@ CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_frontend_services.
 
     IF gi_fe_services IS INITIAL.
@@ -23326,15 +23411,23 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
     DATA lo_error_handler TYPE REF TO kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY.
+    DATA lo_html_preprocessor TYPE REF TO zcl_abapgit_gui_html_processor.
 
     IF go_gui IS INITIAL.
       li_asset_man ?= init_asset_manager( ).
+
+      CREATE OBJECT lo_html_preprocessor EXPORTING ii_asset_man = li_asset_man.
+      lo_html_preprocessor->preserve_css( 'css/ag-icons.css' ).
+      lo_html_preprocessor->preserve_css( 'css/common.css' ).
+
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
       CREATE OBJECT lo_error_handler.
+
       CREATE OBJECT go_gui
         EXPORTING
           io_component     = li_router
           ii_error_handler = lo_error_handler
+          ii_html_processor = lo_html_preprocessor
           ii_asset_man     = li_asset_man.
     ENDIF.
     ro_gui = go_gui.
@@ -35841,7 +35934,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -35956,10 +36049,10 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ro_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
 
-    " theme.css is created at runtime in ZCL_ABAPGIT_GUI->RENDER( )
-    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme.css">' ).
-
+    " Themes
+    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
     CASE mo_settings->get_ui_theme( ).
       WHEN zcl_abapgit_settings=>c_ui_theme-dark.
         "TODO
@@ -35967,7 +36060,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
         ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
     ENDCASE.
 
-    ro_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
     ro_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
 
     CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
@@ -36138,117 +36230,6 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.
-
-CLASS zcl_abapgit_gui_css_processor IMPLEMENTATION.
-  METHOD constructor.
-    mi_asset_manager = ii_asset_manager.
-  ENDMETHOD.
-
-  METHOD add_file.
-    APPEND iv_url TO mt_files.
-  ENDMETHOD.
-
-  METHOD process.
-    DATA: ls_asset            TYPE zif_abapgit_gui_asset_manager=>ty_web_asset,
-          lt_contents         TYPE STANDARD TABLE OF string,
-          lv_content          TYPE string,
-          lt_css_variables    TYPE gty_css_var_tab,
-          lt_css_vars_in_file TYPE gty_css_var_tab.
-    FIELD-SYMBOLS: <lv_url>          TYPE string,
-                   <ls_css_variable> LIKE LINE OF lt_css_vars_in_file,
-                   <lv_content>      LIKE LINE OF lt_contents.
-
-    " 1. Determine all variables and their values. Later definitions overwrite previous ones.
-    LOOP AT mt_files ASSIGNING <lv_url>.
-      ls_asset = mi_asset_manager->get_asset( <lv_url> ).
-      ASSERT ls_asset-type = 'text' AND ls_asset-subtype = 'css'.
-      lv_content = zcl_abapgit_convert=>xstring_to_string_utf8( ls_asset-content ).
-
-      lt_css_vars_in_file = get_css_vars_in_string( lv_content ).
-
-      LOOP AT lt_css_vars_in_file ASSIGNING <ls_css_variable>.
-        INSERT <ls_css_variable> INTO TABLE lt_css_variables.
-        IF sy-subrc <> 0.
-          MODIFY TABLE lt_css_variables FROM <ls_css_variable>.
-        ENDIF.
-      ENDLOOP.
-
-      APPEND lv_content TO lt_contents.
-    ENDLOOP.
-
-    " 2. Replace all variable usages in variables
-    LOOP AT lt_css_variables ASSIGNING <ls_css_variable> WHERE value CS 'var(--'.
-      resolve_var_recursively( EXPORTING iv_variable_name = <ls_css_variable>-name
-                               CHANGING  ct_variables     = lt_css_variables ).
-    ENDLOOP.
-
-    " 3. Replace all other variable usages by inlining the values.
-    LOOP AT lt_contents ASSIGNING <lv_content>.
-      LOOP AT lt_css_variables ASSIGNING <ls_css_variable>.
-        REPLACE ALL OCCURRENCES OF |var(--{ <ls_css_variable>-name })|
-                IN <lv_content>
-                WITH <ls_css_variable>-value.
-      ENDLOOP.
-    ENDLOOP.
-
-    rv_result = concat_lines_of( table = lt_contents sep = cl_abap_char_utilities=>newline ).
-  ENDMETHOD.
-
-  METHOD get_css_vars_in_string.
-    CONSTANTS: lc_root_pattern     TYPE string VALUE `:root\s*\{([^\}]*)\}`,
-               lc_variable_pattern TYPE string VALUE `\-\-([\w\d-]+)\s*:\s*([^\n\r;]*);`.
-    DATA: lv_root     TYPE string,
-          lo_matcher  TYPE REF TO cl_abap_matcher,
-          lo_regex    TYPE REF TO cl_abap_regex,
-          ls_variable LIKE LINE OF rt_variables.
-
-    " Only the :root element may define variables for now
-
-    FIND FIRST OCCURRENCE OF REGEX lc_root_pattern IN iv_string SUBMATCHES lv_root.
-    IF sy-subrc = 0 AND lv_root IS NOT INITIAL.
-      CREATE OBJECT lo_regex
-        EXPORTING
-          pattern = lc_variable_pattern.
-      lo_matcher = lo_regex->create_matcher( text = lv_root ).
-      WHILE lo_matcher->find_next( ) = abap_true.
-        ls_variable-name = lo_matcher->get_submatch( 1 ).
-        ls_variable-value = lo_matcher->get_submatch( 2 ).
-        INSERT ls_variable INTO TABLE rt_variables.
-        IF sy-subrc <> 0.
-          MODIFY TABLE rt_variables FROM ls_variable.
-        ENDIF.
-      ENDWHILE.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD resolve_var_recursively.
-    CONSTANTS: lc_variable_usage_pattern TYPE string VALUE `var\(\-\-([^\)]*)\)`.
-    DATA: lv_variable_name  TYPE string.
-    FIELD-SYMBOLS: <ls_variable>       LIKE LINE OF ct_variables,
-                   <ls_other_variable> LIKE LINE OF ct_variables.
-
-    READ TABLE ct_variables WITH TABLE KEY name = iv_variable_name ASSIGNING <ls_variable>.
-    IF sy-subrc = 0.
-      DO.
-        FIND FIRST OCCURRENCE OF REGEX lc_variable_usage_pattern
-             IN <ls_variable>-value
-             SUBMATCHES lv_variable_name.
-        IF sy-subrc = 0.
-          resolve_var_recursively( EXPORTING iv_variable_name = lv_variable_name
-                                   CHANGING  ct_variables     = ct_variables ).
-          READ TABLE ct_variables WITH TABLE KEY name = lv_variable_name ASSIGNING <ls_other_variable>.
-          REPLACE FIRST OCCURRENCE OF |var(--{ lv_variable_name })|
-                  IN <ls_variable>-value
-                  WITH <ls_other_variable>-value.
-        ELSE.
-          EXIT.
-        ENDIF.
-      ENDDO.
-    ELSE.
-      zcx_abapgit_exception=>raise( |CSS variable { iv_variable_name } not resolveable| ).
-    ENDIF.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
@@ -37386,7 +37367,212 @@ CLASS ZCL_ABAPGIT_GUI_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
+  METHOD constructor.
+    mi_asset_man = ii_asset_man.
+  ENDMETHOD.
+  METHOD is_preserved.
+    READ TABLE mt_preserve_css TRANSPORTING NO FIELDS WITH KEY table_line = iv_css_url.
+    rv_yes = boolc( sy-subrc = 0 ).
+  ENDMETHOD.
+  METHOD patch_html.
+
+    CONSTANTS lc_css_re TYPE string VALUE `<link\s+rel="stylesheet"\s+type="text/css"\s+href="(\S+)">`.
+
+    DATA lv_head_end TYPE i.
+    DATA lo_css_re   TYPE REF TO cl_abap_regex.
+    DATA lo_matcher  TYPE REF TO cl_abap_matcher.
+    DATA lv_css_path TYPE string.
+
+    DATA lv_off TYPE i.
+    DATA lv_len TYPE i.
+    DATA lv_cur TYPE i.
+
+    DATA lc_css_build TYPE string VALUE '<link rel="stylesheet" type="text/css" href="$BUILD_NAME">'.
+    REPLACE FIRST OCCURRENCE OF '$BUILD_NAME' IN lc_css_build WITH c_css_build_name. " Mmmm
+
+    CLEAR: ev_html, et_css_urls.
+
+    lv_head_end = find( val = iv_html regex = |{ cl_abap_char_utilities=>newline }?\\s*</head>| case = abap_false ).
+    IF lv_head_end <= 0.
+      zcx_abapgit_exception=>raise( 'HTML preprocessor: </head> not found' ).
+    ENDIF.
+
+    CREATE OBJECT lo_css_re
+      EXPORTING
+        ignore_case = abap_true
+        pattern     = lc_css_re.
+
+    lo_matcher = lo_css_re->create_matcher( text = substring( val = iv_html len = lv_head_end ) ).
+    WHILE lo_matcher->find_next( ) = abap_true.
+      lv_css_path = lo_matcher->get_submatch( 1 ).
+      IF abap_false = is_preserved( lv_css_path ).
+        lv_off = lo_matcher->get_offset( ).
+        lv_len = lo_matcher->get_length( ).
+        ev_html = ev_html && substring( val = iv_html off = lv_cur len = lv_off - lv_cur ).
+        ev_html = ev_html && c_comment_start && substring( val = iv_html off = lv_off len = lv_len ) && c_comment_end.
+        lv_cur  = lv_off + lv_len.
+        APPEND lv_css_path TO et_css_urls.
+      ENDIF.
+    ENDWHILE.
+
+    ev_html = ev_html && substring( val = iv_html off = lv_cur len = lv_head_end - lv_cur ).
+    IF lines( et_css_urls ) > 0.
+      ev_html = ev_html
+        && cl_abap_char_utilities=>newline && `    ` " Assume 4 space indent, maybe improve and detect ?
+        && c_comment_start && c_comment_end
+        && lc_css_build.
+    ENDIF.
+    ev_html = ev_html && substring( val = iv_html off = lv_head_end ).
+
+  ENDMETHOD.
+  METHOD preserve_css.
+    APPEND iv_css_url TO mt_preserve_css.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_html_processor~process.
+
+    DATA lo_css_processor TYPE REF TO zcl_abapgit_gui_css_processor.
+    DATA lt_css_urls TYPE string_table.
+    DATA lv_css_build TYPE string.
+
+    FIELD-SYMBOLS <lv_url> LIKE LINE OF lt_css_urls.
+
+    patch_html(
+      EXPORTING
+        iv_html = iv_html
+      IMPORTING
+        ev_html = rv_html
+        et_css_urls = lt_css_urls ).
+
+    IF lines( lt_css_urls ) > 0.
+      CREATE OBJECT lo_css_processor
+        EXPORTING
+          ii_asset_manager = mi_asset_man.
+
+      LOOP AT lt_css_urls ASSIGNING <lv_url>.
+        lo_css_processor->add_file( <lv_url> ).
+      ENDLOOP.
+
+      lv_css_build = lo_css_processor->process( ).
+
+      ii_gui_services->cache_asset(
+        iv_url     = |{ c_css_build_name }|
+        iv_type    = 'text'
+        iv_subtype = 'css'
+        iv_text    = lv_css_build ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
+  METHOD add_file.
+    APPEND iv_url TO mt_files.
+  ENDMETHOD.
+  METHOD constructor.
+    mi_asset_manager = ii_asset_manager.
+  ENDMETHOD.
+  METHOD get_css_vars_in_string.
+    CONSTANTS: lc_root_pattern     TYPE string VALUE `:root\s*\{([^\}]*)\}`,
+               lc_variable_pattern TYPE string VALUE `\-\-([\w\d-]+)\s*:\s*([^\n\r;]*);`.
+    DATA: lv_root     TYPE string,
+          lo_matcher  TYPE REF TO cl_abap_matcher,
+          lo_regex    TYPE REF TO cl_abap_regex,
+          ls_variable LIKE LINE OF rt_variables.
+
+    " Only the :root element may define variables for now
+
+    FIND FIRST OCCURRENCE OF REGEX lc_root_pattern IN iv_string SUBMATCHES lv_root.
+    IF sy-subrc = 0 AND lv_root IS NOT INITIAL.
+      CREATE OBJECT lo_regex
+        EXPORTING
+          pattern = lc_variable_pattern.
+      lo_matcher = lo_regex->create_matcher( text = lv_root ).
+      WHILE lo_matcher->find_next( ) = abap_true.
+        ls_variable-name = lo_matcher->get_submatch( 1 ).
+        ls_variable-value = lo_matcher->get_submatch( 2 ).
+        INSERT ls_variable INTO TABLE rt_variables.
+        IF sy-subrc <> 0.
+          MODIFY TABLE rt_variables FROM ls_variable.
+        ENDIF.
+      ENDWHILE.
+    ENDIF.
+  ENDMETHOD.
+  METHOD process.
+    DATA:
+          lt_contents         TYPE STANDARD TABLE OF string,
+          lv_content          TYPE string,
+          lt_css_variables    TYPE gty_css_var_tab,
+          lt_css_vars_in_file TYPE gty_css_var_tab.
+    FIELD-SYMBOLS: <lv_url>          TYPE string,
+                   <ls_css_variable> LIKE LINE OF lt_css_vars_in_file,
+                   <lv_content>      LIKE LINE OF lt_contents.
+
+    " 1. Determine all variables and their values. Later definitions overwrite previous ones.
+    LOOP AT mt_files ASSIGNING <lv_url>.
+      lv_content = mi_asset_manager->get_text_asset(
+        iv_url = <lv_url>
+        iv_assert_subtype = 'css' ).
+
+      lt_css_vars_in_file = get_css_vars_in_string( lv_content ).
+
+      LOOP AT lt_css_vars_in_file ASSIGNING <ls_css_variable>.
+        INSERT <ls_css_variable> INTO TABLE lt_css_variables.
+        IF sy-subrc <> 0.
+          MODIFY TABLE lt_css_variables FROM <ls_css_variable>.
+        ENDIF.
+      ENDLOOP.
+
+      APPEND lv_content TO lt_contents.
+    ENDLOOP.
+
+    " 2. Replace all variable usages in variables
+    LOOP AT lt_css_variables ASSIGNING <ls_css_variable> WHERE value CS 'var(--'.
+      resolve_var_recursively( EXPORTING iv_variable_name = <ls_css_variable>-name
+                               CHANGING  ct_variables     = lt_css_variables ).
+    ENDLOOP.
+
+    " 3. Replace all other variable usages by inlining the values.
+    LOOP AT lt_contents ASSIGNING <lv_content>.
+      LOOP AT lt_css_variables ASSIGNING <ls_css_variable>.
+        REPLACE ALL OCCURRENCES OF |var(--{ <ls_css_variable>-name })|
+                IN <lv_content>
+                WITH <ls_css_variable>-value.
+      ENDLOOP.
+    ENDLOOP.
+
+    rv_result = concat_lines_of( table = lt_contents sep = cl_abap_char_utilities=>newline ).
+  ENDMETHOD.
+  METHOD resolve_var_recursively.
+    CONSTANTS: lc_variable_usage_pattern TYPE string VALUE `var\(\-\-([^\)]*)\)`.
+    DATA: lv_variable_name  TYPE string.
+    FIELD-SYMBOLS: <ls_variable>       LIKE LINE OF ct_variables,
+                   <ls_other_variable> LIKE LINE OF ct_variables.
+
+    READ TABLE ct_variables WITH TABLE KEY name = iv_variable_name ASSIGNING <ls_variable>.
+    IF sy-subrc = 0.
+      DO.
+        FIND FIRST OCCURRENCE OF REGEX lc_variable_usage_pattern
+             IN <ls_variable>-value
+             SUBMATCHES lv_variable_name.
+        IF sy-subrc = 0.
+          resolve_var_recursively( EXPORTING iv_variable_name = lv_variable_name
+                                   CHANGING  ct_variables     = ct_variables ).
+          READ TABLE ct_variables WITH TABLE KEY name = lv_variable_name ASSIGNING <ls_other_variable>.
+          REPLACE FIRST OCCURRENCE OF |var(--{ lv_variable_name })|
+                  IN <ls_variable>-value
+                  WITH <ls_other_variable>-value.
+        ELSE.
+          EXIT.
+        ENDIF.
+      ENDDO.
+    ELSE.
+      zcx_abapgit_exception=>raise( |CSS variable { iv_variable_name } not resolveable| ).
+    ENDIF.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -37487,12 +37673,20 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
     DATA ls_asset TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
     ls_asset = me->zif_abapgit_gui_asset_manager~get_asset( iv_url ).
 
+    IF ls_asset-type <> 'text'.
+      zcx_abapgit_exception=>raise( |Not a text asset: { iv_url }| ).
+    ENDIF.
+
+    IF iv_assert_subtype IS NOT INITIAL AND ls_asset-subtype <> iv_assert_subtype.
+      zcx_abapgit_exception=>raise( |Wrong subtype ({ iv_assert_subtype }): { iv_url }| ).
+    ENDIF.
+
     rv_asset = zcl_abapgit_convert=>xstring_to_string_utf8( ls_asset-content ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -37521,43 +37715,6 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     mi_cur_page = ls_stack-page. " last page always stays
     render( ).
-
-  ENDMETHOD.
-  METHOD cache_asset.
-
-    DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE int4.
-
-    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
-
-    IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
-    ELSE. " Raw input
-      lv_xstr = iv_xdata.
-    ENDIF.
-
-    zcl_abapgit_convert=>xstring_to_bintab(
-      EXPORTING
-        iv_xstr   = lv_xstr
-      IMPORTING
-        ev_size   = lv_size
-        et_bintab = lt_xdata ).
-
-    mo_html_viewer->load_data(
-      EXPORTING
-        type         = iv_type
-        subtype      = iv_subtype
-        size         = lv_size
-        url          = iv_url
-      IMPORTING
-        assigned_url = rv_url
-      CHANGING
-        data_table   = lt_xdata
-      EXCEPTIONS
-        OTHERS       = 1 ) ##NO_TEXT.
-
-    ASSERT sy-subrc = 0. " Image data error
 
   ENDMETHOD.
   METHOD cache_html.
@@ -37597,6 +37754,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     mi_asset_man = ii_asset_man.
     mi_error_handler = ii_error_handler.
+    mi_html_processor = ii_html_processor. " Maybe improve to middlewares stack ??
     startup( ).
 
   ENDMETHOD.
@@ -37718,6 +37876,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD render.
 
     DATA: lv_url           TYPE w3url,
+          lv_html          TYPE string,
           li_html          TYPE REF TO zif_abapgit_html,
           lo_css_processor TYPE REF TO zcl_abapgit_gui_css_processor.
 
@@ -37725,27 +37884,16 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
     ENDIF.
 
-    CREATE OBJECT lo_css_processor
-      EXPORTING
-        ii_asset_manager = mi_asset_man.
-
-    lo_css_processor->add_file( 'css/theme-default.css' ).
-
-    CASE zcl_abapgit_persist_settings=>get_instance( )->read( )->get_ui_theme( ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        "TODO
-      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
-        lo_css_processor->add_file( 'css/theme-belize-blue.css' ).
-    ENDCASE.
-
-    cache_asset( iv_text    = lo_css_processor->process( )
-                 iv_url     = 'css/theme.css'
-                 iv_type    = 'text'
-                 iv_subtype = 'css' ).
-
     li_html = mi_cur_page->render( ).
-    lv_url  = cache_html( li_html->render( iv_no_indent_jscss = abap_true ) ).
+    lv_html = li_html->render( iv_no_indent_jscss = abap_true ).
 
+    IF mi_html_processor IS BOUND.
+      lv_html = mi_html_processor->process(
+        iv_html         = lv_html
+        ii_gui_services = me ).
+    ENDIF.
+
+    lv_url  = cache_html( lv_html ).
     mo_html_viewer->show_url( lv_url ).
 
   ENDMETHOD.
@@ -37778,6 +37926,43 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     mo_html_viewer->set_registered_events( lt_events ).
     SET HANDLER me->on_event FOR mo_html_viewer.
+
+  ENDMETHOD.
+  METHOD cache_asset.
+
+    DATA: lv_xstr  TYPE xstring,
+          lt_xdata TYPE lvc_t_mime,
+          lv_size  TYPE int4.
+
+    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
+
+    IF iv_text IS SUPPLIED. " String input
+      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
+    ELSE. " Raw input
+      lv_xstr = iv_xdata.
+    ENDIF.
+
+    zcl_abapgit_convert=>xstring_to_bintab(
+      EXPORTING
+        iv_xstr   = lv_xstr
+      IMPORTING
+        ev_size   = lv_size
+        et_bintab = lt_xdata ).
+
+    mo_html_viewer->load_data(
+      EXPORTING
+        type         = iv_type
+        subtype      = iv_subtype
+        size         = lv_size
+        url          = iv_url
+      IMPORTING
+        assigned_url = rv_url
+      CHANGING
+        data_table   = lt_xdata
+      EXCEPTIONS
+        OTHERS       = 1 ) ##NO_TEXT.
+
+    ASSERT sy-subrc = 0. " Image data error
 
   ENDMETHOD.
 ENDCLASS.
@@ -72064,5 +72249,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-02T03:52:02.212Z
+* abapmerge undefined - 2019-07-02T03:55:43.257Z
 ****************************************************
