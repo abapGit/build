@@ -15140,7 +15140,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
             iv_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
 
 * Open output folder if user asked it
-          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->gv_full_folder  ).
+          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->gv_full_folder ).
 
         ELSE.
 * No data found for the provided selection criterias
@@ -26785,7 +26785,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     ls_checks = lo_repo->delete_checks( ).
     IF ls_checks-transport-required = abap_true.
       ls_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups(
-                                        )->popup_transport_request(  ls_checks-transport-type ).
+                                        )->popup_transport_request( ls_checks-transport-type ).
     ENDIF.
 
     zcl_abapgit_repo_srv=>get_instance( )->purge( io_repo   = lo_repo
@@ -54156,7 +54156,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 *   Renumber id='o...' attributes
     li_iterator = ii_document->create_iterator_filtered(
       ii_document->create_filter_and(
-        filter1 = ii_document->create_filter_node_type( if_ixml_node=>co_node_element  )
+        filter1 = ii_document->create_filter_node_type( if_ixml_node=>co_node_element )
         filter2 = ii_document->create_filter_attribute( 'id' ) ) ).
     li_elem ?= li_iterator->get_next( ).
     WHILE li_elem IS NOT INITIAL.
@@ -69252,7 +69252,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
         url                = iv_url
         ssl_id             = zcl_abapgit_exit=>get_instance( )->get_ssl_id( )
         proxy_host         = lo_proxy->get_proxy_url( iv_url )
-        proxy_service      = lo_proxy->get_proxy_port( iv_url  )
+        proxy_service      = lo_proxy->get_proxy_port( iv_url )
       IMPORTING
         client             = ri_client
       EXCEPTIONS
@@ -72249,5 +72249,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-02T03:55:43.257Z
+* abapmerge undefined - 2019-07-02T05:11:02.042Z
 ****************************************************
