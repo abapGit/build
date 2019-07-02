@@ -30217,7 +30217,9 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
             zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
           ENDIF.
         CATCH cx_root.
-          zcx_abapgit_exception=>raise( 'Jump to object not supported in your NW release' ).
+          CALL FUNCTION 'TR_DISPLAY_REQUEST'
+            EXPORTING
+              i_trkorr = lv_transport.
       ENDTRY.
     ELSE.
       CALL FUNCTION 'TR_DISPLAY_REQUEST'
@@ -72062,5 +72064,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-06-29T06:08:16.231Z
+* abapmerge undefined - 2019-07-02T03:52:02.212Z
 ****************************************************
