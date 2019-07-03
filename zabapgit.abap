@@ -4270,6 +4270,7 @@ CLASS zcl_abapgit_object_enhs_hook_d DEFINITION.
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_object_enhs.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_hook_defifnition,
              pgmid     TYPE pgmid,
@@ -31022,15 +31023,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
             zcx_abapgit_exception=>raise( |process_stage_list: unknown file { ls_file-path }{ ls_file-filename }| ).
           ENDIF.
 
-          io_stage->add(    iv_path     = <ls_file>-file-path
-                            iv_filename = <ls_file>-file-filename
-                            iv_data     = <ls_file>-file-data ).
+          io_stage->add( iv_path     = <ls_file>-file-path
+                         iv_filename = <ls_file>-file-filename
+                         iv_data     = <ls_file>-file-data ).
         WHEN zcl_abapgit_stage=>c_method-ignore.
           io_stage->ignore( iv_path     = ls_file-path
                             iv_filename = ls_file-filename ).
         WHEN zcl_abapgit_stage=>c_method-rm.
-          io_stage->rm(     iv_path     = ls_file-path
-                            iv_filename = ls_file-filename ).
+          io_stage->rm( iv_path     = ls_file-path
+                        iv_filename = ls_file-filename ).
         WHEN zcl_abapgit_stage=>c_method-skip.
           " Do nothing
         WHEN OTHERS.
@@ -31249,16 +31250,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-    DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_with_name.
-
-    ls_hotkey_action-name   = |Patch|.
-    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
-    ls_hotkey_action-hotkey = |p|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_stage  TYPE REF TO zcl_abapgit_stage,
@@ -31325,8 +31316,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+    DATA: ls_hotkey_action TYPE zif_abapgit_gui_page_hotkey=>ty_hotkey_with_name.
+
+    ls_hotkey_action-name   = |Patch|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
+    ls_hotkey_action-hotkey = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -32563,7 +32564,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     render_table_header( io_html ).
     render_table_body( io_html     = io_html
-                       it_overview = it_overview  ).
+                       it_overview = it_overview ).
 
     io_html->add( |</table>| ).
     io_html->add( |</div>| ).
@@ -32671,9 +32672,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ro_html->add( 'setInitialFocus("filter");' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_key  TYPE zif_abapgit_persistence=>ty_value.
@@ -32717,9 +32715,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -33291,9 +33292,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
@@ -33342,9 +33340,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -33641,7 +33642,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
     ENDCASE.
 
   ENDMETHOD.
@@ -34872,9 +34873,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( 'setInitialFocus("comment");' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: ls_commit TYPE zcl_abapgit_services_git=>ty_commit_fields.
@@ -34888,9 +34886,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
         ls_commit-repo_key = mo_repo->get_key( ).
 
-        zcl_abapgit_services_git=>commit( is_commit   = ls_commit
-                                  io_repo     = mo_repo
-                                  io_stage    = mo_stage ).
+        zcl_abapgit_services_git=>commit(
+          is_commit = ls_commit
+          io_repo   = mo_repo
+          io_stage  = mo_stage ).
 
         ev_state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
 
@@ -34906,8 +34905,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -34979,7 +34981,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
           RECEIVING
             p_result = lo_test.
       CATCH cx_root.
-        zcx_abapgit_exception=>raise( |Jump to object not supported in your NW release|  ).
+        zcx_abapgit_exception=>raise( |Jump to object not supported in your NW release| ).
     ENDTRY.
 
     lo_result = lo_test->get_result_node( <ls_result>-kind ).
@@ -35312,7 +35314,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   METHOD body.
 
     DATA: lv_tag                 TYPE string,
@@ -35525,70 +35527,6 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD render_content.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<div id="toc">' ).
-    ro_html->add( body( ) ).
-    ro_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_merge.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<form id="commit_form" method="post" action="sapevent:merge">' ).
-    ro_html->add( 'Merge' ) ##NO_TEXT.
-    ro_html->add( form_select( 'source' ) ) ##NO_TEXT.
-    ro_html->add( 'into' ) ##NO_TEXT.
-    ro_html->add( form_select( 'target' ) ) ##NO_TEXT.
-    ro_html->add( '<input type="submit" value="Submit">' ).
-    ro_html->add( '</form>' ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-
-    DATA: ls_merge TYPE ty_merge,
-          lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
-    CASE iv_action.
-      WHEN c_actions-refresh.
-        refresh( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-uncompress.
-        mv_compress = abap_false.
-        refresh( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-compress.
-        mv_compress = abap_true.
-        refresh( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-merge.
-        ls_merge = decode_merge( it_postdata ).
-        CREATE OBJECT lo_merge
-          EXPORTING
-            io_repo   = mo_repo
-            iv_source = ls_merge-source
-            iv_target = ls_merge-target.
-        ei_page = lo_merge.
-        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN OTHERS.
-        super->zif_abapgit_gui_event_handler~on_event(
-          EXPORTING
-            iv_action    = iv_action
-            iv_prev_page = iv_prev_page
-            iv_getdata   = iv_getdata
-            it_postdata  = it_postdata
-          IMPORTING
-            ei_page      = ei_page
-            ev_state     = ev_state  ).
-    ENDCASE.
-
-  ENDMETHOD.
-
   METHOD render_commit_popups.
 
     DATA: lv_time    TYPE char10,
@@ -35644,7 +35582,69 @@ CLASS zcl_abapgit_gui_page_boverview IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD render_content.
 
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<div id="toc">' ).
+    ro_html->add( body( ) ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD render_merge.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( '<form id="commit_form" method="post" action="sapevent:merge">' ).
+    ro_html->add( 'Merge' ) ##NO_TEXT.
+    ro_html->add( form_select( 'source' ) ) ##NO_TEXT.
+    ro_html->add( 'into' ) ##NO_TEXT.
+    ro_html->add( form_select( 'target' ) ) ##NO_TEXT.
+    ro_html->add( '<input type="submit" value="Submit">' ).
+    ro_html->add( '</form>' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA: ls_merge TYPE ty_merge,
+          lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
+    CASE iv_action.
+      WHEN c_actions-refresh.
+        refresh( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-uncompress.
+        mv_compress = abap_false.
+        refresh( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-compress.
+        mv_compress = abap_true.
+        refresh( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-merge.
+        ls_merge = decode_merge( it_postdata ).
+        CREATE OBJECT lo_merge
+          EXPORTING
+            io_repo   = mo_repo
+            iv_source = ls_merge-source
+            iv_target = ls_merge-target.
+        ei_page = lo_merge.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN OTHERS.
+        super->zif_abapgit_gui_event_handler~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_prev_page = iv_prev_page
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
@@ -35910,9 +35910,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
@@ -35928,8 +35925,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
             it_postdata  = it_postdata
           IMPORTING
             ei_page      = ei_page
-            ev_state     = ev_state  ).
+            ev_state     = ev_state ).
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -41352,7 +41352,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     TRY.
         mo_persistence->get( p_object_key           = lv_object_key
                              p_version              = 'A'
-                             p_existence_check_only = abap_true  ).
+                             p_existence_check_only = abap_true ).
 
       CATCH cx_swb_object_does_not_exist cx_swb_exception.
         rv_bool = abap_false.
@@ -41632,15 +41632,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
           ENDIF.
         ENDIF.
 
-        IF  <ls_field>-type = 'CHECK'
-          AND <ls_field>-from_dict = abap_true
-          AND <ls_field>-text IS INITIAL
-          AND <ls_field>-modific IS INITIAL.
-              "If the previous conditions are
-              "met the value 'F' will be taken over
-              "during de-serialization potentially
-              "overlapping other fields in the screen,
-              "we set the tag to the correct value 'X':
+* If the previous conditions are met the value 'F' will be taken over
+* during de-serialization potentially overlapping other fields in the screen,
+* we set the tag to the correct value 'X'
+        IF <ls_field>-type = 'CHECK'
+            AND <ls_field>-from_dict = abap_true
+            AND <ls_field>-text IS INITIAL
+            AND <ls_field>-modific IS INITIAL.
           <ls_field>-modific = 'X'.
         ENDIF.
 
@@ -41648,6 +41646,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         IF <ls_field>-foreignkey IS INITIAL.
           <ls_field>-foreignkey = lc_rpyty_force_off.
         ENDIF.
+
       ENDLOOP.
 
       CALL FUNCTION 'RPY_DYNPRO_INSERT'
@@ -60136,8 +60135,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_ENHS_HOOK_D IMPLEMENTATION.
   METHOD zif_abapgit_object_enhs~deserialize.
 
     DATA: lv_enh_shorttext       TYPE string,
@@ -60187,7 +60185,6 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object_enhs~serialize.
 
     DATA: lo_hookdef_tool    TYPE REF TO cl_enh_tool_hook_def,
@@ -60209,7 +60206,7 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
         obj_type  = ls_hook_definition-obj_type
         main_type = ls_hook_definition-main_type
         main_name = ls_hook_definition-main_name
-        program   = ls_hook_definition-program       ).
+        program   = ls_hook_definition-program ).
 
     io_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
                  iv_name = 'TOOL' ).
@@ -60221,7 +60218,6 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
                  iv_name = 'BADI_DATA' ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
@@ -62387,18 +62383,18 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     TRY.
         cl_apl_ecatt_object=>get_version_info_object(
           EXPORTING
-            im_name          = mv_object_name
-            im_obj_type      = lv_object_type
+            im_name         = mv_object_name
+            im_obj_type     = lv_object_type
           IMPORTING
-            ex_version_info  = lt_version_info  ).
+            ex_version_info = lt_version_info ).
 
         li_document = cl_ixml=>create( )->create_document( ).
 
         serialize_versions(
           EXPORTING
-            it_version_info  = lt_version_info
+            it_version_info = lt_version_info
           CHANGING
-            ci_document      = li_document ).
+            ci_document     = li_document ).
 
         io_xml->set_raw( li_document->get_root_element( ) ).
 
@@ -72249,5 +72245,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-02T05:11:02.042Z
+* abapmerge undefined - 2019-07-03T03:56:26.369Z
 ****************************************************
