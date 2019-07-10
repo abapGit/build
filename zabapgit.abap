@@ -17246,7 +17246,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
     SORT rt_repo_items BY
       sortkey ASCENDING
-      obj_type ASCENDING
+      path ASCENDING
       obj_name ASCENDING.
 
   ENDMETHOD.
@@ -34087,7 +34087,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
       ENDLOOP.
 
     ELSE.                             " Diff for the whole repo
-
+      SORT lt_status BY
+        path ASCENDING
+        filename ASCENDING.
       LOOP AT lt_status ASSIGNING <ls_status> WHERE match IS INITIAL.
         append_diff( it_remote = lt_remote
                      it_local  = lt_local
@@ -72553,5 +72555,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-08T06:41:08.872Z
+* abapmerge undefined - 2019-07-10T07:39:06.147Z
 ****************************************************
