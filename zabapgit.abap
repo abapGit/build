@@ -72440,7 +72440,6 @@ FORM output.
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
-  DATA li_page TYPE REF TO zif_abapgit_gui_renderable.
   CASE sy-ucomm.
     WHEN 'CBAC'.  "Back
       IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
@@ -72448,10 +72447,6 @@ FORM exit RAISING zcx_abapgit_exception.
       ELSE.
         LEAVE TO SCREEN 1001.
       ENDIF.
-    WHEN 'CEND'.
-      CREATE OBJECT li_page TYPE zcl_abapgit_gui_page_main.
-      zcl_abapgit_ui_factory=>get_gui( )->go_page( li_page ).
-      LEAVE TO SCREEN 1001.
   ENDCASE.
 ENDFORM.
 
@@ -72555,5 +72550,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-10T07:39:06.147Z
+* abapmerge undefined - 2019-07-11T04:30:15.018Z
 ****************************************************
