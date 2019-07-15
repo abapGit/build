@@ -16797,7 +16797,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDIF.
 
     IF is_sap_object_allowed( ) = abap_false AND lv_as4user = 'SAP'.
-      zcx_abapgit_exception=>raise( |Package { iv_package } not allowed| ).
+      zcx_abapgit_exception=>raise( |Package { iv_package } not allowed, responsible user = 'SAP'| ).
     ENDIF.
 
     " make sure its not already in use for a different repository
@@ -72581,5 +72581,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-12T09:02:15.059Z
+* abapmerge undefined - 2019-07-15T06:33:26.537Z
 ****************************************************
