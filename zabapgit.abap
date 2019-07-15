@@ -1493,7 +1493,7 @@ INTERFACE zif_abapgit_definitions .
       email      TYPE string,
       time       TYPE string,
       message    TYPE string,
-      body       TYPE stringtab,
+      body       TYPE string_table,
       branch     TYPE string,
       merge      TYPE string,
       tags       TYPE stringtab,
@@ -1584,7 +1584,7 @@ INTERFACE zif_abapgit_definitions .
       adt_jump_enabled           TYPE abap_bool,
       show_default_repo          TYPE abap_bool,
       link_hints_enabled         TYPE abap_bool,
-      link_hint_key              TYPE char01,
+      link_hint_key              TYPE c LENGTH 1,
       link_hint_background_color TYPE string,
       hotkeys                    TYPE tty_hotkey,
       parallel_proc_disabled     TYPE abap_bool,
@@ -2460,7 +2460,7 @@ INTERFACE zif_abapgit_popups .
       !it_list               TYPE STANDARD TABLE
       !iv_header_text        TYPE csequence
       !iv_select_column_text TYPE csequence
-      !it_columns_to_display TYPE stringtab
+      !it_columns_to_display TYPE string_table
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
     RAISING
@@ -2905,7 +2905,7 @@ CLASS zcl_abapgit_git_add_patch DEFINITION
 
       get_patch
         RETURNING
-          VALUE(rt_patch) TYPE stringtab
+          VALUE(rt_patch) TYPE string_table
         RAISING
           zcx_abapgit_exception,
 
@@ -2914,20 +2914,18 @@ CLASS zcl_abapgit_git_add_patch DEFINITION
           VALUE(rv_patch_binary) TYPE xstring
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
       mt_diff  TYPE zif_abapgit_definitions=>ty_diffs_tt,
-      mt_patch TYPE stringtab.
+      mt_patch TYPE string_table.
 
     METHODS:
       calculate_patch
         RETURNING
-          VALUE(rt_patch) TYPE stringtab
+          VALUE(rt_patch) TYPE string_table
         RAISING
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
@@ -2967,8 +2965,8 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
     CLASS-METHODS get_type
       IMPORTING
         !iv_branch_name       TYPE clike
-        !it_result            TYPE stringtab OPTIONAL
-        !iv_current_row_index TYPE sytabix OPTIONAL
+        !it_result            TYPE string_table OPTIONAL
+        !iv_current_row_index TYPE sy-tabix OPTIONAL
       RETURNING
         VALUE(rv_type)        TYPE zif_abapgit_definitions=>ty_git_branch_type .
     CLASS-METHODS complete_heads_branch_name
@@ -3554,7 +3552,7 @@ CLASS zcl_abapgit_2fa_github_auth DEFINITION
       IMPORTING
         !ii_response  TYPE REF TO if_http_response
       RETURNING
-        VALUE(rt_ids) TYPE stringtab .
+        VALUE(rt_ids) TYPE string_table .
     CLASS-METHODS set_del_token_request
       IMPORTING
         !ii_request  TYPE REF TO if_http_request
@@ -4529,8 +4527,8 @@ CLASS zcl_abapgit_objects_generic DEFINITION
 
     TYPES:
       BEGIN OF ty_s_objkey,
-        num   TYPE numc3,
-        value TYPE char128,
+        num   TYPE n LENGTH 3,
+        value TYPE c LENGTH 128,
       END OF ty_s_objkey .
     TYPES:
       ty_t_objkey TYPE SORTED TABLE OF ty_s_objkey WITH UNIQUE KEY num .
@@ -8518,7 +8516,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
 
     TYPES:
       BEGIN OF ty_match,
-        token    TYPE char1,  " Type of matches
+        token    TYPE c LENGTH 1,  " Type of matches
         offset   TYPE i,      " Beginning position of the string that should be formatted
         length   TYPE i,      " Length of the string that should be formatted
         text_tag TYPE string, " Type of text tag
@@ -8528,7 +8526,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
     TYPES:
       BEGIN OF ty_rule,
         regex             TYPE REF TO cl_abap_regex,
-        token             TYPE char1,
+        token             TYPE c LENGTH 1,
         style             TYPE string,
         relevant_submatch TYPE i,
       END OF ty_rule .
@@ -8571,6 +8569,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
         !iv_class      TYPE string
       RETURNING
         VALUE(rv_line) TYPE string .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_abap DEFINITION
   INHERITING FROM zcl_abapgit_syntax_highlighter
@@ -9683,7 +9682,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING is_diff_line   TYPE zif_abapgit_definitions=>ty_diff
                 iv_filename    TYPE string
                 iv_fstate      TYPE char1
-                iv_index       TYPE sytabix
+                iv_index       TYPE sy-tabix
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
     METHODS render_line_unified
       IMPORTING is_diff_line   TYPE zif_abapgit_definitions=>ty_diff OPTIONAL
@@ -9708,7 +9707,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         iv_patch_line_possible TYPE abap_bool
         iv_filename            TYPE string
         is_diff_line           TYPE zif_abapgit_definitions=>ty_diff
-        iv_index               TYPE sytabix.
+        iv_index               TYPE sy-tabix.
     METHODS start_staging
       IMPORTING
         it_postdata TYPE cnht_post_data_tab
@@ -9902,7 +9901,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
     DATA mo_merge_page TYPE REF TO zcl_abapgit_gui_page_merge .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_diff_file TYPE ty_file_diff .
-    DATA mv_current_conflict_index TYPE sytabix .
+    DATA mv_current_conflict_index TYPE sy-tabix .
     DATA mv_merge_mode TYPE string .
     DATA mt_conflicts TYPE zif_abapgit_definitions=>tt_merge_conflict .
 
@@ -13504,10 +13503,10 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           zcx_abapgit_exception,
       set_link_hint_key
         IMPORTING
-          iv_link_hint_key TYPE char01,
+          iv_link_hint_key TYPE string,
       get_link_hint_key
         RETURNING
-          VALUE(rv_link_hint_key) TYPE char01,
+          VALUE(rv_link_hint_key) TYPE string,
       get_link_hint_background_color
         RETURNING
           VALUE(rv_background_color) TYPE string,
@@ -26732,7 +26731,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD popup_overwrite.
 
-    DATA: lt_columns  TYPE stringtab,
+    DATA: lt_columns  TYPE string_table,
           lt_selected LIKE ct_overwrite,
           lv_column   LIKE LINE OF lt_columns,
           li_popups   TYPE REF TO zif_abapgit_popups.
@@ -26773,7 +26772,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD popup_package_overwrite.
 
-    DATA: lt_colums_to_display TYPE stringtab,
+    DATA: lt_colums_to_display TYPE string_table,
           lv_column            LIKE LINE OF lt_colums_to_display,
           lt_selected          LIKE ct_overwrite,
           li_popups            TYPE REF TO zif_abapgit_popups.
@@ -27221,7 +27220,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
           lv_answer                 TYPE c LENGTH 1,
           lt_unnecessary_local_objs TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lt_selected               LIKE lt_unnecessary_local_objs,
-          lt_columns                TYPE stringtab,
+          lt_columns                TYPE string_table,
           ls_checks                 TYPE zif_abapgit_definitions=>ty_delete_checks,
           li_popups                 TYPE REF TO zif_abapgit_popups.
 
@@ -27737,7 +27736,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   ENDMETHOD.
   METHOD on_select_list_link_click.
 
-    DATA: lv_line TYPE sytabix.
+    DATA: lv_line TYPE sy-tabix.
 
     FIELD-SYMBOLS: <lt_table>    TYPE STANDARD TABLE,
                    <lg_line>     TYPE any,
@@ -27748,8 +27747,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     lv_line = row.
 
-    READ TABLE <lt_table> ASSIGNING <lg_line>
-                       INDEX lv_line.
+    READ TABLE <lt_table> ASSIGNING <lg_line> INDEX lv_line.
     IF sy-subrc = 0.
 
       ASSIGN COMPONENT c_fieldname_selected
@@ -30601,7 +30599,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -30736,7 +30734,7 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
           lv_s_param   TYPE string,
           lo_settings  TYPE REF TO zcl_abapgit_settings,
           lv_body_size TYPE i,
-          lt_type      TYPE stringtab,
+          lt_type      TYPE string_table,
           lv_selected  TYPE string.
 
     FIELD-SYMBOLS: <lv_type> LIKE LINE OF lt_type.
@@ -30907,11 +30905,9 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
@@ -32129,11 +32125,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     CONSTANTS: lc_requirement_edit_count TYPE i VALUE 5.
     DATA: ls_dot               TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
           lv_selected          TYPE string,
-          lt_folder_logic      TYPE stringtab,
+          lt_folder_logic      TYPE string_table,
           lv_req_index         TYPE i,
           lv_requirement_count TYPE i.
 
-    FIELD-SYMBOLS: <lv_folder_logic> TYPE LINE OF stringtab,
+    FIELD-SYMBOLS: <lv_folder_logic> TYPE LINE OF string_table,
                    <ls_requirement>  TYPE zif_abapgit_dot_abapgit=>ty_requirement.
 
     ls_dot = mo_repo->get_dot_abapgit( )->get_data( ).
@@ -33181,9 +33177,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_definitions=>ty_merge_conflict.
@@ -33229,6 +33222,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -33789,7 +33785,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_to_stage.
 
     DATA: lo_repo              TYPE REF TO zcl_abapgit_repo_online,
@@ -34108,7 +34104,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD get_diff_line.
 
     DATA: lt_diff       TYPE zif_abapgit_definitions=>ty_diffs_tt,
-          lv_line_index TYPE sytabix.
+          lv_line_index TYPE sy-tabix.
     lv_line_index = iv_line_index.
     lt_diff = io_diff->get( ).
 
@@ -34588,16 +34584,6 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     add_to_stage( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
-
-    ls_hotkey_action-name   = |Stage changes|.
-    ls_hotkey_action-action = |stagePatch|.
-    ls_hotkey_action-hotkey = |s|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online.
@@ -34620,6 +34606,16 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-name   = |Stage changes|.
+    ls_hotkey_action-action = |stagePatch|.
+    ls_hotkey_action-hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
 ENDCLASS.
@@ -48709,7 +48705,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_where_used_recursive.
 
-    DATA: lt_findstrings TYPE stringtab,
+    DATA: lt_findstrings TYPE string_table,
           lt_founds      TYPE STANDARD TABLE OF rsfindlst,
           lt_scope       TYPE tty_seu_obj,
           lv_findstring  LIKE LINE OF lt_findstrings.
@@ -69329,7 +69325,8 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     DATA: li_http_client           TYPE REF TO if_http_client,
           lv_http_code             TYPE i,
           lv_http_code_description TYPE string,
-          lt_tobedeleted_tokens    TYPE stringtab.
+          lt_tobedeleted_tokens    TYPE string_table.
+
     FIELD-SYMBOLS: <lv_id> TYPE string.
 
     li_http_client = get_authenticated_client( iv_username  = iv_username
@@ -71288,7 +71285,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
     DATA: lv_annotated_tag_with_suffix TYPE string.
 
-    FIELD-SYMBOLS: <lv_result> TYPE LINE OF stringtab.
+    FIELD-SYMBOLS: <lv_result> TYPE LINE OF string_table.
 
     rv_type = zif_abapgit_definitions=>c_git_branch_type-other.
 
@@ -72231,7 +72228,7 @@ CLASS lcl_password_dialog DEFINITION FINAL.
     CLASS-METHODS on_screen_output.
     CLASS-METHODS on_screen_event
       IMPORTING
-        iv_ucomm TYPE syucomm.
+        iv_ucomm TYPE sy-ucomm.
 
   PRIVATE SECTION.
     CLASS-DATA gv_confirm TYPE abap_bool.
@@ -72497,7 +72494,7 @@ FORM password_popup
 
 ENDFORM.
 
-FORM remove_toolbar USING pv_dynnr TYPE char4.
+FORM remove_toolbar USING pv_dynnr TYPE sy-dynnr.
 
   DATA: ls_header               TYPE rpy_dyhead,
         lt_containers           TYPE dycatt_tab,
@@ -72581,5 +72578,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-15T06:33:26.537Z
+* abapmerge undefined - 2019-07-15T16:35:29.427Z
 ****************************************************
