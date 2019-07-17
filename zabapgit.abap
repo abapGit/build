@@ -3368,6 +3368,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
       IMPORTING iv_url                TYPE string
       RETURNING VALUE(ro_branch_list) TYPE REF TO zcl_abapgit_git_branch_list
       RAISING   zcx_abapgit_exception.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: BEGIN OF c_service,
                  receive TYPE string VALUE 'receive',       "#EC NOTEXT
@@ -69725,7 +69726,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -69860,6 +69861,8 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'unpack not ok' ).
     ELSEIF lv_string CP '*pre-receive hook declined*'.
       zcx_abapgit_exception=>raise( 'pre-receive hook declined' ).
+    ELSEIF lv_string CP '*protected branch hook declined*'.
+      zcx_abapgit_exception=>raise( 'protected branch hook declined' ).
     ELSEIF lv_string CP '*push declined due to email privacy*'.
       zcx_abapgit_exception=>raise( 'push declined due to email privacy' ).
     ELSEIF lv_string CP '*funny refname*'.
@@ -72609,5 +72612,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-17T08:00:25.290Z
+* abapmerge undefined - 2019-07-17T08:08:29.252Z
 ****************************************************
