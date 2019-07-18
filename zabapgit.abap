@@ -68711,6 +68711,8 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
       CHANGING
         cv_proxy_port = rv_port ).
 
+    CONDENSE rv_port.
+
   ENDMETHOD.
   METHOD get_proxy_url.
 
@@ -72617,5 +72619,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-18T14:09:17.347Z
+* abapmerge undefined - 2019-07-18T14:14:20.779Z
 ****************************************************
