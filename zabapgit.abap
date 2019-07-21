@@ -7712,7 +7712,11 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       ty_function_tt TYPE STANDARD TABLE OF ty_function WITH DEFAULT KEY .
     TYPES:
       ty_sobj_name_tt TYPE STANDARD TABLE OF sobj_name  WITH DEFAULT KEY .
-
+    TYPES: BEGIN OF ty_tpool_i18n,
+             language TYPE langu,
+             textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
+           END OF ty_tpool_i18n,
+           tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n.
     METHODS update_where_used
       IMPORTING
         !it_includes TYPE ty_sobj_name_tt .
@@ -7796,6 +7800,14 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       IMPORTING
         !iv_group      TYPE rs38l-area
         !iv_short_text TYPE tftit-stext .
+    METHODS serialize_texts
+        IMPORTING
+            iv_prog_name TYPE programm
+            !io_xml      TYPE REF TO zcl_abapgit_xml_output.
+    METHODS deserialize_texts
+        IMPORTING
+            iv_prog_name  TYPE programm
+            !io_xml       TYPE REF TO zcl_abapgit_xml_input.
 ENDCLASS.
 CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objects_program.
   PUBLIC SECTION.
@@ -59086,6 +59098,21 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD deserialize_texts.
+    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+          lt_tpool      TYPE textpool_table.
+
+    FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
+    io_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
+                  CHANGING  cg_data = lt_tpool_i18n ).
+
+    LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
+      lt_tpool = read_tpool( <ls_tpool>-textpool ).
+      deserialize_textpool( iv_program  = iv_prog_name
+                            iv_language = <ls_tpool>-language
+                            it_tpool    = lt_tpool ).
+    ENDLOOP.
+  ENDMETHOD.
   METHOD deserialize_xml.
 
     DATA: lv_complete     TYPE rs38l-area,
@@ -59491,6 +59518,34 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD serialize_texts.
+    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+          lt_tpool      TYPE textpool_table.
+
+    FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
+    " Table d010tinf stores info. on languages in which program is maintained
+    " Select all active translations of program texts
+    " Skip master language - it was already serialized
+    SELECT DISTINCT language
+      INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
+      FROM d010tinf
+      WHERE r3state = 'A'
+      AND   prog = iv_prog_name
+      AND   language <> mv_language.
+
+    SORT lt_tpool_i18n BY language ASCENDING.
+    LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
+      READ TEXTPOOL iv_prog_name
+        LANGUAGE <ls_tpool>-language
+        INTO lt_tpool.
+      <ls_tpool>-textpool = add_tpool( lt_tpool ).
+    ENDLOOP.
+
+    IF lines( lt_tpool_i18n ) > 0.
+      io_xml->add( iv_name = 'I18N_TPOOL'
+                   ig_data = lt_tpool_i18n ).
+    ENDIF.
+  ENDMETHOD.
   METHOD serialize_xml.
 
     DATA: lt_includes TYPE ty_sobj_name_tt,
@@ -59658,6 +59713,9 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     lv_program_name = main_name( ).
 
+    deserialize_texts( iv_prog_name = lv_program_name
+                       io_xml       = io_xml ).
+
     io_xml->read( EXPORTING iv_name = 'DYNPROS'
                   CHANGING cg_data = lt_dynpros ).
     deserialize_dynpros( lt_dynpros ).
@@ -59746,6 +59804,9 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     lv_program_name = main_name( ).
     ls_progdir = read_progdir( lv_program_name ).
+
+    serialize_texts( iv_prog_name = lv_program_name
+                     io_xml       = io_xml ).
 
     IF ls_progdir-subc = 'F'.
       lt_dynpros = serialize_dynpros( lv_program_name ).
@@ -72619,5 +72680,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-18T14:14:20.779Z
+* abapmerge undefined - 2019-07-21T10:37:08.443Z
 ****************************************************
