@@ -14904,9 +14904,10 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
                 iv_data     = ls_local_file-file-data ).
             ENDIF.
           WHEN zif_abapgit_definitions=>c_state-deleted.
-            IF ls_transport_object-delflag = abap_false.
+* SUSC, see https://github.com/larshp/abapGit/issues/2772
+            IF ls_transport_object-delflag = abap_false AND ls_transport_object-object <> 'SUSC'.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-                } should be removed, but has NO deletion flag in transport| ).
+              } should be removed, but has NO deletion flag in transport| ).
             ENDIF.
             io_stage->rm(
               iv_path     = ls_object_status-path
@@ -72680,5 +72681,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-21T10:37:08.443Z
+* abapmerge undefined - 2019-07-22T04:32:13.046Z
 ****************************************************
