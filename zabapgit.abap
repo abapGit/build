@@ -271,17 +271,17 @@ ENDCLASS.
 "! abapGit general error
 CLASS zcx_abapgit_exception DEFINITION
   INHERITING FROM cx_static_check
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
+    INTERFACES if_t100_message.
 
-    INTERFACES if_t100_message .
-
-    DATA subrc TYPE sysubrc READ-ONLY .
-    DATA msgv1 TYPE symsgv READ-ONLY .
-    DATA msgv2 TYPE symsgv READ-ONLY .
-    DATA msgv3 TYPE symsgv READ-ONLY .
-    DATA msgv4 TYPE symsgv READ-ONLY .
+    DATA subrc TYPE sysubrc READ-ONLY.
+    DATA msgv1 TYPE symsgv READ-ONLY.
+    DATA msgv2 TYPE symsgv READ-ONLY.
+    DATA msgv3 TYPE symsgv READ-ONLY.
+    DATA msgv4 TYPE symsgv READ-ONLY.
+    DATA mt_callstack TYPE abap_callstack READ-ONLY.
 
     "! Raise exception with text
     "! @parameter iv_text | Text
@@ -292,7 +292,7 @@ CLASS zcx_abapgit_exception DEFINITION
         !iv_text     TYPE clike
         !ix_previous TYPE REF TO cx_root OPTIONAL
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     "! Raise exception with T100 message
     "! <p>
     "! Will default to sy-msg* variables. These need to be set right before calling this method.
@@ -313,7 +313,7 @@ CLASS zcx_abapgit_exception DEFINITION
         VALUE(iv_msgv3) TYPE symsgv DEFAULT sy-msgv3
         VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !textid   LIKE if_t100_message=>t100key OPTIONAL
@@ -321,11 +321,17 @@ CLASS zcx_abapgit_exception DEFINITION
         !msgv1    TYPE symsgv OPTIONAL
         !msgv2    TYPE symsgv OPTIONAL
         !msgv3    TYPE symsgv OPTIONAL
-        !msgv4    TYPE symsgv OPTIONAL .
+        !msgv4    TYPE symsgv OPTIONAL.
+    METHODS get_longtext REDEFINITION.
+    METHODS get_source_position REDEFINITION.
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
       gc_generic_error_msg TYPE string VALUE `An error occured (ZCX_ABAPGIT_EXCEPTION)` ##NO_TEXT.
+
+    METHODS:
+      save_callstack.
+
 ENDCLASS.
 CLASS zcx_abapgit_exception IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
@@ -342,6 +348,33 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
     ELSE.
       if_t100_message~t100key = textid.
     ENDIF.
+
+    save_callstack( ).
+
+  ENDMETHOD.
+  METHOD get_longtext.
+
+    " You should remember that we have to call ZCL_ABAPGIT_MESSAGE_HELPER
+    " dynamically, because the compiled abapGit report puts the definition
+    " of the exception classes on the top and therefore ZCL_ABAPGIT_MESSAGE_HELPER
+    " isn't statically known
+
+    DATA: lo_message_helper TYPE REF TO object.
+
+    result = super->get_longtext( ).
+
+    IF if_t100_message~t100key IS NOT INITIAL.
+
+      CREATE OBJECT lo_message_helper TYPE ('ZCL_ABAPGIT_MESSAGE_HELPER')
+        EXPORTING
+          ii_t100_message = me.
+
+      CALL METHOD lo_message_helper->('GET_T100_LONGTEXT')
+        RECEIVING
+          rv_longtext = result.
+
+    ENDIF.
+
   ENDMETHOD.
   METHOD raise.
     DATA: lv_msgv1    TYPE symsgv,
@@ -357,7 +390,9 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
       lv_text = iv_text.
     ENDIF.
 
-    cl_message_helper=>set_msg_vars_for_clike( lv_text ).
+    CALL METHOD ('ZCL_ABAPGIT_MESSAGE_HELPER')=>set_msg_vars_for_clike
+      EXPORTING
+        iv_text = lv_text.
 
     ls_t100_key-msgid = sy-msgid.
     ls_t100_key-msgno = sy-msgno.
@@ -401,6 +436,54 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
         msgv3  = iv_msgv3
         msgv4  = iv_msgv4.
   ENDMETHOD.
+  METHOD save_callstack.
+
+    FIELD-SYMBOLS: <ls_callstack> TYPE abap_callstack_line.
+
+    CALL FUNCTION 'SYSTEM_CALLSTACK'
+      IMPORTING
+        callstack = mt_callstack.
+
+    " You should remember that the first lines are from zcx_abapgit_exception
+    " and are removed so that highest level in the callstack is the position where
+    " the exception is raised.
+    "
+    " For the merged report it's hard to do that, because zcx_abapgit_exception
+    " isn't visible in the callstack. Therefore we have to check the Events.
+    LOOP AT mt_callstack ASSIGNING <ls_callstack>.
+
+      IF <ls_callstack>-mainprogram CP |ZCX_ABAPGIT_EXCEPTION*| " full
+      OR <ls_callstack>-blockname = `SAVE_CALLSTACK` " merged
+      OR <ls_callstack>-blockname = `CONSTRUCTOR` " merged
+      OR <ls_callstack>-blockname CP `RAISE*`. "merged
+        DELETE TABLE mt_callstack FROM <ls_callstack>.
+      ELSE.
+        EXIT.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_source_position.
+
+    FIELD-SYMBOLS: <ls_callstack> TYPE abap_callstack_line.
+
+    READ TABLE mt_callstack ASSIGNING <ls_callstack>
+                            INDEX 1.
+    IF sy-subrc = 0.
+      program_name = <ls_callstack>-mainprogram.
+      include_name = <ls_callstack>-include.
+      source_line  = <ls_callstack>-line.
+    ELSE.
+      super->get_source_position(
+        IMPORTING
+          program_name = program_name
+          include_name = include_name
+          source_line  = source_line   ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcx_abapgit_cancel DEFINITION
@@ -494,6 +577,7 @@ CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
+CLASS zcl_abapgit_message_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
@@ -562,6 +646,7 @@ CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
+CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
@@ -1011,7 +1096,9 @@ INTERFACE zif_abapgit_gui_error_handler .
 
   METHODS handle_error
     IMPORTING
-      ix_error TYPE REF TO zcx_abapgit_exception.
+      ix_error          TYPE REF TO zcx_abapgit_exception
+    RETURNING
+      VALUE(rv_handled) TYPE abap_bool.
 
 ENDINTERFACE.
 
@@ -1107,7 +1194,8 @@ INTERFACE zif_abapgit_html.
       !iv_opt   TYPE clike OPTIONAL
       !iv_class TYPE string OPTIONAL
       !iv_id    TYPE string OPTIONAL
-      !iv_style TYPE string OPTIONAL.
+      !iv_style TYPE string OPTIONAL
+      !iv_title TYPE string OPTIONAL.
   METHODS add_checkbox
     IMPORTING
       iv_id TYPE string.
@@ -1120,6 +1208,7 @@ INTERFACE zif_abapgit_html.
       !iv_class     TYPE string OPTIONAL
       !iv_id        TYPE string OPTIONAL
       !iv_style     TYPE string OPTIONAL
+      !iv_title     TYPE string OPTIONAL
     RETURNING
       VALUE(rv_str) TYPE string .
   CLASS-METHODS icon
@@ -1695,6 +1784,9 @@ INTERFACE zif_abapgit_definitions .
       jump                     TYPE string VALUE 'jump',
       jump_transport           TYPE string VALUE 'jump_transport',
       url                      TYPE string VALUE 'url',
+      goto_source              TYPE string VALUE 'goto_source',
+      show_callstack           TYPE string VALUE 'show_callstack',
+      goto_message             TYPE string VALUE 'goto_message',
     END OF c_action .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
@@ -8725,9 +8817,8 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS constructor
       IMPORTING
-        io_component     TYPE REF TO object OPTIONAL
-        ii_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
-        ii_error_handler TYPE REF TO zif_abapgit_gui_error_handler OPTIONAL
+        io_component      TYPE REF TO object OPTIONAL
+        ii_asset_man      TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
         ii_html_processor TYPE REF TO zif_abapgit_gui_html_processor OPTIONAL
       RAISING
         zcx_abapgit_exception.
@@ -8743,13 +8834,12 @@ CLASS zcl_abapgit_gui DEFINITION
         bookmark TYPE abap_bool,
       END OF ty_page_stack.
 
-    DATA: mi_cur_page      TYPE REF TO zif_abapgit_gui_renderable,
-          mt_stack         TYPE STANDARD TABLE OF ty_page_stack,
-          mi_router        TYPE REF TO zif_abapgit_gui_event_handler,
-          mi_asset_man     TYPE REF TO zif_abapgit_gui_asset_manager,
-          mi_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+    DATA: mi_cur_page       TYPE REF TO zif_abapgit_gui_renderable,
+          mt_stack          TYPE STANDARD TABLE OF ty_page_stack,
+          mi_router         TYPE REF TO zif_abapgit_gui_event_handler,
+          mi_asset_man      TYPE REF TO zif_abapgit_gui_asset_manager,
           mi_html_processor TYPE REF TO zif_abapgit_gui_html_processor,
-          mo_html_viewer   TYPE REF TO cl_gui_html_viewer.
+          mo_html_viewer    TYPE REF TO cl_gui_html_viewer.
 
     METHODS startup
       RAISING
@@ -8784,6 +8874,10 @@ CLASS zcl_abapgit_gui DEFINITION
         iv_getdata     TYPE c OPTIONAL
         it_postdata    TYPE cnht_post_data_tab OPTIONAL
         it_query_table TYPE cnht_query_table OPTIONAL.
+
+    METHODS handle_error
+      IMPORTING
+        ix_exception TYPE REF TO zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
@@ -8951,12 +9045,12 @@ CLASS zcl_abapgit_html DEFINITION
 
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
-    CLASS-METHODS class_constructor .
+    CLASS-METHODS class_constructor.
     METHODS add_icon
       IMPORTING
         !iv_name  TYPE string
         !iv_hint  TYPE string OPTIONAL
-        !iv_class TYPE string OPTIONAL .
+        !iv_class TYPE string OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: co_span_link_hint TYPE string VALUE `<span class="tooltiptext hidden"></span>`.
@@ -9001,6 +9095,76 @@ CLASS zcl_abapgit_html DEFINITION
         iv_id          TYPE string
       RETURNING
         VALUE(rv_html) TYPE string.
+
+ENDCLASS.
+CLASS zcl_abapgit_exception_viewer DEFINITION
+  CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS:
+      constructor
+        IMPORTING
+          ix_error TYPE REF TO zcx_abapgit_exception,
+
+      goto_source
+        RAISING
+          zcx_abapgit_exception,
+
+      goto_message
+        RAISING
+          zcx_abapgit_exception,
+
+      show_callstack
+        RAISING
+          zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA:
+      mx_error     TYPE REF TO zcx_abapgit_exception,
+      mt_callstack TYPE abap_callstack.
+
+    METHODS:
+      build_top_of_list
+        IMPORTING
+          is_top_of_stack TYPE abap_callstack_line
+        RETURNING
+          VALUE(ro_form)  TYPE REF TO cl_salv_form_element,
+
+      add_row
+        IMPORTING
+          io_grid  TYPE REF TO cl_salv_form_layout_grid
+          iv_col_1 TYPE csequence
+          iv_col_2 TYPE csequence,
+
+      on_double_click FOR EVENT double_click OF cl_salv_events_table
+        IMPORTING
+            row column,
+
+      set_text
+        IMPORTING
+          io_columns TYPE REF TO cl_salv_columns_table
+          iv_column  TYPE lvc_fname
+          iv_text    TYPE string
+        RAISING
+          cx_salv_not_found,
+
+      goto_source_code
+        IMPORTING
+          is_callstack TYPE abap_callstack_line
+        RAISING
+          zcx_abapgit_exception,
+
+      extract_classname
+        IMPORTING
+          iv_mainprogram      TYPE abap_callstack_line-mainprogram
+        RETURNING
+          VALUE(rv_classname) TYPE tadir-obj_name,
+
+      get_top_of_callstack
+        RETURNING
+          VALUE(rs_top_of_callstack) TYPE abap_callstack_line
+        RAISING
+          zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
@@ -9065,12 +9229,17 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_commit_popup
       IMPORTING
-        !iv_content    TYPE csequence
-        !iv_id         TYPE csequence
+        iv_content     TYPE csequence
+        iv_id          TYPE csequence
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS render_error_message_box
+      IMPORTING
+        ix_error       TYPE REF TO zcx_abapgit_exception
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9109,11 +9278,14 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
   PUBLIC SECTION.
     INTERFACES:
       zif_abapgit_gui_renderable,
-      zif_abapgit_gui_event_handler.
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_error_handler.
 
     CONSTANTS:
+      " You should remember that these actions are handled in the UI.
+      " Have a look at the JS file.
       BEGIN OF c_global_page_action,
-        showhotkeys TYPE string VALUE `showHotkeys` ##NO_TEXT,
+        showhotkeys         TYPE string VALUE `showHotkeys` ##NO_TEXT,
       END OF c_global_page_action.
 
     CLASS-METHODS:
@@ -9142,8 +9314,10 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
-    DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
-          mt_hotkeys  TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_with_name.
+    DATA: mo_settings         TYPE REF TO zcl_abapgit_settings,
+          mt_hotkeys          TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_with_name,
+          mx_error            TYPE REF TO zcx_abapgit_exception,
+          mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer.
     METHODS html_head
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -9185,9 +9359,20 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
         VALUE(rt_hotkeys) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_with_name
       RAISING
         zcx_abapgit_exception.
+
     METHODS get_default_hotkeys
       RETURNING
         VALUE(rt_default_hotkeys) TYPE zif_abapgit_gui_page_hotkey=>tty_hotkey_with_name.
+
+    METHODS render_error_message_box
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS reg_error_message_panel_click
+      IMPORTING
+        io_html TYPE REF TO zcl_abapgit_html.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_db DEFINITION
@@ -12597,6 +12782,90 @@ CLASS zcl_abapgit_merge DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_message_helper DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CONSTANTS:
+      BEGIN OF gc_section_text,
+        cause           TYPE string VALUE `Cause`,
+        system_response TYPE string VALUE `System response`,
+        what_to_do      TYPE string VALUE `Procedure`,
+        sys_admin       TYPE string VALUE `System administration`,
+      END OF gc_section_text,
+      BEGIN OF gc_section_token,
+        cause           TYPE string VALUE `&CAUSE&`,
+        system_response TYPE string VALUE `&SYSTEM_RESPONSE&`,
+        what_to_do      TYPE string VALUE `&WHAT_TO_DO&`,
+        sys_admin       TYPE string VALUE `&SYS_ADMIN&`,
+      END OF gc_section_token.
+
+    CLASS-METHODS:
+      set_msg_vars_for_clike
+        IMPORTING
+          iv_text TYPE string.
+
+    METHODS:
+      constructor
+        IMPORTING
+          ii_t100_message TYPE REF TO if_t100_message,
+
+      get_t100_longtext
+        RETURNING
+          VALUE(rv_longtext) TYPE string.
+
+  PRIVATE SECTION.
+    DATA:
+      mi_t100_message TYPE REF TO if_t100_message.
+
+    METHODS:
+      itf_to_string
+        IMPORTING
+          it_itf           TYPE tline_tab
+        RETURNING
+          VALUE(rv_result) TYPE string,
+
+      get_t100_longtext_itf
+        RETURNING
+          VALUE(rt_itf) TYPE tline_tab,
+
+      remove_empty_section
+        IMPORTING
+          iv_tabix_from TYPE i
+          iv_tabix_to   TYPE i
+        CHANGING
+          ct_itf        TYPE tline_tab,
+
+      replace_section_head_with_text
+        CHANGING
+          cs_itf TYPE tline,
+
+      set_single_msg_var
+        IMPORTING
+          iv_arg    TYPE clike
+        EXPORTING
+          ev_target TYPE c,
+
+      set_single_msg_var_clike
+        IMPORTING
+          iv_arg    TYPE clike
+        EXPORTING
+          ev_target TYPE c,
+
+      set_single_msg_var_numeric
+        IMPORTING
+          iv_arg    TYPE numeric
+        EXPORTING
+          ev_target TYPE c,
+
+      set_single_msg_var_xseq
+        IMPORTING
+          iv_arg    TYPE xsequence
+        EXPORTING
+          ev_target TYPE c.
+
+ENDCLASS.
 CLASS zcl_abapgit_migrations DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -12771,6 +13040,8 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
         !iv_line_number TYPE i OPTIONAL
+        iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+        iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS changed_by
@@ -17939,7 +18210,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -18590,14 +18861,42 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
 
     IF lv_adt_jump_enabled = abap_true.
+
       TRY.
           zcl_abapgit_objects_super=>jump_adt(
-            iv_obj_name    = is_item-obj_name
-            iv_obj_type    = is_item-obj_type
-            iv_line_number = iv_line_number ).
+            iv_obj_name     = is_item-obj_name
+            iv_obj_type     = is_item-obj_type
+            iv_sub_obj_name = iv_sub_obj_name
+            iv_sub_obj_type = iv_sub_obj_type
+            iv_line_number  = iv_line_number ).
         CATCH zcx_abapgit_exception.
           li_obj->jump( ).
       ENDTRY.
+
+    ELSEIF iv_line_number IS NOT INITIAL
+       AND iv_sub_obj_type IS NOT INITIAL
+       AND iv_sub_obj_name IS NOT INITIAL.
+
+      " For the line navigation we have to supply the sub object type (i_sub_obj_type).
+      " If we use is_item-obj_type it navigates only to the object.
+
+      CALL FUNCTION 'RS_TOOL_ACCESS'
+        EXPORTING
+          operation           = 'SHOW'
+          object_name         = is_item-obj_name
+          object_type         = iv_sub_obj_type
+          include             = iv_sub_obj_name
+          position            = iv_line_number
+          in_new_window       = abap_true
+        EXCEPTIONS
+          not_executed        = 1
+          invalid_object_type = 2
+          OTHERS              = 3.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
     ELSE.
       li_obj->jump( ).
     ENDIF.
@@ -19153,6 +19452,263 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
     " local .abapgit.xml state, issue #630
     local_dot_abapgit( ).
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_message_helper IMPLEMENTATION.
+
+  METHOD constructor.
+
+    mi_t100_message = ii_t100_message.
+
+  ENDMETHOD.
+  METHOD get_t100_longtext.
+
+    rv_longtext = itf_to_string( get_t100_longtext_itf( ) ).
+
+  ENDMETHOD.
+  METHOD get_t100_longtext_itf.
+
+    DATA: lv_docu_key TYPE doku_obj,
+          ls_itf      LIKE LINE OF rt_itf.
+
+    lv_docu_key = mi_t100_message->t100key-msgid && mi_t100_message->t100key-msgno.
+
+    CALL FUNCTION 'DOCU_GET'
+      EXPORTING
+        id     = 'NA'
+        langu  = sy-langu
+        object = lv_docu_key
+        typ    = 'E'
+      TABLES
+        line   = rt_itf
+      EXCEPTIONS
+        OTHERS = 1.
+
+    IF sy-subrc = 0.
+      set_single_msg_var(
+        EXPORTING
+          iv_arg    = mi_t100_message->t100key-attr1
+        IMPORTING
+          ev_target = sy-msgv1 ).
+
+      REPLACE '&V1&' IN TABLE rt_itf
+                     WITH sy-msgv1.
+
+      set_single_msg_var(
+       EXPORTING
+         iv_arg    = mi_t100_message->t100key-attr2
+       IMPORTING
+         ev_target = sy-msgv2 ).
+
+      REPLACE '&V2&' IN TABLE rt_itf
+                     WITH sy-msgv2.
+
+      set_single_msg_var(
+       EXPORTING
+         iv_arg    = mi_t100_message->t100key-attr3
+       IMPORTING
+         ev_target = sy-msgv3 ).
+
+      REPLACE '&V3&' IN TABLE rt_itf
+                     WITH sy-msgv3.
+
+      set_single_msg_var(
+       EXPORTING
+         iv_arg    = mi_t100_message->t100key-attr4
+       IMPORTING
+         ev_target = sy-msgv4 ).
+
+      REPLACE '&V4&' IN TABLE rt_itf
+                     WITH sy-msgv4.
+    ENDIF.
+
+    ls_itf-tdformat = '*'.
+    ls_itf-tdline   = |{ mi_t100_message->t100key-msgid }{ mi_t100_message->t100key-msgno }|.
+    INSERT ls_itf INTO rt_itf INDEX 1.
+
+  ENDMETHOD.
+  METHOD itf_to_string.
+
+    CONSTANTS: lc_format_section TYPE string VALUE 'U1' ##NO_TEXT.
+
+    DATA:
+      lt_stream      TYPE TABLE OF tdline,
+      lt_string      TYPE TABLE OF string,
+      ls_string      LIKE LINE OF lt_string,
+      lt_itf         TYPE tline_tab,
+      lv_has_content TYPE abap_bool,
+      lv_tabix_from  TYPE syst-tabix,
+      lv_tabix_to    TYPE syst-tabix.
+
+    FIELD-SYMBOLS: <ls_itf_section>      TYPE tline,
+                   <ls_itf_section_item> TYPE tline.
+
+    lt_itf = it_itf.
+
+    " You should remember that we replace the U1 format because
+    " that preserves the section header of longtexts.
+    LOOP AT lt_itf ASSIGNING <ls_itf_section>
+                   WHERE tdformat = lc_format_section.
+
+      CLEAR:
+        lv_has_content,
+        lv_tabix_to.
+
+      lv_tabix_from = sy-tabix.
+
+      LOOP AT lt_itf ASSIGNING <ls_itf_section_item>
+                     FROM sy-tabix + 1.
+
+        IF <ls_itf_section_item>-tdformat = lc_format_section.
+          lv_tabix_to = sy-tabix.
+          EXIT.
+        ELSEIF <ls_itf_section_item>-tdline IS NOT INITIAL.
+          lv_has_content = abap_true.
+        ENDIF.
+
+      ENDLOOP.
+
+      IF lv_has_content = abap_false.
+        remove_empty_section(
+          EXPORTING
+            iv_tabix_from = lv_tabix_from
+            iv_tabix_to   = lv_tabix_to
+          CHANGING
+            ct_itf        = lt_itf ).
+        CONTINUE.
+      ENDIF.
+
+      replace_section_head_with_text(
+        CHANGING
+          cs_itf = <ls_itf_section> ).
+
+    ENDLOOP.
+
+    CALL FUNCTION 'CONVERT_ITF_TO_STREAM_TEXT'
+      EXPORTING
+        lf           = 'X'
+      IMPORTING
+        stream_lines = lt_string
+      TABLES
+        itf_text     = lt_itf
+        text_stream  = lt_stream.
+
+    LOOP AT lt_string INTO ls_string.
+      IF sy-tabix = 1.
+        rv_result = ls_string.
+      ELSE.
+        CONCATENATE rv_result ls_string
+                    INTO rv_result
+                    SEPARATED BY cl_abap_char_utilities=>newline.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD remove_empty_section.
+    DELETE ct_itf FROM iv_tabix_from TO iv_tabix_to.
+  ENDMETHOD.
+  METHOD replace_section_head_with_text.
+
+    CASE cs_itf-tdline.
+      WHEN gc_section_token-cause.
+        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-cause.
+      WHEN gc_section_token-system_response.
+        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-system_response.
+      WHEN gc_section_token-what_to_do.
+        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-what_to_do.
+      WHEN gc_section_token-sys_admin.
+        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-sys_admin.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD set_msg_vars_for_clike.
+
+    TYPES:
+      BEGIN OF ty_msg,
+        msgv1 TYPE symsgv,
+        msgv2 TYPE symsgv,
+        msgv3 TYPE symsgv,
+        msgv4 TYPE symsgv,
+      END OF ty_msg.
+
+    DATA: ls_msg   TYPE ty_msg,
+          lv_dummy TYPE string.
+
+    ls_msg = iv_text.
+
+    " &1&2&3&4&5&6&7&8
+    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4
+                     INTO lv_dummy.
+
+  ENDMETHOD.
+  METHOD set_single_msg_var.
+
+    FIELD-SYMBOLS <lv_arg> TYPE any.
+
+    CLEAR ev_target.
+
+    IF iv_arg IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    ASSIGN me->(iv_arg) TO <lv_arg>.
+    IF sy-subrc <> 0.
+      CONCATENATE '&' iv_arg '&' INTO ev_target.
+      RETURN.
+    ENDIF.
+
+    TRY.
+        set_single_msg_var_clike(
+          EXPORTING
+            iv_arg    = <lv_arg>
+          IMPORTING
+            ev_target = ev_target ).
+
+        RETURN.
+
+      CATCH cx_sy_dyn_call_illegal_type ##no_handler.
+    ENDTRY.
+
+    TRY.
+        set_single_msg_var_numeric(
+          EXPORTING
+            iv_arg    = <lv_arg>
+          IMPORTING
+            ev_target = ev_target ).
+
+        RETURN.
+
+      CATCH cx_sy_dyn_call_illegal_type ##no_handler.
+    ENDTRY.
+
+    TRY.
+        set_single_msg_var_xseq(
+          EXPORTING
+            iv_arg    = <lv_arg>
+          IMPORTING
+            ev_target = ev_target ).
+
+        RETURN.
+
+      CATCH cx_sy_dyn_call_illegal_type ##no_handler.
+    ENDTRY.
+
+    CONCATENATE '&' iv_arg '&' INTO ev_target.
+
+  ENDMETHOD.
+  METHOD set_single_msg_var_clike.
+    " a kind of MOVE where all conversion errors are signalled by exceptions
+    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
+  ENDMETHOD.
+  METHOD set_single_msg_var_numeric.
+    " a kind of MOVE where all conversion errors are signalled by exceptions
+    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
+  ENDMETHOD.
+  METHOD set_single_msg_var_xseq.
+    " a kind of MOVE where all conversion errors are signalled by exceptions
+    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
   ENDMETHOD.
 ENDCLASS.
 
@@ -23465,22 +24021,6 @@ CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION DEFERRED.
-* renamed: zcl_abapgit_ui_factory :: lcl_gui_error_handler
-CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY DEFINITION.
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_error_handler.
-ENDCLASS.
-
-CLASS kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY IMPLEMENTATION.
-
-  METHOD zif_abapgit_gui_error_handler~handle_error.
-    ROLLBACK WORK.
-    MESSAGE ix_error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDMETHOD.
-
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_frontend_services.
 
@@ -23497,7 +24037,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       li_router    TYPE REF TO zif_abapgit_gui_event_handler,
       li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
-    DATA lo_error_handler TYPE REF TO kHGwlUeWgGWXqMsZwpmuBhBLUQfXJY.
     DATA lo_html_preprocessor TYPE REF TO zcl_abapgit_gui_html_processor.
 
     IF go_gui IS INITIAL.
@@ -23508,14 +24047,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       lo_html_preprocessor->preserve_css( 'css/common.css' ).
 
       CREATE OBJECT li_router TYPE zcl_abapgit_gui_router.
-      CREATE OBJECT lo_error_handler.
 
       CREATE OBJECT go_gui
         EXPORTING
-          io_component     = li_router
-          ii_error_handler = lo_error_handler
+          io_component      = li_router
           ii_html_processor = lo_html_preprocessor
-          ii_asset_man     = li_asset_man.
+          ii_asset_man      = li_asset_man.
     ENDIF.
     ro_gui = go_gui.
 
@@ -23578,7 +24115,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  text-decoration: underline;'.
     _inline '}'.
     _inline ''.
-    _inline 'img { '.
+    _inline 'img {'.
     _inline '  border-width: 0px;'.
     _inline '  vertical-align: middle;'.
     _inline '}'.
@@ -24237,6 +24774,50 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'div.info-panel .update { border:  1px solid; }'.
     _inline 'div.info-panel div.info-list td { padding-right: 1em }'.
     _inline ''.
+    _inline '/* Error message Panel */'.
+    _inline ''.
+    _inline 'div.message-panel {'.
+    _inline '  z-index: 99;'.
+    _inline '  box-shadow: 2px 2px 4px 0px hsla(0, 0%, 0%, .1);'.
+    _inline '  padding: 12px;'.
+    _inline '  margin-left: -48%;'.
+    _inline '  position: fixed;'.
+    _inline '  bottom: 12px;'.
+    _inline '  width: 94%;'.
+    _inline '  left: 50%;'.
+    _inline ''.
+    _inline '  border: 1px solid;'.
+    _inline '  border-radius: 5px;'.
+    _inline '  border-color: hsl(0, 42%, 64%);'.
+    _inline '  background-color: hsla(0, 42%, 90%, 1);'.
+    _inline '}'.
+    _inline ''.
+    _inline '.message-panel .close-btn{'.
+    _inline '  position: absolute;'.
+    _inline '  right: 20px;'.
+    _inline '  bottom: 10px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.message-panel-commands {'.
+    _inline '  display: none;'.
+    _inline '  margin-right: 2em;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.message-panel-commands a {'.
+    _inline '  padding: 0em 0.5em;'.
+    _inline '  border-left: 1px solid;'.
+    _inline '  border-left-color: #ccc;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.message-panel-commands a:first-child {'.
+    _inline '  padding-left: 0;'.
+    _inline '  border-left: none;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'div.message-panel:hover .message-panel-commands {'.
+    _inline '  display: block'.
+    _inline '}'.
+    _inline ''.
     _inline '/* Tooltip text */'.
     _inline '.tooltiptext {'.
     _inline '    line-height: 15px;'.
@@ -24814,6 +25395,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported onDirectionChange */'.
     _inline '/* exported onOrderByChange  */'.
     _inline '/* exported onTagTypeChange */'.
+    _inline '/* exported errorMessagePanelRegisterClick */'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Polyfills'.
@@ -26151,6 +26733,25 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
     _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
     _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
+    _inline '}'.
+    _inline ''.
+    _inline '// Click on error message panel toggles longtext'.
+    _inline 'function errorMessagePanelRegisterClick(){'.
+    _inline '  var elMessage = document.getElementById("message");'.
+    _inline '  if (elMessage){'.
+    _inline '    elMessage.addEventListener("click", function(oEvent){'.
+    _inline '      toggleMessageDetail(oEvent);'.
+    _inline '    });'.
+    _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function toggleMessageDetail(oEvent){'.
+    _inline '  if (oEvent &&  ( oEvent.target.id === "a_goto_source"'.
+    _inline '                || oEvent.target.id === "a_callstack"'.
+    _inline '                || oEvent.target.id === "a_goto_message") ) {'.
+    _inline '    return;'.
+    _inline '  }'.
+    _inline '  toggleDisplay("message-detail");'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -30110,6 +30711,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
@@ -30621,6 +31223,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
@@ -34640,6 +35243,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
             io_stage = mo_stage.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
+      WHEN OTHERS.
+
+        super->zif_abapgit_gui_event_handler~on_event(
+           EXPORTING
+             iv_action    = iv_action
+             iv_prev_page = iv_prev_page
+             iv_getdata   = iv_getdata
+             it_postdata  = it_postdata
+           IMPORTING
+             ei_page      = ei_page
+             ev_state     = ev_state ).
+
     ENDCASE.
 
   ENDMETHOD.
@@ -36050,7 +36665,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -36148,8 +36763,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey.
 
-    ls_hotkey_action-name           = |Show hotkeys help|.
-    ls_hotkey_action-action         = c_global_page_action-showhotkeys.
+    ls_hotkey_action-name   = |Show hotkeys help|.
+    ls_hotkey_action-action = c_global_page_action-showhotkeys.
     ls_hotkey_action-hotkey = |?|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey.
 
@@ -36242,6 +36857,33 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
+  METHOD render_error_message_box.
+
+    " You should remember that the we have to instantiate ro_html even
+    " it's overwritten further down. Because ADD checks whether it's
+    " bound.
+    CREATE OBJECT ro_html.
+
+    " You should remember that we render the message panel only
+    " if we have an error.
+    IF mx_error IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    ro_html = zcl_abapgit_gui_chunk_lib=>render_error_message_box( mx_error ).
+
+    " You should remember that the exception viewer dispatches the events of
+    " error message panel
+    CREATE OBJECT mo_exception_viewer
+      EXPORTING
+        ix_error = mx_error.
+
+    " You should remember that we render the message panel just once
+    " for each exception/error text.
+    CLEAR:
+      mx_error.
+
+  ENDMETHOD.
   METHOD render_hotkey_overview.
 
     ro_html = zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( me ).
@@ -36253,6 +36895,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     link_hints( ro_html ).
     insert_hotkeys_to_page( ro_html ).
+    reg_error_message_panel_click( ro_html ).
 
   ENDMETHOD.
   METHOD title.
@@ -36290,11 +36933,38 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
         call_browser( iv_getdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
+      WHEN  zif_abapgit_definitions=>c_action-goto_source.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->goto_source( ).
+        ENDIF.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN  zif_abapgit_definitions=>c_action-show_callstack.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->show_callstack( ).
+        ENDIF.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-goto_message.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->goto_message( ).
+        ENDIF.
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
       WHEN OTHERS.
 
         ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_error_handler~handle_error.
+
+    mx_error = ix_error.
+    rv_handled = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -36319,6 +36989,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( title( ) ).
     ro_html->add( render_hotkey_overview( ) ).
     ro_html->add( render_content( ) ).
+    ro_html->add( render_error_message_box( ) ).
     ro_html->add( footer( ) ).
     ro_html->add( '</body>' ).                              "#EC NOTEXT
 
@@ -36334,6 +37005,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
+
+  METHOD reg_error_message_panel_click.
+    io_html->add( |errorMessagePanelRegisterClick();| ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
@@ -36407,6 +37083,96 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( '<div class="dummydiv error">' ).
     ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-circle/red' ) } Error: { lv_error }| ).
     ro_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD render_error_message_box.
+
+    CONSTANTS: lc_regex_msgid_and_msgno TYPE string VALUE `(.{5})` ##NO_TEXT.
+
+    DATA:
+      lv_error_text      TYPE string,
+      lv_longtext        TYPE string,
+      lv_msgid_and_msgno TYPE string,
+      lv_program_name    TYPE syrepid.
+    CREATE OBJECT ro_html.
+
+    lv_error_text = ix_error->get_text( ).
+    lv_longtext = ix_error->get_longtext( abap_true ).
+
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline
+            IN lv_longtext
+            WITH '<br>'.
+
+    FIND FIRST OCCURRENCE OF REGEX lc_regex_msgid_and_msgno
+         IN lv_longtext
+         SUBMATCHES lv_msgid_and_msgno.
+
+    IF sy-subrc = 0.
+      REPLACE FIRST OCCURRENCE OF REGEX lc_regex_msgid_and_msgno
+              IN lv_longtext
+              WITH ``.
+    ENDIF.
+
+    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-cause }<br>)|
+            IN lv_longtext
+            WITH |<h3>$1</h3>|.
+
+    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-system_response }<br>)|
+            IN lv_longtext
+            WITH |<h3>$1</h3>|.
+
+    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-what_to_do }<br>)|
+            IN lv_longtext
+            WITH |<h3>$1</h3>|.
+
+    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-sys_admin }<br>)|
+            IN lv_longtext
+            WITH |<h3>$1</h3>|.
+
+    ro_html->add( |<div id="message" class="message-panel">| ).
+    ro_html->add( |{ lv_error_text }| ).
+    ro_html->add( |<div class="float-right">| ).
+
+    ro_html->add_a(
+        iv_txt   = `&#x274c;`
+        iv_act   = `toggleDisplay('message')`
+        iv_class = `close-btn`
+        iv_typ   = zif_abapgit_html=>c_action_type-onclick ).
+
+    ro_html->add( |</div>| ).
+
+    ro_html->add( |<div class="float-right message-panel-commands">| ).
+
+    IF lv_msgid_and_msgno IS NOT INITIAL.
+      ro_html->add_a(
+          iv_txt = lv_msgid_and_msgno
+          iv_typ = zif_abapgit_html=>c_action_type-sapevent
+          iv_act = zif_abapgit_definitions=>c_action-goto_message
+          iv_id  = `a_goto_message` ).
+    ENDIF.
+
+    ix_error->get_source_position(
+      IMPORTING
+        program_name = lv_program_name ).
+
+    ro_html->add_a(
+        iv_txt   = `Goto source`
+        iv_act   = zif_abapgit_definitions=>c_action-goto_source
+        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+        iv_title = |{ lv_program_name }|
+        iv_id    = `a_goto_source` ).
+
+    ro_html->add_a(
+        iv_txt = `Callstack`
+        iv_act = zif_abapgit_definitions=>c_action-show_callstack
+        iv_typ = zif_abapgit_html=>c_action_type-sapevent
+        iv_id  = `a_callstack` ).
+
+    ro_html->add( |</div>| ).
+    ro_html->add( |<div class="message-panel-commands">| ).
+    ro_html->add( |{ lv_longtext }| ).
+    ro_html->add( |</div>| ).
+    ro_html->add( |</div>| ).
 
   ENDMETHOD.
   METHOD render_hotkey_overview.
@@ -36879,6 +37645,246 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_exception_viewer IMPLEMENTATION.
+  METHOD add_row.
+
+    DATA: lo_row TYPE REF TO cl_salv_form_layout_flow.
+
+    lo_row = io_grid->add_row( ).
+
+    lo_row->create_label( position = 1
+                          text     = iv_col_1 ).
+
+    lo_row->create_label( position = 2
+                          text     = iv_col_2 ).
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    mx_error = ix_error.
+    mt_callstack = mx_error->mt_callstack.
+
+  ENDMETHOD.
+  METHOD build_top_of_list.
+
+    DATA: lo_grid TYPE REF TO cl_salv_form_layout_grid.
+
+    CREATE OBJECT lo_grid
+      EXPORTING
+        columns = 2.
+
+    add_row( io_grid  = lo_grid
+             iv_col_1 = 'Main program:'
+             iv_col_2 = is_top_of_stack-mainprogram ).
+
+    add_row( io_grid  = lo_grid
+             iv_col_1 = 'Include name:'
+             iv_col_2 = is_top_of_stack-include ).
+
+    add_row( io_grid  = lo_grid
+             iv_col_1 = 'Source line'
+             iv_col_2 = |{ is_top_of_stack-line }| ).
+
+    ro_form = lo_grid.
+
+  ENDMETHOD.
+  METHOD goto_message.
+
+    DATA: lt_bdcdata TYPE STANDARD TABLE OF bdcdata,
+          ls_bdcdata LIKE LINE OF lt_bdcdata.
+
+    ls_bdcdata-program  = 'SAPLWBMESSAGES'.
+    ls_bdcdata-dynpro   = '0100'.
+    ls_bdcdata-dynbegin = abap_true.
+    INSERT ls_bdcdata INTO TABLE lt_bdcdata.
+
+    CLEAR: ls_bdcdata.
+    ls_bdcdata-fnam = 'RSDAG-ARBGB'.
+    ls_bdcdata-fval = mx_error->if_t100_message~t100key-msgid.
+    INSERT ls_bdcdata INTO TABLE lt_bdcdata.
+
+    CLEAR: ls_bdcdata.
+    ls_bdcdata-fnam = 'MSG_NUMMER'.
+    ls_bdcdata-fval = mx_error->if_t100_message~t100key-msgno.
+    INSERT ls_bdcdata INTO TABLE lt_bdcdata.
+
+    CLEAR: ls_bdcdata.
+    ls_bdcdata-fnam = 'RSDAG-MSGFLAG'.
+    ls_bdcdata-fval = 'X'.
+    INSERT ls_bdcdata INTO TABLE lt_bdcdata.
+
+    CLEAR: ls_bdcdata.
+    ls_bdcdata-fnam = 'BDC_OKCODE'.
+    ls_bdcdata-fval = '=WB_DISPLAY'.
+    INSERT ls_bdcdata INTO TABLE lt_bdcdata.
+
+    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+      STARTING NEW TASK 'GIT'
+      EXPORTING
+        tcode                   = 'SE91'
+        mode_val                = 'E'
+      TABLES
+        using_tab               = lt_bdcdata
+      EXCEPTIONS
+        call_transaction_denied = 1
+        tcode_invalid           = 2
+        OTHERS                  = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD goto_source.
+
+    goto_source_code( get_top_of_callstack( ) ).
+
+  ENDMETHOD.
+  METHOD goto_source_code.
+
+    CONSTANTS:
+      BEGIN OF lc_obj_type,
+        class   TYPE trobjtype VALUE `CLAS`,
+        program TYPE trobjtype VALUE `PROG`,
+      END OF lc_obj_type.
+
+    DATA:
+      ls_item      TYPE zif_abapgit_definitions=>ty_item,
+      lv_classname LIKE ls_item-obj_name.
+
+    " you should remember that we distinct two cases
+    " 1) we navigate to a global class
+    " 2) we navigate to a program
+    " the latter one is the default case
+
+    lv_classname = extract_classname( is_callstack-mainprogram ).
+
+    IF lv_classname IS NOT INITIAL.
+      ls_item-obj_name = lv_classname.
+      ls_item-obj_type = lc_obj_type-class.
+    ELSE.
+      ls_item-obj_name = is_callstack-mainprogram.
+      ls_item-obj_type = lc_obj_type-program.
+    ENDIF.
+
+    zcl_abapgit_objects=>jump(
+        is_item         = ls_item
+        iv_line_number  = is_callstack-line
+        iv_sub_obj_name = is_callstack-include
+        iv_sub_obj_type = lc_obj_type-program ).
+
+  ENDMETHOD.
+  METHOD on_double_click.
+
+    DATA: lx_error TYPE REF TO zcx_abapgit_exception.
+    FIELD-SYMBOLS: <ls_callstack> TYPE abap_callstack_line.
+
+    READ TABLE mt_callstack ASSIGNING <ls_callstack>
+                            INDEX row.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    TRY.
+        goto_source_code( <ls_callstack> ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD set_text.
+
+    DATA: lo_column      TYPE REF TO cl_salv_column,
+          lv_short_text  TYPE scrtext_s,
+          lv_medium_text TYPE scrtext_m,
+          lv_long_text   TYPE scrtext_l.
+
+    lo_column = io_columns->get_column( iv_column ).
+
+    lv_short_text  = iv_text.
+    lv_medium_text = iv_text.
+    lv_long_text   = iv_text.
+
+    lo_column->set_short_text( lv_short_text ).
+    lo_column->set_medium_text( lv_medium_text ).
+    lo_column->set_long_text( lv_long_text ).
+
+  ENDMETHOD.
+  METHOD show_callstack.
+
+    DATA: lx_error   TYPE REF TO cx_salv_error,
+          lo_event   TYPE REF TO cl_salv_events_table,
+          lo_columns TYPE REF TO cl_salv_columns_table,
+          lo_alv     TYPE REF TO cl_salv_table.
+
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = lo_alv
+          CHANGING
+            t_table      = mt_callstack ).
+
+        lo_alv->get_columns( )->set_optimize( ).
+
+        lo_alv->set_top_of_list( build_top_of_list( get_top_of_callstack( ) ) ).
+
+        lo_alv->set_screen_popup( start_column = 10
+                                  end_column   = 180
+                                  start_line   = 3
+                                  end_line     = 30 ).
+
+        lo_event = lo_alv->get_event( ).
+
+        lo_columns = lo_alv->get_columns( ).
+
+        set_text( io_columns = lo_columns
+                  iv_column  = |LINE|
+                  iv_text    = |Line| ).
+
+        set_text( io_columns = lo_columns
+                  iv_column  = |LINE|
+                  iv_text    = |Line| ).
+
+        set_text( io_columns = lo_columns
+                  iv_column  = |BLOCKTYPE|
+                  iv_text    = |Event Type| ).
+
+        set_text( io_columns = lo_columns
+                  iv_column  = |BLOCKNAME|
+                  iv_text    = |Event| ).
+
+        set_text( io_columns = lo_columns
+                  iv_column  = |FLAG_SYSTEM|
+                  iv_text    = |System| ).
+
+        SET HANDLER on_double_click FOR lo_event.
+
+        lo_alv->display( ).
+
+      CATCH cx_salv_error INTO lx_error.
+        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD extract_classname.
+
+    rv_classname = substring_before( val   = iv_mainprogram
+                                     regex = '=*CP$' ).
+
+  ENDMETHOD.
+  METHOD get_top_of_callstack.
+
+    READ TABLE mt_callstack INDEX 1
+                            INTO rs_top_of_callstack.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Callstack is empty| ).
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -37200,7 +38206,8 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
           lv_href  TYPE string,
           lv_click TYPE string,
           lv_id    TYPE string,
-          lv_style TYPE string.
+          lv_style TYPE string,
+          lv_title TYPE string.
 
     lv_class = iv_class.
 
@@ -37241,7 +38248,12 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       lv_style = | style="{ iv_style }"|.
     ENDIF.
 
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }>{ iv_txt }{ co_span_link_hint }</a>|.
+    IF iv_title IS NOT INITIAL.
+      lv_title = | title="{ iv_title }"|.
+    ENDIF.
+
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
+          && |{ iv_txt }{ co_span_link_hint }</a>|.
 
   ENDMETHOD.
   METHOD add.
@@ -37280,7 +38292,8 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
             iv_opt   = iv_opt
             iv_class = iv_class
             iv_id    = iv_id
-            iv_style = iv_style ) ).
+            iv_style = iv_style
+            iv_title = iv_title ) ).
 
   ENDMETHOD.
   METHOD add_icon.
@@ -37802,7 +38815,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -37869,7 +38882,6 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ENDIF.
 
     mi_asset_man = ii_asset_man.
-    mi_error_handler = ii_error_handler.
     mi_html_processor = ii_html_processor. " Maybe improve to middlewares stack ??
     startup( ).
 
@@ -37973,9 +38985,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
       CATCH zcx_abapgit_exception INTO lx_exception.
-        IF mi_error_handler IS BOUND.
-          mi_error_handler->handle_error( lx_exception ).
-        ENDIF.
+        ROLLBACK WORK.
+        handle_error( lx_exception ).
     ENDTRY.
 
   ENDMETHOD.
@@ -38081,6 +39092,29 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ASSERT sy-subrc = 0. " Image data error
 
   ENDMETHOD.
+
+  METHOD handle_error.
+
+    DATA: li_gui_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+          lx_exception         TYPE REF TO cx_root.
+
+    TRY.
+        li_gui_error_handler ?= mi_cur_page.
+
+        IF li_gui_error_handler->handle_error( ix_exception ) = abap_true.
+          " We rerender the current page to display the error box
+          render( ).
+        ELSE.
+          MESSAGE ix_exception TYPE 'S' DISPLAY LIKE 'E'.
+        ENDIF.
+
+      CATCH zcx_abapgit_exception cx_sy_move_cast_error INTO lx_exception.
+        " In case of fire we just fallback to plain old message
+        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_test_serialize IMPLEMENTATION.
@@ -72681,5 +73715,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-22T04:32:13.046Z
+* abapmerge undefined - 2019-07-28T10:48:48.482Z
 ****************************************************
