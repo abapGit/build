@@ -37572,7 +37572,7 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
         error_no_gui            = 18
         OTHERS                  = 19 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_upload' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CONCATENATE LINES OF lt_data INTO rv_xstr IN BYTE MODE.
@@ -73715,5 +73715,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-28T10:48:48.482Z
+* abapmerge undefined - 2019-07-30T10:08:20.755Z
 ****************************************************
