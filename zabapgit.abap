@@ -12823,6 +12823,7 @@ CLASS zcl_abapgit_message_helper DEFINITION
         RETURNING
           VALUE(rv_longtext) TYPE string.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
       mi_t100_message TYPE REF TO if_t100_message.
@@ -15186,7 +15187,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
 * SUSC, see https://github.com/larshp/abapGit/issues/2772
             IF ls_transport_object-delflag = abap_false AND ls_transport_object-object <> 'SUSC'.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-              } should be removed, but has NO deletion flag in transport| ).
+                } should be removed, but has NO deletion flag in transport| ).
             ENDIF.
             io_stage->rm(
               iv_path     = ls_object_status-path
@@ -18218,7 +18219,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -18882,8 +18883,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       ENDTRY.
 
     ELSEIF iv_line_number IS NOT INITIAL
-       AND iv_sub_obj_type IS NOT INITIAL
-       AND iv_sub_obj_name IS NOT INITIAL.
+        AND iv_sub_obj_type IS NOT INITIAL
+        AND iv_sub_obj_name IS NOT INITIAL.
 
       " For the line navigation we have to supply the sub object type (i_sub_obj_type).
       " If we use is_item-obj_type it navigates only to the object.
@@ -19463,8 +19464,7 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_message_helper IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   METHOD constructor.
 
     mi_t100_message = ii_t100_message.
@@ -19504,28 +19504,28 @@ CLASS zcl_abapgit_message_helper IMPLEMENTATION.
                      WITH sy-msgv1.
 
       set_single_msg_var(
-       EXPORTING
-         iv_arg    = mi_t100_message->t100key-attr2
-       IMPORTING
-         ev_target = sy-msgv2 ).
+        EXPORTING
+          iv_arg    = mi_t100_message->t100key-attr2
+        IMPORTING
+          ev_target = sy-msgv2 ).
 
       REPLACE '&V2&' IN TABLE rt_itf
                      WITH sy-msgv2.
 
       set_single_msg_var(
-       EXPORTING
-         iv_arg    = mi_t100_message->t100key-attr3
-       IMPORTING
-         ev_target = sy-msgv3 ).
+        EXPORTING
+          iv_arg    = mi_t100_message->t100key-attr3
+        IMPORTING
+          ev_target = sy-msgv3 ).
 
       REPLACE '&V3&' IN TABLE rt_itf
                      WITH sy-msgv3.
 
       set_single_msg_var(
-       EXPORTING
-         iv_arg    = mi_t100_message->t100key-attr4
-       IMPORTING
-         ev_target = sy-msgv4 ).
+        EXPORTING
+          iv_arg    = mi_t100_message->t100key-attr4
+        IMPORTING
+          ev_target = sy-msgv4 ).
 
       REPLACE '&V4&' IN TABLE rt_itf
                      WITH sy-msgv4.
@@ -42662,9 +42662,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       <ls_men> TYPE rsmpe_men.
 
     IF cs_adm IS NOT INITIAL
-    AND (     cs_adm-actcode CO lc_num_n_space
-          AND cs_adm-mencode CO lc_num_n_space
-          AND cs_adm-pfkcode CO lc_num_n_space ). "Check performed in form check_adm of include LSMPIF03
+        AND ( cs_adm-actcode CO lc_num_n_space
+        AND cs_adm-mencode CO lc_num_n_space
+        AND cs_adm-pfkcode CO lc_num_n_space ). "Check performed in form check_adm of include LSMPIF03
       RETURN.
     ENDIF.
 
@@ -42793,7 +42793,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 * if the DDIC element has a PARAMETER_ID and the flag "from_dict" is active
 * the import will enable the SET-/GET_PARAM flag. In this case: "force off"
         IF <ls_field>-param_id IS NOT INITIAL
-           AND <ls_field>-from_dict = abap_true.
+            AND <ls_field>-from_dict = abap_true.
           IF <ls_field>-set_param IS INITIAL.
             <ls_field>-set_param = lc_rpyty_force_off.
           ENDIF.
@@ -42940,9 +42940,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       " http://help.sap.com/abapdocu_751/en/abapinsert_report_internal.htm#!ABAP_ADDITION_1@1@
       " This e.g. occurs in case of transportable Code Inspector variants (ending with ===VC)
       INSERT REPORT is_progdir-name
-       FROM it_source
-       STATE 'I'
-       EXTENSION TYPE is_progdir-name+30.
+        FROM it_source
+        STATE 'I'
+        EXTENSION TYPE is_progdir-name+30.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'error from INSERT REPORT .. EXTENSION TYPE' ).
       ENDIF.
@@ -46639,8 +46639,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
                                                                iv_ext   = lv_ext ) ).
       lt_local_content = to_page_content( get_page_content( lo_page ) ).
 
-      IF ls_local_page = <ls_remote_page>
-      AND lt_local_content = lt_remote_content.
+      IF ls_local_page = <ls_remote_page> AND lt_local_content = lt_remote_content.
         " no changes -> nothing to do
         CONTINUE.
       ENDIF.
@@ -49844,9 +49843,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
           object_not_exist         = 8
           OTHERS                   = 9.
 
-      IF sy-subrc = 1
-      OR sy-subrc = 2
-      OR lines( lt_founds ) = 0.
+      IF sy-subrc = 1 OR sy-subrc = 2 OR lines( lt_founds ) = 0.
         EXIT.
       ELSEIF sy-subrc > 2.
         zcx_abapgit_exception=>raise_t100( ).
@@ -50105,7 +50102,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     LOOP AT lt_segment_definitions ASSIGNING <ls_segment_definition>.
       <ls_segment_definition>-segmentheader-presp =
-      <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
+        <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
 
       CALL FUNCTION 'SEGMENT_READ'
         EXPORTING
@@ -57181,15 +57178,14 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    SELECT COUNT(*) FROM cross WHERE ( type = 'P' OR
-                               type = 'Q' )
-                              AND name   = lv_paramid.
+    SELECT COUNT(*) FROM cross
+      WHERE ( type = 'P' OR type = 'Q' ) AND name = lv_paramid.
     IF sy-subrc = 0.
       zcx_abapgit_exception=>raise( 'PARA: Parameter is still used' ).
     ELSE.
       SELECT COUNT(*) FROM dd04l BYPASSING BUFFER
-      WHERE  memoryid = lv_paramid
-      AND as4local = 'A'.
+        WHERE memoryid = lv_paramid
+        AND as4local = 'A'.
       IF sy-subrc = 0.
         zcx_abapgit_exception=>raise( 'PARA: Parameter is still used' ).
       ENDIF.
@@ -73735,5 +73731,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-31T07:47:13.984Z
+* abapmerge undefined - 2019-07-31T07:51:32.152Z
 ****************************************************
