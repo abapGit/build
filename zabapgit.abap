@@ -24184,6 +24184,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  text-align:       center;'.
     _inline '}'.
     _inline ''.
+    _inline 'a.close-btn {'.
+    _inline '  text-decoration: none;'.
+    _inline '}'.
+    _inline ''.
     _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
     _inline '#abapGitLogo { outline: none; }'.
     _inline ''.
@@ -24803,12 +24807,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-radius: 5px;'.
     _inline '  border-color: hsl(0, 42%, 64%);'.
     _inline '  background-color: hsla(0, 42%, 90%, 1);'.
-    _inline '}'.
-    _inline ''.
-    _inline '.message-panel .close-btn{'.
-    _inline '  position: absolute;'.
-    _inline '  right: 20px;'.
-    _inline '  bottom: 10px;'.
     _inline '}'.
     _inline ''.
     _inline '.message-panel-commands {'.
@@ -73737,5 +73735,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-31T07:43:42.827Z
+* abapmerge undefined - 2019-07-31T07:47:13.984Z
 ****************************************************
