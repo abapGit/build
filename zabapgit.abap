@@ -518,6 +518,7 @@ INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
+INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
@@ -2582,6 +2583,24 @@ INTERFACE zif_abapgit_popups .
       VALUE(rv_transport) TYPE trkorr
     RAISING
       zcx_abapgit_exception.
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_environment.
+  METHODS is_sap_cloud_platform
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_merged
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_repo_object_changes_allowed
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS compare_with_inactive
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_restart_required
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -10885,6 +10904,7 @@ CLASS zcl_abapgit_hotkeys DEFINITION
         RETURNING
           VALUE(rv_yes) TYPE abap_bool.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
       mc_hotkey_interface TYPE string VALUE `ZIF_ABAPGIT_GUI_PAGE_HOTKEY` ##NO_TEXT.
@@ -12505,26 +12525,18 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_environment DEFINITION
-  CREATE PUBLIC .
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
 
-    CLASS-METHODS is_sap_cloud_platform
-      RETURNING
-        VALUE(rv_cloud) TYPE abap_bool.
-
-    CLASS-METHODS is_merged
-      RETURNING
-        VALUE(rv_is_merged) TYPE abap_bool.
-
-    CLASS-METHODS is_repo_object_changes_allowed
-      RETURNING VALUE(rv_allowed) TYPE abap_bool.
+    INTERFACES zif_abapgit_environment .
   PROTECTED SECTION.
-
-    CLASS-DATA gv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
-    CLASS-DATA gv_is_merged TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
-    CLASS-DATA gv_client_modifiable TYPE abap_bool VALUE abap_undefined.
   PRIVATE SECTION.
+    DATA mv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+    DATA mv_is_merged TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+    DATA mv_client_modifiable TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
 ENDCLASS.
 CLASS zcl_abapgit_exit DEFINITION
   CREATE PUBLIC .
@@ -12541,10 +12553,8 @@ CLASS zcl_abapgit_exit DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_factory DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_injector .
-
+  FRIENDS ZCL_ABAPGIT_injector.
   PUBLIC SECTION.
-
     CLASS-METHODS get_tadir
       RETURNING
         VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir .
@@ -12573,6 +12583,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_cts_api
       RETURNING
         VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api .
+    CLASS-METHODS get_environment
+      RETURNING
+        VALUE(ro_environment) TYPE REF TO zif_abapgit_environment .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -12583,7 +12596,7 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_sap_package .
     TYPES:
       tty_sap_package TYPE HASHED TABLE OF ty_sap_package
-                              WITH UNIQUE KEY package .
+                                  WITH UNIQUE KEY package .
     TYPES:
       BEGIN OF ty_code_inspector,
         package  TYPE devclass,
@@ -12591,13 +12604,14 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_code_inspector .
     TYPES:
       tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
-                                 WITH UNIQUE KEY package .
+                                     WITH UNIQUE KEY package .
 
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
     CLASS-DATA gt_sap_package TYPE tty_sap_package .
     CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
+    CLASS-DATA go_environment TYPE REF TO zif_abapgit_environment .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -12723,6 +12737,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_cts_api
       IMPORTING
         !ii_cts_api TYPE REF TO zif_abapgit_cts_api .
+    CLASS-METHODS set_environment
+      IMPORTING
+        !io_environment TYPE REF TO zif_abapgit_environment .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -16326,7 +16343,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
 
     lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
 
-    IF zcl_abapgit_environment=>is_merged( ) = abap_true
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
         OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
       gv_max_threads = 1.
     ENDIF.
@@ -20095,6 +20112,9 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   METHOD set_cts_api.
     zcl_abapgit_factory=>gi_cts_api = ii_cts_api.
   ENDMETHOD.
+  METHOD set_environment.
+    zcl_abapgit_factory=>go_environment = io_environment.
+  ENDMETHOD.
   METHOD set_sap_package.
 
     DATA: ls_sap_package TYPE zcl_abapgit_factory=>ty_sap_package.
@@ -20122,9 +20142,7 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_tadir.
-
     zcl_abapgit_factory=>gi_tadir = ii_tadir.
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -20689,6 +20707,12 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
 
     ri_cts_api = gi_cts_api.
   ENDMETHOD.
+  METHOD get_environment.
+    IF go_environment IS NOT BOUND.
+      CREATE OBJECT go_environment TYPE zcl_abapgit_environment.
+    ENDIF.
+    ro_environment = go_environment.
+  ENDMETHOD.
   METHOD get_sap_package.
 
     DATA: ls_sap_package TYPE ty_sap_package.
@@ -20851,53 +20875,64 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
-  METHOD is_merged.
-
+  METHOD zif_abapgit_environment~compare_with_inactive.
+    rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_merged.
     DATA lo_marker TYPE REF TO data ##NEEDED.
 
-    IF gv_is_merged = abap_undefined.
+    IF mv_is_merged = abap_undefined.
       TRY.
           CREATE DATA lo_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
           "No exception --> marker found
-          gv_is_merged = abap_true.
+          mv_is_merged = abap_true.
 
         CATCH cx_sy_create_data_error.
-          gv_is_merged = abap_false.
+          mv_is_merged = abap_false.
       ENDTRY.
     ENDIF.
-
-    rv_is_merged = gv_is_merged.
-
+    rv_result = mv_is_merged.
   ENDMETHOD.
-  METHOD is_repo_object_changes_allowed.
+  METHOD zif_abapgit_environment~is_repo_object_changes_allowed.
     DATA lv_ind TYPE t000-ccnocliind.
 
-    IF gv_client_modifiable = abap_undefined.
+    IF mv_client_modifiable = abap_undefined.
       SELECT SINGLE ccnocliind FROM t000 INTO lv_ind
              WHERE mandt = sy-mandt.
       IF sy-subrc = 0
           AND ( lv_ind = ' ' OR lv_ind = '1' ). "check changes allowed
-        gv_client_modifiable = abap_true.
+        mv_client_modifiable = abap_true.
       ELSE.
-        gv_client_modifiable = abap_false.
+        mv_client_modifiable = abap_false.
       ENDIF.
     ENDIF.
-    rv_allowed = gv_client_modifiable.
+    rv_result = mv_client_modifiable.
   ENDMETHOD.
-  METHOD is_sap_cloud_platform.
-
-    IF gv_cloud = abap_undefined.
+  METHOD zif_abapgit_environment~is_restart_required.
+    " This method will be used in the context of SAP Cloud Platform:
+    " Pull/Push operations are executed in background jobs.
+    " In case of the respective application server needs to be restarted,
+    " it is required to terminae the background job and reschedule again.
+    rv_result = abap_false.
+    TRY.
+        CALL METHOD ('CL_APJ_SCP_TOOLS')=>('IS_RESTART_REQUIRED')
+          RECEIVING
+            restart_required = rv_result.
+      CATCH cx_sy_dyn_call_illegal_method.
+        rv_result = abap_false.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_sap_cloud_platform.
+    IF mv_cloud = abap_undefined.
       TRY.
           CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
             RECEIVING
-              rv_is_sap_cloud_platform = gv_cloud.
+              rv_is_sap_cloud_platform = mv_cloud.
         CATCH cx_sy_dyn_call_illegal_method.
-          gv_cloud = abap_false.
+          mv_cloud = abap_false.
       ENDTRY.
     ENDIF.
-
-    rv_cloud = gv_cloud.
-
+    rv_result = mv_cloud.
   ENDMETHOD.
 ENDCLASS.
 
@@ -29988,10 +30023,10 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   METHOD get_all_default_hotkeys.
 
-    IF zcl_abapgit_environment=>is_merged( ) = abap_true.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
       rt_hotkey_actions = get_hotkeys_from_local_intf( io_page ).
     ELSE.
       rt_hotkey_actions = get_hotkeys_from_global_intf( io_page ).
@@ -30002,12 +30037,6 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
 
     SORT rt_hotkey_actions BY name.
 
-  ENDMETHOD.
-  METHOD should_show_hint.
-    IF gv_hint_was_shown = abap_false.
-      rv_yes = abap_true.
-      gv_hint_was_shown = abap_true.
-    ENDIF.
   ENDMETHOD.
   METHOD get_hotkeys_from_global_intf.
 
@@ -30111,7 +30140,12 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     rt_interface_implementations = gt_interface_implementations.
 
   ENDMETHOD.
-
+  METHOD should_show_hint.
+    IF gv_hint_was_shown = abap_false.
+      rv_yes = abap_true.
+      gv_hint_was_shown = abap_true.
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
@@ -32981,7 +33015,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     CLEAR lv_checked.
     IF ls_settings-write_protected = abap_true.
-      IF zcl_abapgit_environment=>is_repo_object_changes_allowed( ) = abap_true.
+      IF zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_true.
         lv_checked = | checked|.
       ELSE.
         lv_checked = | checked disabled|.
@@ -40191,7 +40225,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     LOOP AT lt_content INTO ls_content.
       MOVE-CORRESPONDING from_xml( ls_content-data_str ) TO ls_repo.
       IF ls_repo-local_settings-write_protected = abap_false AND
-         zcl_abapgit_environment=>is_repo_object_changes_allowed( ) = abap_false.
+         zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_false.
         ls_repo-local_settings-write_protected = abap_true.
       ENDIF.
       ls_repo-key = ls_content-value.
@@ -73865,5 +73899,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-01T07:59:17.362Z
+* abapmerge undefined - 2019-08-01T09:51:59.863Z
 ****************************************************
