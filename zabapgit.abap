@@ -10871,14 +10871,13 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         RAISING zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_view_tutorial DEFINITION FINAL CREATE PUBLIC.
+CLASS zcl_abapgit_gui_view_tutorial DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_renderable.
-    INTERFACES zif_abapgit_gui_event_handler.
-    INTERFACES zif_abapgit_gui_page_hotkey.
-    ALIASES render FOR zif_abapgit_gui_renderable~render.
 
+    INTERFACES zif_abapgit_gui_renderable .
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS render_content
@@ -30203,12 +30202,6 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
     ro_html->add( '</ul></p>' ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-    ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
     CREATE OBJECT ro_html TYPE zcl_abapgit_html.
@@ -34276,7 +34269,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
     DATA: lt_repos    TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
-          lo_tutorial TYPE REF TO zcl_abapgit_gui_view_tutorial,
+          li_tutorial TYPE REF TO zif_abapgit_gui_renderable,
           lo_repo     LIKE LINE OF lt_repos.
 
     retrieve_active_repo( ). " Get and validate key of user default repo
@@ -34293,8 +34286,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     ro_html->add( render_toc( lt_repos ) ).
 
     IF mv_show IS INITIAL OR lines( lt_repos ) = 0.
-      CREATE OBJECT lo_tutorial.
-      ro_html->add( lo_tutorial->render( ) ).
+      CREATE OBJECT li_tutorial TYPE zcl_abapgit_gui_view_tutorial.
+      ro_html->add( li_tutorial->render( ) ).
     ELSE.
       lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mv_show ).
       ro_html->add( render_repo( lo_repo ) ).
@@ -73899,5 +73892,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-01T09:51:59.863Z
+* abapmerge undefined - 2019-08-01T10:20:23.823Z
 ****************************************************
