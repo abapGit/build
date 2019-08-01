@@ -25337,7 +25337,134 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
       iv_mime_name = 'ZABAPGIT_CSS_THEME_DEFAULT'
       iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
 
-    " TODO theme-dark
+    CLEAR lt_inline.
+****************************************************
+* abapmerge Pragma - ZABAPGIT_CSS_THEME_DARK.W3MI.DATA.CSS
+****************************************************
+    _inline '/*'.
+    _inline ' * ABAPGIT THEME CSS - DARK'.
+    _inline ' */'.
+    _inline ''.
+    _inline '/* https://experience.sap.com/fiori-design-web/colors/ */'.
+    _inline ''.
+    _inline ':root {'.
+    _inline '  --theme-background-color: #333333;'.
+    _inline '  --theme-container-background-color: #444444;'.
+    _inline '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;'.
+    _inline '  --theme-primary-font-color: #cccccc;'.
+    _inline '  --theme-primary-font-color-reduced: #EEEEEE;'.
+    _inline '  --theme-font-size: 11pt;'.
+    _inline '  --theme-link-color: #d9ffff;'.
+    _inline '  --theme-link-color-hover: #f6f6f6;'.
+    _inline '  --theme-container-border-color: #D1E0EE;'.
+    _inline '  --theme-table-border-color: #E5E5E5; /* ALV border color */'.
+    _inline '  --theme-greyscale-dark: #666666;'.
+    _inline '  --theme-greyscale-medium: #bfbfbf;'.
+    _inline '  --theme-greyscale-light: #CCCCCC;'.
+    _inline '  --theme-greyscale-lighter: #E5E5E5;'.
+    _inline '  --theme-list-hover-background-color: #666666;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* GLOBALS */'.
+    _inline 'body {'.
+    _inline '  background-color: var(--theme-background-color);'.
+    _inline '  color: var(--theme-primary-font-color);'.
+    _inline '}'.
+    _inline 'select, input, textarea { '.
+    _inline '  color: var(--theme-primary-font-color);'.
+    _inline '  border-color: #ffffff;'.
+    _inline '  background-color: var(--theme-background-color);'.
+    _inline '}'.
+    _inline 'a:hover { color: var(--theme-link-color-hover); }'.
+    _inline ''.
+    _inline '/* HEADER */'.
+    _inline '#header a, #header a:visited { color: var(--theme-link-color); }'.
+    _inline ''.
+    _inline '/* MENU */'.
+    _inline 'div#toc .favorites a { opacity: 1; }'.
+    _inline '.nav-container ul a:hover { text-decoration: underline; }'.
+    _inline '.nav-container ul ul { background-color: #555555; }'.
+    _inline '.nav-container ul ul li:hover { background-color: var(--theme-list-hover-background-color); }'.
+    _inline 'table.repo_tab {'.
+    _inline '    border-color: #var(--theme-container-background-color);'.
+    _inline '    background-color: var(--theme-background-color);'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* abapGit logo in header and footer */'.
+    _inline '#abapGitLogo>img { background-color: #bfbfbf; }'.
+    _inline '#footer>img { background-color: #bfbfbf; }'.
+    _inline ''.
+    _inline '/* TUTORIAL */'.
+    _inline 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }'.
+    _inline ''.
+    _inline '/* REPOSITORY */'.
+    _inline 'div.repo { background-color: var(--theme-container-background-color); }'.
+    _inline '.repo_attr { color: var(--theme-primary-font-color); }'.
+    _inline '.repo_attr span.branch_branch {'.
+    _inline '  border-color: #ffffff;'.
+    _inline '  background-color: #777777;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* REPOSITORY TABLE */'.
+    _inline '.repo_tab td { color: var(--theme-primary-font-color); }'.
+    _inline '.repo_tab tr.unsupported { background-color: #555; }'.
+    _inline '.repo_tab tr.modified { background-color: #555; }'.
+    _inline ''.
+    _inline '/* STAGE */'.
+    _inline '.stage_tab { background-color: var(--theme-background-color); }'.
+    _inline '.stage_tab td { color: var(--theme-primary-font-color); }'.
+    _inline '.stage_tab td.status.highlight { '.
+    _inline '  color: var(--theme-primary-font-color) !important;'.
+    _inline '  background-color: var(--theme-background-color);'.
+    _inline '}'.
+    _inline '.stage_tab td.status { '.
+    _inline '  color: #777;'.
+    _inline '  background-color: var(--theme-background-color); '.
+    _inline '}'.
+    _inline '.stage_tab th { background-color: var(--theme-container-background-color); }'.
+    _inline ''.
+    _inline '/* COMMIT */'.
+    _inline 'div.form-container { background-color: var(--theme-background-color); }'.
+    _inline ''.
+    _inline '/* SETTINGS STYLES */'.
+    _inline 'div.settings_container { color: var(--theme-primary-font-color); }'.
+    _inline ''.
+    _inline '/* DIFF */'.
+    _inline '.diff_ins { background-color: #352; }'.
+    _inline '.diff_del { background-color: #411; }'.
+    _inline '.diff_upd { background-color: #551; }'.
+    _inline 'div.diff_content { background-color: var(--theme-background-color); }'.
+    _inline ''.
+    _inline '/* DIFF TABLE */'.
+    _inline 'table.diff_tab td,th { color: #fff; }'.
+    _inline 'table.diff_tab thead.nav_line { background-color: var(--theme-container-background-color); }'.
+    _inline ''.
+    _inline '/* STYLES for Syntax Highlighting */'.
+    _inline '.syntax-hl span.keyword  { color: #4af; }'.
+    _inline '.syntax-hl span.text     { color: #8f8; }'.
+    _inline '.syntax-hl span.comment  { color: #999; }'.
+    _inline '.syntax-hl span.xml_tag  { color: #659cff; }'.
+    _inline '.syntax-hl span.attr     { color: #bab2f9; }'.
+    _inline '.syntax-hl span.attr_val { color: #b777fb; }'.
+    _inline ''.
+    _inline '/* DEBUG INFO STYLES */'.
+    _inline 'div.debug_container#debug_info { color: var(--theme-primary-font-color); }'.
+    _inline ''.
+    _inline '/* DB ENTRIES */'.
+    _inline 'div.db_list { background-color: var(--theme-container-background-color); }'.
+    _inline 'table.db_tab td      { color: var(--theme-primary-font-color); }'.
+    _inline 'table.db_tab td.data { opacity: 0.5; }'.
+    _inline 'table.db_tab tbody tr:hover, tr:active { background-color: var(--theme-list-hover-background-color); }'.
+    _inline 'table.db_tab th {'.
+    _inline '  color: var(--theme-primary-font-color); }'.
+    _inline '  border-bottom-color: #333;'.
+    _inline '}'.
+    ro_asset_man->register_asset(
+      iv_url       = 'css/theme-dark.css'
+      iv_type      = 'text/css'
+      iv_cachable  = abap_false
+      iv_mime_name = 'ZABAPGIT_CSS_THEME_DARK'
+      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
 
     CLEAR lt_inline.
 ****************************************************
@@ -36804,7 +36931,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
     CASE mo_settings->get_ui_theme( ).
       WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        "TODO
+        ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-dark.css">' ).
       WHEN zcl_abapgit_settings=>c_ui_theme-belize.
         ro_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
     ENDCASE.
@@ -73738,5 +73865,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-07-31T07:57:00.453Z
+* abapmerge undefined - 2019-08-01T07:59:17.362Z
 ****************************************************
