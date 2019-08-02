@@ -1675,7 +1675,6 @@ INTERFACE zif_abapgit_definitions .
       show_default_repo          TYPE abap_bool,
       link_hints_enabled         TYPE abap_bool,
       link_hint_key              TYPE c LENGTH 1,
-      link_hint_background_color TYPE string,
       hotkeys                    TYPE tty_hotkey,
       parallel_proc_disabled     TYPE abap_bool,
       icon_scaling               TYPE c LENGTH 1,
@@ -9073,7 +9072,6 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_class TYPE string OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS: co_span_link_hint TYPE string VALUE `<span class="tooltiptext hidden"></span>`.
     CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
 
     DATA: mt_buffer TYPE string_table.
@@ -13821,12 +13819,6 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       get_link_hint_key
         RETURNING
           VALUE(rv_link_hint_key) TYPE string,
-      get_link_hint_background_color
-        RETURNING
-          VALUE(rv_background_color) TYPE string,
-      set_link_hint_background_color
-        IMPORTING
-          iv_background_color TYPE string,
       set_hotkeys
         IMPORTING
           it_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey,
@@ -13869,8 +13861,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
 
     METHODS:
-      set_default_link_hint_key,
-      set_default_link_hint_bg_color.
+      set_default_link_hint_key.
 
 ENDCLASS.
 CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
@@ -16163,9 +16154,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_link_hints_enabled.
     rv_link_hints_enabled = ms_user_settings-link_hints_enabled.
   ENDMETHOD.
-  METHOD get_link_hint_background_color.
-    rv_background_color = ms_user_settings-link_hint_background_color.
-  ENDMETHOD.
   METHOD get_link_hint_key.
     rv_link_hint_key = ms_user_settings-link_hint_key.
   ENDMETHOD.
@@ -16229,12 +16217,8 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
     set_default_link_hint_key( ).
-    set_default_link_hint_bg_color( ).
     set_icon_scaling( '' ).
 
-  ENDMETHOD.
-  METHOD set_default_link_hint_bg_color.
-    set_link_hint_background_color( |lightgreen| ).
   ENDMETHOD.
   METHOD set_default_link_hint_key.
     set_link_hint_key( |f| ).
@@ -16253,9 +16237,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_link_hints_enabled.
     ms_user_settings-link_hints_enabled = iv_link_hints_enabled.
-  ENDMETHOD.
-  METHOD set_link_hint_background_color.
-    ms_user_settings-link_hint_background_color = iv_background_color.
   ENDMETHOD.
   METHOD set_link_hint_key.
     ms_user_settings-link_hint_key = iv_link_hint_key.
@@ -16296,9 +16277,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
       set_default_link_hint_key( ).
     ENDIF.
 
-    IF ms_user_settings-link_hint_background_color IS INITIAL.
-      set_default_link_hint_bg_color( ).
-    ENDIF.
   ENDMETHOD.
   METHOD set_xml_settings.
 
@@ -24200,6 +24178,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.pad-right    { padding-right: 6px; }'.
     _inline '.inline       { display: inline; }'.
     _inline '.hidden       { visibility: hidden; }'.
+    _inline '.nodisplay    { display: none }'.
     _inline ''.
     _inline '/* PANELS */'.
     _inline 'div.panel {'.
@@ -24674,7 +24653,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
     _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
-    _inline '.nav-container ul li.block ul { display: block; }'.
+    _inline '.nav-container ul li.force-nav-hover ul { display: block; }'.
     _inline '.nav-container ul li:hover > ul { display: block; }'.
     _inline ''.
     _inline '/* special selection style for 1st level items (see also .corner below) */'.
@@ -24864,26 +24843,23 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline '/* Tooltip text */'.
-    _inline '.tooltiptext {'.
-    _inline '    line-height: 15px;'.
-    _inline '    width: 60px;'.
+    _inline '.link-hint {'.
+    _inline '    line-height: 1em;'.
     _inline '    text-align: center;'.
-    _inline '    padding: 5px 0;'.
-    _inline '    border-radius: 6px;'.
+    _inline '    padding: 5px 15px;'.
+    _inline '    border-radius: 4px;'.
     _inline ''.
     _inline '    /* Position the tooltip text */'.
     _inline '    position: absolute;'.
     _inline '    z-index: 1;'.
     _inline '    margin-left: -60px;'.
     _inline '    margin-top: -30px;'.
-    _inline ''.
-    _inline '    /* Fade in tooltip */'.
-    _inline '    opacity: 1;'.
-    _inline '    transition: opacity 0.3s;'.
     _inline '}'.
     _inline ''.
+    _inline '.link-hint .pending { color: hsla(0, 0%, 0%, 0.2); }'.
+    _inline ''.
     _inline '/* Tooltip arrow */'.
-    _inline '.tooltiptext::after {'.
+    _inline '.link-hint::after {'.
     _inline '    content: "";'.
     _inline '    position: absolute;'.
     _inline '    top: 100%;'.
@@ -24891,6 +24867,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    margin-left: -5px;'.
     _inline '    border-width: 5px;'.
     _inline '    border-style: solid;'.
+    _inline '    border-color: transparent;'.
     _inline '}'.
     _inline ''.
     _inline '/* HOTKEYS */'.
@@ -25015,6 +24992,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  --theme-greyscale-medium: #b3b3b3;'.
     _inline '  --theme-greyscale-light: #ccc;'.
     _inline '  --theme-greyscale-lighter: lightgrey;'.
+    _inline '  --theme-linkhint-background: lightgreen;'.
     _inline '}'.
     _inline ''.
     _inline '/* GLOBALS */'.
@@ -25333,9 +25311,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline '/* Tooltips text */'.
-    _inline '.tooltiptext { color: #000; }'.
-    _inline '/* Tooltip arrow */'.
-    _inline '.tooltiptext::after { border-color: #555 transparent transparent transparent; }'.
+    _inline '.link-hint { color: var(--theme-primary-font-color); }'.
+    _inline '.link-hint { background-color: var(--theme-linkhint-background) }'.
+    _inline '.link-hint::after { border-top-color: var(--theme-linkhint-background) }'.
     _inline ''.
     _inline '/* HOTKEYS */'.
     _inline 'ul.hotkeys span.key-id {'.
@@ -25559,7 +25537,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported perfLog */'.
     _inline '/* exported perfClear */'.
     _inline '/* exported enableArrowListNavigation */'.
-    _inline '/* exported setLinkHints */'.
+    _inline '/* exported activateLinkHints */'.
     _inline '/* exported setKeyBindings */'.
     _inline '/* exported preparePatch */'.
     _inline '/* exported registerStagePatch */'.
@@ -25568,6 +25546,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported onOrderByChange  */'.
     _inline '/* exported onTagTypeChange */'.
     _inline '/* exported errorMessagePanelRegisterClick */'.
+    _inline '/* exported getIndocStyleSheet */'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Polyfills'.
@@ -25601,7 +25580,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  };'.
     _inline '}'.
     _inline ''.
-    _inline '// String includes polyfill, taken from https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/String/includes'.
+    _inline '// String includes polyfill, taken from https://developer.mozilla.org'.
     _inline 'if (!String.prototype.includes) {'.
     _inline '  String.prototype.includes = function(search, start) {'.
     _inline '    "use strict";'.
@@ -25615,6 +25594,16 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '      return this.indexOf(search, start) !== -1;'.
     _inline '    }'.
     _inline '  };'.
+    _inline '}'.
+    _inline ''.
+    _inline '// String startsWith polyfill, taken from https://developer.mozilla.org'.
+    _inline 'if (!String.prototype.startsWith) {'.
+    _inline '  Object.defineProperty(String.prototype, "startsWith", {'.
+    _inline '    value: function(search, pos) {'.
+    _inline '      pos = !pos || pos < 0 ? 0 : +pos;'.
+    _inline '      return this.substring(pos, pos + search.length) === search;'.
+    _inline '    }'.
+    _inline '  });'.
     _inline '}'.
     _inline ''.
     _inline '/**********************************************************'.
@@ -25739,10 +25728,23 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline 'function findStyleSheetByName(name) {'.
-    _inline '  var classes = document.styleSheets[0].cssRules || document.styleSheets[0].rules;'.
-    _inline '  for (var i = 0; i < classes.length; i++) {'.
-    _inline '    if (classes[i].selectorText === name) return classes[i];'.
+    _inline '  for (var s = 0; s < document.styleSheets.length; s++) {'.
+    _inline '    var styleSheet = document.styleSheets[s];'.
+    _inline '    var classes    = styleSheet.cssRules || styleSheet.rules;'.
+    _inline '    for (var i = 0; i < classes.length; i++) {'.
+    _inline '      if (classes[i].selectorText === name) return classes[i];'.
+    _inline '    }'.
     _inline '  }'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function getIndocStyleSheet() {'.
+    _inline '  for (var s = 0; s < document.styleSheets.length; s++) {'.
+    _inline '    if (!document.styleSheets[s].href) return document.styleSheets[s]; // One with empty href'.
+    _inline '  }'.
+    _inline '  // None found ? create one'.
+    _inline '  var style = document.createElement("style");'.
+    _inline '  document.head.appendChild(style);'.
+    _inline '  return style.sheet;'.
     _inline '}'.
     _inline ''.
     _inline 'function toggleRepoListDetail() {'.
@@ -26270,196 +26272,163 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '}'.
     _inline ''.
-    _inline 'function LinkHints(sLinkHintKey, sColor){'.
-    _inline '  this.sLinkHintKey = sLinkHintKey;'.
-    _inline '  this.sColor = sColor;'.
-    _inline '  this.oTooltipMap = {};'.
-    _inline '  this.bTooltipsOn = false;'.
-    _inline '  this.sPending = "";'.
-    _inline '  this.aTooltipElements = document.querySelectorAll("span.tooltiptext");'.
+    _inline '/* LINK HINTS - Vimium like link hints */'.
+    _inline ''.
+    _inline 'function LinkHints(linkHintHotKey){'.
+    _inline '  this.linkHintHotKey    = linkHintHotKey;'.
+    _inline '  this.areHintsDisplayed = false;'.
+    _inline '  this.pendingPath       = ""; // already typed code prefix'.
+    _inline '  this.hintsMap          = this.deployHintContainers();'.
+    _inline '  this.activatedDropdown = null;'.
     _inline '}'.
     _inline ''.
-    _inline 'LinkHints.prototype.renderTooltip = function (oTooltip, iTooltipCounter) {'.
-    _inline '  if (this.bTooltipsOn) {'.
-    _inline '    oTooltip.classList.remove("hidden");'.
-    _inline '  } else {'.
-    _inline '    oTooltip.classList.add("hidden");'.
-    _inline '  }'.
-    _inline '  oTooltip.innerHTML = iTooltipCounter;'.
-    _inline '  oTooltip.style.backgroundColor = this.sColor;'.
-    _inline '  this.oTooltipMap[iTooltipCounter] = oTooltip;'.
+    _inline 'LinkHints.prototype.getHintStartValue = function(targetsCount){'.
+    _inline '  // if we have 321 tooltips we start from 100'.
+    _inline '  var maxHintStringLength = targetsCount.toString().length;'.
+    _inline '  return Math.pow(10, maxHintStringLength - 1);'.
     _inline '};'.
     _inline ''.
-    _inline 'LinkHints.prototype.getTooltipStartValue = function(iToolTipCount){'.
+    _inline 'LinkHints.prototype.deployHintContainers = function() {'.
     _inline ''.
-    _inline '  // if whe have 333 tooltips we start from 100'.
-    _inline '  return Math.pow(10,iToolTipCount.toString().length - 1);'.
+    _inline '  var hintTargets = document.querySelectorAll("a, input[type=''checkbox'']");'.
+    _inline '  var codeCounter = this.getHintStartValue(hintTargets.length);'.
+    _inline '  var hintsMap    = { first: codeCounter };'.
     _inline ''.
-    _inline '};'.
+    _inline '  // <span class="link-hint" data-code="123">'.
+    _inline '  //   <span class="pending">12</span><span>3</span>'.
+    _inline '  // </span>'.
+    _inline '  for (var i = 0, N = hintTargets.length; i < N; i++) {'.
+    _inline '    var hint = {};'.
+    _inline '    hint.container     = document.createElement("span");'.
+    _inline '    hint.pendingSpan   = document.createElement("span");'.
+    _inline '    hint.remainingSpan = document.createElement("span");'.
+    _inline '    hint.parent        = hintTargets[i];'.
+    _inline '    hint.code          = codeCounter.toString();'.
     _inline ''.
-    _inline 'LinkHints.prototype.renderTooltips = function () {'.
+    _inline '    hint.container.appendChild(hint.pendingSpan);'.
+    _inline '    hint.container.appendChild(hint.remainingSpan);'.
     _inline ''.
-    _inline '  // all possible links which should be accessed via tooltip have'.
-    _inline '  // sub span which is hidden by default. If we like to show the'.
-    _inline '  // tooltip we have to toggle the css class ''hidden''.'.
-    _inline '  //'.
-    _inline '  // We use numeric values for the tooltip label. Maybe we can'.
-    _inline '  // support also alphanumeric chars in the future. Then we have to'.
-    _inline '  // calculate permutations and that''s work. So for the sake of simplicity'.
-    _inline '  // we stick to numeric values and just increment them.'.
+    _inline '    hint.pendingSpan.classList.add("pending");'.
+    _inline '    hint.container.classList.add("link-hint");'.
+    _inline '    hint.container.classList.add("nodisplay");            // hide by default'.
+    _inline '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug'.
     _inline ''.
-    _inline '  var'.
-    _inline '    iTooltipCounter = this.getTooltipStartValue(this.aTooltipElements.length);'.
-    _inline ''.
-    _inline '  [].forEach.call(this.aTooltipElements, function(oTooltip){'.
-    _inline '    iTooltipCounter += 1;'.
-    _inline '    this.renderTooltip(oTooltip, iTooltipCounter);'.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.toggleAllTooltips = function () {'.
-    _inline ''.
-    _inline '  this.sPending = "";'.
-    _inline '  this.bTooltipsOn = !this.bTooltipsOn;'.
-    _inline '  this.renderTooltips();'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.disableTooltips = function(){'.
-    _inline '  this.sPending = "";'.
-    _inline '  this.bTooltipsOn = false;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.removeAllTooltips = function () {'.
-    _inline ''.
-    _inline '  this.disableTooltips();'.
-    _inline ''.
-    _inline '  [].forEach.call(this.aTooltipElements, function (oTooltip) {'.
-    _inline '    oTooltip.classList.add("hidden");'.
-    _inline '  });'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.filterTooltips = function () {'.
-    _inline ''.
-    _inline '  Object'.
-    _inline '    .keys(this.oTooltipMap)'.
-    _inline '    .forEach(function (sKey) {'.
-    _inline ''.
-    _inline '      // we try to partially match, but only from the beginning!'.
-    _inline '      var regex = new RegExp("^" + this.sPending);'.
-    _inline '      var oTooltip = this.oTooltipMap[sKey];'.
-    _inline ''.
-    _inline '      if (regex.test(sKey)) {'.
-    _inline '        // we have a partial match, grey out the matched part'.
-    _inline '        oTooltip.innerHTML = sKey.replace(regex, "<div style=''display:inline;color:lightgray''>" + this.sPending + "</div>");'.
-    _inline '      } else {'.
-    _inline '        // and hide the not matched tooltips'.
-    _inline '        oTooltip.classList.add("hidden");'.
-    _inline '      }'.
-    _inline ''.
-    _inline '    }.bind(this));'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.activateDropDownMenu = function (oTooltip) {'.
-    _inline '  // to enable link hint navigation for drop down menu, we must expand'.
-    _inline '  // like if they were hovered'.
-    _inline '  oTooltip.parentElement.parentElement.classList.toggle("block");'.
-    _inline '};'.
-    _inline ''.
-    _inline ''.
-    _inline 'LinkHints.prototype.tooltipActivate = function (oTooltip) {'.
-    _inline ''.
-    _inline '  // a tooltips was successfully specified, so we try to trigger the link'.
-    _inline '  // and remove all tooltips'.
-    _inline '  this.removeAllTooltips();'.
-    _inline ''.
-    _inline '  // we have technically 2 scenarios'.
-    _inline '  // 1) hint to a checkbox: as input field cannot include tags'.
-    _inline '  //    we place the span after input'.
-    _inline '  // 2) hint to a link: the span in included in the anchor tag'.
-    _inline ''.
-    _inline '  var elInput = oTooltip.parentElement.querySelector("input");'.
-    _inline ''.
-    _inline '  if (elInput) {'.
-    _inline '    // case 1) toggle the checkbox'.
-    _inline '    elInput.click();'.
-    _inline '  } else {'.
-    _inline '    // case 2) click the link'.
-    _inline '    oTooltip.parentElement.click();'.
+    _inline '    if (hintTargets[i].nodeName === "INPUT") {'.
+    _inline '      // does not work if inside the input, so appending right after'.
+    _inline '      hintTargets[i].insertAdjacentElement("afterend", hint.container);'.
+    _inline '    } else {'.
+    _inline '      hintTargets[i].appendChild(hint.container);'.
+    _inline '    }'.
+    _inline '    hintsMap[codeCounter++] = hint;'.
     _inline '  }'.
     _inline ''.
-    _inline '  // in case it is a dropdownmenu we have to expand and focus it'.
-    _inline '  this.activateDropDownMenu(oTooltip);'.
-    _inline '  oTooltip.parentElement.focus();'.
-    _inline ''.
+    _inline '  hintsMap.last = codeCounter - 1;'.
+    _inline '  return hintsMap;'.
     _inline '};'.
     _inline ''.
-    _inline 'LinkHints.prototype.onkeypress = function(oEvent){'.
+    _inline 'LinkHints.prototype.getHandler = function() {'.
+    _inline '  return this.handleKey.bind(this);'.
+    _inline '};'.
     _inline ''.
-    _inline '  if (oEvent.defaultPrevented) {'.
+    _inline 'LinkHints.prototype.handleKey = function(event){'.
+    _inline ''.
+    _inline '  if (event.defaultPrevented) {'.
     _inline '    return;'.
     _inline '  }'.
     _inline ''.
-    _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
+    _inline '  var activeElementType = (document.activeElement && document.activeElement.nodeName) || "";'.
     _inline ''.
     _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
     _inline '  // Maybe we must add other types here in the future'.
-    _inline '  if (oEvent.key === this.sLinkHintKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
+    _inline '  if (event.key === this.linkHintHotKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
     _inline ''.
-    _inline '    this.toggleAllTooltips();'.
+    _inline '    // on user hide hints, close an opened dropdown too'.
+    _inline '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();'.
     _inline ''.
-    _inline '  } else if (this.bTooltipsOn === true) {'.
+    _inline '    this.pendingPath = "";'.
+    _inline '    this.displayHints(!this.areHintsDisplayed);'.
     _inline ''.
-    _inline '    // the user tries to reach a tooltip'.
-    _inline '    this.sPending += oEvent.key;'.
-    _inline '    var oTooltip = this.oTooltipMap[this.sPending];'.
+    _inline '  } else if (this.areHintsDisplayed) {'.
     _inline ''.
-    _inline '    if (oTooltip) {'.
-    _inline '      // we are there, we have a fully specified tooltip. Let''s activate it'.
-    _inline '      this.tooltipActivate(oTooltip);'.
+    _inline '    // the user tries to reach a hint'.
+    _inline '    this.pendingPath += event.key;'.
+    _inline '    var hint = this.hintsMap[this.pendingPath];'.
+    _inline ''.
+    _inline '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate it'.
+    _inline '      this.displayHints(false);'.
+    _inline '      this.hintActivate(hint);'.
     _inline '    } else {'.
     _inline '      // we are not there yet, but let''s filter the link so that only'.
     _inline '      // the partially matched are shown'.
-    _inline '      this.filterTooltips();'.
-    _inline '      this.disableTooltipsIfNoTooltipIsVisible();'.
+    _inline '      var visibleHints = this.filterHints();'.
+    _inline '      if (!visibleHints) {'.
+    _inline '        this.displayHints(false);'.
+    _inline '        if (this.activatedDropdown) this.closeActivatedDropdown();'.
+    _inline '      }'.
     _inline '    }'.
-    _inline ''.
-    _inline '  }'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.disableTooltipsIfNoTooltipIsVisible = function(){'.
-    _inline ''.
-    _inline '  if (!this.isAnyTooltipVisible()) {'.
-    _inline '    this.disableTooltips();'.
     _inline '  }'.
     _inline '};'.
     _inline ''.
-    _inline 'LinkHints.prototype.isAnyTooltipVisible = function(){'.
-    _inline ''.
-    _inline '  return (Object'.
-    _inline '    .keys(this.oTooltipMap)'.
-    _inline '    .filter(function (key) {'.
-    _inline '      return !this.oTooltipMap[key].classList.contains("hidden");'.
-    _inline '    }.bind(this)).length > 0);'.
-    _inline ''.
+    _inline 'LinkHints.prototype.closeActivatedDropdown = function() {'.
+    _inline '  if (!this.activatedDropdown) return;'.
+    _inline '  this.activatedDropdown.classList.remove("force-nav-hover");'.
+    _inline '  this.activatedDropdown = null;'.
     _inline '};'.
     _inline ''.
-    _inline '// Vimium like link hints'.
-    _inline 'function setLinkHints(sLinkHintKey, sColor) {'.
-    _inline ''.
-    _inline '  if (!sLinkHintKey || !sColor) {'.
-    _inline '    return;'.
+    _inline 'LinkHints.prototype.displayHints = function(isActivate) {'.
+    _inline '  this.areHintsDisplayed = isActivate;'.
+    _inline '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {'.
+    _inline '    var hint = this.hintsMap[i];'.
+    _inline '    if (isActivate) {'.
+    _inline '      hint.container.classList.remove("nodisplay");'.
+    _inline '      hint.pendingSpan.innerText   = "";'.
+    _inline '      hint.remainingSpan.innerText = hint.code;'.
+    _inline '    } else {'.
+    _inline '      hint.container.classList.add("nodisplay");'.
+    _inline '    }'.
     _inline '  }'.
+    _inline '};'.
     _inline ''.
-    _inline '  var oLinkHint = new LinkHints(sLinkHintKey, sColor);'.
+    _inline 'LinkHints.prototype.hintActivate = function (hint) {'.
+    _inline '  if (hint.parent.nodeName === "A"'.
+    _inline '    // hint.parent.href doesn''t have a # at the end while accessing dropdowns the first time.'.
+    _inline '    // Seems like a idiosyncrasy of SAPGUI''s IE. So let''s ignore the last character.'.
+    _inline '    && ( hint.parent.href.substr(0, hint.parent.href.length - 1) === document.location.href ) // href is #'.
+    _inline '    && !hint.parent.onclick                         // no handler'.
+    _inline '    && hint.parent.parentElement && hint.parent.parentElement.nodeName === "LI") {'.
+    _inline '    // probably it is a dropdown ...'.
+    _inline '    this.activatedDropdown = hint.parent.parentElement;'.
+    _inline '    this.activatedDropdown.classList.toggle("force-nav-hover");'.
+    _inline '    hint.parent.focus();'.
+    _inline '  } else {'.
+    _inline '    hint.parent.click();'.
+    _inline '    if (this.activatedDropdown) this.closeActivatedDropdown();'.
+    _inline '  }'.
+    _inline '};'.
     _inline ''.
-    _inline '  document.addEventListener("keypress", oLinkHint.onkeypress.bind(oLinkHint));'.
+    _inline 'LinkHints.prototype.filterHints = function () {'.
+    _inline '  var visibleHints = 0;'.
+    _inline '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {'.
+    _inline '    var hint = this.hintsMap[i];'.
+    _inline '    if (i.toString().startsWith(this.pendingPath)) {'.
+    _inline '      hint.pendingSpan.innerText   = this.pendingPath;'.
+    _inline '      hint.remainingSpan.innerText = hint.code.substring(this.pendingPath.length);'.
+    _inline '      // hint.container.classList.remove("nodisplay"); // for backspace'.
+    _inline '      visibleHints++;'.
+    _inline '    } else {'.
+    _inline '      hint.container.classList.add("nodisplay");'.
+    _inline '    }'.
+    _inline '  }'.
+    _inline '  return visibleHints;'.
+    _inline '};'.
     _inline ''.
+    _inline 'function activateLinkHints(linkHintHotKey) {'.
+    _inline '  if (!linkHintHotKey) return;'.
+    _inline '  var oLinkHint = new LinkHints(linkHintHotKey);'.
+    _inline '  document.addEventListener("keypress", oLinkHint.getHandler());'.
     _inline '}'.
+    _inline ''.
+    _inline '/* HOTKEYS */'.
     _inline ''.
     _inline 'function Hotkeys(oKeyMap){'.
     _inline ''.
@@ -32289,11 +32258,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_link_hint_key( |{ <ls_post_field>-value }| ).
     ENDIF.
 
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hint_background_color'.
-    IF sy-subrc = 0.
-      mo_settings->set_link_hint_background_color( |{ <ls_post_field>-value }| ).
-    ENDIF.
-
     IF is_post_field_checked( 'parallel_proc_disabled' ) = abap_true.
       mo_settings->set_parallel_proc_disabled( abap_true ).
     ELSE.
@@ -32632,7 +32596,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
 
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
-    lv_link_background_color = mo_settings->get_link_hint_background_color( ).
 
     CREATE OBJECT ro_html.
     ro_html->add( |<h2>Vimium like link hints</h2>| ).
@@ -32642,11 +32605,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<br>| ).
     ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
                && |> Single key to activate links| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input type="text" name="link_hint_background_color" size="20" maxlength="20"|
-               && | value="{ lv_link_background_color }"|
-               && |> Background Color (HTML colors e.g. lightgreen or #42f47a)| ).
 
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
@@ -36830,7 +36788,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -36997,12 +36955,10 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
           lv_background_color TYPE string.
 
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
-    lv_background_color = mo_settings->get_link_hint_background_color( ).
 
-    IF mo_settings->get_link_hints_enabled( ) = abap_true
-    AND lv_link_hint_key IS NOT INITIAL.
+    IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
 
-      io_html->add( |setLinkHints("{ lv_link_hint_key }","{ lv_background_color }");| ).
+      io_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
       io_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
       io_html->add( |enableArrowListNavigation();| ).
 
@@ -37021,6 +36977,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</head>' ).                              "#EC NOTEXT
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
+  ENDMETHOD.
+  METHOD reg_error_message_panel_click.
+    io_html->add( |errorMessagePanelRegisterClick();| ).
   ENDMETHOD.
   METHOD render_error_message_box.
 
@@ -37090,6 +37049,12 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_error_handler~handle_error.
+
+    mx_error = ix_error.
+    rv_handled = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
@@ -37124,12 +37089,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-not_handled.
 
     ENDCASE.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_error_handler~handle_error.
-
-    mx_error = ix_error.
-    rv_handled = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -37170,11 +37129,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-
-  METHOD reg_error_message_panel_click.
-    io_html->add( |errorMessagePanelRegisterClick();| ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
@@ -38371,102 +38325,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
-  METHOD a.
-
-    DATA: lv_class TYPE string,
-          lv_href  TYPE string,
-          lv_click TYPE string,
-          lv_id    TYPE string,
-          lv_style TYPE string,
-          lv_title TYPE string.
-
-    lv_class = iv_class.
-
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
-      lv_class = lv_class && ' emphasis' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
-      lv_class = lv_class && ' attention' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
-      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
-    ENDIF.
-    IF lv_class IS NOT INITIAL.
-      SHIFT lv_class LEFT DELETING LEADING space.
-      lv_class = | class="{ lv_class }"|.
-    ENDIF.
-
-    lv_href  = ' href="#"'. " Default, dummy
-    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
-      CASE iv_typ.
-        WHEN zif_abapgit_html=>c_action_type-url.
-          lv_href  = | href="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-sapevent.
-          lv_href  = | href="sapevent:{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-onclick.
-          lv_href  = ' href="#"'.
-          lv_click = | onclick="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-dummy.
-          lv_href  = ' href="#"'.
-      ENDCASE.
-    ENDIF.
-
-    IF iv_id IS NOT INITIAL.
-      lv_id = | id="{ iv_id }"|.
-    ENDIF.
-
-    IF iv_style IS NOT INITIAL.
-      lv_style = | style="{ iv_style }"|.
-    ENDIF.
-
-    IF iv_title IS NOT INITIAL.
-      lv_title = | title="{ iv_title }"|.
-    ENDIF.
-
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
-          && |{ iv_txt }{ co_span_link_hint }</a>|.
-
-  ENDMETHOD.
-  METHOD add.
-
-    DATA: lv_type TYPE c,
-          lo_html TYPE REF TO zcl_abapgit_html.
-
-    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
-
-    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
-
-    CASE lv_type.
-      WHEN 'C' OR 'g'.  " Char or string
-        APPEND ig_chunk TO mt_buffer.
-      WHEN 'h'.         " Table
-        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
-        APPEND LINES OF <lt_tab> TO mt_buffer.
-      WHEN 'r'.         " Object ref
-        ASSERT ig_chunk IS BOUND. " Dev mistake
-        TRY.
-            lo_html ?= ig_chunk.
-          CATCH cx_sy_move_cast_error.
-            ASSERT 1 = 0. " Dev mistake
-        ENDTRY.
-        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
-      WHEN OTHERS.
-        ASSERT 1 = 0. " Dev mistake
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD add_a.
-
-    add( a( iv_txt   = iv_txt
-            iv_act   = iv_act
-            iv_typ   = iv_typ
-            iv_opt   = iv_opt
-            iv_class = iv_class
-            iv_id    = iv_id
-            iv_style = iv_style
-            iv_title = iv_title ) ).
-
-  ENDMETHOD.
   METHOD add_icon.
 
     add( icon( iv_name  = iv_name
@@ -38476,8 +38334,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD checkbox.
 
-    rv_html = |<input type="checkbox" id="{ iv_id }">|
-           && |{ co_span_link_hint }|.
+    rv_html = |<input type="checkbox" id="{ iv_id }">|.
 
   ENDMETHOD.
   METHOD class_constructor.
@@ -38485,35 +38342,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       EXPORTING
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
-  ENDMETHOD.
-  METHOD icon.
-
-    DATA: lv_hint          TYPE string,
-          lv_name          TYPE string,
-          lv_color         TYPE string,
-          lv_class         TYPE string,
-          lv_large_icon    TYPE string,
-          lv_xpixel        TYPE i.
-
-    SPLIT iv_name AT '/' INTO lv_name lv_color.
-
-    IF iv_hint IS NOT INITIAL.
-      lv_hint  = | title="{ iv_hint }"|.
-    ENDIF.
-    IF iv_class IS NOT INITIAL.
-      lv_class = | { iv_class }|.
-    ENDIF.
-    IF lv_color IS NOT INITIAL.
-      lv_color = | { lv_color }|.
-    ENDIF.
-
-    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X' in = 1 ).
-    IF lv_xpixel >= 2.
-      lv_large_icon = ' large'.
-    ENDIF.
-
-    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
-
   ENDMETHOD.
   METHOD indent_line.
 
@@ -38559,27 +38387,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       ENDIF.
       cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
     ENDIF.
-
-  ENDMETHOD.
-  METHOD is_empty.
-    rv_yes = boolc( lines( mt_buffer ) = 0 ).
-  ENDMETHOD.
-  METHOD render.
-
-    DATA: ls_context TYPE ty_indent_context,
-          lt_temp    TYPE string_table.
-
-    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
-                   <lv_line_c> LIKE LINE OF lt_temp.
-
-    ls_context-no_indent_jscss = iv_no_indent_jscss.
-
-    LOOP AT mt_buffer ASSIGNING <lv_line>.
-      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
-      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
-    ENDLOOP.
-
-    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
   METHOD study_line.
@@ -38639,9 +38446,155 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD a.
+
+    DATA: lv_class TYPE string,
+          lv_href  TYPE string,
+          lv_click TYPE string,
+          lv_id    TYPE string,
+          lv_style TYPE string,
+          lv_title TYPE string.
+
+    lv_class = iv_class.
+
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
+      lv_class = lv_class && ' emphasis' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
+      lv_class = lv_class && ' attention' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
+      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
+    ENDIF.
+    IF lv_class IS NOT INITIAL.
+      SHIFT lv_class LEFT DELETING LEADING space.
+      lv_class = | class="{ lv_class }"|.
+    ENDIF.
+
+    lv_href  = ' href="#"'. " Default, dummy
+    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
+      CASE iv_typ.
+        WHEN zif_abapgit_html=>c_action_type-url.
+          lv_href  = | href="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-sapevent.
+          lv_href  = | href="sapevent:{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-onclick.
+          lv_href  = ' href="#"'.
+          lv_click = | onclick="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-dummy.
+          lv_href  = ' href="#"'.
+      ENDCASE.
+    ENDIF.
+
+    IF iv_id IS NOT INITIAL.
+      lv_id = | id="{ iv_id }"|.
+    ENDIF.
+
+    IF iv_style IS NOT INITIAL.
+      lv_style = | style="{ iv_style }"|.
+    ENDIF.
+
+    IF iv_title IS NOT INITIAL.
+      lv_title = | title="{ iv_title }"|.
+    ENDIF.
+
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
+          && |{ iv_txt }</a>|.
+
+  ENDMETHOD.
+  METHOD add.
+
+    DATA: lv_type TYPE c,
+          lo_html TYPE REF TO zcl_abapgit_html.
+
+    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
+
+    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
+
+    CASE lv_type.
+      WHEN 'C' OR 'g'.  " Char or string
+        APPEND ig_chunk TO mt_buffer.
+      WHEN 'h'.         " Table
+        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
+        APPEND LINES OF <lt_tab> TO mt_buffer.
+      WHEN 'r'.         " Object ref
+        ASSERT ig_chunk IS BOUND. " Dev mistake
+        TRY.
+            lo_html ?= ig_chunk.
+          CATCH cx_sy_move_cast_error.
+            ASSERT 1 = 0. " Dev mistake
+        ENDTRY.
+        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
+      WHEN OTHERS.
+        ASSERT 1 = 0. " Dev mistake
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD add_a.
+
+    add( a( iv_txt   = iv_txt
+            iv_act   = iv_act
+            iv_typ   = iv_typ
+            iv_opt   = iv_opt
+            iv_class = iv_class
+            iv_id    = iv_id
+            iv_style = iv_style
+            iv_title = iv_title ) ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
 
     add( checkbox( iv_id ) ).
+
+  ENDMETHOD.
+  METHOD icon.
+
+    DATA: lv_hint          TYPE string,
+          lv_name          TYPE string,
+          lv_color         TYPE string,
+          lv_class         TYPE string,
+          lv_large_icon    TYPE string,
+          lv_xpixel        TYPE i.
+
+    SPLIT iv_name AT '/' INTO lv_name lv_color.
+
+    IF iv_hint IS NOT INITIAL.
+      lv_hint  = | title="{ iv_hint }"|.
+    ENDIF.
+    IF iv_class IS NOT INITIAL.
+      lv_class = | { iv_class }|.
+    ENDIF.
+    IF lv_color IS NOT INITIAL.
+      lv_color = | { lv_color }|.
+    ENDIF.
+
+    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X' in = 1 ).
+    IF lv_xpixel >= 2.
+      lv_large_icon = ' large'.
+    ENDIF.
+
+    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
+
+  ENDMETHOD.
+  METHOD is_empty.
+    rv_yes = boolc( lines( mt_buffer ) = 0 ).
+  ENDMETHOD.
+  METHOD render.
+
+    DATA: ls_context TYPE ty_indent_context,
+          lt_temp    TYPE string_table.
+
+    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
+                   <lv_line_c> LIKE LINE OF lt_temp.
+
+    ls_context-no_indent_jscss = iv_no_indent_jscss.
+
+    LOOP AT mt_buffer ASSIGNING <lv_line>.
+      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
+      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
+    ENDLOOP.
+
+    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
 ENDCLASS.
@@ -73911,5 +73864,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-02T14:28:54.955Z
+* abapmerge undefined - 2019-08-02T14:47:45.077Z
 ****************************************************
