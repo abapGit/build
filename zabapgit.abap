@@ -20917,7 +20917,7 @@ CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
         CALL METHOD ('CL_APJ_SCP_TOOLS')=>('IS_RESTART_REQUIRED')
           RECEIVING
             restart_required = rv_result.
-      CATCH cx_sy_dyn_call_illegal_method.
+      CATCH cx_sy_dyn_call_illegal_method cx_sy_dyn_call_illegal_class.
         rv_result = abap_false.
     ENDTRY.
   ENDMETHOD.
@@ -73892,5 +73892,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-01T10:20:23.823Z
+* abapmerge undefined - 2019-08-02T08:26:58.479Z
 ****************************************************
