@@ -16464,7 +16464,9 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
                        iv_path      = is_tadir-path ).
       CATCH zcx_abapgit_exception INTO lx_error.
         IF NOT mi_log IS INITIAL.
-          mi_log->add_error( lx_error->get_text( ) ).
+          mi_log->add_exception(
+              ix_exc  = lx_error
+              is_item = ls_fils_item-item ).
         ENDIF.
     ENDTRY.
 
@@ -73864,5 +73866,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-02T14:47:45.077Z
+* abapmerge undefined - 2019-08-03T05:08:29.113Z
 ****************************************************
