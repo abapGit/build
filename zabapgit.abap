@@ -9394,10 +9394,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       RAISING
         zcx_abapgit_exception.
 
-    METHODS reg_error_message_panel_click
-      IMPORTING
-        io_html TYPE REF TO zcl_abapgit_html.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_db DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -25547,7 +25543,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported onDirectionChange */'.
     _inline '/* exported onOrderByChange  */'.
     _inline '/* exported onTagTypeChange */'.
-    _inline '/* exported errorMessagePanelRegisterClick */'.
     _inline '/* exported getIndocStyleSheet */'.
     _inline ''.
     _inline '/**********************************************************'.
@@ -26876,25 +26871,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
     _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
     _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
-    _inline '}'.
-    _inline ''.
-    _inline '// Click on error message panel toggles longtext'.
-    _inline 'function errorMessagePanelRegisterClick(){'.
-    _inline '  var elMessage = document.getElementById("message");'.
-    _inline '  if (elMessage){'.
-    _inline '    elMessage.addEventListener("click", function(oEvent){'.
-    _inline '      toggleMessageDetail(oEvent);'.
-    _inline '    });'.
-    _inline '  }'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function toggleMessageDetail(oEvent){'.
-    _inline '  if (oEvent &&  ( oEvent.target.id === "a_goto_source"'.
-    _inline '                || oEvent.target.id === "a_callstack"'.
-    _inline '                || oEvent.target.id === "a_goto_message") ) {'.
-    _inline '    return;'.
-    _inline '  }'.
-    _inline '  toggleDisplay("message-detail");'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -36980,9 +36956,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD reg_error_message_panel_click.
-    io_html->add( |errorMessagePanelRegisterClick();| ).
-  ENDMETHOD.
   METHOD render_error_message_box.
 
     " You should remember that the we have to instantiate ro_html even
@@ -37021,7 +36994,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     link_hints( ro_html ).
     insert_hotkeys_to_page( ro_html ).
-    reg_error_message_panel_click( ro_html ).
 
   ENDMETHOD.
   METHOD title.
@@ -73866,5 +73838,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-03T05:08:29.113Z
+* abapmerge undefined - 2019-08-03T11:26:37.928Z
 ****************************************************
