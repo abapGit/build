@@ -35038,11 +35038,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
                     iv_id  = 'stage'
                     iv_typ = zif_abapgit_html=>c_action_type-dummy
                      ) ##NO_TEXT.
+    ELSE.
+      ro_menu->add( iv_txt = 'Split/Unified view'
+                    iv_act = c_actions-toggle_unified ) ##NO_TEXT.
     ENDIF.
-
-    ro_menu->add( iv_txt = 'Split/Unified view'
-                  iv_act = c_actions-toggle_unified ) ##NO_TEXT.
-
   ENDMETHOD.
   METHOD constructor.
 
@@ -74113,5 +74112,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-03T11:31:58.078Z
+* abapmerge undefined - 2019-08-03T11:37:14.920Z
 ****************************************************
