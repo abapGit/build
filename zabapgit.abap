@@ -2051,10 +2051,11 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_log .
   TYPES:
     BEGIN OF ty_log_out,
-      type     TYPE symsgty,
-      text     TYPE string,
-      obj_type TYPE trobjtype,
-      obj_name TYPE sobj_name,
+      type      TYPE symsgty,
+      text      TYPE string,
+      obj_type  TYPE trobjtype,
+      obj_name  TYPE sobj_name,
+      exception TYPE REF TO cx_root,
     END OF ty_log_out .
   TYPES:
     tty_log_out TYPE STANDARD TABLE OF ty_log_out
@@ -2082,7 +2083,8 @@ INTERFACE zif_abapgit_log .
       !iv_msg  TYPE csequence
       !iv_type TYPE symsgty DEFAULT 'E'
       !iv_rc   TYPE balsort OPTIONAL
-      !is_item TYPE zif_abapgit_definitions=>ty_item OPTIONAL .
+      !is_item TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+      !ix_exc  TYPE REF TO cx_root OPTIONAL.
   METHODS add_error
     IMPORTING
       !iv_msg  TYPE csequence
@@ -11111,27 +11113,77 @@ CLASS zcl_abapgit_log_viewer DEFINITION
 
     CLASS-METHODS write_log
       IMPORTING
-        ii_log         TYPE REF TO zif_abapgit_log.
-
-  PROTECTED SECTION.
+        ii_log TYPE REF TO zif_abapgit_log.
 
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_log_out,
-        type     TYPE icon_d,
-        msg      TYPE string,
-        obj_type TYPE trobjtype,
-        obj_name TYPE sobj_name,
-      END OF ty_log_out .
+        type      TYPE icon_d,
+        msg       TYPE string,
+        obj_type  TYPE trobjtype,
+        obj_name  TYPE sobj_name,
+        exception TYPE REF TO cx_root,
+        longtext  TYPE icon_d,
+        t100      TYPE icon_d,
+        source    TYPE icon_d,
+        callstack TYPE icon_d,
+        cell_type TYPE salv_t_int4_column,
+      END OF ty_log_out.
     TYPES:
       tty_log_out TYPE STANDARD TABLE OF ty_log_out
-                                WITH NON-UNIQUE DEFAULT KEY .
+                                WITH NON-UNIQUE DEFAULT KEY.
 
-    CLASS-METHODS prepare_log_for_display
-      IMPORTING
-        ii_log     TYPE REF TO zif_abapgit_log
-      EXPORTING
-        et_log_out TYPE tty_log_out .
+    CLASS-METHODS:
+      prepare_log_for_display
+        IMPORTING
+          ii_log     TYPE REF TO zif_abapgit_log
+        EXPORTING
+          et_log_out TYPE tty_log_out,
+
+      show_longtext
+        IMPORTING
+          is_log TYPE ty_log_out
+        RAISING
+          zcx_abapgit_exception,
+
+      goto_source
+        IMPORTING
+          is_log TYPE ty_log_out
+        RAISING
+          zcx_abapgit_exception,
+
+      goto_callstack
+        IMPORTING
+          is_log TYPE ty_log_out
+        RAISING
+          zcx_abapgit_exception,
+
+      goto_t100_message
+        IMPORTING
+          is_log TYPE zcl_abapgit_log_viewer=>ty_log_out
+        RAISING
+          zcx_abapgit_exception,
+
+      on_link_click FOR EVENT link_click OF cl_salv_events_table
+        IMPORTING row column,
+
+      dispatch
+        IMPORTING
+          is_log    TYPE zcl_abapgit_log_viewer=>ty_log_out
+          iv_column TYPE salv_de_column
+        RAISING
+          zcx_abapgit_exception,
+
+      calculate_cell_type,
+
+      get_exception_viewer
+        IMPORTING
+          is_log                     TYPE ty_log_out
+        RETURNING
+          VALUE(ro_exception_viewer) TYPE REF TO zcl_abapgit_exception_viewer.
+
+    CLASS-DATA:
+      gt_log TYPE tty_log_out.
 
 ENDCLASS.
 CLASS zcl_abapgit_password_dialog DEFINITION
@@ -11751,9 +11803,10 @@ CLASS zcl_abapgit_log DEFINITION
       END OF ty_msg .
     TYPES:
       BEGIN OF ty_log, "in order of occurrence
-        msg  TYPE ty_msg,
-        rc   TYPE balsort,
-        item TYPE zif_abapgit_definitions=>ty_item,
+        msg       TYPE ty_msg,
+        rc        TYPE balsort,
+        item      TYPE zif_abapgit_definitions=>ty_item,
+        exception TYPE REF TO cx_root,
       END OF ty_log .
 
     DATA:
@@ -23265,7 +23318,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
+CLASS zcl_abapgit_log IMPLEMENTATION.
   METHOD get_messages_status.
 
     DATA lr_msg TYPE REF TO zif_abapgit_log=>ty_msg.
@@ -23294,10 +23347,11 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF mt_log.
 
     APPEND INITIAL LINE TO mt_log ASSIGNING <ls_log>.
-    <ls_log>-msg-text = iv_msg.
-    <ls_log>-msg-type = iv_type.
-    <ls_log>-rc       = iv_rc.
-    <ls_log>-item     = is_item.
+    <ls_log>-msg-text  = iv_msg.
+    <ls_log>-msg-type  = iv_type.
+    <ls_log>-rc        = iv_rc.
+    <ls_log>-item      = is_item.
+    <ls_log>-exception = ix_exc.
 
   ENDMETHOD.
   METHOD zif_abapgit_log~add_error.
@@ -23317,7 +23371,8 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
       lv_msg = lx_exc->get_text( ).
       zif_abapgit_log~add( iv_msg  = lv_msg
                            iv_type = 'E'
-                           is_item = is_item ).
+                           is_item = is_item
+                           ix_exc  = lx_exc ).
       IF lx_exc->previous IS BOUND.
         lx_exc = lx_exc->previous.
       ELSE.
@@ -23398,10 +23453,11 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     DATA ls_msg TYPE zif_abapgit_log~ty_log_out.
     FIELD-SYMBOLS <ls_log> TYPE ty_log.
     LOOP AT mt_log ASSIGNING <ls_log>.
-      ls_msg-type     = <ls_log>-msg-type.
-      ls_msg-text     = <ls_log>-msg-text.
-      ls_msg-obj_type = <ls_log>-item-obj_type.
-      ls_msg-obj_name = <ls_log>-item-obj_name.
+      ls_msg-type      = <ls_log>-msg-type.
+      ls_msg-text      = <ls_log>-msg-text.
+      ls_msg-obj_type  = <ls_log>-item-obj_type.
+      ls_msg-obj_name  = <ls_log>-item-obj_name.
+      ls_msg-exception = <ls_log>-exception.
       APPEND ls_msg TO rt_msg.
     ENDLOOP.
   ENDMETHOD.
@@ -29427,12 +29483,70 @@ CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
+CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
+  METHOD dispatch.
+
+    CASE iv_column.
+      WHEN `LONGTEXT`.
+
+        show_longtext( is_log ).
+
+      WHEN `T100`.
+
+        goto_t100_message( is_log ).
+
+      WHEN `SOURCE`.
+
+        goto_source( is_log ).
+
+      WHEN `CALLSTACK`.
+
+        goto_callstack( is_log ).
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD goto_callstack.
+
+    get_exception_viewer( is_log )->show_callstack( ).
+
+  ENDMETHOD.
+  METHOD goto_source.
+
+    get_exception_viewer( is_log )->goto_source( ).
+
+  ENDMETHOD.
+  METHOD on_link_click.
+
+    DATA: lx_error TYPE REF TO zcx_abapgit_exception.
+    FIELD-SYMBOLS: <ls_log> TYPE zcl_abapgit_log_viewer=>ty_log_out.
+
+    IF row IS INITIAL
+    OR column IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    READ TABLE gt_log ASSIGNING <ls_log>
+                      INDEX row.
+    ASSERT sy-subrc = 0.
+
+    TRY.
+        dispatch(
+            is_log    = <ls_log>
+            iv_column = column ).
+
+      CATCH zcx_abapgit_exception INTO lx_error.
+        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD prepare_log_for_display.
 
-    DATA: lt_message TYPE zif_abapgit_log=>tty_log_out,
-          lr_message TYPE REF TO zif_abapgit_log=>ty_log_out,
-          ls_log     TYPE ty_log_out.
+    DATA: lt_message      TYPE zif_abapgit_log=>tty_log_out,
+          lr_message      TYPE REF TO zif_abapgit_log=>ty_log_out,
+          ls_log          TYPE ty_log_out,
+          li_t100_message TYPE REF TO if_t100_message,
+          lx_abapgit      TYPE REF TO zcx_abapgit_exception.
 
     lt_message = ii_log->get_messages( ).
 
@@ -29441,6 +29555,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
       CLEAR: ls_log.
 
       ls_log-msg = lr_message->text.
+      ls_log-exception = lr_message->exception.
 
       CASE lr_message->type.
         WHEN 'E' OR 'A' OR 'X'.
@@ -29453,6 +29568,32 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           ls_log-type = icon_led_inactive.
       ENDCASE.
 
+      IF lr_message->exception IS BOUND.
+
+        TRY.
+            li_t100_message ?= lr_message->exception.
+
+            IF li_t100_message->t100key IS NOT INITIAL.
+              ls_log-t100 = icon_message_information.
+            ENDIF.
+
+          CATCH cx_sy_move_cast_error ##NO_HANDLER.
+        ENDTRY.
+
+        TRY.
+            lx_abapgit ?= lr_message->exception.
+
+            IF lx_abapgit->mt_callstack IS NOT INITIAL.
+              ls_log-longtext  = icon_system_help.
+              ls_log-callstack = icon_stack.
+              ls_log-source    = icon_abap.
+            ENDIF.
+
+          CATCH cx_sy_move_cast_error ##NO_HANDLER.
+        ENDTRY.
+
+      ENDIF.
+
       ls_log-obj_type = lr_message->obj_type.
       ls_log-obj_name = lr_message->obj_name.
 
@@ -29463,24 +29604,24 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
   METHOD show_log.
 
-    DATA: lt_log         TYPE tty_log_out,
-          lr_log         TYPE REF TO ty_log_out,
+    DATA: lr_log         TYPE REF TO ty_log_out,
           lo_alv         TYPE REF TO cl_salv_table,
           lx_error       TYPE REF TO cx_salv_error,
           lo_form_header TYPE REF TO cl_salv_form_header_info,
           lo_columns     TYPE REF TO cl_salv_columns_table,
           lo_column      TYPE REF TO cl_salv_column,
           lo_functions   TYPE REF TO cl_salv_functions_list,
-          lv_add_obj_col TYPE abap_bool.
+          lv_add_obj_col TYPE abap_bool,
+          lo_event       TYPE REF TO cl_salv_events_table.
 
     prepare_log_for_display(
       EXPORTING
         ii_log     = ii_log
       IMPORTING
-        et_log_out = lt_log ).
+        et_log_out = gt_log ).
 
     "check if log contains any object info
-    LOOP AT lt_log REFERENCE INTO lr_log.
+    LOOP AT gt_log REFERENCE INTO lr_log.
       IF lr_log->obj_type IS NOT INITIAL OR lr_log->obj_name IS NOT INITIAL.
         lv_add_obj_col = abap_true.
       ENDIF.
@@ -29491,7 +29632,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           IMPORTING
             r_salv_table = lo_alv
           CHANGING
-            t_table      = lt_log ).
+            t_table      = gt_log ).
 
         lo_functions = lo_alv->get_functions( ).
         lo_functions->set_all( ).
@@ -29499,12 +29640,27 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
         lo_columns = lo_alv->get_columns( ).
 
         lo_columns->set_optimize( ).
+        lo_columns->set_cell_type_column( |CELL_TYPE| ).
+
+        calculate_cell_type( ).
 
         lo_column = lo_columns->get_column( |TYPE| ).
         lo_column->set_medium_text( |Type| ).
 
         lo_column = lo_columns->get_column( |MSG| ).
         lo_column->set_medium_text( |Message| ).
+
+        lo_column = lo_columns->get_column( |LONGTEXT| ).
+        lo_column->set_medium_text( |Longtext| ).
+
+        lo_column = lo_columns->get_column( |T100| ).
+        lo_column->set_medium_text( |Goto message| ).
+
+        lo_column = lo_columns->get_column( |SOURCE| ).
+        lo_column->set_medium_text( |Goto source| ).
+
+        lo_column = lo_columns->get_column( |CALLSTACK| ).
+        lo_column->set_medium_text( |Show callstack| ).
 
         IF lv_add_obj_col = abap_true.
           lo_column = lo_columns->get_column( |OBJ_TYPE| ).
@@ -29522,9 +29678,9 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
         ENDIF.
 
         lo_alv->set_screen_popup( start_column = 10
-                                  end_column   = 120
+                                  end_column   = 180
                                   start_line   = 4
-                                  end_line     = 20 ).
+                                  end_line     = 25 ).
 
         CREATE OBJECT lo_form_header
           EXPORTING
@@ -29532,11 +29688,82 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
 
         lo_alv->set_top_of_list( lo_form_header ).
 
+        lo_event = lo_alv->get_event( ).
+
+        SET HANDLER on_link_click FOR lo_event.
+
         lo_alv->display( ).
 
       CATCH cx_salv_error INTO lx_error.
         MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD show_longtext.
+
+    DATA: lx_abapgit TYPE REF TO zcx_abapgit_exception.
+
+    TYPES: BEGIN OF dummy1.
+        INCLUDE TYPE dselc.
+    TYPES: END OF dummy1,
+    tty_dummy1 TYPE STANDARD TABLE OF dummy1
+                        WITH NON-UNIQUE DEFAULT KEY,
+      BEGIN OF dummy2.
+        INCLUDE TYPE dval.
+    TYPES: END OF dummy2,
+    tty_dummy2 TYPE STANDARD TABLE OF dummy2
+                        WITH NON-UNIQUE DEFAULT KEY.
+
+    DATA:
+      lv_docu_object TYPE dokhl-object,
+      lt_dummy1      TYPE tty_dummy1,
+      lt_dummy2      TYPE tty_dummy2,
+      ls_help_info   TYPE help_info.
+
+    IF is_log-exception IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    TRY.
+        lx_abapgit ?= is_log-exception.
+
+      CATCH cx_sy_move_cast_error ##NO_HANDLER.
+        RETURN.
+    ENDTRY.
+
+    lv_docu_object   = lx_abapgit->if_t100_message~t100key-msgid.
+    lv_docu_object+2 = lx_abapgit->if_t100_message~t100key-msgno.
+
+    ls_help_info-call       = 'D'.
+    ls_help_info-spras      = sy-langu.
+    ls_help_info-messageid  = lx_abapgit->if_t100_message~t100key-msgid.
+    ls_help_info-messagenr  = lx_abapgit->if_t100_message~t100key-msgno.
+    ls_help_info-message    = is_log-msg.
+    ls_help_info-title      = 'Longtext'.
+    ls_help_info-docuid     = 'NA'.
+    ls_help_info-docuobject = lv_docu_object.
+    ls_help_info-msgv1      = lx_abapgit->msgv1.
+    ls_help_info-msgv2      = lx_abapgit->msgv2.
+    ls_help_info-msgv3      = lx_abapgit->msgv3.
+    ls_help_info-msgv4      = lx_abapgit->msgv4.
+
+    CALL FUNCTION 'HELP_START'
+      EXPORTING
+        help_infos   = ls_help_info
+      TABLES
+        dynpselect   = lt_dummy1
+        dynpvaluetab = lt_dummy2
+      EXCEPTIONS
+        OTHERS       = 1.
+
+    IF sy-subrc IS NOT INITIAL.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD goto_t100_message.
+
+    get_exception_viewer( is_log )->goto_message( ).
 
   ENDMETHOD.
   METHOD to_html.
@@ -29592,6 +29819,54 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD calculate_cell_type.
+
+    FIELD-SYMBOLS: <ls_log> LIKE LINE OF gt_log.
+    DATA: ls_cell_type LIKE LINE OF <ls_log>-cell_type.
+
+    LOOP AT gt_log ASSIGNING <ls_log>.
+
+      IF <ls_log>-longtext IS NOT INITIAL.
+        ls_cell_type-columnname = `LONGTEXT`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-t100 IS NOT INITIAL.
+        ls_cell_type-columnname = `T100`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-source IS NOT INITIAL.
+        ls_cell_type-columnname = `SOURCE`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-callstack IS NOT INITIAL.
+        ls_cell_type-columnname = `CALLSTACK`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_exception_viewer.
+
+    DATA:
+      lx_abapgit TYPE REF TO zcx_abapgit_exception.
+
+    ASSERT is_log-exception IS BOUND.
+    lx_abapgit ?= is_log-exception.
+
+    CREATE OBJECT ro_exception_viewer
+      EXPORTING
+        ix_error = lx_abapgit.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
@@ -73838,5 +74113,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-03T11:26:37.928Z
+* abapmerge undefined - 2019-08-03T11:31:58.078Z
 ****************************************************
