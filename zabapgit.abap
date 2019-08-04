@@ -24906,8 +24906,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    /* Position the tooltip text */'.
     _inline '    position: absolute;'.
     _inline '    z-index: 1;'.
-    _inline '    margin-left: -60px;'.
     _inline '    margin-top: -30px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.link-hint-a {'.
+    _inline '  margin-left: -60px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.link-hint-input {'.
+    _inline '  margin-left: -30px;'.
     _inline '}'.
     _inline ''.
     _inline '.link-hint .pending { color: hsla(0, 0%, 0%, 0.2); }'.
@@ -26363,6 +26370,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '    hint.pendingSpan.classList.add("pending");'.
     _inline '    hint.container.classList.add("link-hint");'.
+    _inline '    if (hint.parent.nodeName === "INPUT"){'.
+    _inline '      hint.container.classList.add("link-hint-input");'.
+    _inline '    } else {'.
+    _inline '      hint.container.classList.add("link-hint-a");'.
+    _inline '    }'.
+    _inline ''.
     _inline '    hint.container.classList.add("nodisplay");            // hide by default'.
     _inline '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug'.
     _inline ''.
@@ -74112,5 +74125,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-03T11:37:14.920Z
+* abapmerge undefined - 2019-08-04T16:50:42.175Z
 ****************************************************
