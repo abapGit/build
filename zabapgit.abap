@@ -1016,12 +1016,16 @@ INTERFACE zif_abapgit_comparator .
       zcx_abapgit_exception .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_gui_functions .
+INTERFACE zif_abapgit_gui_functions.
 
   METHODS:
     gui_is_available
       RETURNING
-        VALUE(rv_gui_is_available) TYPE abap_bool.
+        VALUE(rv_gui_is_available) TYPE abap_bool,
+
+    is_sapgui_for_java
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
 
 ENDINTERFACE.
 
@@ -1679,6 +1683,7 @@ INTERFACE zif_abapgit_definitions .
       parallel_proc_disabled     TYPE abap_bool,
       icon_scaling               TYPE c LENGTH 1,
       ui_theme                   TYPE string,
+      hide_sapgui_hint           TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -11342,6 +11347,9 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CLASS-METHODS get_package_from_adt
       RETURNING
         VALUE(rv_package) TYPE devclass.
+    CLASS-METHODS check_sapgui
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_services_git DEFINITION
@@ -28290,6 +28298,8 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
           lv_package     TYPE devclass,
           lv_package_adt TYPE devclass.
 
+    check_sapgui( ).
+
     IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
       " Don't show the last seen repo at startup
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
@@ -28369,6 +28379,44 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD check_sapgui.
+
+    CONSTANTS:
+      lc_hide_sapgui_hint TYPE string VALUE '2' ##NO_TEXT.
+
+    DATA:
+      lv_answer           TYPE char1,
+      ls_settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
+      lo_user_persistence TYPE REF TO zif_abapgit_persist_user.
+
+    lo_user_persistence = zcl_abapgit_persistence_user=>get_instance( ).
+
+    ls_settings = lo_user_persistence->get_settings( ).
+
+    IF ls_settings-hide_sapgui_hint = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_java( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+                    iv_titlebar              = 'Not supported SAPGUI'
+                    iv_text_question         = 'SAPGUI for Java is not supported! There might be some issues.'
+                    iv_text_button_1         = 'Got it'
+                    iv_icon_button_1         = |{ icon_okay }|
+                    iv_text_button_2         = 'Hide'
+                    iv_icon_button_2         = |{ icon_set_state }|
+                    iv_display_cancel_button = abap_false ).
+
+    IF lv_answer = lc_hide_sapgui_hint.
+      ls_settings-hide_sapgui_hint = abap_true.
+      lo_user_persistence->set_settings( ls_settings ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
@@ -37404,6 +37452,13 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
     CALL FUNCTION 'GUI_IS_AVAILABLE'
       IMPORTING
         return = rv_gui_is_available.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_functions~is_sapgui_for_java.
+
+    CALL FUNCTION 'GUI_HAS_JAVABEANS'
+      IMPORTING
+        return = rv_result.
 
   ENDMETHOD.
 
@@ -74139,5 +74194,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-05T08:59:40.105Z
+* abapmerge undefined - 2019-08-05T09:05:02.970Z
 ****************************************************
