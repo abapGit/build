@@ -9290,6 +9290,11 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         iv_msgno       TYPE scx_t100key-msgno
       RETURNING
         VALUE(rv_text) TYPE string.
+    CLASS-METHODS normalize_program_name
+      IMPORTING
+        iv_program_name                   TYPE syrepid
+      RETURNING
+        VALUE(rv_normalized_program_name) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -37405,6 +37410,13 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+  METHOD normalize_program_name.
+
+    rv_normalized_program_name = substring_before(
+                                     val   = iv_program_name
+                                     regex = `(=+CP)?$` ).
+
+  ENDMETHOD.
   METHOD render_branch_span.
 
     DATA: lv_text  TYPE string,
@@ -37529,11 +37541,13 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       IMPORTING
         program_name = lv_program_name ).
 
+    lv_title = normalize_program_name( lv_program_name ).
+
     ro_html->add_a(
         iv_txt   = `Goto source`
         iv_act   = zif_abapgit_definitions=>c_action-goto_source
         iv_typ   = zif_abapgit_html=>c_action_type-sapevent
-        iv_title = |{ lv_program_name }|
+        iv_title = lv_title
         iv_id    = `a_goto_source` ).
 
     ro_html->add_a(
@@ -74125,5 +74139,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-04T16:50:42.175Z
+* abapmerge undefined - 2019-08-05T08:59:40.105Z
 ****************************************************
