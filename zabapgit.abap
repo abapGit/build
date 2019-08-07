@@ -1881,7 +1881,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     create
       IMPORTING
         iv_package    TYPE devclass
-        iv_overwrite  TYPE seox_boolean DEFAULT seox_true
+        iv_overwrite  TYPE abap_bool DEFAULT abap_true
         it_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt OPTIONAL
       CHANGING
         cg_properties TYPE any
@@ -1890,7 +1890,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     generate_locals
       IMPORTING
         is_key                   TYPE seoclskey
-        iv_force                 TYPE seox_boolean DEFAULT seox_true
+        iv_force                 TYPE abap_bool DEFAULT abap_true
         it_local_definitions     TYPE seop_source_string OPTIONAL
         it_local_implementations TYPE seop_source_string OPTIONAL
         it_local_macros          TYPE seop_source_string OPTIONAL
@@ -41519,7 +41519,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
 
     CALL FUNCTION 'SEO_METHOD_GENERATE_INCLUDE'
       EXPORTING
-        suppress_mtdkey_check          = seox_true
+        suppress_mtdkey_check          = abap_true
         mtdkey                         = ls_mtdkey
       EXCEPTIONS
         not_existing                   = 1
@@ -41550,7 +41550,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     CALL FUNCTION 'SEO_CLASS_GENERATE_CLASSPOOL'
       EXPORTING
         clskey                        = ls_clskey
-        suppress_corr                 = seox_true
+        suppress_corr                 = abap_true
       EXCEPTIONS
         not_existing                  = 1
         model_only                    = 2
@@ -41639,7 +41639,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
 
     DATA: lo_update     TYPE REF TO cl_oo_class_section_source,
           ls_clskey     TYPE seoclskey,
-          lv_scan_error TYPE seox_boolean.
+          lv_scan_error TYPE abap_bool.
     ls_clskey-clsname = iv_name.
 
     TRY.
@@ -41649,7 +41649,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
             exposure                      = iv_exposure
             state                         = 'A'
             source                        = it_source
-            suppress_constrctr_generation = seox_true
+            suppress_constrctr_generation = abap_true
           EXCEPTIONS
             class_not_existing            = 1
             read_source_error             = 2
@@ -41671,7 +41671,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error instantiating CL_OO_CLASS_SECTION_SOURCE. Subrc = { sy-subrc }| ).
     ENDIF.
 
-    lo_update->set_dark_mode( seox_true ).
+    lo_update->set_dark_mode( abap_true ).
     TRY.
         CALL METHOD lo_update->('SET_AMDP_SUPPORT')
           EXPORTING
@@ -59145,11 +59145,11 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     CALL FUNCTION 'SEO_BUFFER_REFRESH'
       EXPORTING
         version = seoc_version_active
-        force   = seox_true.
+        force   = abap_true.
     CALL FUNCTION 'SEO_BUFFER_REFRESH'
       EXPORTING
         version = seoc_version_inactive
-        force   = seox_true.
+        force   = abap_true.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap( ls_interface_key ).
 
@@ -67536,7 +67536,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
     mi_object_oriented_object_fct->generate_locals(
       is_key                   = ls_class_key
-      iv_force                 = seox_true
+      iv_force                 = abap_true
       it_local_definitions     = lt_local_definitions
       it_local_implementations = lt_local_implementations
       it_local_macros          = lt_local_macros
@@ -67808,11 +67808,11 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     CALL FUNCTION 'SEO_BUFFER_REFRESH'
       EXPORTING
         version = seoc_version_active
-        force   = seox_true.
+        force   = abap_true.
     CALL FUNCTION 'SEO_BUFFER_REFRESH'
       EXPORTING
         version = seoc_version_inactive
-        force   = seox_true.
+        force   = abap_true.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap( ls_class_key ).
 
@@ -74205,5 +74205,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-07T06:15:42.907Z
+* abapmerge undefined - 2019-08-07T06:27:48.633Z
 ****************************************************
