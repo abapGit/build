@@ -68374,13 +68374,19 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-* TODO, this function module does not exist in 702
-    CALL FUNCTION 'SU20_MAINTAIN_SNGL'
+    CALL FUNCTION 'FUNCTION_EXISTS'
       EXPORTING
-        id_field    = mv_fieldname
-        id_wbo_mode = abap_false.
-
+        funcname           = 'SU20_MAINTAIN_SNGL'
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    IF sy-subrc = 0.
+      " this function module does not exist in 740
+      CALL FUNCTION 'SU20_MAINTAIN_SNGL'
+        EXPORTING
+          id_field    = mv_fieldname
+          id_wbo_mode = abap_false.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -74205,5 +74211,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-07T06:27:48.633Z
+* abapmerge undefined - 2019-08-08T02:22:36.768Z
 ****************************************************
