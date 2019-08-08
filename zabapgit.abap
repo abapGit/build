@@ -71472,6 +71472,8 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'missing necessary objects' ).
     ELSEIF lv_string CP '*refusing to delete the current branch*'.
       zcx_abapgit_exception=>raise( 'branch delete not allowed' ).
+    ELSEIF lv_string CP '*cannot lock ref*reference already exists*'.
+      zcx_abapgit_exception=>raise( 'branch already exists' ).
     ENDIF.
 
   ENDMETHOD.
@@ -74211,5 +74213,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-08T02:22:36.768Z
+* abapmerge undefined - 2019-08-08T04:23:54.202Z
 ****************************************************
