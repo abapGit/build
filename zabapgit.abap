@@ -23106,6 +23106,8 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
 
     IF rv_pct = 100.
       rv_pct = 99.
+    ELSEIF rv_pct = 0.
+      rv_pct = 1.
     ENDIF.
 
   ENDMETHOD.
@@ -74213,5 +74215,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-08T04:23:54.202Z
+* abapmerge undefined - 2019-08-08T04:41:43.009Z
 ****************************************************
