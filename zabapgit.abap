@@ -14224,6 +14224,8 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING   zcx_abapgit_exception.
 
   PROTECTED SECTION.
+
+    CLASS-DATA gv_prev TYPE string .
   PRIVATE SECTION.
 
     CLASS-METHODS encode_files
@@ -14986,8 +14988,6 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
           lv_sep        TYPE c LENGTH 1,
           ls_files_item TYPE zcl_abapgit_objects=>ty_serialization.
 
-    STATICS: sv_prev TYPE string.
-
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
     ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
     IF ls_tadir IS INITIAL.
@@ -15007,14 +15007,14 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     cl_gui_frontend_services=>directory_browse(
       EXPORTING
-        initial_folder  = sv_prev
+        initial_folder  = gv_prev
       CHANGING
         selected_folder = lv_folder ).
     IF lv_folder IS INITIAL.
       RETURN.
     ENDIF.
 
-    sv_prev = lv_folder.
+    gv_prev = lv_folder.
 
     cl_gui_frontend_services=>get_file_separator(
       CHANGING
@@ -74215,5 +74215,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-08T08:28:01.790Z
+* abapmerge undefined - 2019-08-08T08:32:20.457Z
 ****************************************************
