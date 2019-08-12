@@ -50003,7 +50003,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
                                         event   = <ls_tvimf>-event
                                TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
-        DELETE tvimf FROM <ls_tvimf>.
+        DELETE FROM tvimf
+          WHERE tabname = <ls_tvimf>-tabname
+          AND event = <ls_tvimf>-event.
       ENDIF.
     ENDLOOP.
 
@@ -73819,18 +73821,19 @@ SELECTION-SCREEN BEGIN OF SCREEN 1001.
 * dummy for triggering screen on Java SAP GUI
 SELECTION-SCREEN END OF SCREEN 1001.
 
+TABLES sscrfields.
+
 ****************************************************
 * abapmerge - ZABAPGIT_PASSWORD_DIALOG
 ****************************************************
 *&---------------------------------------------------------------------*
 *&  Include           ZABAPGIT_PASSWORD_DIALOG
 *&---------------------------------------------------------------------*
-TABLES sscrfields.
 
 SELECTION-SCREEN BEGIN OF SCREEN 1002 TITLE s_title.
 SELECTION-SCREEN BEGIN OF LINE.
 SELECTION-SCREEN COMMENT 1(10) s_url FOR FIELD p_url.
-PARAMETERS: p_url  TYPE string LOWER CASE VISIBLE LENGTH 40 ##SEL_WRONG.
+PARAMETERS: p_url TYPE string LOWER CASE VISIBLE LENGTH 40 ##SEL_WRONG.
 SELECTION-SCREEN END OF LINE.
 SELECTION-SCREEN BEGIN OF LINE.
 SELECTION-SCREEN COMMENT 1(10) s_user FOR FIELD p_user.
@@ -74215,5 +74218,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-09T11:15:32.800Z
+* abapmerge undefined - 2019-08-12T06:17:36.698Z
 ****************************************************
