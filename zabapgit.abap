@@ -1523,6 +1523,7 @@ INTERFACE zif_abapgit_definitions .
       devclass TYPE tadir-devclass,
       korrnum  TYPE tadir-korrnum,
       delflag  TYPE tadir-delflag,
+      genflag  TYPE tadir-genflag,
       path     TYPE string,
     END OF ty_tadir .
   TYPES:
@@ -1674,16 +1675,16 @@ INTERFACE zif_abapgit_definitions .
     tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_s_user_settings,
-      max_lines                  TYPE i,
-      adt_jump_enabled           TYPE abap_bool,
-      show_default_repo          TYPE abap_bool,
-      link_hints_enabled         TYPE abap_bool,
-      link_hint_key              TYPE c LENGTH 1,
-      hotkeys                    TYPE tty_hotkey,
-      parallel_proc_disabled     TYPE abap_bool,
-      icon_scaling               TYPE c LENGTH 1,
-      ui_theme                   TYPE string,
-      hide_sapgui_hint           TYPE abap_bool,
+      max_lines              TYPE i,
+      adt_jump_enabled       TYPE abap_bool,
+      show_default_repo      TYPE abap_bool,
+      link_hints_enabled     TYPE abap_bool,
+      link_hint_key          TYPE c LENGTH 1,
+      hotkeys                TYPE tty_hotkey,
+      parallel_proc_disabled TYPE abap_bool,
+      icon_scaling           TYPE c LENGTH 1,
+      ui_theme               TYPE string,
+      hide_sapgui_hint       TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -16168,13 +16169,17 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD skip_sadl_generated_objects.
+
     DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
           ls_tadir           LIKE LINE OF rt_tadir,
+          lt_candidates      LIKE rt_tadir,
           lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
-    rt_tadir = it_tadir.
+    lt_candidates = it_tadir.
+    DELETE lt_candidates WHERE object <> 'CLAS' OR genflag = abap_false.
+
     LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
-      LOOP AT rt_tadir INTO ls_tadir_class
+      LOOP AT lt_candidates INTO ls_tadir_class
           WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
         IF has_sadl_superclass( ls_tadir_class ) = abap_true.
           APPEND ls_tadir_class TO lt_lines_to_delete.
@@ -16182,6 +16187,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
+    rt_tadir = it_tadir.
     DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
     LOOP AT lt_lines_to_delete INTO ls_tadir_class.
       DELETE TABLE rt_tadir FROM ls_tadir_class.
@@ -74222,5 +74228,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-14T05:36:12.106Z
+* abapmerge undefined - 2019-08-14T05:41:02.456Z
 ****************************************************
