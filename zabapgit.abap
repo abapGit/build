@@ -25048,7 +25048,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-left: 4px solid;'.
     _inline '}'.
     _inline '.ci-result li:first-child { margin-top: 0px; }'.
-    _inline '.ci-result li span { display: block; }'.
+    _inline '.ci-result li > span { display: block; }'.
     _inline ''.
     _inline '/* Floating buttons */'.
     _inline ''.
@@ -74292,5 +74292,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-22T05:23:37.812Z
+* abapmerge undefined - 2019-08-22T05:27:45.044Z
 ****************************************************
