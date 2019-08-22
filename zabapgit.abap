@@ -9340,9 +9340,25 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
              page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
            END OF  ty_control.
 
+    TYPES: BEGIN OF ty_event,
+             method TYPE string,
+             name TYPE string,
+           END OF  ty_event.
+
+    TYPES: tt_events TYPE STANDARD TABLE OF ty_event WITH DEFAULT KEY.
+
     DATA: ms_control TYPE ty_control.
 
     METHODS render_content ABSTRACT
+      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING   zcx_abapgit_exception.
+
+    METHODS get_events
+      RETURNING VALUE(rt_events) TYPE tt_events
+      RAISING   zcx_abapgit_exception.
+
+    METHODS render_event_as_form
+      IMPORTING is_event TYPE ty_event
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING   zcx_abapgit_exception.
 
@@ -10509,6 +10525,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
   PROTECTED SECTION.
     METHODS:
       render_content REDEFINITION,
+      get_events     REDEFINITION,
       scripts        REDEFINITION.
 
   PRIVATE SECTION.
@@ -25698,11 +25715,17 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
     _inline '}'.
     _inline ''.
-    _inline '// Create hidden form and submit with sapevent'.
+    _inline '// Use a pre-created form or create a hidden form'.
+    _inline '// and submit with sapevent'.
     _inline 'function submitSapeventForm(params, action, method) {'.
-    _inline '  var form = document.createElement("form");'.
-    _inline '  form.setAttribute("method", method || "post");'.
-    _inline '  form.setAttribute("action", "sapevent:" + action);'.
+    _inline '  var stub_form_id = "form_" + action;'.
+    _inline '  var form = document.getElementById(stub_form_id);'.
+    _inline ''.
+    _inline '  if (form === null) {'.
+    _inline '    form = document.createElement("form");'.
+    _inline '    form.setAttribute("method", method || "post");'.
+    _inline '    form.setAttribute("action", "sapevent:" + action);'.
+    _inline '  }'.
     _inline ''.
     _inline '  for(var key in params) {'.
     _inline '    var hiddenField = document.createElement("input");'.
@@ -25712,7 +25735,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    form.appendChild(hiddenField);'.
     _inline '  }'.
     _inline ''.
-    _inline '  document.body.appendChild(form);'.
+    _inline '  if (form.id !== stub_form_id) {'.
+    _inline '    document.body.appendChild(form);'.
+    _inline '  }'.
+    _inline ''.
     _inline '  form.submit();'.
     _inline '}'.
     _inline ''.
@@ -32081,6 +32107,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
   METHOD find_transports.
     DATA: li_cts_api TYPE REF TO zif_abapgit_cts_api,
           ls_new     LIKE LINE OF rt_transports.
@@ -32116,6 +32143,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       CATCH zcx_abapgit_exception.
         ASSERT 1 = 2.
     ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD get_events.
+
+    FIELD-SYMBOLS: <ls_event> TYPE zcl_abapgit_gui_page=>ty_event.
+
+    APPEND INITIAL LINE TO rt_events ASSIGNING <ls_event>.
+    <ls_event>-method = 'post'.
+    <ls_event>-name = 'stage_commit'.
+
   ENDMETHOD.
   METHOD get_page_patch.
 
@@ -37336,6 +37374,21 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html = zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( me ).
 
   ENDMETHOD.
+
+  METHOD get_events.
+
+    " Return actions you need on your page.
+
+  ENDMETHOD.
+
+  METHOD render_event_as_form.
+
+    CREATE OBJECT ro_html.
+    ro_html->add(
+      |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></from>| ).
+
+  ENDMETHOD.
+
   METHOD scripts.
 
     CREATE OBJECT ro_html.
@@ -37415,7 +37468,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA: lo_script TYPE REF TO zcl_abapgit_html.
+    DATA: lo_script TYPE REF TO zcl_abapgit_html,
+          lt_events TYPE zcl_abapgit_gui_page=>tt_events.
+
+    FIELD-SYMBOLS:
+          <ls_event> LIKE LINE OF lt_events.
 
     " Redirect
     IF ms_control-redirect_url IS NOT INITIAL.
@@ -37436,6 +37493,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( render_hotkey_overview( ) ).
     ro_html->add( render_content( ) ).
     ro_html->add( render_error_message_box( ) ).
+
+    lt_events = me->get_events( ).
+    LOOP AT lt_events ASSIGNING <ls_event>.
+      ro_html->add( render_event_as_form( <ls_event> ) ).
+    ENDLOOP.
+
     ro_html->add( footer( ) ).
     ro_html->add( '</body>' ).                              "#EC NOTEXT
 
@@ -74228,5 +74291,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-20T04:41:24.934Z
+* abapmerge undefined - 2019-08-22T05:20:12.584Z
 ****************************************************
