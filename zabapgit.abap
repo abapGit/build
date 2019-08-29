@@ -833,19 +833,28 @@ INTERFACE zif_abapgit_apack_definitions.
     BEGIN OF ty_dependency,
       group_id       TYPE string,
       artifact_id    TYPE string,
+      version        TYPE string,
       git_url        TYPE string,
       target_package TYPE devclass,
     END OF ty_dependency,
-    tt_dependencies TYPE STANDARD TABLE OF ty_dependency
+
+    tt_dependencies    TYPE STANDARD TABLE OF ty_dependency
                     WITH NON-UNIQUE DEFAULT KEY,
+
     ty_repository_type TYPE string,
-    BEGIN OF ty_descriptor,
+
+    BEGIN OF ty_descriptor_wo_dependencies,
       group_id        TYPE string,
       artifact_id     TYPE string,
       version         TYPE string,
       repository_type TYPE ty_repository_type,
       git_url         TYPE string,
-      dependencies    TYPE tt_dependencies,
+    END OF ty_descriptor_wo_dependencies,
+
+    BEGIN OF ty_descriptor.
+      INCLUDE TYPE ty_descriptor_wo_dependencies.
+  TYPES:
+    dependencies TYPE tt_dependencies,
     END OF ty_descriptor.
 
   CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
@@ -2839,6 +2848,7 @@ CLASS zcl_abapgit_apack_migration DEFINITION
   CREATE PRIVATE.
 
   PUBLIC SECTION.
+    CONSTANTS: c_apack_interface_version TYPE i VALUE 1.
     CLASS-METHODS: run RAISING zcx_abapgit_exception.
     METHODS: perform_migration RAISING zcx_abapgit_exception.
   PROTECTED SECTION.
@@ -2848,12 +2858,14 @@ CLASS zcl_abapgit_apack_migration DEFINITION
 
     METHODS:
       interface_exists RETURNING VALUE(rv_interface_exists) TYPE abap_bool,
+      interface_valid RETURNING VALUE(rv_interface_valid) TYPE abap_bool,
       create_interface RAISING zcx_abapgit_exception,
       add_interface_source_classic IMPORTING is_clskey TYPE seoclskey
                                    RAISING   zcx_abapgit_exception,
       add_interface_source IMPORTING is_clskey TYPE seoclskey
                            RAISING   zcx_abapgit_exception,
-      get_interface_source RETURNING VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt.
+      get_interface_source RETURNING VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt,
+      add_intf_source_and_activate RAISING zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_apack_reader DEFINITION
   FINAL
@@ -2874,6 +2886,9 @@ CLASS zcl_abapgit_apack_reader DEFINITION
     METHODS set_manifest_descriptor
       IMPORTING
         !is_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+    METHODS copy_manifest_descriptor
+      IMPORTING
+        !io_manifest_provider TYPE REF TO object .
     METHODS has_manifest
       RETURNING
         VALUE(rv_has_manifest) TYPE abap_bool .
@@ -73609,7 +73624,7 @@ CLASS ZCL_ABAPGIT_APACK_WRITER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
+CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
   METHOD constructor.
     me->mv_package_name = iv_package_name.
   ENDMETHOD.
@@ -73621,8 +73636,6 @@ CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
     DATA: lo_manifest_provider       TYPE REF TO object,
           ls_manifest_implementation TYPE ty_s_manifest_declaration.
 
-    FIELD-SYMBOLS: <lg_descriptor> TYPE any.
-
     IF mv_is_cached IS INITIAL AND mv_package_name IS NOT INITIAL.
       SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
          INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
@@ -73632,6 +73645,16 @@ CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
                seometarel~version = '1' AND
                seometarel~refclsname = 'ZIF_APACK_MANIFEST' AND
                tadir~devclass = me->mv_package_name.
+      IF ls_manifest_implementation IS INITIAL.
+        SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
+           INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
+           INTO ls_manifest_implementation
+           WHERE tadir~pgmid = 'R3TR' AND
+                 tadir~object = 'CLAS' AND
+                 seometarel~version = '1' AND
+                 seometarel~refclsname = 'IF_APACK_MANIFEST' AND
+                 tadir~devclass = me->mv_package_name.
+      ENDIF.
       IF ls_manifest_implementation IS NOT INITIAL.
         TRY.
             CREATE OBJECT lo_manifest_provider TYPE (ls_manifest_implementation-clsname).
@@ -73639,10 +73662,7 @@ CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
             CLEAR: rs_manifest_descriptor.
         ENDTRY.
         IF lo_manifest_provider IS BOUND.
-          ASSIGN lo_manifest_provider->('ZIF_APACK_MANIFEST~DESCRIPTOR') TO <lg_descriptor>.
-          IF <lg_descriptor> IS ASSIGNED.
-            MOVE-CORRESPONDING <lg_descriptor> TO me->ms_cached_descriptor.
-          ENDIF.
+          me->copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
         ENDIF.
       ENDIF.
       me->mv_is_cached = abap_true.
@@ -73666,9 +73686,39 @@ CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
     me->mv_is_cached = abap_true.
     me->ms_cached_descriptor = is_manifest_descriptor.
   ENDMETHOD.
+
+  METHOD copy_manifest_descriptor.
+
+    DATA: ls_my_manifest_wo_deps TYPE zif_abapgit_apack_definitions=>ty_descriptor_wo_dependencies,
+          ls_my_dependency       TYPE zif_abapgit_apack_definitions=>ty_dependency.
+
+    FIELD-SYMBOLS: <lg_descriptor>   TYPE any,
+                   <lt_dependencies> TYPE ANY TABLE,
+                   <lg_dependency>   TYPE any.
+
+    ASSIGN io_manifest_provider->('ZIF_APACK_MANIFEST~DESCRIPTOR') TO <lg_descriptor>.
+    IF <lg_descriptor> IS NOT ASSIGNED.
+      ASSIGN io_manifest_provider->('IF_APACK_MANIFEST~DESCRIPTOR') TO <lg_descriptor>.
+    ENDIF.
+    IF <lg_descriptor> IS ASSIGNED.
+      " A little more complex than a normal MOVE-CORRSPONDING
+      " to avoid dumps in case of future updates to the dependencies table structure
+      ASSIGN COMPONENT 'DEPENDENCIES' OF STRUCTURE <lg_descriptor> TO <lt_dependencies>.
+      IF <lt_dependencies> IS ASSIGNED.
+        LOOP AT <lt_dependencies> ASSIGNING <lg_dependency>.
+          MOVE-CORRESPONDING <lg_dependency> TO ls_my_dependency.
+          INSERT ls_my_dependency INTO TABLE me->ms_cached_descriptor-dependencies.
+        ENDLOOP.
+        MOVE-CORRESPONDING <lg_descriptor> TO ls_my_manifest_wo_deps.
+        MOVE-CORRESPONDING ls_my_manifest_wo_deps TO me->ms_cached_descriptor.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
+CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
   METHOD add_interface_source.
     DATA: lo_factory     TYPE REF TO object,
           lo_source      TYPE REF TO object,
@@ -73741,10 +73791,7 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD create_interface.
 
-    DATA: ls_interface_properties TYPE vseointerf,
-          ls_clskey               TYPE seoclskey,
-          ls_inactive_object      TYPE dwinactiv,
-          lt_inactive_objects     TYPE TABLE OF dwinactiv.
+    DATA: ls_interface_properties TYPE vseointerf.
 
     ls_interface_properties-clsname  = c_interface_name.
     ls_interface_properties-version  = '1'.
@@ -73771,25 +73818,7 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from SEO_INTERFACE_CREATE_COMPLETE' ) ##NO_TEXT.
     ENDIF.
 
-    ls_clskey-clsname = c_interface_name.
-
-    add_interface_source( ls_clskey ).
-
-    ls_inactive_object-object   = 'INTF'.
-    ls_inactive_object-obj_name = c_interface_name.
-    INSERT ls_inactive_object INTO TABLE lt_inactive_objects.
-
-    CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-      TABLES
-        objects                = lt_inactive_objects
-      EXCEPTIONS
-        excecution_error       = 1
-        cancelled              = 2
-        insert_into_corr_error = 3
-        OTHERS                 = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ) ##NO_TEXT.
-    ENDIF.
+    add_intf_source_and_activate( ).
 
   ENDMETHOD.
   METHOD get_interface_source.
@@ -73799,6 +73828,7 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
     INSERT `  TYPES: BEGIN OF ty_dependency,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `           group_id       TYPE string,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `           artifact_id    TYPE string,` INTO TABLE rt_source ##NO_TEXT.
+    INSERT `           version        TYPE string,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `           git_url        TYPE string,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `           target_package TYPE devclass,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `         END OF ty_dependency,` INTO TABLE rt_source ##NO_TEXT.
@@ -73814,8 +73844,9 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
     INSERT `           dependencies    TYPE ty_dependencies,` INTO TABLE rt_source ##NO_TEXT.
     INSERT `         END OF ty_descriptor.` INTO TABLE rt_source ##NO_TEXT.
     INSERT `` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `  CONSTANTS: co_file_name TYPE string VALUE '.apack-manifest.xml',` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `             co_abap_git  TYPE ty_repository_type VALUE 'abapGit'.` INTO TABLE rt_source ##NO_TEXT.
+    INSERT `  CONSTANTS: co_file_name         TYPE string VALUE '.apack-manifest.xml',` INTO TABLE rt_source ##NO_TEXT.
+    INSERT `             co_abap_git          TYPE ty_repository_type VALUE 'abapGit',` INTO TABLE rt_source ##NO_TEXT.
+    INSERT `             co_interface_version TYPE i VALUE 1.` INTO TABLE rt_source ##NO_TEXT.
     INSERT `` INTO TABLE rt_source ##NO_TEXT.
     INSERT `  DATA: descriptor TYPE ty_descriptor READ-ONLY.` INTO TABLE rt_source ##NO_TEXT.
     INSERT `` INTO TABLE rt_source ##NO_TEXT.
@@ -73834,6 +73865,8 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
 
     IF interface_exists( ) = abap_false.
       create_interface( ).
+    ELSEIF interface_valid( ) = abap_false.
+      add_intf_source_and_activate( ).
     ENDIF.
 
   ENDMETHOD.
@@ -73845,6 +73878,48 @@ CLASS ZCL_ABAPGIT_APACK_MIGRATION IMPLEMENTATION.
     lo_apack_migration->perform_migration( ).
 
   ENDMETHOD.
+
+  METHOD interface_valid.
+
+    FIELD-SYMBOLS: <lv_interface_version> TYPE i.
+
+    ASSIGN ('ZIF_APACK_MANIFEST')=>('CO_INTERFACE_VERSION') TO <lv_interface_version>.
+    IF <lv_interface_version> IS ASSIGNED AND <lv_interface_version> >= c_apack_interface_version.
+      rv_interface_valid = abap_true.
+    ELSE.
+      rv_interface_valid = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add_intf_source_and_activate.
+
+    DATA: ls_clskey           TYPE seoclskey,
+          ls_inactive_object  TYPE dwinactiv,
+          lt_inactive_objects TYPE TABLE OF dwinactiv.
+
+    ls_clskey-clsname = c_interface_name.
+
+    add_interface_source( ls_clskey ).
+
+    ls_inactive_object-object   = 'INTF'.
+    ls_inactive_object-obj_name = c_interface_name.
+    INSERT ls_inactive_object INTO TABLE lt_inactive_objects.
+
+    CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+      TABLES
+        objects                = lt_inactive_objects
+      EXCEPTIONS
+        excecution_error       = 1
+        cancelled              = 2
+        insert_into_corr_error = 3
+        OTHERS                 = 4.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ) ##NO_TEXT.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 SELECTION-SCREEN BEGIN OF SCREEN 1001.
@@ -74248,5 +74323,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-27T05:07:54.813Z
+* abapmerge undefined - 2019-08-29T07:54:27.410Z
 ****************************************************
