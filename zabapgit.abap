@@ -24979,7 +24979,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border: 1px solid;'.
     _inline '  border-radius: 3px;'.
     _inline '  padding: 1px 7px;'.
-    _inline '  width: 0.5em;'.
+    _inline '  width: 1em;'.
     _inline '  display: inline-block;'.
     _inline '  text-align: center;'.
     _inline '  margin-top: 0.2em;'.
@@ -25060,6 +25060,43 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-style: solid;'.
     _inline '  box-shadow: 2px 2px 6px 0px #ccc;'.
     _inline '  cursor: pointer;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/* Command palette */'.
+    _inline ''.
+    _inline '.cmd-palette {'.
+    _inline '  position: absolute;'.
+    _inline '  z-index: 99;'.
+    _inline '  top: 36px;'.
+    _inline '  left: 50%;'.
+    _inline '  width: 40em;'.
+    _inline '  margin-left: -20em;'.
+    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
+    _inline '  background-color: white;'.
+    _inline '  border: solid 2px;'.
+    _inline '  padding: 0px 1px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette input {'.
+    _inline '  width: 100%;'.
+    _inline '  box-sizing: border-box;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette ul {'.
+    _inline '  max-height: 10em;'.
+    _inline '  overflow-y: scroll;'.
+    _inline '  margin: 4px 0;'.
+    _inline '  padding: 2px 4px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette li {'.
+    _inline '  list-style-type: none;'.
+    _inline '  cursor: default;'.
+    _inline '  padding: 4px 6px;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette li .icon {'.
+    _inline '  margin-right: 10px;'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
@@ -25432,6 +25469,22 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.ci-result li.ci-error   { border-left-color: #cd5353; }'.
     _inline '.ci-result li.ci-warning { border-left-color: #ecd227; }'.
     _inline '.ci-result li.ci-info    { border-left-color: #acacac; }'.
+    _inline ''.
+    _inline '/* Command palette */'.
+    _inline ''.
+    _inline '.cmd-palette {'.
+    _inline '  border-color: #ccc;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette li.selected {'.
+    _inline '  background-color: hsla(214, 50%, 90%, 1);'.
+    _inline '}'.
+    _inline ''.
+    _inline '.cmd-palette mark {'.
+    _inline '  color: white;'.
+    _inline '  background-color: #79a0d2;'.
+    _inline '  /* todo merge with stage search */'.
+    _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
@@ -25642,6 +25695,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported onTagTypeChange */'.
     _inline '/* exported getIndocStyleSheet */'.
     _inline '/* exported addMarginBottom */'.
+    _inline '/* exported enumerateTocAllRepos */'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Polyfills'.
@@ -26311,111 +26365,124 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  if (div) div.style.display = (div.style.display) ? "" : "none";'.
     _inline '}'.
     _inline ''.
-    _inline 'function KeyNavigation() {'.
+    _inline 'function KeyNavigation() { }'.
     _inline ''.
-    _inline '}'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onkeydown = function(oEvent) {'.
-    _inline ''.
-    _inline '  if (oEvent.defaultPrevented) {'.
-    _inline '    return;'.
-    _inline '  }'.
+    _inline 'KeyNavigation.prototype.onkeydown = function(event) {'.
+    _inline '  if (event.defaultPrevented) return;'.
     _inline ''.
     _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
-    _inline '  if (oEvent.key === "ENTER" || oEvent.key === "") {'.
-    _inline '    this.onEnterOrSpace();'.
-    _inline '  } else if (/Down$/.test(oEvent.key)) {'.
-    _inline '    this.onArrowDown(oEvent);'.
-    _inline '  } else if (/Up$/.test(oEvent.key)) {'.
-    _inline '    this.onArrowUp(oEvent);'.
+    _inline '  var isHandled = false;'.
+    _inline '  if (event.key === "Enter" || event.key === "") {'.
+    _inline '    isHandled = this.onEnterOrSpace();'.
+    _inline '  } else if (/Down$/.test(event.key)) {'.
+    _inline '    isHandled = this.onArrowDown();'.
+    _inline '  } else if (/Up$/.test(event.key)) {'.
+    _inline '    isHandled = this.onArrowUp();'.
+    _inline '  } else if (event.key === "Backspace") {'.
+    _inline '    isHandled = this.onBackspace();'.
     _inline '  }'.
     _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.getLiSelected = function() {'.
-    _inline '  return document.querySelector("li .selected");'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.getActiveElement = function () {'.
-    _inline '  return document.activeElement;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.getActiveElementParent = function () {'.
-    _inline '  return this.getActiveElement().parentElement;'.
+    _inline '  if (isHandled) event.preventDefault();'.
     _inline '};'.
     _inline ''.
     _inline 'KeyNavigation.prototype.onEnterOrSpace = function () {'.
+    _inline '  if (document.activeElement.nodeName !== "A") return;'.
+    _inline '  var anchor = document.activeElement;'.
     _inline ''.
-    _inline '  // Enter or space clicks the selected link'.
-    _inline ''.
-    _inline '  var liSelected = this.getLiSelected();'.
-    _inline ''.
-    _inline '  if (liSelected) {'.
-    _inline '    liSelected.firstElementChild.click();'.
-    _inline '  }'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onArrowDown = function (oEvent) {'.
-    _inline ''.
-    _inline '  var'.
-    _inline '    liNext,'.
-    _inline '    liSelected = this.getLiSelected(),'.
-    _inline '    oActiveElementParent = this.getActiveElementParent();'.
-    _inline ''.
-    _inline '  if (liSelected) {'.
-    _inline ''.
-    _inline '    // we deselect the current li and select the next sibling'.
-    _inline '    liNext = oActiveElementParent.nextElementSibling;'.
-    _inline '    if (liNext) {'.
-    _inline '      liSelected.classList.toggle("selected");'.
-    _inline '      liNext.firstElementChild.focus();'.
-    _inline '      oActiveElementParent.classList.toggle("selected");'.
-    _inline '      oEvent.preventDefault();'.
-    _inline '    }'.
-    _inline ''.
+    _inline '  if (anchor.href.replace(/#$/, "") === document.location.href.replace(/#$/, "")'.
+    _inline '    && !anchor.onclick'.
+    _inline '    && anchor.parentElement'.
+    _inline '    && anchor.parentElement.nodeName === "LI" ) {'.
+    _inline '    anchor.parentElement.classList.toggle("force-nav-hover");'.
     _inline '  } else {'.
-    _inline ''.
-    _inline '    // we don''t have any li selected, we have lookup where to start...'.
-    _inline '    // the right element should have been activated in fnTooltipActivate'.
-    _inline '    liNext = this.getActiveElement().nextElementSibling;'.
-    _inline '    if (liNext) {'.
-    _inline '      liNext.classList.toggle("selected");'.
-    _inline '      liNext.firstElementChild.firstElementChild.focus();'.
-    _inline '      oEvent.preventDefault();'.
-    _inline '    }'.
-    _inline ''.
+    _inline '    anchor.click();'.
     _inline '  }'.
-    _inline ''.
+    _inline '  return true;'.
     _inline '};'.
     _inline ''.
+    _inline 'KeyNavigation.prototype.focusListItem = function (li) {'.
+    _inline '  var anchor = li.firstElementChild;'.
+    _inline '  if (!anchor || anchor.nodeName !== "A") return false;'.
+    _inline '  anchor.focus();'.
+    _inline '  return true;'.
+    _inline '};'.
     _inline ''.
-    _inline 'KeyNavigation.prototype.onArrowUp = function (oEvent) {'.
+    _inline 'KeyNavigation.prototype.closeDropdown = function (dropdownLi) {'.
+    _inline '  dropdownLi.classList.remove("force-nav-hover");'.
+    _inline '  if (dropdownLi.firstElementChild.nodeName === "A") dropdownLi.firstElementChild.focus();'.
+    _inline '  return true;'.
+    _inline '};'.
     _inline ''.
-    _inline '  var'.
-    _inline '    liSelected = this.getLiSelected(),'.
-    _inline '    liPrevious = this.getActiveElementParent().previousElementSibling;'.
+    _inline 'KeyNavigation.prototype.onBackspace = function () {'.
+    _inline '  var activeElement = document.activeElement;'.
     _inline ''.
-    _inline '  if (liSelected && liPrevious) {'.
-    _inline ''.
-    _inline '    liSelected.classList.toggle("selected");'.
-    _inline '    liPrevious.firstElementChild.focus();'.
-    _inline '    this.getActiveElementParent().classList.toggle("selected");'.
-    _inline '    oEvent.preventDefault();'.
-    _inline ''.
+    _inline '  // Detect opened subsequent dropdown'.
+    _inline '  if (activeElement.nodeName === "A"'.
+    _inline '    && activeElement.parentElement'.
+    _inline '    && activeElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.classList.contains("force-nav-hover")) {'.
+    _inline '    return this.closeDropdown(activeElement.parentElement);'.
     _inline '  }'.
     _inline ''.
+    _inline '  // Detect opened parent dropdown'.
+    _inline '  if (activeElement.nodeName === "A"'.
+    _inline '    && activeElement.parentElement'.
+    _inline '    && activeElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.parentElement'.
+    _inline '    && activeElement.parentElement.parentElement.nodeName === "UL"'.
+    _inline '    && activeElement.parentElement.parentElement.parentElement'.
+    _inline '    && activeElement.parentElement.parentElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.parentElement.parentElement.classList.contains("force-nav-hover")) {'.
+    _inline '    return this.closeDropdown(activeElement.parentElement.parentElement.parentElement);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onArrowDown = function () {'.
+    _inline '  var activeElement = document.activeElement;'.
+    _inline ''.
+    _inline '  // Start of dropdown list: LI > selected A :: UL > LI > A'.
+    _inline '  if (activeElement.nodeName === "A"'.
+    _inline '    && activeElement.parentElement'.
+    _inline '    && activeElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.classList.contains("force-nav-hover") // opened dropdown'.
+    _inline '    && activeElement.nextElementSibling'.
+    _inline '    && activeElement.nextElementSibling.nodeName === "UL"'.
+    _inline '    && activeElement.nextElementSibling.firstElementChild'.
+    _inline '    && activeElement.nextElementSibling.firstElementChild.nodeName === "LI") {'.
+    _inline '    return this.focusListItem(activeElement.nextElementSibling.firstElementChild);'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  // Next item of dropdown list: ( LI > selected A ) :: LI > A'.
+    _inline '  if (activeElement.nodeName === "A"'.
+    _inline '    && activeElement.parentElement'.
+    _inline '    && activeElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.nextElementSibling'.
+    _inline '    && activeElement.parentElement.nextElementSibling.nodeName === "LI") {'.
+    _inline '    return this.focusListItem(activeElement.parentElement.nextElementSibling);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.onArrowUp = function () {'.
+    _inline '  var activeElement = document.activeElement;'.
+    _inline ''.
+    _inline '  // Prev item of dropdown list: ( LI > selected A ) <:: LI > A'.
+    _inline '  if (activeElement.nodeName === "A"'.
+    _inline '    && activeElement.parentElement'.
+    _inline '    && activeElement.parentElement.nodeName === "LI"'.
+    _inline '    && activeElement.parentElement.previousElementSibling'.
+    _inline '    && activeElement.parentElement.previousElementSibling.nodeName === "LI") {'.
+    _inline '    return this.focusListItem(activeElement.parentElement.previousElementSibling);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'KeyNavigation.prototype.getHandler = function () {'.
+    _inline '  return this.onkeydown.bind(this);'.
     _inline '};'.
     _inline ''.
     _inline '// this functions enables the navigation with arrows through list items (li)'.
     _inline '// e.g. in dropdown menus'.
     _inline 'function enableArrowListNavigation() {'.
-    _inline ''.
-    _inline '  var oKeyNavigation = new KeyNavigation();'.
-    _inline ''.
-    _inline '  document.addEventListener("keydown", oKeyNavigation.onkeydown.bind(oKeyNavigation));'.
-    _inline ''.
+    _inline '  document.addEventListener("keydown", new KeyNavigation().getHandler());'.
     _inline '}'.
     _inline ''.
     _inline '/* LINK HINTS - Vimium like link hints */'.
@@ -26670,6 +26737,23 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  if (fnHotkey) {'.
     _inline '    fnHotkey.call(this, oEvent);'.
     _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {'.
+    _inline '  var hotkeysUl = document.querySelector("#hotkeys ul.hotkeys");'.
+    _inline '  if (!hotkeysUl) return;'.
+    _inline ''.
+    _inline '  var li              = document.createElement("li");'.
+    _inline '  var spanId          = document.createElement("span");'.
+    _inline '  spanId.className    = "key-id";'.
+    _inline '  spanId.innerText    = key;'.
+    _inline '  var spanDescr       = document.createElement("span");'.
+    _inline '  spanDescr.className = "key-descr";'.
+    _inline '  spanDescr.innerText = description;'.
+    _inline '  li.appendChild(spanId);'.
+    _inline '  li.appendChild(spanDescr);'.
+    _inline ''.
+    _inline '  hotkeysUl.appendChild(li);'.
     _inline '};'.
     _inline ''.
     _inline 'function setKeyBindings(oKeyMap){'.
@@ -27026,6 +27110,256 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
     _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
     _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
+    _inline '}'.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Ctrl + P - command palette'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline '// fuzzy match helper'.
+    _inline '// return non empty marked string in case it fits the filter'.
+    _inline '// abc + b = a<mark>b</mark>c'.
+    _inline 'function fuzzyMatchAndMark(str, filter){'.
+    _inline '  var markedStr   = "";'.
+    _inline '  var filterLower = filter.toLowerCase();'.
+    _inline '  var strLower    = str.toLowerCase();'.
+    _inline '  var cur         = 0;'.
+    _inline ''.
+    _inline '  for (var i = 0; i < filter.length; i++) {'.
+    _inline '    while (filterLower[i] !== strLower[cur] && cur < str.length) {'.
+    _inline '      markedStr += str[cur++];'.
+    _inline '    }'.
+    _inline '    if (cur === str.length) break;'.
+    _inline '    markedStr += "<mark>" + str[cur++] + "</mark>";'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var matched = i === filter.length;'.
+    _inline '  if (matched && cur < str.length) markedStr += str.substring(cur);'.
+    _inline '  return matched ? markedStr : null;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function CommandPalette(commandEnumerator, opts) {'.
+    _inline '  if (typeof commandEnumerator !== "function") throw Error("commandEnumerator must be a function");'.
+    _inline '  if (typeof opts !== "object") throw Error("opts must be an object");'.
+    _inline '  if (typeof opts.toggleKey !== "string" || !opts.toggleKey) throw Error("toggleKey must be a string");'.
+    _inline '  this.commands = commandEnumerator();'.
+    _inline '  if (!this.commands) return;'.
+    _inline '  // this.commands = [{'.
+    _inline '  //   action:    "sap_event_action_code_with_params"'.
+    _inline '  //   iconClass: "icon icon_x ..."'.
+    _inline '  //   title:     "my command X"'.
+    _inline '  // }, ...];'.
+    _inline ''.
+    _inline '  if (opts.toggleKey[0] === "^") {'.
+    _inline '    this.toggleKeyCtrl = true;'.
+    _inline '    this.toggleKey     = opts.toggleKey.substring(1);'.
+    _inline '    if (!this.toggleKey) throw Error("Incorrect toggleKey");'.
+    _inline '  } else {'.
+    _inline '    this.toggleKeyCtrl = false;'.
+    _inline '    this.toggleKey     = opts.toggleKey;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  this.hotkeyDescription = opts.hotkeyDescription;'.
+    _inline '  this.elements = {'.
+    _inline '    palette: null,'.
+    _inline '    ul:      null,'.
+    _inline '    input:   null'.
+    _inline '  };'.
+    _inline '  this.selectIndex       = -1; // not selected'.
+    _inline '  this.filter            = "";'.
+    _inline '  this.renderAndBindElements();'.
+    _inline '  this.hookEvents();'.
+    _inline '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);'.
+    _inline '}'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.hookEvents = function(){'.
+    _inline '  document.addEventListener("keydown", this.handleToggleKey.bind(this));'.
+    _inline '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));'.
+    _inline '  this.elements.ul.addEventListener("click", this.handleUlClick.bind(this));'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.renderCommandItem = function(cmd){'.
+    _inline '  var li = document.createElement("li");'.
+    _inline '  if (cmd.iconClass) {'.
+    _inline '    var icon       = document.createElement("i");'.
+    _inline '    icon.className = cmd.iconClass;'.
+    _inline '    li.appendChild(icon);'.
+    _inline '  }'.
+    _inline '  var titleSpan = document.createElement("span");'.
+    _inline '  li.appendChild(titleSpan);'.
+    _inline '  cmd.element   = li;'.
+    _inline '  cmd.titleSpan = titleSpan;'.
+    _inline '  return li;'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.renderAndBindElements = function(){'.
+    _inline '  var div           = document.createElement("div");'.
+    _inline '  div.className     = "cmd-palette";'.
+    _inline '  div.style.display = "none";'.
+    _inline '  var input         = document.createElement("input");'.
+    _inline '  input.placeholder = this.hotkeyDescription;'.
+    _inline '  var ul            = document.createElement("ul");'.
+    _inline '  for (var i = 0; i < this.commands.length; i++) ul.appendChild(this.renderCommandItem(this.commands[i]));'.
+    _inline '  div.appendChild(input);'.
+    _inline '  div.appendChild(ul);'.
+    _inline ''.
+    _inline '  this.elements.palette = div;'.
+    _inline '  this.elements.input   = input;'.
+    _inline '  this.elements.ul      = ul;'.
+    _inline '  document.body.appendChild(div);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.handleToggleKey = function(event){'.
+    _inline '  if (event.key !== this.toggleKey) return;'.
+    _inline '  if (this.toggleKeyCtrl && !event.ctrlKey) return;'.
+    _inline '  this.toggleDisplay();'.
+    _inline '  event.preventDefault();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.handleInputKey = function(event){'.
+    _inline '  if (event.key === "ArrowUp" || event.key === "Up") {'.
+    _inline '    this.selectPrev();'.
+    _inline '  } else if (event.key === "ArrowDown" || event.key === "Down") {'.
+    _inline '    this.selectNext();'.
+    _inline '  } else if (event.key === "Enter") {'.
+    _inline '    this.exec(this.getSelected());'.
+    _inline '  } else if (event.key === "Backspace" && !this.filter) {'.
+    _inline '    this.toggleDisplay(false);'.
+    _inline '  } else if (this.filter !== this.elements.input.value) {'.
+    _inline '    this.filter = this.elements.input.value;'.
+    _inline '    this.applyFilter();'.
+    _inline '    this.selectFirst();'.
+    _inline '  }'.
+    _inline '  event.preventDefault();'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.applyFilter = function(){'.
+    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
+    _inline '    var cmd = this.commands[i];'.
+    _inline '    if (!this.filter) {'.
+    _inline '      cmd.element.style.display = "";'.
+    _inline '      cmd.titleSpan.innerText   = cmd.title;'.
+    _inline '    } else {'.
+    _inline '      var matchedTitle = fuzzyMatchAndMark(cmd.title, this.filter);'.
+    _inline '      if (matchedTitle) {'.
+    _inline '        cmd.titleSpan.innerHTML   = matchedTitle;'.
+    _inline '        cmd.element.style.display = "";'.
+    _inline '      } else {'.
+    _inline '        cmd.element.style.display = "none";'.
+    _inline '      }'.
+    _inline '    }'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.applySelectIndex = function(newIndex){'.
+    _inline '  if (newIndex !== this.selectIndex) {'.
+    _inline '    if (this.selectIndex >= 0) this.commands[this.selectIndex].element.classList.remove("selected");'.
+    _inline '    var newCmd = this.commands[newIndex];'.
+    _inline '    newCmd.element.classList.add("selected");'.
+    _inline '    this.selectIndex = newIndex;'.
+    _inline '    this.adjustScrollPosition(newCmd.element);'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.selectFirst = function(){'.
+    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
+    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
+    _inline '    this.applySelectIndex(i);'.
+    _inline '    break;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.selectNext = function(){'.
+    _inline '  for (var i = this.selectIndex + 1; i < this.commands.length; i++) {'.
+    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
+    _inline '    this.applySelectIndex(i);'.
+    _inline '    break;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.selectPrev = function(){'.
+    _inline '  for (var i = this.selectIndex - 1; i >= 0; i--) {'.
+    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
+    _inline '    this.applySelectIndex(i);'.
+    _inline '    break;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.getSelected = function(){'.
+    _inline '  return this.commands[this.selectIndex];'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.adjustScrollPosition = function(itemElement){'.
+    _inline '  var bItem         = itemElement.getBoundingClientRect();'.
+    _inline '  var bContainer    = this.elements.ul.getBoundingClientRect();'.
+    _inline '  bItem.top         = Math.round(bItem.top);'.
+    _inline '  bItem.bottom      = Math.round(bItem.bottom);'.
+    _inline '  bItem.height      = Math.round(bItem.height);'.
+    _inline '  bItem.mid         = Math.round(bItem.top + bItem.height / 2);'.
+    _inline '  bContainer.top    = Math.round(bContainer.top);'.
+    _inline '  bContainer.bottom = Math.round(bContainer.bottom);'.
+    _inline ''.
+    _inline '  if ( bItem.mid > bContainer.bottom - 2 ) {'.
+    _inline '    this.elements.ul.scrollTop += bItem.bottom - bContainer.bottom;'.
+    _inline '  } else if ( bItem.mid < bContainer.top + 2 ) {'.
+    _inline '    this.elements.ul.scrollTop += bItem.top - bContainer.top;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.toggleDisplay = function(forceState) {'.
+    _inline '  var isDisplayed = (this.elements.palette.style.display !== "none");'.
+    _inline '  var tobeDisplayed = (forceState !== undefined) ? forceState : !isDisplayed;'.
+    _inline '  this.elements.palette.style.display = tobeDisplayed ? "" : "none";'.
+    _inline '  if (tobeDisplayed) {'.
+    _inline '    this.elements.input.value = "";'.
+    _inline '    this.elements.input.focus();'.
+    _inline '    this.applyFilter();'.
+    _inline '    this.selectFirst();'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.getCommandByElement = function(element) {'.
+    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
+    _inline '    if (this.commands[i].element === element) return this.commands[i];'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.handleUlClick = function(event) {'.
+    _inline '  var element = event.target || event.srcElement;'.
+    _inline '  if (!element) return;'.
+    _inline '  if (element.nodeName === "SPAN") element = element.parentNode;'.
+    _inline '  if (element.nodeName === "I") element = element.parentNode;'.
+    _inline '  if (element.nodeName !== "LI") return;'.
+    _inline '  this.exec(this.getCommandByElement(element));'.
+    _inline '};'.
+    _inline ''.
+    _inline 'CommandPalette.prototype.exec = function(cmd) {'.
+    _inline '  if (!cmd) return;'.
+    _inline '  this.toggleDisplay(false);'.
+    _inline '  submitSapeventForm(null, cmd.action);'.
+    _inline '};'.
+    _inline ''.
+    _inline '/* COMMAND ENUMERATORS */'.
+    _inline ''.
+    _inline 'function enumerateTocAllRepos() {'.
+    _inline '  var root = document.getElementById("toc-all-repos");'.
+    _inline '  if (!root || root.nodeName !== "UL") return null;'.
+    _inline ''.
+    _inline '  var items = [];'.
+    _inline '  for (var i = 0; i < root.children.length; i++) {'.
+    _inline '    if (root.children[i].nodeName === "LI") items.push(root.children[i]);'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  items = items.map(function(listItem) {'.
+    _inline '    var anchor = listItem.children[0];'.
+    _inline '    return {'.
+    _inline '      action:    anchor.href.replace("sapevent:", ""),  // a'.
+    _inline '      iconClass: anchor.childNodes[0].className,        // i with icon'.
+    _inline '      title:     anchor.childNodes[1].textContent       // text with repo name'.
+    _inline '    };'.
+    _inline '  });'.
+    _inline ''.
+    _inline '  return items;'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -30614,7 +30948,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
           lv_pull_opt    LIKE zif_abapgit_html=>c_html_opt-crossout,
           li_log         TYPE REF TO zif_abapgit_log.
 
-    CREATE OBJECT ro_toolbar.
+    CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-repo'.
     CREATE OBJECT lo_tb_branch.
     CREATE OBJECT lo_tb_advanced.
     CREATE OBJECT lo_tb_tag.
@@ -31237,7 +31571,6 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
@@ -34541,7 +34874,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
           lo_helpsub TYPE REF TO zcl_abapgit_html_toolbar.
 
-    CREATE OBJECT ro_menu.
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
     CREATE OBJECT lo_advsub.
     CREATE OBJECT lo_helpsub.
 
@@ -34649,7 +34982,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
           lv_repo_title TYPE string.
     CREATE OBJECT ro_html.
     CREATE OBJECT lo_favbar.
-    CREATE OBJECT lo_allbar.
+    CREATE OBJECT lo_allbar EXPORTING iv_id = 'toc-all-repos'.
     CREATE OBJECT lo_pback.
 
     lt_favorites = zcl_abapgit_persistence_user=>get_instance( )->get_favorites( ).
@@ -37280,6 +37613,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD get_events.
+
+    " Return actions you need on your page.
+
+  ENDMETHOD.
   METHOD get_global_hotkeys.
 
     " these are the global shortcuts active on all pages
@@ -37405,18 +37743,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       mx_error.
 
   ENDMETHOD.
-  METHOD render_hotkey_overview.
-
-    ro_html = zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( me ).
-
-  ENDMETHOD.
-
-  METHOD get_events.
-
-    " Return actions you need on your page.
-
-  ENDMETHOD.
-
   METHOD render_event_as_form.
 
     CREATE OBJECT ro_html.
@@ -37424,14 +37750,21 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></from>| ).
 
   ENDMETHOD.
+  METHOD render_hotkey_overview.
 
+    ro_html = zcl_abapgit_gui_chunk_lib=>render_hotkey_overview( me ).
+
+  ENDMETHOD.
   METHOD scripts.
 
     CREATE OBJECT ro_html.
 
     link_hints( ro_html ).
     insert_hotkeys_to_page( ro_html ).
-
+    ro_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
+    ro_html->add( '  toggleKey: "F2",' ).
+    ro_html->add( '  hotkeyDescription: "Go to repo ..."' ).
+    ro_html->add( '});' ).
   ENDMETHOD.
   METHOD title.
 
@@ -74387,5 +74720,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-08-30T12:38:14.337Z
+* abapmerge undefined - 2019-09-08T06:14:10.731Z
 ****************************************************
