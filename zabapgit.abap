@@ -14987,7 +14987,7 @@ CLASS zcl_abapgit_zlib IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
+CLASS zcl_abapgit_zip IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -15038,10 +15038,15 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
           ls_files_item TYPE zcl_abapgit_objects=>ty_serialization.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
-    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
-    IF ls_tadir IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
+
+    WHILE ls_tadir IS INITIAL.
+
+      ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
+      IF ls_tadir IS INITIAL.
+        MESSAGE |Object couldn't be found| TYPE 'S' DISPLAY LIKE 'E'.
+      ENDIF.
+
+    ENDWHILE.
 
     ls_files_item-item-obj_type = ls_tadir-object.
     ls_files_item-item-obj_name = ls_tadir-obj_name.
@@ -28895,7 +28900,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -29387,20 +29392,15 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                          iv_fieldtext = 'Name'
                CHANGING ct_fields     = lt_fields ).
 
-    TRY.
+    _popup_2_get_values( EXPORTING iv_popup_title    = 'Object' "#EC NOTEXT
+                                   iv_no_value_check = abap_true
+                         IMPORTING ev_value_1        = lv_object_type
+                                   ev_value_2        = lv_object_name
+                         CHANGING  ct_fields         = lt_fields ).
 
-        _popup_2_get_values( EXPORTING iv_popup_title    = 'Object' "#EC NOTEXT
-                                       iv_no_value_check = abap_true
-                             IMPORTING ev_value_1        = lv_object_type
-                                       ev_value_2        = lv_object_name
-                             CHANGING  ct_fields         = lt_fields ).
-
-        rs_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
-          iv_object   = to_upper( lv_object_type )
-          iv_obj_name = to_upper( lv_object_name ) ).
-
-      CATCH zcx_abapgit_cancel.
-    ENDTRY.
+    rs_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
+      iv_object   = to_upper( lv_object_type )
+      iv_obj_name = to_upper( lv_object_name ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_package_export.
@@ -29958,7 +29958,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       EXCEPTIONS
         OTHERS         = 1 ##NO_TEXT.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from POPUP_GET_VALUES' ).
+      zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
     ENDIF.
 
     IF lv_answer = c_answer_cancel.
@@ -74968,5 +74968,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-10T04:36:24.757Z
+* abapmerge undefined - 2019-09-10T05:03:42.857Z
 ****************************************************
