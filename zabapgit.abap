@@ -27394,6 +27394,42 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '  return items;'.
     _inline '}'.
+    _inline ''.
+    _inline 'function enumerateToolbarActions() {'.
+    _inline ''.
+    _inline '  var items = [];'.
+    _inline '  function processUL(ulNode, prefix) {'.
+    _inline '    for (var i = 0; i < ulNode.children.length; i++) {'.
+    _inline '      var item = ulNode.children[i];'.
+    _inline '      if (item.nodeName !== "LI") continue; // unexpected node'.
+    _inline '      if (item.children.length >=2 && item.children[1].nodeName === "UL") {'.
+    _inline '        // submenu detected'.
+    _inline '        processUL(item.children[1], item.children[0].innerText);'.
+    _inline '      } else if (item.firstElementChild && item.firstElementChild.nodeName === "A") {'.
+    _inline '        var anchor = item.firstElementChild;'.
+    _inline '        if (anchor.href && anchor.href !== "#") items.push([anchor, prefix]);'.
+    _inline '      }'.
+    _inline '    }'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  var toolbarRoot = document.getElementById("toolbar-main");'.
+    _inline '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);'.
+    _inline '  toolbarRoot = document.getElementById("toolbar-repo");'.
+    _inline '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);'.
+    _inline '  // Add more toolbars ?'.
+    _inline '  if (items.length === 0) return;'.
+    _inline ''.
+    _inline '  items = items.map(function(item) {'.
+    _inline '    var anchor = item[0];'.
+    _inline '    var prefix = item[1];'.
+    _inline '    return {'.
+    _inline '      action:    anchor.href.replace("sapevent:", ""),'.
+    _inline '      title:     (prefix ? prefix + ": " : "") + anchor.innerText'.
+    _inline '    };'.
+    _inline '  });'.
+    _inline ''.
+    _inline '  return items;'.
+    _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
       iv_type      = 'text/javascript'
@@ -37794,10 +37830,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     link_hints( ro_html ).
     insert_hotkeys_to_page( ro_html ).
+
     ro_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
     ro_html->add( '  toggleKey: "F2",' ).
     ro_html->add( '  hotkeyDescription: "Go to repo ..."' ).
     ro_html->add( '});' ).
+
+    ro_html->add( 'var gCommandPalette = new CommandPalette(enumerateToolbarActions, {' ).
+    ro_html->add( '  toggleKey: "F1",' ).
+    ro_html->add( '  hotkeyDescription: "Command ..."' ).
+    ro_html->add( '});' ).
+
   ENDMETHOD.
   METHOD title.
 
@@ -74925,5 +74968,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-08T07:26:42.056Z
+* abapmerge undefined - 2019-09-10T04:36:24.757Z
 ****************************************************
