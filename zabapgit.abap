@@ -10628,7 +10628,16 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
 
     METHODS:
       constructor
-        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo.
+        IMPORTING
+          io_repo TYPE REF TO zcl_abapgit_repo
+        RAISING
+          zcx_abapgit_exception,
+
+      zif_abapgit_gui_event_handler~on_event
+        REDEFINITION,
+
+      zif_abapgit_gui_renderable~render
+        REDEFINITION.
 
   PROTECTED SECTION.
 
@@ -10636,6 +10645,22 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
       render_content REDEFINITION.
 
   PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_actions,
+        rerun TYPE string VALUE 'rerun' ##NO_TEXT,
+      END OF c_actions.
+
+    METHODS:
+      build_menu
+        RETURNING
+          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar
+        RAISING
+          zcx_abapgit_exception,
+
+      run_syntax_check
+        RAISING
+          zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
     CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
@@ -32492,14 +32517,20 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_title = 'SYNTAX CHECK'.
     mo_repo = io_repo.
+    run_syntax_check( ).
+  ENDMETHOD.
+  METHOD build_menu.
+
+    DATA: lv_opt TYPE c LENGTH 1.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add( iv_txt = 'Re-Run'
+                  iv_act = c_actions-rerun
+                  iv_cur = abap_false ) ##NO_TEXT.
+
   ENDMETHOD.
   METHOD render_content.
-
-    DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
-
-    li_syntax_check = zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( ) ).
-
-    mt_result = li_syntax_check->run( 'SYNTAX_CHECK' ).
 
     CREATE OBJECT ro_html.
     ro_html->add( '<div class="toc">' ).
@@ -32516,9 +32547,50 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD run_syntax_check.
+
+    DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
+
+    li_syntax_check = zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( ) ).
+    mt_result = li_syntax_check->run( 'SYNTAX_CHECK' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    CASE iv_action.
+      WHEN c_actions-rerun.
+
+        run_syntax_check( ).
+
+        ei_page = me.
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+
+      WHEN OTHERS.
+        super->zif_abapgit_gui_event_handler~on_event(
+          EXPORTING
+            iv_action             = iv_action
+            iv_prev_page          = iv_prev_page
+            iv_getdata            = iv_getdata
+            it_postdata           = it_postdata
+          IMPORTING
+            ei_page               = ei_page
+            ev_state              = ev_state ).
+    ENDCASE.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_page_hotkey~get_hotkey_actions.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_gui_renderable~render.
+
+    ms_control-page_menu = build_menu( ).
+    ro_html = super->zif_abapgit_gui_renderable~render( ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
@@ -74995,5 +75067,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-12T12:36:12.630Z
+* abapmerge undefined - 2019-09-12T14:35:03.037Z
 ****************************************************
