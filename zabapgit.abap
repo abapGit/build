@@ -25734,6 +25734,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported getIndocStyleSheet */'.
     _inline '/* exported addMarginBottom */'.
     _inline '/* exported enumerateTocAllRepos */'.
+    _inline '/* exported enumerateJumpAllFiles */'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Polyfills'.
@@ -26310,8 +26311,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '// Action on jump click'.
     _inline 'DiffHelper.prototype.onJump = function(e){'.
-    _inline '  if (!e.target.text) return;'.
-    _inline '  var elFile = document.querySelector("[data-file*=''" + e.target.text + "'']");'.
+    _inline '  var text = ((e.target && e.target.text) || e);'.
+    _inline '  if (!text) return;'.
+    _inline ''.
+    _inline '  var elFile = document.querySelector("[data-file*=''" + text + "'']");'.
     _inline '  if (!elFile) return;'.
     _inline ''.
     _inline '  setTimeout(function(){'.
@@ -27374,7 +27377,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'CommandPalette.prototype.exec = function(cmd) {'.
     _inline '  if (!cmd) return;'.
     _inline '  this.toggleDisplay(false);'.
-    _inline '  submitSapeventForm(null, cmd.action);'.
+    _inline '  if (typeof cmd.action === "function"){'.
+    _inline '    cmd.action();'.
+    _inline '  } else {'.
+    _inline '    submitSapeventForm(null, cmd.action);'.
+    _inline '  }'.
     _inline '};'.
     _inline ''.
     _inline '/* COMMAND ENUMERATORS */'.
@@ -27434,6 +27441,21 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  });'.
     _inline ''.
     _inline '  return items;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'function enumerateJumpAllFiles() {'.
+    _inline '  var root = document.getElementById("jump");'.
+    _inline '  if (!root || root.nodeName !== "UL") return null;'.
+    _inline ''.
+    _inline '  return Array'.
+    _inline '    .prototype.slice.call(root.children)'.
+    _inline '    .filter(function(elem) { return elem.nodeName === "LI" })'.
+    _inline '    .map(function(listItem) {'.
+    _inline '      var title = listItem.children[0].childNodes[0].textContent;'.
+    _inline '      return {'.
+    _inline '        action: root.onclick.bind(null, title),'.
+    _inline '        title:  title'.
+    _inline '      };});'.
     _inline '}'.
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -36049,6 +36071,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
 
     ro_html->add( 'addMarginBottom();' ).
+
+    ro_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
+    ro_html->add( '  toggleKey: "F2",' ).
+    ro_html->add( '  hotkeyDescription: "Jump to file ..."' ).
+    ro_html->add( '});' ).
 
   ENDMETHOD.
   METHOD start_staging.
@@ -74968,5 +74995,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-12T12:09:38.982Z
+* abapmerge undefined - 2019-09-12T12:36:12.630Z
 ****************************************************
