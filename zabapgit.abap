@@ -2747,7 +2747,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_folder_logic TYPE string DEFAULT 'PREFIX'
       !iv_ign_subpkg   TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_online
+      VALUE(ro_repo)   TYPE REF TO zcl_abapgit_repo_online
     RAISING
       zcx_abapgit_exception .
   METHODS purge
@@ -9370,7 +9370,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       " You should remember that these actions are handled in the UI.
       " Have a look at the JS file.
       BEGIN OF c_global_page_action,
-        showhotkeys         TYPE string VALUE `showHotkeys` ##NO_TEXT,
+        showhotkeys TYPE string VALUE `showHotkeys` ##NO_TEXT,
       END OF c_global_page_action.
 
     CLASS-METHODS:
@@ -9390,7 +9390,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
 
     TYPES: BEGIN OF ty_event,
              method TYPE string,
-             name TYPE string,
+             name   TYPE string,
            END OF  ty_event.
 
     TYPES: tt_events TYPE STANDARD TABLE OF ty_event WITH DEFAULT KEY.
@@ -9406,7 +9406,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT CREATE PUBLIC.
       RAISING   zcx_abapgit_exception.
 
     METHODS render_event_as_form
-      IMPORTING is_event TYPE ty_event
+      IMPORTING is_event       TYPE ty_event
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING   zcx_abapgit_exception.
 
@@ -10097,6 +10097,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
                  changed_by    TYPE string VALUE 'changed_by',
                  overview      TYPE string VALUE 'overview',
                  documentation TYPE string VALUE 'documentation',
+                 changelog     TYPE string VALUE 'changelog',
                END OF c_actions.
 
     DATA: mv_show         TYPE zif_abapgit_persistence=>ty_value,
@@ -11382,11 +11383,12 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS c_abapgit_homepage TYPE string VALUE 'http://www.abapgit.org' ##NO_TEXT.
-    CONSTANTS c_abapgit_wikipage TYPE string VALUE 'http://docs.abapgit.org' ##NO_TEXT.
-    CONSTANTS c_package_abapgit TYPE devclass VALUE '$ABAPGIT' ##NO_TEXT.
-    CONSTANTS c_abapgit_url TYPE string VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT.
-    CONSTANTS c_abapgit_tcode TYPE tcode VALUE `ZABAPGIT` ##NO_TEXT.
+    CONSTANTS: c_abapgit_repo     TYPE string   VALUE 'https://github.com/larshp/abapGit'     ##NO_TEXT,
+               c_abapgit_homepage TYPE string   VALUE 'http://www.abapgit.org'                ##NO_TEXT,
+               c_abapgit_wikipage TYPE string   VALUE 'http://docs.abapgit.org'               ##NO_TEXT,
+               c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
+               c_abapgit_url      TYPE string   VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT,
+               c_abapgit_tcode    TYPE tcode    VALUE `ZABAPGIT`                              ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -11394,9 +11396,12 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CLASS-METHODS open_abapgit_wikipage
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS open_abapgit_changelog
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS install_abapgit
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS is_installed
       RETURNING
         VALUE(rv_devclass) TYPE tadir-devclass .
@@ -16922,7 +16927,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
+CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -17063,6 +17068,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD zif_abapgit_repo_srv~get.
 
     FIELD-SYMBOLS: <lo_list> LIKE LINE OF mt_list.
+
     IF mv_init = abap_false.
       refresh( ).
     ENDIF.
@@ -28681,7 +28687,44 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
+  METHOD check_sapgui.
+
+    CONSTANTS:
+      lc_hide_sapgui_hint TYPE string VALUE '2' ##NO_TEXT.
+
+    DATA:
+      lv_answer           TYPE char1,
+      ls_settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
+      lo_user_persistence TYPE REF TO zif_abapgit_persist_user.
+
+    lo_user_persistence = zcl_abapgit_persistence_user=>get_instance( ).
+
+    ls_settings = lo_user_persistence->get_settings( ).
+
+    IF ls_settings-hide_sapgui_hint = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_java( ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+                    iv_titlebar              = 'Not supported SAPGUI'
+                    iv_text_question         = 'SAPGUI for Java is not supported! There might be some issues.'
+                    iv_text_button_1         = 'Got it'
+                    iv_icon_button_1         = |{ icon_okay }|
+                    iv_text_button_2         = 'Hide'
+                    iv_icon_button_2         = |{ icon_set_state }|
+                    iv_display_cancel_button = abap_false ).
+
+    IF lv_answer = lc_hide_sapgui_hint.
+      ls_settings-hide_sapgui_hint = abap_true.
+      lo_user_persistence->set_settings( ls_settings ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD do_install.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
@@ -28786,18 +28829,28 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lv_text = |Confirm to install current version of abapGit to package { c_package_abapgit }|.
+    lv_text = |Confirm to install current version of abapGit to package { c_abapgit_package }|.
 
     do_install( iv_title   = lc_title
                 iv_text    = lv_text
                 iv_url     = c_abapgit_url
-                iv_package = c_package_abapgit ).
+                iv_package = c_abapgit_package ).
 
   ENDMETHOD.
   METHOD is_installed.
 
     SELECT SINGLE devclass FROM tadir INTO rv_devclass
       WHERE object = 'TRAN' AND obj_name = c_abapgit_tcode.
+
+  ENDMETHOD.
+  METHOD open_abapgit_changelog.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING document = c_abapgit_repo && '/blob/master/changelog.txt'
+      EXCEPTIONS OTHERS = 1 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD open_abapgit_homepage.
@@ -28907,44 +28960,6 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD check_sapgui.
-
-    CONSTANTS:
-      lc_hide_sapgui_hint TYPE string VALUE '2' ##NO_TEXT.
-
-    DATA:
-      lv_answer           TYPE char1,
-      ls_settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
-      lo_user_persistence TYPE REF TO zif_abapgit_persist_user.
-
-    lo_user_persistence = zcl_abapgit_persistence_user=>get_instance( ).
-
-    ls_settings = lo_user_persistence->get_settings( ).
-
-    IF ls_settings-hide_sapgui_hint = abap_true.
-      RETURN.
-    ENDIF.
-
-    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_java( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-                    iv_titlebar              = 'Not supported SAPGUI'
-                    iv_text_question         = 'SAPGUI for Java is not supported! There might be some issues.'
-                    iv_text_button_1         = 'Got it'
-                    iv_icon_button_1         = |{ icon_okay }|
-                    iv_text_button_2         = 'Hide'
-                    iv_icon_button_2         = |{ icon_set_state }|
-                    iv_display_cancel_button = abap_false ).
-
-    IF lv_answer = lc_hide_sapgui_hint.
-      ls_settings-hide_sapgui_hint = abap_true.
-      lo_user_persistence->set_settings( ls_settings ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_popups IMPLEMENTATION.
@@ -35031,7 +35046,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -35064,6 +35079,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
                      iv_act = zif_abapgit_definitions=>c_action-go_tutorial ) ##NO_TEXT.
     lo_helpsub->add( iv_txt = 'Documentation'
                      iv_act = c_actions-documentation ) ##NO_TEXT.
+    lo_helpsub->add( iv_txt = 'Changelog'
+                     iv_act = c_actions-changelog ) ##NO_TEXT.
 
     ro_menu->add( iv_txt = '+ Online'
                   iv_act = zif_abapgit_definitions=>c_action-repo_newonline ) ##NO_TEXT.
@@ -35309,6 +35326,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN c_actions-documentation.
         zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN c_actions-changelog.
+        zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN c_actions-overview.
         CREATE OBJECT li_repo_overview TYPE zcl_abapgit_gui_page_repo_over.
@@ -37689,7 +37709,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -37752,7 +37772,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     ro_html->add( '<div id="footer">' ).                    "#EC NOTEXT
 
-    ro_html->add( '<img src="img/logo" alt="logo">' ).      "#EC NOTEXT
+    ro_html->add( zcl_abapgit_html=>a( iv_txt = '<img src="img/logo" alt="logo">'
+                                       iv_id  = 'abapGitLogo'
+                                       iv_act = zif_abapgit_definitions=>c_action-abapgit_home ) ).
     ro_html->add( '<table class="w100"><tr>' ).             "#EC NOTEXT
 
     ro_html->add( '<td class="w40"></td>' ).                "#EC NOTEXT
@@ -75067,5 +75089,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-12T14:41:28.551Z
+* abapmerge undefined - 2019-09-15T08:11:01.674Z
 ****************************************************
