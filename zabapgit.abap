@@ -37261,7 +37261,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
 
     rv_string = iv_string.
 
-    TRANSLATE rv_string USING '-_._'.
+    TRANSLATE rv_string USING '-_._#_'.
 
     rv_string = |branch_{ rv_string }|.
 
@@ -75089,5 +75089,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-15T08:11:01.674Z
+* abapmerge undefined - 2019-09-16T11:38:20.366Z
 ****************************************************
