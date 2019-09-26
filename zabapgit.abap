@@ -67995,6 +67995,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
             devclass   = iv_package
             prid       = 0.
 
+        corr_insert( iv_package ).
+
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
                                       ix_previous = lx_error ).
@@ -75675,5 +75677,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge undefined - 2019-09-26T08:34:16.391Z
+* abapmerge undefined - 2019-09-26T08:43:05.088Z
 ****************************************************
