@@ -1704,6 +1704,17 @@ INTERFACE zif_abapgit_definitions .
     tty_lines TYPE STANDARD TABLE OF i
                         WITH NON-UNIQUE DEFAULT KEY .
 
+  TYPES:
+    BEGIN OF ty_col_spec,
+      tech_name    TYPE string,
+      display_name TYPE string,
+      css_class    TYPE string,
+      add_tz       TYPE abap_bool,
+      title        TYPE string,
+    END OF ty_col_spec,
+    tty_col_spec TYPE STANDARD TABLE OF ty_col_spec
+                      WITH NON-UNIQUE KEY tech_name.
+
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -1804,6 +1815,8 @@ INTERFACE zif_abapgit_definitions .
       goto_source              TYPE string VALUE 'goto_source',
       show_callstack           TYPE string VALUE 'show_callstack',
       goto_message             TYPE string VALUE 'goto_message',
+      change_order_by          TYPE string VALUE 'change_order_by',
+      direction                TYPE string VALUE 'direction',
     END OF c_action .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
@@ -2318,6 +2331,11 @@ INTERFACE zif_abapgit_persist_user .
 
   TYPES tt_favorites TYPE zif_abapgit_persistence=>tt_repo_keys .
 
+  METHODS get_show_order_by
+    RETURNING
+      VALUE(rv_show_order_by) TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception .
   METHODS get_changes_only
     RETURNING
       VALUE(rv_changes_only) TYPE abap_bool
@@ -2457,6 +2475,11 @@ INTERFACE zif_abapgit_persist_user .
       is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings
     RAISING
       zcx_abapgit_exception.
+  METHODS toggle_show_order_by
+    RETURNING
+      VALUE(rv_show_order_by) TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
@@ -8724,6 +8747,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         repo_show        TYPE zif_abapgit_persistence=>ty_repo-key,
         hide_files       TYPE abap_bool,
         changes_only     TYPE abap_bool,
+        show_order_by    TYPE abap_bool,
         diff_unified     TYPE abap_bool,
         favorites        TYPE tt_favorites,
         repo_config      TYPE ty_repo_config_tt,
@@ -9352,6 +9376,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
 
   PUBLIC SECTION.
 
+    CLASS-METHODS class_constructor.
     CLASS-METHODS render_error
       IMPORTING
         !ix_error      TYPE REF TO zcx_abapgit_exception OPTIONAL
@@ -9408,8 +9433,27 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         ix_error       TYPE REF TO zcx_abapgit_exception
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    CLASS-METHODS parse_change_order_by
+      IMPORTING
+        iv_query_str       TYPE clike
+      RETURNING
+        VALUE(rv_order_by) TYPE string.
+    CLASS-METHODS parse_direction
+      IMPORTING
+        iv_query_str               TYPE clike
+      RETURNING
+        VALUE(rv_order_descending) TYPE abap_bool.
+    CLASS-METHODS render_order_by_header_cells
+      IMPORTING
+        it_col_spec         TYPE zif_abapgit_definitions=>tty_col_spec
+        iv_order_by         TYPE string
+        iv_order_descending TYPE abap_bool
+      RETURNING
+        VALUE(ro_html)      TYPE REF TO zcl_abapgit_html.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CLASS-DATA gv_time_zone TYPE timezone.
 
     CLASS-METHODS render_branch_span
       IMPORTING
@@ -9443,6 +9487,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         iv_program_name                   TYPE syrepid
       RETURNING
         VALUE(rv_normalized_program_name) TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -10393,10 +10438,8 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
                    WITH NON-UNIQUE DEFAULT KEY.
     CONSTANTS:
       BEGIN OF c_action,
-        select          TYPE string VALUE 'select',
-        change_order_by TYPE string VALUE 'change_order_by',
-        direction       TYPE string VALUE 'direction',
-        apply_filter    TYPE string VALUE 'apply_filter',
+        select       TYPE string VALUE 'select',
+        apply_filter TYPE string VALUE 'apply_filter',
       END OF c_action .
 
     DATA:
@@ -10413,21 +10456,9 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
                   iv_max_length  TYPE string OPTIONAL
         RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
 
-      parse_change_order_by
-        IMPORTING
-          iv_query_str TYPE clike,
-
-      parse_direction
-        IMPORTING
-          iv_query_str TYPE clike,
-
       parse_filter
         IMPORTING
           it_postdata TYPE cnht_post_data_tab,
-
-      apply_order_by
-        CHANGING
-          ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
 
       apply_filter
         CHANGING
@@ -10457,7 +10488,10 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
       render_header_bar
         IMPORTING
-          io_html TYPE REF TO zcl_abapgit_html.
+          io_html TYPE REF TO zcl_abapgit_html,
+
+      apply_order_by
+        CHANGING ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
@@ -10965,9 +10999,10 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         toggle_hide_files TYPE string VALUE 'toggle_hide_files' ##NO_TEXT,
         toggle_folders    TYPE string VALUE 'toggle_folders' ##NO_TEXT,
         toggle_changes    TYPE string VALUE 'toggle_changes' ##NO_TEXT,
+        toggle_order_by   TYPE string VALUE 'toggle_order_by' ##NO_TEXT,
+        toggle_diff_first TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
         display_more      TYPE string VALUE 'display_more' ##NO_TEXT,
       END OF c_actions .
-
     METHODS constructor
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -10977,13 +11012,17 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA: mo_repo         TYPE REF TO zcl_abapgit_repo,
-          mv_cur_dir      TYPE string,
-          mv_hide_files   TYPE abap_bool,
-          mv_max_lines    TYPE i,
-          mv_max_setting  TYPE i,
-          mv_show_folders TYPE abap_bool,
-          mv_changes_only TYPE abap_bool.
+    DATA: mo_repo             TYPE REF TO zcl_abapgit_repo,
+          mv_cur_dir          TYPE string,
+          mv_hide_files       TYPE abap_bool,
+          mv_max_lines        TYPE i,
+          mv_max_setting      TYPE i,
+          mv_show_folders     TYPE abap_bool,
+          mv_changes_only     TYPE abap_bool,
+          mv_show_order_by    TYPE abap_bool,
+          mv_order_by         TYPE string,
+          mv_order_descending TYPE abap_bool,
+          mv_diff_first       TYPE abap_bool.
 
     METHODS:
       render_head_line
@@ -11036,7 +11075,11 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
         IMPORTING is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
         RETURNING VALUE(rv_inactive_html_code) TYPE string,
       open_in_master_language
-        RAISING zcx_abapgit_exception.
+        RAISING zcx_abapgit_exception,
+      render_order_by
+        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+      apply_order_by
+        CHANGING ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_view_tutorial DEFINITION
@@ -24556,6 +24599,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-radius: 3px;'.
     _inline '  width: 100%;'.
     _inline '}'.
+    _inline '.repo_tab th {'.
+    _inline '  text-align: left;'.
+    _inline '  padding: 0.5em;'.
+    _inline '  border-bottom: 1px solid;'.
+    _inline '  font-weight: normal;'.
+    _inline '}'.
     _inline '.repo_tab td {'.
     _inline '  border-top: 1px solid;'.
     _inline '  vertical-align: middle;'.
@@ -24573,7 +24622,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  text-align: left;'.
     _inline '}'.
     _inline '.repo_tab td.type {'.
-    _inline '  width: 3em;'.
+    _inline '  width: 4em;'.
+    _inline '  padding-left: 0.5em;'.
     _inline '}'.
     _inline '.repo_tab td.object {'.
     _inline '  padding-left: 0.5em;'.
@@ -24581,10 +24631,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.repo_tab td.files {'.
     _inline '  padding-left: 0.5em;'.
     _inline '}'.
-    _inline '.repo_tab td.cmd {'.
+    _inline '.repo_tab td.cmd, .repo_tab th.cmd {'.
     _inline '  text-align: right;'.
     _inline '  padding-left: 0.5em;'.
     _inline '  padding-right: 0.7em;'.
+    _inline '}'.
+    _inline '.repo_tab th.cmd .icon{'.
+    _inline '  padding-right: 8px;'.
     _inline '}'.
     _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
     _inline '.repo_tab td.cmd span.state-block {'.
@@ -25375,6 +25428,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-color: #ddd;'.
     _inline '  background-color: #fff;'.
     _inline '}'.
+    _inline '.repo_tab th {'.
+    _inline '  color: #888888;'.
+    _inline '  border-bottom-color: #ddd;'.
+    _inline '}'.
     _inline '.repo_tab td {'.
     _inline '  color: #333;'.
     _inline '  border-top-color: var(--theme-table-border-color);'.
@@ -25570,7 +25627,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '/* MENU */'.
     _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
-    _inline '.nav-container > ul > li:hover > a { background-color: #ffffff80; } '.
+    _inline '.nav-container > ul > li:hover > a { background-color: #ffffff80; }'.
     _inline '.nav-container ul ul { background-color: #fff; }'.
     _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
     _inline ''.
@@ -25854,6 +25911,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '/* exported addMarginBottom */'.
     _inline '/* exported enumerateTocAllRepos */'.
     _inline '/* exported enumerateJumpAllFiles */'.
+    _inline '/* exported enumerateToolbarActions */'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Polyfills'.
@@ -31120,7 +31178,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   METHOD build_dir_jump_link.
 
     DATA: lv_path   TYPE string,
@@ -31154,6 +31212,11 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       iv_txt = 'Show folders'
       iv_chk = mv_show_folders
       iv_act = c_actions-toggle_folders ).
+
+    ro_toolbar->add(
+      iv_txt = 'Show order by'
+      iv_chk = mv_show_order_by
+      iv_act = c_actions-toggle_order_by ).
 
   ENDMETHOD.
   METHOD build_head_menu.
@@ -31348,10 +31411,12 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
     super->constructor( ).
 
-    mo_repo         = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    mv_cur_dir      = '/'. " Root
-    mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->get_hide_files( ).
-    mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->get_changes_only( ).
+    mo_repo          = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    mv_cur_dir       = '/'. " Root
+    mv_hide_files    = zcl_abapgit_persistence_user=>get_instance( )->get_hide_files( ).
+    mv_changes_only  = zcl_abapgit_persistence_user=>get_instance( )->get_changes_only( ).
+    mv_show_order_by = zcl_abapgit_persistence_user=>get_instance( )->get_show_order_by( ).
+    mv_diff_first    = abap_true.
 
     " Read global settings to get max # of objects to be listed
     lo_settings     = zcl_abapgit_persist_settings=>get_instance( )->read( ).
@@ -31672,9 +31737,21 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       WHEN c_actions-toggle_changes.    " Toggle changes only view
         mv_changes_only = zcl_abapgit_persistence_user=>get_instance( )->toggle_changes_only( ).
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-toggle_order_by.
+        mv_show_order_by = zcl_abapgit_persistence_user=>get_instance( )->toggle_show_order_by( ).
+        ev_state         = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-toggle_diff_first.
+        mv_diff_first = boolc( mv_diff_first = abap_false ).
+        ev_state             = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-display_more.      " Increase MAX lines limit
         mv_max_lines    = mv_max_lines + mv_max_setting.
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-change_order_by.
+        mv_order_by     = zcl_abapgit_gui_chunk_lib=>parse_change_order_by( iv_getdata ).
+        ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-direction.
+        mv_order_descending = zcl_abapgit_gui_chunk_lib=>parse_direction( iv_getdata ).
+        ev_state            = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_open_in_master_lang.
         open_in_master_language( ).
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
@@ -31716,6 +31793,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                                           iv_by_folders   = mv_show_folders
                                           iv_changes_only = mv_changes_only ).
 
+        IF mv_show_order_by = abap_true.
+          apply_order_by( CHANGING ct_repo_items = lt_repo_items ).
+        ENDIF.
+
         LOOP AT lt_repo_items ASSIGNING <ls_item>.
           zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-lstate
                                      CHANGING cv_prev = lv_lstate ).
@@ -31750,6 +31831,10 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
         IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
           ro_html->add( render_parent_dir( ) ).
+        ENDIF.
+
+        IF mv_show_order_by = abap_true.
+          ro_html->add( render_order_by( ) ).
         ENDIF.
 
         IF lines( lt_repo_items ) = 0.
@@ -31790,6 +31875,111 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD render_order_by.
+
+    DATA:
+      lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
+      lv_icon     TYPE string,
+      lv_html     TYPE string.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_col_spec.
+
+    DEFINE _add_col.
+      APPEND INITIAL LINE TO lt_col_spec ASSIGNING <ls_col>.
+      <ls_col>-tech_name    = &1.
+      <ls_col>-display_name = &2.
+      <ls_col>-css_class    = &3.
+      <ls_col>-add_tz       = &4.
+      <ls_col>-title        = &5.
+    END-OF-DEFINITION.
+
+    CREATE OBJECT ro_html.
+
+    "        technical name    display name      css class   add timezone   title
+    _add_col ''                  ''                ''          ''           ''.
+    _add_col 'OBJ_TYPE'          'Type'            ''          ''           ''.
+    _add_col 'OBJ_NAME'          'Name'            ''          ''           ''.
+    _add_col 'PATH'              'Path'            ''          ''           ''.
+
+    ro_html->add( |<thead>| ).
+    ro_html->add( |<tr>| ).
+
+    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+                      it_col_spec         = lt_col_spec
+                      iv_order_by         = mv_order_by
+                      iv_order_descending = mv_order_descending ) ).
+
+    IF mv_diff_first = abap_true.
+      lv_icon = 'check/blue'.
+    ELSE.
+      lv_icon = 'check/grey'.
+    ENDIF.
+
+    lv_html = |<th class="cmd">|
+           && zcl_abapgit_html=>icon( lv_icon )
+           && zcl_abapgit_html=>a(
+                  iv_txt = |diffs first|
+                  iv_act = c_actions-toggle_diff_first ).
+
+    ro_html->add( lv_html ).
+
+    ro_html->add( '</tr>' ).
+    ro_html->add( '</thead>' ).
+
+  ENDMETHOD.
+  METHOD apply_order_by.
+
+    DATA:
+      lt_sort                        TYPE abap_sortorder_tab,
+      ls_sort                        LIKE LINE OF lt_sort,
+      lt_non_code_and_metadata_items LIKE ct_repo_items,
+      lt_code_items                  LIKE ct_repo_items,
+      lt_diff_items                  LIKE ct_repo_items.
+
+    FIELD-SYMBOLS:
+      <ls_repo_item> TYPE zif_abapgit_definitions=>ty_repo_item.
+
+    IF mv_order_by IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " we want to preserve non-code and metadata files at the top,
+    " so we isolate them and and sort only the code artifacts
+    LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
+
+      IF  <ls_repo_item>-obj_type IS INITIAL
+      AND <ls_repo_item>-is_dir = abap_false.
+        INSERT <ls_repo_item> INTO TABLE lt_non_code_and_metadata_items.
+      ELSE.
+        INSERT <ls_repo_item> INTO TABLE lt_code_items.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF mv_diff_first = abap_true.
+      " fix diffs on the top, right after non-code and metadata
+      LOOP AT lt_code_items ASSIGNING <ls_repo_item>
+                            WHERE changes > 0.
+        INSERT <ls_repo_item> INTO TABLE lt_diff_items.
+      ENDLOOP.
+
+      DELETE lt_code_items WHERE changes > 0.
+    ENDIF.
+
+    CLEAR: ct_repo_items.
+
+    ls_sort-name       = mv_order_by.
+    ls_sort-descending = mv_order_descending.
+    ls_sort-astext     = abap_true.
+    INSERT ls_sort INTO TABLE lt_sort.
+    SORT lt_code_items BY (lt_sort).
+    SORT lt_diff_items BY (lt_sort).
+
+    INSERT LINES OF lt_non_code_and_metadata_items INTO TABLE ct_repo_items.
+    INSERT LINES OF lt_diff_items INTO TABLE ct_repo_items.
+    INSERT LINES OF lt_code_items INTO TABLE ct_repo_items.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
@@ -34108,7 +34298,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -34122,23 +34312,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
                            AND created_at      NS mv_filter
                            AND deserialized_by NS mv_filter
                            AND deserialized_at NS mv_filter.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD apply_order_by.
-
-    DATA:
-      lt_sort TYPE abap_sortorder_tab,
-      ls_sort LIKE LINE OF lt_sort.
-
-    IF mv_order_by IS NOT INITIAL.
-
-      ls_sort-name       = mv_order_by.
-      ls_sort-descending = mv_order_descending.
-      ls_sort-astext     = abap_true.
-      INSERT ls_sort INTO TABLE lt_sort.
-      SORT ct_overview BY (lt_sort).
 
     ENDIF.
 
@@ -34206,26 +34379,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD parse_change_order_by.
-
-    FIND FIRST OCCURRENCE OF REGEX `orderBy=(.*)`
-      IN iv_query_str
-      SUBMATCHES mv_order_by.
-
-    mv_order_by = condense( mv_order_by ).
-
-  ENDMETHOD.
-  METHOD parse_direction.
-
-    DATA: lv_direction TYPE string.
-
-    FIND FIRST OCCURRENCE OF REGEX `direction=(.*)`
-      IN iv_query_str
-      SUBMATCHES lv_direction.
-
-    mv_order_descending = boolc( condense( lv_direction ) = 'DESCENDING' ).
-
-  ENDMETHOD.
   METHOD parse_filter.
 
     FIELD-SYMBOLS: <lv_postdata> LIKE LINE OF it_postdata.
@@ -34244,6 +34397,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD render_content.
 
     DATA: lt_overview TYPE tty_overview.
+
     lt_overview = map_repo_list_to_overview(
       zcl_abapgit_persist_factory=>get_repo( )->list( ) ).
 
@@ -34263,6 +34417,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     io_html->add( |<div class="form-container">| ).
 
     io_html->add( |<form class="inline" method="post" action="sapevent:{ c_action-apply_filter }">| ).
+
     io_html->add( render_text_input(
       iv_name  = |filter|
       iv_label = |Filter: |
@@ -34294,8 +34449,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD render_table_body.
 
     DATA:
-          lv_type_icon     TYPE string,
-          lv_favorite_icon TYPE string.
+      lv_type_icon     TYPE string,
+      lv_favorite_icon TYPE string.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -34351,21 +34506,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_header.
 
-    TYPES:
-      BEGIN OF lty_col_spec,
-        tech_name    TYPE string,
-        display_name TYPE string,
-        css_class    TYPE string,
-        add_tz       TYPE abap_bool,
-      END OF lty_col_spec.
-    DATA lt_colspec TYPE STANDARD TABLE OF lty_col_spec.
-    DATA lv_tmp     TYPE string.
-    DATA lv_disp_name TYPE string.
-
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_colspec.
+    DATA lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_col_spec.
 
     DEFINE _add_col.
-      APPEND INITIAL LINE TO lt_colspec ASSIGNING <ls_col>.
+      APPEND INITIAL LINE TO lt_col_spec ASSIGNING <ls_col>.
       <ls_col>-tech_name    = &1.
       <ls_col>-display_name = &2.
       <ls_col>-css_class    = &3.
@@ -34384,49 +34529,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     _add_col 'CREATED_BY'      'Created by'      'ro-detail' ''.
     _add_col 'CREATED_AT'      'Created at'      'ro-detail' 'X'.
     _add_col 'KEY'             'Key'             'ro-detail' ''.
+
     io_html->add( |<thead>| ).
     io_html->add( |<tr>| ).
 
-    LOOP AT lt_colspec ASSIGNING <ls_col>.
-      " e.g. <th class="ro-detail">Created at [{ mv_time_zone }]</th>
-      lv_tmp = '<th'.
-      IF <ls_col>-css_class IS NOT INITIAL.
-        lv_tmp = lv_tmp && | class="{ <ls_col>-css_class }"|.
-      ENDIF.
-      lv_tmp = lv_tmp && '>'.
-
-      IF <ls_col>-display_name IS NOT INITIAL.
-        lv_disp_name = <ls_col>-display_name.
-        IF <ls_col>-add_tz = abap_true.
-          lv_disp_name = lv_disp_name && | [{ mv_time_zone }]|.
-        ENDIF.
-        IF <ls_col>-tech_name = mv_order_by.
-          IF mv_order_descending = abap_true.
-            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
-              iv_txt = lv_disp_name
-              iv_act = |{ c_action-direction }?direction=ASCENDING| ).
-          ELSE.
-            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
-              iv_txt = lv_disp_name
-              iv_act = |{ c_action-direction }?direction=DESCENDING| ).
-          ENDIF.
-        ELSE.
-          lv_tmp = lv_tmp && zcl_abapgit_html=>a(
-            iv_txt = lv_disp_name
-            iv_act = |{ c_action-change_order_by }?orderBy={ <ls_col>-tech_name }| ).
-        ENDIF.
-      ENDIF.
-      IF <ls_col>-tech_name = mv_order_by.
-        IF mv_order_descending = abap_true.
-          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
-        ELSE.
-          lv_tmp = lv_tmp && | &#x25BE;|. " arrow down
-        ENDIF.
-      ENDIF.
-
-      lv_tmp = lv_tmp && '</th>'.
-      io_html->add( lv_tmp ).
-    ENDLOOP.
+    io_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+                      it_col_spec         = lt_col_spec
+                      iv_order_by         = mv_order_by
+                      iv_order_descending = mv_order_descending ) ).
 
     io_html->add( '</tr>' ).
     io_html->add( '</thead>' ).
@@ -34476,15 +34586,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
 
-      WHEN c_action-change_order_by.
+      WHEN zif_abapgit_definitions=>c_action-change_order_by.
 
-        CLEAR mv_order_descending.
-        parse_change_order_by( iv_getdata ).
+        mv_order_by = zcl_abapgit_gui_chunk_lib=>parse_change_order_by( iv_getdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
-      WHEN c_action-direction.
+      WHEN zif_abapgit_definitions=>c_action-direction.
 
-        parse_direction( iv_getdata ).
+        mv_order_descending = zcl_abapgit_gui_chunk_lib=>parse_direction( iv_getdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_action-apply_filter.
@@ -34507,6 +34616,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD apply_order_by.
+
+    DATA:
+      lt_sort TYPE abap_sortorder_tab,
+      ls_sort LIKE LINE OF lt_sort.
+
+    IF mv_order_by IS NOT INITIAL.
+
+      ls_sort-name       = mv_order_by.
+      ls_sort-descending = mv_order_descending.
+      ls_sort-astext     = abap_true.
+      INSERT ls_sort INTO TABLE lt_sort.
+      SORT ct_overview BY (lt_sort).
+
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
@@ -38190,11 +38318,53 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+
+  METHOD class_constructor.
+
+    CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
+      IMPORTING
+        timezone            = gv_time_zone
+      EXCEPTIONS
+        customizing_missing = 1
+        OTHERS              = 2.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD get_t100_text.
+
+    SELECT SINGLE text
+           FROM t100
+           INTO rv_text
+           WHERE arbgb = iv_msgid
+           AND   msgnr = iv_msgno
+           AND   sprsl = sy-langu.
+
+  ENDMETHOD.
   METHOD normalize_program_name.
 
     rv_normalized_program_name = substring_before(
                                      val   = iv_program_name
                                      regex = `(=+CP)?$` ).
+
+  ENDMETHOD.
+  METHOD parse_change_order_by.
+
+    FIND FIRST OCCURRENCE OF REGEX `orderBy=(.*)`
+         IN iv_query_str
+         SUBMATCHES rv_order_by.
+
+    rv_order_by = condense( rv_order_by ).
+
+  ENDMETHOD.
+  METHOD parse_direction.
+
+    DATA: lv_direction TYPE string.
+
+    FIND FIRST OCCURRENCE OF REGEX `direction=(.*)`
+         IN iv_query_str
+         SUBMATCHES lv_direction.
+
+    rv_order_descending = boolc( condense( lv_direction ) = 'DESCENDING' ).
 
   ENDMETHOD.
   METHOD render_branch_span.
@@ -38220,6 +38390,63 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       ro_html->add( lv_text ).
     ENDIF.
     ro_html->add( '</span>' ).
+
+  ENDMETHOD.
+  METHOD render_order_by_header_cells.
+
+    DATA:
+      lt_colspec   TYPE zif_abapgit_definitions=>tty_col_spec,
+      lv_tmp       TYPE string,
+      lv_disp_name TYPE string.
+
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_colspec.
+
+    CREATE OBJECT ro_html.
+
+    LOOP AT it_col_spec ASSIGNING <ls_col>.
+      " e.g. <th class="ro-detail">Created at [{ gv_time_zone }]</th>
+      lv_tmp = '<th'.
+      IF <ls_col>-css_class IS NOT INITIAL.
+        lv_tmp = lv_tmp && | class="{ <ls_col>-css_class }"|.
+      ENDIF.
+      lv_tmp = lv_tmp && '>'.
+
+      IF <ls_col>-display_name IS NOT INITIAL.
+        lv_disp_name = <ls_col>-display_name.
+        IF <ls_col>-add_tz = abap_true.
+          lv_disp_name = lv_disp_name && | [{ gv_time_zone }]|.
+        ENDIF.
+        IF <ls_col>-tech_name = iv_order_by.
+          IF iv_order_descending = abap_true.
+            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+              iv_txt   = lv_disp_name
+              iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=ASCENDING|
+              iv_title = <ls_col>-title ).
+          ELSE.
+            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+              iv_txt   = lv_disp_name
+              iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=DESCENDING|
+              iv_title = <ls_col>-title ).
+          ENDIF.
+        ELSE.
+          lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+            iv_txt   = lv_disp_name
+            iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }?orderBy={ <ls_col>-tech_name }|
+            iv_title = <ls_col>-title ).
+        ENDIF.
+      ENDIF.
+      IF <ls_col>-tech_name = iv_order_by
+      AND iv_order_by IS NOT INITIAL.
+        IF iv_order_descending = abap_true.
+          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
+        ELSE.
+          lv_tmp = lv_tmp && | &#x25BE;|. " arrow down
+        ENDIF.
+      ENDIF.
+
+      lv_tmp = lv_tmp && '</th>'.
+      ro_html->add( lv_tmp ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD render_commit_popup.
@@ -38657,18 +38884,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( '</tr></table>' ).
 
   ENDMETHOD.
-
-  METHOD get_t100_text.
-
-    SELECT SINGLE text
-           FROM t100
-           INTO rv_text
-           WHERE arbgb = iv_msgid
-           AND   msgnr = iv_msgno
-           AND   sprsl = sy-langu.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
@@ -41091,6 +41306,23 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
     rv_hide = ls_user-hide_files.
 
   ENDMETHOD.
+  METHOD zif_abapgit_persist_user~get_show_order_by.
+
+    rv_show_order_by = read( )-show_order_by.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~toggle_show_order_by.
+
+    DATA ls_user TYPE ty_user.
+
+    ls_user = read( ).
+    ls_user-show_order_by = boolc( ls_user-show_order_by = abap_false ).
+    update( ls_user ).
+
+    rv_show_order_by = ls_user-show_order_by.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
@@ -75672,5 +75904,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-06T05:42:31.368Z
+* abapmerge  - 2019-10-06T05:55:48.360Z
 ****************************************************
