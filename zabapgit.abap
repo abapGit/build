@@ -43051,7 +43051,10 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           lo_scanner TYPE REF TO cl_oo_source_scanner_class,
           lt_methods TYPE cl_oo_source_scanner_class=>type_method_implementations,
           lv_method  LIKE LINE OF lt_methods,
+          lt_public  TYPE seop_source_string,
+          lt_auxsrc  TYPE seop_source_string,
           lt_source  TYPE seop_source_string.
+
     "Buffer needs to be refreshed,
     "otherwise standard SAP CLIF_SOURCE reorder methods alphabetically
     CALL FUNCTION 'SEO_BUFFER_INIT'.
@@ -43065,15 +43068,15 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       iv_name   = is_key-clsname ).
 
 * public
-    lt_source = lo_scanner->get_public_section_source( ).
-    IF lt_source IS NOT INITIAL.
+    lt_public = lo_scanner->get_public_section_source( ).
+    IF lt_public IS NOT INITIAL.
       lv_program = cl_oo_classname_service=>get_pubsec_name( is_key-clsname ).
       lv_updated = update_report( iv_program = lv_program
-                                  it_source  = lt_source ).
+                                  it_source  = lt_public ).
       IF lv_updated = abap_true.
         update_meta( iv_name     = is_key-clsname
                      iv_exposure = seoc_exposure_public
-                     it_source   = lt_source ).
+                     it_source   = lt_public ).
       ENDIF.
     ENDIF.
 
@@ -43084,9 +43087,12 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       lv_updated = update_report( iv_program = lv_program
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
+        lt_auxsrc = lt_public.
+        APPEND LINES OF lt_source TO lt_auxsrc.
+
         update_meta( iv_name     = is_key-clsname
                      iv_exposure = seoc_exposure_protected
-                     it_source   = lt_source ).
+                     it_source   = lt_auxsrc ).
       ENDIF.
     ENDIF.
 
@@ -43097,9 +43103,12 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       lv_updated = update_report( iv_program = lv_program
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
+        lt_auxsrc = lt_public.
+        APPEND LINES OF lt_source TO lt_auxsrc.
+
         update_meta( iv_name     = is_key-clsname
                      iv_exposure = seoc_exposure_private
-                     it_source   = lt_source ).
+                     it_source   = lt_auxsrc ).
       ENDIF.
     ENDIF.
 
@@ -76132,5 +76141,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-06T08:14:05.391Z
+* abapmerge  - 2019-10-07T06:20:19.501Z
 ****************************************************
