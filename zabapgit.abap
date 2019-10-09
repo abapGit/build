@@ -6295,6 +6295,7 @@ CLASS zcl_abapgit_object_scp1 DEFINITION
         scprvall TYPE STANDARD TABLE OF scprvall WITH DEFAULT KEY,
         scprreca TYPE STANDARD TABLE OF scprreca WITH DEFAULT KEY,
         scprfldv TYPE STANDARD TABLE OF scprfldv WITH DEFAULT KEY,
+        subprofs TYPE STANDARD TABLE OF scprpprl WITH DEFAULT KEY,
       END OF ty_scp1 .
 
     METHODS dequeue .
@@ -6302,6 +6303,11 @@ CLASS zcl_abapgit_object_scp1 DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS save
+      IMPORTING
+        !is_scp1 TYPE ty_scp1
+      RAISING
+        zcx_abapgit_exception .
+    METHODS save_hier
       IMPORTING
         !is_scp1 TYPE ty_scp1
       RAISING
@@ -6315,9 +6321,14 @@ CLASS zcl_abapgit_object_scp1 DEFINITION
     METHODS load
       CHANGING
         !cs_scp1 TYPE ty_scp1 .
+    METHODS load_hier
+      CHANGING
+        !cs_scp1 TYPE ty_scp1 .
     METHODS call_delete_fms
-      IMPORTING iv_profile_id TYPE scpr_id
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !iv_profile_id TYPE scpr_id
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -58222,12 +58233,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD call_delete_fms.
 
-    CONSTANTS lc_version_new      TYPE c VALUE 'N' ##NO_TEXT. "Include SCPRINTCONST version_new
-    CONSTANTS lc_operation_delete TYPE c VALUE 'D' ##NO_TEXT.
-    DATA lv_profile_type          TYPE scprattr-type.
-    DATA lt_fatherprofiles        TYPE STANDARD TABLE OF scproprof WITH DEFAULT KEY.
-    DATA ls_fatherprofile         TYPE scproprof.
+    CONSTANTS:
+      lc_version_new      TYPE c VALUE 'N' ##NO_TEXT, "Include SCPRINTCONST version_new
+      lc_operation_delete TYPE c VALUE 'D' ##NO_TEXT.
 
+    DATA:
+      lv_profile_type   TYPE scprattr-type,
+      lt_fatherprofiles TYPE STANDARD TABLE OF scproprof WITH DEFAULT KEY,
+      ls_fatherprofile  TYPE scproprof.
     CALL FUNCTION 'SCPR_DB_ATTR_GET_DETAIL'
       EXPORTING
         profid   = iv_profile_id
@@ -58304,15 +58317,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD load.
 
-    CALL FUNCTION 'SCPR_TEXT_GET'
-      EXPORTING
-        profid        = cs_scp1-scprattr-id
-        category      = cs_scp1-scprattr-category
-      TABLES
-        texts         = cs_scp1-scprtext
-      EXCEPTIONS
-        no_text_found = 1.
-
     CALL FUNCTION 'SCPR_TEMPL_DB_VALS_GET_DETAIL'
       EXPORTING
         profid   = cs_scp1-scprattr-id
@@ -58330,6 +58334,16 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         it_fldv  = cs_scp1-scprfldv.
 
   ENDMETHOD.
+  METHOD load_hier.
+
+    CALL FUNCTION 'SCPR_PRSET_DB_SUBP_GET_DETAIL'
+      EXPORTING
+        profid   = cs_scp1-scprattr-id
+        category = cs_scp1-scprattr-category
+      TABLES
+        subprofs = cs_scp1-subprofs.
+
+  ENDMETHOD.
   METHOD save.
 
     DATA: ls_scp1 TYPE ty_scp1,
@@ -58337,7 +58351,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
 * copy everything to local, the function module changes the values
     ls_scp1 = is_scp1.
 
-    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = sy-langu.
+    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = sy-langu. "#EC CI_SUBRC
 
     CALL FUNCTION 'SCPR_TEMPL_MN_TEMPLATE_SAVE'
       EXPORTING
@@ -58356,7 +58370,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         bcset_type                = ls_scp1-scprattr-type
         fldtxtvar_supplied        = 'YES'
         with_transp_insert        = abap_false
-        with_progress_indicator   = abap_true
+        with_progress_indicator   = abap_false
         remove_denied_data        = abap_true
         ask_for_cont_after_remove = abap_true
       TABLES
@@ -58372,7 +58386,53 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         database_error            = 4
         OTHERS                    = 5.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error saving SCP1, { sy-tabix }| ).
+      zcx_abapgit_exception=>raise( |Error saving SCP1, { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD save_hier.
+
+    DATA: ls_scp1  TYPE ty_scp1,
+          ls_profs LIKE LINE OF ls_scp1-subprofs,
+          lt_sub   TYPE STANDARD TABLE OF scproprof WITH DEFAULT KEY,
+          ls_sub   LIKE LINE OF lt_sub,
+          ls_text  TYPE scprtext.
+* copy everything to local, the function module changes the values
+    ls_scp1 = is_scp1.
+
+    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = sy-langu. "#EC CI_SUBRC
+
+* see fm SCPR_PRSET_DB_STORE, only this field and sequence is used
+    LOOP AT ls_scp1-subprofs INTO ls_profs.
+      ls_sub-id = ls_profs-subprofile.
+      APPEND ls_sub TO lt_sub.
+    ENDLOOP.
+
+    CALL FUNCTION 'SCPR_PRSET_MN_BCSET_SAVE'
+      EXPORTING
+        profid                   = ls_scp1-scprattr-id
+        proftext                 = ls_text-text
+        category                 = ls_scp1-scprattr-category
+        cli_dep                  = ls_scp1-scprattr-cli_dep
+        cli_cas                  = ls_scp1-scprattr-cli_cas
+        reftype                  = ls_scp1-scprattr-reftype
+        refname                  = ls_scp1-scprattr-refname
+        orgid                    = ls_scp1-scprattr-orgid
+        component                = ls_scp1-scprattr-component
+        minrelease               = ls_scp1-scprattr-minrelease
+        maxrelease               = ls_scp1-scprattr-maxrelease
+        act_info                 = ls_scp1-scprattr-act_info
+        with_transp_insert       = abap_false
+        with_progress_indicator  = abap_false
+      TABLES
+        subprofs                 = lt_sub
+        texts                    = ls_scp1-scprtext
+      EXCEPTIONS
+        user_abort               = 1
+        error_in_transport_layer = 2
+        OTHERS                   = 3.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error saving SCP1, { sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -58407,8 +58467,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
     adjust_inbound( CHANGING cs_scp1 = ls_scp1 ).
 
     IF ls_scp1-scprattr-type = 'TMP'.
-* todo, function module SCPR_PRSET_MN_BCSET_SAVE
-      zcx_abapgit_exception=>raise( |todo, SCP1| ).
+      save_hier( ls_scp1 ).
     ELSE.
       save( ls_scp1 ).
     ENDIF.
@@ -58486,9 +58545,17 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         orgid      = ls_scp1-scprattr-orgid
         act_info   = ls_scp1-scprattr-act_info.
 
+    CALL FUNCTION 'SCPR_TEXT_GET'
+      EXPORTING
+        profid        = ls_scp1-scprattr-id
+        category      = ls_scp1-scprattr-category
+      TABLES
+        texts         = ls_scp1-scprtext
+      EXCEPTIONS
+        no_text_found = 1.
+
     IF ls_scp1-scprattr-type = 'TMP'.
-* todo, Hierarchical, fm SCPR_PRSET_DB_SUBP_GET_DETAIL, recursive?
-      zcx_abapgit_exception=>raise( |todo, SCP1| ).
+      load_hier( CHANGING cs_scp1 = ls_scp1 ).
     ELSE.
       load( CHANGING cs_scp1 = ls_scp1 ).
     ENDIF.
@@ -76270,5 +76337,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-09T06:33:38.304Z
+* abapmerge  - 2019-10-09T09:01:12.467Z
 ****************************************************
