@@ -11042,18 +11042,19 @@ CLASS zcl_abapgit_gui_view_repo DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA: mo_repo             TYPE REF TO zcl_abapgit_repo,
-          mv_cur_dir          TYPE string,
-          mv_hide_files       TYPE abap_bool,
-          mv_max_lines        TYPE i,
-          mv_max_setting      TYPE i,
-          mv_show_folders     TYPE abap_bool,
-          mv_changes_only     TYPE abap_bool,
-          mv_show_order_by    TYPE abap_bool,
-          mv_order_by         TYPE string,
-          mv_order_descending TYPE abap_bool,
-          mv_diff_first       TYPE abap_bool,
-          mv_key TYPE zif_abapgit_persistence=>ty_value.
+    DATA: mo_repo                       TYPE REF TO zcl_abapgit_repo,
+          mv_cur_dir                    TYPE string,
+          mv_hide_files                 TYPE abap_bool,
+          mv_max_lines                  TYPE i,
+          mv_max_setting                TYPE i,
+          mv_show_folders               TYPE abap_bool,
+          mv_changes_only               TYPE abap_bool,
+          mv_show_order_by              TYPE abap_bool,
+          mv_order_by                   TYPE string,
+          mv_order_descending           TYPE abap_bool,
+          mv_diff_first                 TYPE abap_bool,
+          mv_key                        TYPE zif_abapgit_persistence=>ty_value,
+          mv_are_changes_recorded_in_tr TYPE abap_bool.
 
     METHODS:
       render_head_line
@@ -31440,8 +31441,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
                                  iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_attach }?{ mv_key }| ).
     ENDIF.
 
-    lv_package = mo_repo->get_package( ).
-    IF zcl_abapgit_factory=>get_sap_package( lv_package )->are_changes_recorded_in_tr_req( ) = abap_true.
+    IF mv_are_changes_recorded_in_tr = abap_true.
       ro_advanced_dropdown->add(
           iv_txt  = 'Add all objects to transport request'
           iv_act = |{ zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req }?{ mv_key }| ).
@@ -31675,7 +31675,8 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
+    DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
+          lv_package  TYPE devclass.
 
     super->constructor( ).
 
@@ -31691,6 +31692,11 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     lo_settings     = zcl_abapgit_persist_settings=>get_instance( )->read( ).
     mv_max_lines    = lo_settings->get_max_lines( ).
     mv_max_setting  = mv_max_lines.
+
+    lv_package = mo_repo->get_package( ).
+
+    mv_are_changes_recorded_in_tr = zcl_abapgit_factory=>get_sap_package( lv_package
+                                                      )->are_changes_recorded_in_tr_req( ).
 
   ENDMETHOD.
   METHOD get_item_class.
@@ -32165,6 +32171,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
     "        technical name    display name      css class   add timezone   title
     _add_col ''                  ''                ''          ''           ''.
+    IF mv_are_changes_recorded_in_tr = abap_true.
+      _add_col ''                ''                ''          ''           ''.
+    ENDIF.
     _add_col 'OBJ_TYPE'          'Type'            ''          ''           ''.
     _add_col 'OBJ_NAME'          'Name'            ''          ''           ''.
     _add_col 'PATH'              'Path'            ''          ''           ''.
@@ -76337,5 +76346,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-09T09:01:12.467Z
+* abapmerge  - 2019-10-10T04:15:41.101Z
 ****************************************************
