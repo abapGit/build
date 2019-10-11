@@ -16553,8 +16553,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD reset.
-    DELETE mt_stage WHERE file-path     = iv_path
-                    AND   file-filename = iv_filename.
+    DELETE mt_stage WHERE file-path = iv_path AND file-filename = iv_filename.
     ASSERT sy-subrc = 0.
   ENDMETHOD.
   METHOD rm.
@@ -17698,8 +17697,8 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
-      AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
+      AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
+      AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
     SORT lt_local BY item.
 
     lt_remote = get_files_remote( ).
@@ -17978,7 +17977,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_log.
     DATA li_repo_log TYPE REF TO zif_abapgit_log.
-    DATA lt_repo_msg TYPE        zif_abapgit_log=>tty_log_out.
+    DATA lt_repo_msg TYPE zif_abapgit_log=>tty_log_out.
     DATA lr_repo_msg TYPE REF TO zif_abapgit_log=>ty_log_out.
 
     ri_log = mi_log.
@@ -18309,8 +18308,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     DELETE lt_local " Remove non-code related files except .abapgit
       WHERE item IS INITIAL
-      AND NOT ( file-path     = zif_abapgit_definitions=>c_root_dir
-      AND       file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
+      AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
+      AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
     SORT lt_local BY item.
 
     LOOP AT lt_local ASSIGNING <ls_local>.
@@ -21759,7 +21758,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
 
       LOOP AT lt_dependency ASSIGNING <ls_dependency>
                             WHERE deptyp = 'DDLS'
-                            AND   refname = <ls_tadir_ddls>-obj_name.
+                            AND refname = <ls_tadir_ddls>-obj_name.
 
         READ TABLE ct_tadir ASSIGNING <ls_tadir_dependent>
                             WITH KEY pgmid    = 'R3TR'
@@ -28604,7 +28603,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    lv_question =  'This will rebuild and overwrite local repo checksums.'.
+    lv_question = 'This will rebuild and overwrite local repo checksums.'.
 
     IF lo_repo->is_offline( ) = abap_false.
       lv_question = lv_question
@@ -32224,8 +32223,7 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     " so we isolate them and and sort only the code artifacts
     LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
 
-      IF  <ls_repo_item>-obj_type IS INITIAL
-      AND <ls_repo_item>-is_dir = abap_false.
+      IF <ls_repo_item>-obj_type IS INITIAL AND <ls_repo_item>-is_dir = abap_false.
         INSERT <ls_repo_item> INTO TABLE lt_non_code_and_metadata_items.
       ELSE.
         INSERT <ls_repo_item> INTO TABLE lt_code_items.
@@ -33838,8 +33836,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
 
-    DELETE lt_key_bindings WHERE hotkey IS INITIAL
-                           OR    action IS INITIAL.
+    DELETE lt_key_bindings WHERE hotkey IS INITIAL OR action IS INITIAL.
 
     mo_settings->set_hotkeys( lt_key_bindings ).
 
@@ -34222,8 +34219,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_settings.
 
-    IF ( mo_settings->get_proxy_url( ) IS NOT INITIAL AND  mo_settings->get_proxy_port( ) IS INITIAL ) OR
-                 ( mo_settings->get_proxy_url( ) IS INITIAL AND  mo_settings->get_proxy_port( ) IS NOT INITIAL ).
+    IF ( mo_settings->get_proxy_url( ) IS NOT INITIAL AND mo_settings->get_proxy_port( ) IS INITIAL ) OR
+                 ( mo_settings->get_proxy_url( ) IS INITIAL AND mo_settings->get_proxy_port( ) IS NOT INITIAL ).
       MESSAGE 'If specifying proxy, specify both URL and port' TYPE 'W'.
     ENDIF.
 
@@ -36004,8 +36001,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
       lv_patch = lo_git_add_patch->get_patch_binary( ).
 
-      IF  <ls_diff_file>-lstate = 'D'
-      AND are_all_lines_patched( lt_diff ) = abap_true.
+      IF <ls_diff_file>-lstate = 'D' AND are_all_lines_patched( lt_diff ) = abap_true.
 
         mo_stage->rm(
             iv_path     = <ls_diff_file>-path
@@ -36156,7 +36152,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
       WHEN zif_abapgit_definitions=>c_diff-delete.
 
-        lv_line =  ls_diff_line-old_num.
+        lv_line = ls_diff_line-old_num.
 
         lo_diff->set_patch_old( iv_line_old   = lv_line
                                 iv_patch_flag = iv_patch_flag ).
@@ -36227,8 +36223,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
       LOOP AT lt_status ASSIGNING <ls_status>
           WHERE obj_type = is_object-obj_type
-          AND   obj_name = is_object-obj_name
-          AND   match IS INITIAL.
+          AND obj_name = is_object-obj_name
+          AND match IS INITIAL.
         append_diff( it_remote = lt_remote
                      it_local  = lt_local
                      is_status = <ls_status> ).
@@ -37505,7 +37501,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_stage_allowed.
 
-    rv_is_stage_allowed =  boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
+    rv_is_stage_allowed = boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
                                            AND has_inspection_errors( ) = abap_true ) ).
 
   ENDMETHOD.
@@ -38551,14 +38547,14 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
         call_browser( iv_getdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
-      WHEN  zif_abapgit_definitions=>c_action-goto_source.
+      WHEN zif_abapgit_definitions=>c_action-goto_source.
 
         IF mo_exception_viewer IS BOUND.
           mo_exception_viewer->goto_source( ).
         ENDIF.
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
-      WHEN  zif_abapgit_definitions=>c_action-show_callstack.
+      WHEN zif_abapgit_definitions=>c_action-show_callstack.
 
         IF mo_exception_viewer IS BOUND.
           mo_exception_viewer->show_callstack( ).
@@ -38667,8 +38663,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
            FROM t100
            INTO rv_text
            WHERE arbgb = iv_msgid
-           AND   msgnr = iv_msgno
-           AND   sprsl = sy-langu.
+           AND msgnr = iv_msgno
+           AND sprsl = sy-langu.
 
   ENDMETHOD.
   METHOD normalize_program_name.
@@ -41990,7 +41986,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
 
     UPDATE (c_tabname) SET data_str = lv_data
       WHERE type  = iv_type
-      AND   value = iv_value.
+      AND value = iv_value.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'DB update failed' ).
     ENDIF.
@@ -45234,7 +45230,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
 * object methods
     SELECT * FROM objm INTO TABLE mt_object_method
       WHERE objectname = is_item-obj_type
-      AND   objecttype = lc_logical_transport_object
+      AND objecttype = lc_logical_transport_object
       ORDER BY PRIMARY KEY.
 
     ms_item = is_item.
@@ -48591,8 +48587,8 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
     SELECT SINGLE chname INTO rv_user
       FROM wwwdata
       WHERE relid = ms_key-relid
-      AND   objid = ms_key-objid
-      AND   srtf2 = 0.
+      AND objid = ms_key-objid
+      AND srtf2 = 0.
 
     IF sy-subrc IS NOT INITIAL OR rv_user IS INITIAL.
       rv_user = c_user_unknown.
@@ -48766,8 +48762,8 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
     SELECT SINGLE objid INTO ms_key-objid
       FROM wwwdata
       WHERE relid = ms_key-relid
-      AND   objid = ms_key-objid
-      AND   srtf2 = 0.
+      AND objid = ms_key-objid
+      AND srtf2 = 0.
 
     IF sy-subrc IS NOT INITIAL.
       RETURN.
@@ -48860,8 +48856,8 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
     SELECT SINGLE * INTO CORRESPONDING FIELDS OF ms_key
       FROM wwwdata
       WHERE relid = ms_key-relid
-      AND   objid = ms_key-objid
-      AND   srtf2 = 0.
+      AND objid = ms_key-objid
+      AND srtf2 = 0.
 
     IF sy-subrc IS NOT INITIAL.
       RETURN.
@@ -49534,7 +49530,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm02l
       INTO TABLE lt_dm02l
-      WHERE entid    EQ me->mv_entity_id.
+      WHERE entid = me->mv_entity_id.
 
     LOOP AT lt_dm02l INTO ls_dm02l.
 
@@ -49580,7 +49576,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm42s
       INTO TABLE lt_dm42s
-      WHERE entidto  EQ me->mv_entity_id.
+      WHERE entidto = me->mv_entity_id.
 
     LOOP AT lt_dm42s INTO ls_dm42s.
 
@@ -49628,7 +49624,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm45l
       INTO TABLE lt_dm45l
-      WHERE entid EQ me->ms_item-obj_name.
+      WHERE entid = me->ms_item-obj_name.
 
     LOOP AT lt_dm45l INTO ls_dm45l.
 
@@ -49844,8 +49840,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
 
     SELECT SINGLE lstuser INTO rv_user
       FROM dm02l
-      WHERE entid    EQ me->mv_entity_id
-      AND   as4local EQ c_active_state.
+      WHERE entid = me->mv_entity_id
+      AND as4local = c_active_state.
 
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
@@ -50405,9 +50401,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lstuser INTO rv_user
-      FROM  dm40l
-      WHERE  dmoid    = me->mv_data_model
-      AND    as4local = me->mv_activation_state.
+      FROM dm40l
+      WHERE dmoid = me->mv_data_model
+      AND as4local = me->mv_activation_state.
 
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
@@ -51148,16 +51144,13 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error deserializing { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
-    LOOP AT lt_message ASSIGNING <ls_message>
-                       WHERE msgtyp CA 'EAX'.
-
-      MESSAGE ID     <ls_message>-msgid
-              TYPE   <ls_message>-msgtyp
-              NUMBER <ls_message>-msgnr
-              WITH   <ls_message>-msgv1 <ls_message>-msgv2 <ls_message>-msgv3 <ls_message>-msgv4
-              INTO sy-msgli.
+    LOOP AT lt_message ASSIGNING <ls_message> WHERE msgtyp CA 'EAX'.
+      MESSAGE ID <ls_message>-msgid
+        TYPE <ls_message>-msgtyp
+        NUMBER <ls_message>-msgnr
+        WITH <ls_message>-msgv1 <ls_message>-msgv2 <ls_message>-msgv3 <ls_message>-msgv4
+        INTO sy-msgli.
       zcx_abapgit_exception=>raise_t100( ).
-
     ENDLOOP.
 
   ENDMETHOD.
@@ -54964,11 +54957,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
     rv_user = c_user_unknown.
 
     SELECT SINGLE changed_by
-           FROM sproxhdr
-           INTO lv_changed_by
-           WHERE object     = mv_object
-           AND   obj_name   = mv_obj_name
-           AND   inactive   = abap_false.
+      FROM sproxhdr
+      INTO lv_changed_by
+      WHERE object = mv_object
+      AND obj_name = mv_obj_name
+      AND inactive = abap_false.
 
     IF sy-subrc = 0 AND lv_changed_by IS NOT INITIAL.
       rv_user = lv_changed_by.
@@ -55241,10 +55234,10 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
 
     PERFORM btfr_create
       IN PROGRAM saplsotr_db_string
-      USING    iv_object
-               lv_source_langu
-               lv_flag_correction_entry
-               lv_flag_is_string
+      USING iv_object
+            lv_source_langu
+            lv_flag_correction_entry
+            lv_flag_is_string
       CHANGING lv_text_tab
                lt_entries
                ls_header
@@ -57199,11 +57192,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
     DO 5 TIMES.
 
       SELECT SINGLE jobcount
-             FROM tbtco
-             INTO lv_job_count
-             WHERE jobname = 'SFW_DELETE_SWITCH'
-             AND   status  = 'R'
-             AND   sdluname = sy-uname.
+        FROM tbtco
+        INTO lv_job_count
+        WHERE jobname = 'SFW_DELETE_SWITCH'
+        AND status = 'R'
+        AND sdluname = sy-uname.
 
       IF sy-subrc = 0.
         WAIT UP TO 1 SECONDS.
@@ -58656,8 +58649,8 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
       WHERE r3state = 'A'
-      AND   prog = ms_item-obj_name
-      AND   language <> mv_language.
+      AND prog = ms_item-obj_name
+      AND language <> mv_language.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -58774,10 +58767,10 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
-    IF is_program_locked( )                     = abap_true
-    OR is_any_dynpro_locked( ms_item-obj_name ) = abap_true
-    OR is_cua_locked( ms_item-obj_name )        = abap_true
-    OR is_text_locked( ms_item-obj_name )       = abap_true.
+    IF is_program_locked( ) = abap_true
+        OR is_any_dynpro_locked( ms_item-obj_name ) = abap_true
+        OR is_cua_locked( ms_item-obj_name ) = abap_true
+        OR is_text_locked( ms_item-obj_name ) = abap_true.
 
       rv_is_locked = abap_true.
 
@@ -59375,7 +59368,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
     DATA: lv_argument TYPE eqegraarg.
 
     lv_argument = |PF{ ms_item-obj_name }|.
-    OVERLAY lv_argument WITH  '                                          *'.
+    OVERLAY lv_argument WITH '                                          *'.
 
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
                                             iv_argument    = lv_argument ).
@@ -59488,7 +59481,7 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
 
     lo_personalization_object->set_reg_data(
         p_pers_reg      = ls_personalization_object-pers_reg
-        p_pers_reg_text = ls_personalization_object-pers_reg_text     ).
+        p_pers_reg_text = ls_personalization_object-pers_reg_text ).
 
     lo_personalization_object->save(
       EXPORTING
@@ -60173,10 +60166,10 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     ENDLOOP.
 
     SELECT * FROM dokil
-             INTO TABLE lt_dokil
-             FOR ALL ENTRIES IN lt_objects
-             WHERE id     = 'NA'
-             AND   object = lt_objects-table_line.
+      INTO TABLE lt_dokil
+      FOR ALL ENTRIES IN lt_objects
+      WHERE id = 'NA'
+      AND object = lt_objects-table_line.
 
     CLEAR ls_dokil-dokstate.
     MODIFY lt_dokil FROM ls_dokil TRANSPORTING dokstate WHERE dokstate IS NOT INITIAL.
@@ -60205,7 +60198,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     SELECT DISTINCT sprsl AS langu INTO TABLE lt_i18n_langs
       FROM t100t
       WHERE arbgb = lv_msg_id
-      AND   sprsl <> mv_language.       "#EC CI_BYPASS "#EC CI_GENBUFF.
+      AND sprsl <> mv_language.       "#EC CI_BYPASS "#EC CI_GENBUFF
 
     SORT lt_i18n_langs ASCENDING.
 
@@ -61077,7 +61070,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
       INTO TABLE lt_reposrc
       FOR ALL ENTRIES IN lt_includes
       WHERE progname = lt_includes-programm
-      AND   r3state = 'A'.
+      AND r3state = 'A'.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ELSE.
@@ -63075,8 +63068,8 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
       WHERE r3state = 'A'
-      AND   prog = iv_prog_name
-      AND   language <> mv_language.
+      AND prog = iv_prog_name
+      AND language <> mv_language.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -66501,7 +66494,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd04v
       WHERE rollname = lv_name
-      AND   ddlanguage <> mv_language.                    "#EC CI_SUBRC
+      AND ddlanguage <> mv_language.                    "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -66919,7 +66912,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd01v
       WHERE domname = lv_name
-      AND   ddlanguage <> mv_language.                    "#EC CI_SUBRC
+      AND ddlanguage <> mv_language.                    "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -67632,9 +67625,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     SELECT SINGLE obj_name
            FROM tadir
            INTO lv_object_name
-           WHERE pgmid    =  'R3TR'
-           AND   NOT ( object = 'DEVC' AND obj_name = iv_package_name )
-           AND   devclass = iv_package_name.
+           WHERE pgmid = 'R3TR'
+           AND NOT ( object = 'DEVC' AND obj_name = iv_package_name )
+           AND devclass = iv_package_name.
     rv_is_empty = boolc( sy-subrc <> 0 ).
 
   ENDMETHOD.
@@ -69747,7 +69740,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
                  ig_data = add_tpool( lt_tpool ) ).
 
     IF ls_vseoclass-category = seoc_category_exception.
-      lt_sotr =  mi_object_oriented_object_fct->read_sotr( ms_item-obj_name ).
+      lt_sotr = mi_object_oriented_object_fct->read_sotr( ms_item-obj_name ).
       IF lines( lt_sotr ) > 0.
         io_xml->add( iv_name = 'SOTR'
                      ig_data = lt_sotr ).
@@ -69798,7 +69791,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
       INTO TABLE lt_reposrc
       FOR ALL ENTRIES IN lt_includes
       WHERE progname = lt_includes-programm
-      AND   r3state = 'A'.
+      AND r3state = 'A'.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ELSE.
@@ -69850,11 +69843,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
     lv_classpool = cl_oo_classname_service=>get_classpool_name( |{ ms_item-obj_name }| ).
 
-    IF is_class_locked( )             = abap_true
-    OR is_text_locked( lv_classpool ) = abap_true.
-
+    IF is_class_locked( ) = abap_true OR is_text_locked( lv_classpool ) = abap_true.
       rv_is_locked = abap_true.
-
     ENDIF.
 
   ENDMETHOD.
@@ -70676,9 +70666,9 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
 
     SELECT * FROM dokil
-             INTO TABLE lt_dokil
-             WHERE id     = iv_longtext_id
-             AND   object = iv_longtext_id.
+      INTO TABLE lt_dokil
+      WHERE id = iv_longtext_id
+      AND object = iv_longtext_id.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -71744,7 +71734,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
               set_deep_stru_to_dom( ecatt_script->params ).
               set_deep_data_to_dom( ecatt_script->params ).
               IF wa_parm-xmlref_typ = cl_apl_ecatt_const=>ref_type_c_tcd.
-                set_control_data_for_tcd( is_param  =  wa_parm
+                set_control_data_for_tcd( is_param  = wa_parm
                                           io_params = ecatt_script->params ).
 
               ENDIF.
@@ -71908,8 +71898,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lt_tab> TYPE STANDARD TABLE.
 
-    IF is_param-xmlref_typ <> cl_apl_ecatt_const=>ref_type_c_tcd
-      OR  io_params IS INITIAL.
+    IF is_param-xmlref_typ <> cl_apl_ecatt_const=>ref_type_c_tcd OR io_params IS INITIAL.
       RETURN.
     ENDIF.
 
@@ -73924,7 +73913,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
         WHEN zcl_abapgit_stage=>c_method-rm.
           DELETE lt_expanded
             WHERE name = <ls_stage>-file-filename
-            AND   path = <ls_stage>-file-path.
+            AND path = <ls_stage>-file-path.
           ASSERT sy-subrc = 0.
 
           CLEAR <ls_updated>-sha1.       " Mark as deleted
@@ -76346,5 +76335,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-10T04:15:41.101Z
+* abapmerge  - 2019-10-11T09:51:49.635Z
 ****************************************************
