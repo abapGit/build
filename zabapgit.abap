@@ -9216,6 +9216,14 @@ CLASS zcl_abapgit_gui_html_processor DEFINITION
       RETURNING
         VALUE(rv_yes) TYPE abap_bool.
 
+    METHODS find_head_offset
+      IMPORTING
+        iv_html            TYPE string
+      RETURNING
+        VALUE(rv_head_end) TYPE i
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_utils DEFINITION
   FINAL
@@ -40258,10 +40266,7 @@ CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
 
     CLEAR: ev_html, et_css_urls.
 
-    lv_head_end = find( val = iv_html regex = |{ cl_abap_char_utilities=>newline }?\\s*</head>| case = abap_false ).
-    IF lv_head_end <= 0.
-      zcx_abapgit_exception=>raise( 'HTML preprocessor: </head> not found' ).
-    ENDIF.
+    lv_head_end = find_head_offset( iv_html ).
 
     CREATE OBJECT lo_css_re
       EXPORTING
@@ -40330,6 +40335,19 @@ CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD find_head_offset.
+
+    rv_head_end = find( val = iv_html regex = |{ cl_abap_char_utilities=>newline }?\\s*</head>| case = abap_false ).
+    IF rv_head_end <= 0.
+      rv_head_end = find( val = iv_html regex = |</head>| case = abap_false ).
+      IF rv_head_end <= 0.
+        zcx_abapgit_exception=>raise( 'HTML preprocessor: </head> not found' ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
@@ -76416,5 +76434,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-11T12:42:21.237Z
+* abapmerge  - 2019-10-12T10:58:00.326Z
 ****************************************************
