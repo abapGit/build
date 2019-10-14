@@ -26974,8 +26974,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '}'.
     _inline ''.
     _inline 'LinkHints.prototype.getHintStartValue = function(targetsCount){'.
-    _inline '  // if we have 321 tooltips we start from 100'.
-    _inline '  var maxHintStringLength = targetsCount.toString().length;'.
+    _inline '  // e.g. if we have 89 tooltips we start from 10'.
+    _inline '  //      if we have 90 tooltips we start from 100'.
+    _inline '  //      if we have 900 tooltips we start from 1000'.
+    _inline '  var'.
+    _inline '    baseLength = Math.pow(10, targetsCount.toString().length - 1),'.
+    _inline '    maxHintStringLength = (targetsCount + baseLength).toString().length;'.
     _inline '  return Math.pow(10, maxHintStringLength - 1);'.
     _inline '};'.
     _inline ''.
@@ -76459,5 +76463,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-12T11:01:39.245Z
+* abapmerge  - 2019-10-14T05:41:31.251Z
 ****************************************************
