@@ -17379,17 +17379,23 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       CLEAR lt_packages.
       IF lo_repo->get_local_settings( )-ignore_subpackages = abap_false.
         APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+        READ TABLE lt_packages TRANSPORTING NO FIELDS
+          WITH KEY table_line = iv_package.
+        IF sy-subrc = 0.
+          zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
+        ENDIF.
       ENDIF.
 
       IF iv_ign_subpkg = abap_false.
         APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+        READ TABLE lt_packages TRANSPORTING NO FIELDS
+          WITH KEY table_line = iv_package.
+        IF sy-subrc = 0.
+          zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } |
+                                    &&  |already contains subpackage of { iv_package } | ).
+        ENDIF.
       ENDIF.
 
-      READ TABLE lt_packages TRANSPORTING NO FIELDS
-        WITH KEY table_line = iv_package.
-      IF sy-subrc = 0.
-        zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
-      ENDIF.
     ENDLOOP.
   ENDMETHOD.
   METHOD zif_abapgit_repo_listener~on_meta_change.
@@ -76485,5 +76491,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-14T06:04:32.528Z
+* abapmerge  - 2019-10-16T05:25:02.185Z
 ****************************************************
