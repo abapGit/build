@@ -37319,6 +37319,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
           io_repo   = mo_repo
           io_stage  = mo_stage ).
 
+        MESSAGE 'Commit was successful' TYPE 'S' ##NO_TEXT.
+
         ev_state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
 
       WHEN c_action-commit_cancel.
@@ -76853,5 +76855,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-16T05:33:37.696Z
+* abapmerge  - 2019-10-17T04:41:44.874Z
 ****************************************************
