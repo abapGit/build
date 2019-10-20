@@ -73427,8 +73427,8 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_tobedel_tokens_from_resp.
     CONSTANTS: lc_search_regex TYPE string
-               VALUE `\{"id": ?(\d+)[^\{]*"app":\{[^\{^\}]*\}[^\{]*"fingerprint": ?` &
-               `"abapGit2FA"[^\{]*\}`.
+      VALUE `\{"id": ?(\d+)[^\{]*"app":\{[^\{^\}]*\}[^\{]*"fingerprint": ?"abapGit2FA"[^\{]*\}`.
+
     DATA: lv_response TYPE string,
           lo_regex    TYPE REF TO cl_abap_regex,
           lo_matcher  TYPE REF TO cl_abap_matcher.
@@ -76855,5 +76855,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-18T14:58:46.021Z
+* abapmerge  - 2019-10-20T12:52:58.577Z
 ****************************************************
