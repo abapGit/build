@@ -26467,6 +26467,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'function StageHelper(params) {'.
     _inline '  this.pageSeed        = params.seed;'.
     _inline '  this.formAction      = params.formAction;'.
+    _inline '  this.user            = params.user;'.
     _inline '  this.choiseCount     = 0;'.
     _inline '  this.lastFilterValue = "";'.
     _inline ''.
@@ -26500,7 +26501,24 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  };'.
     _inline ''.
     _inline '  this.setHooks();'.
+    _inline '  if (this.user) this.injectFilterMe();'.
     _inline '}'.
+    _inline ''.
+    _inline 'StageHelper.prototype.injectFilterMe = function() {'.
+    _inline '  var changedByHead = this.dom.stageTab.tHead.rows[0].cells[this.colIndex.user];'.
+    _inline '  changedByHead.innerText = changedByHead.innerText + " (";'.
+    _inline '  var a = document.createElement("A");'.
+    _inline '  a.appendChild(document.createTextNode("me"));'.
+    _inline '  a.onclick = this.onFilterMe.bind(this);'.
+    _inline '  a.href = "#";'.
+    _inline '  changedByHead.appendChild(a);'.
+    _inline '  changedByHead.appendChild(document.createTextNode(")"));'.
+    _inline '};'.
+    _inline ''.
+    _inline 'StageHelper.prototype.onFilterMe = function() {'.
+    _inline '  this.dom.objectSearch.value = this.user;'.
+    _inline '  this.onFilter({ type: "keypress", which: 13, target: this.dom.objectSearch });'.
+    _inline '};'.
     _inline ''.
     _inline '// Hook global click listener on table, load/unload actions'.
     _inline 'StageHelper.prototype.setHooks = function() {'.
@@ -26587,7 +26605,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'StageHelper.prototype.onFilter = function (e) {'.
     _inline '  if ( // Enter hit or clear, IE SUCKS !'.
     _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
-    _inline '    || e.type === "keypress" && e.which === 13 ) {'.
+    _inline '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") ) {'.
     _inline ''.
     _inline '    this.applyFilterValue(e.target.value);'.
     _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
@@ -33325,7 +33343,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
   METHOD find_transports.
     DATA: li_cts_api TYPE REF TO zif_abapgit_cts_api,
           ls_new     LIKE LINE OF rt_transports.
@@ -33363,7 +33380,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD get_events.
 
     FIELD-SYMBOLS: <ls_event> TYPE zcl_abapgit_gui_page=>ty_event.
@@ -33639,12 +33655,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '</table>' ).
 
   ENDMETHOD.
+  METHOD render_master_language_warning.
+
+    DATA: ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
+
+    CREATE OBJECT ro_html.
+
+    ls_dot_abapgit = mo_repo->get_dot_abapgit( )->get_data( ).
+
+    IF ls_dot_abapgit-master_language <> sy-langu.
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
+                        |Caution: Master language of the repo is '{ ls_dot_abapgit-master_language }', |
+                     && |but you're logged on in '{ sy-langu }'| ) ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD scripts.
 
     ro_html = super->scripts( ).
 
     ro_html->add( 'var gStageParams = {' ).
     ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
+    ro_html->add( |  user:            "{ to_lower( sy-uname ) }",| ).
     ro_html->add( '  formAction:      "stage_commit",' ).
 
     ro_html->add( '  ids: {' ).
@@ -33739,22 +33771,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-  METHOD render_master_language_warning.
-
-    DATA: ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
-
-    CREATE OBJECT ro_html.
-
-    ls_dot_abapgit = mo_repo->get_dot_abapgit( )->get_data( ).
-
-    IF ls_dot_abapgit-master_language <> sy-langu.
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                        |Caution: Master language of the repo is '{ ls_dot_abapgit-master_language }', |
-                     && |but you're logged on in '{ sy-langu }'| ) ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
@@ -76855,5 +76871,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-20T12:52:58.577Z
+* abapmerge  - 2019-10-22T13:34:24.251Z
 ****************************************************
