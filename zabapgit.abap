@@ -26507,17 +26507,21 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  this.pageSeed        = params.seed;'.
     _inline '  this.formAction      = params.formAction;'.
     _inline '  this.user            = params.user;'.
-    _inline '  this.choiseCount     = 0;'.
+    _inline '  this.selectedCount   = 0;'.
+    _inline '  this.filteredCount   = 0;'.
     _inline '  this.lastFilterValue = "";'.
     _inline ''.
     _inline '  // DOM nodes'.
     _inline '  this.dom = {'.
-    _inline '    stageTab:     document.getElementById(params.ids.stageTab),'.
-    _inline '    commitBtn:    document.getElementById(params.ids.commitBtn),'.
-    _inline '    commitAllBtn: document.getElementById(params.ids.commitAllBtn),'.
-    _inline '    objectSearch: document.getElementById(params.ids.objectSearch),'.
-    _inline '    fileCounter:  document.getElementById(params.ids.fileCounter)'.
+    _inline '    stageTab:          document.getElementById(params.ids.stageTab),'.
+    _inline '    commitAllBtn:      document.getElementById(params.ids.commitAllBtn),'.
+    _inline '    commitSelectedBtn: document.getElementById(params.ids.commitSelectedBtn),'.
+    _inline '    commitFilteredBtn: document.getElementById(params.ids.commitFilteredBtn),'.
+    _inline '    objectSearch:      document.getElementById(params.ids.objectSearch),'.
+    _inline '    selectedCounter:   null,'.
+    _inline '    filteredCounter:   null,'.
     _inline '  };'.
+    _inline '  this.findCounters();'.
     _inline ''.
     _inline '  // Table columns (autodetection)'.
     _inline '  this.colIndex      = this.detectColumns();'.
@@ -26543,6 +26547,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  if (this.user) this.injectFilterMe();'.
     _inline '}'.
     _inline ''.
+    _inline 'StageHelper.prototype.findCounters = function() {'.
+    _inline '  this.dom.selectedCounter = this.dom.commitSelectedBtn.querySelector("span.counter");'.
+    _inline '  this.dom.filteredCounter = this.dom.commitFilteredBtn.querySelector("span.counter");'.
+    _inline '};'.
+    _inline ''.
     _inline 'StageHelper.prototype.injectFilterMe = function() {'.
     _inline '  var changedByHead = this.dom.stageTab.tHead.rows[0].cells[this.colIndex.user];'.
     _inline '  changedByHead.innerText = changedByHead.innerText + " (";'.
@@ -26561,12 +26570,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '// Hook global click listener on table, load/unload actions'.
     _inline 'StageHelper.prototype.setHooks = function() {'.
-    _inline '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);'.
-    _inline '  this.dom.commitBtn.onclick       = this.submit.bind(this);'.
-    _inline '  this.dom.objectSearch.oninput    = this.onFilter.bind(this);'.
-    _inline '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);'.
-    _inline '  window.onbeforeunload            = this.onPageUnload.bind(this);'.
-    _inline '  window.onload                    = this.onPageLoad.bind(this);'.
+    _inline '  this.dom.stageTab.onclick          = this.onTableClick.bind(this);'.
+    _inline '  this.dom.commitSelectedBtn.onclick = this.submit.bind(this);'.
+    _inline '  this.dom.commitFilteredBtn.onclick = this.submitVisible.bind(this);'.
+    _inline '  this.dom.objectSearch.oninput      = this.onFilter.bind(this);'.
+    _inline '  this.dom.objectSearch.onkeypress   = this.onFilter.bind(this);'.
+    _inline '  window.onbeforeunload              = this.onPageUnload.bind(this);'.
+    _inline '  window.onload                      = this.onPageLoad.bind(this);'.
     _inline '};'.
     _inline ''.
     _inline '// Detect column index'.
@@ -26654,7 +26664,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {'.
     _inline ''.
     _inline '  this.lastFilterValue = sFilterValue;'.
-    _inline '  this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
+    _inline '  this.filteredCount = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
+    _inline '  this.updateMenu();'.
     _inline ''.
     _inline '};'.
     _inline ''.
@@ -26688,6 +26699,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  for (var j = targets.length - 1; j >= 0; j--) {'.
     _inline '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;'.
     _inline '  }'.
+    _inline '  return isVisible ? 1 : 0;'.
     _inline '};'.
     _inline ''.
     _inline '// Get how status should affect object counter'.
@@ -26712,7 +26724,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
     _inline '  }'.
     _inline ''.
-    _inline '  this.choiseCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
+    _inline '  this.selectedCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
     _inline '};'.
     _inline ''.
     _inline '// Update Status cell (render set of commands)'.
@@ -26739,13 +26751,29 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '// Update menu items visibility'.
     _inline 'StageHelper.prototype.updateMenu = function () {'.
-    _inline '  this.dom.commitBtn.style.display    = (this.choiseCount > 0) ? ""     : "none";'.
-    _inline '  this.dom.commitAllBtn.style.display = (this.choiseCount > 0) ? "none" : "";'.
-    _inline '  this.dom.fileCounter.innerHTML      = this.choiseCount.toString();'.
+    _inline '  var display;'.
+    _inline '  if (this.selectedCount > 0) {'.
+    _inline '    display = "selected";'.
+    _inline '    this.dom.selectedCounter.innerText = this.selectedCount.toString();'.
+    _inline '  } else if (this.lastFilterValue) {'.
+    _inline '    display = "filtered";'.
+    _inline '    this.dom.filteredCounter.innerText = this.filteredCount.toString();'.
+    _inline '  } else {'.
+    _inline '    display = "default";'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  this.dom.commitAllBtn.style.display      = display === "default" ? "" : "none";'.
+    _inline '  this.dom.commitSelectedBtn.style.display = display === "selected" ? "" : "none";'.
+    _inline '  this.dom.commitFilteredBtn.style.display = display === "filtered" ? "" : "none";'.
     _inline '};'.
     _inline ''.
     _inline '// Submit stage state to the server'.
     _inline 'StageHelper.prototype.submit = function () {'.
+    _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
+    _inline '};'.
+    _inline ''.
+    _inline 'StageHelper.prototype.submitVisible = function () {'.
+    _inline '  this.markVisiblesAsAdded();'.
     _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
     _inline '};'.
     _inline ''.
@@ -26758,10 +26786,24 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  return data;'.
     _inline '};'.
     _inline ''.
+    _inline 'StageHelper.prototype.markVisiblesAsAdded = function () {'.
+    _inline '  this.iterateStageTab(false, function (row) {'.
+    _inline '    var name = row.cells[this.colIndex["name"]].innerText;'.
+    _inline '    var cellStatus = row.cells[this.colIndex["status"]];'.
+    _inline '    // TODO refacotr, unify updateRow logic'.
+    _inline '    if (row.style.display === "" && row.className === "local") { // visible'.
+    _inline '      this.updateRow(row, this.STATUS.add);'.
+    _inline '    } else {'.
+    _inline '      this.updateRow(row, this.STATUS.reset);'.
+    _inline '    }'.
+    _inline '  });'.
+    _inline '};'.
+    _inline ''.
     _inline '// Table iteration helper'.
     _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
     _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
     _inline '  var table    = this.dom.stageTab;'.
+    _inline '  var retTotal = 0;'.
     _inline ''.
     _inline '  if (changeMode) {'.
     _inline '    var scrollOffset = window.pageYOffset;'.
@@ -26772,7 +26814,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    var tbody = table.tBodies[b];'.
     _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
     _inline '      var args = [tbody.rows[r]].concat(restArgs);'.
-    _inline '      cb.apply(this, args); // callback'.
+    _inline '      var retVal = cb.apply(this, args); // callback'.
+    _inline '      if (typeof retVal === "number") retTotal += retVal;'.
     _inline '    }'.
     _inline '  }'.
     _inline ''.
@@ -26780,6 +26823,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    this.dom.stageTab.style.display = "";'.
     _inline '    window.scrollTo(0, scrollOffset);'.
     _inline '  }'.
+    _inline ''.
+    _inline '  return retTotal;'.
     _inline '};'.
     _inline ''.
     _inline '/**********************************************************'.
@@ -33523,10 +33568,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '<td class="indent5em">' ).
     ro_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
                     iv_typ   = zif_abapgit_html=>c_action_type-onclick
-                    iv_id    = 'commitButton'
+                    iv_id    = 'commitSelectedButton'
                     iv_style = 'display: none'
-                    iv_txt   = 'Commit (<span id="fileCounter"></span>)'
+                    iv_txt   = 'Commit selected (<span class="counter"></span>)'
                     iv_opt   = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
+    ro_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
+                    iv_typ   = zif_abapgit_html=>c_action_type-onclick
+                    iv_id    = 'commitFilteredButton'
+                    iv_style = 'display: none'
+                    iv_txt   = 'Add <b>filtered</b> and commit (<span class="counter"></span>)' ) ##NO_TEXT.
     ro_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
                     iv_txt = lv_add_all_txt ) ##NO_TEXT.
@@ -33719,11 +33769,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '  formAction:      "stage_commit",' ).
 
     ro_html->add( '  ids: {' ).
-    ro_html->add( '    stageTab:      "stageTab",' ).
-    ro_html->add( '    commitBtn:     "commitButton",' ).
-    ro_html->add( '    commitAllBtn:  "commitAllButton",' ).
-    ro_html->add( '    objectSearch:  "objectSearch",' ).
-    ro_html->add( '    fileCounter:   "fileCounter"' ).
+    ro_html->add( '    stageTab:          "stageTab",' ).
+    ro_html->add( '    commitAllBtn:      "commitAllButton",' ).
+    ro_html->add( '    commitSelectedBtn: "commitSelectedButton",' ).
+    ro_html->add( '    commitFilteredBtn: "commitFilteredButton",' ).
+    ro_html->add( '    objectSearch:      "objectSearch",' ).
     ro_html->add( '  }' ).
 
     ro_html->add( '}' ).
@@ -77124,5 +77174,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-24T03:54:35.559Z
+* abapmerge  - 2019-10-25T04:47:40.496Z
 ****************************************************
