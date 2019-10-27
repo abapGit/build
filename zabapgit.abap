@@ -23855,6 +23855,8 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
       ev_filename = iv_fullpath.
     ENDIF.
 
+    ev_filename = cl_http_utility=>unescape_url( escaped = ev_filename ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -31330,7 +31332,8 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     IF eg_file IS SUPPLIED.
       get_field( EXPORTING iv_name = 'PATH'     it_field = lt_fields CHANGING cg_field = eg_file ).
-      get_field( EXPORTING iv_name = 'FILENAME' it_field = lt_fields CHANGING cg_field = eg_file ).
+      get_field( EXPORTING iv_name = 'FILENAME' it_field = lt_fields iv_decode = abap_true
+                 CHANGING cg_field = eg_file  ).
     ENDIF.
 
     IF eg_object IS SUPPLIED.
@@ -31354,8 +31357,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     lv_value = <ls_field>-value.
 
     IF iv_decode = abap_true.
-* URL decode, not sure why some are decoded automatically
-      REPLACE ALL OCCURRENCES OF '%3d' IN lv_value WITH '='.
+      lv_value = cl_http_utility=>unescape_url( escaped = lv_value ).
     ENDIF.
 
     CASE cl_abap_typedescr=>describe_by_data( cg_field )->kind.
@@ -77374,5 +77376,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-27T07:48:26.481Z
+* abapmerge  - 2019-10-27T10:20:53.642Z
 ****************************************************
