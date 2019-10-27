@@ -1511,11 +1511,6 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     tt_repo_files TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
   TYPES:
-    BEGIN OF ty_stage_files,
-      local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
-      remote TYPE zif_abapgit_definitions=>ty_files_tt,
-    END OF ty_stage_files .
-  TYPES:
     ty_chmod TYPE c LENGTH 6 .
   TYPES:
     BEGIN OF ty_object,
@@ -1556,6 +1551,14 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_result .
   TYPES:
     ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY .
+  TYPES:
+    ty_results_ts_path TYPE HASHED TABLE OF ty_result WITH UNIQUE KEY path filename .
+  TYPES:
+    BEGIN OF ty_stage_files,
+      local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
+      remote TYPE zif_abapgit_definitions=>ty_files_tt,
+      status TYPE zif_abapgit_definitions=>ty_results_ts_path,
+    END OF ty_stage_files .
   TYPES:
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
   TYPES:
@@ -10876,6 +10879,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !iv_context    TYPE string
         !is_file       TYPE zif_abapgit_definitions=>ty_file
         !is_item       TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        !is_status     TYPE zif_abapgit_definitions=>ty_result
         !iv_changed_by TYPE xubname OPTIONAL
         !iv_transport  TYPE trkorr OPTIONAL
       RETURNING
@@ -14375,6 +14379,7 @@ CLASS zcl_abapgit_stage DEFINITION
       BEGIN OF ty_stage,
         file   TYPE zif_abapgit_definitions=>ty_file,
         method TYPE ty_method,
+        status TYPE zif_abapgit_definitions=>ty_result,
       END OF ty_stage .
     TYPES:
       ty_stage_tt TYPE SORTED TABLE OF ty_stage
@@ -14403,6 +14408,7 @@ CLASS zcl_abapgit_stage DEFINITION
         !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
         !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
         !iv_data     TYPE xstring
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS reset
@@ -14415,6 +14421,7 @@ CLASS zcl_abapgit_stage DEFINITION
       IMPORTING
         !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
         !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS ignore
@@ -14432,6 +14439,7 @@ CLASS zcl_abapgit_stage DEFINITION
     METHODS get_all
       RETURNING
         VALUE(rt_stage) TYPE ty_stage_tt .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mt_stage TYPE ty_stage_tt .
@@ -14442,6 +14450,7 @@ CLASS zcl_abapgit_stage DEFINITION
         !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
         !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
         !iv_method   TYPE ty_method
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
         !iv_data     TYPE xstring OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -16621,6 +16630,7 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
 
     rs_files-local  = io_repo->get_files_local( ).
     rs_files-remote = io_repo->get_files_remote( ).
+    rs_files-status = io_repo->status( ).
     remove_identical( CHANGING cs_files = rs_files ).
     remove_ignored( EXPORTING io_repo  = io_repo
                     CHANGING  cs_files = rs_files ).
@@ -16628,12 +16638,13 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
   METHOD add.
 
     append( iv_path     = iv_path
             iv_filename = iv_filename
             iv_method   = c_method-add
+            is_status   = is_status
             iv_data     = iv_data ).
 
   ENDMETHOD.
@@ -16654,6 +16665,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
       ls_stage-file-filename = iv_filename.
       ls_stage-file-data     = iv_data.
       ls_stage-method        = iv_method.
+      ls_stage-status        = is_status.
       INSERT ls_stage INTO TABLE mt_stage.
     ENDIF.
 
@@ -16696,6 +16708,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
   METHOD rm.
     append( iv_path     = iv_path
             iv_filename = iv_filename
+            is_status   = is_status
             iv_method   = c_method-rm ).
   ENDMETHOD.
 ENDCLASS.
@@ -24959,6 +24972,25 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  overflow: hidden;'.
     _inline '}'.
     _inline ''.
+    _inline ''.
+    _inline '/* STATE BLOCK COMMON*/'.
+    _inline 'span.state-block {'.
+    _inline '  margin-left: 1em;'.
+    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
+    _inline '  font-size: x-small;'.
+    _inline '  vertical-align: 13%;'.
+    _inline '  display: inline-block;'.
+    _inline '  text-align: center;'.
+    _inline '  white-space: nowrap;'.
+    _inline '}'.
+    _inline 'span.state-block span {'.
+    _inline '  display: inline-block;'.
+    _inline '  padding: 0px 3px;'.
+    _inline '  border-width: 1px;'.
+    _inline '  border-style: solid;'.
+    _inline '}'.
+    _inline ''.
+    _inline ''.
     _inline '/* REPOSITORY TABLE*/'.
     _inline 'div.repo_container {'.
     _inline '  position: relative;'.
@@ -25017,22 +25049,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  padding-right: 8px;'.
     _inline '}'.
     _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
-    _inline '.repo_tab td.cmd span.state-block {'.
-    _inline '  margin-left: 1em;'.
-    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-    _inline '  font-size: x-small;'.
-    _inline '  vertical-align: 13%;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd span.state-block span {'.
-    _inline '  display: inline-block;'.
-    _inline '  padding: 0px 2px;'.
-    _inline '  border: 1px solid;'.
-    _inline '}'.
     _inline ''.
     _inline '/* STAGE */'.
-    _inline 'div.stage-container { width: 850px; }'.
+    _inline 'div.stage-container { width: 900px; }'.
     _inline 'input.stage-filter { width: 18em; }'.
     _inline ''.
     _inline '.stage_tab {'.
@@ -25150,14 +25169,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline 'div.diff_head span.state-block {'.
     _inline '  margin-left: 0.5em;'.
-    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
+    _inline '  font-size: inherit;'.
+    _inline '  vertical-align: initial;'.
     _inline '}'.
     _inline 'div.diff_head span.state-block span {'.
-    _inline '  display: inline-block;'.
     _inline '  padding: 0px 4px;'.
-    _inline '  border: 1px solid;'.
     _inline '}'.
     _inline ''.
     _inline '/* DIFF TABLE */'.
@@ -25826,9 +25842,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '.repo_tab tr.unsupported { color: var(--theme-greyscale-lighter); }'.
     _inline '.repo_tab tr.modified    { background-color: #fbf7e9; }'.
     _inline '.repo_tab td.current_dir { color: var(--theme-primary-font-color-reduced); }'.
-    _inline '.repo_tab td.cmd span.state-block span { border-color: #000; }'.
     _inline ''.
-    _inline '.repo_tab td.cmd span.state-block span.added {'.
+    _inline '/*.repo_tab td.cmd span.state-block span { border-color: #000; }*/'.
+    _inline '/*.repo_tab td.cmd span.state-block span.added {'.
     _inline '  background-color: #69ad74;'.
     _inline '  border-color: #579e64;'.
     _inline '  color: white;'.
@@ -25853,7 +25869,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-color: #dbdbdb;'.
     _inline '  color: #c8c8c8;'.
     _inline '}'.
-    _inline ''.
+    _inline '*/'.
     _inline '/* STAGE */'.
     _inline '.stage_tab {'.
     _inline '  border-color: #ddd;'.
@@ -25917,7 +25933,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-top-color: #ddd;'.
     _inline '  border-bottom-color: #ddd;'.
     _inline '}'.
-    _inline 'div.diff_head span.state-block span {'.
+    _inline '/*div.diff_head span.state-block span {'.
     _inline '  border-color: #000;'.
     _inline '}'.
     _inline 'div.diff_head span.state-block span.added {'.
@@ -25945,6 +25961,38 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  border-color: #dbdbdb;'.
     _inline '  color: #c8c8c8;'.
     _inline '}'.
+    _inline '*/'.
+    _inline ''.
+    _inline '/* STATE BLOCK COLORS */'.
+    _inline '/*span.state-block span {'.
+    _inline '  border-color: #000;'.
+    _inline '}*/'.
+    _inline 'span.state-block span.added {'.
+    _inline '  background-color: #69ad74;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'span.state-block span.changed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #d4af25;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'span.state-block span.mixed {'.
+    _inline '  background-color: #e0c150;'.
+    _inline '  border-color: #579e64;'.
+    _inline '  color: #69ad74;'.
+    _inline '}'.
+    _inline 'span.state-block span.deleted {'.
+    _inline '  background-color: #c76861;'.
+    _inline '  border-color: #b8605a;'.
+    _inline '  color: white;'.
+    _inline '}'.
+    _inline 'span.state-block span.none {'.
+    _inline '  background-color: #e8e8e8;'.
+    _inline '  border-color: #dbdbdb;'.
+    _inline '  color: #c8c8c8;'.
+    _inline '}'.
+    _inline ''.
     _inline ''.
     _inline '/* DIFF TABLE */'.
     _inline 'table.diff_tab td,th {'.
@@ -31645,7 +31693,59 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
+  METHOD apply_order_by.
+
+    DATA:
+      lt_sort                        TYPE abap_sortorder_tab,
+      ls_sort                        LIKE LINE OF lt_sort,
+      lt_non_code_and_metadata_items LIKE ct_repo_items,
+      lt_code_items                  LIKE ct_repo_items,
+      lt_diff_items                  LIKE ct_repo_items.
+
+    FIELD-SYMBOLS:
+      <ls_repo_item> TYPE zif_abapgit_definitions=>ty_repo_item.
+
+    IF mv_order_by IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " we want to preserve non-code and metadata files at the top,
+    " so we isolate them and and sort only the code artifacts
+    LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
+
+      IF <ls_repo_item>-obj_type IS INITIAL AND <ls_repo_item>-is_dir = abap_false.
+        INSERT <ls_repo_item> INTO TABLE lt_non_code_and_metadata_items.
+      ELSE.
+        INSERT <ls_repo_item> INTO TABLE lt_code_items.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF mv_diff_first = abap_true.
+      " fix diffs on the top, right after non-code and metadata
+      LOOP AT lt_code_items ASSIGNING <ls_repo_item>
+                            WHERE changes > 0.
+        INSERT <ls_repo_item> INTO TABLE lt_diff_items.
+      ENDLOOP.
+
+      DELETE lt_code_items WHERE changes > 0.
+    ENDIF.
+
+    CLEAR: ct_repo_items.
+
+    ls_sort-name       = mv_order_by.
+    ls_sort-descending = mv_order_descending.
+    ls_sort-astext     = abap_true.
+    INSERT ls_sort INTO TABLE lt_sort.
+    SORT lt_code_items BY (lt_sort).
+    SORT lt_diff_items BY (lt_sort).
+
+    INSERT LINES OF lt_non_code_and_metadata_items INTO TABLE ct_repo_items.
+    INSERT LINES OF lt_diff_items INTO TABLE ct_repo_items.
+    INSERT LINES OF lt_code_items INTO TABLE ct_repo_items.
+
+  ENDMETHOD.
   METHOD build_advanced_dropdown.
 
     DATA:
@@ -32134,8 +32234,9 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
 
       ro_html->add( '<div>' ).
       ro_html->add( |<span class="grey">{ is_item-changes } changes</span>| ).
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
-                                                          iv_rstate = is_item-rstate ) ).
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+        iv_lstate = is_item-lstate
+        iv_rstate = is_item-rstate ) ).
       ro_html->add( '</div>' ).
 
     ELSEIF is_item-changes > 0.
@@ -32221,6 +32322,60 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
       CATCH zcx_abapgit_exception.
         ASSERT 1 = 2.
     ENDTRY.
+  ENDMETHOD.
+  METHOD render_order_by.
+
+    DATA:
+      lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
+      lv_icon     TYPE string,
+      lv_html     TYPE string.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_col_spec.
+
+    DEFINE _add_col.
+      APPEND INITIAL LINE TO lt_col_spec ASSIGNING <ls_col>.
+      <ls_col>-tech_name    = &1.
+      <ls_col>-display_name = &2.
+      <ls_col>-css_class    = &3.
+      <ls_col>-add_tz       = &4.
+      <ls_col>-title        = &5.
+    END-OF-DEFINITION.
+
+    CREATE OBJECT ro_html.
+
+    "        technical name    display name      css class   add timezone   title
+    _add_col ''                  ''                ''          ''           ''.
+    IF mv_are_changes_recorded_in_tr = abap_true.
+      _add_col ''                ''                ''          ''           ''.
+    ENDIF.
+    _add_col 'OBJ_TYPE'          'Type'            ''          ''           ''.
+    _add_col 'OBJ_NAME'          'Name'            ''          ''           ''.
+    _add_col 'PATH'              'Path'            ''          ''           ''.
+
+    ro_html->add( |<thead>| ).
+    ro_html->add( |<tr>| ).
+
+    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+                      it_col_spec         = lt_col_spec
+                      iv_order_by         = mv_order_by
+                      iv_order_descending = mv_order_descending ) ).
+
+    IF mv_diff_first = abap_true.
+      lv_icon = 'check/blue'.
+    ELSE.
+      lv_icon = 'check/grey'.
+    ENDIF.
+
+    lv_html = |<th class="cmd">|
+           && zcl_abapgit_html=>icon( lv_icon )
+           && zcl_abapgit_html=>a(
+                  iv_txt = |diffs first|
+                  iv_act = c_actions-toggle_diff_first ).
+
+    ro_html->add( lv_html ).
+
+    ro_html->add( '</tr>' ).
+    ro_html->add( '</thead>' ).
+
   ENDMETHOD.
   METHOD render_parent_dir.
 
@@ -32392,113 +32547,6 @@ CLASS zcl_abapgit_gui_view_repo IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD render_order_by.
-
-    DATA:
-      lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
-      lv_icon     TYPE string,
-      lv_html     TYPE string.
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_col_spec.
-
-    DEFINE _add_col.
-      APPEND INITIAL LINE TO lt_col_spec ASSIGNING <ls_col>.
-      <ls_col>-tech_name    = &1.
-      <ls_col>-display_name = &2.
-      <ls_col>-css_class    = &3.
-      <ls_col>-add_tz       = &4.
-      <ls_col>-title        = &5.
-    END-OF-DEFINITION.
-
-    CREATE OBJECT ro_html.
-
-    "        technical name    display name      css class   add timezone   title
-    _add_col ''                  ''                ''          ''           ''.
-    IF mv_are_changes_recorded_in_tr = abap_true.
-      _add_col ''                ''                ''          ''           ''.
-    ENDIF.
-    _add_col 'OBJ_TYPE'          'Type'            ''          ''           ''.
-    _add_col 'OBJ_NAME'          'Name'            ''          ''           ''.
-    _add_col 'PATH'              'Path'            ''          ''           ''.
-
-    ro_html->add( |<thead>| ).
-    ro_html->add( |<tr>| ).
-
-    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
-                      it_col_spec         = lt_col_spec
-                      iv_order_by         = mv_order_by
-                      iv_order_descending = mv_order_descending ) ).
-
-    IF mv_diff_first = abap_true.
-      lv_icon = 'check/blue'.
-    ELSE.
-      lv_icon = 'check/grey'.
-    ENDIF.
-
-    lv_html = |<th class="cmd">|
-           && zcl_abapgit_html=>icon( lv_icon )
-           && zcl_abapgit_html=>a(
-                  iv_txt = |diffs first|
-                  iv_act = c_actions-toggle_diff_first ).
-
-    ro_html->add( lv_html ).
-
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
-
-  ENDMETHOD.
-  METHOD apply_order_by.
-
-    DATA:
-      lt_sort                        TYPE abap_sortorder_tab,
-      ls_sort                        LIKE LINE OF lt_sort,
-      lt_non_code_and_metadata_items LIKE ct_repo_items,
-      lt_code_items                  LIKE ct_repo_items,
-      lt_diff_items                  LIKE ct_repo_items.
-
-    FIELD-SYMBOLS:
-      <ls_repo_item> TYPE zif_abapgit_definitions=>ty_repo_item.
-
-    IF mv_order_by IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    " we want to preserve non-code and metadata files at the top,
-    " so we isolate them and and sort only the code artifacts
-    LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
-
-      IF <ls_repo_item>-obj_type IS INITIAL AND <ls_repo_item>-is_dir = abap_false.
-        INSERT <ls_repo_item> INTO TABLE lt_non_code_and_metadata_items.
-      ELSE.
-        INSERT <ls_repo_item> INTO TABLE lt_code_items.
-      ENDIF.
-
-    ENDLOOP.
-
-    IF mv_diff_first = abap_true.
-      " fix diffs on the top, right after non-code and metadata
-      LOOP AT lt_code_items ASSIGNING <ls_repo_item>
-                            WHERE changes > 0.
-        INSERT <ls_repo_item> INTO TABLE lt_diff_items.
-      ENDLOOP.
-
-      DELETE lt_code_items WHERE changes > 0.
-    ENDIF.
-
-    CLEAR: ct_repo_items.
-
-    ls_sort-name       = mv_order_by.
-    ls_sort-descending = mv_order_descending.
-    ls_sort-astext     = abap_true.
-    INSERT ls_sort INTO TABLE lt_sort.
-    SORT lt_code_items BY (lt_sort).
-    SORT lt_diff_items BY (lt_sort).
-
-    INSERT LINES OF lt_non_code_and_metadata_items INTO TABLE ct_repo_items.
-    INSERT LINES OF lt_diff_items INTO TABLE ct_repo_items.
-    INSERT LINES OF lt_code_items INTO TABLE ct_repo_items.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
@@ -33533,6 +33581,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           ls_file   TYPE zif_abapgit_definitions=>ty_file.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local,
+                   <ls_status> LIKE LINE OF ms_files-status,
                    <ls_item> LIKE LINE OF lt_fields.
 
     CONCATENATE LINES OF it_postdata INTO lv_string.
@@ -33551,6 +33600,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           ev_path     = ls_file-path
           ev_filename = ls_file-filename ).
 
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = ls_file-path
+          filename = ls_file-filename.
+      ASSERT sy-subrc = 0.
+
       CASE <ls_item>-value.
         WHEN zcl_abapgit_stage=>c_method-add.
           READ TABLE ms_files-local ASSIGNING <ls_file>
@@ -33563,12 +33618,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
           io_stage->add( iv_path     = <ls_file>-file-path
                          iv_filename = <ls_file>-file-filename
+                         is_status   = <ls_status>
                          iv_data     = <ls_file>-file-data ).
         WHEN zcl_abapgit_stage=>c_method-ignore.
           io_stage->ignore( iv_path     = ls_file-path
                             iv_filename = ls_file-filename ).
         WHEN zcl_abapgit_stage=>c_method-rm.
           io_stage->rm( iv_path     = ls_file-path
+                        is_status   = <ls_status>
                         iv_filename = ls_file-filename ).
         WHEN zcl_abapgit_stage=>c_method-skip.
           " Do nothing
@@ -33665,6 +33722,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF ` ` IN lv_filename WITH '&nbsp;'.
 
     ro_html->add( |<tr class="{ iv_context }">| ).
+    ro_html->add( '<td>' ).
+    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+      iv_lstate = is_status-lstate
+      iv_rstate = is_status-rstate ) ).
+    ro_html->add( '</td>' ).
 
     CASE iv_context.
       WHEN 'local'.
@@ -33706,6 +33768,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           ls_transport  LIKE LINE OF lt_transports.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF ms_files-remote,
+                   <ls_status> LIKE LINE OF ms_files-status,
                    <ls_local>  LIKE LINE OF ms_files-local.
 
     CREATE OBJECT ro_html.
@@ -33719,6 +33782,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     LOOP AT ms_files-local ASSIGNING <ls_local>.
       AT FIRST.
         ro_html->add( '<thead><tr class="local">' ).
+        ro_html->add( '<th></th>' ). " Diff state
         ro_html->add( '<th>Type</th>' ).
         ro_html->add( '<th>Files to add (click to see diff)</th>' ).
         ro_html->add( '<th>Changed by</th>' ).
@@ -33733,11 +33797,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
       READ TABLE lt_transports INTO ls_transport WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = <ls_local>-file-path
+          filename = <ls_local>-file-filename.
+      ASSERT sy-subrc = 0.
 
       ro_html->add( render_file(
         iv_context = 'local'
         is_file       = <ls_local>-file
         is_item       = <ls_local>-item
+        is_status     = <ls_status>
         iv_changed_by = ls_changed_by-name
         iv_transport  = ls_transport-transport ) ).
 
@@ -33752,6 +33822,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     LOOP AT ms_files-remote ASSIGNING <ls_remote>.
       AT FIRST.
         ro_html->add( '<thead><tr class="remote">' ).
+        ro_html->add( '<th></th>' ). " Diff state
         ro_html->add( '<th></th>' ). " Type
         ro_html->add( '<th colspan="3">Files to remove or non-code</th>' ).
         ro_html->add( '<th></th>' ). " Status
@@ -33762,8 +33833,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ro_html->add( '<tbody>' ).
       ENDAT.
 
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = <ls_local>-file-path
+          filename = <ls_local>-file-filename.
+      ASSERT sy-subrc = 0.
+
       ro_html->add( render_file(
         iv_context = 'remote'
+        is_status  = <ls_status>
         is_file    = <ls_remote> ) ).
 
       AT LAST.
@@ -33817,6 +33895,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           lt_fields TYPE tihttpnvp.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local.
+    FIELD-SYMBOLS: <ls_status> LIKE LINE OF ms_files-status.
     CREATE OBJECT lo_stage.
 
     CLEAR: ei_page, ev_state.
@@ -33825,9 +33904,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       WHEN c_action-stage_all.
 
         LOOP AT ms_files-local ASSIGNING <ls_file>.
-          lo_stage->add( iv_path     = <ls_file>-file-path
-                         iv_filename = <ls_file>-file-filename
-                         iv_data     = <ls_file>-file-data ).
+          READ TABLE ms_files-status ASSIGNING <ls_status>
+            WITH TABLE KEY
+              path = <ls_file>-file-path
+              filename = <ls_file>-file-filename.
+          ASSERT sy-subrc = 0.
+
+          lo_stage->add(
+            iv_path     = <ls_file>-file-path
+            iv_filename = <ls_file>-file-filename
+            is_status   = <ls_status>
+            iv_data     = <ls_file>-file-data ).
         ENDLOOP.
 
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_commit
@@ -33840,7 +33927,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       WHEN c_action-stage_commit.
 
-        process_stage_list( it_postdata = it_postdata io_stage = lo_stage ).
+        process_stage_list(
+          it_postdata = it_postdata
+          io_stage    = lo_stage ).
 
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
@@ -37389,15 +37478,20 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( '<table class="stage_tab">' ).
     ro_html->add( '<thead>' ).
     ro_html->add( '<tr>' ).
-    ro_html->add( '<th colspan="2">Staged files</th>' ).
+    ro_html->add( '<th colspan="3">Staged files</th>' ).
     ro_html->add( '</tr>' ).
     ro_html->add( '</thead>' ).
 
     ro_html->add( '<tbody>' ).
     LOOP AT lt_stage ASSIGNING <ls_stage>.
       ro_html->add( '<tr>' ).
+      ro_html->add( '<td>' ).
+      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+        iv_lstate = <ls_stage>-status-lstate
+        iv_rstate = <ls_stage>-status-rstate ) ).
+      ro_html->add( '</td>' ).
       ro_html->add( '<td class="method">' ).
-      ro_html->add( zcl_abapgit_stage=>method_description( <ls_stage>-method ) ).
+      ro_html->add( |<b>{ zcl_abapgit_stage=>method_description( <ls_stage>-method ) }</b>| ).
       ro_html->add( '</td>' ).
       ro_html->add( '<td>' ).
       ro_html->add( <ls_stage>-file-path && <ls_stage>-file-filename ).
@@ -77376,5 +77470,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-27T10:20:53.642Z
+* abapmerge  - 2019-10-27T10:28:35.435Z
 ****************************************************
