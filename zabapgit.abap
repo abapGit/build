@@ -10887,10 +10887,16 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS render_actions
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
-    METHODS process_stage_list
+    METHODS stage_selected
       IMPORTING
         !it_postdata TYPE cnht_post_data_tab
-        !io_stage    TYPE REF TO zcl_abapgit_stage
+      RETURNING
+        VALUE(ro_stage)    TYPE REF TO zcl_abapgit_stage
+      RAISING
+        zcx_abapgit_exception .
+    METHODS stage_all
+      RETURNING
+        VALUE(ro_stage)    TYPE REF TO zcl_abapgit_stage
       RAISING
         zcx_abapgit_exception .
     METHODS build_menu
@@ -10903,6 +10909,9 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RAISING   zcx_abapgit_exception.
     METHODS render_master_language_warning
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    METHODS count_default_files_to_commit
+      RETURNING
+        VALUE(rv_count) TYPE i.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
@@ -26624,6 +26633,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '  this.setHooks();'.
     _inline '  if (this.user) this.injectFilterMe();'.
+    _inline '  Hotkeys.addHotkeyToHelpSheet("^↵", "Commit");'.
+    _inline '  this.dom.objectSearch.focus();'.
     _inline '}'.
     _inline ''.
     _inline 'StageHelper.prototype.findCounters = function() {'.
@@ -26649,6 +26660,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '// Hook global click listener on table, load/unload actions'.
     _inline 'StageHelper.prototype.setHooks = function() {'.
+    _inline '  window.onkeypress                  = this.onCtrlEnter.bind(this);'.
     _inline '  this.dom.stageTab.onclick          = this.onTableClick.bind(this);'.
     _inline '  this.dom.commitSelectedBtn.onclick = this.submit.bind(this);'.
     _inline '  this.dom.commitFilteredBtn.onclick = this.submitVisible.bind(this);'.
@@ -26729,11 +26741,22 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  this.updateMenu();'.
     _inline '};'.
     _inline ''.
+    _inline 'StageHelper.prototype.onCtrlEnter = function (e) {'.
+    _inline '  if (e.ctrlKey && (e.which === 10 || e.key === "Enter")){'.
+    _inline '    var clickMap = {'.
+    _inline '      "default":  this.dom.commitAllBtn,'.
+    _inline '      "selected": this.dom.commitSelectedBtn,'.
+    _inline '      "filtered": this.dom.commitFilteredBtn'.
+    _inline '    };'.
+    _inline '    clickMap[this.calculateActiveCommitCommand()].click();'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
     _inline '// Search object'.
     _inline 'StageHelper.prototype.onFilter = function (e) {'.
     _inline '  if ( // Enter hit or clear, IE SUCKS !'.
     _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
-    _inline '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") ) {'.
+    _inline '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") && !e.ctrlKey ) {'.
     _inline ''.
     _inline '    this.applyFilterValue(e.target.value);'.
     _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
@@ -26828,18 +26851,23 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '  }'.
     _inline '};'.
     _inline ''.
+    _inline 'StageHelper.prototype.calculateActiveCommitCommand = function () {'.
+    _inline '  var active;'.
+    _inline '  if (this.selectedCount > 0) {'.
+    _inline '    active = "selected";'.
+    _inline '  } else if (this.lastFilterValue) {'.
+    _inline '    active = "filtered";'.
+    _inline '  } else {'.
+    _inline '    active = "default";'.
+    _inline '  }'.
+    _inline '  return active;'.
+    _inline '};'.
+    _inline ''.
     _inline '// Update menu items visibility'.
     _inline 'StageHelper.prototype.updateMenu = function () {'.
-    _inline '  var display;'.
-    _inline '  if (this.selectedCount > 0) {'.
-    _inline '    display = "selected";'.
-    _inline '    this.dom.selectedCounter.innerText = this.selectedCount.toString();'.
-    _inline '  } else if (this.lastFilterValue) {'.
-    _inline '    display = "filtered";'.
-    _inline '    this.dom.filteredCounter.innerText = this.filteredCount.toString();'.
-    _inline '  } else {'.
-    _inline '    display = "default";'.
-    _inline '  }'.
+    _inline '  var display = this.calculateActiveCommitCommand();'.
+    _inline '  if (display === "selected") this.dom.selectedCounter.innerText = this.selectedCount.toString();'.
+    _inline '  if (display === "filtered") this.dom.filteredCounter.innerText = this.filteredCount.toString();'.
     _inline ''.
     _inline '  this.dom.commitAllBtn.style.display      = display === "default" ? "" : "none";'.
     _inline '  this.dom.commitSelectedBtn.style.display = display === "selected" ? "" : "none";'.
@@ -26867,8 +26895,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline 'StageHelper.prototype.markVisiblesAsAdded = function () {'.
     _inline '  this.iterateStageTab(false, function (row) {'.
-    _inline '    var name = row.cells[this.colIndex["name"]].innerText;'.
-    _inline '    var cellStatus = row.cells[this.colIndex["status"]];'.
     _inline '    // TODO refacotr, unify updateRow logic'.
     _inline '    if (row.style.display === "" && row.className === "local") { // visible'.
     _inline '      this.updateRow(row, this.STATUS.add);'.
@@ -33493,6 +33519,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ms_control-page_menu  = build_menu( ).
 
   ENDMETHOD.
+  METHOD count_default_files_to_commit.
+
+    FIELD-SYMBOLS <ls_status> LIKE LINE OF ms_files-status.
+    FIELD-SYMBOLS <ls_remote> LIKE LINE OF ms_files-remote.
+
+    rv_count = lines( ms_files-local ).
+
+    LOOP AT ms_files-remote ASSIGNING <ls_remote>.
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = <ls_remote>-path
+          filename = <ls_remote>-filename.
+      ASSERT sy-subrc = 0.
+
+      IF <ls_status>-lstate = zif_abapgit_definitions=>c_state-deleted
+        AND <ls_status>-rstate = zif_abapgit_definitions=>c_state-unchanged.
+        rv_count = rv_count + 1.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD find_changed_by.
 
     DATA: ls_local      LIKE LINE OF it_local,
@@ -33581,67 +33628,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ri_page = lo_page.
 
   ENDMETHOD.
-  METHOD process_stage_list.
-
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file.
-
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local,
-                   <ls_status> LIKE LINE OF ms_files-status,
-                   <ls_item> LIKE LINE OF lt_fields.
-
-    CONCATENATE LINES OF it_postdata INTO lv_string.
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
-
-    IF lines( lt_fields ) = 0.
-      zcx_abapgit_exception=>raise( 'process_stage_list: empty list' ).
-    ENDIF.
-
-    LOOP AT lt_fields ASSIGNING <ls_item>.
-
-      zcl_abapgit_path=>split_file_location(
-        EXPORTING
-          iv_fullpath = <ls_item>-name
-        IMPORTING
-          ev_path     = ls_file-path
-          ev_filename = ls_file-filename ).
-
-      READ TABLE ms_files-status ASSIGNING <ls_status>
-        WITH TABLE KEY
-          path     = ls_file-path
-          filename = ls_file-filename.
-      ASSERT sy-subrc = 0.
-
-      CASE <ls_item>-value.
-        WHEN zcl_abapgit_stage=>c_method-add.
-          READ TABLE ms_files-local ASSIGNING <ls_file>
-            WITH KEY file-path     = ls_file-path
-                     file-filename = ls_file-filename.
-
-          IF sy-subrc <> 0.
-            zcx_abapgit_exception=>raise( |process_stage_list: unknown file { ls_file-path }{ ls_file-filename }| ).
-          ENDIF.
-
-          io_stage->add( iv_path     = <ls_file>-file-path
-                         iv_filename = <ls_file>-file-filename
-                         is_status   = <ls_status>
-                         iv_data     = <ls_file>-file-data ).
-        WHEN zcl_abapgit_stage=>c_method-ignore.
-          io_stage->ignore( iv_path     = ls_file-path
-                            iv_filename = ls_file-filename ).
-        WHEN zcl_abapgit_stage=>c_method-rm.
-          io_stage->rm( iv_path     = ls_file-path
-                        is_status   = <ls_status>
-                        iv_filename = ls_file-filename ).
-        WHEN zcl_abapgit_stage=>c_method-skip.
-          " Do nothing
-        WHEN OTHERS.
-          zcx_abapgit_exception=>raise( |process_stage_list: unknown method { <ls_item>-value }| ).
-      ENDCASE.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD render_actions.
 
     DATA: lv_local_count TYPE i,
@@ -33650,7 +33636,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           ls_file        TYPE zif_abapgit_definitions=>ty_file.
 
     CREATE OBJECT ro_html.
-    lv_local_count = lines( ms_files-local ).
+    lv_local_count = count_default_files_to_commit( ).
     IF lv_local_count > 0.
       lv_add_all_txt = |Add all and commit ({ lv_local_count })|.
       " Otherwise empty, but the element (id) is preserved for JS
@@ -33842,8 +33828,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       READ TABLE ms_files-status ASSIGNING <ls_status>
         WITH TABLE KEY
-          path     = <ls_local>-file-path
-          filename = <ls_local>-file-filename.
+          path     = <ls_remote>-path
+          filename = <ls_remote>-filename.
       ASSERT sy-subrc = 0.
 
       ro_html->add( render_file(
@@ -33895,64 +33881,150 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
 
   ENDMETHOD.
+  METHOD stage_all.
+
+    FIELD-SYMBOLS <ls_local> LIKE LINE OF ms_files-local.
+    FIELD-SYMBOLS <ls_remote> LIKE LINE OF ms_files-remote.
+    FIELD-SYMBOLS <ls_status> LIKE LINE OF ms_files-status.
+
+    CREATE OBJECT ro_stage.
+
+    LOOP AT ms_files-local ASSIGNING <ls_local>.
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = <ls_local>-file-path
+          filename = <ls_local>-file-filename.
+      ASSERT sy-subrc = 0.
+
+      ro_stage->add(
+        iv_path     = <ls_local>-file-path
+        iv_filename = <ls_local>-file-filename
+        is_status   = <ls_status>
+        iv_data     = <ls_local>-file-data ).
+    ENDLOOP.
+
+    LOOP AT ms_files-remote ASSIGNING <ls_remote>.
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = <ls_remote>-path
+          filename = <ls_remote>-filename.
+      ASSERT sy-subrc = 0.
+
+      IF <ls_status>-lstate = zif_abapgit_definitions=>c_state-deleted
+        AND <ls_status>-rstate = zif_abapgit_definitions=>c_state-unchanged.
+
+        ro_stage->rm(
+          iv_path     = <ls_remote>-path
+          iv_filename = <ls_remote>-filename
+          is_status   = <ls_status> ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD stage_selected.
+
+    DATA: lv_string TYPE string,
+          lt_fields TYPE tihttpnvp,
+          ls_file   TYPE zif_abapgit_definitions=>ty_file.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local,
+                   <ls_status> LIKE LINE OF ms_files-status,
+                   <ls_item> LIKE LINE OF lt_fields.
+
+    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
+
+    IF lines( lt_fields ) = 0.
+      zcx_abapgit_exception=>raise( 'process_stage_list: empty list' ).
+    ENDIF.
+
+    CREATE OBJECT ro_stage.
+
+    LOOP AT lt_fields ASSIGNING <ls_item>.
+
+      zcl_abapgit_path=>split_file_location(
+        EXPORTING
+          iv_fullpath = <ls_item>-name
+        IMPORTING
+          ev_path     = ls_file-path
+          ev_filename = ls_file-filename ).
+
+      READ TABLE ms_files-status ASSIGNING <ls_status>
+        WITH TABLE KEY
+          path     = ls_file-path
+          filename = ls_file-filename.
+      ASSERT sy-subrc = 0.
+
+      CASE <ls_item>-value.
+        WHEN zcl_abapgit_stage=>c_method-add.
+          READ TABLE ms_files-local ASSIGNING <ls_file>
+            WITH KEY file-path     = ls_file-path
+                     file-filename = ls_file-filename.
+
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise( |process_stage_list: unknown file { ls_file-path }{ ls_file-filename }| ).
+          ENDIF.
+
+          ro_stage->add( iv_path     = <ls_file>-file-path
+                         iv_filename = <ls_file>-file-filename
+                         is_status   = <ls_status>
+                         iv_data     = <ls_file>-file-data ).
+        WHEN zcl_abapgit_stage=>c_method-ignore.
+          ro_stage->ignore( iv_path     = ls_file-path
+                            iv_filename = ls_file-filename ).
+        WHEN zcl_abapgit_stage=>c_method-rm.
+          ro_stage->rm( iv_path     = ls_file-path
+                        is_status   = <ls_status>
+                        iv_filename = ls_file-filename ).
+        WHEN zcl_abapgit_stage=>c_method-skip.
+          " Do nothing
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |process_stage_list: unknown method { <ls_item>-value }| ).
+      ENDCASE.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_stage  TYPE REF TO zcl_abapgit_stage,
-          lv_string TYPE string,
           lt_fields TYPE tihttpnvp.
-
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ms_files-local.
-    FIELD-SYMBOLS: <ls_status> LIKE LINE OF ms_files-status.
-    CREATE OBJECT lo_stage.
 
     CLEAR: ei_page, ev_state.
 
     CASE iv_action.
       WHEN c_action-stage_all.
 
-        LOOP AT ms_files-local ASSIGNING <ls_file>.
-          READ TABLE ms_files-status ASSIGNING <ls_status>
-            WITH TABLE KEY
-              path = <ls_file>-file-path
-              filename = <ls_file>-file-filename.
-          ASSERT sy-subrc = 0.
-
-          lo_stage->add(
-            iv_path     = <ls_file>-file-path
-            iv_filename = <ls_file>-file-filename
-            is_status   = <ls_status>
-            iv_data     = <ls_file>-file-data ).
-        ENDLOOP.
+        lo_stage = stage_all( ).
 
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
             io_repo  = mo_repo
             io_stage = lo_stage.
-        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_action-stage_commit.
 
-        process_stage_list(
-          it_postdata = it_postdata
-          io_stage    = lo_stage ).
+        lo_stage = stage_selected( it_postdata ).
 
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
             io_repo  = mo_repo
             io_stage = lo_stage.
+
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_action-stage_filter.
 
-        CONCATENATE LINES OF it_postdata INTO lv_string.
+        lt_fields = zcl_abapgit_html_action_utils=>parse_fields( concat_lines_of( table = it_postdata ) ).
 
-        lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
-
-        zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = 'filterValue'
-                                                            it_field = lt_fields
-                                                  CHANGING  cg_field = mv_filter_value ).
+        zcl_abapgit_html_action_utils=>get_field(
+          EXPORTING
+            iv_name  = 'filterValue'
+            it_field = lt_fields
+          CHANGING
+            cg_field = mv_filter_value ).
 
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
@@ -77477,5 +77549,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-31T11:51:40.174Z
+* abapmerge  - 2019-10-31T13:30:47.758Z
 ****************************************************
