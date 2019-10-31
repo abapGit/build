@@ -29150,7 +29150,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
 
     lo_repo->create_branch( lv_name ).
 
-    MESSAGE 'Switched to new branch' TYPE 'S' ##NO_TEXT.
+    MESSAGE |Switched to new branch { zcl_abapgit_git_branch_list=>get_display_name( lv_name ) }| TYPE 'S' ##NO_TEXT.
 
   ENDMETHOD.
   METHOD delete_branch.
@@ -29172,7 +29172,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
       iv_url    = lo_repo->get_url( )
       is_branch = ls_branch ).
 
-    MESSAGE 'Branch deleted' TYPE 'S'.
+    MESSAGE |Branch { ls_branch-display_name } deleted| TYPE 'S'.
 
   ENDMETHOD.
   METHOD delete_tag.
@@ -77549,5 +77549,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-31T13:30:47.758Z
+* abapmerge  - 2019-10-31T13:38:46.418Z
 ****************************************************
