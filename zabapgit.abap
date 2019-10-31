@@ -27378,6 +27378,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '    var action = this.oKeyMap[sKey];'.
     _inline ''.
+    _inline '    // add a tooltip/title with the hotkey, currently only sapevents are supported'.
+    _inline '    [].slice.call(document.querySelectorAll("a[href^=''sapevent:" + action + "'']")).forEach(function(elAnchor) {'.
+    _inline '      elAnchor.title = elAnchor.title + " [" + sKey + "]";'.
+    _inline '    });'.
+    _inline ''.
     _inline '    // We replace the actions with callback functions to unify'.
     _inline '    // the hotkey execution'.
     _inline '    this.oKeyMap[sKey] = function(oEvent) {'.
@@ -27391,6 +27396,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '      // Or a global function'.
     _inline '      if (window[action]) {'.
     _inline '        window[action].call(this);'.
+    _inline '        return;'.
     _inline '      }'.
     _inline ''.
     _inline '      // Or a SAP event'.
@@ -77471,5 +77477,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-30T05:51:42.123Z
+* abapmerge  - 2019-10-31T07:43:58.186Z
 ****************************************************
