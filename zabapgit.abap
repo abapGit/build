@@ -18920,12 +18920,29 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_duplicates.
 
-    DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA: lt_files TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_path TYPE string,
+          lv_filename TYPE string,
+          lt_duplicates TYPE stringtab,
+          lv_all_duplicates TYPE string.
+
+    FIELD-SYMBOLS:
+      <lv_file> LIKE LINE OF it_files.
+
     lt_files = it_files.
     SORT lt_files BY path ASCENDING filename ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM lt_files COMPARING path filename.
-    IF lines( lt_files ) <> lines( it_files ).
-      zcx_abapgit_exception=>raise( 'Duplicates' ).
+
+    LOOP AT lt_files ASSIGNING <lv_file>.
+      IF lv_path = <lv_file>-path AND lv_filename = <lv_file>-filename.
+        APPEND <lv_file>-path && <lv_file>-filename TO lt_duplicates.
+      ENDIF.
+      lv_path = <lv_file>-path.
+      lv_filename = <lv_file>-filename.
+    ENDLOOP.
+
+    IF lt_duplicates IS NOT INITIAL.
+      CONCATENATE LINES OF lt_duplicates INTO lv_all_duplicates SEPARATED BY `, `.
+      zcx_abapgit_exception=>raise( |Duplicates: { lv_all_duplicates }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -19045,7 +19062,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       ls_obj_serializer_map-item      = is_item.
       ls_obj_serializer_map-metadata  = is_metadata.
       INSERT ls_obj_serializer_map INTO TABLE gt_obj_serializer_map.
-
       lv_class_name = is_metadata-class.
     ELSE.
       lv_class_name = class_name( is_item ).
@@ -77558,5 +77574,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-01T16:08:38.718Z
+* abapmerge  - 2019-11-01T16:23:23.721Z
 ****************************************************
