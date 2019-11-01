@@ -15846,17 +15846,11 @@ ENDCLASS.
 CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
 
   PUBLIC SECTION.
-* Folder
     TYPES ty_folder TYPE string.
-* Filename
     TYPES ty_filename TYPE string.
 
 * File extension
     CONSTANTS gc_zip_ext TYPE string VALUE '.zip' ##NO_TEXT.
-
-    DATA: gv_timestamp   TYPE string,
-          gv_separator   TYPE c,
-          gv_full_folder TYPE ty_folder READ-ONLY.
 
     METHODS constructor  IMPORTING iv_folder TYPE ty_folder
                          RAISING   zcx_abapgit_exception.
@@ -15865,11 +15859,16 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
                                      iv_logic  TYPE any
                            RAISING   zcx_abapgit_exception.
 
+    METHODS get_folder RETURNING VALUE(rv_full_folder) TYPE ty_folder.
+
     CLASS-METHODS does_folder_exist IMPORTING iv_folder              TYPE string
                                     RETURNING VALUE(rv_folder_exist) TYPE abap_bool
                                     RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
+    DATA: gv_timestamp   TYPE string,
+          gv_separator   TYPE c,
+          gv_full_folder TYPE ty_folder.
 
     METHODS get_full_folder IMPORTING iv_folder             TYPE ty_folder
                             RETURNING VALUE(rv_full_folder) TYPE ty_folder
@@ -15900,6 +15899,10 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
       gv_separator = '\'. "Default MS Windows separator
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD get_folder.
+    rv_full_folder = gv_full_folder.
   ENDMETHOD.
 
   METHOD does_folder_exist.
@@ -16036,7 +16039,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
             iv_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
 
 * Open output folder if user asked it
-          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->gv_full_folder ).
+          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->get_folder( ) ).
 
         ELSE.
 * No data found for the provided selection criterias
@@ -77555,5 +77558,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-10-31T14:18:08.457Z
+* abapmerge  - 2019-11-01T16:08:38.718Z
 ****************************************************
