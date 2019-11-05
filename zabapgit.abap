@@ -47602,7 +47602,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
+CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   METHOD add_fm_exception.
 
     DATA: ls_exception LIKE LINE OF ct_exception.
@@ -48141,12 +48141,16 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     ls_key-component_name  = is_controller-definition-component_name.
     ls_key-controller_name = is_controller-definition-controller_name.
 
-    cl_wdy_md_controller=>recover_version(
-      EXPORTING
-        controller_key = ls_key
-        delta          = ls_delta-wdyc
-      CHANGING
-        corrnr         = lv_corrnr ).
+    TRY.
+        cl_wdy_md_controller=>recover_version(
+          EXPORTING
+            controller_key = ls_key
+            delta          = ls_delta-wdyc
+          CHANGING
+            corrnr         = lv_corrnr ).
+      CATCH cx_wdy_md_exception.
+        zcx_abapgit_exception=>raise( 'error recovering version of controller' ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD recover_definition.
@@ -48160,12 +48164,16 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     ls_key-component_name = is_definition-definition-component_name.
 
-    cl_wdy_md_component=>recover_version(
-      EXPORTING
-        component_key = ls_key
-        delta         = ls_delta-wdyd
-      CHANGING
-        corrnr        = lv_corrnr ).
+    TRY.
+        cl_wdy_md_component=>recover_version(
+          EXPORTING
+            component_key = ls_key
+            delta         = ls_delta-wdyd
+          CHANGING
+            corrnr        = lv_corrnr ).
+      CATCH cx_wdy_md_exception.
+        zcx_abapgit_exception=>raise( 'error recovering version of component' ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD recover_view.
@@ -48177,12 +48185,16 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     ls_key-component_name = is_view-definition-component_name.
     ls_key-view_name      = is_view-definition-view_name.
 
-    cl_wdy_md_abstract_view=>recover_version(
-      EXPORTING
-        view_key = ls_key
-        delta    = ls_delta-wdyv
-      CHANGING
-        corrnr   = lv_corrnr ).
+    TRY.
+        cl_wdy_md_abstract_view=>recover_version(
+          EXPORTING
+            view_key = ls_key
+            delta    = ls_delta-wdyv
+          CHANGING
+            corrnr   = lv_corrnr ).
+      CATCH cx_wdy_md_exception.
+        zcx_abapgit_exception=>raise( 'error recovering version of abstract view' ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -62426,8 +62438,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: lo_xml_api TYPE REF TO cl_w3_api_xml3,
-          ls_name    TYPE iacikeyt,
-          lx_root    TYPE REF TO zcx_abapgit_exception.
+          ls_name    TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
     w3_api_load( EXPORTING is_name    = ls_name
@@ -62458,9 +62469,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: ls_name  TYPE iacikeyt,
-          lv_subrc TYPE sysubrc,
-          lx_exc   TYPE REF TO zcx_abapgit_exception.
+    DATA: ls_name  TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
     cl_w3_api_xml3=>s_check_exist( EXPORTING p_xml_name = ls_name
@@ -77636,5 +77645,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-05T06:53:11.073Z
+* abapmerge  - 2019-11-05T07:11:16.648Z
 ****************************************************
