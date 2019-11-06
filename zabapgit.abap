@@ -21811,18 +21811,11 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
+CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   METHOD get_ddls_dependencies.
 
-    TYPES: BEGIN OF ty_ddls_name.
-        INCLUDE TYPE ddsymtab.
-    TYPES: END OF ty_ddls_name.
-
-    TYPES: tty_ddls_names TYPE STANDARD TABLE OF ty_ddls_name
-                               WITH NON-UNIQUE DEFAULT KEY.
-
-    DATA: lt_ddls_name TYPE tty_ddls_names,
-          ls_ddls_name LIKE LINE OF lt_ddls_name.
+    DATA: lt_ddls_name TYPE TABLE OF ddsymtab,
+          ls_ddls_name TYPE ddsymtab.
 
     ls_ddls_name-name = iv_ddls_name.
     INSERT ls_ddls_name INTO TABLE lt_ddls_name.
@@ -31099,22 +31092,10 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
 
     DATA: lx_abapgit TYPE REF TO zcx_abapgit_exception.
 
-    TYPES: BEGIN OF dummy1.
-        INCLUDE TYPE dselc.
-    TYPES: END OF dummy1,
-    tty_dummy1 TYPE STANDARD TABLE OF dummy1
-                        WITH NON-UNIQUE DEFAULT KEY,
-      BEGIN OF dummy2.
-        INCLUDE TYPE dval.
-    TYPES: END OF dummy2,
-    tty_dummy2 TYPE STANDARD TABLE OF dummy2
-                        WITH NON-UNIQUE DEFAULT KEY.
-
-    DATA:
-      lv_docu_object TYPE dokhl-object,
-      lt_dummy1      TYPE tty_dummy1,
-      lt_dummy2      TYPE tty_dummy2,
-      ls_help_info   TYPE help_info.
+    DATA: lv_docu_object TYPE dokhl-object,
+          lt_dummy1      TYPE TABLE OF dselc,
+          lt_dummy2      TYPE TABLE OF dval,
+          ls_help_info   TYPE help_info.
 
     IF is_log-exception IS NOT BOUND.
       RETURN.
@@ -77662,5 +77643,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-06T07:56:46.600Z
+* abapmerge  - 2019-11-06T08:32:02.693Z
 ****************************************************
