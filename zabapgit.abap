@@ -62551,8 +62551,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
         object_not_existing          = 9
         object_invalid               = 10
         error_occured                = 11
-        content_data_error           = 12
-        OTHERS                       = 13 ).
+        OTHERS                       = 12 ).
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error from w3_api_xml3~set_changeable subrc={ sy-subrc }| ).
@@ -77646,5 +77645,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-06T08:36:42.129Z
+* abapmerge  - 2019-11-06T08:44:18.038Z
 ****************************************************
