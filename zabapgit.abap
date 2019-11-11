@@ -26755,7 +26755,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline ''.
     _inline '  this.setHooks();'.
     _inline '  if (this.user) this.injectFilterMe();'.
-    _inline '  Hotkeys.addHotkeyToHelpSheet("^↵", "Commit");'.
+    _inline '  Hotkeys.addHotkeyToHelpSheet("^Enter", "Commit");'.
     _inline '  this.dom.objectSearch.focus();'.
     _inline '}'.
     _inline ''.
@@ -77838,5 +77838,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-11T08:17:40.452Z
+* abapmerge  - 2019-11-11T08:22:47.574Z
 ****************************************************
