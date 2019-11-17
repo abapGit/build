@@ -30819,7 +30819,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     add_field( EXPORTING iv_tabname   = 'TEXTL'
                          iv_fieldname = 'LINE'
                          iv_fieldtext = 'Name'
-                         iv_value     = 'lcl_gui_page_'
+                         iv_value     = 'zcl_abapgit_gui_page_'
                CHANGING  ct_fields    = lt_fields ).
 
     TRY.
@@ -77915,5 +77915,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-12T10:10:49.673Z
+* abapmerge  - 2019-11-17T09:20:05.473Z
 ****************************************************
