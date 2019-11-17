@@ -23579,7 +23579,7 @@ CLASS zcl_abapgit_user_master_record IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
+CLASS zcl_abapgit_url IMPLEMENTATION.
   METHOD host.
 
     regex( EXPORTING iv_url = iv_url
@@ -23596,9 +23596,10 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
     IF rv_name IS INITIAL.
       FIND REGEX '([\w-]+)/$' IN lv_path SUBMATCHES rv_name.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Malformed URL' ).
+      ENDIF.
     ENDIF.
-
-    ASSERT NOT rv_name IS INITIAL.
 
   ENDMETHOD.
   METHOD path_name.
@@ -23620,7 +23621,7 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate.
 
-    regex( iv_url ).
+    name( iv_url ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -77915,5 +77916,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-17T09:20:05.473Z
+* abapmerge  - 2019-11-17T09:32:56.565Z
 ****************************************************
