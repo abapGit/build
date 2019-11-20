@@ -77900,5 +77900,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-17T09:43:47.103Z
+* abapmerge  - 2019-11-20T16:50:18.628Z
 ****************************************************
