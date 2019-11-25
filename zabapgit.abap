@@ -11617,6 +11617,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
       IMPORTING
         ii_log TYPE REF TO zif_abapgit_log.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_log_out,
@@ -30946,7 +30947,41 @@ CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
+  METHOD calculate_cell_type.
+
+    FIELD-SYMBOLS: <ls_log> LIKE LINE OF gt_log.
+    DATA: ls_cell_type LIKE LINE OF <ls_log>-cell_type.
+
+    LOOP AT gt_log ASSIGNING <ls_log>.
+
+      IF <ls_log>-longtext IS NOT INITIAL.
+        ls_cell_type-columnname = `LONGTEXT`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-t100 IS NOT INITIAL.
+        ls_cell_type-columnname = `T100`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-source IS NOT INITIAL.
+        ls_cell_type-columnname = `SOURCE`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+      IF <ls_log>-callstack IS NOT INITIAL.
+        ls_cell_type-columnname = `CALLSTACK`.
+        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
+        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD dispatch.
 
     CASE iv_column.
@@ -30969,6 +31004,19 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD get_exception_viewer.
+
+    DATA:
+      lx_abapgit TYPE REF TO zcx_abapgit_exception.
+
+    ASSERT is_log-exception IS BOUND.
+    lx_abapgit ?= is_log-exception.
+
+    CREATE OBJECT ro_exception_viewer
+      EXPORTING
+        ix_error = lx_abapgit.
+
+  ENDMETHOD.
   METHOD goto_callstack.
 
     get_exception_viewer( is_log )->show_callstack( ).
@@ -30977,6 +31025,11 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
   METHOD goto_source.
 
     get_exception_viewer( is_log )->goto_source( ).
+
+  ENDMETHOD.
+  METHOD goto_t100_message.
+
+    get_exception_viewer( is_log )->goto_message( ).
 
   ENDMETHOD.
   METHOD on_link_click.
@@ -31177,8 +31230,7 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
 
     TRY.
         lx_abapgit ?= is_log-exception.
-
-      CATCH cx_sy_move_cast_error ##NO_HANDLER.
+      CATCH cx_sy_move_cast_error.
         RETURN.
     ENDTRY.
 
@@ -31210,11 +31262,6 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
-
-  ENDMETHOD.
-  METHOD goto_t100_message.
-
-    get_exception_viewer( is_log )->goto_message( ).
 
   ENDMETHOD.
   METHOD to_html.
@@ -31270,54 +31317,6 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD calculate_cell_type.
-
-    FIELD-SYMBOLS: <ls_log> LIKE LINE OF gt_log.
-    DATA: ls_cell_type LIKE LINE OF <ls_log>-cell_type.
-
-    LOOP AT gt_log ASSIGNING <ls_log>.
-
-      IF <ls_log>-longtext IS NOT INITIAL.
-        ls_cell_type-columnname = `LONGTEXT`.
-        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
-        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
-      ENDIF.
-
-      IF <ls_log>-t100 IS NOT INITIAL.
-        ls_cell_type-columnname = `T100`.
-        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
-        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
-      ENDIF.
-
-      IF <ls_log>-source IS NOT INITIAL.
-        ls_cell_type-columnname = `SOURCE`.
-        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
-        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
-      ENDIF.
-
-      IF <ls_log>-callstack IS NOT INITIAL.
-        ls_cell_type-columnname = `CALLSTACK`.
-        ls_cell_type-value      = if_salv_c_cell_type=>hotspot.
-        INSERT ls_cell_type INTO TABLE <ls_log>-cell_type.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD get_exception_viewer.
-
-    DATA:
-      lx_abapgit TYPE REF TO zcx_abapgit_exception.
-
-    ASSERT is_log-exception IS BOUND.
-    lx_abapgit ?= is_log-exception.
-
-    CREATE OBJECT ro_exception_viewer
-      EXPORTING
-        ix_error = lx_abapgit.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
@@ -52899,7 +52898,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
         io_xml->read( EXPORTING iv_name = c_s_dataname-segment_definition
                       CHANGING  cg_data = lt_segment_definitions ).
-      CATCH zcx_abapgit_exception ##no_handler.
+
+      CATCH zcx_abapgit_exception.
         RETURN. "previous XML version or no IDoc segment
     ENDTRY.
 
@@ -77920,5 +77920,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-21T15:32:38.166Z
+* abapmerge  - 2019-11-25T06:37:06.815Z
 ****************************************************
