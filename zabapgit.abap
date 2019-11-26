@@ -47161,7 +47161,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       EXPORTING
         name          = mv_name
         id            = mv_id
-        langu         = sy-langu
+        langu         = mv_language
       IMPORTING
         dd12v_wa      = ls_extension_index-dd12v
       TABLES
@@ -51273,7 +51273,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~LOAD')
           EXPORTING
             version  = c_version-active
-            language = sy-langu.
+            language = mv_language.
 
       CATCH cx_root.
         rv_bool = abap_false.
@@ -51340,7 +51340,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
         CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~LOAD')
           EXPORTING
             version  = c_version-active
-            language = sy-langu
+            language = mv_language
           IMPORTING
             sa       = <lg_complete_comm_assembly>.
 
@@ -54335,7 +54335,7 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
 
     CLEAR ls_bcdata.
     ls_bcdata-fnam     = 'RSSCS-TDSPRAS'.
-    ls_bcdata-fval     = sy-langu.
+    ls_bcdata-fval     = mv_language.
     APPEND ls_bcdata TO lt_bcdata.
 
     CLEAR ls_bcdata.
@@ -56549,7 +56549,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
       li_api->create_folder(
         EXPORTING
           i_url              = lv_url
-          i_language         = sy-langu
+          i_language         = mv_language
           i_dev_package      = iv_package
           i_folder_loio      = ls_skwf_io
         EXCEPTIONS
@@ -59254,7 +59254,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
 * copy everything to local, the function module changes the values
     ls_scp1 = is_scp1.
 
-    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = sy-langu. "#EC CI_SUBRC
+    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = mv_language. "#EC CI_SUBRC
 
     CALL FUNCTION 'SCPR_TEMPL_MN_TEMPLATE_SAVE'
       EXPORTING
@@ -59303,7 +59303,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
 * copy everything to local, the function module changes the values
     ls_scp1 = is_scp1.
 
-    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = sy-langu. "#EC CI_SUBRC
+    READ TABLE ls_scp1-scprtext INTO ls_text WITH KEY langu = mv_language. "#EC CI_SUBRC
 
 * see fm SCPR_PRSET_DB_STORE, only this field and sequence is used
     LOOP AT ls_scp1-subprofs INTO ls_profs.
@@ -64452,7 +64452,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     "   FORM GROUP_CHANGE
 
     UPDATE tlibt SET areat = iv_short_text
-                 WHERE spras = sy-langu
+                 WHERE spras = mv_language
                  AND   area  = iv_group.
 
   ENDMETHOD.
@@ -70751,7 +70751,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
         mode                = 'I'
         global_lock         = abap_true
         devclass            = iv_package
-        master_language     = sy-langu
+        master_language     = mv_language
         suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
@@ -70861,7 +70861,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
         cg_data = ls_img_activity ).
 
     READ TABLE ls_img_activity-texts INTO ls_text
-                                     WITH KEY spras = sy-langu.
+                                     WITH KEY spras = mv_language.
 
     CALL FUNCTION 'S_CUS_IMG_ACTIVITY_SAVE'
       EXPORTING
@@ -70879,7 +70879,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
         mode                = 'I'
         global_lock         = abap_true
         devclass            = iv_package
-        master_language     = sy-langu
+        master_language     = mv_language
         suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
@@ -71633,7 +71633,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
         lo_char->if_cls_attribute~set_obj_values_have_subtypes( ls_char-cls_attribute-objs_w_subtype ).
         lo_char->if_cls_attribute~set_arbtry_val_type( ls_char-cls_attribute-arbtry_val_type ).
 
-        READ TABLE ls_char-cls_attributet INTO ls_description WITH KEY langu = sy-langu.
+        READ TABLE ls_char-cls_attributet INTO ls_description WITH KEY langu = mv_language.
         IF sy-subrc <> 0.
           READ TABLE ls_char-cls_attributet INTO ls_description INDEX 1.
         ENDIF.
@@ -77920,5 +77920,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-25T06:37:06.815Z
+* abapmerge  - 2019-11-26T06:31:23.735Z
 ****************************************************
