@@ -26805,7 +26805,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '};'.
     _inline ''.
     _inline 'StageHelper.prototype.injectFilterMe = function() {'.
-    _inline '  var changedByHead = this.dom.stageTab.tHead.rows[0].cells[this.colIndex.user];'.
+    _inline '  var tabFirstHead = this.dom.stageTab.tHead.rows[0];'.
+    _inline '  if (!tabFirstHead || tabFirstHead.className !== "local") {'.
+    _inline '    return; // for the case only "remove part" is displayed'.
+    _inline '  }'.
+    _inline '  var changedByHead = tabFirstHead.cells[this.colIndex.user];'.
     _inline '  changedByHead.innerText = changedByHead.innerText + " (";'.
     _inline '  var a = document.createElement("A");'.
     _inline '  a.appendChild(document.createTextNode("me"));'.
@@ -77931,5 +77935,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-26T06:41:09.853Z
+* abapmerge  - 2019-11-27T05:20:34.571Z
 ****************************************************
