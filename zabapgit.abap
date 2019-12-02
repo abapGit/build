@@ -12506,14 +12506,21 @@ CLASS zcl_abapgit_state DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
+  FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
     TYPES: ty_unixtime TYPE c LENGTH 16.
 
-    CLASS-METHODS get
+    CLASS-METHODS get_unix
+      IMPORTING iv_date        TYPE sydatum DEFAULT sy-datum
+                iv_time        TYPE syuzeit DEFAULT sy-uzeit
       RETURNING VALUE(rv_time) TYPE ty_unixtime
       RAISING   zcx_abapgit_exception.
+    CLASS-METHODS get_utc
+      IMPORTING iv_unix TYPE ty_unixtime
+      EXPORTING ev_date TYPE sydatum
+                ev_time TYPE syuzeit.
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: c_epoch TYPE d VALUE '19700101'.
@@ -23658,16 +23665,16 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
-  METHOD get.
+CLASS zcl_abapgit_time IMPLEMENTATION.
+  METHOD get_unix.
 
     DATA: lv_i       TYPE i,
           lv_tz      TYPE tznzone,
           lv_utcdiff TYPE tznutcdiff,
           lv_utcsign TYPE tznutcsign.
-    lv_i = sy-datum - c_epoch.
+    lv_i = iv_date - c_epoch.
     lv_i = lv_i * 86400.
-    lv_i = lv_i + sy-uzeit.
+    lv_i = lv_i + iv_time.
 
     CALL FUNCTION 'TZON_GET_OS_TIMEZONE'
       IMPORTING
@@ -23676,8 +23683,8 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
     CALL FUNCTION 'TZON_GET_OFFSET'
       EXPORTING
         if_timezone      = lv_tz
-        if_local_date    = sy-datum
-        if_local_time    = sy-uzeit
+        if_local_date    = iv_date
+        if_local_time    = iv_time
       IMPORTING
         ef_utcdiff       = lv_utcdiff
         ef_utcsign       = lv_utcsign
@@ -23699,6 +23706,30 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
     CONDENSE rv_time.
     rv_time+11 = lv_utcsign.
     rv_time+12 = lv_utcdiff.
+
+  ENDMETHOD.
+  METHOD get_utc.
+
+    DATA: lv_i       TYPE i,
+          lv_tz      TYPE tznzone,
+          lv_utcdiff TYPE tznutcdiff,
+          lv_utcsign TYPE tznutcsign.
+    lv_i = iv_unix(10).
+    lv_utcsign = iv_unix+11.
+    lv_utcdiff = iv_unix+12.
+
+    " GMT + time-zone
+    CASE lv_utcsign.
+      WHEN '+'.
+        lv_i = lv_i + lv_utcdiff.
+      WHEN '-'.
+        lv_i = lv_i - lv_utcdiff.
+    ENDCASE.
+
+    ev_time = lv_i MOD 86400.
+    lv_i = lv_i - ev_time.
+    lv_i = lv_i / 86400.
+    ev_date = lv_i + c_epoch.
 
   ENDMETHOD.
 ENDCLASS.
@@ -37473,7 +37504,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( |<p>abapGit version: { zif_abapgit_version=>gc_abap_version }</p>| ).
     ro_html->add( |<p>XML version:     { zif_abapgit_version=>gc_xml_version }</p>| ).
     ro_html->add( |<p>GUI version:     { lv_gui_version }</p>| ).
-    ro_html->add( |<p>LCL_TIME:        { zcl_abapgit_time=>get( ) }</p>| ).
+    ro_html->add( |<p>LCL_TIME:        { zcl_abapgit_time=>get_unix( ) }</p>| ).
     ro_html->add( |<p>SY time:         { sy-datum } { sy-uzeit } { sy-tzone }</p>| ).
 
   ENDMETHOD.
@@ -75805,7 +75836,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
-    lv_time = zcl_abapgit_time=>get( ).
+    lv_time = zcl_abapgit_time=>get_unix( ).
 
     READ TABLE it_trees ASSIGNING <ls_tree> WITH KEY path = '/'.
     ASSERT sy-subrc = 0.
@@ -76514,7 +76545,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     DATA: lv_string TYPE string,
           lv_time   TYPE zcl_abapgit_time=>ty_unixtime.
 
-    lv_time = zcl_abapgit_time=>get( ).
+    lv_time = zcl_abapgit_time=>get_unix( ).
 
     lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>c_newline }|
              && |type { is_tag-type }{ zif_abapgit_definitions=>c_newline }|
@@ -78133,5 +78164,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-11-27T05:25:19.237Z
+* abapmerge  - 2019-12-02T08:30:08.909Z
 ****************************************************
