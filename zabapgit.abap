@@ -25450,6 +25450,58 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
     _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
     _inline ''.
+    _inline 'table.diff_tab td.mark, th.mark {'.
+    _inline '  width: 0.1%;'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '  cursor: default;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.diff_select_left td.diff_right,'.
+    _inline '.diff_select_left td.diff_right *,'.
+    _inline '.diff_select_left th.diff_right,'.
+    _inline '.diff_select_left th.diff_right *,'.
+    _inline '.diff_select_right td.diff_left,'.
+    _inline '.diff_select_right td.diff_left *,'.
+    _inline '.diff_select_right th.diff_left,'.
+    _inline '.diff_select_right th.diff_left * {'.
+    _inline '  -ms-user-select: none;'.
+    _inline '  user-select: none;'.
+    _inline '  cursor: text;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.diff_select_left td.diff_left,'.
+    _inline '.diff_select_left td.diff_left *,'.
+    _inline '.diff_select_left th.diff_left,'.
+    _inline '.diff_select_left th.diff_left *,'.
+    _inline '.diff_select_right td.diff_right,'.
+    _inline '.diff_select_right td.diff_right *,'.
+    _inline '.diff_select_right th.diff_right,'.
+    _inline '.diff_select_right th.diff_right * {'.
+    _inline '  -ms-user-select: text;'.
+    _inline '  user-select: text;'.
+    _inline '}'.
+    _inline ''.
+    _inline 'td.diff_others::selection,'.
+    _inline 'td.diff_others *::selection,'.
+    _inline 'th.diff_others::selection,'.
+    _inline 'th.diff_others *::selection {'.
+    _inline '  background-color: transparent;'.
+    _inline '  cursor: default;'.
+    _inline '}'.
+    _inline ''.
+    _inline '.diff_select_left td.diff_right::selection,'.
+    _inline '.diff_select_left td.diff_right *::selection,'.
+    _inline '.diff_select_left th.diff_right::selection,'.
+    _inline '.diff_select_left th.diff_right *::selection,'.
+    _inline '.diff_select_right td.diff_left::selection,'.
+    _inline '.diff_select_right td.diff_left *::selection,'.
+    _inline '.diff_select_right th.diff_left::selection,'.
+    _inline '.diff_select_right th.diff_left *::selection {'.
+    _inline '  background-color: transparent;'.
+    _inline '  cursor: text;'.
+    _inline '}'.
+    _inline ''.
     _inline '/* DEBUG INFO STYLES */'.
     _inline 'div.debug_container {'.
     _inline '  padding: 0.5em;'.
@@ -27303,6 +27355,133 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline 'function addMarginBottom(){'.
     _inline '  document.getElementsByTagName("body")[0].style.marginBottom = screen.height + "px";'.
     _inline '}'.
+    _inline ''.
+    _inline ''.
+    _inline '/**********************************************************'.
+    _inline ' * Diff page logic of column selection'.
+    _inline ' **********************************************************/'.
+    _inline ''.
+    _inline 'function DiffColumnSelection() {'.
+    _inline '  this.selectedColumnIdx = -1;'.
+    _inline '  this.lineNumColumnIdx = -1;'.
+    _inline '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution'.
+    _inline '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));'.
+    _inline '  document.addEventListener("copy", this.copyEventListener.bind(this));'.
+    _inline '}'.
+    _inline ''.
+    _inline 'DiffColumnSelection.prototype.mousedownEventListener = function(e) {'.
+    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
+    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
+    _inline '  // Process mousedown event for all TD elements -> apply CSS class at TABLE level.'.
+    _inline '  // (https://stackoverflow.com/questions/40956717/how-to-addeventlistener-to-multiple-elements-in-a-single-line)'.
+    _inline '  var unifiedLineNumColumnIdx = 0;'.
+    _inline '  var unifiedCodeColumnIdx = 3;'.
+    _inline '  var splitLineNumLeftColumnIdx = 0;'.
+    _inline '  var splitCodeLeftColumnIdx = 2;'.
+    _inline '  var splitLineNumRightColumnIdx = 3;'.
+    _inline '  var splitCodeRightColumnIdx = 5;'.
+    _inline ''.
+    _inline '  if (e.button !== 0) return; // function is only valid for left button, not right button'.
+    _inline ''.
+    _inline '  var td = e.target;'.
+    _inline '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;'.
+    _inline '  if (td == undefined) return;'.
+    _inline '  var table = td.parentElement.parentElement;'.
+    _inline ''.
+    _inline '  var patchColumnCount = 0;'.
+    _inline '  if (td.parentElement.cells[0].classList.contains("patch")) {'.
+    _inline '    patchColumnCount = 1;'.
+    _inline '  }'.
+    _inline ''.
+    _inline '  if (td.classList.contains("diff_left")) {'.
+    _inline '    table.classList.remove("diff_select_right");'.
+    _inline '    table.classList.add("diff_select_left");'.
+    _inline '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeLeftColumnIdx + patchColumnCount ) {'.
+    _inline '      // De-select to avoid effect of dragging selection in case the right column was first selected'.
+    _inline '      if (document.body.createTextRange) { // All IE but Edge'.
+    _inline '        // document.getSelection().removeAllRanges() may trigger error'.
+    _inline '        // so use this code which is equivalent but does not fail'.
+    _inline '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)'.
+    _inline '        range = document.body.createTextRange();'.
+    _inline '        range.collapse();'.
+    _inline '        range.select();'.
+    _inline '      } else {'.
+    _inline '        document.getSelection().removeAllRanges();'.
+    _inline '      }}'.
+    _inline '    this.selectedColumnIdx = splitCodeLeftColumnIdx + patchColumnCount;'.
+    _inline '    this.lineNumColumnIdx = splitLineNumLeftColumnIdx + patchColumnCount;'.
+    _inline ''.
+    _inline '  } else if (td.classList.contains("diff_right")) {'.
+    _inline '    table.classList.remove("diff_select_left");'.
+    _inline '    table.classList.add("diff_select_right");'.
+    _inline '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeRightColumnIdx + patchColumnCount ) {'.
+    _inline '      if (document.body.createTextRange) { // All IE but Edge'.
+    _inline '        // document.getSelection().removeAllRanges() may trigger error'.
+    _inline '        // so use this code which is equivalent but does not fail'.
+    _inline '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)'.
+    _inline '        var range = document.body.createTextRange();'.
+    _inline '        range.collapse();'.
+    _inline '        range.select();'.
+    _inline '      } else {'.
+    _inline '        document.getSelection().removeAllRanges();'.
+    _inline '      }}'.
+    _inline '    this.selectedColumnIdx = splitCodeRightColumnIdx + patchColumnCount;'.
+    _inline '    this.lineNumColumnIdx = splitLineNumRightColumnIdx + patchColumnCount;'.
+    _inline ''.
+    _inline '  } else if (td.classList.contains("diff_unified")) {'.
+    _inline '    this.selectedColumnIdx = unifiedCodeColumnIdx;'.
+    _inline '    this.lineNumColumnIdx = unifiedLineNumColumnIdx;'.
+    _inline ''.
+    _inline '  } else {'.
+    _inline '    this.selectedColumnIdx = -1;'.
+    _inline '    this.lineNumColumnIdx = -1;'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'DiffColumnSelection.prototype.copyEventListener = function(e) {'.
+    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
+    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
+    _inline '  var td = e.target;'.
+    _inline '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;'.
+    _inline '  if(td != undefined){'.
+    _inline '    // Use window.clipboardData instead of e.clipboardData'.
+    _inline '    // (https://stackoverflow.com/questions/23470958/ie-10-copy-paste-issue)'.
+    _inline '    var clipboardData = ( e.clipboardData == undefined ? window.clipboardData : e.clipboardData );'.
+    _inline '    var text = this.getSelectedText();'.
+    _inline '    clipboardData.setData("text", text);'.
+    _inline '    e.preventDefault();'.
+    _inline '  }'.
+    _inline '};'.
+    _inline ''.
+    _inline 'DiffColumnSelection.prototype.getSelectedText = function() {'.
+    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
+    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
+    _inline '  var sel = window.getSelection(),'.
+    _inline '    range = sel.getRangeAt(0),'.
+    _inline '    doc = range.cloneContents(),'.
+    _inline '    nodes = doc.querySelectorAll("tr"),'.
+    _inline '    text = "";'.
+    _inline '  if (nodes.length === 0) {'.
+    _inline '    text = doc.textContent;'.
+    _inline '  } else {'.
+    _inline '    var newline = "",'.
+    _inline '      realThis = this;'.
+    _inline '    [].forEach.call(nodes, function(tr, i) {'.
+    _inline '      var cellIdx = ( i==0 ? 0 : realThis.selectedColumnIdx );'.
+    _inline '      if (tr.cells.length > cellIdx) {'.
+    _inline '        var tdSelected = tr.cells[cellIdx];'.
+    _inline '        var tdLineNum = tr.cells[realThis.lineNumColumnIdx];'.
+    _inline '        // copy is interesting for remote code, don''t copy lines which exist only locally'.
+    _inline '        if (i==0 || tdLineNum.getAttribute("line-num")!="") {'.
+    _inline '          text += newline + tdSelected.textContent;'.
+    _inline '          // special processing for TD tag which sometimes contains newline'.
+    _inline '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so don''t add newline again in that case.'.
+    _inline '          var lastChar = tdSelected.textContent[ tdSelected.textContent.length - 1 ];'.
+    _inline '          if ( lastChar == "\n" ) newline = "";'.
+    _inline '          else newline = "\n";'.
+    _inline '        }}});}'.
+    _inline '  return text;'.
+    _inline '};'.
     _inline ''.
     _inline '/**********************************************************'.
     _inline ' * Other functions'.
@@ -37036,9 +37215,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
     IF mv_unified = abap_true.
       ro_html->add( '<th class="num"></th>' ).
+      ro_html->add( '<th class="mark"></th>' ).
       ro_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ELSE.
-      ro_html->add( |<th colspan="3">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
+      ro_html->add( |<th colspan="6">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ENDIF.
 
     ro_html->add( '</tr>' ).
@@ -37205,8 +37385,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         lv_mark = `+`.
       ENDIF.
     ENDIF.
-    lv_new = |<td class="num" line-num="{ is_diff_line-new_num }"></td>|
-          && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-new }</td>|.
+    lv_new = |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+          && |<td class="mark diff_others">{ lv_mark }</td>|
+          && |<td class="code{ lv_bg } diff_left">{ is_diff_line-new }</td>|.
 
     IF lv_mark <> ` `.
       lv_patch_line_possible = abap_true.
@@ -37224,8 +37405,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         lv_mark = `-`.
       ENDIF.
     ENDIF.
-    lv_old = |<td class="num" line-num="{ is_diff_line-old_num }"></td>|
-          && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-old }</td>|.
+    lv_old = |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+          && |<td class="mark diff_others">{ lv_mark }</td>|
+          && |<td class="code{ lv_bg } diff_right">{ is_diff_line-old }</td>|.
 
     IF lv_mark <> ` `.
       lv_patch_line_possible = abap_true.
@@ -37265,16 +37447,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     IF is_diff_line-result <> zif_abapgit_definitions=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
         ro_html->add( '<tr>' ).                             "#EC NOTEXT
-        ro_html->add( |<td class="num" line-num="{ <ls_diff_line>-old_num }"></td>|
-                   && |<td class="num" line-num=""></td>|
-                   && |<td class="code diff_del">-{ <ls_diff_line>-old }</td>| ).
+        ro_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
+                   && |<td class="num diff_others" line-num=""></td>|
+                   && |<td class="mark diff_others">-</td>|
+                   && |<td class="code diff_del diff_unified">{ <ls_diff_line>-old }</td>| ).
         ro_html->add( '</tr>' ).                            "#EC NOTEXT
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
         ro_html->add( '<tr>' ).                             "#EC NOTEXT
-        ro_html->add( |<td class="num" line-num=""></td>|
-                   && |<td class="num" line-num="{ <ls_diff_line>-new_num }"></td>|
-                   && |<td class="code diff_ins">+{ <ls_diff_line>-new }</td>| ).
+        ro_html->add( |<td class="num diff_others" line-num=""></td>|
+                   && |<td class="num diff_others" line-num="{ <ls_diff_line>-new_num }"></td>|
+                   && |<td class="mark diff_others">+</td>|
+                   && |<td class="code diff_ins diff_others">{ <ls_diff_line>-new }</td>| ).
         ro_html->add( '</tr>' ).                            "#EC NOTEXT
       ENDLOOP.
       CLEAR mt_delayed_lines.
@@ -37285,17 +37469,20 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_diff-update.
         APPEND is_diff_line TO mt_delayed_lines. " Delay output of subsequent updates
       WHEN zif_abapgit_definitions=>c_diff-insert.
-        ro_html->add( |<td class="num" line-num=""></td>|
-                   && |<td class="num" line-num="{ is_diff_line-new_num }"></td>|
-                   && |<td class="code diff_ins">+{ is_diff_line-new }</td>| ).
+        ro_html->add( |<td class="num diff_others" line-num=""></td>|
+                   && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+                   && |<td class="mark diff_others">+</td>|
+                   && |<td class="code diff_ins diff_others">{ is_diff_line-new }</td>| ).
       WHEN zif_abapgit_definitions=>c_diff-delete.
-        ro_html->add( |<td class="num" line-num="{ is_diff_line-old_num }"></td>|
-                   && |<td class="num" line-num=""></td>|
-                   && |<td class="code diff_del">-{ is_diff_line-old }</td>| ).
+        ro_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+                   && |<td class="num diff_others" line-num=""></td>|
+                   && |<td class="mark diff_others">-</td>|
+                   && |<td class="code diff_del diff_unified">{ is_diff_line-old }</td>| ).
       WHEN OTHERS. "none
-        ro_html->add( |<td class="num" line-num="{ is_diff_line-old_num }"></td>|
-                   && |<td class="num" line-num="{ is_diff_line-new_num }"></td>|
-                   && |<td class="code"> { is_diff_line-old }</td>| ).
+        ro_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+                   && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+                   && |<td class="mark diff_others">&nbsp;</td>|
+                   && |<td class="code diff_unified">{ is_diff_line-old }</td>| ).
     ENDCASE.
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
@@ -37347,6 +37534,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     IF mv_unified = abap_true.
       ro_html->add( '<th class="num">old</th>' ).           "#EC NOTEXT
       ro_html->add( '<th class="num">new</th>' ).           "#EC NOTEXT
+      ro_html->add( '<th class="mark"></th>' ).           "#EC NOTEXT
       ro_html->add( '<th>code</th>' ).                      "#EC NOTEXT
     ELSE.
 
@@ -37358,8 +37546,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDIF.
 
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
+      ro_html->add( '<th class="mark"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>LOCAL</th>' ).                     "#EC NOTEXT
       ro_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
+      ro_html->add( '<th class="mark"></th>' ).              "#EC NOTEXT
       ro_html->add( '<th>REMOTE</th>' ).                    "#EC NOTEXT
 
     ENDIF.
@@ -37392,6 +37582,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '  toggleKey: "F2",' ).
     ro_html->add( '  hotkeyDescription: "Jump to file ..."' ).
     ro_html->add( '});' ).
+
+    " Feature for selecting ABAP code by column and copy to clipboard
+    ro_html->add( 'var columnSelection = new DiffColumnSelection();' ).
 
   ENDMETHOD.
   METHOD start_staging.
@@ -78164,5 +78357,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-02T08:30:08.909Z
+* abapmerge  - 2019-12-02T08:33:38.805Z
 ****************************************************
