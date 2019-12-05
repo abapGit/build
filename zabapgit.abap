@@ -32086,6 +32086,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
 * todo, more to be added here
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?'.
+    REPLACE ALL OCCURRENCES OF '%3D' IN rv_string WITH '='.
 
   ENDMETHOD.
 ENDCLASS.
@@ -78424,5 +78425,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-05T08:00:31.573Z
+* abapmerge  - 2019-12-05T14:25:18.836Z
 ****************************************************
