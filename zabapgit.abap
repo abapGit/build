@@ -612,6 +612,7 @@ CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_hash DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_adt_link DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
@@ -4839,7 +4840,7 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
         VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
     METHODS corr_insert
       IMPORTING
-        !iv_package TYPE devclass
+        !iv_package      TYPE devclass
         !iv_object_class TYPE any OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -4888,25 +4889,6 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
-
-    CLASS-METHODS:
-      is_adt_jump_possible
-        IMPORTING io_object                      TYPE REF TO cl_wb_object
-                  io_adt                         TYPE REF TO object
-        RETURNING VALUE(rv_is_adt_jump_possible) TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
-    CLASS-METHODS:
-      get_adt_objects_and_names
-        IMPORTING
-          iv_obj_name       TYPE zif_abapgit_definitions=>ty_item-obj_name
-          iv_obj_type       TYPE zif_abapgit_definitions=>ty_item-obj_type
-        EXPORTING
-          eo_adt_uri_mapper TYPE REF TO object
-          eo_adt_objectref  TYPE REF TO object
-          ev_program        TYPE progname
-          ev_include        TYPE progname
-        RAISING
-          zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -10285,6 +10267,8 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       BEGIN OF ty_file_diff,
         path       TYPE string,
         filename   TYPE string,
+        obj_type   TYPE string,
+        obj_name   TYPE string,
         lstate     TYPE char1,
         rstate     TYPE char1,
         fstate     TYPE char1, " FILE state - Abstraction for shorter ifs
@@ -12105,6 +12089,41 @@ CLASS zcl_abapgit_ui_injector DEFINITION
         IMPORTING
           ii_gui_functions TYPE REF TO zif_abapgit_gui_functions.
 
+ENDCLASS.
+CLASS zcl_abapgit_adt_link DEFINITION FINAL.
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      generate
+        IMPORTING iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
+                  iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
+                  iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+                  iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+                  iv_line_number  TYPE i OPTIONAL
+        RETURNING VALUE(rv_result)   TYPE string
+        RAISING   zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      get_adt_objects_and_names
+        IMPORTING
+          iv_obj_name       TYPE zif_abapgit_definitions=>ty_item-obj_name
+          iv_obj_type       TYPE zif_abapgit_definitions=>ty_item-obj_type
+        EXPORTING
+          eo_adt_uri_mapper TYPE REF TO object
+          eo_adt_objectref  TYPE REF TO object
+          ev_program        TYPE progname
+          ev_include        TYPE progname
+        RAISING
+          zcx_abapgit_exception.
+
+    CLASS-METHODS:
+      is_adt_jump_possible
+        IMPORTING io_object                      TYPE REF TO cl_wb_object
+                  io_adt                         TYPE REF TO object
+        RETURNING VALUE(rv_is_adt_jump_possible) TYPE abap_bool
+        RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -24921,6 +24940,166 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_adt_link IMPLEMENTATION.
+
+  METHOD generate.
+
+    DATA: lv_adt_link       TYPE string.
+    DATA: lo_adt_uri_mapper TYPE REF TO object ##needed.
+    DATA: lo_adt_objref     TYPE REF TO object ##needed.
+    DATA: lo_adt_sub_objref TYPE REF TO object ##needed.
+    DATA: lv_program        TYPE progname.
+    DATA: lv_include        TYPE progname.
+    FIELD-SYMBOLS: <lv_uri> TYPE string.
+
+    get_adt_objects_and_names(
+          EXPORTING
+            iv_obj_name       = iv_obj_name
+            iv_obj_type       = iv_obj_type
+          IMPORTING
+            eo_adt_uri_mapper = lo_adt_uri_mapper
+            eo_adt_objectref  = lo_adt_objref
+            ev_program        = lv_program
+            ev_include        = lv_include ).
+
+    TRY.
+        IF iv_sub_obj_name IS NOT INITIAL.
+
+          IF ( lv_program <> iv_obj_name AND lv_include IS INITIAL ) OR
+             ( lv_program = lv_include AND iv_sub_obj_name IS NOT INITIAL ).
+            lv_include = iv_sub_obj_name.
+          ENDIF.
+
+          CALL METHOD lo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_INCLUDE_TO_OBJREF')
+            EXPORTING
+              program     = lv_program
+              include     = lv_include
+              line        = iv_line_number
+              line_offset = 0
+              end_line    = iv_line_number
+              end_offset  = 1
+            RECEIVING
+              result      = lo_adt_sub_objref.
+          IF lo_adt_sub_objref IS NOT INITIAL.
+            lo_adt_objref = lo_adt_sub_objref.
+          ENDIF.
+
+        ENDIF.
+
+        ASSIGN ('LO_ADT_OBJREF->REF_DATA-URI') TO <lv_uri>.
+        ASSERT sy-subrc = 0.
+
+        CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
+
+        rv_result = lv_adt_link.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDTRY.
+  ENDMETHOD.
+  METHOD get_adt_objects_and_names.
+
+    DATA lv_obj_type       TYPE trobjtype.
+    DATA lv_obj_name       TYPE trobj_name.
+    DATA lo_object         TYPE REF TO cl_wb_object.
+    DATA lo_adt            TYPE REF TO object.
+    FIELD-SYMBOLS <lv_uri> TYPE string.
+
+    lv_obj_name = iv_obj_name.
+    lv_obj_type = iv_obj_type.
+
+    TRY.
+        cl_wb_object=>create_from_transport_key(
+          EXPORTING
+            p_object    = lv_obj_type
+            p_obj_name  = lv_obj_name
+          RECEIVING
+            p_wb_object = lo_object
+          EXCEPTIONS
+            OTHERS      = 1 ).
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+        ENDIF.
+
+        CALL METHOD ('CL_ADT_TOOLS_CORE_FACTORY')=>('GET_INSTANCE')
+          RECEIVING
+            result = lo_adt.
+
+        IF is_adt_jump_possible( io_object = lo_object
+                                 io_adt    = lo_adt ) = abap_false.
+          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+        ENDIF.
+
+        CALL METHOD lo_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER')
+          RECEIVING
+            result = eo_adt_uri_mapper.
+
+        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_WB_OBJECT_TO_OBJREF')
+          EXPORTING
+            wb_object = lo_object
+          RECEIVING
+            result    = eo_adt_objectref.
+
+        ASSIGN ('EO_ADT_OBJECTREF->REF_DATA-URI') TO <lv_uri>.
+        ASSERT sy-subrc = 0.
+
+        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_OBJREF_TO_INCLUDE')
+          EXPORTING
+            uri     = <lv_uri>
+          IMPORTING
+            program = ev_program
+            include = ev_include.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD is_adt_jump_possible.
+
+    DATA: lo_wb_request         TYPE REF TO cl_wb_request,
+          lo_adt_uri_mapper_vit TYPE REF TO object,
+          lv_vit_wb_request     TYPE abap_bool.
+
+    cl_wb_request=>create_from_object_ref(
+      EXPORTING
+        p_wb_object       = io_object
+      RECEIVING
+        p_wb_request      = lo_wb_request
+      EXCEPTIONS
+        illegal_operation = 1
+        cancelled         = 2
+        OTHERS            = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDIF.
+
+    TRY.
+        CALL METHOD io_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER_VIT')
+          RECEIVING
+            result = lo_adt_uri_mapper_vit.
+
+        CALL METHOD lo_adt_uri_mapper_vit->('IF_ADT_URI_MAPPER_VIT~IS_VIT_WB_REQUEST')
+          EXPORTING
+            wb_request = lo_wb_request
+          RECEIVING
+            result     = lv_vit_wb_request.
+
+        IF lv_vit_wb_request = abap_true.
+          rv_is_adt_jump_possible = abap_false.
+        ELSE.
+          rv_is_adt_jump_possible = abap_true.
+        ENDIF.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   METHOD set_gui_functions.
 
@@ -36752,7 +36931,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -36893,10 +37072,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD append_diff.
 
     DATA:
-      lv_offs    TYPE i,
+      lv_offs      TYPE i,
       lv_is_binary TYPE abap_bool,
-      ls_r_dummy LIKE LINE OF it_remote ##NEEDED,
-      ls_l_dummy LIKE LINE OF it_local  ##NEEDED.
+      ls_r_dummy   LIKE LINE OF it_remote ##NEEDED,
+      ls_l_dummy   LIKE LINE OF it_local  ##NEEDED.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
                    <ls_local>  LIKE LINE OF it_local,
@@ -36922,6 +37101,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     APPEND INITIAL LINE TO mt_diff_files ASSIGNING <ls_diff>.
     <ls_diff>-path     = is_status-path.
     <ls_diff>-filename = is_status-filename.
+    <ls_diff>-obj_type = is_status-obj_type.
+    <ls_diff>-obj_name = is_status-obj_name.
     <ls_diff>-lstate   = is_status-lstate.
     <ls_diff>-rstate   = is_status-rstate.
 
@@ -37275,7 +37456,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_diff_head.
 
-    DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count.
+    DATA: ls_stats    TYPE zif_abapgit_definitions=>ty_count,
+          lv_adt_link TYPE string.
 
     CREATE OBJECT ro_html.
 
@@ -37293,7 +37475,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ro_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
     ENDIF.
 
-    ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ). "#EC NOTEXT
+    " no links for nonexistent or deleted objects
+    IF is_diff-lstate IS NOT INITIAL AND is_diff-lstate <> 'D'.
+      lv_adt_link = zcl_abapgit_html=>a(
+        iv_txt = |{ is_diff-path }{ is_diff-filename }|
+        iv_typ = zif_abapgit_html=>c_action_type-sapevent
+        iv_act = |jump?TYPE={ is_diff-obj_type }&NAME={ is_diff-obj_name }| ).
+    ENDIF.
+
+    IF lv_adt_link IS NOT INITIAL.
+      ro_html->add(
+        |<span class="diff_name">{ lv_adt_link }</span>| ). "#EC NOTEXT
+    ELSE.
+      ro_html->add(
+        |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ). "#EC NOTEXT
+    ENDIF.
+
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
       iv_lstate = is_diff-lstate
       iv_rstate = is_diff-rstate ) ).
@@ -44489,7 +44686,7 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD check_timestamp.
 
     DATA: lv_ts TYPE timestamp.
@@ -44589,64 +44786,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD get_adt_objects_and_names.
 
-    DATA lv_obj_type       TYPE trobjtype.
-    DATA lv_obj_name       TYPE trobj_name.
-    DATA lo_object         TYPE REF TO cl_wb_object.
-    DATA lo_adt            TYPE REF TO object.
-    FIELD-SYMBOLS <lv_uri> TYPE string.
-
-    lv_obj_name = iv_obj_name.
-    lv_obj_type = iv_obj_type.
-
-    TRY.
-        cl_wb_object=>create_from_transport_key(
-          EXPORTING
-            p_object    = lv_obj_type
-            p_obj_name  = lv_obj_name
-          RECEIVING
-            p_wb_object = lo_object
-          EXCEPTIONS
-            OTHERS      = 1 ).
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-        ENDIF.
-
-        CALL METHOD ('CL_ADT_TOOLS_CORE_FACTORY')=>('GET_INSTANCE')
-          RECEIVING
-            result = lo_adt.
-
-        IF is_adt_jump_possible( io_object = lo_object
-                                 io_adt    = lo_adt ) = abap_false.
-          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-        ENDIF.
-
-        CALL METHOD lo_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER')
-          RECEIVING
-            result = eo_adt_uri_mapper.
-
-        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_WB_OBJECT_TO_OBJREF')
-          EXPORTING
-            wb_object = lo_object
-          RECEIVING
-            result    = eo_adt_objectref.
-
-        ASSIGN ('EO_ADT_OBJECTREF->REF_DATA-URI') TO <lv_uri>.
-        ASSERT sy-subrc = 0.
-
-        CALL METHOD eo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_OBJREF_TO_INCLUDE')
-          EXPORTING
-            uri     = <lv_uri>
-          IMPORTING
-            program = ev_program
-            include = ev_include.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-    ENDTRY.
-
-  ENDMETHOD.
   METHOD get_metadata.
 
     DATA: lv_class TYPE string.
@@ -44686,105 +44826,30 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
   ENDMETHOD.
-  METHOD is_adt_jump_possible.
-
-    DATA: lo_wb_request         TYPE REF TO cl_wb_request,
-          lo_adt_uri_mapper_vit TYPE REF TO object,
-          lv_vit_wb_request     TYPE abap_bool.
-
-    cl_wb_request=>create_from_object_ref(
-      EXPORTING
-        p_wb_object       = io_object
-      RECEIVING
-        p_wb_request      = lo_wb_request
-      EXCEPTIONS
-        illegal_operation = 1
-        cancelled         = 2
-        OTHERS            = 3 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-    ENDIF.
-
-    TRY.
-        CALL METHOD io_adt->('IF_ADT_TOOLS_CORE_FACTORY~GET_URI_MAPPER_VIT')
-          RECEIVING
-            result = lo_adt_uri_mapper_vit.
-
-        CALL METHOD lo_adt_uri_mapper_vit->('IF_ADT_URI_MAPPER_VIT~IS_VIT_WB_REQUEST')
-          EXPORTING
-            wb_request = lo_wb_request
-          RECEIVING
-            result     = lv_vit_wb_request.
-
-        IF lv_vit_wb_request = abap_true.
-          rv_is_adt_jump_possible = abap_false.
-        ELSE.
-          rv_is_adt_jump_possible = abap_true.
-        ENDIF.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-    ENDTRY.
-
-  ENDMETHOD.
   METHOD jump_adt.
 
-    DATA: lv_adt_link       TYPE string.
-    DATA: lo_adt_uri_mapper TYPE REF TO object ##needed.
-    DATA: lo_adt_objref     TYPE REF TO object ##needed.
-    DATA: lo_adt_sub_objref TYPE REF TO object ##needed.
-    DATA: lv_program        TYPE progname.
-    DATA: lv_include        TYPE progname.
-    FIELD-SYMBOLS: <lv_uri> TYPE string.
-    get_adt_objects_and_names(
-      EXPORTING
-        iv_obj_name       = iv_obj_name
-        iv_obj_type       = iv_obj_type
-      IMPORTING
-        eo_adt_uri_mapper = lo_adt_uri_mapper
-        eo_adt_objectref  = lo_adt_objref
-        ev_program        = lv_program
-        ev_include        = lv_include ).
+    DATA: lv_adt_link   TYPE string,
+          lx_error TYPE REF TO cx_root.
 
     TRY.
-        IF iv_sub_obj_name IS NOT INITIAL.
 
-          IF ( lv_program <> iv_obj_name AND lv_include IS INITIAL ) OR
-             ( lv_program = lv_include AND iv_sub_obj_name IS NOT INITIAL ).
-            lv_include = iv_sub_obj_name.
-          ENDIF.
+        lv_adt_link = zcl_abapgit_adt_link=>generate(
+          iv_obj_name = iv_obj_name
+          iv_obj_type = iv_obj_type
+          iv_sub_obj_name = iv_sub_obj_name
+          iv_sub_obj_type = iv_sub_obj_type
+          iv_line_number = iv_line_number ).
 
-          CALL METHOD lo_adt_uri_mapper->('IF_ADT_URI_MAPPER~MAP_INCLUDE_TO_OBJREF')
-            EXPORTING
-              program     = lv_program
-              include     = lv_include
-              line        = iv_line_number
-              line_offset = 0
-              end_line    = iv_line_number
-              end_offset  = 1
-            RECEIVING
-              result      = lo_adt_sub_objref.
-          IF lo_adt_sub_objref IS NOT INITIAL.
-            lo_adt_objref = lo_adt_sub_objref.
-          ENDIF.
-
-        ENDIF.
-
-        ASSIGN ('LO_ADT_OBJREF->REF_DATA-URI') TO <lv_uri>.
-        ASSERT sy-subrc = 0.
-
-        CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
-
-        cl_gui_frontend_services=>execute( EXPORTING  document = lv_adt_link
-                                           EXCEPTIONS OTHERS   = 1 ).
+        cl_gui_frontend_services=>execute(
+          EXPORTING  document = lv_adt_link
+          EXCEPTIONS OTHERS   = 1 ).
 
         IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+          zcx_abapgit_exception=>raise( |ADT Jump Error - failed to open link { lv_adt_link }. Subrc={ sy-subrc }| ).
         ENDIF.
 
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text = 'ADT Jump Error' ix_previous = lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -78359,5 +78424,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-04T09:22:39.990Z
+* abapmerge  - 2019-12-05T08:00:31.573Z
 ****************************************************
