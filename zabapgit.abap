@@ -16303,7 +16303,8 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                    <ls_object>  LIKE LINE OF <ls_request>-objects.
     LOOP AT it_requests ASSIGNING <ls_request>.
       LOOP AT <ls_request>-objects ASSIGNING <ls_object>.
-        IF <ls_object>-pgmid = 'LIMU'.
+        " VARX, see https://github.com/larshp/abapGit/issues/3107
+        IF <ls_object>-pgmid = 'LIMU' AND <ls_object>-object <> 'VARX'.
           CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
             EXPORTING
               p_limu_objtype = <ls_object>-object
@@ -78425,5 +78426,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-11T05:48:46.761Z
+* abapmerge  - 2019-12-11T06:05:09.960Z
 ****************************************************
