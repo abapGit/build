@@ -1869,6 +1869,8 @@ INTERFACE zif_abapgit_object .
     RAISING
       zcx_abapgit_exception .
   METHODS delete
+    IMPORTING
+      iv_package TYPE devclass
     RAISING
       zcx_abapgit_exception .
   METHODS exists
@@ -7018,6 +7020,7 @@ CLASS zcl_abapgit_object_sqsc DEFINITION
     METHODS:
       delete_interface_if_it_exists
         IMPORTING
+          iv_package   TYPE devclass
           iv_interface TYPE ty_abap_name
         RAISING
           zcx_abapgit_exception.
@@ -13805,7 +13808,8 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_package TYPE devclass .
     CLASS-METHODS delete_obj
       IMPORTING
-        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !iv_package TYPE devclass
+        !is_item    TYPE zif_abapgit_definitions=>ty_item
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS compare_remote_to_local
@@ -19266,7 +19270,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           CLEAR ls_item.
           ls_item-obj_type = <ls_tadir>-object.
           ls_item-obj_name = <ls_tadir>-obj_name.
-          delete_obj( ls_item ).
+          delete_obj(
+            iv_package = <ls_tadir>-devclass
+            is_item    = ls_item ).
 
 * make sure to save object deletions
           COMMIT WORK.
@@ -19288,7 +19294,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       li_obj = create_object( is_item     = is_item
                               iv_language = zif_abapgit_definitions=>c_english ).
 
-      li_obj->delete( ).
+      li_obj->delete( iv_package ).
 
       IF li_obj->get_metadata( )-delete_tadir = abap_true.
         CALL FUNCTION 'TR_TADIR_INTERFACE'
@@ -45092,7 +45098,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
         cg_data = <lg_data> ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     TRY.
@@ -47098,7 +47104,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
           lv_len        TYPE i,
           ls_attributes TYPE o2xsltattr.
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
@@ -52436,7 +52442,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
           lt_param_values TYPE tty_param_values,
           ls_rsstcd       TYPE rsstcd.
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TSTC'
@@ -55561,7 +55567,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
           is_item     = ls_item
           iv_language = mv_language.
 
-      lo_interface->zif_abapgit_object~delete( ).
+      lo_interface->zif_abapgit_object~delete( iv_package ).
 
     ENDIF.
 
@@ -55597,7 +55603,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
 
     IF zif_abapgit_object~exists( ) = abap_false.
 
-      delete_interface_if_it_exists( ls_proxy-header-interface_pool ).
+      delete_interface_if_it_exists(
+          iv_package   = iv_package
+          iv_interface = ls_proxy-header-interface_pool ).
 
       CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~CREATE')
         EXPORTING
@@ -58252,7 +58260,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
                   CHANGING  cg_data = lt_texts ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     CALL FUNCTION 'STREE_HIERARCHY_SAVE'
@@ -58670,7 +58678,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
     lv_xstr = cl_ixml_80_20=>render_to_xstring( io_xml->get_raw( ) ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     TRY.
@@ -62230,15 +62238,10 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     DATA: lt_iobjname     TYPE STANDARD TABLE OF t_iobj,
           lv_object       TYPE string,
           lv_object_class TYPE string,
-          ls_tadir        TYPE zif_abapgit_definitions=>ty_tadir,
           lv_transp_pkg   TYPE abap_bool.
 
-    ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
-                                                   iv_object   = ms_item-obj_type
-                                                   iv_obj_name = ms_item-obj_name ).
-
-    lv_transp_pkg =
-    zcl_abapgit_factory=>get_sap_package( iv_package = ls_tadir-devclass )->are_changes_recorded_in_tr_req( ).
+    lv_transp_pkg = zcl_abapgit_factory=>get_sap_package( iv_package
+                                      )->are_changes_recorded_in_tr_req( ).
 
     APPEND ms_item-obj_name TO lt_iobjname.
 
@@ -63232,7 +63235,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
     ls_attr-devclass = iv_package.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     save( is_attr = ls_attr ).
@@ -65862,7 +65865,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
                   CHANGING  cg_data = lt_comp_spots ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     lv_package = iv_package.
@@ -66388,7 +66391,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
           li_enhs      TYPE REF TO zif_abapgit_object_enhs.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -67562,7 +67565,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
     DATA: lv_tool TYPE enhtooltype,
           li_enho TYPE REF TO zif_abapgit_object_enho.
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( ).
+      zif_abapgit_object~delete( iv_package ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -78462,5 +78465,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-11T06:11:47.858Z
+* abapmerge  - 2019-12-11T09:44:12.414Z
 ****************************************************
