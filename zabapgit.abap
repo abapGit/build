@@ -43936,6 +43936,10 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     ls_clskey-clsname = iv_name.
 
     TRY.
+        CALL FUNCTION 'SEO_BUFFER_REFRESH'
+          EXPORTING
+            cifkey  = ls_clskey
+            version = seoc_version_active.
         CREATE OBJECT lo_update TYPE ('CL_OO_CLASS_SECTION_SOURCE')
           EXPORTING
             clskey                        = ls_clskey
@@ -78434,5 +78438,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-12T10:02:58.917Z
+* abapmerge  - 2019-12-17T07:42:38.999Z
 ****************************************************
