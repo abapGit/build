@@ -17990,7 +17990,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
     READ TABLE lt_repos WITH KEY package = iv_package ASSIGNING <ls_repo>.
     IF sy-subrc = 0.
-      lv_name = zcl_abapgit_repo_srv=>get_instance( )->get( <ls_repo>-key )->get_name( ).
+      lv_name = get_instance( )->get( <ls_repo>-key )->get_name( ).
       lv_owner = <ls_repo>-created_by.
       zcx_abapgit_exception=>raise( |Package { iv_package } already versioned as { lv_name } by { lv_owner }| ).
     ENDIF.
@@ -19978,7 +19978,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     LOOP AT lt_objects ASSIGNING <ls_object> WHERE pgmid = 'R3TR'.
       ls_item-obj_type = <ls_object>-object.
 
-      lv_supported = zcl_abapgit_objects=>is_supported(
+      lv_supported = is_supported(
         is_item        = ls_item
         iv_native_only = abap_true ).
 
@@ -20530,13 +20530,13 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
     CASE cs_itf-tdline.
       WHEN gc_section_token-cause.
-        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-cause.
+        cs_itf-tdline = gc_section_text-cause.
       WHEN gc_section_token-system_response.
-        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-system_response.
+        cs_itf-tdline = gc_section_text-system_response.
       WHEN gc_section_token-what_to_do.
-        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-what_to_do.
+        cs_itf-tdline = gc_section_text-what_to_do.
       WHEN gc_section_token-sys_admin.
-        cs_itf-tdline = zcl_abapgit_message_helper=>gc_section_text-sys_admin.
+        cs_itf-tdline = gc_section_text-sys_admin.
     ENDCASE.
 
   ENDMETHOD.
@@ -21628,7 +21628,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF gt_code_inspector.
-    FIELD-SYMBOLS: <ls_code_inspector> TYPE zcl_abapgit_factory=>ty_code_inspector.
+    FIELD-SYMBOLS: <ls_code_inspector> TYPE ty_code_inspector.
 
     READ TABLE gt_code_inspector ASSIGNING <ls_code_inspector>
       WITH TABLE KEY package = iv_package.
@@ -29129,7 +29129,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
   METHOD on_double_click.
 
-    FIELD-SYMBOLS: <ls_tag> TYPE zcl_abapgit_tag_popups=>ty_tag_out.
+    FIELD-SYMBOLS: <ls_tag> TYPE ty_tag_out.
 
     READ TABLE mt_tags ASSIGNING <ls_tag>
                        INDEX row.
@@ -31558,7 +31558,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   METHOD on_link_click.
 
     DATA: lx_error TYPE REF TO zcx_abapgit_exception.
-    FIELD-SYMBOLS: <ls_log> TYPE zcl_abapgit_log_viewer=>ty_log_out.
+    FIELD-SYMBOLS: <ls_log> TYPE ty_log_out.
 
     IF row IS INITIAL
     OR column IS INITIAL.
@@ -37129,7 +37129,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
           lv_patch             TYPE xstring,
           lo_git_add_patch     TYPE REF TO zcl_abapgit_git_add_patch.
 
-    FIELD-SYMBOLS: <ls_diff_file> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
+    FIELD-SYMBOLS: <ls_diff_file> TYPE ty_file_diff.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_repo_key ).
 
@@ -39698,7 +39698,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD zif_abapgit_gui_renderable~render.
 
     DATA: lo_script TYPE REF TO zcl_abapgit_html,
-          lt_events TYPE zcl_abapgit_gui_page=>tt_events.
+          lt_events TYPE tt_events.
 
     FIELD-SYMBOLS:
           <ls_event> LIKE LINE OF lt_events.
@@ -43198,7 +43198,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
           li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
     FIELD-SYMBOLS: <lv_user>                     LIKE LINE OF lt_abapgit_users,
-                   <ls_setting_to_migrate>       TYPE zcl_abapgit_persist_migrate=>ty_settings_to_migrate,
+                   <ls_setting_to_migrate>       TYPE ty_settings_to_migrate,
                    <lg_user_specific_setting_val> TYPE data.
 
     " distribute settings to all abapGit users
@@ -45791,10 +45791,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_any_dynpro_locked.
 
-    DATA: lt_dynpros TYPE zcl_abapgit_objects_program=>ty_dynpro_tt,
+    DATA: lt_dynpros TYPE ty_dynpro_tt,
           lv_object  TYPE seqg3-garg.
 
-    FIELD-SYMBOLS: <ls_dynpro> TYPE zcl_abapgit_objects_program=>ty_dynpro.
+    FIELD-SYMBOLS: <ls_dynpro> TYPE ty_dynpro.
 
     lt_dynpros = serialize_dynpros( iv_program ).
 
@@ -49269,7 +49269,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
           lo_page           TYPE REF TO cl_o2_api_pages,
           lt_pages_info     TYPE ty_pages_tt,
           ls_pagekey        TYPE o2pagkey,
-          ls_local_page     TYPE zcl_abapgit_object_wapa=>ty_page,
+          ls_local_page     TYPE ty_page,
           lt_remote_content TYPE o2pageline_table,
           lt_local_content  TYPE o2pageline_table,
           lt_local_pages    TYPE o2pagelist.
@@ -54412,7 +54412,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname       = lv_tr_object_name
-        transobjecttype  = zcl_abapgit_object_susc=>transobjecttype_class
+        transobjecttype  = transobjecttype_class
       IMPORTING
         return_from_korr = lv_tr_return.
 
@@ -54485,7 +54485,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname      = lv_objectname
-        transobjecttype = zcl_abapgit_object_susc=>transobjecttype_class.
+        transobjecttype = transobjecttype_class.
 
     INSERT tobc FROM ls_tobc.                             "#EC CI_SUBRC
 * ignore sy-subrc as all fields are key fields
@@ -55147,8 +55147,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
                                     CHANGING  cv_within_code_section = cv_within_code_section ).
 
 * for downwards compatibility, this code can be removed sometime in the future
-        lv_leading_spaces = li_element->get_attribute_ns(
-          name = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces ).
+        lv_leading_spaces = li_element->get_attribute_ns( name = attrib_abapgit_leadig_spaces ).
 
         lv_coding_line = li_element->get_value( ).
         IF strlen( lv_coding_line ) >= 1 AND lv_coding_line(1) <> | |.
@@ -60194,7 +60193,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lo_pragma TYPE REF TO cl_abap_pragma,
-          ls_pragma TYPE zcl_abapgit_object_prag=>ty_pragma.
+          ls_pragma TYPE ty_pragma.
 
     TRY.
         lo_pragma = cl_abap_pragma=>get_ref( ms_item-obj_name ).
@@ -65160,7 +65159,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_any_function_module_locked.
 
-    DATA: lt_functions TYPE zcl_abapgit_object_fugr=>ty_rs38l_incl_tt.
+    DATA: lt_functions TYPE ty_rs38l_incl_tt.
 
     FIELD-SYMBOLS: <ls_function> TYPE rs38l_incl.
 
@@ -66192,7 +66191,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD _sort_tdlines_by_windows.
-    DATA lt_lines        TYPE zcl_abapgit_object_form=>tyt_lines.
+    DATA lt_lines        TYPE tyt_lines.
     DATA ls_lines        LIKE LINE OF lt_lines.
     DATA ls_form_windows LIKE LINE OF ct_form_windows.
     DATA lv_elt_windows  TYPE tdformat VALUE '/W'.
@@ -78822,5 +78821,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2019-12-28T11:25:07.450Z
+* abapmerge  - 2020-01-06T12:21:34.114Z
 ****************************************************
