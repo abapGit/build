@@ -63745,7 +63745,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
@@ -63787,6 +63787,42 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     w3_api_save( li_service ).
 
   ENDMETHOD.
+  METHOD w3_api_create_new.
+
+    cl_w3_api_service=>if_w3_api_service~create_new(
+      EXPORTING
+        p_service_data = is_attributes
+      IMPORTING
+        p_service      = ri_service
+      EXCEPTIONS
+        object_already_existing = 1
+        object_just_created     = 2
+        not_authorized          = 3
+        undefined_name          = 4
+        author_not_existing     = 5
+        action_cancelled        = 6
+        error_occured           = 7
+        invalid_parameter       = 8
+        OTHERS                  = 9 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_service~create_new. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_delete.
+
+    ii_service->if_w3_api_object~delete(
+      EXCEPTIONS
+        object_not_empty      = 1
+        object_not_changeable = 2
+        object_invalid        = 3
+        error_occured         = 4
+        OTHERS                = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~delete. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD w3_api_get_attributes.
 
     ii_service->get_attributes( IMPORTING p_attributes = rs_attributes ).
@@ -63811,6 +63847,82 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
         OTHERS              = 4 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from w3api_service~load' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_save.
+
+    ii_service->if_w3_api_object~save(
+      EXCEPTIONS
+        object_invalid        = 1
+        object_not_changeable = 2
+        action_cancelled      = 3
+        permission_failure    = 4
+        not_changed           = 5
+        data_invalid          = 6
+        error_occured         = 7
+        OTHERS                = 8 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~save. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_attributes.
+
+    ii_service->set_attributes(
+      EXPORTING
+        p_attributes          = is_attributes
+      EXCEPTIONS
+        object_not_changeable = 1
+        object_deleted        = 2
+        object_invalid        = 3
+        author_not_existing   = 4
+        authorize_failure     = 5
+        error_occured         = 6
+        OTHERS                = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_service~set_attributes. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_changeable.
+
+    ii_service->if_w3_api_object~set_changeable(
+      EXPORTING
+        p_changeable                 = abap_true
+      EXCEPTIONS
+        action_cancelled             = 1
+        object_locked_by_other_user  = 2
+        permission_failure           = 3
+        object_already_changeable    = 4
+        object_already_unlocked      = 5
+        object_just_created          = 6
+        object_deleted               = 7
+        object_modified              = 8
+        object_not_existing          = 9
+        object_invalid               = 10
+        error_occured                = 11
+        OTHERS                       = 12 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~set_changeable. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_parameters.
+
+    ii_service->set_parameters(
+      EXPORTING
+        p_parameters          = it_parameters
+      EXCEPTIONS
+        object_not_changeable = 1
+        object_deleted        = 2
+        object_invalid        = 3
+        authorize_failure     = 4
+        invalid_parameter     = 5
+        error_occured         = 6
+        OTHERS                = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_service~set_parameters. Subrc={ sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -63903,124 +64015,9 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
                  ig_data = lt_parameters ).
 
   ENDMETHOD.
-
-  METHOD w3_api_create_new.
-
-    cl_w3_api_service=>if_w3_api_service~create_new(
-      EXPORTING
-        p_service_data = is_attributes
-      IMPORTING
-        p_service      = ri_service
-      EXCEPTIONS
-        object_already_existing = 1
-        object_just_created     = 2
-        not_authorized          = 3
-        undefined_name          = 4
-        author_not_existing     = 5
-        action_cancelled        = 6
-        error_occured           = 7
-        invalid_parameter       = 8
-        OTHERS                  = 9 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_service~create_new. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_attributes.
-
-    ii_service->set_attributes(
-      EXPORTING
-        p_attributes          = is_attributes
-      EXCEPTIONS
-        object_not_changeable = 1
-        object_deleted        = 2
-        object_invalid        = 3
-        author_not_existing   = 4
-        authorize_failure     = 5
-        error_occured         = 6
-        OTHERS                = 7 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_service~set_attributes. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_parameters.
-
-    ii_service->set_parameters(
-      EXPORTING
-        p_parameters          = it_parameters
-      EXCEPTIONS
-        object_not_changeable = 1
-        object_deleted        = 2
-        object_invalid        = 3
-        authorize_failure     = 4
-        invalid_parameter     = 5
-        error_occured         = 6
-        OTHERS                = 7 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_service~set_parameters. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_save.
-
-    ii_service->if_w3_api_object~save(
-      EXCEPTIONS
-        object_invalid        = 1
-        object_not_changeable = 2
-        action_cancelled      = 3
-        permission_failure    = 4
-        not_changed           = 5
-        data_invalid          = 6
-        error_occured         = 7
-        OTHERS                = 8 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~save. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_changeable.
-
-    ii_service->if_w3_api_object~set_changeable(
-      EXPORTING
-        p_changeable                 = abap_true
-      EXCEPTIONS
-        action_cancelled             = 1
-        object_locked_by_other_user  = 2
-        permission_failure           = 3
-        object_already_changeable    = 4
-        object_already_unlocked      = 5
-        object_just_created          = 6
-        object_deleted               = 7
-        object_modified              = 8
-        object_not_existing          = 9
-        object_invalid               = 10
-        error_occured                = 11
-        content_data_error           = 12
-        OTHERS                       = 13 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~set_changeable. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_delete.
-
-    ii_service->if_w3_api_object~delete(
-      EXCEPTIONS
-        object_not_empty      = 1
-        object_not_changeable = 2
-        object_invalid        = 3
-        error_occured         = 4
-        OTHERS                = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~delete. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
-CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
@@ -64060,6 +64057,41 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
         it_parameters = it_parameters ).
 
     w3_api_save( li_resource ).
+
+  ENDMETHOD.
+  METHOD w3_api_create_new.
+
+    cl_w3_api_resource=>if_w3_api_resource~create_new(
+      EXPORTING
+        p_resource_data         = is_attributes
+      IMPORTING
+        p_resource              = ri_resource
+      EXCEPTIONS
+        object_already_existing = 1
+        object_just_created     = 2
+        not_authorized          = 3
+        undefined_name          = 4
+        author_not_existing     = 5
+        action_cancelled        = 6
+        error_occured           = 7
+        OTHERS                  = 8 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~create_new. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_delete.
+
+    ii_resource->if_w3_api_object~delete(
+      EXCEPTIONS
+        object_not_empty      = 1
+        object_not_changeable = 2
+        object_invalid        = 3
+        error_occured         = 4
+        OTHERS                = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~delete. Subrc={ sy-subrc }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD w3_api_get_attributes.
@@ -64106,6 +64138,82 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
         OTHERS              = 4 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |error from w3api_resource~load. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_save.
+
+    ii_resource->if_w3_api_object~save(
+      EXCEPTIONS
+        object_invalid        = 1
+        object_not_changeable = 2
+        action_cancelled      = 3
+        permission_failure    = 4
+        not_changed           = 5
+        data_invalid          = 6
+        error_occured         = 7
+        OTHERS                = 8 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~save. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_attributes.
+
+    ii_resource->set_attributes(
+      EXPORTING
+        p_attributes          = is_attributes
+      EXCEPTIONS
+        object_not_changeable = 1
+        object_deleted        = 2
+        object_invalid        = 3
+        author_not_existing   = 4
+        authorize_failure     = 5
+        error_occured         = 6
+        OTHERS                = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~set_attributes. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_changeable.
+
+    ii_resource->if_w3_api_object~set_changeable(
+      EXPORTING
+        p_changeable                 = abap_true
+      EXCEPTIONS
+        action_cancelled             = 1
+        object_locked_by_other_user  = 2
+        permission_failure           = 3
+        object_already_changeable    = 4
+        object_already_unlocked      = 5
+        object_just_created          = 6
+        object_deleted               = 7
+        object_modified              = 8
+        object_not_existing          = 9
+        object_invalid               = 10
+        error_occured                = 11
+        OTHERS                       = 12 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_object~set_changeable. Subrc={ sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD w3_api_set_parameters.
+
+    ii_resource->set_parameters(
+      EXPORTING
+        p_parameters          = it_parameters
+      EXCEPTIONS
+        object_not_changeable = 1
+        object_deleted        = 2
+        object_invalid        = 3
+        authorize_failure     = 4
+        invalid_parameter     = 5
+        error_occured         = 6
+        OTHERS                = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~set_parameters. Subrc={ sy-subrc }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -64197,120 +64305,6 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
                  ig_data = lt_parameters ).
 
   ENDMETHOD.
-
-  METHOD w3_api_create_new.
-
-    cl_w3_api_resource=>if_w3_api_resource~create_new(
-      EXPORTING
-        p_resource_data         = is_attributes
-      IMPORTING
-        p_resource              = ri_resource
-      EXCEPTIONS
-        object_already_existing = 1
-        object_just_created     = 2
-        not_authorized          = 3
-        undefined_name          = 4
-        author_not_existing     = 5
-        action_cancelled        = 6
-        error_occured           = 7
-        OTHERS                  = 8 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~create_new. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_attributes.
-
-    ii_resource->set_attributes(
-      EXPORTING
-        p_attributes          = is_attributes
-      EXCEPTIONS
-        object_not_changeable = 1
-        object_deleted        = 2
-        object_invalid        = 3
-        author_not_existing   = 4
-        authorize_failure     = 5
-        error_occured         = 6
-        OTHERS                = 7 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~set_attributes. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_parameters.
-
-    ii_resource->set_parameters(
-      EXPORTING
-        p_parameters          = it_parameters
-      EXCEPTIONS
-        object_not_changeable = 1
-        object_deleted        = 2
-        object_invalid        = 3
-        authorize_failure     = 4
-        invalid_parameter     = 5
-        error_occured         = 6
-        OTHERS                = 7 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_resource~set_parameters. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_save.
-
-    ii_resource->if_w3_api_object~save(
-      EXCEPTIONS
-        object_invalid        = 1
-        object_not_changeable = 2
-        action_cancelled      = 3
-        permission_failure    = 4
-        not_changed           = 5
-        data_invalid          = 6
-        error_occured         = 7
-        OTHERS                = 8 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~save. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_set_changeable.
-
-    ii_resource->if_w3_api_object~set_changeable(
-      EXPORTING
-        p_changeable                 = abap_true
-      EXCEPTIONS
-        action_cancelled             = 1
-        object_locked_by_other_user  = 2
-        permission_failure           = 3
-        object_already_changeable    = 4
-        object_already_unlocked      = 5
-        object_just_created          = 6
-        object_deleted               = 7
-        object_modified              = 8
-        object_not_existing          = 9
-        object_invalid               = 10
-        error_occured                = 11
-        content_data_error           = 12
-        OTHERS                       = 13 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~set_changeable. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD w3_api_delete.
-
-    ii_resource->if_w3_api_object~delete(
-      EXCEPTIONS
-        object_not_empty      = 1
-        object_not_changeable = 2
-        object_invalid        = 3
-        error_occured         = 4
-        OTHERS                = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from if_w3_api_object~delete. Subrc={ sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
@@ -78821,5 +78815,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-06T12:21:34.114Z
+* abapmerge  - 2020-01-07T10:48:23.663Z
 ****************************************************
