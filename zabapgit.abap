@@ -7458,8 +7458,7 @@ CLASS zcl_abapgit_object_type DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS read
       EXPORTING ev_ddtext TYPE ddtypet-ddtext
                 et_source TYPE abaptxt255_tab
-      RAISING   zcx_abapgit_exception
-                zcx_abapgit_not_found.
+      RAISING   zcx_abapgit_not_found.
 
     METHODS create
       IMPORTING iv_ddtext   TYPE ddtypet-ddtext
@@ -51758,7 +51757,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
+CLASS zcl_abapgit_object_type IMPLEMENTATION.
   METHOD create.
 
     DATA: lv_progname  TYPE reposrc-progname,
@@ -51800,11 +51799,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
           lt_ptrdir    TYPE TABLE OF trdir.
     SELECT SINGLE ddtext FROM ddtypet
       INTO ev_ddtext
-      WHERE typegroup = ms_item-obj_name
-      AND ddlanguage = mv_language.
-    IF sy-subrc <> 0.
-      RAISE EXCEPTION TYPE zcx_abapgit_not_found.
-    ENDIF.
+      WHERE typegroup  = ms_item-obj_name
+        AND ddlanguage = mv_language.
 
     lv_typdname = ms_item-obj_name.
     CALL FUNCTION 'TYPD_GET_OBJECT'
@@ -51820,7 +51816,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
         reps_not_exist    = 2
         OTHERS            = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from TYPD_GET_OBJECT' ).
+      RAISE EXCEPTION TYPE zcx_abapgit_not_found.
     ENDIF.
 
   ENDMETHOD.
@@ -51878,7 +51874,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
     TRY.
         read( ).
         rv_bool = abap_true.
-      CATCH zcx_abapgit_not_found zcx_abapgit_exception.
+      CATCH zcx_abapgit_not_found
+            zcx_abapgit_exception.
         rv_bool = abap_false.
     ENDTRY.
 
@@ -78872,5 +78869,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-08T06:11:47.768Z
+* abapmerge  - 2020-01-08T06:15:32.627Z
 ****************************************************
