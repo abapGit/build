@@ -61552,7 +61552,8 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
       INTO TABLE lt_dokil
       FOR ALL ENTRIES IN lt_objects
       WHERE id = 'NA'
-      AND object = lt_objects-table_line.
+      AND object = lt_objects-table_line
+      ORDER BY PRIMARY KEY.
 
     CLEAR ls_dokil-dokstate.
     MODIFY lt_dokil FROM ls_dokil TRANSPORTING dokstate WHERE dokstate IS NOT INITIAL.
@@ -79090,5 +79091,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-11T08:43:06.139Z
+* abapmerge  - 2020-01-11T09:05:41.297Z
 ****************************************************
