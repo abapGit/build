@@ -3306,7 +3306,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
         VALUE(rv_data) TYPE xstring .
     CLASS-METHODS encode_tag
       IMPORTING
-        !is_tag        TYPE zcl_abapgit_git_pack=>ty_tag
+        !is_tag        TYPE ty_tag
       RETURNING
         VALUE(rv_data) TYPE xstring
       RAISING
@@ -5752,26 +5752,26 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     METHODS _save_form
       IMPORTING
-        it_lines     TYPE zcl_abapgit_object_form=>tyt_lines
+        it_lines     TYPE tyt_lines
       CHANGING
-        cs_form_data TYPE zcl_abapgit_object_form=>tys_form_data.
+        cs_form_data TYPE tys_form_data.
 
     METHODS extract_tdlines
       IMPORTING
-        is_form_data    TYPE zcl_abapgit_object_form=>tys_form_data
+        is_form_data    TYPE tys_form_data
       RETURNING
-        VALUE(rt_lines) TYPE zcl_abapgit_object_form=>tyt_lines
+        VALUE(rt_lines) TYPE tyt_lines
       RAISING
         zcx_abapgit_exception.
 
     METHODS _clear_changed_fields
       CHANGING
-        cs_form_data TYPE zcl_abapgit_object_form=>tys_form_data.
+        cs_form_data TYPE tys_form_data.
 
     METHODS compress_lines
       IMPORTING
-        is_form_data TYPE zcl_abapgit_object_form=>tys_form_data
-        it_lines     TYPE zcl_abapgit_object_form=>tyt_lines
+        is_form_data TYPE tys_form_data
+        it_lines     TYPE tyt_lines
       RAISING
         zcx_abapgit_exception.
 
@@ -5779,20 +5779,20 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING
         iv_object_name        TYPE zif_abapgit_definitions=>ty_item-obj_name
       RETURNING
-        VALUE(rt_text_header) TYPE zcl_abapgit_object_form=>tyt_text_header.
+        VALUE(rt_text_header) TYPE tyt_text_header.
 
     METHODS _read_form
       IMPORTING
-        is_text_header TYPE zcl_abapgit_object_form=>tys_text_header
+        is_text_header TYPE tys_text_header
       EXPORTING
         ev_form_found  TYPE abap_bool
-        es_form_data   TYPE zcl_abapgit_object_form=>tys_form_data
-        et_lines       TYPE zcl_abapgit_object_form=>tyt_lines.
+        es_form_data   TYPE tys_form_data
+        et_lines       TYPE tyt_lines.
 
     METHODS _sort_tdlines_by_windows
       CHANGING
-        ct_form_windows TYPE zcl_abapgit_object_form=>tys_form_data-windows
-        ct_lines        TYPE zcl_abapgit_object_form=>tyt_lines.
+        ct_form_windows TYPE tys_form_data-windows
+        ct_lines        TYPE tyt_lines.
 
     METHODS order_check_and_insert
       RAISING
@@ -6312,7 +6312,7 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         zcx_abapgit_exception .
     METHODS serialize_longtexts_msag
       IMPORTING
-        !it_t100 TYPE zcl_abapgit_object_msag=>tty_t100
+        !it_t100 TYPE tty_t100
         !io_xml  TYPE REF TO zcl_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
@@ -7764,10 +7764,10 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         EXPORTING
           es_dd25v TYPE dd25v
           es_dd09l TYPE dd09l
-          et_dd26v TYPE zcl_abapgit_object_view=>tty_dd26v
-          et_dd27p TYPE zcl_abapgit_object_view=>tty_dd27p
-          et_dd28j TYPE zcl_abapgit_object_view=>tty_dd28j
-          et_dd28v TYPE zcl_abapgit_object_view=>tty_dd28v
+          et_dd26v TYPE tty_dd26v
+          et_dd27p TYPE tty_dd27p
+          et_dd28j TYPE tty_dd28j
+          et_dd28v TYPE tty_dd28v
         RAISING
           zcx_abapgit_exception.
 
@@ -7884,7 +7884,7 @@ CLASS zcl_abapgit_object_wapa DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       delete_superfluous_pages
         IMPORTING
           it_local_pages  TYPE o2pagelist
-          it_remote_pages TYPE zcl_abapgit_object_wapa=>ty_pages_tt
+          it_remote_pages TYPE ty_pages_tt
         RAISING
           zcx_abapgit_exception.
 
@@ -8246,7 +8246,7 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
 
     CLASS-METHODS auto_correct_cua_adm
       IMPORTING
-        is_cua TYPE zcl_abapgit_objects_program=>ty_cua
+        is_cua TYPE ty_cua
       CHANGING
         cs_adm TYPE rsmpe_adm.
 ENDCLASS.
@@ -10540,7 +10540,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS render_patch_head
       IMPORTING
         io_html TYPE REF TO zcl_abapgit_html
-        is_diff TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
+        is_diff TYPE ty_file_diff.
     METHODS apply_patch_for
       IMPORTING
         iv_filename   TYPE string
@@ -10846,13 +10846,13 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
       apply_filter
         CHANGING
-          ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
+          ct_overview TYPE tty_overview,
 
       map_repo_list_to_overview
         IMPORTING
           it_repo_list       TYPE zif_abapgit_persistence=>tt_repo
         RETURNING
-          VALUE(rt_overview) TYPE zcl_abapgit_gui_page_repo_over=>tty_overview
+          VALUE(rt_overview) TYPE tty_overview
         RAISING
           zcx_abapgit_exception,
 
@@ -10863,19 +10863,19 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       render_table
         IMPORTING
           io_html     TYPE REF TO zcl_abapgit_html
-          it_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
+          it_overview TYPE tty_overview,
 
       render_table_body
         IMPORTING
           io_html     TYPE REF TO zcl_abapgit_html
-          it_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview,
+          it_overview TYPE tty_overview,
 
       render_header_bar
         IMPORTING
           io_html TYPE REF TO zcl_abapgit_html,
 
       apply_order_by
-        CHANGING ct_overview TYPE zcl_abapgit_gui_page_repo_over=>tty_overview.
+        CHANGING ct_overview TYPE tty_overview.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
@@ -11814,7 +11814,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
 
       goto_t100_message
         IMPORTING
-          is_log TYPE zcl_abapgit_log_viewer=>ty_log_out
+          is_log TYPE ty_log_out
         RAISING
           zcx_abapgit_exception,
 
@@ -11823,7 +11823,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
 
       dispatch
         IMPORTING
-          is_log    TYPE zcl_abapgit_log_viewer=>ty_log_out
+          is_log    TYPE ty_log_out
           iv_column TYPE salv_de_column
         RAISING
           zcx_abapgit_exception,
@@ -12181,7 +12181,7 @@ CLASS zcl_abapgit_tag_popups DEFINITION
         IMPORTING
           it_tags            TYPE zif_abapgit_definitions=>ty_git_tag_list_tt
         RETURNING
-          VALUE(rt_tags_out) TYPE zcl_abapgit_tag_popups=>tty_tag_out,
+          VALUE(rt_tags_out) TYPE tty_tag_out,
 
       clean_up,
 
@@ -13830,7 +13830,7 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_language             TYPE spras
         !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rs_files_and_item) TYPE zcl_abapgit_objects=>ty_serialization
+        VALUE(rs_files_and_item) TYPE ty_serialization
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS deserialize
@@ -79090,5 +79090,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-08T11:23:06.215Z
+* abapmerge  - 2020-01-11T08:25:53.154Z
 ****************************************************
