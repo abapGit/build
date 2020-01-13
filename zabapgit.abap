@@ -276,7 +276,6 @@ CLASS zcx_abapgit_exception DEFINITION
   PUBLIC SECTION.
     INTERFACES if_t100_message.
 
-    DATA subrc TYPE sysubrc READ-ONLY.
     DATA msgv1 TYPE symsgv READ-ONLY.
     DATA msgv2 TYPE symsgv READ-ONLY.
     DATA msgv3 TYPE symsgv READ-ONLY.
@@ -20456,8 +20455,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_t100_longtext_itf.
 
-    DATA: lv_docu_key TYPE doku_obj,
-          ls_itf      LIKE LINE OF rt_itf.
+    DATA: lv_docu_key TYPE doku_obj.
 
     lv_docu_key = mi_t100_message->t100key-msgid && mi_t100_message->t100key-msgno.
 
@@ -23947,7 +23945,6 @@ CLASS zcl_abapgit_time IMPLEMENTATION.
   METHOD get_utc.
 
     DATA: lv_i       TYPE i,
-          lv_tz      TYPE tznzone,
           lv_utcdiff TYPE tznutcdiff,
           lv_utcsign TYPE tznutcsign.
     lv_i = iv_unix(10).
@@ -32554,8 +32551,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   METHOD build_advanced_dropdown.
 
     DATA:
-      lv_crossout LIKE zif_abapgit_html=>c_html_opt-crossout,
-      lv_package  TYPE zif_abapgit_persistence=>ty_repo-package.
+      lv_crossout LIKE zif_abapgit_html=>c_html_opt-crossout.
 
     CREATE OBJECT ro_advanced_dropdown.
 
@@ -34186,8 +34182,6 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_menu.
 
-    DATA: lv_opt TYPE c LENGTH 1.
-
     CREATE OBJECT ro_menu.
 
     ro_menu->add( iv_txt = 'Re-Run'
@@ -34221,8 +34215,6 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
-
-    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
 
     CASE iv_action.
       WHEN c_actions-rerun.
@@ -35255,8 +35247,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD render_link_hints.
 
     DATA: lv_checked               TYPE string,
-          lv_link_hint_key         TYPE char01,
-          lv_link_background_color TYPE string.
+          lv_link_hint_key         TYPE char01.
 
     IF mo_settings->get_link_hints_enabled( ) = abap_true.
       lv_checked = 'checked'.
@@ -37285,10 +37276,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD append_diff.
 
     DATA:
-      lv_offs      TYPE i,
-      lv_is_binary TYPE abap_bool,
-      ls_r_dummy   LIKE LINE OF it_remote ##NEEDED,
-      ls_l_dummy   LIKE LINE OF it_local  ##NEEDED.
+      lv_offs    TYPE i,
+      ls_r_dummy LIKE LINE OF it_remote ##NEEDED,
+      ls_l_dummy LIKE LINE OF it_local  ##NEEDED.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
                    <ls_local>  LIKE LINE OF it_local,
@@ -37902,10 +37892,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         patch TYPE string VALUE `patch` ##NO_TEXT,
       END OF c_css_class.
 
-    DATA: lv_id          TYPE string,
-          lv_left_class  TYPE string,
-          lv_right_class TYPE string,
-          lv_object      TYPE string.
+    DATA: lv_id     TYPE string,
+          lv_object TYPE string.
 
     lv_object = iv_filename.
 
@@ -41960,8 +41948,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     DATA: lv_url           TYPE w3url,
           lv_html          TYPE string,
-          li_html          TYPE REF TO zif_abapgit_html,
-          lo_css_processor TYPE REF TO zcl_abapgit_gui_css_processor.
+          li_html          TYPE REF TO zif_abapgit_html.
 
     IF mi_cur_page IS NOT BOUND.
       zcx_abapgit_exception=>raise( 'GUI error: no current page' ).
@@ -44387,7 +44374,6 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
           lt_methods TYPE cl_oo_source_scanner_class=>type_method_implementations,
           lv_method  LIKE LINE OF lt_methods,
           lt_public  TYPE seop_source_string,
-          lt_auxsrc  TYPE seop_source_string,
           lt_source  TYPE seop_source_string.
 
     "Buffer needs to be refreshed,
@@ -71382,7 +71368,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
       <lg_data>             TYPE any,
       <lg_data_baseinfo>    TYPE any,
       <lg_source>           TYPE any,
-      <lg_field_baseinfo>   TYPE any,
       <lg_baseinfo_string>  TYPE any,
       <lg_baseinfo_ddlname> TYPE any.
 
@@ -79235,5 +79220,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-11T09:13:13.929Z
+* abapmerge  - 2020-01-13T17:43:10.238Z
 ****************************************************
