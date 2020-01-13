@@ -62511,8 +62511,6 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       lr_infoobj                  TYPE REF TO data,
       ls_return                   TYPE bapiret2,
       lt_return                   TYPE STANDARD TABLE OF bapiret2,
-      lo_struct_descr             TYPE REF TO cl_abap_structdescr,
-      lo_table_descr              TYPE REF TO cl_abap_tabledescr,
       lr_compounds                TYPE REF TO data,
       lr_attributes               TYPE REF TO data,
       lr_navigationattributes     TYPE REF TO data,
@@ -62545,6 +62543,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
         CREATE DATA lr_elimination TYPE STANDARD TABLE OF ('BAPI6108IE').
         CREATE DATA lr_hanafieldsmapping TYPE STANDARD TABLE OF ('BAPI6108HANA_MAP').
         CREATE DATA lr_xxlattributes TYPE STANDARD TABLE OF ('BAPI6108ATXXL').
+        CREATE DATA lr_infoobj TYPE STANDARD TABLE OF ('BAPI6108').
       CATCH cx_sy_create_data_error.
         zcx_abapgit_exception=>raise( |IOBJ is not supported on this system| ).
     ENDTRY.
@@ -62558,13 +62557,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     ASSIGN lr_elimination->* TO <lt_elimination>.
     ASSIGN lr_hanafieldsmapping->* TO <lt_hanafieldsmapping>.
     ASSIGN lr_xxlattributes->* TO <lt_xxlattributes>.
-
-    lo_struct_descr ?= cl_abap_structdescr=>describe_by_data( <ls_details> ).
-    lo_table_descr = cl_abap_tabledescr=>create( lo_struct_descr ).
-
-    CREATE DATA lr_infoobj TYPE HANDLE lo_table_descr.
     ASSIGN lr_infoobj->* TO <lt_infoobjects>.
-    ASSERT sy-subrc = 0.
 
     io_xml->read( EXPORTING iv_name = 'IOBJ'
                   CHANGING cg_data = <ls_details> ).
@@ -62717,7 +62710,6 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       lv_iobjnam                  TYPE rsiobjnm,
       ls_return                   TYPE bapiret2,
       lr_details                  TYPE REF TO data,
-      lr_details2                 TYPE REF TO data,
       lr_compounds                TYPE REF TO data,
       lr_attributes               TYPE REF TO data,
       lr_navigationattributes     TYPE REF TO data,
@@ -79220,5 +79212,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge  - 2020-01-13T17:43:10.238Z
+* abapmerge  - 2020-01-13T17:50:15.782Z
 ****************************************************
