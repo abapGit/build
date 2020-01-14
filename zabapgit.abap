@@ -27431,7 +27431,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
     _inline '    return {'.
     _inline '      elem:      elem,'.
-    _inline '      plainText: elem.innerText, // without tags'.
+    _inline '      plainText: elem.innerText.replace(/ /g, "\u00a0"), // without tags, with encoded spaces'.
     _inline '      curHtml:   elem.innerHTML'.
     _inline '    };'.
     _inline '  }, this);'.
@@ -79212,5 +79212,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.0 - 2020-01-14T15:55:49.025Z
+* abapmerge 0.13.0 - 2020-01-14T16:03:14.809Z
 ****************************************************
