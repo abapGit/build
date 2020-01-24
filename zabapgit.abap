@@ -65710,6 +65710,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     DATA: lt_reposrc        TYPE STANDARD TABLE OF ty_reposrc WITH DEFAULT KEY,
           ls_reposrc        LIKE LINE OF lt_reposrc,
           lv_program        TYPE program,
+          lv_maintviewname  LIKE LINE OF rt_includes,
           lv_offset_ns      TYPE i,
           lv_tabix          LIKE sy-tabix,
           lt_functab        TYPE ty_rs38l_incl_tt,
@@ -65740,15 +65741,19 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDLOOP.
 
 * handle generated maintenance views
-    APPEND INITIAL LINE TO rt_includes ASSIGNING <lv_include>.
     IF ms_item-obj_name(1) <> '/'.
       "FGroup name does not contain a namespace
-      <lv_include> = |L{ ms_item-obj_name }T00|.
+      lv_maintviewname = |L{ ms_item-obj_name }T00|.
     ELSE.
       "FGroup name contains a namespace
       lv_offset_ns = find( val = ms_item-obj_name+1 sub = '/' ).
       lv_offset_ns = lv_offset_ns + 2.
-      <lv_include> = |{ ms_item-obj_name(lv_offset_ns) }L{ ms_item-obj_name+lv_offset_ns }T00|.
+      lv_maintviewname = |{ ms_item-obj_name(lv_offset_ns) }L{ ms_item-obj_name+lv_offset_ns }T00|.
+    ENDIF.
+
+    READ TABLE rt_includes WITH KEY table_line = lv_maintviewname TRANSPORTING NO FIELDS.
+    IF sy-subrc <> 0.
+      APPEND lv_maintviewname TO rt_includes.
     ENDIF.
 
     IF lines( rt_includes ) > 0.
@@ -79579,5 +79584,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-24T13:33:20.975Z
+* abapmerge 0.13.1 - 2020-01-24T15:03:19.219Z
 ****************************************************
