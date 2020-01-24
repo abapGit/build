@@ -39560,7 +39560,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD call_browser.
 
     cl_gui_frontend_services=>execute(
@@ -39730,8 +39730,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   ENDMETHOD.
   METHOD link_hints.
 
-    DATA: lv_link_hint_key    TYPE char01,
-          lv_background_color TYPE string.
+    DATA: lv_link_hint_key TYPE char01.
 
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
 
@@ -44509,10 +44508,6 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       lv_updated = update_report( iv_program = lv_program
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
-* todo, see issue #3053
-*        lt_auxsrc = lt_public.
-*        APPEND LINES OF lt_source TO lt_auxsrc.
-
         update_meta( iv_name     = is_key-clsname
                      iv_exposure = seoc_exposure_protected
                      it_source   = lt_source ).
@@ -44526,10 +44521,6 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       lv_updated = update_report( iv_program = lv_program
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
-* todo, see issue #3053
-*        lt_auxsrc = lt_public.
-*        APPEND LINES OF lt_source TO lt_auxsrc.
-
         update_meta( iv_name     = is_key-clsname
                      iv_exposure = seoc_exposure_private
                      it_source   = lt_source ).
@@ -44639,7 +44630,6 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
 
 * skip the CS include, as it is sometimes generated on the fly instead of
 * when the methods are changed
-*    APPEND cl_oo_classname_service=>get_cs_name( lv_class_name ) TO rt_includes.
 
     cl_oo_classname_service=>get_all_method_includes(
       EXPORTING
@@ -47289,9 +47279,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD use_new_activation_logic.
-
-* left for easy rollback, cleanup later
-* IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_experimental_features( ) = abap_true.
 
     CALL FUNCTION 'FUNCTION_EXISTS'
       EXPORTING
@@ -55345,30 +55332,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_attribute_leading_spaces.
 
-*    DATA: li_element             TYPE REF TO if_ixml_element.
-*    DATA: lv_code_line           TYPE string.
-*    DATA: lv_offset              TYPE i.
-*
-*    TRY.
-*        code_item_section_handling( EXPORTING iv_name                = iv_name
-*                                              ii_node                = ii_node
-*                                    IMPORTING ei_code_item_element   = li_element
-*                                    CHANGING  cv_within_code_section = cv_within_code_section ).
-*
-*        lv_code_line = ii_node->get_value( ).
-*        "find 1st non space char
-*        FIND FIRST OCCURRENCE OF REGEX '\S' IN lv_code_line MATCH OFFSET lv_offset.
-*        IF sy-subrc = 0 AND lv_offset > 0.
-*          TRY.
-*              li_element ?= ii_node.
-*              li_element->set_attribute( name  = zcl_abapgit_object_ssfo=>attrib_abapgit_leadig_spaces
-*                                      value = |{ lv_offset }| ).
-*
-*            CATCH cx_sy_move_cast_error ##no_handler.
-*          ENDTRY.
-*        ENDIF.
-*      CATCH zcx_abapgit_exception ##no_handler.
-*    ENDTRY.
+    RETURN.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -68919,8 +68883,7 @@ CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_object_type.
 
-*    constant missing in 702
-*    rv_object_type = cl_apl_ecatt_const=>obj_type_ecatt_vo.
+* constant missing in 702, cl_apl_ecatt_const=>obj_type_ecatt_vo
     rv_object_type = 'ECVO'.
 
   ENDMETHOD.
@@ -69021,8 +68984,7 @@ CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_object_type.
 
-*    constant missing in 702
-*    rv_object_type = cl_apl_ecatt_const=>obj_type_start_profile.
+* constant missing in 702, cl_apl_ecatt_const=>obj_type_start_profile
     rv_object_type = 'ECSP'.
 
   ENDMETHOD.
@@ -71088,11 +71050,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
-*      " If the application component was cleared SET_ALL_ATTRIBUTES doesn't change it
-*      IF ls_package_data-component IS INITIAL AND li_package->application_component IS NOT INITIAL.
-*
-*      ENDIF.
-
     ELSE.
       " Package does not exist yet, create it
       " This shouldn't really happen, because the folder logic initially creates the packages.
@@ -72511,11 +72468,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
 *   doesn't work...
 *    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_MAINTAIN'
-*      EXPORTING
-*        i_display        = 'X'
-*        i_no_replacement = 'X'
-*      CHANGING
-*        img_activity     = mv_img_activity.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -73482,13 +73434,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
   METHOD insert_links.
 
 * todo, how does links work?
-*    LOOP AT ls_avas-links INTO ls_linked_obj.
-*    ENDLOOP.
-
-**    DELETE FROM cls_linked_obj WHERE guid = ls_avas-header-guid.
-**    INSERT cls_linked_obj FROM TABLE lt_linked.
-*    if sy-subrc <> 0.
-*    endif.
+    RETURN.
 
   ENDMETHOD.
   METHOD instantiate.
@@ -75428,7 +75374,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
       CATCH cx_ecatt_apl INTO lx_ecatt.
         lv_text = lx_ecatt->get_text( ).
         zcx_abapgit_exception=>raise( lv_text ).
-        " CATCH cx_ecatt_ui_attachment. " Doesn't exist in 702
+        " note, exception cx_ecatt_ui_attachment doesn't exist in 702
       CATCH cx_ecatt.
         "will never be raised from download, when called with mv_generate_xml_no_download = 'X'.
     ENDTRY.
@@ -76265,7 +76211,6 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     ii_request->set_header_field( name  = if_http_header_fields_sap=>request_uri
                                   value = lv_url ).
     " Other methods than POST and GET do not have constants unfortunately
-    " ii_request->set_method( if_http_request=>co_request_method_delete ).
     ii_request->set_method( 'DELETE' ).
   ENDMETHOD.
   METHOD set_list_token_request.
@@ -79634,5 +79579,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-19T13:25:42.003Z
+* abapmerge 0.13.1 - 2020-01-24T13:33:20.975Z
 ****************************************************
