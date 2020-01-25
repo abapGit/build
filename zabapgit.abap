@@ -19350,6 +19350,12 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     LOOP AT it_items ASSIGNING <ls_item>.
 
+      " You should remember that we ignore not supported objects here,
+      " because otherwise the process aborts which is not desired
+      IF is_supported( <ls_item> ) = abap_false.
+        CONTINUE.
+      ENDIF.
+
       li_obj = create_object( is_item     = <ls_item>
                               iv_language = iv_language ).
 
@@ -79633,5 +79639,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-25T08:49:39.584Z
+* abapmerge 0.13.1 - 2020-01-25T08:53:08.822Z
 ****************************************************
