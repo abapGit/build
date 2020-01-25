@@ -31619,7 +31619,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   ENDMETHOD.
   METHOD _popup_3_get_values.
 
-    DATA lv_answer TYPE char1.
+    DATA lv_answer TYPE c LENGTH 1.
     FIELD-SYMBOLS: <ls_field> TYPE sval.
 
     CALL FUNCTION 'POPUP_GET_VALUES'
@@ -79639,5 +79639,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-25T08:53:08.822Z
+* abapmerge 0.13.1 - 2020-01-25T16:48:51.322Z
 ****************************************************
