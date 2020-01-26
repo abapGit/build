@@ -3141,7 +3141,6 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
     METHODS constructor
       IMPORTING
         !iv_data TYPE string
@@ -3230,7 +3229,6 @@ CLASS zcl_abapgit_git_pack DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
     TYPES:
       BEGIN OF ty_node,
         chmod TYPE zif_abapgit_definitions=>ty_chmod,
@@ -20835,7 +20833,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
+CLASS zcl_abapgit_merge IMPLEMENTATION.
   METHOD all_files.
 
     APPEND LINES OF ms_merge-stree TO rt_files.
@@ -77493,7 +77491,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
+CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -78213,7 +78211,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
       rv_name = iv_branch_name.
@@ -79639,5 +79637,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-26T10:13:24.682Z
+* abapmerge 0.13.1 - 2020-01-26T13:34:03.203Z
 ****************************************************
