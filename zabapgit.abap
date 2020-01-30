@@ -12274,7 +12274,6 @@ CLASS zcl_abapgit_ui_factory DEFINITION
         VALUE(ri_fe_serv) TYPE REF TO zif_abapgit_frontend_services .
   PROTECTED SECTION.
   PRIVATE SECTION.
-
     CLASS-DATA gi_popups TYPE REF TO zif_abapgit_popups .
     CLASS-DATA gi_tag_popups TYPE REF TO zif_abapgit_tag_popups .
     CLASS-DATA gi_gui_functions TYPE REF TO zif_abapgit_gui_functions .
@@ -25473,6 +25472,36 @@ CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr DEFINITION DEFERRED.
+* renamed: zcl_abapgit_ui_factory :: lcl_string_buffer
+CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr DEFINITION FINAL.
+  PUBLIC SECTION.
+    DATA mt_buffer TYPE string_table READ-ONLY.
+    METHODS add
+      IMPORTING
+        iv_str TYPE string.
+    METHODS join_and_flush
+      RETURNING
+        VALUE(rv_str) TYPE string.
+    METHODS join_w_newline_and_flush
+      RETURNING
+        VALUE(rv_str) TYPE string.
+ENDCLASS.
+
+CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr IMPLEMENTATION.
+  METHOD add.
+    APPEND iv_str TO mt_buffer.
+  ENDMETHOD.
+  METHOD join_and_flush.
+    rv_str = concat_lines_of( table = mt_buffer ).
+    CLEAR mt_buffer.
+  ENDMETHOD.
+  METHOD join_w_newline_and_flush.
+    rv_str = concat_lines_of( table = mt_buffer sep = cl_abap_char_utilities=>newline ).
+    CLEAR mt_buffer.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_frontend_services.
 
@@ -25537,3710 +25566,3700 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD init_asset_manager.
-    " used by abapmerge
-    DEFINE _inline.
-      APPEND &1 TO lt_inline.
-    END-OF-DEFINITION.
 
-    DATA lt_inline TYPE string_table.
+    DATA lo_buf TYPE REF TO kHGwlUeWgGWXqMsZwpmucoVfByePXr.
 
+    CREATE OBJECT lo_buf.
     CREATE OBJECT ro_asset_man.
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
 ****************************************************
-    _inline '/*'.
-    _inline ' * ABAPGIT COMMON CSS'.
-    _inline ' */'.
-    _inline ''.
-    _inline '/* GLOBALS */'.
-    _inline ''.
-    _inline 'body {'.
-    _inline '  overflow-x: hidden;'.
-    _inline '}'.
-    _inline 'a, a:visited {'.
-    _inline '  text-decoration:  none;'.
-    _inline '}'.
-    _inline 'a:hover, a:active {'.
-    _inline '  cursor: pointer;'.
-    _inline '  text-decoration: underline;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'img {'.
-    _inline '  border-width: 0px;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline 'table { border-collapse: collapse; }'.
-    _inline 'pre { display: inline; }'.
-    _inline 'sup {'.
-    _inline '  vertical-align: top;'.
-    _inline '  position: relative;'.
-    _inline '  top: -0.5em;'.
-    _inline '  font-size: 75%;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'input, textarea, select {'.
-    _inline '  padding: 3px 6px;'.
-    _inline '  border: 1px solid;'.
-    _inline '}'.
-    _inline 'input:focus, textarea:focus {'.
-    _inline '  border: 1px solid;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* MODIFIERS */'.
-    _inline '.emphasis     { font-weight: bold !important; }'.
-    _inline '.crossout     { text-decoration: line-through !important; }'.
-    _inline '.right        { text-align:right; }'.
-    _inline '.center       { text-align:center; }'.
-    _inline '.paddings     { padding: 0.5em 0.5em; }'.
-    _inline '.pad-sides    { padding-left: 0.3em; padding-right: 0.3em; }'.
-    _inline '.margin-v5    { margin-top: 0.5em; margin-bottom: 0.5em; }'.
-    _inline '.indent5em    { padding-left: 0.5em; }'.
-    _inline '.pad4px       { padding: 4px; }'.
-    _inline '.w100         { width: 100%; }'.
-    _inline '.wmin         { width: 1%; }'.
-    _inline '.w40          { width: 40%; }'.
-    _inline '.float-right  { float: right; }'.
-    _inline '.pad-right    { padding-right: 6px; }'.
-    _inline '.inline       { display: inline; }'.
-    _inline '.hidden       { visibility: hidden; }'.
-    _inline '.nodisplay    { display: none }'.
-    _inline ''.
-    _inline '/* PANELS */'.
-    _inline 'div.panel {'.
-    _inline '  border-radius: 3px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '#debug-output {'.
-    _inline '  text-align: right;'.
-    _inline '  padding-right: 0.5em;'.
-    _inline '  font-style: italic;'.
-    _inline '  font-size: small;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.dummydiv {'.
-    _inline '  padding:          0.5em 1em;'.
-    _inline '  text-align:       center;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'a.close-btn {'.
-    _inline '  text-decoration: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-    _inline '#abapGitLogo { outline: none; }'.
-    _inline ''.
-    _inline 'div#header {'.
-    _inline '  padding:          0.5em 0.5em;'.
-    _inline '  border-bottom:    3px double;'.
-    _inline '}'.
-    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
-    _inline 'div#header td.logo       { width: 164px; }'.
-    _inline 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */'.
-    _inline 'div#header span.page_title {'.
-    _inline '  font-weight: normal;'.
-    _inline '  font-size: 18pt;'.
-    _inline '  padding-left: 0.4em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div#toc { padding: 0.5em 1em; }'.
-    _inline 'div#toc .favorites a { opacity: 0.5; }'.
-    _inline 'div#toc .favorites:hover a { opacity: 1; }'.
-    _inline ''.
-    _inline 'div#footer {'.
-    _inline '  padding:          0.5em 1em;'.
-    _inline '  border-top:       3px double;'.
-    _inline '  text-align:       center;'.
-    _inline '}'.
-    _inline 'div#footer span.version {'.
-    _inline '  display: block;'.
-    _inline '  margin-top: 0.3em;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* ERROR LOG */'.
-    _inline ''.
-    _inline 'div.log {'.
-    _inline '  padding: 6px;'.
-    _inline '  margin: 4px;'.
-    _inline '  border: 1px  solid;'.
-    _inline '  border-radius: 4px;'.
-    _inline '}'.
-    _inline 'div.log > span   { display:block; }'.
-    _inline 'div.log .icon { padding-right: 6px; }'.
-    _inline ''.
-    _inline '/* REPOSITORY */'.
-    _inline 'div.repo {'.
-    _inline '  margin-top: 3px;'.
-    _inline '  padding: 0.5em 1em 0.5em 1em;'.
-    _inline '  position: relative;'.
-    _inline '}'.
-    _inline '.repo_name span.name {'.
-    _inline '  font-weight: bold;'.
-    _inline '  font-size: 14pt;'.
-    _inline '}'.
-    _inline '.repo_name a.url {'.
-    _inline '  font-size: 12pt;'.
-    _inline '  margin-left: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_name span.url {'.
-    _inline '  font-size: 12pt;'.
-    _inline '  margin-left: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_name .icon {'.
-    _inline '  padding-right: 4px;'.
-    _inline '}'.
-    _inline '.repo_attr {'.
-    _inline '  font-size: 12pt;'.
-    _inline '}'.
-    _inline '.repo_attr span {'.
-    _inline '  margin-left: 0.2em;'.
-    _inline '  margin-right: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_attr span.bg_marker {'.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  font-size: 8pt;'.
-    _inline '  padding: 4px 2px 3px 2px;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch {'.
-    _inline '  padding: 2px 4px;'.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 4px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* MISC AND REFACTOR */'.
-    _inline '.hidden-submit {'.
-    _inline '  border: 0 none;'.
-    _inline '  height: 0;'.
-    _inline '  width: 0;'.
-    _inline '  padding: 0;'.
-    _inline '  margin: 0;'.
-    _inline '  overflow: hidden;'.
-    _inline '}'.
-    _inline ''.
-    _inline ''.
-    _inline '/* STATE BLOCK COMMON*/'.
-    _inline 'span.state-block {'.
-    _inline '  margin-left: 1em;'.
-    _inline '  font-family: Consolas, Lucida Console, Courier, monospace;'.
-    _inline '  font-size: x-small;'.
-    _inline '  vertical-align: 13%;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
-    _inline '  white-space: nowrap;'.
-    _inline '}'.
-    _inline 'span.state-block span {'.
-    _inline '  display: inline-block;'.
-    _inline '  padding: 0px 3px;'.
-    _inline '  border-width: 1px;'.
-    _inline '  border-style: solid;'.
-    _inline '}'.
-    _inline ''.
-    _inline ''.
-    _inline '/* REPOSITORY TABLE*/'.
-    _inline 'div.repo_container {'.
-    _inline '  position: relative;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.repo_banner {'.
-    _inline '  margin: 0em 1.2em 1em;'.
-    _inline '  padding: 0.5em 0.5em;'.
-    _inline '  text-align: center;'.
-    _inline '  font-size: 85%;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.repo_tab {'.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  width: 100%;'.
-    _inline '}'.
-    _inline '.repo_tab th {'.
-    _inline '  text-align: left;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  border-bottom: 1px solid;'.
-    _inline '  font-weight: normal;'.
-    _inline '}'.
-    _inline '.repo_tab td {'.
-    _inline '  border-top: 1px solid;'.
-    _inline '  vertical-align: middle;'.
-    _inline '  padding-top: 2px;'.
-    _inline '  padding-bottom: 2px;'.
-    _inline '}'.
-    _inline '.repo_tab td.icon {'.
-    _inline '  width: 1px;'.
-    _inline '  text-align: center;'.
-    _inline '  padding-left: 8px;'.
-    _inline '  padding-right: 4px;'.
-    _inline '}'.
-    _inline '.repo_tab td.icon:not(:first-child) {'.
-    _inline '  width: 26px;'.
-    _inline '  text-align: left;'.
-    _inline '}'.
-    _inline '.repo_tab td.type {'.
-    _inline '  width: 4em;'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_tab td.object {'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_tab td.files {'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd, .repo_tab th.cmd {'.
-    _inline '  text-align: right;'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  padding-right: 0.7em;'.
-    _inline '}'.
-    _inline '.repo_tab th.cmd .icon{'.
-    _inline '  padding-right: 8px;'.
-    _inline '}'.
-    _inline '.repo_tab tr:first-child td { border-top: 0px; }'.
-    _inline ''.
-    _inline '/* STAGE */'.
-    _inline 'div.stage-container { width: 900px; }'.
-    _inline 'input.stage-filter { width: 18em; }'.
-    _inline ''.
-    _inline '.stage_tab {'.
-    _inline '  border: 1px solid;'.
-    _inline '  margin-top: 0.2em;'.
-    _inline '}'.
-    _inline '.stage_tab td {'.
-    _inline '  border-top: 1px solid;'.
-    _inline '  vertical-align: middle;'.
-    _inline '  padding: 2px 0.5em;'.
-    _inline '}'.
-    _inline '.stage_tab th {'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: normal;'.
-    _inline '  padding: 4px 0.5em;'.
-    _inline '}'.
-    _inline '.stage_tab td.status {'.
-    _inline '  width: 2em;'.
-    _inline '  text-align: center;'.
-    _inline '}'.
-    _inline '.stage_tab td.highlight {'.
-    _inline '  font-weight: bold;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.stage_tab td.cmd {  cursor: pointer; }'.
-    _inline '.stage_tab td.cmd a { padding: 0px 4px; }'.
-    _inline '.stage_tab th.cmd a { padding: 0px 4px; }'.
-    _inline '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-    _inline '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-    _inline ''.
-    _inline '/* COMMIT */'.
-    _inline 'div.form-container {'.
-    _inline '  padding: 1em 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form {'.
-    _inline '  display: table;'.
-    _inline '  border-spacing: 2px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form label {'.
-    _inline '  padding-right: 1em;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form select {'.
-    _inline '  padding-right: 1em;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form span.sub-title {'.
-    _inline '  font-size: smaller;'.
-    _inline '  padding-top: 8px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'form.aligned-form div.row { display: table-row; }'.
-    _inline 'form.aligned-form label { display: table-cell; }'.
-    _inline 'form.aligned-form input { display: table-cell; }'.
-    _inline 'form.aligned-form input[type="text"] { width: 25em; }'.
-    _inline 'form.aligned-form span.cell { display: table-cell; }'.
-    _inline ''.
-    _inline '/* SETTINGS STYLES */'.
-    _inline 'div.settings_container {'.
-    _inline '  padding: 0.5em 0.5em 1em;'.
-    _inline '  font-size: 10pt;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.settings_section {'.
-    _inline '  margin-left:50px'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.settings td:first-child {'.
-    _inline '  padding-left: 1em;'.
-    _inline '  padding-right: 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.settings-package-requirements {'.
-    _inline '  /*max-width: 300px;*/'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DIFF */'.
-    _inline 'div.diff {'.
-    _inline '  padding: 0.7em'.
-    _inline '}'.
-    _inline 'div.diff_head {'.
-    _inline '  padding-bottom: 0.7em;'.
-    _inline '}'.
-    _inline 'span.diff_name {'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '}'.
-    _inline 'span.diff_changed_by {'.
-    _inline '  float: right;'.
-    _inline '}'.
-    _inline 'span.diff_changed_by span.user {'.
-    _inline '  border-radius: 3px;'.
-    _inline '  border: solid 1px;'.
-    _inline '  padding: 1px 0.4em;'.
-    _inline '}'.
-    _inline 'span.diff_banner {'.
-    _inline '  border-style: solid;'.
-    _inline '  border-width: 1px;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding-left: 0.3em;'.
-    _inline '  padding-right: 0.3em;'.
-    _inline '}'.
-    _inline 'div.diff_content {'.
-    _inline '  border-top: 1px solid;'.
-    _inline '  border-bottom: 1px solid;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.diff_content tbody tr td{'.
-    _inline '  width: 50%;'.
-    _inline '  vertical-align: top'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.diff_head span.state-block {'.
-    _inline '  margin-left: 0.5em;'.
-    _inline '  font-size: inherit;'.
-    _inline '  vertical-align: initial;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span {'.
-    _inline '  padding: 0px 4px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DIFF TABLE */'.
-    _inline 'table.diff_tab {'.
-    _inline '  font-family: Consolas, Courier, monospace;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  width: 100%;'.
-    _inline '}'.
-    _inline 'table.diff_tab td,th {'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  padding-right: 0.5em;'.
-    _inline '}'.
-    _inline 'table.diff_tab th {'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: normal;'.
-    _inline '  padding-top: 3px;'.
-    _inline '  padding-bottom: 3px;'.
-    _inline '}'.
-    _inline 'table.diff_tab thead.header th {'.
-    _inline '  text-align: left;'.
-    _inline '  font-weight: bold;'.
-    _inline '  padding-left: 0.5em;'.
-    _inline '  font-size: 9pt;'.
-    _inline '}'.
-    _inline 'table.diff_tab td.num, th.num {'.
-    _inline '  width: 1%;'.
-    _inline '  min-width: 2em;'.
-    _inline '  padding-right: 8px;'.
-    _inline '  padding-left:  8px;'.
-    _inline '  text-align: right !important;'.
-    _inline '  border-left: 1px solid;'.
-    _inline '  border-right: 1px solid;'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
-    _inline '}'.
-    _inline 'table.diff_tab td.patch, th.patch {'.
-    _inline '  width: 1%;'.
-    _inline '  min-width: 1.5em;'.
-    _inline '  padding-right: 8px;'.
-    _inline '  padding-left:  8px;'.
-    _inline '  text-align: right !important;'.
-    _inline '  border-left: 1px solid;'.
-    _inline '  border-right: 1px solid;'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
-    _inline '  cursor: pointer;'.
-    _inline '}'.
-    _inline 'table.diff_tab td.num::before {'.
-    _inline '  content: attr(line-num);'.
-    _inline '}'.
-    _inline 'table.diff_tab code {'.
-    _inline '  font-family: inherit;'.
-    _inline '  white-space: pre;'.
-    _inline '}'.
-    _inline 'table.diff_tab td.code {'.
-    _inline '  word-wrap: break-word;'.
-    _inline '  white-space: pre-wrap;'.
-    _inline '  overflow: visible;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }'.
-    _inline 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }'.
-    _inline ''.
-    _inline 'table.diff_tab td.mark, th.mark {'.
-    _inline '  width: 0.1%;'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
-    _inline '  cursor: default;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.diff_select_left td.diff_right,'.
-    _inline '.diff_select_left td.diff_right *,'.
-    _inline '.diff_select_left th.diff_right,'.
-    _inline '.diff_select_left th.diff_right *,'.
-    _inline '.diff_select_right td.diff_left,'.
-    _inline '.diff_select_right td.diff_left *,'.
-    _inline '.diff_select_right th.diff_left,'.
-    _inline '.diff_select_right th.diff_left * {'.
-    _inline '  -ms-user-select: none;'.
-    _inline '  user-select: none;'.
-    _inline '  cursor: text;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.diff_select_left td.diff_left,'.
-    _inline '.diff_select_left td.diff_left *,'.
-    _inline '.diff_select_left th.diff_left,'.
-    _inline '.diff_select_left th.diff_left *,'.
-    _inline '.diff_select_right td.diff_right,'.
-    _inline '.diff_select_right td.diff_right *,'.
-    _inline '.diff_select_right th.diff_right,'.
-    _inline '.diff_select_right th.diff_right * {'.
-    _inline '  -ms-user-select: text;'.
-    _inline '  user-select: text;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'td.diff_others::selection,'.
-    _inline 'td.diff_others *::selection,'.
-    _inline 'th.diff_others::selection,'.
-    _inline 'th.diff_others *::selection {'.
-    _inline '  background-color: transparent;'.
-    _inline '  cursor: default;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.diff_select_left td.diff_right::selection,'.
-    _inline '.diff_select_left td.diff_right *::selection,'.
-    _inline '.diff_select_left th.diff_right::selection,'.
-    _inline '.diff_select_left th.diff_right *::selection,'.
-    _inline '.diff_select_right td.diff_left::selection,'.
-    _inline '.diff_select_right td.diff_left *::selection,'.
-    _inline '.diff_select_right th.diff_left::selection,'.
-    _inline '.diff_select_right th.diff_left *::selection {'.
-    _inline '  background-color: transparent;'.
-    _inline '  cursor: text;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DEBUG INFO STYLES */'.
-    _inline 'div.debug_container {'.
-    _inline '  padding: 0.5em;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  font-family: Consolas, Courier, monospace;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.debug_container p {'.
-    _inline '  margin: 0px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DB ENTRIES */'.
-    _inline 'div.db_list {'.
-    _inline '  padding: 0.5em;'.
-    _inline '  overflow-x: auto;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.db_tab pre {'.
-    _inline '  display: inline-block;'.
-    _inline '  overflow: hidden;'.
-    _inline '  word-wrap:break-word;'.
-    _inline '  white-space: pre-wrap;'.
-    _inline '  margin: 0px;'.
-    _inline '  width: 30em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.db_tab tr.firstrow td { padding-top: 0.5em; }'.
-    _inline 'table.db_tab th {'.
-    _inline '  text-align: left;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  border-bottom: 1px solid;'.
-    _inline '}'.
-    _inline 'table.db_tab td {'.
-    _inline '  padding: 4px 8px;'.
-    _inline '  vertical-align: middle;'.
-    _inline '}'.
-    _inline 'table.db_tab td.data {'.
-    _inline '  font-style: italic;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DB ENTRY DISPLAY */'.
-    _inline 'div.db_entry {'.
-    _inline '  padding: 0.5em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.db_entry pre {'.
-    _inline '  display: block;'.
-    _inline '  font-size: 10pt;'.
-    _inline '  overflow: hidden;'.
-    _inline '  word-wrap:break-word;'.
-    _inline '  white-space: pre-wrap;'.
-    _inline '  border: 1px  solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 0.5em;'.
-    _inline '  margin: 0.5em 0em;'.
-    _inline '  width: 60em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.db_entry textarea { margin: 0.5em 0em; }'.
-    _inline 'div.db_entry table.toolbar {'.
-    _inline '  width: 50em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'table.tag {'.
-    _inline '  display: inline-block;'.
-    _inline '  border: 1px  solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  margin-right: 0.5em;'.
-    _inline '}'.
-    _inline 'table.tag td { padding: 0.2em 0.5em; }'.
-    _inline ''.
-    _inline '/* TUTORIAL */'.
-    _inline ''.
-    _inline 'div.tutorial {'.
-    _inline '  margin-top:       3px;'.
-    _inline '  padding: 0.5em 1em 0.5em 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.tutorial li { margin: 2px 0px }'.
-    _inline 'div.tutorial h1 { font-size: 18pt; }'.
-    _inline 'div.tutorial h2 { font-size: 14pt;}'.
-    _inline ''.
-    _inline '/* MENU */'.
-    _inline '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */'.
-    _inline '/* container div, aligned left,'.
-    _inline '   but with .float-right modifier alignes right */'.
-    _inline ''.
-    _inline '.nav-container ul {'.
-    _inline '  list-style: none;'.
-    _inline '  position: relative;'.
-    _inline '  float: left;'.
-    _inline '  margin: 0;'.
-    _inline '  padding: 0;'.
-    _inline '  white-space: nowrap;'.
-    _inline '  text-align: left;'.
-    _inline '}'.
-    _inline '.nav-container.float-right ul { float: right; }'.
-    _inline ''.
-    _inline '.nav-container ul a {'.
-    _inline '  display: block;'.
-    _inline '  text-decoration: none;'.
-    _inline '  line-height: 30px;'.
-    _inline '  padding: 0 12px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */'.
-    _inline '.nav-container:after { clear: both; display: block; content: ""; }'.
-    _inline ''.
-    _inline '/* submenues align to left or right border of the active item'.
-    _inline '   depending on .float-right modifier */'.
-    _inline '.nav-container ul li {'.
-    _inline '  position: relative;'.
-    _inline '  float: left;'.
-    _inline '  margin: 0;'.
-    _inline '  padding: 0;'.
-    _inline '}'.
-    _inline '.nav-container.float-right ul ul { left: auto; right: 0; }'.
-    _inline '.nav-container ul li.current-menu-item { font-weight: 700; }'.
-    _inline '.nav-container ul li.force-nav-hover ul { display: block; }'.
-    _inline '.nav-container ul li:hover > ul { display: block; }'.
-    _inline ''.
-    _inline '/* special selection style for 1st level items (see also .corner below) */'.
-    _inline ''.
-    _inline '.nav-container ul ul {'.
-    _inline '  display: none;'.
-    _inline '  position: absolute;'.
-    _inline '  top: 100%;'.
-    _inline '  left: 0;'.
-    _inline '  z-index: 1;'.
-    _inline '  padding: 0;'.
-    _inline '  box-shadow: 1px 1px 3px 0px #bbb;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul li {'.
-    _inline '  float: none;'.
-    _inline '  min-width: 160px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul a {'.
-    _inline '  line-height: 120%;'.
-    _inline '  padding: 8px 15px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container ul ul ul {'.
-    _inline '  top: 0;'.
-    _inline '  left: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.nav-container.float-right ul ul ul {'.
-    _inline '  left: auto;'.
-    _inline '  right: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Minizone to extent hover area,'.
-    _inline '   aligned to the left or to the right of the selected item'.
-    _inline '   depending on .float-right modifier */'.
-    _inline '.nav-container > ul > li > div.minizone {'.
-    _inline '  display: none;'.
-    _inline '  z-index: 1;'.
-    _inline '  position: absolute;'.
-    _inline '  padding: 0px;'.
-    _inline '  width: 16px;'.
-    _inline '  height: 100%;'.
-    _inline '  bottom: 0px;'.
-    _inline '  left: 100%;'.
-    _inline '}'.
-    _inline '.nav-container > ul > li:hover div.minizone { display: block; }'.
-    _inline '.nav-container.float-right > ul > li > div.minizone {'.
-    _inline '  left: auto;'.
-    _inline '  right: 100%;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* icons - text-align strictly left - otherwise look ugly'.
-    _inline '   + bite a bit of left padding for nicer look'.
-    _inline '   + forbids item text wrapping (maybe can be done differently) */'.
-    _inline '.nav-container ul ul li a .icon {'.
-    _inline '  padding-right: 10px;'.
-    _inline '  margin-left: -3px;'.
-    _inline '}'.
-    _inline '.nav-container ul.with-icons li {'.
-    _inline '  text-align: left;'.
-    _inline '  white-space: nowrap;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Special .corner modifier - hangs menu at the top right corner'.
-    _inline '   and cancels 1st level background coloring */'.
-    _inline '.nav-container.corner {'.
-    _inline '  position: absolute;'.
-    _inline '  right: 0px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Toolbar separator style */'.
-    _inline '.nav-container ul ul li.separator {'.
-    _inline '  font-size: x-small;'.
-    _inline '  text-align: center;'.
-    _inline '  padding: 4px 0;'.
-    _inline '  text-transform: uppercase;'.
-    _inline '  border-bottom: 1px solid;'.
-    _inline '  border-top: 1px solid;'.
-    _inline '}'.
-    _inline '.nav-container ul ul li.separator:first-child { border-top: none; }'.
-    _inline ''.
-    _inline '/* News Announcement */'.
-    _inline ''.
-    _inline 'div.info-panel {'.
-    _inline '  position: absolute;'.
-    _inline '  z-index: 99;'.
-    _inline '  top: 36px;'.
-    _inline '  left: 50%;'.
-    _inline '  width: 40em;'.
-    _inline '  margin-left: -20em;'.
-    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel-fixed {'.
-    _inline '  position: fixed;'.
-    _inline '  top: 15%;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-hint {'.
-    _inline '  text-transform: uppercase;'.
-    _inline '  font-size: small;'.
-    _inline '  padding: 8px 6px 0px;'.
-    _inline '  text-align: center;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-title {'.
-    _inline '  text-transform: uppercase;'.
-    _inline '  font-size: small;'.
-    _inline '  padding: 6px;'.
-    _inline '  text-align: center;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-title a.close-btn {'.
-    _inline '  padding-left: 12px;'.
-    _inline '  padding-right: 2px;'.
-    _inline '  position: relative;'.
-    _inline '  bottom: 1px;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel div.info-list {'.
-    _inline '  padding: 0.8em 0.7em 1em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel li {'.
-    _inline '  padding-left: 10px;'.
-    _inline '  list-style-type: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel h1:first-child { margin: auto; }'.
-    _inline 'div.info-panel h1 {'.
-    _inline '  font-size: inherit;'.
-    _inline '  padding: 6px 4px;'.
-    _inline '  margin: 4px auto auto;'.
-    _inline '  text-decoration: underline;'.
-    _inline '  font-weight: normal;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel .version-marker {'.
-    _inline '  display: inline-block;'.
-    _inline '  margin-left: 20px;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 0px 6px;'.
-    _inline '  border:  1px solid;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.info-panel .update { border:  1px solid; }'.
-    _inline 'div.info-panel div.info-list td { padding-right: 1em }'.
-    _inline ''.
-    _inline '/* Error message Panel */'.
-    _inline ''.
-    _inline 'div.message-panel {'.
-    _inline '  z-index: 99;'.
-    _inline '  box-shadow: 2px 2px 4px 0px hsla(0, 0%, 0%, .1);'.
-    _inline '  padding: 12px;'.
-    _inline '  margin-left: -48%;'.
-    _inline '  position: fixed;'.
-    _inline '  bottom: 12px;'.
-    _inline '  width: 94%;'.
-    _inline '  left: 50%;'.
-    _inline ''.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 5px;'.
-    _inline '  border-color: hsl(0, 42%, 64%);'.
-    _inline '  background-color: hsla(0, 42%, 90%, 1);'.
-    _inline '}'.
-    _inline ''.
-    _inline '.message-panel-commands {'.
-    _inline '  display: none;'.
-    _inline '  margin-right: 2em;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.message-panel-commands a {'.
-    _inline '  padding: 0em 0.5em;'.
-    _inline '  border-left: 1px solid;'.
-    _inline '  border-left-color: #ccc;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.message-panel-commands a:first-child {'.
-    _inline '  padding-left: 0;'.
-    _inline '  border-left: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.message-panel:hover .message-panel-commands {'.
-    _inline '  display: block'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Tooltip text */'.
-    _inline '.link-hint {'.
-    _inline '    line-height: 1em;'.
-    _inline '    text-align: center;'.
-    _inline '    padding: 5px 15px;'.
-    _inline '    border-radius: 4px;'.
-    _inline ''.
-    _inline '    /* Position the tooltip text */'.
-    _inline '    position: absolute;'.
-    _inline '    z-index: 1;'.
-    _inline '    margin-top: -30px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.link-hint-a {'.
-    _inline '  margin-left: -60px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.link-hint-input {'.
-    _inline '  margin-left: -30px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.link-hint .pending { color: hsla(0, 0%, 0%, 0.2); }'.
-    _inline ''.
-    _inline '/* Tooltip arrow */'.
-    _inline '.link-hint::after {'.
-    _inline '    content: "";'.
-    _inline '    position: absolute;'.
-    _inline '    top: 100%;'.
-    _inline '    left: 50%;'.
-    _inline '    margin-left: -5px;'.
-    _inline '    border-width: 5px;'.
-    _inline '    border-style: solid;'.
-    _inline '    border-color: transparent;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* HOTKEYS */'.
-    _inline 'ul.hotkeys {'.
-    _inline '  list-style-type: none;'.
-    _inline '  padding: 0;'.
-    _inline '  margin: 0;'.
-    _inline '  font-size: smaller;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'ul.hotkeys span.key-id {'.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 1px 7px;'.
-    _inline '  width: 1em;'.
-    _inline '  display: inline-block;'.
-    _inline '  text-align: center;'.
-    _inline '  margin-top: 0.2em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'ul.hotkeys span.key-descr {'.
-    _inline '  margin-left: 1.2em;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'div.corner-hint {'.
-    _inline '  position: fixed;'.
-    _inline '  bottom: 10px;'.
-    _inline '  right: 10px;'.
-    _inline '  border: 1px solid;'.
-    _inline '  border-radius: 3px;'.
-    _inline '  padding: 4px;'.
-    _inline '  font-size: smaller;'.
-    _inline '  opacity: 0.5;'.
-    _inline '  z-index: 99;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Commit popup */'.
-    _inline 'table.commit tr .title {'.
-    _inline '  font-weight: bold;'.
-    _inline '  vertical-align: top;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Repo overview */'.
-    _inline '.repo-overview { font-size: smaller; }'.
-    _inline '.repo-overview tbody td { height: 2em; }'.
-    _inline '.ro-detail { display: none; }'.
-    _inline ''.
-    _inline '/* Branch Overview Page */'.
-    _inline '.gitGraph-scrollWrapper, .gitGraph-Wrapper{'.
-    _inline '  overflow-y: hidden;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.gitGraph-scrollWrapper{'.
-    _inline '  overflow-x: auto;'.
-    _inline '  height: 20px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.gitGraph-Wrapper{'.
-    _inline '  overflow-x: hidden;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.gitGraph-HTopScroller {'.
-    _inline '  width:1000px;'.
-    _inline '  height: 20px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* code inspector */'.
-    _inline '.ci-head { padding: 0.5em 1em; }'.
-    _inline '.ci-head .package-name span { margin-left: 0.3em; }'.
-    _inline '.ci-variant { font-weight: bold; }'.
-    _inline '.ci-result {'.
-    _inline '  padding: 6px;'.
-    _inline '  margin-top: 4px;'.
-    _inline '}'.
-    _inline '.ci-result li {'.
-    _inline '  list-style-type: none;'.
-    _inline '  padding: 0.3em 0.8em;'.
-    _inline '  margin-top: 6px;'.
-    _inline '  border-left: 4px solid;'.
-    _inline '}'.
-    _inline '.ci-result li:first-child { margin-top: 0px; }'.
-    _inline '.ci-result li > span { display: block; }'.
-    _inline ''.
-    _inline '/* Floating buttons */'.
-    _inline ''.
-    _inline '.floating-button {'.
-    _inline '  position: fixed;'.
-    _inline '  top: 6em;'.
-    _inline '  right: 2.8em;'.
-    _inline '  padding: 1em 1.8em;'.
-    _inline '  border-radius: 4px;'.
-    _inline '  border-width: 1px;'.
-    _inline '  border-style: solid;'.
-    _inline '  box-shadow: 2px 2px 6px 0px #ccc;'.
-    _inline '  cursor: pointer;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Command palette */'.
-    _inline ''.
-    _inline '.cmd-palette {'.
-    _inline '  position: absolute;'.
-    _inline '  z-index: 99;'.
-    _inline '  top: 36px;'.
-    _inline '  left: 50%;'.
-    _inline '  width: 40em;'.
-    _inline '  margin-left: -20em;'.
-    _inline '  box-shadow: 1px 1px 3px 2px #dcdcdc;'.
-    _inline '  background-color: white;'.
-    _inline '  border: solid 2px;'.
-    _inline '  padding: 0px 1px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette input {'.
-    _inline '  width: 100%;'.
-    _inline '  box-sizing: border-box;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette ul {'.
-    _inline '  max-height: 10em;'.
-    _inline '  overflow-y: scroll;'.
-    _inline '  margin: 4px 0;'.
-    _inline '  padding: 2px 4px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette li {'.
-    _inline '  list-style-type: none;'.
-    _inline '  cursor: default;'.
-    _inline '  padding: 4px 6px;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette li .icon {'.
-    _inline '  margin-right: 10px;'.
-    _inline '}'.
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * ABAPGIT COMMON CSS' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* GLOBALS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'body {' ).
+    lo_buf->add( '  overflow-x: hidden;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'a, a:visited {' ).
+    lo_buf->add( '  text-decoration:  none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'a:hover, a:active {' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '  text-decoration: underline;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'img {' ).
+    lo_buf->add( '  border-width: 0px;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table { border-collapse: collapse; }' ).
+    lo_buf->add( 'pre { display: inline; }' ).
+    lo_buf->add( 'sup {' ).
+    lo_buf->add( '  vertical-align: top;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  top: -0.5em;' ).
+    lo_buf->add( '  font-size: 75%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'input, textarea, select {' ).
+    lo_buf->add( '  padding: 3px 6px;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'input:focus, textarea:focus {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MODIFIERS */' ).
+    lo_buf->add( '.emphasis     { font-weight: bold !important; }' ).
+    lo_buf->add( '.crossout     { text-decoration: line-through !important; }' ).
+    lo_buf->add( '.right        { text-align:right; }' ).
+    lo_buf->add( '.center       { text-align:center; }' ).
+    lo_buf->add( '.paddings     { padding: 0.5em 0.5em; }' ).
+    lo_buf->add( '.pad-sides    { padding-left: 0.3em; padding-right: 0.3em; }' ).
+    lo_buf->add( '.margin-v5    { margin-top: 0.5em; margin-bottom: 0.5em; }' ).
+    lo_buf->add( '.indent5em    { padding-left: 0.5em; }' ).
+    lo_buf->add( '.pad4px       { padding: 4px; }' ).
+    lo_buf->add( '.w100         { width: 100%; }' ).
+    lo_buf->add( '.wmin         { width: 1%; }' ).
+    lo_buf->add( '.w40          { width: 40%; }' ).
+    lo_buf->add( '.float-right  { float: right; }' ).
+    lo_buf->add( '.pad-right    { padding-right: 6px; }' ).
+    lo_buf->add( '.inline       { display: inline; }' ).
+    lo_buf->add( '.hidden       { visibility: hidden; }' ).
+    lo_buf->add( '.nodisplay    { display: none }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* PANELS */' ).
+    lo_buf->add( 'div.panel {' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '#debug-output {' ).
+    lo_buf->add( '  text-align: right;' ).
+    lo_buf->add( '  padding-right: 0.5em;' ).
+    lo_buf->add( '  font-style: italic;' ).
+    lo_buf->add( '  font-size: small;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.dummydiv {' ).
+    lo_buf->add( '  padding:          0.5em 1em;' ).
+    lo_buf->add( '  text-align:       center;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'a.close-btn {' ).
+    lo_buf->add( '  text-decoration: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
+    lo_buf->add( '#abapGitLogo { outline: none; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div#header {' ).
+    lo_buf->add( '  padding:          0.5em 0.5em;' ).
+    lo_buf->add( '  border-bottom:    3px double;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */' ).
+    lo_buf->add( 'div#header td.logo       { width: 164px; }' ).
+    lo_buf->add( 'div#header td:not(.logo) { padding-top: 11px; } /* align with logo H */' ).
+    lo_buf->add( 'div#header span.page_title {' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '  font-size: 18pt;' ).
+    lo_buf->add( '  padding-left: 0.4em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div#toc { padding: 0.5em 1em; }' ).
+    lo_buf->add( 'div#toc .favorites a { opacity: 0.5; }' ).
+    lo_buf->add( 'div#toc .favorites:hover a { opacity: 1; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div#footer {' ).
+    lo_buf->add( '  padding:          0.5em 1em;' ).
+    lo_buf->add( '  border-top:       3px double;' ).
+    lo_buf->add( '  text-align:       center;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div#footer span.version {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  margin-top: 0.3em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* ERROR LOG */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.log {' ).
+    lo_buf->add( '  padding: 6px;' ).
+    lo_buf->add( '  margin: 4px;' ).
+    lo_buf->add( '  border: 1px  solid;' ).
+    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.log > span   { display:block; }' ).
+    lo_buf->add( 'div.log .icon { padding-right: 6px; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( 'div.repo {' ).
+    lo_buf->add( '  margin-top: 3px;' ).
+    lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_name span.name {' ).
+    lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '  font-size: 14pt;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_name a.url {' ).
+    lo_buf->add( '  font-size: 12pt;' ).
+    lo_buf->add( '  margin-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_name span.url {' ).
+    lo_buf->add( '  font-size: 12pt;' ).
+    lo_buf->add( '  margin-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_name .icon {' ).
+    lo_buf->add( '  padding-right: 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr {' ).
+    lo_buf->add( '  font-size: 12pt;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span {' ).
+    lo_buf->add( '  margin-left: 0.2em;' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span.bg_marker {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  font-size: 8pt;' ).
+    lo_buf->add( '  padding: 4px 2px 3px 2px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span.branch {' ).
+    lo_buf->add( '  padding: 2px 4px;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MISC AND REFACTOR */' ).
+    lo_buf->add( '.hidden-submit {' ).
+    lo_buf->add( '  border: 0 none;' ).
+    lo_buf->add( '  height: 0;' ).
+    lo_buf->add( '  width: 0;' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STATE BLOCK COMMON*/' ).
+    lo_buf->add( 'span.state-block {' ).
+    lo_buf->add( '  margin-left: 1em;' ).
+    lo_buf->add( '  font-family: Consolas, Lucida Console, Courier, monospace;' ).
+    lo_buf->add( '  font-size: x-small;' ).
+    lo_buf->add( '  vertical-align: 13%;' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '  white-space: nowrap;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block span {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  padding: 0px 3px;' ).
+    lo_buf->add( '  border-width: 1px;' ).
+    lo_buf->add( '  border-style: solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY TABLE*/' ).
+    lo_buf->add( 'div.repo_container {' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.repo_banner {' ).
+    lo_buf->add( '  margin: 0em 1.2em 1em;' ).
+    lo_buf->add( '  padding: 0.5em 0.5em;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '  font-size: 85%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.repo_tab {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td {' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '  padding-top: 2px;' ).
+    lo_buf->add( '  padding-bottom: 2px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.icon {' ).
+    lo_buf->add( '  width: 1px;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '  padding-left: 8px;' ).
+    lo_buf->add( '  padding-right: 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.icon:not(:first-child) {' ).
+    lo_buf->add( '  width: 26px;' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.type {' ).
+    lo_buf->add( '  width: 4em;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.object {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.files {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.cmd, .repo_tab th.cmd {' ).
+    lo_buf->add( '  text-align: right;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  padding-right: 0.7em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab th.cmd .icon{' ).
+    lo_buf->add( '  padding-right: 8px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab tr:first-child td { border-top: 0px; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STAGE */' ).
+    lo_buf->add( 'div.stage-container { width: 900px; }' ).
+    lo_buf->add( 'input.stage-filter { width: 18em; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.stage_tab {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  margin-top: 0.2em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td {' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '  padding: 2px 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '  padding: 4px 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.status {' ).
+    lo_buf->add( '  width: 2em;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.highlight {' ).
+    lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.stage_tab td.cmd {  cursor: pointer; }' ).
+    lo_buf->add( '.stage_tab td.cmd a { padding: 0px 4px; }' ).
+    lo_buf->add( '.stage_tab th.cmd a { padding: 0px 4px; }' ).
+    lo_buf->add( '.stage_tab tbody tr:first-child td { padding-top: 0.5em; }' ).
+    lo_buf->add( '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( 'div.form-container {' ).
+    lo_buf->add( '  padding: 1em 1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'form.aligned-form {' ).
+    lo_buf->add( '  display: table;' ).
+    lo_buf->add( '  border-spacing: 2px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'form.aligned-form label {' ).
+    lo_buf->add( '  padding-right: 1em;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'form.aligned-form select {' ).
+    lo_buf->add( '  padding-right: 1em;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'form.aligned-form span.sub-title {' ).
+    lo_buf->add( '  font-size: smaller;' ).
+    lo_buf->add( '  padding-top: 8px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'form.aligned-form div.row { display: table-row; }' ).
+    lo_buf->add( 'form.aligned-form label { display: table-cell; }' ).
+    lo_buf->add( 'form.aligned-form input { display: table-cell; }' ).
+    lo_buf->add( 'form.aligned-form input[type="text"] { width: 25em; }' ).
+    lo_buf->add( 'form.aligned-form span.cell { display: table-cell; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( 'div.settings_container {' ).
+    lo_buf->add( '  padding: 0.5em 0.5em 1em;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.settings_section {' ).
+    lo_buf->add( '  margin-left:50px' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.settings td:first-child {' ).
+    lo_buf->add( '  padding-left: 1em;' ).
+    lo_buf->add( '  padding-right: 1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.settings-package-requirements {' ).
+    lo_buf->add( '  /*max-width: 300px;*/' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( 'div.diff {' ).
+    lo_buf->add( '  padding: 0.7em' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head {' ).
+    lo_buf->add( '  padding-bottom: 0.7em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.diff_name {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.diff_changed_by {' ).
+    lo_buf->add( '  float: right;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.diff_changed_by span.user {' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  border: solid 1px;' ).
+    lo_buf->add( '  padding: 1px 0.4em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.diff_banner {' ).
+    lo_buf->add( '  border-style: solid;' ).
+    lo_buf->add( '  border-width: 1px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding-left: 0.3em;' ).
+    lo_buf->add( '  padding-right: 0.3em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_content {' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
+    lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.diff_content tbody tr td{' ).
+    lo_buf->add( '  width: 50%;' ).
+    lo_buf->add( '  vertical-align: top' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.diff_head span.state-block {' ).
+    lo_buf->add( '  margin-left: 0.5em;' ).
+    lo_buf->add( '  font-size: inherit;' ).
+    lo_buf->add( '  vertical-align: initial;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span {' ).
+    lo_buf->add( '  padding: 0px 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( 'table.diff_tab {' ).
+    lo_buf->add( '  font-family: Consolas, Courier, monospace;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td,th {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  padding-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '  padding-top: 3px;' ).
+    lo_buf->add( '  padding-bottom: 3px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab thead.header th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  font-size: 9pt;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.num, th.num {' ).
+    lo_buf->add( '  width: 1%;' ).
+    lo_buf->add( '  min-width: 2em;' ).
+    lo_buf->add( '  padding-right: 8px;' ).
+    lo_buf->add( '  padding-left:  8px;' ).
+    lo_buf->add( '  text-align: right !important;' ).
+    lo_buf->add( '  border-left: 1px solid;' ).
+    lo_buf->add( '  border-right: 1px solid;' ).
+    lo_buf->add( '  -ms-user-select: none;' ).
+    lo_buf->add( '  user-select: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.patch, th.patch {' ).
+    lo_buf->add( '  width: 1%;' ).
+    lo_buf->add( '  min-width: 1.5em;' ).
+    lo_buf->add( '  padding-right: 8px;' ).
+    lo_buf->add( '  padding-left:  8px;' ).
+    lo_buf->add( '  text-align: right !important;' ).
+    lo_buf->add( '  border-left: 1px solid;' ).
+    lo_buf->add( '  border-right: 1px solid;' ).
+    lo_buf->add( '  -ms-user-select: none;' ).
+    lo_buf->add( '  user-select: none;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.num::before {' ).
+    lo_buf->add( '  content: attr(line-num);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab code {' ).
+    lo_buf->add( '  font-family: inherit;' ).
+    lo_buf->add( '  white-space: pre;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.code {' ).
+    lo_buf->add( '  word-wrap: break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  overflow: visible;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.diff_tab tbody tr:first-child td { padding-top: 0.5em; }' ).
+    lo_buf->add( 'table.diff_tab tbody tr:last-child td { padding-bottom: 0.5em; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.diff_tab td.mark, th.mark {' ).
+    lo_buf->add( '  width: 0.1%;' ).
+    lo_buf->add( '  -ms-user-select: none;' ).
+    lo_buf->add( '  user-select: none;' ).
+    lo_buf->add( '  cursor: default;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.diff_select_left td.diff_right,' ).
+    lo_buf->add( '.diff_select_left td.diff_right *,' ).
+    lo_buf->add( '.diff_select_left th.diff_right,' ).
+    lo_buf->add( '.diff_select_left th.diff_right *,' ).
+    lo_buf->add( '.diff_select_right td.diff_left,' ).
+    lo_buf->add( '.diff_select_right td.diff_left *,' ).
+    lo_buf->add( '.diff_select_right th.diff_left,' ).
+    lo_buf->add( '.diff_select_right th.diff_left * {' ).
+    lo_buf->add( '  -ms-user-select: none;' ).
+    lo_buf->add( '  user-select: none;' ).
+    lo_buf->add( '  cursor: text;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.diff_select_left td.diff_left,' ).
+    lo_buf->add( '.diff_select_left td.diff_left *,' ).
+    lo_buf->add( '.diff_select_left th.diff_left,' ).
+    lo_buf->add( '.diff_select_left th.diff_left *,' ).
+    lo_buf->add( '.diff_select_right td.diff_right,' ).
+    lo_buf->add( '.diff_select_right td.diff_right *,' ).
+    lo_buf->add( '.diff_select_right th.diff_right,' ).
+    lo_buf->add( '.diff_select_right th.diff_right * {' ).
+    lo_buf->add( '  -ms-user-select: text;' ).
+    lo_buf->add( '  user-select: text;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'td.diff_others::selection,' ).
+    lo_buf->add( 'td.diff_others *::selection,' ).
+    lo_buf->add( 'th.diff_others::selection,' ).
+    lo_buf->add( 'th.diff_others *::selection {' ).
+    lo_buf->add( '  background-color: transparent;' ).
+    lo_buf->add( '  cursor: default;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.diff_select_left td.diff_right::selection,' ).
+    lo_buf->add( '.diff_select_left td.diff_right *::selection,' ).
+    lo_buf->add( '.diff_select_left th.diff_right::selection,' ).
+    lo_buf->add( '.diff_select_left th.diff_right *::selection,' ).
+    lo_buf->add( '.diff_select_right td.diff_left::selection,' ).
+    lo_buf->add( '.diff_select_right td.diff_left *::selection,' ).
+    lo_buf->add( '.diff_select_right th.diff_left::selection,' ).
+    lo_buf->add( '.diff_select_right th.diff_left *::selection {' ).
+    lo_buf->add( '  background-color: transparent;' ).
+    lo_buf->add( '  cursor: text;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( 'div.debug_container {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '  font-family: Consolas, Courier, monospace;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.debug_container p {' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( 'div.db_list {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  overflow-x: auto;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab pre {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '  width: 30em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab tr.firstrow td { padding-top: 0.5em; }' ).
+    lo_buf->add( 'table.db_tab th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab td {' ).
+    lo_buf->add( '  padding: 4px 8px;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab td.data {' ).
+    lo_buf->add( '  font-style: italic;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DB ENTRY DISPLAY */' ).
+    lo_buf->add( 'div.db_entry {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.db_entry pre {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  border: 1px  solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  margin: 0.5em 0em;' ).
+    lo_buf->add( '  width: 60em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.db_entry textarea { margin: 0.5em 0em; }' ).
+    lo_buf->add( 'div.db_entry table.toolbar {' ).
+    lo_buf->add( '  width: 50em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.tag {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  border: 1px  solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.tag td { padding: 0.2em 0.5em; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* TUTORIAL */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.tutorial {' ).
+    lo_buf->add( '  margin-top:       3px;' ).
+    lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.tutorial li { margin: 2px 0px }' ).
+    lo_buf->add( 'div.tutorial h1 { font-size: 18pt; }' ).
+    lo_buf->add( 'div.tutorial h2 { font-size: 14pt;}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */' ).
+    lo_buf->add( '/* container div, aligned left,' ).
+    lo_buf->add( '   but with .float-right modifier alignes right */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul {' ).
+    lo_buf->add( '  list-style: none;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  float: left;' ).
+    lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '  white-space: nowrap;' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container.float-right ul { float: right; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul a {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  text-decoration: none;' ).
+    lo_buf->add( '  line-height: 30px;' ).
+    lo_buf->add( '  padding: 0 12px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */' ).
+    lo_buf->add( '.nav-container:after { clear: both; display: block; content: ""; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* submenues align to left or right border of the active item' ).
+    lo_buf->add( '   depending on .float-right modifier */' ).
+    lo_buf->add( '.nav-container ul li {' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  float: left;' ).
+    lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container.float-right ul ul { left: auto; right: 0; }' ).
+    lo_buf->add( '.nav-container ul li.current-menu-item { font-weight: 700; }' ).
+    lo_buf->add( '.nav-container ul li.force-nav-hover ul { display: block; }' ).
+    lo_buf->add( '.nav-container ul li:hover > ul { display: block; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* special selection style for 1st level items (see also .corner below) */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul ul {' ).
+    lo_buf->add( '  display: none;' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  top: 100%;' ).
+    lo_buf->add( '  left: 0;' ).
+    lo_buf->add( '  z-index: 1;' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '  box-shadow: 1px 1px 3px 0px #bbb;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul ul li {' ).
+    lo_buf->add( '  float: none;' ).
+    lo_buf->add( '  min-width: 160px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul ul a {' ).
+    lo_buf->add( '  line-height: 120%;' ).
+    lo_buf->add( '  padding: 8px 15px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container ul ul ul {' ).
+    lo_buf->add( '  top: 0;' ).
+    lo_buf->add( '  left: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.nav-container.float-right ul ul ul {' ).
+    lo_buf->add( '  left: auto;' ).
+    lo_buf->add( '  right: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Minizone to extent hover area,' ).
+    lo_buf->add( '   aligned to the left or to the right of the selected item' ).
+    lo_buf->add( '   depending on .float-right modifier */' ).
+    lo_buf->add( '.nav-container > ul > li > div.minizone {' ).
+    lo_buf->add( '  display: none;' ).
+    lo_buf->add( '  z-index: 1;' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  padding: 0px;' ).
+    lo_buf->add( '  width: 16px;' ).
+    lo_buf->add( '  height: 100%;' ).
+    lo_buf->add( '  bottom: 0px;' ).
+    lo_buf->add( '  left: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container > ul > li:hover div.minizone { display: block; }' ).
+    lo_buf->add( '.nav-container.float-right > ul > li > div.minizone {' ).
+    lo_buf->add( '  left: auto;' ).
+    lo_buf->add( '  right: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* icons - text-align strictly left - otherwise look ugly' ).
+    lo_buf->add( '   + bite a bit of left padding for nicer look' ).
+    lo_buf->add( '   + forbids item text wrapping (maybe can be done differently) */' ).
+    lo_buf->add( '.nav-container ul ul li a .icon {' ).
+    lo_buf->add( '  padding-right: 10px;' ).
+    lo_buf->add( '  margin-left: -3px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container ul.with-icons li {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  white-space: nowrap;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Special .corner modifier - hangs menu at the top right corner' ).
+    lo_buf->add( '   and cancels 1st level background coloring */' ).
+    lo_buf->add( '.nav-container.corner {' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  right: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Toolbar separator style */' ).
+    lo_buf->add( '.nav-container ul ul li.separator {' ).
+    lo_buf->add( '  font-size: x-small;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '  padding: 4px 0;' ).
+    lo_buf->add( '  text-transform: uppercase;' ).
+    lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container ul ul li.separator:first-child { border-top: none; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* News Announcement */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel {' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  z-index: 99;' ).
+    lo_buf->add( '  top: 36px;' ).
+    lo_buf->add( '  left: 50%;' ).
+    lo_buf->add( '  width: 40em;' ).
+    lo_buf->add( '  margin-left: -20em;' ).
+    lo_buf->add( '  box-shadow: 1px 1px 3px 2px #dcdcdc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel-fixed {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  top: 15%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel div.info-hint {' ).
+    lo_buf->add( '  text-transform: uppercase;' ).
+    lo_buf->add( '  font-size: small;' ).
+    lo_buf->add( '  padding: 8px 6px 0px;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel div.info-title {' ).
+    lo_buf->add( '  text-transform: uppercase;' ).
+    lo_buf->add( '  font-size: small;' ).
+    lo_buf->add( '  padding: 6px;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel div.info-title a.close-btn {' ).
+    lo_buf->add( '  padding-left: 12px;' ).
+    lo_buf->add( '  padding-right: 2px;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  bottom: 1px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel div.info-list {' ).
+    lo_buf->add( '  padding: 0.8em 0.7em 1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel li {' ).
+    lo_buf->add( '  padding-left: 10px;' ).
+    lo_buf->add( '  list-style-type: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel h1:first-child { margin: auto; }' ).
+    lo_buf->add( 'div.info-panel h1 {' ).
+    lo_buf->add( '  font-size: inherit;' ).
+    lo_buf->add( '  padding: 6px 4px;' ).
+    lo_buf->add( '  margin: 4px auto auto;' ).
+    lo_buf->add( '  text-decoration: underline;' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel .version-marker {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  margin-left: 20px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 0px 6px;' ).
+    lo_buf->add( '  border:  1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel .update { border:  1px solid; }' ).
+    lo_buf->add( 'div.info-panel div.info-list td { padding-right: 1em }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Error message Panel */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.message-panel {' ).
+    lo_buf->add( '  z-index: 99;' ).
+    lo_buf->add( '  box-shadow: 2px 2px 4px 0px hsla(0, 0%, 0%, .1);' ).
+    lo_buf->add( '  padding: 12px;' ).
+    lo_buf->add( '  margin-left: -48%;' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  bottom: 12px;' ).
+    lo_buf->add( '  width: 94%;' ).
+    lo_buf->add( '  left: 50%;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 5px;' ).
+    lo_buf->add( '  border-color: hsl(0, 42%, 64%);' ).
+    lo_buf->add( '  background-color: hsla(0, 42%, 90%, 1);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.message-panel-commands {' ).
+    lo_buf->add( '  display: none;' ).
+    lo_buf->add( '  margin-right: 2em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.message-panel-commands a {' ).
+    lo_buf->add( '  padding: 0em 0.5em;' ).
+    lo_buf->add( '  border-left: 1px solid;' ).
+    lo_buf->add( '  border-left-color: #ccc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.message-panel-commands a:first-child {' ).
+    lo_buf->add( '  padding-left: 0;' ).
+    lo_buf->add( '  border-left: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.message-panel:hover .message-panel-commands {' ).
+    lo_buf->add( '  display: block' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Tooltip text */' ).
+    lo_buf->add( '.link-hint {' ).
+    lo_buf->add( '    line-height: 1em;' ).
+    lo_buf->add( '    text-align: center;' ).
+    lo_buf->add( '    padding: 5px 15px;' ).
+    lo_buf->add( '    border-radius: 4px;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    /* Position the tooltip text */' ).
+    lo_buf->add( '    position: absolute;' ).
+    lo_buf->add( '    z-index: 1;' ).
+    lo_buf->add( '    margin-top: -30px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.link-hint-a {' ).
+    lo_buf->add( '  margin-left: -60px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.link-hint-input {' ).
+    lo_buf->add( '  margin-left: -30px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.link-hint .pending { color: hsla(0, 0%, 0%, 0.2); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Tooltip arrow */' ).
+    lo_buf->add( '.link-hint::after {' ).
+    lo_buf->add( '    content: "";' ).
+    lo_buf->add( '    position: absolute;' ).
+    lo_buf->add( '    top: 100%;' ).
+    lo_buf->add( '    left: 50%;' ).
+    lo_buf->add( '    margin-left: -5px;' ).
+    lo_buf->add( '    border-width: 5px;' ).
+    lo_buf->add( '    border-style: solid;' ).
+    lo_buf->add( '    border-color: transparent;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( 'ul.hotkeys {' ).
+    lo_buf->add( '  list-style-type: none;' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  font-size: smaller;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'ul.hotkeys span.key-id {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 1px 7px;' ).
+    lo_buf->add( '  width: 1em;' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  text-align: center;' ).
+    lo_buf->add( '  margin-top: 0.2em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'ul.hotkeys span.key-descr {' ).
+    lo_buf->add( '  margin-left: 1.2em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.corner-hint {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  bottom: 10px;' ).
+    lo_buf->add( '  right: 10px;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 4px;' ).
+    lo_buf->add( '  font-size: smaller;' ).
+    lo_buf->add( '  opacity: 0.5;' ).
+    lo_buf->add( '  z-index: 99;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Commit popup */' ).
+    lo_buf->add( 'table.commit tr .title {' ).
+    lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '  vertical-align: top;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Repo overview */' ).
+    lo_buf->add( '.repo-overview { font-size: smaller; }' ).
+    lo_buf->add( '.repo-overview tbody td { height: 2em; }' ).
+    lo_buf->add( '.ro-detail { display: none; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Branch Overview Page */' ).
+    lo_buf->add( '.gitGraph-scrollWrapper, .gitGraph-Wrapper{' ).
+    lo_buf->add( '  overflow-y: hidden;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.gitGraph-scrollWrapper{' ).
+    lo_buf->add( '  overflow-x: auto;' ).
+    lo_buf->add( '  height: 20px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.gitGraph-Wrapper{' ).
+    lo_buf->add( '  overflow-x: hidden;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.gitGraph-HTopScroller {' ).
+    lo_buf->add( '  width:1000px;' ).
+    lo_buf->add( '  height: 20px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* code inspector */' ).
+    lo_buf->add( '.ci-head { padding: 0.5em 1em; }' ).
+    lo_buf->add( '.ci-head .package-name span { margin-left: 0.3em; }' ).
+    lo_buf->add( '.ci-variant { font-weight: bold; }' ).
+    lo_buf->add( '.ci-result {' ).
+    lo_buf->add( '  padding: 6px;' ).
+    lo_buf->add( '  margin-top: 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.ci-result li {' ).
+    lo_buf->add( '  list-style-type: none;' ).
+    lo_buf->add( '  padding: 0.3em 0.8em;' ).
+    lo_buf->add( '  margin-top: 6px;' ).
+    lo_buf->add( '  border-left: 4px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.ci-result li:first-child { margin-top: 0px; }' ).
+    lo_buf->add( '.ci-result li > span { display: block; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Floating buttons */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.floating-button {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  top: 6em;' ).
+    lo_buf->add( '  right: 2.8em;' ).
+    lo_buf->add( '  padding: 1em 1.8em;' ).
+    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '  border-width: 1px;' ).
+    lo_buf->add( '  border-style: solid;' ).
+    lo_buf->add( '  box-shadow: 2px 2px 6px 0px #ccc;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Command palette */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette {' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  z-index: 99;' ).
+    lo_buf->add( '  top: 36px;' ).
+    lo_buf->add( '  left: 50%;' ).
+    lo_buf->add( '  width: 40em;' ).
+    lo_buf->add( '  margin-left: -20em;' ).
+    lo_buf->add( '  box-shadow: 1px 1px 3px 2px #dcdcdc;' ).
+    lo_buf->add( '  background-color: white;' ).
+    lo_buf->add( '  border: solid 2px;' ).
+    lo_buf->add( '  padding: 0px 1px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette input {' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  box-sizing: border-box;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette ul {' ).
+    lo_buf->add( '  max-height: 10em;' ).
+    lo_buf->add( '  overflow-y: scroll;' ).
+    lo_buf->add( '  margin: 4px 0;' ).
+    lo_buf->add( '  padding: 2px 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette li {' ).
+    lo_buf->add( '  list-style-type: none;' ).
+    lo_buf->add( '  cursor: default;' ).
+    lo_buf->add( '  padding: 4px 6px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette li .icon {' ).
+    lo_buf->add( '  margin-right: 10px;' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
       iv_mime_name = 'ZABAPGIT_CSS_COMMON'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_CSS_THEME_DEFAULT.W3MI.DATA.CSS
 ****************************************************
-    _inline '/*'.
-    _inline ' * ABAPGIT COLOR THEME CSS - DEFAULT'.
-    _inline ' */'.
-    _inline ''.
-    _inline ':root {'.
-    _inline '  --theme-background-color: #E8E8E8;'.
-    _inline '  --theme-container-background-color: #f2f2f2;'.
-    _inline '  --theme-container-border-color: lightgrey;'.
-    _inline '  --theme-primary-font: Arial,Helvetica,sans-serif;'.
-    _inline '  --theme-primary-font-color: #333333;'.
-    _inline '  --theme-primary-font-color-reduced: #ccc;'.
-    _inline '  --theme-font-size: 12pt;'.
-    _inline '  --theme-link-color: #4078c0;'.
-    _inline '  --theme-table-border-color: #eee;'.
-    _inline '  --theme-greyscale-dark: #808080;'.
-    _inline '  --theme-greyscale-medium: #b3b3b3;'.
-    _inline '  --theme-greyscale-light: #ccc;'.
-    _inline '  --theme-greyscale-lighter: lightgrey;'.
-    _inline '  --theme-linkhint-background: lightgreen;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* GLOBALS */'.
-    _inline 'body {'.
-    _inline '  background-color: var(--theme-background-color);'.
-    _inline '  font-family: var(--theme-primary-font);'.
-    _inline '  color: var(--theme-primary-font-color);'.
-    _inline '  font-size: var(--theme-font-size);'.
-    _inline '}'.
-    _inline 'a, a:visited  { color: var(--theme-link-color); }'.
-    _inline 'input, textarea, select     { border-color: #ddd; }'.
-    _inline 'input:focus, textarea:focus { border-color: #8cadd9; }'.
-    _inline ''.
-    _inline '/* COLOR PALETTE */'.
-    _inline '.grey         { color: var(--theme-greyscale-lighter) !important; }'.
-    _inline '.grey70       { color: var(--theme-greyscale-medium)  !important; }'.
-    _inline '.grey80       { color: var(--theme-greyscale-light)   !important; }'.
-    _inline '.darkgrey     { color: var(--theme-greyscale-dark)    !important; }'.
-    _inline '.bgorange     { background-color: orange; }'.
-    _inline '.attention    { color: red        !important; }'.
-    _inline '.error        { color: #d41919    !important; }'.
-    _inline '.warning      { color: #efb301    !important; }'.
-    _inline '.success      { color: green       !important; }'.
-    _inline '.blue         { color: #5e8dc9    !important; }'.
-    _inline '.red          { color: red        !important; }'.
-    _inline '.white        { color: white      !important; }'.
-    _inline ''.
-    _inline '/* Floating buttons and color sets */'.
-    _inline '.blue-set {'.
-    _inline '  border-color: #abc3e3;'.
-    _inline '  color: #5e8dc9;'.
-    _inline '  background-color: #d9e4f2;'.
-    _inline '}'.
-    _inline '.grey-set {'.
-    _inline '  border-color: #c7c7c7;'.
-    _inline '  color: var(--theme-greyscale-dark);'.
-    _inline '  background-color: #e6e6e6;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* PANELS */'.
-    _inline '/* TODO: add warning and error colors */'.
-    _inline 'div.panel.success {'.
-    _inline '  color: #589a58 !important;'.
-    _inline '  background-color: #c5eac5;'.
-    _inline '}'.
-    _inline '#debug-output { color: var(--theme-primary-font-color-reduced); }'.
-    _inline 'div.dummydiv { background-color: var(--theme-container-background-color); }'.
-    _inline ''.
-    _inline '/* STRUCTURE DIVS, HEADER & FOOTER */'.
-    _inline 'div#header { border-bottom-color: var(--theme-container-border-color); }'.
-    _inline 'div#header span.page_title { color: var(--theme-greyscale-medium); }'.
-    _inline 'div#toc    { background-color: var(--theme-container-background-color); }'.
-    _inline 'div#footer span.version { color: grey; }'.
-    _inline 'div#footer { border-top-color: var(--theme-container-border-color); }'.
-    _inline ''.
-    _inline '/* ERROR LOG */'.
-    _inline 'div.log {'.
-    _inline '  background-color: #fee6e6;'.
-    _inline '  border-color: #fdcece;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* REPOSITORY */'.
-    _inline 'div.repo { background-color: var(--theme-container-background-color); }'.
-    _inline '.repo_name span.name { color: #333; }'.
-    _inline '.repo_name span.url  { color: var(--theme-primary-font-color-reduced); }'.
-    _inline '.repo_name a.url { color: var(--theme-primary-font-color-reduced); }'.
-    _inline '.repo_attr       { color: grey; }'.
-    _inline ''.
-    _inline '.repo_attr span.bg_marker {'.
-    _inline '  border-color: #d2d2d2;'.
-    _inline '  background-color: #d8d8d8;'.
-    _inline '  color: #fff;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch {'.
-    _inline '  border-color: #d9d9d9;'.
-    _inline '  background-color: #e2e2e2;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch_head {'.
-    _inline '  border-color: #d8dff3;'.
-    _inline '  background-color: #eceff9;'.
-    _inline '}'.
-    _inline '.repo_attr span.branch_branch {'.
-    _inline '  border-color: #e7d9b1;'.
-    _inline '  background-color: #f8f0d8;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* REPOSITORY TABLE*/'.
-    _inline 'table.repo_tab {'.
-    _inline '  border-color: #ddd;'.
-    _inline '  background-color: #fff;'.
-    _inline '}'.
-    _inline '.repo_tab th {'.
-    _inline '  color: #888888;'.
-    _inline '  border-bottom-color: #ddd;'.
-    _inline '}'.
-    _inline '.repo_tab td {'.
-    _inline '  color: #333;'.
-    _inline '  border-top-color: var(--theme-table-border-color);'.
-    _inline '}'.
-    _inline '.repo_tab .inactive      { color: orange; }'.
-    _inline '.repo_tab tr.unsupported { color: var(--theme-greyscale-lighter); }'.
-    _inline '.repo_tab tr.modified    { background-color: #fbf7e9; }'.
-    _inline '.repo_tab td.current_dir { color: var(--theme-primary-font-color-reduced); }'.
-    _inline ''.
-    _inline '/*.repo_tab td.cmd span.state-block span { border-color: #000; }*/'.
-    _inline '/*.repo_tab td.cmd span.state-block span.added {'.
-    _inline '  background-color: #69ad74;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd span.state-block span.changed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #d4af25;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd span.state-block span.mixed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: #69ad74;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd span.state-block span.deleted {'.
-    _inline '  background-color: #c76861;'.
-    _inline '  border-color: #b8605a;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline '.repo_tab td.cmd span.state-block span.none {'.
-    _inline '  background-color: #e8e8e8;'.
-    _inline '  border-color: #dbdbdb;'.
-    _inline '  color: #c8c8c8;'.
-    _inline '}'.
-    _inline '*/'.
-    _inline '/* STAGE */'.
-    _inline '.stage_tab {'.
-    _inline '  border-color: #ddd;'.
-    _inline '  background-color: #fff;'.
-    _inline '}'.
-    _inline '.stage_tab td {'.
-    _inline '  color: #333;'.
-    _inline '  border-top-color: var(--theme-table-border-color);'.
-    _inline '}'.
-    _inline '.stage_tab th {'.
-    _inline '  color: var(--theme-greyscale-medium);'.
-    _inline '  background-color: #edf2f9;'.
-    _inline '}'.
-    _inline '.stage_tab td.status {'.
-    _inline '  color: var(--theme-primary-font-color-reduced);'.
-    _inline '  background-color: #fafafa;'.
-    _inline '}'.
-    _inline '.stage_tab td.highlight { color: #444 !important; }'.
-    _inline '.stage_tab td.method { color: var(--theme-primary-font-color-reduced); }'.
-    _inline '.stage_tab td.user   { color: var(--theme-greyscale-medium); }'.
-    _inline '.stage_tab td.type   { color: var(--theme-greyscale-medium); }'.
-    _inline '.stage_tab mark {'.
-    _inline '  color: white;'.
-    _inline '  background-color: #79a0d2;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* COMMIT */'.
-    _inline 'div.form-container { background-color: #F8F8F8; }'.
-    _inline 'form.aligned-form label { color: var(--theme-greyscale-medium); }'.
-    _inline 'form.aligned-form span.sub-title { color: var(--theme-greyscale-medium); }'.
-    _inline ''.
-    _inline '/* SETTINGS STYLES */'.
-    _inline 'div.settings_container {'.
-    _inline '  color: #444;'.
-    _inline '  background-color: var(--theme-container-background-color);'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DIFF */'.
-    _inline 'div.diff { background-color: var(--theme-container-background-color); }'.
-    _inline 'span.diff_name { color: grey; }'.
-    _inline 'span.diff_name strong { color: #333; }'.
-    _inline 'span.diff_changed_by  { color: grey; }'.
-    _inline 'span.diff_changed_by span.user {'.
-    _inline '  border-color: #c2d4ea;'.
-    _inline '  background-color: #d9e4f2;'.
-    _inline '}'.
-    _inline '.diff_ins {'.
-    _inline '  border-color: #abf2ab;'.
-    _inline '  background-color: #e0ffe0;'.
-    _inline '}'.
-    _inline '.diff_del {'.
-    _inline '  border-color: #ff667d;'.
-    _inline '  background-color: #ffccd4;'.
-    _inline '}'.
-    _inline '.diff_upd {'.
-    _inline '  border-color: #dada00;'.
-    _inline '  background-color: #ffffcc;'.
-    _inline '}'.
-    _inline 'div.diff_content {'.
-    _inline '  background-color: #fff;'.
-    _inline '  border-top-color: #ddd;'.
-    _inline '  border-bottom-color: #ddd;'.
-    _inline '}'.
-    _inline '/*div.diff_head span.state-block span {'.
-    _inline '  border-color: #000;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span.added {'.
-    _inline '  background-color: #69ad74;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span.changed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #d4af25;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span.mixed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: #69ad74;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span.deleted {'.
-    _inline '  background-color: #c76861;'.
-    _inline '  border-color: #b8605a;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'div.diff_head span.state-block span.none {'.
-    _inline '  background-color: #e8e8e8;'.
-    _inline '  border-color: #dbdbdb;'.
-    _inline '  color: #c8c8c8;'.
-    _inline '}'.
-    _inline '*/'.
-    _inline ''.
-    _inline '/* STATE BLOCK COLORS */'.
-    _inline '/*span.state-block span {'.
-    _inline '  border-color: #000;'.
-    _inline '}*/'.
-    _inline 'span.state-block span.added {'.
-    _inline '  background-color: #69ad74;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'span.state-block span.changed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #d4af25;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'span.state-block span.mixed {'.
-    _inline '  background-color: #e0c150;'.
-    _inline '  border-color: #579e64;'.
-    _inline '  color: #69ad74;'.
-    _inline '}'.
-    _inline 'span.state-block span.deleted {'.
-    _inline '  background-color: #c76861;'.
-    _inline '  border-color: #b8605a;'.
-    _inline '  color: white;'.
-    _inline '}'.
-    _inline 'span.state-block span.none {'.
-    _inline '  background-color: #e8e8e8;'.
-    _inline '  border-color: #dbdbdb;'.
-    _inline '  color: #c8c8c8;'.
-    _inline '}'.
-    _inline ''.
-    _inline ''.
-    _inline '/* DIFF TABLE */'.
-    _inline 'table.diff_tab td,th {'.
-    _inline '  color: #444;'.
-    _inline '}'.
-    _inline 'table.diff_tab thead.header th {'.
-    _inline '  color: #eee;'.
-    _inline '  background-color: var(--theme-greyscale-medium);'.
-    _inline '}'.
-    _inline 'table.diff_tab thead.nav_line {'.
-    _inline '  background-color: #edf2f9;'.
-    _inline '}'.
-    _inline 'table.diff_tab thead.nav_line th {'.
-    _inline '  color: var(--theme-greyscale-medium);'.
-    _inline '}'.
-    _inline 'table.diff_tab td.num, th.num {'.
-    _inline '  color: var(--theme-primary-font-color-reduced);'.
-    _inline '  border-left-color: var(--theme-table-border-color);'.
-    _inline '  border-right-color: var(--theme-table-border-color);'.
-    _inline '}'.
-    _inline 'table.diff_tab td.patch, th.patch {'.
-    _inline '  color: var(--theme-primary-font-color-reduced);'.
-    _inline '  border-left-color: var(--theme-table-border-color);'.
-    _inline '  border-right-color: var(--theme-table-border-color);'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* STYLES for Syntax Highlighting */'.
-    _inline '.syntax-hl span.keyword  { color: #0a69ce; }'.
-    _inline '.syntax-hl span.text     { color: #48ce4f; }'.
-    _inline '.syntax-hl span.comment  { color: var(--theme-greyscale-dark); font-style: italic; }'.
-    _inline '.syntax-hl span.xml_tag  { color: #457ce3; }'.
-    _inline '.syntax-hl span.attr     { color: #b777fb; }'.
-    _inline '.syntax-hl span.attr_val { color: #7a02f9; }'.
-    _inline ''.
-    _inline '/* DEBUG INFO STYLES */'.
-    _inline 'div.debug_container { color: #444; }'.
-    _inline ''.
-    _inline '/* DB ENTRIES */'.
-    _inline 'div.db_list { background-color: #fff; }'.
-    _inline 'table.db_tab td      { color: #333; }'.
-    _inline 'table.db_tab td.data { color: #888; }'.
-    _inline 'table.db_tab tbody tr:hover, tr:active { background-color: #f4f4f4; }'.
-    _inline 'table.db_tab th {'.
-    _inline '  color: #888888;'.
-    _inline '  border-bottom-color: #ddd;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* DB ENTRY DISPLAY */'.
-    _inline 'div.db_entry {'.
-    _inline '  background-color: var(--theme-container-background-color);'.
-    _inline '}'.
-    _inline 'div.db_entry pre {'.
-    _inline '  background-color: #fcfcfc;'.
-    _inline '  border-color: #eaeaea;'.
-    _inline '}'.
-    _inline 'table.tag {'.
-    _inline '  border-color: #b3c1cc;'.
-    _inline '  background-color: #eee;'.
-    _inline '}'.
-    _inline 'table.tag td.label { background-color: #b3c1cc; }'.
-    _inline ''.
-    _inline '/* TUTORIAL */'.
-    _inline 'div.tutorial { background-color: var(--theme-container-background-color); }'.
-    _inline 'div.tutorial hr { border-color: var(--theme-greyscale-light); }'.
-    _inline 'div.tutorial h1, h2 { color: #404040; }'.
-    _inline ''.
-    _inline '/* MENU */'.
-    _inline '.nav-container ul ul li:hover { background-color: #f6f6f6; }'.
-    _inline '.nav-container > ul > li:hover > a { background-color: #ffffff80; }'.
-    _inline '.nav-container ul ul { background-color: #fff; }'.
-    _inline '.nav-container.corner > ul > li:hover > a { background-color: inherit; }'.
-    _inline ''.
-    _inline '/* Toolbar separator style */'.
-    _inline '.nav-container ul ul li.separator {'.
-    _inline '  color: var(--theme-greyscale-medium);'.
-    _inline '  border-bottom-color: #eee;'.
-    _inline '  border-top-color: #eee;'.
-    _inline '}'.
-    _inline '.nav-container ul ul li.separator:hover { background-color: inherit; }'.
-    _inline ''.
-    _inline '/* News Announcement */'.
-    _inline 'div.info-panel { background-color: white; }'.
-    _inline 'div.info-panel div.info-hint { color: var(--theme-greyscale-light); }'.
-    _inline 'div.info-panel div.info-title {'.
-    _inline '  color: #f8f8f8;'.
-    _inline '  background-color: #888;'.
-    _inline '}'.
-    _inline 'div.info-panel div.info-title a.close-btn { color: #d8d8d8; }'.
-    _inline 'div.info-panel div.info-list { color: #444; }'.
-    _inline 'div.info-panel .version-marker {'.
-    _inline '  color: white;'.
-    _inline '  border-color: #c0c0c0;'.
-    _inline '  background-color: var(--theme-greyscale-light);'.
-    _inline '}'.
-    _inline 'div.info-panel .update {'.
-    _inline '  border-color: #e8ba30;'.
-    _inline '  background-color: #f5c538;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* Tooltips text */'.
-    _inline '.link-hint { color: var(--theme-primary-font-color); }'.
-    _inline '.link-hint { background-color: var(--theme-linkhint-background) }'.
-    _inline '.link-hint::after { border-top-color: var(--theme-linkhint-background) }'.
-    _inline ''.
-    _inline '/* HOTKEYS */'.
-    _inline 'ul.hotkeys span.key-id {'.
-    _inline '  background-color: #f0f0f0;'.
-    _inline '  border-color: #dcdcdc;'.
-    _inline '}'.
-    _inline 'div.corner-hint {'.
-    _inline '  color: var(--theme-greyscale-medium);'.
-    _inline '  border-color: var(--theme-greyscale-light);'.
-    _inline '  background-color: #fff;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* code inspector */'.
-    _inline '.ci-head { background-color: var(--theme-container-background-color); }'.
-    _inline '.ci-head .package-name span { color: grey; }'.
-    _inline '.ci-variant   { color: #444; }'.
-    _inline '.ci-result    { background-color: #f6f6f6; }'.
-    _inline '.ci-result li { color: #444; }'.
-    _inline '.ci-result li.ci-error   { border-left-color: #cd5353; }'.
-    _inline '.ci-result li.ci-warning { border-left-color: #ecd227; }'.
-    _inline '.ci-result li.ci-info    { border-left-color: #acacac; }'.
-    _inline ''.
-    _inline '/* Command palette */'.
-    _inline ''.
-    _inline '.cmd-palette {'.
-    _inline '  border-color: #ccc;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette li.selected {'.
-    _inline '  background-color: hsla(214, 50%, 90%, 1);'.
-    _inline '}'.
-    _inline ''.
-    _inline '.cmd-palette mark {'.
-    _inline '  color: white;'.
-    _inline '  background-color: #79a0d2;'.
-    _inline '  /* todo merge with stage search */'.
-    _inline '}'.
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * ABAPGIT COLOR THEME CSS - DEFAULT' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( ':root {' ).
+    lo_buf->add( '  --theme-background-color: #E8E8E8;' ).
+    lo_buf->add( '  --theme-container-background-color: #f2f2f2;' ).
+    lo_buf->add( '  --theme-container-border-color: lightgrey;' ).
+    lo_buf->add( '  --theme-primary-font: Arial,Helvetica,sans-serif;' ).
+    lo_buf->add( '  --theme-primary-font-color: #333333;' ).
+    lo_buf->add( '  --theme-primary-font-color-reduced: #ccc;' ).
+    lo_buf->add( '  --theme-font-size: 12pt;' ).
+    lo_buf->add( '  --theme-link-color: #4078c0;' ).
+    lo_buf->add( '  --theme-table-border-color: #eee;' ).
+    lo_buf->add( '  --theme-greyscale-dark: #808080;' ).
+    lo_buf->add( '  --theme-greyscale-medium: #b3b3b3;' ).
+    lo_buf->add( '  --theme-greyscale-light: #ccc;' ).
+    lo_buf->add( '  --theme-greyscale-lighter: lightgrey;' ).
+    lo_buf->add( '  --theme-linkhint-background: lightgreen;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* GLOBALS */' ).
+    lo_buf->add( 'body {' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
+    lo_buf->add( '  font-family: var(--theme-primary-font);' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
+    lo_buf->add( '  font-size: var(--theme-font-size);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'a, a:visited  { color: var(--theme-link-color); }' ).
+    lo_buf->add( 'input, textarea, select     { border-color: #ddd; }' ).
+    lo_buf->add( 'input:focus, textarea:focus { border-color: #8cadd9; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COLOR PALETTE */' ).
+    lo_buf->add( '.grey         { color: var(--theme-greyscale-lighter) !important; }' ).
+    lo_buf->add( '.grey70       { color: var(--theme-greyscale-medium)  !important; }' ).
+    lo_buf->add( '.grey80       { color: var(--theme-greyscale-light)   !important; }' ).
+    lo_buf->add( '.darkgrey     { color: var(--theme-greyscale-dark)    !important; }' ).
+    lo_buf->add( '.bgorange     { background-color: orange; }' ).
+    lo_buf->add( '.attention    { color: red        !important; }' ).
+    lo_buf->add( '.error        { color: #d41919    !important; }' ).
+    lo_buf->add( '.warning      { color: #efb301    !important; }' ).
+    lo_buf->add( '.success      { color: green       !important; }' ).
+    lo_buf->add( '.blue         { color: #5e8dc9    !important; }' ).
+    lo_buf->add( '.red          { color: red        !important; }' ).
+    lo_buf->add( '.white        { color: white      !important; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Floating buttons and color sets */' ).
+    lo_buf->add( '.blue-set {' ).
+    lo_buf->add( '  border-color: #abc3e3;' ).
+    lo_buf->add( '  color: #5e8dc9;' ).
+    lo_buf->add( '  background-color: #d9e4f2;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.grey-set {' ).
+    lo_buf->add( '  border-color: #c7c7c7;' ).
+    lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  background-color: #e6e6e6;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* PANELS */' ).
+    lo_buf->add( '/* TODO: add warning and error colors */' ).
+    lo_buf->add( 'div.panel.success {' ).
+    lo_buf->add( '  color: #589a58 !important;' ).
+    lo_buf->add( '  background-color: #c5eac5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '#debug-output { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( 'div.dummydiv { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
+    lo_buf->add( 'div#header { border-bottom-color: var(--theme-container-border-color); }' ).
+    lo_buf->add( 'div#header span.page_title { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( 'div#toc    { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( 'div#footer span.version { color: grey; }' ).
+    lo_buf->add( 'div#footer { border-top-color: var(--theme-container-border-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* ERROR LOG */' ).
+    lo_buf->add( 'div.log {' ).
+    lo_buf->add( '  background-color: #fee6e6;' ).
+    lo_buf->add( '  border-color: #fdcece;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( 'div.repo { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '.repo_name span.name { color: #333; }' ).
+    lo_buf->add( '.repo_name span.url  { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '.repo_name a.url { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '.repo_attr       { color: grey; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.repo_attr span.bg_marker {' ).
+    lo_buf->add( '  border-color: #d2d2d2;' ).
+    lo_buf->add( '  background-color: #d8d8d8;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span.branch {' ).
+    lo_buf->add( '  border-color: #d9d9d9;' ).
+    lo_buf->add( '  background-color: #e2e2e2;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span.branch_head {' ).
+    lo_buf->add( '  border-color: #d8dff3;' ).
+    lo_buf->add( '  background-color: #eceff9;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_attr span.branch_branch {' ).
+    lo_buf->add( '  border-color: #e7d9b1;' ).
+    lo_buf->add( '  background-color: #f8f0d8;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY TABLE*/' ).
+    lo_buf->add( 'table.repo_tab {' ).
+    lo_buf->add( '  border-color: #ddd;' ).
+    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab th {' ).
+    lo_buf->add( '  color: #888888;' ).
+    lo_buf->add( '  border-bottom-color: #ddd;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td {' ).
+    lo_buf->add( '  color: #333;' ).
+    lo_buf->add( '  border-top-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab .inactive      { color: orange; }' ).
+    lo_buf->add( '.repo_tab tr.unsupported { color: var(--theme-greyscale-lighter); }' ).
+    lo_buf->add( '.repo_tab tr.modified    { background-color: #fbf7e9; }' ).
+    lo_buf->add( '.repo_tab td.current_dir { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*.repo_tab td.cmd span.state-block span { border-color: #000; }*/' ).
+    lo_buf->add( '/*.repo_tab td.cmd span.state-block span.added {' ).
+    lo_buf->add( '  background-color: #69ad74;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.cmd span.state-block span.changed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #d4af25;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.cmd span.state-block span.mixed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: #69ad74;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.cmd span.state-block span.deleted {' ).
+    lo_buf->add( '  background-color: #c76861;' ).
+    lo_buf->add( '  border-color: #b8605a;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td.cmd span.state-block span.none {' ).
+    lo_buf->add( '  background-color: #e8e8e8;' ).
+    lo_buf->add( '  border-color: #dbdbdb;' ).
+    lo_buf->add( '  color: #c8c8c8;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '*/' ).
+    lo_buf->add( '/* STAGE */' ).
+    lo_buf->add( '.stage_tab {' ).
+    lo_buf->add( '  border-color: #ddd;' ).
+    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td {' ).
+    lo_buf->add( '  color: #333;' ).
+    lo_buf->add( '  border-top-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab th {' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
+    lo_buf->add( '  background-color: #edf2f9;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.status {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
+    lo_buf->add( '  background-color: #fafafa;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.highlight { color: #444 !important; }' ).
+    lo_buf->add( '.stage_tab td.method { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '.stage_tab td.user   { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( '.stage_tab td.type   { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( '.stage_tab mark {' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '  background-color: #79a0d2;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( 'div.form-container { background-color: #F8F8F8; }' ).
+    lo_buf->add( 'form.aligned-form label { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( 'form.aligned-form span.sub-title { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( 'div.settings_container {' ).
+    lo_buf->add( '  color: #444;' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( 'div.diff { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( 'span.diff_name { color: grey; }' ).
+    lo_buf->add( 'span.diff_name strong { color: #333; }' ).
+    lo_buf->add( 'span.diff_changed_by  { color: grey; }' ).
+    lo_buf->add( 'span.diff_changed_by span.user {' ).
+    lo_buf->add( '  border-color: #c2d4ea;' ).
+    lo_buf->add( '  background-color: #d9e4f2;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.diff_ins {' ).
+    lo_buf->add( '  border-color: #abf2ab;' ).
+    lo_buf->add( '  background-color: #e0ffe0;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.diff_del {' ).
+    lo_buf->add( '  border-color: #ff667d;' ).
+    lo_buf->add( '  background-color: #ffccd4;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.diff_upd {' ).
+    lo_buf->add( '  border-color: #dada00;' ).
+    lo_buf->add( '  background-color: #ffffcc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_content {' ).
+    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '  border-top-color: #ddd;' ).
+    lo_buf->add( '  border-bottom-color: #ddd;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '/*div.diff_head span.state-block span {' ).
+    lo_buf->add( '  border-color: #000;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span.added {' ).
+    lo_buf->add( '  background-color: #69ad74;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span.changed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #d4af25;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span.mixed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: #69ad74;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span.deleted {' ).
+    lo_buf->add( '  background-color: #c76861;' ).
+    lo_buf->add( '  border-color: #b8605a;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.diff_head span.state-block span.none {' ).
+    lo_buf->add( '  background-color: #e8e8e8;' ).
+    lo_buf->add( '  border-color: #dbdbdb;' ).
+    lo_buf->add( '  color: #c8c8c8;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '*/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STATE BLOCK COLORS */' ).
+    lo_buf->add( '/*span.state-block span {' ).
+    lo_buf->add( '  border-color: #000;' ).
+    lo_buf->add( '}*/' ).
+    lo_buf->add( 'span.state-block span.added {' ).
+    lo_buf->add( '  background-color: #69ad74;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block span.changed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #d4af25;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block span.mixed {' ).
+    lo_buf->add( '  background-color: #e0c150;' ).
+    lo_buf->add( '  border-color: #579e64;' ).
+    lo_buf->add( '  color: #69ad74;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block span.deleted {' ).
+    lo_buf->add( '  background-color: #c76861;' ).
+    lo_buf->add( '  border-color: #b8605a;' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block span.none {' ).
+    lo_buf->add( '  background-color: #e8e8e8;' ).
+    lo_buf->add( '  border-color: #dbdbdb;' ).
+    lo_buf->add( '  color: #c8c8c8;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( 'table.diff_tab td,th {' ).
+    lo_buf->add( '  color: #444;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab thead.header th {' ).
+    lo_buf->add( '  color: #eee;' ).
+    lo_buf->add( '  background-color: var(--theme-greyscale-medium);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab thead.nav_line {' ).
+    lo_buf->add( '  background-color: #edf2f9;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab thead.nav_line th {' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.num, th.num {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
+    lo_buf->add( '  border-left-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-right-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.diff_tab td.patch, th.patch {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
+    lo_buf->add( '  border-left-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-right-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STYLES for Syntax Highlighting */' ).
+    lo_buf->add( '.syntax-hl span.keyword  { color: #0a69ce; }' ).
+    lo_buf->add( '.syntax-hl span.text     { color: #48ce4f; }' ).
+    lo_buf->add( '.syntax-hl span.comment  { color: var(--theme-greyscale-dark); font-style: italic; }' ).
+    lo_buf->add( '.syntax-hl span.xml_tag  { color: #457ce3; }' ).
+    lo_buf->add( '.syntax-hl span.attr     { color: #b777fb; }' ).
+    lo_buf->add( '.syntax-hl span.attr_val { color: #7a02f9; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( 'div.debug_container { color: #444; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( 'div.db_list { background-color: #fff; }' ).
+    lo_buf->add( 'table.db_tab td      { color: #333; }' ).
+    lo_buf->add( 'table.db_tab td.data { color: #888; }' ).
+    lo_buf->add( 'table.db_tab tbody tr:hover, tr:active { background-color: #f4f4f4; }' ).
+    lo_buf->add( 'table.db_tab th {' ).
+    lo_buf->add( '  color: #888888;' ).
+    lo_buf->add( '  border-bottom-color: #ddd;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DB ENTRY DISPLAY */' ).
+    lo_buf->add( 'div.db_entry {' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.db_entry pre {' ).
+    lo_buf->add( '  background-color: #fcfcfc;' ).
+    lo_buf->add( '  border-color: #eaeaea;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.tag {' ).
+    lo_buf->add( '  border-color: #b3c1cc;' ).
+    lo_buf->add( '  background-color: #eee;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.tag td.label { background-color: #b3c1cc; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* TUTORIAL */' ).
+    lo_buf->add( 'div.tutorial { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( 'div.tutorial hr { border-color: var(--theme-greyscale-light); }' ).
+    lo_buf->add( 'div.tutorial h1, h2 { color: #404040; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '.nav-container ul ul li:hover { background-color: #f6f6f6; }' ).
+    lo_buf->add( '.nav-container > ul > li:hover > a { background-color: #ffffff80; }' ).
+    lo_buf->add( '.nav-container ul ul { background-color: #fff; }' ).
+    lo_buf->add( '.nav-container.corner > ul > li:hover > a { background-color: inherit; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Toolbar separator style */' ).
+    lo_buf->add( '.nav-container ul ul li.separator {' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
+    lo_buf->add( '  border-bottom-color: #eee;' ).
+    lo_buf->add( '  border-top-color: #eee;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.nav-container ul ul li.separator:hover { background-color: inherit; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* News Announcement */' ).
+    lo_buf->add( 'div.info-panel { background-color: white; }' ).
+    lo_buf->add( 'div.info-panel div.info-hint { color: var(--theme-greyscale-light); }' ).
+    lo_buf->add( 'div.info-panel div.info-title {' ).
+    lo_buf->add( '  color: #f8f8f8;' ).
+    lo_buf->add( '  background-color: #888;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.info-panel div.info-title a.close-btn { color: #d8d8d8; }' ).
+    lo_buf->add( 'div.info-panel div.info-list { color: #444; }' ).
+    lo_buf->add( 'div.info-panel .version-marker {' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '  border-color: #c0c0c0;' ).
+    lo_buf->add( '  background-color: var(--theme-greyscale-light);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.info-panel .update {' ).
+    lo_buf->add( '  border-color: #e8ba30;' ).
+    lo_buf->add( '  background-color: #f5c538;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Tooltips text */' ).
+    lo_buf->add( '.link-hint { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.link-hint { background-color: var(--theme-linkhint-background) }' ).
+    lo_buf->add( '.link-hint::after { border-top-color: var(--theme-linkhint-background) }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( 'ul.hotkeys span.key-id {' ).
+    lo_buf->add( '  background-color: #f0f0f0;' ).
+    lo_buf->add( '  border-color: #dcdcdc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.corner-hint {' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
+    lo_buf->add( '  border-color: var(--theme-greyscale-light);' ).
+    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* code inspector */' ).
+    lo_buf->add( '.ci-head { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '.ci-head .package-name span { color: grey; }' ).
+    lo_buf->add( '.ci-variant   { color: #444; }' ).
+    lo_buf->add( '.ci-result    { background-color: #f6f6f6; }' ).
+    lo_buf->add( '.ci-result li { color: #444; }' ).
+    lo_buf->add( '.ci-result li.ci-error   { border-left-color: #cd5353; }' ).
+    lo_buf->add( '.ci-result li.ci-warning { border-left-color: #ecd227; }' ).
+    lo_buf->add( '.ci-result li.ci-info    { border-left-color: #acacac; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Command palette */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette {' ).
+    lo_buf->add( '  border-color: #ccc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette li.selected {' ).
+    lo_buf->add( '  background-color: hsla(214, 50%, 90%, 1);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.cmd-palette mark {' ).
+    lo_buf->add( '  color: white;' ).
+    lo_buf->add( '  background-color: #79a0d2;' ).
+    lo_buf->add( '  /* todo merge with stage search */' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
       iv_mime_name = 'ZABAPGIT_CSS_THEME_DEFAULT'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_CSS_THEME_DARK.W3MI.DATA.CSS
 ****************************************************
-    _inline '/*'.
-    _inline ' * ABAPGIT THEME CSS - DARK'.
-    _inline ' */'.
-    _inline ''.
-    _inline '/* https://experience.sap.com/fiori-design-web/colors/ */'.
-    _inline ''.
-    _inline ':root {'.
-    _inline '  --theme-background-color: #333333;'.
-    _inline '  --theme-container-background-color: #444444;'.
-    _inline '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;'.
-    _inline '  --theme-primary-font-color: #cccccc;'.
-    _inline '  --theme-primary-font-color-reduced: #EEEEEE;'.
-    _inline '  --theme-font-size: 11pt;'.
-    _inline '  --theme-link-color: #d9ffff;'.
-    _inline '  --theme-link-color-hover: #f6f6f6;'.
-    _inline '  --theme-container-border-color: #D1E0EE;'.
-    _inline '  --theme-table-border-color: #E5E5E5; /* ALV border color */'.
-    _inline '  --theme-greyscale-dark: #666666;'.
-    _inline '  --theme-greyscale-medium: #bfbfbf;'.
-    _inline '  --theme-greyscale-light: #CCCCCC;'.
-    _inline '  --theme-greyscale-lighter: #E5E5E5;'.
-    _inline '  --theme-list-hover-background-color: #666666;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* GLOBALS */'.
-    _inline 'body {'.
-    _inline '  background-color: var(--theme-background-color);'.
-    _inline '  color: var(--theme-primary-font-color);'.
-    _inline '}'.
-    _inline 'select, input, textarea { '.
-    _inline '  color: var(--theme-primary-font-color);'.
-    _inline '  border-color: #ffffff;'.
-    _inline '  background-color: var(--theme-background-color);'.
-    _inline '}'.
-    _inline 'a:hover { color: var(--theme-link-color-hover); }'.
-    _inline ''.
-    _inline '/* HEADER */'.
-    _inline '#header a, #header a:visited { color: var(--theme-link-color); }'.
-    _inline ''.
-    _inline '/* MENU */'.
-    _inline 'div#toc .favorites a { opacity: 1; }'.
-    _inline '.nav-container ul a:hover { text-decoration: underline; }'.
-    _inline '.nav-container ul ul { background-color: #555555; }'.
-    _inline '.nav-container ul ul li:hover { background-color: var(--theme-list-hover-background-color); }'.
-    _inline 'table.repo_tab {'.
-    _inline '    border-color: #var(--theme-container-background-color);'.
-    _inline '    background-color: var(--theme-background-color);'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* abapGit logo in header and footer */'.
-    _inline '#abapGitLogo>img { background-color: #bfbfbf; }'.
-    _inline '#footer>img { background-color: #bfbfbf; }'.
-    _inline ''.
-    _inline '/* TUTORIAL */'.
-    _inline 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }'.
-    _inline ''.
-    _inline '/* REPOSITORY */'.
-    _inline 'div.repo { background-color: var(--theme-container-background-color); }'.
-    _inline '.repo_attr { color: var(--theme-primary-font-color); }'.
-    _inline '.repo_attr span.branch_branch {'.
-    _inline '  border-color: #ffffff;'.
-    _inline '  background-color: #777777;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* REPOSITORY TABLE */'.
-    _inline '.repo_tab td { color: var(--theme-primary-font-color); }'.
-    _inline '.repo_tab tr.unsupported { background-color: #555; }'.
-    _inline '.repo_tab tr.modified { background-color: #555; }'.
-    _inline ''.
-    _inline '/* STAGE */'.
-    _inline '.stage_tab { background-color: var(--theme-background-color); }'.
-    _inline '.stage_tab td { color: var(--theme-primary-font-color); }'.
-    _inline '.stage_tab td.status.highlight { '.
-    _inline '  color: var(--theme-primary-font-color) !important;'.
-    _inline '  background-color: var(--theme-background-color);'.
-    _inline '}'.
-    _inline '.stage_tab td.status { '.
-    _inline '  color: #777;'.
-    _inline '  background-color: var(--theme-background-color); '.
-    _inline '}'.
-    _inline '.stage_tab th { background-color: var(--theme-container-background-color); }'.
-    _inline ''.
-    _inline '/* COMMIT */'.
-    _inline 'div.form-container { background-color: var(--theme-background-color); }'.
-    _inline ''.
-    _inline '/* SETTINGS STYLES */'.
-    _inline 'div.settings_container { color: var(--theme-primary-font-color); }'.
-    _inline ''.
-    _inline '/* DIFF */'.
-    _inline '.diff_ins { background-color: #352; }'.
-    _inline '.diff_del { background-color: #411; }'.
-    _inline '.diff_upd { background-color: #551; }'.
-    _inline 'div.diff_content { background-color: var(--theme-background-color); }'.
-    _inline ''.
-    _inline '/* DIFF TABLE */'.
-    _inline 'table.diff_tab td,th { color: #fff; }'.
-    _inline 'table.diff_tab thead.nav_line { background-color: var(--theme-container-background-color); }'.
-    _inline ''.
-    _inline '/* STYLES for Syntax Highlighting */'.
-    _inline '.syntax-hl span.keyword  { color: #4af; }'.
-    _inline '.syntax-hl span.text     { color: #8f8; }'.
-    _inline '.syntax-hl span.comment  { color: #999; }'.
-    _inline '.syntax-hl span.xml_tag  { color: #659cff; }'.
-    _inline '.syntax-hl span.attr     { color: #bab2f9; }'.
-    _inline '.syntax-hl span.attr_val { color: #b777fb; }'.
-    _inline ''.
-    _inline '/* DEBUG INFO STYLES */'.
-    _inline 'div.debug_container#debug_info { color: var(--theme-primary-font-color); }'.
-    _inline ''.
-    _inline '/* DB ENTRIES */'.
-    _inline 'div.db_list { background-color: var(--theme-container-background-color); }'.
-    _inline 'table.db_tab td      { color: var(--theme-primary-font-color); }'.
-    _inline 'table.db_tab td.data { opacity: 0.5; }'.
-    _inline 'table.db_tab tbody tr:hover, tr:active { background-color: var(--theme-list-hover-background-color); }'.
-    _inline 'table.db_tab th {'.
-    _inline '  color: var(--theme-primary-font-color); }'.
-    _inline '  border-bottom-color: #333;'.
-    _inline '}'.
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * ABAPGIT THEME CSS - DARK' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* https://experience.sap.com/fiori-design-web/colors/ */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( ':root {' ).
+    lo_buf->add( '  --theme-background-color: #333333;' ).
+    lo_buf->add( '  --theme-container-background-color: #444444;' ).
+    lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
+    lo_buf->add( '  --theme-primary-font-color: #cccccc;' ).
+    lo_buf->add( '  --theme-primary-font-color-reduced: #EEEEEE;' ).
+    lo_buf->add( '  --theme-font-size: 11pt;' ).
+    lo_buf->add( '  --theme-link-color: #d9ffff;' ).
+    lo_buf->add( '  --theme-link-color-hover: #f6f6f6;' ).
+    lo_buf->add( '  --theme-container-border-color: #D1E0EE;' ).
+    lo_buf->add( '  --theme-table-border-color: #E5E5E5; /* ALV border color */' ).
+    lo_buf->add( '  --theme-greyscale-dark: #666666;' ).
+    lo_buf->add( '  --theme-greyscale-medium: #bfbfbf;' ).
+    lo_buf->add( '  --theme-greyscale-light: #CCCCCC;' ).
+    lo_buf->add( '  --theme-greyscale-lighter: #E5E5E5;' ).
+    lo_buf->add( '  --theme-list-hover-background-color: #666666;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* GLOBALS */' ).
+    lo_buf->add( 'body {' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'select, input, textarea { ' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
+    lo_buf->add( '  border-color: #ffffff;' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'a:hover { color: var(--theme-link-color-hover); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* HEADER */' ).
+    lo_buf->add( '#header a, #header a:visited { color: var(--theme-link-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MENU */' ).
+    lo_buf->add( 'div#toc .favorites a { opacity: 1; }' ).
+    lo_buf->add( '.nav-container ul a:hover { text-decoration: underline; }' ).
+    lo_buf->add( '.nav-container ul ul { background-color: #555555; }' ).
+    lo_buf->add( '.nav-container ul ul li:hover { background-color: var(--theme-list-hover-background-color); }' ).
+    lo_buf->add( 'table.repo_tab {' ).
+    lo_buf->add( '    border-color: #var(--theme-container-background-color);' ).
+    lo_buf->add( '    background-color: var(--theme-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* abapGit logo in header and footer */' ).
+    lo_buf->add( '#abapGitLogo>img { background-color: #bfbfbf; }' ).
+    lo_buf->add( '#footer>img { background-color: #bfbfbf; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* TUTORIAL */' ).
+    lo_buf->add( 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( 'div.repo { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '.repo_attr { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.repo_attr span.branch_branch {' ).
+    lo_buf->add( '  border-color: #ffffff;' ).
+    lo_buf->add( '  background-color: #777777;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* REPOSITORY TABLE */' ).
+    lo_buf->add( '.repo_tab td { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.repo_tab tr.unsupported { background-color: #555; }' ).
+    lo_buf->add( '.repo_tab tr.modified { background-color: #555; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STAGE */' ).
+    lo_buf->add( '.stage_tab { background-color: var(--theme-background-color); }' ).
+    lo_buf->add( '.stage_tab td { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.stage_tab td.status.highlight { ' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color) !important;' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.status { ' ).
+    lo_buf->add( '  color: #777;' ).
+    lo_buf->add( '  background-color: var(--theme-background-color); ' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab th { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( 'div.form-container { background-color: var(--theme-background-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( 'div.settings_container { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( '.diff_ins { background-color: #352; }' ).
+    lo_buf->add( '.diff_del { background-color: #411; }' ).
+    lo_buf->add( '.diff_upd { background-color: #551; }' ).
+    lo_buf->add( 'div.diff_content { background-color: var(--theme-background-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( 'table.diff_tab td,th { color: #fff; }' ).
+    lo_buf->add( 'table.diff_tab thead.nav_line { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STYLES for Syntax Highlighting */' ).
+    lo_buf->add( '.syntax-hl span.keyword  { color: #4af; }' ).
+    lo_buf->add( '.syntax-hl span.text     { color: #8f8; }' ).
+    lo_buf->add( '.syntax-hl span.comment  { color: #999; }' ).
+    lo_buf->add( '.syntax-hl span.xml_tag  { color: #659cff; }' ).
+    lo_buf->add( '.syntax-hl span.attr     { color: #bab2f9; }' ).
+    lo_buf->add( '.syntax-hl span.attr_val { color: #b777fb; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( 'div.debug_container#debug_info { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( 'div.db_list { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( 'table.db_tab td      { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( 'table.db_tab td.data { opacity: 0.5; }' ).
+    lo_buf->add( 'table.db_tab tbody tr:hover, tr:active { background-color: var(--theme-list-hover-background-color); }' ).
+    lo_buf->add( 'table.db_tab th {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '  border-bottom-color: #333;' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-dark.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
       iv_mime_name = 'ZABAPGIT_CSS_THEME_DARK'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_CSS_THEME_BELIZE_BLUE.W3MI.DATA.CSS
 ****************************************************
-    _inline '/*'.
-    _inline ' * ABAPGIT THEME CSS - BELIZE BLUE'.
-    _inline ' */'.
-    _inline ''.
-    _inline '/* https://experience.sap.com/fiori-design-web/colors/ */'.
-    _inline ''.
-    _inline ':root {'.
-    _inline '  --fiori-color-global-light-base: #EFF4F9; /* Background in SAP GUI */'.
-    _inline '  --fiori-color-gui-tab-background: #FCFDFE; /* Tabstrip background */'.
-    _inline '  --fiori-color-gui-container-border: #D1E0EE;'.
-    _inline '  --fiori-color-gui-uneditable-background: #F2F2F2; /* Textbox not editable */'.
-    _inline '  --fiori-color-gui-editable-background: #FFFFFF; /* Textbox editable */'.
-    _inline '  --fiori-color-font-primary: #333333; /* Grayscale 1 */'.
-    _inline '  --fiori-color-font-secondary: #666666; /* Grayscale 2 */'.
-    _inline '  --fiori-color-font-highlighted: #003D84;'.
-    _inline '  --fiori-color-message-box-background: #2F3C48; /* Bottom message container */'.
-    _inline ''.
-    _inline '  --theme-background-color: var(--fiori-color-global-light-base);'.
-    _inline '  --theme-container-background-color: var(--fiori-color-gui-tab-background);'.
-    _inline '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;'.
-    _inline '  --theme-primary-font-color: var(--fiori-color-font-primary);'.
-    _inline '  --theme-primary-font-color-reduced: var(--fiori-color-font-secondary);'.
-    _inline '  --theme-font-size: 11pt;'.
-    _inline '  --theme-link-color: var(--fiori-color-font-highlighted);'.
-    _inline '  --theme-container-border-color: var(--fiori-color-gui-container-border);'.
-    _inline '  --theme-table-border-color: #E5E5E5; /* ALV border color */'.
-    _inline '  --theme-greyscale-dark: #666666;'.
-    _inline '  --theme-greyscale-medium: #BFBFBF;'.
-    _inline '  --theme-greyscale-light: #CCCCCC;'.
-    _inline '  --theme-greyscale-lighter: #E5E5E5;'.
-    _inline '}'.
-    _inline ''.
-    _inline '#header a, #header a:visited {'.
-    _inline '  color: #346187;'.
-    _inline '}'.
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * ABAPGIT THEME CSS - BELIZE BLUE' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* https://experience.sap.com/fiori-design-web/colors/ */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( ':root {' ).
+    lo_buf->add( '  --fiori-color-global-light-base: #EFF4F9; /* Background in SAP GUI */' ).
+    lo_buf->add( '  --fiori-color-gui-tab-background: #FCFDFE; /* Tabstrip background */' ).
+    lo_buf->add( '  --fiori-color-gui-container-border: #D1E0EE;' ).
+    lo_buf->add( '  --fiori-color-gui-uneditable-background: #F2F2F2; /* Textbox not editable */' ).
+    lo_buf->add( '  --fiori-color-gui-editable-background: #FFFFFF; /* Textbox editable */' ).
+    lo_buf->add( '  --fiori-color-font-primary: #333333; /* Grayscale 1 */' ).
+    lo_buf->add( '  --fiori-color-font-secondary: #666666; /* Grayscale 2 */' ).
+    lo_buf->add( '  --fiori-color-font-highlighted: #003D84;' ).
+    lo_buf->add( '  --fiori-color-message-box-background: #2F3C48; /* Bottom message container */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  --theme-background-color: var(--fiori-color-global-light-base);' ).
+    lo_buf->add( '  --theme-container-background-color: var(--fiori-color-gui-tab-background);' ).
+    lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
+    lo_buf->add( '  --theme-primary-font-color: var(--fiori-color-font-primary);' ).
+    lo_buf->add( '  --theme-primary-font-color-reduced: var(--fiori-color-font-secondary);' ).
+    lo_buf->add( '  --theme-font-size: 11pt;' ).
+    lo_buf->add( '  --theme-link-color: var(--fiori-color-font-highlighted);' ).
+    lo_buf->add( '  --theme-container-border-color: var(--fiori-color-gui-container-border);' ).
+    lo_buf->add( '  --theme-table-border-color: #E5E5E5; /* ALV border color */' ).
+    lo_buf->add( '  --theme-greyscale-dark: #666666;' ).
+    lo_buf->add( '  --theme-greyscale-medium: #BFBFBF;' ).
+    lo_buf->add( '  --theme-greyscale-light: #CCCCCC;' ).
+    lo_buf->add( '  --theme-greyscale-lighter: #E5E5E5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '#header a, #header a:visited {' ).
+    lo_buf->add( '  color: #346187;' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-belize-blue.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
       iv_mime_name = 'ZABAPGIT_CSS_THEME_BELIZE_BLUE'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
 ****************************************************
-    _inline '/**********************************************************'.
-    _inline ' * ABAPGIT JS function library'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline '  Global variables used from outside'.
-    _inline ' **********************************************************/'.
-    _inline '/* exported setInitialFocus */'.
-    _inline '/* exported setInitialFocusWithQuerySelector */'.
-    _inline '/* exported submitFormById */'.
-    _inline '/* exported errorStub */'.
-    _inline '/* exported confirmInitialized */'.
-    _inline '/* exported perfOut */'.
-    _inline '/* exported perfLog */'.
-    _inline '/* exported perfClear */'.
-    _inline '/* exported enableArrowListNavigation */'.
-    _inline '/* exported activateLinkHints */'.
-    _inline '/* exported setKeyBindings */'.
-    _inline '/* exported preparePatch */'.
-    _inline '/* exported registerStagePatch */'.
-    _inline '/* exported toggleRepoListDetail */'.
-    _inline '/* exported onTagTypeChange */'.
-    _inline '/* exported getIndocStyleSheet */'.
-    _inline '/* exported addMarginBottom */'.
-    _inline '/* exported enumerateTocAllRepos */'.
-    _inline '/* exported enumerateJumpAllFiles */'.
-    _inline '/* exported enumerateToolbarActions */'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Polyfills'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/'.
-    _inline 'if (!Function.prototype.bind) {'.
-    _inline '  Function.prototype.bind = function(oThis) {'.
-    _inline '    if (typeof this !== "function") {'.
-    _inline '      throw new TypeError("Function.prototype.bind - subject is not callable");'.
-    _inline '    }'.
-    _inline ''.
-    _inline '    var aArgs   = Array.prototype.slice.call(arguments, 1),'.
-    _inline '      fToBind = this,'.
-    _inline '      fNOP    = function() {},'.
-    _inline '      fBound  = function() {'.
-    _inline '        return fToBind.apply('.
-    _inline '          this instanceof fNOP'.
-    _inline '            ? this'.
-    _inline '            : oThis,'.
-    _inline '          aArgs.concat(Array.prototype.slice.call(arguments))'.
-    _inline '        );'.
-    _inline '      };'.
-    _inline ''.
-    _inline '    if (this.prototype) {'.
-    _inline '      fNOP.prototype = this.prototype;'.
-    _inline '    }'.
-    _inline '    fBound.prototype = new fNOP();'.
-    _inline ''.
-    _inline '    return fBound;'.
-    _inline '  };'.
-    _inline '}'.
-    _inline ''.
-    _inline '// String includes polyfill, taken from https://developer.mozilla.org'.
-    _inline 'if (!String.prototype.includes) {'.
-    _inline '  String.prototype.includes = function(search, start) {'.
-    _inline '    "use strict";'.
-    _inline '    if (typeof start !== "number") {'.
-    _inline '      start = 0;'.
-    _inline '    }'.
-    _inline ''.
-    _inline '    if (start + search.length > this.length) {'.
-    _inline '      return false;'.
-    _inline '    } else {'.
-    _inline '      return this.indexOf(search, start) !== -1;'.
-    _inline '    }'.
-    _inline '  };'.
-    _inline '}'.
-    _inline ''.
-    _inline '// String startsWith polyfill, taken from https://developer.mozilla.org'.
-    _inline 'if (!String.prototype.startsWith) {'.
-    _inline '  Object.defineProperty(String.prototype, "startsWith", {'.
-    _inline '    value: function(search, pos) {'.
-    _inline '      pos = !pos || pos < 0 ? 0 : +pos;'.
-    _inline '      return this.substring(pos, pos + search.length) === search;'.
-    _inline '    }'.
-    _inline '  });'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Common functions'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// Output text to the debug div'.
-    _inline 'function debugOutput(text, dstID) {'.
-    _inline '  var stdout       = document.getElementById(dstID || "debug-output");'.
-    _inline '  var wrapped      = "<p>" + text + "</p>";'.
-    _inline '  stdout.innerHTML = stdout.innerHTML + wrapped;'.
-    _inline '}'.
-    _inline ''.
-    _inline '// Use a pre-created form or create a hidden form'.
-    _inline '// and submit with sapevent'.
-    _inline 'function submitSapeventForm(params, action, method) {'.
-    _inline '  var stub_form_id = "form_" + action;'.
-    _inline '  var form = document.getElementById(stub_form_id);'.
-    _inline ''.
-    _inline '  if (form === null) {'.
-    _inline '    form = document.createElement("form");'.
-    _inline '    form.setAttribute("method", method || "post");'.
-    _inline '    form.setAttribute("action", "sapevent:" + action);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  for(var key in params) {'.
-    _inline '    var hiddenField = document.createElement("input");'.
-    _inline '    hiddenField.setAttribute("type", "hidden");'.
-    _inline '    hiddenField.setAttribute("name", key);'.
-    _inline '    hiddenField.setAttribute("value", params[key]);'.
-    _inline '    form.appendChild(hiddenField);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  if (form.id !== stub_form_id) {'.
-    _inline '    document.body.appendChild(form);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  form.submit();'.
-    _inline '}'.
-    _inline ''.
-    _inline '// Set focus to a control'.
-    _inline 'function setInitialFocus(id) {'.
-    _inline '  document.getElementById(id).focus();'.
-    _inline '}'.
-    _inline ''.
-    _inline '// Set focus to a element with query selector'.
-    _inline 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {'.
-    _inline '  var oSelected = document.querySelector(sSelector);'.
-    _inline ''.
-    _inline '  if (oSelected) {'.
-    _inline '    if (bFocusParent) {'.
-    _inline '      oSelected.parentElement.focus();'.
-    _inline '    } else {'.
-    _inline '      oSelected.focus();'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline ''.
-    _inline '}'.
-    _inline ''.
-    _inline '// Submit an existing form'.
-    _inline 'function submitFormById(id) {'.
-    _inline '  document.getElementById(id).submit();'.
-    _inline '}'.
-    _inline ''.
-    _inline '// JS error stub'.
-    _inline 'function errorStub(event) {'.
-    _inline '  var element    = event.target || event.srcElement;'.
-    _inline '  var targetName = element.id || element.name || "???";'.
-    _inline '  alert("JS Error, please log an issue (@" + targetName + ")");'.
-    _inline '}'.
-    _inline ''.
-    _inline '// confirm JS initilization'.
-    _inline 'function confirmInitialized() {'.
-    _inline '  var errorBanner = document.getElementById("js-error-banner");'.
-    _inline '  if (errorBanner) {'.
-    _inline '    errorBanner.style.display = "none";'.
-    _inline '  }'.
-    _inline '  debugOutput("js: OK"); // Final final confirmation :)'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Performance utils (for debugging)'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline 'var gPerf = [];'.
-    _inline ''.
-    _inline 'function perfOut(prefix) {'.
-    _inline '  var totals = {};'.
-    _inline '  for (var i = gPerf.length - 1; i >= 0; i--) {'.
-    _inline '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};'.
-    _inline '    totals[gPerf[i].name].time  += gPerf[i].time;'.
-    _inline '    totals[gPerf[i].name].count += 1;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var keys = Object.keys(totals);'.
-    _inline '  for (var j = keys.length - 1; j >= 0; j--) {'.
-    _inline '    console.log(prefix'.
-    _inline '      + " " + keys[j] + ": "'.
-    _inline '      + totals[keys[j]].time.toFixed(3) + "ms"'.
-    _inline '      + " (" + totals[keys[j]].count.toFixed() +")");'.
-    _inline '  }'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function perfLog(name, startTime) {'.
-    _inline '  gPerf.push({name: name, time: window.performance.now() - startTime});'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function perfClear() {'.
-    _inline '  gPerf = [];'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * TAG PAGE Logic'.
-    _inline ' **********************************************************/'.
-    _inline 'function onTagTypeChange(oSelectObject){'.
-    _inline '  var sValue = oSelectObject.value;'.
-    _inline '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Repo Overview Logic'.
-    _inline ' **********************************************************/'.
-    _inline 'function findStyleSheetByName(name) {'.
-    _inline '  for (var s = 0; s < document.styleSheets.length; s++) {'.
-    _inline '    var styleSheet = document.styleSheets[s];'.
-    _inline '    var classes    = styleSheet.cssRules || styleSheet.rules;'.
-    _inline '    for (var i = 0; i < classes.length; i++) {'.
-    _inline '      if (classes[i].selectorText === name) return classes[i];'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function getIndocStyleSheet() {'.
-    _inline '  for (var s = 0; s < document.styleSheets.length; s++) {'.
-    _inline '    if (!document.styleSheets[s].href) return document.styleSheets[s]; // One with empty href'.
-    _inline '  }'.
-    _inline '  // None found ? create one'.
-    _inline '  var style = document.createElement("style");'.
-    _inline '  document.head.appendChild(style);'.
-    _inline '  return style.sheet;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function RepoOverViewHelper() {'.
-    _inline '  this.setHooks();'.
-    _inline '  this.pageId = "RepoOverViewHelperState"; // constant is OK for this case'.
-    _inline '  this.isDetailsDisplayed = false;'.
-    _inline '  this.detailCssClass = findStyleSheetByName(".ro-detail");'.
-    _inline '}'.
-    _inline ''.
-    _inline 'RepoOverViewHelper.prototype.toggleRepoListDetail = function(forceDisplay) {'.
-    _inline '  if (this.detailCssClass) {'.
-    _inline '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;'.
-    _inline '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'RepoOverViewHelper.prototype.setHooks = function() {'.
-    _inline '  window.onbeforeunload = this.onPageUnload.bind(this);'.
-    _inline '  window.onload         = this.onPageLoad.bind(this);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'RepoOverViewHelper.prototype.onPageUnload = function() {'.
-    _inline '  if (!window.sessionStorage) return;'.
-    _inline '  var data = { isDetailsDisplayed: this.isDetailsDisplayed };'.
-    _inline '  window.sessionStorage.setItem(this.pageId, JSON.stringify(data));'.
-    _inline '};'.
-    _inline ''.
-    _inline 'RepoOverViewHelper.prototype.onPageLoad = function() {'.
-    _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageId));'.
-    _inline '  if (data && data.isDetailsDisplayed) this.toggleRepoListDetail(true);'.
-    _inline '  debugOutput("RepoOverViewHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
-    _inline '};'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * STAGE PAGE Logic'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// Stage helper constructor'.
-    _inline 'function StageHelper(params) {'.
-    _inline '  this.pageSeed        = params.seed;'.
-    _inline '  this.formAction      = params.formAction;'.
-    _inline '  this.user            = params.user;'.
-    _inline '  this.selectedCount   = 0;'.
-    _inline '  this.filteredCount   = 0;'.
-    _inline '  this.lastFilterValue = "";'.
-    _inline ''.
-    _inline '  // DOM nodes'.
-    _inline '  this.dom = {'.
-    _inline '    stageTab:          document.getElementById(params.ids.stageTab),'.
-    _inline '    commitAllBtn:      document.getElementById(params.ids.commitAllBtn),'.
-    _inline '    commitSelectedBtn: document.getElementById(params.ids.commitSelectedBtn),'.
-    _inline '    commitFilteredBtn: document.getElementById(params.ids.commitFilteredBtn),'.
-    _inline '    objectSearch:      document.getElementById(params.ids.objectSearch),'.
-    _inline '    selectedCounter:   null,'.
-    _inline '    filteredCounter:   null,'.
-    _inline '  };'.
-    _inline '  this.findCounters();'.
-    _inline ''.
-    _inline '  // Table columns (autodetection)'.
-    _inline '  this.colIndex      = this.detectColumns();'.
-    _inline '  this.filterTargets = ["name", "user", "transport"];'.
-    _inline ''.
-    _inline '  // Constants'.
-    _inline '  this.HIGHLIGHT_STYLE = "highlight";'.
-    _inline '  this.STATUS = {'.
-    _inline '    add:    "A",'.
-    _inline '    remove: "R",'.
-    _inline '    ignore: "I",'.
-    _inline '    reset:  "?",'.
-    _inline '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }'.
-    _inline '  };'.
-    _inline ''.
-    _inline '  this.TEMPLATES = {'.
-    _inline '    cmdReset:  "<a>reset</a>",'.
-    _inline '    cmdLocal:  "<a>add</a>",'.
-    _inline '    cmdRemote: "<a>ignore</a><a>remove</a>"'.
-    _inline '  };'.
-    _inline ''.
-    _inline '  this.setHooks();'.
-    _inline '  if (this.user) this.injectFilterMe();'.
-    _inline '  Hotkeys.addHotkeyToHelpSheet("^Enter", "Commit");'.
-    _inline '  this.dom.objectSearch.focus();'.
-    _inline '}'.
-    _inline ''.
-    _inline 'StageHelper.prototype.findCounters = function() {'.
-    _inline '  this.dom.selectedCounter = this.dom.commitSelectedBtn.querySelector("span.counter");'.
-    _inline '  this.dom.filteredCounter = this.dom.commitFilteredBtn.querySelector("span.counter");'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.injectFilterMe = function() {'.
-    _inline '  var tabFirstHead = this.dom.stageTab.tHead.rows[0];'.
-    _inline '  if (!tabFirstHead || tabFirstHead.className !== "local") {'.
-    _inline '    return; // for the case only "remove part" is displayed'.
-    _inline '  }'.
-    _inline '  var changedByHead = tabFirstHead.cells[this.colIndex.user];'.
-    _inline '  changedByHead.innerText = changedByHead.innerText + " (";'.
-    _inline '  var a = document.createElement("A");'.
-    _inline '  a.appendChild(document.createTextNode("me"));'.
-    _inline '  a.onclick = this.onFilterMe.bind(this);'.
-    _inline '  a.href = "#";'.
-    _inline '  changedByHead.appendChild(a);'.
-    _inline '  changedByHead.appendChild(document.createTextNode(")"));'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.onFilterMe = function() {'.
-    _inline '  this.dom.objectSearch.value = this.user;'.
-    _inline '  this.onFilter({ type: "keypress", which: 13, target: this.dom.objectSearch });'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Hook global click listener on table, load/unload actions'.
-    _inline 'StageHelper.prototype.setHooks = function() {'.
-    _inline '  window.onkeypress                  = this.onCtrlEnter.bind(this);'.
-    _inline '  this.dom.stageTab.onclick          = this.onTableClick.bind(this);'.
-    _inline '  this.dom.commitSelectedBtn.onclick = this.submit.bind(this);'.
-    _inline '  this.dom.commitFilteredBtn.onclick = this.submitVisible.bind(this);'.
-    _inline '  this.dom.objectSearch.oninput      = this.onFilter.bind(this);'.
-    _inline '  this.dom.objectSearch.onkeypress   = this.onFilter.bind(this);'.
-    _inline '  window.onbeforeunload              = this.onPageUnload.bind(this);'.
-    _inline '  window.onload                      = this.onPageLoad.bind(this);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Detect column index'.
-    _inline 'StageHelper.prototype.detectColumns = function() {'.
-    _inline '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];'.
-    _inline '  var colIndex = {};'.
-    _inline ''.
-    _inline '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {'.
-    _inline '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  return colIndex;'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Store table state on leaving the page'.
-    _inline 'StageHelper.prototype.onPageUnload = function() {'.
-    _inline '  if (!window.sessionStorage) return;'.
-    _inline ''.
-    _inline '  var data = this.collectData();'.
-    _inline '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Re-store table state on entering the page'.
-    _inline 'StageHelper.prototype.onPageLoad = function() {'.
-    _inline '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));'.
-    _inline ''.
-    _inline '  this.iterateStageTab(true, function (row) {'.
-    _inline '    var status = data && data[row.cells[this.colIndex["name"]].innerText];'.
-    _inline '    this.updateRow(row, status || this.STATUS.reset);'.
-    _inline '  });'.
-    _inline ''.
-    _inline '  this.updateMenu();'.
-    _inline '  if (this.dom.objectSearch.value) {'.
-    _inline '    this.applyFilterValue(this.dom.objectSearch.value);'.
-    _inline '  }'.
-    _inline '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Table event handler, change status'.
-    _inline 'StageHelper.prototype.onTableClick = function (event) {'.
-    _inline '  var target = event.target || event.srcElement;'.
-    _inline '  if (!target) return;'.
-    _inline ''.
-    _inline '  var td;'.
-    _inline '  if (target.tagName === "A") {'.
-    _inline '    td = target.parentNode;'.
-    _inline '  } else if (target.tagName === "TD") {'.
-    _inline '    td = target;'.
-    _inline '    if (td.children.length === 1 && td.children[0].tagName === "A") {'.
-    _inline '      target = td.children[0];'.
-    _inline '    } else return;'.
-    _inline '  } else return;'.
-    _inline ''.
-    _inline '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;'.
-    _inline ''.
-    _inline '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status'.
-    _inline '  var targetRow = td.parentNode;'.
-    _inline ''.
-    _inline '  if (td.tagName === "TD") {'.
-    _inline '    this.updateRow(targetRow, status);'.
-    _inline '  } else { // TH'.
-    _inline '    this.iterateStageTab(true, function (row) {'.
-    _inline '      if (row.style.display !== "none"            // Not filtered out'.
-    _inline '        && row.className === targetRow.className  // Same context as header'.
-    _inline '      ) {'.
-    _inline '        this.updateRow(row, status);'.
-    _inline '      }'.
-    _inline '    });'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  this.updateMenu();'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.onCtrlEnter = function (e) {'.
-    _inline '  if (e.ctrlKey && (e.which === 10 || e.key === "Enter")){'.
-    _inline '    var clickMap = {'.
-    _inline '      "default":  this.dom.commitAllBtn,'.
-    _inline '      "selected": this.dom.commitSelectedBtn,'.
-    _inline '      "filtered": this.dom.commitFilteredBtn'.
-    _inline '    };'.
-    _inline '    clickMap[this.calculateActiveCommitCommand()].click();'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Search object'.
-    _inline 'StageHelper.prototype.onFilter = function (e) {'.
-    _inline '  if ( // Enter hit or clear, IE SUCKS !'.
-    _inline '    e.type === "input" && !e.target.value && this.lastFilterValue'.
-    _inline '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") && !e.ctrlKey ) {'.
-    _inline ''.
-    _inline '    this.applyFilterValue(e.target.value);'.
-    _inline '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {'.
-    _inline ''.
-    _inline '  this.lastFilterValue = sFilterValue;'.
-    _inline '  this.filteredCount = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);'.
-    _inline '  this.updateMenu();'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline '// Apply filter to a single stage line - hide or show'.
-    _inline 'StageHelper.prototype.applyFilterToRow = function (row, filter) {'.
-    _inline '  // Collect data cells'.
-    _inline '  var targets = this.filterTargets.map(function(attr) {'.
-    _inline '    var elem = row.cells[this.colIndex[attr]];'.
-    _inline '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;'.
-    _inline '    return {'.
-    _inline '      elem:      elem,'.
-    _inline '      plainText: elem.innerText.replace(/ /g, "\u00a0"), // without tags, with encoded spaces'.
-    _inline '      curHtml:   elem.innerHTML'.
-    _inline '    };'.
-    _inline '  }, this);'.
-    _inline ''.
-    _inline '  var isVisible = false;'.
-    _inline ''.
-    _inline '  // Apply filter to cells, mark filtered text'.
-    _inline '  for (var i = targets.length - 1; i >= 0; i--) {'.
-    _inline '    var target = targets[i];'.
-    _inline '    target.newHtml = (filter)'.
-    _inline '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")'.
-    _inline '      : target.plainText;'.
-    _inline '    target.isChanged = target.newHtml !== target.curHtml;'.
-    _inline '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // Update DOM'.
-    _inline '  row.style.display = isVisible ? "" : "none";'.
-    _inline '  for (var j = targets.length - 1; j >= 0; j--) {'.
-    _inline '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;'.
-    _inline '  }'.
-    _inline '  return isVisible ? 1 : 0;'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Get how status should affect object counter'.
-    _inline 'StageHelper.prototype.getStatusImpact = function (status) {'.
-    _inline '  if (typeof status !== "string"'.
-    _inline '    || status.length !== 1'.
-    _inline '    || this.STATUS.isValid(status) ) {'.
-    _inline '    alert("Unknown status");'.
-    _inline '  } else {'.
-    _inline '    return (status !== this.STATUS.reset) ? 1 : 0;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Update table line'.
-    _inline 'StageHelper.prototype.updateRow = function (row, newStatus) {'.
-    _inline '  var oldStatus = row.cells[this.colIndex["status"]].innerText;'.
-    _inline ''.
-    _inline '  if (oldStatus !== newStatus) {'.
-    _inline '    this.updateRowStatus(row, newStatus);'.
-    _inline '    this.updateRowCommand(row, newStatus);'.
-    _inline '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {'.
-    _inline '    this.updateRowCommand(row, newStatus); // For initial run'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  this.selectedCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Update Status cell (render set of commands)'.
-    _inline 'StageHelper.prototype.updateRowStatus = function (row, status) {'.
-    _inline '  row.cells[this.colIndex["status"]].innerText = status;'.
-    _inline '  if (status === this.STATUS.reset) {'.
-    _inline '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);'.
-    _inline '  } else {'.
-    _inline '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Update Command cell (render set of commands)'.
-    _inline 'StageHelper.prototype.updateRowCommand = function (row, status) {'.
-    _inline '  var cell = row.cells[this.colIndex["cmd"]];'.
-    _inline '  if (status === this.STATUS.reset) {'.
-    _inline '    cell.innerHTML = (row.className == "local")'.
-    _inline '      ? this.TEMPLATES.cmdLocal'.
-    _inline '      : this.TEMPLATES.cmdRemote;'.
-    _inline '  } else {'.
-    _inline '    cell.innerHTML = this.TEMPLATES.cmdReset;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.calculateActiveCommitCommand = function () {'.
-    _inline '  var active;'.
-    _inline '  if (this.selectedCount > 0) {'.
-    _inline '    active = "selected";'.
-    _inline '  } else if (this.lastFilterValue) {'.
-    _inline '    active = "filtered";'.
-    _inline '  } else {'.
-    _inline '    active = "default";'.
-    _inline '  }'.
-    _inline '  return active;'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Update menu items visibility'.
-    _inline 'StageHelper.prototype.updateMenu = function () {'.
-    _inline '  var display = this.calculateActiveCommitCommand();'.
-    _inline '  if (display === "selected") this.dom.selectedCounter.innerText = this.selectedCount.toString();'.
-    _inline '  if (display === "filtered") this.dom.filteredCounter.innerText = this.filteredCount.toString();'.
-    _inline ''.
-    _inline '  this.dom.commitAllBtn.style.display      = display === "default" ? "" : "none";'.
-    _inline '  this.dom.commitSelectedBtn.style.display = display === "selected" ? "" : "none";'.
-    _inline '  this.dom.commitFilteredBtn.style.display = display === "filtered" ? "" : "none";'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Submit stage state to the server'.
-    _inline 'StageHelper.prototype.submit = function () {'.
-    _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.submitVisible = function () {'.
-    _inline '  this.markVisiblesAsAdded();'.
-    _inline '  submitSapeventForm(this.collectData(), this.formAction);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Extract data from the table'.
-    _inline 'StageHelper.prototype.collectData = function () {'.
-    _inline '  var data  = {};'.
-    _inline '  this.iterateStageTab(false, function (row) {'.
-    _inline '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;'.
-    _inline '  });'.
-    _inline '  return data;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'StageHelper.prototype.markVisiblesAsAdded = function () {'.
-    _inline '  this.iterateStageTab(false, function (row) {'.
-    _inline '    // TODO refacotr, unify updateRow logic'.
-    _inline '    if (row.style.display === "" && row.className === "local") { // visible'.
-    _inline '      this.updateRow(row, this.STATUS.add);'.
-    _inline '    } else {'.
-    _inline '      this.updateRow(row, this.STATUS.reset);'.
-    _inline '    }'.
-    _inline '  });'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Table iteration helper'.
-    _inline 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {'.
-    _inline '  var restArgs = Array.prototype.slice.call(arguments, 2);'.
-    _inline '  var table    = this.dom.stageTab;'.
-    _inline '  var retTotal = 0;'.
-    _inline ''.
-    _inline '  if (changeMode) {'.
-    _inline '    var scrollOffset = window.pageYOffset;'.
-    _inline '    this.dom.stageTab.style.display = "none";'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {'.
-    _inline '    var tbody = table.tBodies[b];'.
-    _inline '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {'.
-    _inline '      var args = [tbody.rows[r]].concat(restArgs);'.
-    _inline '      var retVal = cb.apply(this, args); // callback'.
-    _inline '      if (typeof retVal === "number") retTotal += retVal;'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  if (changeMode) {'.
-    _inline '    this.dom.stageTab.style.display = "";'.
-    _inline '    window.scrollTo(0, scrollOffset);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  return retTotal;'.
-    _inline '};'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Check list wrapper'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline 'function CheckListWrapper(id, cbAction) {'.
-    _inline '  this.id         = document.getElementById(id);'.
-    _inline '  this.cbAction   = cbAction;'.
-    _inline '  this.id.onclick = this.onClick.bind(this);'.
-    _inline '}'.
-    _inline ''.
-    _inline 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars'.
-    _inline '  // Get nodes'.
-    _inline '  var target = event.target || event.srcElement;'.
-    _inline '  if (!target) return;'.
-    _inline '  if (target.tagName !== "A") { target = target.parentNode } // icon clicked'.
-    _inline '  if (target.tagName !== "A") return;'.
-    _inline '  if (target.parentNode.tagName !== "LI") return;'.
-    _inline ''.
-    _inline '  var nodeA    = target;'.
-    _inline '  var nodeLi   = target.parentNode;'.
-    _inline '  var nodeIcon = target.children[0];'.
-    _inline '  if (!nodeIcon.classList.contains("icon")) return;'.
-    _inline ''.
-    _inline '  // Node updates'.
-    _inline '  var option   = nodeA.innerText;'.
-    _inline '  var oldState = nodeLi.getAttribute("data-check");'.
-    _inline '  if (oldState === null) return; // no data-check attribute - non-checkbox'.
-    _inline '  var newState = oldState === "X" ? false : true;'.
-    _inline ''.
-    _inline '  if (newState) {'.
-    _inline '    nodeIcon.classList.remove("grey");'.
-    _inline '    nodeIcon.classList.add("blue");'.
-    _inline '    nodeLi.setAttribute("data-check", "X");'.
-    _inline '  } else {'.
-    _inline '    nodeIcon.classList.remove("blue");'.
-    _inline '    nodeIcon.classList.add("grey");'.
-    _inline '    nodeLi.setAttribute("data-check", "");'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // Action callback'.
-    _inline '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);'.
-    _inline '};'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Diff page logic'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// Diff helper constructor'.
-    _inline 'function DiffHelper(params) {'.
-    _inline '  this.pageSeed    = params.seed;'.
-    _inline '  this.counter     = 0;'.
-    _inline '  this.stageAction = params.stageAction;'.
-    _inline ''.
-    _inline '  // DOM nodes'.
-    _inline '  this.dom = {'.
-    _inline '    diffList:    document.getElementById(params.ids.diffList),'.
-    _inline '    stageButton: document.getElementById(params.ids.stageButton)'.
-    _inline '  };'.
-    _inline ''.
-    _inline '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");'.
-    _inline '  if (!this.repoKey) return; // Unexpected'.
-    _inline ''.
-    _inline '  this.dom.jump = document.getElementById(params.ids.jump);'.
-    _inline '  this.dom.jump.onclick = this.onJump.bind(this);'.
-    _inline ''.
-    _inline '  // Checklist wrapper'.
-    _inline '  if (document.getElementById(params.ids.filterMenu)) {'.
-    _inline '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));'.
-    _inline '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // Hijack stage command'.
-    _inline '  if (this.dom.stageButton) {'.
-    _inline '    this.dom.stageButton.href    = "#";'.
-    _inline '    this.dom.stageButton.onclick = this.onStage.bind(this);'.
-    _inline '  }'.
-    _inline '}'.
-    _inline ''.
-    _inline '// Action on jump click'.
-    _inline 'DiffHelper.prototype.onJump = function(e){'.
-    _inline '  var text = ((e.target && e.target.text) || e);'.
-    _inline '  if (!text) return;'.
-    _inline ''.
-    _inline '  var elFile = document.querySelector("[data-file*=''" + text + "'']");'.
-    _inline '  if (!elFile) return;'.
-    _inline ''.
-    _inline '  setTimeout(function(){'.
-    _inline '    elFile.scrollIntoView();'.
-    _inline '  }, 100);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Action on filter click'.
-    _inline 'DiffHelper.prototype.onFilter = function(attr, target, state) {'.
-    _inline '  this.applyFilter(attr, target, state);'.
-    _inline '  this.highlightButton(state);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Hide/show diff based on params'.
-    _inline 'DiffHelper.prototype.applyFilter = function (attr, target, state) {'.
-    _inline ''.
-    _inline '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));'.
-    _inline ''.
-    _inline '  this.iterateDiffList(function(div) {'.
-    _inline '    if (div.getAttribute("data-"+attr) === target) {'.
-    _inline '      div.style.display = state ? "" : "none";'.
-    _inline ''.
-    _inline '      // hide the file in the jump list'.
-    _inline '      var dataFile = div.getAttribute("data-file");'.
-    _inline '      jumpListItems'.
-    _inline '        .filter(function(item){ return dataFile.includes(item.text) })'.
-    _inline '        .map(function(item){ item.style.display = div.style.display });'.
-    _inline '    }'.
-    _inline '  });'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Action on stage -> save visible diffs as state for stage page'.
-    _inline 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars'.
-    _inline '  if (window.sessionStorage) {'.
-    _inline '    var data = this.buildStageCache();'.
-    _inline '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));'.
-    _inline '  }'.
-    _inline '  var getParams = {key: this.repoKey, seed: this.pageSeed};'.
-    _inline '  submitSapeventForm(getParams, this.stageAction, "get");'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Collect visible diffs'.
-    _inline 'DiffHelper.prototype.buildStageCache = function () {'.
-    _inline '  var list = {};'.
-    _inline '  this.iterateDiffList(function(div) {'.
-    _inline '    var filename = div.getAttribute("data-file");'.
-    _inline '    if (!div.style.display && filename) { // No display override - visible !!'.
-    _inline '      list[filename] = "A"; // Add'.
-    _inline '    }'.
-    _inline '  });'.
-    _inline '  return list;'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Table iterator'.
-    _inline 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {'.
-    _inline '  var restArgs = Array.prototype.slice.call(arguments, 1);'.
-    _inline '  var diffList = this.dom.diffList;'.
-    _inline ''.
-    _inline '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {'.
-    _inline '    var div = diffList.children[i];'.
-    _inline '    if (div.className !== "diff") continue;'.
-    _inline '    var args = [div].concat(restArgs);'.
-    _inline '    cb.apply(this, args); // callback'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Highlight Filter button if filter is activate'.
-    _inline 'DiffHelper.prototype.highlightButton = function(state) {'.
-    _inline '  this.counter += state ? -1 : 1;'.
-    _inline '  if (this.counter > 0) {'.
-    _inline '    this.dom.filterButton.classList.add("bgorange");'.
-    _inline '  } else {'.
-    _inline '    this.dom.filterButton.classList.remove("bgorange");'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Add Bottom margin, so that we can scroll to the top of the last file'.
-    _inline 'function addMarginBottom(){'.
-    _inline '  document.getElementsByTagName("body")[0].style.marginBottom = screen.height + "px";'.
-    _inline '}'.
-    _inline ''.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Diff page logic of column selection'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline 'function DiffColumnSelection() {'.
-    _inline '  this.selectedColumnIdx = -1;'.
-    _inline '  this.lineNumColumnIdx = -1;'.
-    _inline '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution'.
-    _inline '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));'.
-    _inline '  document.addEventListener("copy", this.copyEventListener.bind(this));'.
-    _inline '}'.
-    _inline ''.
-    _inline 'DiffColumnSelection.prototype.mousedownEventListener = function(e) {'.
-    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
-    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
-    _inline '  // Process mousedown event for all TD elements -> apply CSS class at TABLE level.'.
-    _inline '  // (https://stackoverflow.com/questions/40956717/how-to-addeventlistener-to-multiple-elements-in-a-single-line)'.
-    _inline '  var unifiedLineNumColumnIdx = 0;'.
-    _inline '  var unifiedCodeColumnIdx = 3;'.
-    _inline '  var splitLineNumLeftColumnIdx = 0;'.
-    _inline '  var splitCodeLeftColumnIdx = 2;'.
-    _inline '  var splitLineNumRightColumnIdx = 3;'.
-    _inline '  var splitCodeRightColumnIdx = 5;'.
-    _inline ''.
-    _inline '  if (e.button !== 0) return; // function is only valid for left button, not right button'.
-    _inline ''.
-    _inline '  var td = e.target;'.
-    _inline '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;'.
-    _inline '  if (td == undefined) return;'.
-    _inline '  var table = td.parentElement.parentElement;'.
-    _inline ''.
-    _inline '  var patchColumnCount = 0;'.
-    _inline '  if (td.parentElement.cells[0].classList.contains("patch")) {'.
-    _inline '    patchColumnCount = 1;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  if (td.classList.contains("diff_left")) {'.
-    _inline '    table.classList.remove("diff_select_right");'.
-    _inline '    table.classList.add("diff_select_left");'.
-    _inline '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeLeftColumnIdx + patchColumnCount ) {'.
-    _inline '      // De-select to avoid effect of dragging selection in case the right column was first selected'.
-    _inline '      if (document.body.createTextRange) { // All IE but Edge'.
-    _inline '        // document.getSelection().removeAllRanges() may trigger error'.
-    _inline '        // so use this code which is equivalent but does not fail'.
-    _inline '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)'.
-    _inline '        range = document.body.createTextRange();'.
-    _inline '        range.collapse();'.
-    _inline '        range.select();'.
-    _inline '      } else {'.
-    _inline '        document.getSelection().removeAllRanges();'.
-    _inline '      }}'.
-    _inline '    this.selectedColumnIdx = splitCodeLeftColumnIdx + patchColumnCount;'.
-    _inline '    this.lineNumColumnIdx = splitLineNumLeftColumnIdx + patchColumnCount;'.
-    _inline ''.
-    _inline '  } else if (td.classList.contains("diff_right")) {'.
-    _inline '    table.classList.remove("diff_select_left");'.
-    _inline '    table.classList.add("diff_select_right");'.
-    _inline '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeRightColumnIdx + patchColumnCount ) {'.
-    _inline '      if (document.body.createTextRange) { // All IE but Edge'.
-    _inline '        // document.getSelection().removeAllRanges() may trigger error'.
-    _inline '        // so use this code which is equivalent but does not fail'.
-    _inline '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)'.
-    _inline '        var range = document.body.createTextRange();'.
-    _inline '        range.collapse();'.
-    _inline '        range.select();'.
-    _inline '      } else {'.
-    _inline '        document.getSelection().removeAllRanges();'.
-    _inline '      }}'.
-    _inline '    this.selectedColumnIdx = splitCodeRightColumnIdx + patchColumnCount;'.
-    _inline '    this.lineNumColumnIdx = splitLineNumRightColumnIdx + patchColumnCount;'.
-    _inline ''.
-    _inline '  } else if (td.classList.contains("diff_unified")) {'.
-    _inline '    this.selectedColumnIdx = unifiedCodeColumnIdx;'.
-    _inline '    this.lineNumColumnIdx = unifiedLineNumColumnIdx;'.
-    _inline ''.
-    _inline '  } else {'.
-    _inline '    this.selectedColumnIdx = -1;'.
-    _inline '    this.lineNumColumnIdx = -1;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'DiffColumnSelection.prototype.copyEventListener = function(e) {'.
-    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
-    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
-    _inline '  var td = e.target;'.
-    _inline '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;'.
-    _inline '  if(td != undefined){'.
-    _inline '    // Use window.clipboardData instead of e.clipboardData'.
-    _inline '    // (https://stackoverflow.com/questions/23470958/ie-10-copy-paste-issue)'.
-    _inline '    var clipboardData = ( e.clipboardData == undefined ? window.clipboardData : e.clipboardData );'.
-    _inline '    var text = this.getSelectedText();'.
-    _inline '    clipboardData.setData("text", text);'.
-    _inline '    e.preventDefault();'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'DiffColumnSelection.prototype.getSelectedText = function() {'.
-    _inline '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)'.
-    _inline '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)'.
-    _inline '  var sel = window.getSelection(),'.
-    _inline '    range = sel.getRangeAt(0),'.
-    _inline '    doc = range.cloneContents(),'.
-    _inline '    nodes = doc.querySelectorAll("tr"),'.
-    _inline '    text = "";'.
-    _inline '  if (nodes.length === 0) {'.
-    _inline '    text = doc.textContent;'.
-    _inline '  } else {'.
-    _inline '    var newline = "",'.
-    _inline '      realThis = this;'.
-    _inline '    [].forEach.call(nodes, function(tr, i) {'.
-    _inline '      var cellIdx = ( i==0 ? 0 : realThis.selectedColumnIdx );'.
-    _inline '      if (tr.cells.length > cellIdx) {'.
-    _inline '        var tdSelected = tr.cells[cellIdx];'.
-    _inline '        var tdLineNum = tr.cells[realThis.lineNumColumnIdx];'.
-    _inline '        // copy is interesting for remote code, don''t copy lines which exist only locally'.
-    _inline '        if (i==0 || tdLineNum.getAttribute("line-num")!="") {'.
-    _inline '          text += newline + tdSelected.textContent;'.
-    _inline '          // special processing for TD tag which sometimes contains newline'.
-    _inline '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so don''t add newline again in that case.'.
-    _inline '          var lastChar = tdSelected.textContent[ tdSelected.textContent.length - 1 ];'.
-    _inline '          if ( lastChar == "\n" ) newline = "";'.
-    _inline '          else newline = "\n";'.
-    _inline '        }}});}'.
-    _inline '  return text;'.
-    _inline '};'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Other functions'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// News announcement'.
-    _inline 'function toggleDisplay(divId) {'.
-    _inline '  var div = document.getElementById(divId);'.
-    _inline '  if (div) div.style.display = (div.style.display) ? "" : "none";'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function KeyNavigation() { }'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onkeydown = function(event) {'.
-    _inline '  if (event.defaultPrevented) return;'.
-    _inline ''.
-    _inline '  // navigate with arrows through list items and support pressing links with enter and space'.
-    _inline '  var isHandled = false;'.
-    _inline '  if (event.key === "Enter" || event.key === "") {'.
-    _inline '    isHandled = this.onEnterOrSpace();'.
-    _inline '  } else if (/Down$/.test(event.key)) {'.
-    _inline '    isHandled = this.onArrowDown();'.
-    _inline '  } else if (/Up$/.test(event.key)) {'.
-    _inline '    isHandled = this.onArrowUp();'.
-    _inline '  } else if (event.key === "Backspace") {'.
-    _inline '    isHandled = this.onBackspace();'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  if (isHandled) event.preventDefault();'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onEnterOrSpace = function () {'.
-    _inline '  if (document.activeElement.nodeName !== "A") return;'.
-    _inline '  var anchor = document.activeElement;'.
-    _inline ''.
-    _inline '  if (anchor.href.replace(/#$/, "") === document.location.href.replace(/#$/, "")'.
-    _inline '    && !anchor.onclick'.
-    _inline '    && anchor.parentElement'.
-    _inline '    && anchor.parentElement.nodeName === "LI" ) {'.
-    _inline '    anchor.parentElement.classList.toggle("force-nav-hover");'.
-    _inline '  } else {'.
-    _inline '    anchor.click();'.
-    _inline '  }'.
-    _inline '  return true;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.focusListItem = function (li) {'.
-    _inline '  var anchor = li.firstElementChild;'.
-    _inline '  if (!anchor || anchor.nodeName !== "A") return false;'.
-    _inline '  anchor.focus();'.
-    _inline '  return true;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.closeDropdown = function (dropdownLi) {'.
-    _inline '  dropdownLi.classList.remove("force-nav-hover");'.
-    _inline '  if (dropdownLi.firstElementChild.nodeName === "A") dropdownLi.firstElementChild.focus();'.
-    _inline '  return true;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onBackspace = function () {'.
-    _inline '  var activeElement = document.activeElement;'.
-    _inline ''.
-    _inline '  // Detect opened subsequent dropdown'.
-    _inline '  if (activeElement.nodeName === "A"'.
-    _inline '    && activeElement.parentElement'.
-    _inline '    && activeElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.classList.contains("force-nav-hover")) {'.
-    _inline '    return this.closeDropdown(activeElement.parentElement);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // Detect opened parent dropdown'.
-    _inline '  if (activeElement.nodeName === "A"'.
-    _inline '    && activeElement.parentElement'.
-    _inline '    && activeElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.parentElement'.
-    _inline '    && activeElement.parentElement.parentElement.nodeName === "UL"'.
-    _inline '    && activeElement.parentElement.parentElement.parentElement'.
-    _inline '    && activeElement.parentElement.parentElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.parentElement.parentElement.classList.contains("force-nav-hover")) {'.
-    _inline '    return this.closeDropdown(activeElement.parentElement.parentElement.parentElement);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onArrowDown = function () {'.
-    _inline '  var activeElement = document.activeElement;'.
-    _inline ''.
-    _inline '  // Start of dropdown list: LI > selected A :: UL > LI > A'.
-    _inline '  if (activeElement.nodeName === "A"'.
-    _inline '    && activeElement.parentElement'.
-    _inline '    && activeElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.classList.contains("force-nav-hover") // opened dropdown'.
-    _inline '    && activeElement.nextElementSibling'.
-    _inline '    && activeElement.nextElementSibling.nodeName === "UL"'.
-    _inline '    && activeElement.nextElementSibling.firstElementChild'.
-    _inline '    && activeElement.nextElementSibling.firstElementChild.nodeName === "LI") {'.
-    _inline '    return this.focusListItem(activeElement.nextElementSibling.firstElementChild);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // Next item of dropdown list: ( LI > selected A ) :: LI > A'.
-    _inline '  if (activeElement.nodeName === "A"'.
-    _inline '    && activeElement.parentElement'.
-    _inline '    && activeElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.nextElementSibling'.
-    _inline '    && activeElement.parentElement.nextElementSibling.nodeName === "LI") {'.
-    _inline '    return this.focusListItem(activeElement.parentElement.nextElementSibling);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.onArrowUp = function () {'.
-    _inline '  var activeElement = document.activeElement;'.
-    _inline ''.
-    _inline '  // Prev item of dropdown list: ( LI > selected A ) <:: LI > A'.
-    _inline '  if (activeElement.nodeName === "A"'.
-    _inline '    && activeElement.parentElement'.
-    _inline '    && activeElement.parentElement.nodeName === "LI"'.
-    _inline '    && activeElement.parentElement.previousElementSibling'.
-    _inline '    && activeElement.parentElement.previousElementSibling.nodeName === "LI") {'.
-    _inline '    return this.focusListItem(activeElement.parentElement.previousElementSibling);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'KeyNavigation.prototype.getHandler = function () {'.
-    _inline '  return this.onkeydown.bind(this);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// this functions enables the navigation with arrows through list items (li)'.
-    _inline '// e.g. in dropdown menus'.
-    _inline 'function enableArrowListNavigation() {'.
-    _inline '  document.addEventListener("keydown", new KeyNavigation().getHandler());'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* LINK HINTS - Vimium like link hints */'.
-    _inline ''.
-    _inline 'function LinkHints(linkHintHotKey){'.
-    _inline '  this.linkHintHotKey    = linkHintHotKey;'.
-    _inline '  this.areHintsDisplayed = false;'.
-    _inline '  this.pendingPath       = ""; // already typed code prefix'.
-    _inline '  this.hintsMap          = this.deployHintContainers();'.
-    _inline '  this.activatedDropdown = null;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'LinkHints.prototype.getHintStartValue = function(targetsCount){'.
-    _inline '  // e.g. if we have 89 tooltips we start from 10'.
-    _inline '  //      if we have 90 tooltips we start from 100'.
-    _inline '  //      if we have 900 tooltips we start from 1000'.
-    _inline '  var'.
-    _inline '    baseLength = Math.pow(10, targetsCount.toString().length - 1),'.
-    _inline '    maxHintStringLength = (targetsCount + baseLength).toString().length;'.
-    _inline '  return Math.pow(10, maxHintStringLength - 1);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.deployHintContainers = function() {'.
-    _inline ''.
-    _inline '  var hintTargets = document.querySelectorAll("a, input[type=''checkbox'']");'.
-    _inline '  var codeCounter = this.getHintStartValue(hintTargets.length);'.
-    _inline '  var hintsMap    = { first: codeCounter };'.
-    _inline ''.
-    _inline '  // <span class="link-hint" data-code="123">'.
-    _inline '  //   <span class="pending">12</span><span>3</span>'.
-    _inline '  // </span>'.
-    _inline '  for (var i = 0, N = hintTargets.length; i < N; i++) {'.
-    _inline '    var hint = {};'.
-    _inline '    hint.container     = document.createElement("span");'.
-    _inline '    hint.pendingSpan   = document.createElement("span");'.
-    _inline '    hint.remainingSpan = document.createElement("span");'.
-    _inline '    hint.parent        = hintTargets[i];'.
-    _inline '    hint.code          = codeCounter.toString();'.
-    _inline ''.
-    _inline '    hint.container.appendChild(hint.pendingSpan);'.
-    _inline '    hint.container.appendChild(hint.remainingSpan);'.
-    _inline ''.
-    _inline '    hint.pendingSpan.classList.add("pending");'.
-    _inline '    hint.container.classList.add("link-hint");'.
-    _inline '    if (hint.parent.nodeName === "INPUT"){'.
-    _inline '      hint.container.classList.add("link-hint-input");'.
-    _inline '    } else {'.
-    _inline '      hint.container.classList.add("link-hint-a");'.
-    _inline '    }'.
-    _inline ''.
-    _inline '    hint.container.classList.add("nodisplay");            // hide by default'.
-    _inline '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug'.
-    _inline ''.
-    _inline '    if (hintTargets[i].nodeName === "INPUT") {'.
-    _inline '      // does not work if inside the input, so appending right after'.
-    _inline '      hintTargets[i].insertAdjacentElement("afterend", hint.container);'.
-    _inline '    } else {'.
-    _inline '      hintTargets[i].appendChild(hint.container);'.
-    _inline '    }'.
-    _inline '    hintsMap[codeCounter++] = hint;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  hintsMap.last = codeCounter - 1;'.
-    _inline '  return hintsMap;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.getHandler = function() {'.
-    _inline '  return this.handleKey.bind(this);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.handleKey = function(event){'.
-    _inline ''.
-    _inline '  if (event.defaultPrevented) {'.
-    _inline '    return;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var activeElementType = (document.activeElement && document.activeElement.nodeName) || "";'.
-    _inline ''.
-    _inline '  // link hints are disabled for input and textareas for obvious reasons.'.
-    _inline '  // Maybe we must add other types here in the future'.
-    _inline '  if (event.key === this.linkHintHotKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {'.
-    _inline ''.
-    _inline '    // on user hide hints, close an opened dropdown too'.
-    _inline '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();'.
-    _inline ''.
-    _inline '    this.pendingPath = "";'.
-    _inline '    this.displayHints(!this.areHintsDisplayed);'.
-    _inline ''.
-    _inline '  } else if (this.areHintsDisplayed) {'.
-    _inline ''.
-    _inline '    // the user tries to reach a hint'.
-    _inline '    this.pendingPath += event.key;'.
-    _inline '    var hint = this.hintsMap[this.pendingPath];'.
-    _inline ''.
-    _inline '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate it'.
-    _inline '      this.displayHints(false);'.
-    _inline '      this.hintActivate(hint);'.
-    _inline '    } else {'.
-    _inline '      // we are not there yet, but let''s filter the link so that only'.
-    _inline '      // the partially matched are shown'.
-    _inline '      var visibleHints = this.filterHints();'.
-    _inline '      if (!visibleHints) {'.
-    _inline '        this.displayHints(false);'.
-    _inline '        if (this.activatedDropdown) this.closeActivatedDropdown();'.
-    _inline '      }'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.closeActivatedDropdown = function() {'.
-    _inline '  if (!this.activatedDropdown) return;'.
-    _inline '  this.activatedDropdown.classList.remove("force-nav-hover");'.
-    _inline '  this.activatedDropdown = null;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.displayHints = function(isActivate) {'.
-    _inline '  this.areHintsDisplayed = isActivate;'.
-    _inline '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {'.
-    _inline '    var hint = this.hintsMap[i];'.
-    _inline '    if (isActivate) {'.
-    _inline '      hint.container.classList.remove("nodisplay");'.
-    _inline '      hint.pendingSpan.innerText   = "";'.
-    _inline '      hint.remainingSpan.innerText = hint.code;'.
-    _inline '    } else {'.
-    _inline '      hint.container.classList.add("nodisplay");'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.hintActivate = function (hint) {'.
-    _inline '  if (hint.parent.nodeName === "A"'.
-    _inline '    // hint.parent.href doesn''t have a # at the end while accessing dropdowns the first time.'.
-    _inline '    // Seems like a idiosyncrasy of SAPGUI''s IE. So let''s ignore the last character.'.
-    _inline '    && ( hint.parent.href.substr(0, hint.parent.href.length - 1) === document.location.href ) // href is #'.
-    _inline '    && !hint.parent.onclick                         // no handler'.
-    _inline '    && hint.parent.parentElement && hint.parent.parentElement.nodeName === "LI") {'.
-    _inline '    // probably it is a dropdown ...'.
-    _inline '    this.activatedDropdown = hint.parent.parentElement;'.
-    _inline '    this.activatedDropdown.classList.toggle("force-nav-hover");'.
-    _inline '    hint.parent.focus();'.
-    _inline '  } else {'.
-    _inline '    hint.parent.click();'.
-    _inline '    if (this.activatedDropdown) this.closeActivatedDropdown();'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'LinkHints.prototype.filterHints = function () {'.
-    _inline '  var visibleHints = 0;'.
-    _inline '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {'.
-    _inline '    var hint = this.hintsMap[i];'.
-    _inline '    if (i.toString().startsWith(this.pendingPath)) {'.
-    _inline '      hint.pendingSpan.innerText   = this.pendingPath;'.
-    _inline '      hint.remainingSpan.innerText = hint.code.substring(this.pendingPath.length);'.
-    _inline '      // hint.container.classList.remove("nodisplay"); // for backspace'.
-    _inline '      visibleHints++;'.
-    _inline '    } else {'.
-    _inline '      hint.container.classList.add("nodisplay");'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline '  return visibleHints;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'function activateLinkHints(linkHintHotKey) {'.
-    _inline '  if (!linkHintHotKey) return;'.
-    _inline '  var oLinkHint = new LinkHints(linkHintHotKey);'.
-    _inline '  document.addEventListener("keypress", oLinkHint.getHandler());'.
-    _inline '}'.
-    _inline ''.
-    _inline '/* HOTKEYS */'.
-    _inline ''.
-    _inline 'function Hotkeys(oKeyMap){'.
-    _inline ''.
-    _inline '  this.oKeyMap = oKeyMap || {};'.
-    _inline ''.
-    _inline '  // these are the hotkeys provided by the backend'.
-    _inline '  Object.keys(this.oKeyMap).forEach(function(sKey){'.
-    _inline ''.
-    _inline '    var action = this.oKeyMap[sKey];'.
-    _inline ''.
-    _inline '    // add a tooltip/title with the hotkey, currently only sapevents are supported'.
-    _inline '    [].slice.call(document.querySelectorAll("a[href^=''sapevent:" + action + "'']")).forEach(function(elAnchor) {'.
-    _inline '      elAnchor.title = elAnchor.title + " [" + sKey + "]";'.
-    _inline '    });'.
-    _inline ''.
-    _inline '    // We replace the actions with callback functions to unify'.
-    _inline '    // the hotkey execution'.
-    _inline '    this.oKeyMap[sKey] = function(oEvent) {'.
-    _inline ''.
-    _inline '      // We have either a js function on this'.
-    _inline '      if (this[action]) {'.
-    _inline '        this[action].call(this);'.
-    _inline '        return;'.
-    _inline '      }'.
-    _inline ''.
-    _inline '      // Or a global function'.
-    _inline '      if (window[action]) {'.
-    _inline '        window[action].call(this);'.
-    _inline '        return;'.
-    _inline '      }'.
-    _inline ''.
-    _inline '      // Or a SAP event'.
-    _inline '      var sUiSapEvent = this.getSapEvent(action);'.
-    _inline '      if (sUiSapEvent) {'.
-    _inline '        submitSapeventForm({}, sUiSapEvent, "post");'.
-    _inline '        oEvent.preventDefault();'.
-    _inline '        return;'.
-    _inline '      }'.
-    _inline ''.
-    _inline '    };'.
-    _inline ''.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '}'.
-    _inline ''.
-    _inline 'Hotkeys.prototype.showHotkeys = function() {'.
-    _inline '  var elHotkeys = document.querySelector("#hotkeys");'.
-    _inline ''.
-    _inline '  if (elHotkeys) {'.
-    _inline '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {'.
-    _inline ''.
-    _inline '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {'.
-    _inline '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)'.
-    _inline '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {'.
-    _inline '      return oSapEvent.href.replace("sapevent:","");'.
-    _inline '    }'.
-    _inline '  };'.
-    _inline ''.
-    _inline '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');'.
-    _inline ''.
-    _inline '  var aFilteredAndNormalizedSapEvents ='.
-    _inline '    [].map.call(aSapEvents, function(oSapEvent){'.
-    _inline '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);'.
-    _inline '    }).filter(function(elem){'.
-    _inline '      // remove false positives'.
-    _inline '      return (elem && !elem.includes("sapevent:"));'.
-    _inline '    });'.
-    _inline ''.
-    _inline '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Hotkeys.prototype.onkeydown = function(oEvent){'.
-    _inline ''.
-    _inline '  if (oEvent.defaultPrevented) {'.
-    _inline '    return;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");'.
-    _inline ''.
-    _inline '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {'.
-    _inline '    return;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var'.
-    _inline '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),'.
-    _inline '    fnHotkey = this.oKeyMap[sKey];'.
-    _inline ''.
-    _inline '  if (fnHotkey) {'.
-    _inline '    fnHotkey.call(this, oEvent);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {'.
-    _inline '  var hotkeysUl = document.querySelector("#hotkeys ul.hotkeys");'.
-    _inline '  if (!hotkeysUl) return;'.
-    _inline ''.
-    _inline '  var li              = document.createElement("li");'.
-    _inline '  var spanId          = document.createElement("span");'.
-    _inline '  spanId.className    = "key-id";'.
-    _inline '  spanId.innerText    = key;'.
-    _inline '  var spanDescr       = document.createElement("span");'.
-    _inline '  spanDescr.className = "key-descr";'.
-    _inline '  spanDescr.innerText = description;'.
-    _inline '  li.appendChild(spanId);'.
-    _inline '  li.appendChild(spanDescr);'.
-    _inline ''.
-    _inline '  hotkeysUl.appendChild(li);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'function setKeyBindings(oKeyMap){'.
-    _inline ''.
-    _inline '  var oHotkeys = new Hotkeys(oKeyMap);'.
-    _inline ''.
-    _inline '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));'.
-    _inline '  setTimeout(function(){'.
-    _inline '    var div = document.getElementById("hotkeys-hint");'.
-    _inline '    if (div) div.style.opacity = 0.2;'.
-    _inline '  }, 4900);'.
-    _inline '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);'.
-    _inline '}'.
-    _inline ''.
-    _inline '/*'.
-    _inline '  Patch / git add -p'.
-    _inline '  */'.
-    _inline ''.
-    _inline '/*'.
-    _inline '  We have three type of cascading checkboxes.'.
-    _inline '  Which means that by clicking a file or section checkbox all corresponding line checkboxes are checked.'.
-    _inline ''.
-    _inline '  The id of the checkbox indicates its semantics and its membership.'.
-    _inline ''.
-    _inline '  */'.
-    _inline ''.
-    _inline '/*'.
-    _inline '  1) file links'.
-    _inline ''.
-    _inline '      example id of file link'.
-    _inline ''.
-    _inline '      patch_file_zcl_abapgit_user_exit.clas.abap'.
-    _inline '      \________/ \_____________________________/'.
-    _inline '          |                   |'.
-    _inline '          |                   |____ file name'.
-    _inline '          |'.
-    _inline '          |'.
-    _inline '          |'.
-    _inline '      constant prefix'.
-    _inline ''.
-    _inline '  */'.
-    _inline ''.
-    _inline 'function PatchFile(sId){'.
-    _inline '  var oRegex = new RegExp("(" + this.ID + ")_(.*$)");'.
-    _inline '  var oMatch = sId.match(oRegex);'.
-    _inline '  this.id        = sId;'.
-    _inline '  this.prefix    = oMatch[1];'.
-    _inline '  this.file_name = oMatch[2];'.
-    _inline '}'.
-    _inline ''.
-    _inline 'PatchFile.prototype.ID = "patch_file";'.
-    _inline ''.
-    _inline '/*'.
-    _inline '  2) section links within a file'.
-    _inline ''.
-    _inline '      example id of section link'.
-    _inline ''.
-    _inline '      patch_section_zcl_abapgit_user_exit.clas.abap_1'.
-    _inline '      \___________/ \_____________________________/ ^'.
-    _inline '            |                   |                   |'.
-    _inline '            |               file name               |'.
-    _inline '            |                                       |'.
-    _inline '            |                                       ------ section'.
-    _inline '            |'.
-    _inline '      constant prefix'.
-    _inline ''.
-    _inline '    */'.
-    _inline ''.
-    _inline 'function PatchSection(sId){'.
-    _inline '  var oRegex = new RegExp("(" + this.ID + ")_(.*)_(\\d+$)");'.
-    _inline '  var oMatch = sId.match(oRegex);'.
-    _inline '  this.id        = sId;'.
-    _inline '  this.prefix    = oMatch[1];'.
-    _inline '  this.file_name = oMatch[2];'.
-    _inline '  this.section   = oMatch[3];'.
-    _inline '}'.
-    _inline ''.
-    _inline 'PatchSection.prototype.ID = "patch_section";'.
-    _inline ''.
-    _inline '/*'.
-    _inline '  3) line links within a section'.
-    _inline ''.
-    _inline '      example id of line link'.
-    _inline ''.
-    _inline '      patch_line_zcl_abapgit_user_exit.clas.abap_1_25'.
-    _inline '      \________/ \_____________________________/ ^  ^'.
-    _inline '            ^                  ^                 |  |'.
-    _inline '            |                  |                 |  ------- line number'.
-    _inline '            |               file name            |'.
-    _inline '            |                                 section'.
-    _inline '            |'.
-    _inline '            |'.
-    _inline '      constant prefix'.
-    _inline ''.
-    _inline '  */'.
-    _inline 'function PatchLine(){'.
-    _inline '}'.
-    _inline ''.
-    _inline 'PatchLine.prototype.ID = "patch_line";'.
-    _inline ''.
-    _inline 'function Patch() { }'.
-    _inline ''.
-    _inline 'Patch.prototype.ID = {'.
-    _inline '  STAGE: "stage"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.ACTION = {'.
-    _inline '  PATCH_STAGE: "patch_stage"'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.escape = function(sFileName){'.
-    _inline '  return sFileName'.
-    _inline '    .replace(/\./g, "\\.")'.
-    _inline '    .replace(/#/g, "\\#");'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.preparePatch = function(){'.
-    _inline ''.
-    _inline '  this.registerClickHandlerForFiles();'.
-    _inline '  this.registerClickHandlerForSections();'.
-    _inline '  this.registerClickHandlerForLines();'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.buildSelectorInputStartsWithId = function(sId){'.
-    _inline '  return "input[id^=''" + sId + "'']";'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForFiles = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchFile.prototype.ID), this.onClickFileCheckbox);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForSections = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchSection.prototype.ID), this.onClickSectionCheckbox);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForLines = function(){'.
-    _inline '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchLine.prototype.ID), this.onClickLineCheckbox);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback){'.
-    _inline ''.
-    _inline '  var elAll = document.querySelectorAll(sSelector);'.
-    _inline ''.
-    _inline '  [].forEach.call(elAll, function(elem){'.
-    _inline '    elem.parentElement.addEventListener("click", fnCallback.bind(this));'.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllLineCheckboxesForFile = function(oFile){'.
-    _inline '  return this.getAllLineCheckboxesForId(oFile.id, PatchFile.prototype.ID);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllSectionCheckboxesForFile = function(oFile){'.
-    _inline '  return this.getAllSectionCheckboxesForId(oFile.id, PatchFile.prototype.ID);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllLineCheckboxesForSection = function(oSection){'.
-    _inline '  return this.getAllLineCheckboxesForId(oSection.id, PatchSection.prototype.ID);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllLineCheckboxesForId = function(sId, sIdPrefix){'.
-    _inline '  return this.getAllCheckboxesForId(sId, sIdPrefix,PatchLine.prototype.ID);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllSectionCheckboxesForId = function(sId, sIdPrefix){'.
-    _inline '  return this.getAllCheckboxesForId(sId, sIdPrefix, PatchSection.prototype.ID);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix){'.
-    _inline '  var oRegex = new RegExp("^" + sIdPrefix);'.
-    _inline '  sId = sId.replace(oRegex, sNewIdPrefix);'.
-    _inline '  return document.querySelectorAll(this.buildSelectorInputStartsWithId(this.escape(sId)));'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.getToggledCheckbox = function(oEvent){'.
-    _inline ''.
-    _inline '  var elCheckbox = null;'.
-    _inline ''.
-    _inline '  // We have either an input element or any element with input child'.
-    _inline '  // in the latter case we have to toggle the checkbox manually'.
-    _inline '  if (oEvent.srcElement.nodeName === "INPUT"){'.
-    _inline '    elCheckbox = oEvent.srcElement;'.
-    _inline '  } else {'.
-    _inline '    elCheckbox = this.toggleCheckbox(oEvent.srcElement.querySelector("INPUT"));'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  return elCheckbox;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.toggleCheckbox = function(elCheckbox) {'.
-    _inline '  elCheckbox.checked = !elCheckbox.checked;'.
-    _inline '  return elCheckbox;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.onClickFileCheckbox = function(oEvent) {'.
-    _inline ''.
-    _inline '  var elCheckbox = this.getToggledCheckbox(oEvent);'.
-    _inline '  var oFile = new PatchFile(elCheckbox.id);'.
-    _inline '  var elAllLineCheckboxesOfFile = this.getAllLineCheckboxesForFile(oFile);'.
-    _inline '  var elAllSectionCheckboxesOfFile = this.getAllSectionCheckboxesForFile(oFile);'.
-    _inline ''.
-    _inline '  [].forEach.call(elAllLineCheckboxesOfFile,function(elem){'.
-    _inline '    elem.checked = elCheckbox.checked;'.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '  [].forEach.call(elAllSectionCheckboxesOfFile,function(elem){'.
-    _inline '    elem.checked = elCheckbox.checked;'.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.onClickSectionCheckbox = function(oEvent){'.
-    _inline '  var elSrcElement = this.getToggledCheckbox(oEvent);'.
-    _inline '  var oSection = new PatchSection(elSrcElement.id);'.
-    _inline '  this.clickAllLineCheckboxesInSection(oSection, elSrcElement.checked);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.onClickLineCheckbox = function(oEvent){'.
-    _inline '  this.getToggledCheckbox(oEvent);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.clickAllLineCheckboxesInSection = function(oSection, bChecked){'.
-    _inline ''.
-    _inline '  var elAllLineCheckboxesOfSection = this.getAllLineCheckboxesForSection(oSection);'.
-    _inline ''.
-    _inline '  [].forEach.call(elAllLineCheckboxesOfSection,function(elem){'.
-    _inline '    elem.checked = bChecked;'.
-    _inline '  }.bind(this));'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.registerStagePatch = function registerStagePatch(){'.
-    _inline ''.
-    _inline '  var elStage = document.querySelector("#" + this.ID.STAGE);'.
-    _inline '  elStage.addEventListener("click", this.stagePatch.bind(this));'.
-    _inline ''.
-    _inline '  // for hotkeys'.
-    _inline '  window.stagePatch = function(){'.
-    _inline '    this.stagePatch();'.
-    _inline '  }.bind(this);'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.stagePatch = function() {'.
-    _inline ''.
-    _inline '  // Collect add and remove info and submit to backend'.
-    _inline ''.
-    _inline '  var aAddPatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, true);'.
-    _inline '  var aRemovePatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, false);'.
-    _inline ''.
-    _inline '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked){'.
-    _inline ''.
-    _inline '  var sSelector = this.buildSelectorInputStartsWithId(sId);'.
-    _inline ''.
-    _inline '  return [].slice.call(document.querySelectorAll(sSelector))'.
-    _inline '    .filter(function(elem){'.
-    _inline '      return (elem.checked === bChecked);'.
-    _inline '    }).map(function(elem){'.
-    _inline '      return elem.id;'.
-    _inline '    });'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline 'function preparePatch(){'.
-    _inline '  var oPatch = new Patch();'.
-    _inline '  oPatch.preparePatch();'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function registerStagePatch(){'.
-    _inline '  var oPatch = new Patch();'.
-    _inline '  oPatch.registerStagePatch();'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Page branch overview'.
-    _inline ' *'.
-    _inline ' * Hovering a commit node in the branch overview will show'.
-    _inline ' * a popup with the commit details. Single click on a node'.
-    _inline ' * will fix the popup, so that users can select text. The'.
-    _inline ' * fixation is removed when any node is hovered or the popup'.
-    _inline ' * is closed via ''X''.'.
-    _inline ' *'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline 'function BranchOverview() {'.
-    _inline '  this.bFixed = false;'.
-    _inline '  this.elCurrentCommit = {'.
-    _inline '    style : {'.
-    _inline '      display: "none"'.
-    _inline '    }'.
-    _inline '  };'.
-    _inline '}'.
-    _inline ''.
-    _inline 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {'.
-    _inline ''.
-    _inline '  // If the popup is fixed, we just remove the fixation.'.
-    _inline '  // The popup will then be hidden by the next call of hideCommit'.
-    _inline '  if (this.bFixed) {'.
-    _inline '    this.bFixed = false;'.
-    _inline '    return;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  // We hide the previous shown commit popup'.
-    _inline '  this.elCurrentCommit.style.display = "none";'.
-    _inline ''.
-    _inline '  // Display the new commit popup if sha1 is supplied'.
-    _inline '  if (sSha1){'.
-    _inline '    this.elCurrentCommit = document.getElementById(sSha1);'.
-    _inline '    this.elCurrentCommit.style.display = "";'.
-    _inline ''.
-    _inline '    // and fix the popup so that the next hideCommit won''t hide it.'.
-    _inline '    this.bFixed = bFixPopup;'.
-    _inline ''.
-    _inline '  }'.
-    _inline ''.
-    _inline '};'.
-    _inline ''.
-    _inline '// called by onClick of commit nodes in branch overview'.
-    _inline 'BranchOverview.prototype.onCommitClick = function(commit){'.
-    _inline '  this.toggleCommit(commit.sha1, true);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Called by commit:mouseover'.
-    _inline 'BranchOverview.prototype.showCommit = function(event){'.
-    _inline '  this.toggleCommit(event.data.sha1);'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Called by commit:mouseout'.
-    _inline 'BranchOverview.prototype.hideCommit = function (){'.
-    _inline '  this.toggleCommit();'.
-    _inline '};'.
-    _inline ''.
-    _inline '// Initialize Top Horizontal Scroller on GitGraph'.
-    _inline 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars'.
-    _inline ''.
-    _inline '  // Get gitGraph Element Canvas Width'.
-    _inline '  var gitGraphEl = document.getElementById("gitGraph");'.
-    _inline '  var gitGraphWidth = gitGraphEl.offsetWidth;'.
-    _inline ''.
-    _inline '  // Initialize gitGraph-HTopScroller Element width as gitGraph'.
-    _inline '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");'.
-    _inline '  HTopScrollerEl.style.width = gitGraphWidth + "px";'.
-    _inline ''.
-    _inline '}'.
-    _inline ''.
-    _inline '// Setup Top Horizontal Scroller on GitGraph event'.
-    _inline 'function GitGraphScroller() { // eslint-disable-line no-unused-vars'.
-    _inline '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");'.
-    _inline '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");'.
-    _inline '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;'.
-    _inline '}'.
-    _inline ''.
-    _inline '/**********************************************************'.
-    _inline ' * Ctrl + P - command palette'.
-    _inline ' **********************************************************/'.
-    _inline ''.
-    _inline '// fuzzy match helper'.
-    _inline '// return non empty marked string in case it fits the filter'.
-    _inline '// abc + b = a<mark>b</mark>c'.
-    _inline 'function fuzzyMatchAndMark(str, filter){'.
-    _inline '  var markedStr   = "";'.
-    _inline '  var filterLower = filter.toLowerCase();'.
-    _inline '  var strLower    = str.toLowerCase();'.
-    _inline '  var cur         = 0;'.
-    _inline ''.
-    _inline '  for (var i = 0; i < filter.length; i++) {'.
-    _inline '    while (filterLower[i] !== strLower[cur] && cur < str.length) {'.
-    _inline '      markedStr += str[cur++];'.
-    _inline '    }'.
-    _inline '    if (cur === str.length) break;'.
-    _inline '    markedStr += "<mark>" + str[cur++] + "</mark>";'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var matched = i === filter.length;'.
-    _inline '  if (matched && cur < str.length) markedStr += str.substring(cur);'.
-    _inline '  return matched ? markedStr : null;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function CommandPalette(commandEnumerator, opts) {'.
-    _inline '  if (typeof commandEnumerator !== "function") throw Error("commandEnumerator must be a function");'.
-    _inline '  if (typeof opts !== "object") throw Error("opts must be an object");'.
-    _inline '  if (typeof opts.toggleKey !== "string" || !opts.toggleKey) throw Error("toggleKey must be a string");'.
-    _inline '  this.commands = commandEnumerator();'.
-    _inline '  if (!this.commands) return;'.
-    _inline '  // this.commands = [{'.
-    _inline '  //   action:    "sap_event_action_code_with_params"'.
-    _inline '  //   iconClass: "icon icon_x ..."'.
-    _inline '  //   title:     "my command X"'.
-    _inline '  // }, ...];'.
-    _inline ''.
-    _inline '  if (opts.toggleKey[0] === "^") {'.
-    _inline '    this.toggleKeyCtrl = true;'.
-    _inline '    this.toggleKey     = opts.toggleKey.substring(1);'.
-    _inline '    if (!this.toggleKey) throw Error("Incorrect toggleKey");'.
-    _inline '  } else {'.
-    _inline '    this.toggleKeyCtrl = false;'.
-    _inline '    this.toggleKey     = opts.toggleKey;'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  this.hotkeyDescription = opts.hotkeyDescription;'.
-    _inline '  this.elements = {'.
-    _inline '    palette: null,'.
-    _inline '    ul:      null,'.
-    _inline '    input:   null'.
-    _inline '  };'.
-    _inline '  this.selectIndex       = -1; // not selected'.
-    _inline '  this.filter            = "";'.
-    _inline '  this.renderAndBindElements();'.
-    _inline '  this.hookEvents();'.
-    _inline '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);'.
-    _inline '}'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.hookEvents = function(){'.
-    _inline '  document.addEventListener("keydown", this.handleToggleKey.bind(this));'.
-    _inline '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));'.
-    _inline '  this.elements.ul.addEventListener("click", this.handleUlClick.bind(this));'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.renderCommandItem = function(cmd){'.
-    _inline '  var li = document.createElement("li");'.
-    _inline '  if (cmd.iconClass) {'.
-    _inline '    var icon       = document.createElement("i");'.
-    _inline '    icon.className = cmd.iconClass;'.
-    _inline '    li.appendChild(icon);'.
-    _inline '  }'.
-    _inline '  var titleSpan = document.createElement("span");'.
-    _inline '  li.appendChild(titleSpan);'.
-    _inline '  cmd.element   = li;'.
-    _inline '  cmd.titleSpan = titleSpan;'.
-    _inline '  return li;'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.renderAndBindElements = function(){'.
-    _inline '  var div           = document.createElement("div");'.
-    _inline '  div.className     = "cmd-palette";'.
-    _inline '  div.style.display = "none";'.
-    _inline '  var input         = document.createElement("input");'.
-    _inline '  input.placeholder = this.hotkeyDescription;'.
-    _inline '  var ul            = document.createElement("ul");'.
-    _inline '  for (var i = 0; i < this.commands.length; i++) ul.appendChild(this.renderCommandItem(this.commands[i]));'.
-    _inline '  div.appendChild(input);'.
-    _inline '  div.appendChild(ul);'.
-    _inline ''.
-    _inline '  this.elements.palette = div;'.
-    _inline '  this.elements.input   = input;'.
-    _inline '  this.elements.ul      = ul;'.
-    _inline '  document.body.appendChild(div);'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.handleToggleKey = function(event){'.
-    _inline '  if (event.key !== this.toggleKey) return;'.
-    _inline '  if (this.toggleKeyCtrl && !event.ctrlKey) return;'.
-    _inline '  this.toggleDisplay();'.
-    _inline '  event.preventDefault();'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.handleInputKey = function(event){'.
-    _inline '  if (event.key === "ArrowUp" || event.key === "Up") {'.
-    _inline '    this.selectPrev();'.
-    _inline '  } else if (event.key === "ArrowDown" || event.key === "Down") {'.
-    _inline '    this.selectNext();'.
-    _inline '  } else if (event.key === "Enter") {'.
-    _inline '    this.exec(this.getSelected());'.
-    _inline '  } else if (event.key === "Backspace" && !this.filter) {'.
-    _inline '    this.toggleDisplay(false);'.
-    _inline '  } else if (this.filter !== this.elements.input.value) {'.
-    _inline '    this.filter = this.elements.input.value;'.
-    _inline '    this.applyFilter();'.
-    _inline '    this.selectFirst();'.
-    _inline '  }'.
-    _inline '  event.preventDefault();'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.applyFilter = function(){'.
-    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
-    _inline '    var cmd = this.commands[i];'.
-    _inline '    if (!this.filter) {'.
-    _inline '      cmd.element.style.display = "";'.
-    _inline '      cmd.titleSpan.innerText   = cmd.title;'.
-    _inline '    } else {'.
-    _inline '      var matchedTitle = fuzzyMatchAndMark(cmd.title, this.filter);'.
-    _inline '      if (matchedTitle) {'.
-    _inline '        cmd.titleSpan.innerHTML   = matchedTitle;'.
-    _inline '        cmd.element.style.display = "";'.
-    _inline '      } else {'.
-    _inline '        cmd.element.style.display = "none";'.
-    _inline '      }'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.applySelectIndex = function(newIndex){'.
-    _inline '  if (newIndex !== this.selectIndex) {'.
-    _inline '    if (this.selectIndex >= 0) this.commands[this.selectIndex].element.classList.remove("selected");'.
-    _inline '    var newCmd = this.commands[newIndex];'.
-    _inline '    newCmd.element.classList.add("selected");'.
-    _inline '    this.selectIndex = newIndex;'.
-    _inline '    this.adjustScrollPosition(newCmd.element);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.selectFirst = function(){'.
-    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
-    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
-    _inline '    this.applySelectIndex(i);'.
-    _inline '    break;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.selectNext = function(){'.
-    _inline '  for (var i = this.selectIndex + 1; i < this.commands.length; i++) {'.
-    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
-    _inline '    this.applySelectIndex(i);'.
-    _inline '    break;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.selectPrev = function(){'.
-    _inline '  for (var i = this.selectIndex - 1; i >= 0; i--) {'.
-    _inline '    if (this.commands[i].element.style.display === "none") continue; // skip hidden'.
-    _inline '    this.applySelectIndex(i);'.
-    _inline '    break;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.getSelected = function(){'.
-    _inline '  return this.commands[this.selectIndex];'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.adjustScrollPosition = function(itemElement){'.
-    _inline '  var bItem         = itemElement.getBoundingClientRect();'.
-    _inline '  var bContainer    = this.elements.ul.getBoundingClientRect();'.
-    _inline '  bItem.top         = Math.round(bItem.top);'.
-    _inline '  bItem.bottom      = Math.round(bItem.bottom);'.
-    _inline '  bItem.height      = Math.round(bItem.height);'.
-    _inline '  bItem.mid         = Math.round(bItem.top + bItem.height / 2);'.
-    _inline '  bContainer.top    = Math.round(bContainer.top);'.
-    _inline '  bContainer.bottom = Math.round(bContainer.bottom);'.
-    _inline ''.
-    _inline '  if ( bItem.mid > bContainer.bottom - 2 ) {'.
-    _inline '    this.elements.ul.scrollTop += bItem.bottom - bContainer.bottom;'.
-    _inline '  } else if ( bItem.mid < bContainer.top + 2 ) {'.
-    _inline '    this.elements.ul.scrollTop += bItem.top - bContainer.top;'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.toggleDisplay = function(forceState) {'.
-    _inline '  var isDisplayed = (this.elements.palette.style.display !== "none");'.
-    _inline '  var tobeDisplayed = (forceState !== undefined) ? forceState : !isDisplayed;'.
-    _inline '  this.elements.palette.style.display = tobeDisplayed ? "" : "none";'.
-    _inline '  if (tobeDisplayed) {'.
-    _inline '    this.elements.input.value = "";'.
-    _inline '    this.elements.input.focus();'.
-    _inline '    this.applyFilter();'.
-    _inline '    this.selectFirst();'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.getCommandByElement = function(element) {'.
-    _inline '  for (var i = 0; i < this.commands.length; i++) {'.
-    _inline '    if (this.commands[i].element === element) return this.commands[i];'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.handleUlClick = function(event) {'.
-    _inline '  var element = event.target || event.srcElement;'.
-    _inline '  if (!element) return;'.
-    _inline '  if (element.nodeName === "SPAN") element = element.parentNode;'.
-    _inline '  if (element.nodeName === "I") element = element.parentNode;'.
-    _inline '  if (element.nodeName !== "LI") return;'.
-    _inline '  this.exec(this.getCommandByElement(element));'.
-    _inline '};'.
-    _inline ''.
-    _inline 'CommandPalette.prototype.exec = function(cmd) {'.
-    _inline '  if (!cmd) return;'.
-    _inline '  this.toggleDisplay(false);'.
-    _inline '  if (typeof cmd.action === "function"){'.
-    _inline '    cmd.action();'.
-    _inline '  } else {'.
-    _inline '    submitSapeventForm(null, cmd.action);'.
-    _inline '  }'.
-    _inline '};'.
-    _inline ''.
-    _inline '/* COMMAND ENUMERATORS */'.
-    _inline ''.
-    _inline 'function enumerateTocAllRepos() {'.
-    _inline '  var root = document.getElementById("toc-all-repos");'.
-    _inline '  if (!root || root.nodeName !== "UL") return null;'.
-    _inline ''.
-    _inline '  var items = [];'.
-    _inline '  for (var i = 0; i < root.children.length; i++) {'.
-    _inline '    if (root.children[i].nodeName === "LI") items.push(root.children[i]);'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  items = items.map(function(listItem) {'.
-    _inline '    var anchor = listItem.children[0];'.
-    _inline '    return {'.
-    _inline '      action:    anchor.href.replace("sapevent:", ""),  // a'.
-    _inline '      iconClass: anchor.childNodes[0].className,        // i with icon'.
-    _inline '      title:     anchor.childNodes[1].textContent       // text with repo name'.
-    _inline '    };'.
-    _inline '  });'.
-    _inline ''.
-    _inline '  return items;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function enumerateToolbarActions() {'.
-    _inline ''.
-    _inline '  var items = [];'.
-    _inline '  function processUL(ulNode, prefix) {'.
-    _inline '    for (var i = 0; i < ulNode.children.length; i++) {'.
-    _inline '      var item = ulNode.children[i];'.
-    _inline '      if (item.nodeName !== "LI") continue; // unexpected node'.
-    _inline '      if (item.children.length >=2 && item.children[1].nodeName === "UL") {'.
-    _inline '        // submenu detected'.
-    _inline '        processUL(item.children[1], item.children[0].innerText);'.
-    _inline '      } else if (item.firstElementChild && item.firstElementChild.nodeName === "A") {'.
-    _inline '        var anchor = item.firstElementChild;'.
-    _inline '        if (anchor.href && anchor.href !== "#") items.push([anchor, prefix]);'.
-    _inline '      }'.
-    _inline '    }'.
-    _inline '  }'.
-    _inline ''.
-    _inline '  var toolbarRoot = document.getElementById("toolbar-main");'.
-    _inline '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);'.
-    _inline '  toolbarRoot = document.getElementById("toolbar-repo");'.
-    _inline '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);'.
-    _inline '  // Add more toolbars ?'.
-    _inline '  if (items.length === 0) return;'.
-    _inline ''.
-    _inline '  items = items.map(function(item) {'.
-    _inline '    var anchor = item[0];'.
-    _inline '    var prefix = item[1];'.
-    _inline '    return {'.
-    _inline '      action:    anchor.href.replace("sapevent:", ""),'.
-    _inline '      title:     (prefix ? prefix + ": " : "") + anchor.innerText'.
-    _inline '    };'.
-    _inline '  });'.
-    _inline ''.
-    _inline '  return items;'.
-    _inline '}'.
-    _inline ''.
-    _inline 'function enumerateJumpAllFiles() {'.
-    _inline '  var root = document.getElementById("jump");'.
-    _inline '  if (!root || root.nodeName !== "UL") return null;'.
-    _inline ''.
-    _inline '  return Array'.
-    _inline '    .prototype.slice.call(root.children)'.
-    _inline '    .filter(function(elem) { return elem.nodeName === "LI" })'.
-    _inline '    .map(function(listItem) {'.
-    _inline '      var title = listItem.children[0].childNodes[0].textContent;'.
-    _inline '      return {'.
-    _inline '        action: root.onclick.bind(null, title),'.
-    _inline '        title:  title'.
-    _inline '      };});'.
-    _inline '}'.
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * ABAPGIT JS function library' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( '  Global variables used from outside' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '/* exported setInitialFocus */' ).
+    lo_buf->add( '/* exported setInitialFocusWithQuerySelector */' ).
+    lo_buf->add( '/* exported submitFormById */' ).
+    lo_buf->add( '/* exported errorStub */' ).
+    lo_buf->add( '/* exported confirmInitialized */' ).
+    lo_buf->add( '/* exported perfOut */' ).
+    lo_buf->add( '/* exported perfLog */' ).
+    lo_buf->add( '/* exported perfClear */' ).
+    lo_buf->add( '/* exported enableArrowListNavigation */' ).
+    lo_buf->add( '/* exported activateLinkHints */' ).
+    lo_buf->add( '/* exported setKeyBindings */' ).
+    lo_buf->add( '/* exported preparePatch */' ).
+    lo_buf->add( '/* exported registerStagePatch */' ).
+    lo_buf->add( '/* exported toggleRepoListDetail */' ).
+    lo_buf->add( '/* exported onTagTypeChange */' ).
+    lo_buf->add( '/* exported getIndocStyleSheet */' ).
+    lo_buf->add( '/* exported addMarginBottom */' ).
+    lo_buf->add( '/* exported enumerateTocAllRepos */' ).
+    lo_buf->add( '/* exported enumerateJumpAllFiles */' ).
+    lo_buf->add( '/* exported enumerateToolbarActions */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Polyfills' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Bind polyfill (for IE7), taken from https://developer.mozilla.org/' ).
+    lo_buf->add( 'if (!Function.prototype.bind) {' ).
+    lo_buf->add( '  Function.prototype.bind = function(oThis) {' ).
+    lo_buf->add( '    if (typeof this !== "function") {' ).
+    lo_buf->add( '      throw new TypeError("Function.prototype.bind - subject is not callable");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    var aArgs   = Array.prototype.slice.call(arguments, 1),' ).
+    lo_buf->add( '      fToBind = this,' ).
+    lo_buf->add( '      fNOP    = function() {},' ).
+    lo_buf->add( '      fBound  = function() {' ).
+    lo_buf->add( '        return fToBind.apply(' ).
+    lo_buf->add( '          this instanceof fNOP' ).
+    lo_buf->add( '            ? this' ).
+    lo_buf->add( '            : oThis,' ).
+    lo_buf->add( '          aArgs.concat(Array.prototype.slice.call(arguments))' ).
+    lo_buf->add( '        );' ).
+    lo_buf->add( '      };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (this.prototype) {' ).
+    lo_buf->add( '      fNOP.prototype = this.prototype;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    fBound.prototype = new fNOP();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    return fBound;' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// String includes polyfill, taken from https://developer.mozilla.org' ).
+    lo_buf->add( 'if (!String.prototype.includes) {' ).
+    lo_buf->add( '  String.prototype.includes = function(search, start) {' ).
+    lo_buf->add( '    "use strict";' ).
+    lo_buf->add( '    if (typeof start !== "number") {' ).
+    lo_buf->add( '      start = 0;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (start + search.length > this.length) {' ).
+    lo_buf->add( '      return false;' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      return this.indexOf(search, start) !== -1;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// String startsWith polyfill, taken from https://developer.mozilla.org' ).
+    lo_buf->add( 'if (!String.prototype.startsWith) {' ).
+    lo_buf->add( '  Object.defineProperty(String.prototype, "startsWith", {' ).
+    lo_buf->add( '    value: function(search, pos) {' ).
+    lo_buf->add( '      pos = !pos || pos < 0 ? 0 : +pos;' ).
+    lo_buf->add( '      return this.substring(pos, pos + search.length) === search;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Common functions' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Output text to the debug div' ).
+    lo_buf->add( 'function debugOutput(text, dstID) {' ).
+    lo_buf->add( '  var stdout       = document.getElementById(dstID || "debug-output");' ).
+    lo_buf->add( '  var wrapped      = "<p>" + text + "</p>";' ).
+    lo_buf->add( '  stdout.innerHTML = stdout.innerHTML + wrapped;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Use a pre-created form or create a hidden form' ).
+    lo_buf->add( '// and submit with sapevent' ).
+    lo_buf->add( 'function submitSapeventForm(params, action, method) {' ).
+    lo_buf->add( '  var stub_form_id = "form_" + action;' ).
+    lo_buf->add( '  var form = document.getElementById(stub_form_id);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (form === null) {' ).
+    lo_buf->add( '    form = document.createElement("form");' ).
+    lo_buf->add( '    form.setAttribute("method", method || "post");' ).
+    lo_buf->add( '    form.setAttribute("action", "sapevent:" + action);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for(var key in params) {' ).
+    lo_buf->add( '    var hiddenField = document.createElement("input");' ).
+    lo_buf->add( '    hiddenField.setAttribute("type", "hidden");' ).
+    lo_buf->add( '    hiddenField.setAttribute("name", key);' ).
+    lo_buf->add( '    hiddenField.setAttribute("value", params[key]);' ).
+    lo_buf->add( '    form.appendChild(hiddenField);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (form.id !== stub_form_id) {' ).
+    lo_buf->add( '    document.body.appendChild(form);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  form.submit();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Set focus to a control' ).
+    lo_buf->add( 'function setInitialFocus(id) {' ).
+    lo_buf->add( '  document.getElementById(id).focus();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Set focus to a element with query selector' ).
+    lo_buf->add( 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {' ).
+    lo_buf->add( '  var oSelected = document.querySelector(sSelector);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (oSelected) {' ).
+    lo_buf->add( '    if (bFocusParent) {' ).
+    lo_buf->add( '      oSelected.parentElement.focus();' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      oSelected.focus();' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Submit an existing form' ).
+    lo_buf->add( 'function submitFormById(id) {' ).
+    lo_buf->add( '  document.getElementById(id).submit();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// JS error stub' ).
+    lo_buf->add( 'function errorStub(event) {' ).
+    lo_buf->add( '  var element    = event.target || event.srcElement;' ).
+    lo_buf->add( '  var targetName = element.id || element.name || "???";' ).
+    lo_buf->add( '  alert("JS Error, please log an issue (@" + targetName + ")");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// confirm JS initilization' ).
+    lo_buf->add( 'function confirmInitialized() {' ).
+    lo_buf->add( '  var errorBanner = document.getElementById("js-error-banner");' ).
+    lo_buf->add( '  if (errorBanner) {' ).
+    lo_buf->add( '    errorBanner.style.display = "none";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  debugOutput("js: OK"); // Final final confirmation :)' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Performance utils (for debugging)' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'var gPerf = [];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function perfOut(prefix) {' ).
+    lo_buf->add( '  var totals = {};' ).
+    lo_buf->add( '  for (var i = gPerf.length - 1; i >= 0; i--) {' ).
+    lo_buf->add( '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};' ).
+    lo_buf->add( '    totals[gPerf[i].name].time  += gPerf[i].time;' ).
+    lo_buf->add( '    totals[gPerf[i].name].count += 1;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var keys = Object.keys(totals);' ).
+    lo_buf->add( '  for (var j = keys.length - 1; j >= 0; j--) {' ).
+    lo_buf->add( '    console.log(prefix' ).
+    lo_buf->add( '      + " " + keys[j] + ": "' ).
+    lo_buf->add( '      + totals[keys[j]].time.toFixed(3) + "ms"' ).
+    lo_buf->add( '      + " (" + totals[keys[j]].count.toFixed() +")");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function perfLog(name, startTime) {' ).
+    lo_buf->add( '  gPerf.push({name: name, time: window.performance.now() - startTime});' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function perfClear() {' ).
+    lo_buf->add( '  gPerf = [];' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * TAG PAGE Logic' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( 'function onTagTypeChange(oSelectObject){' ).
+    lo_buf->add( '  var sValue = oSelectObject.value;' ).
+    lo_buf->add( '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Repo Overview Logic' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( 'function findStyleSheetByName(name) {' ).
+    lo_buf->add( '  for (var s = 0; s < document.styleSheets.length; s++) {' ).
+    lo_buf->add( '    var styleSheet = document.styleSheets[s];' ).
+    lo_buf->add( '    var classes    = styleSheet.cssRules || styleSheet.rules;' ).
+    lo_buf->add( '    for (var i = 0; i < classes.length; i++) {' ).
+    lo_buf->add( '      if (classes[i].selectorText === name) return classes[i];' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function getIndocStyleSheet() {' ).
+    lo_buf->add( '  for (var s = 0; s < document.styleSheets.length; s++) {' ).
+    lo_buf->add( '    if (!document.styleSheets[s].href) return document.styleSheets[s]; // One with empty href' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  // None found ? create one' ).
+    lo_buf->add( '  var style = document.createElement("style");' ).
+    lo_buf->add( '  document.head.appendChild(style);' ).
+    lo_buf->add( '  return style.sheet;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function RepoOverViewHelper() {' ).
+    lo_buf->add( '  this.setHooks();' ).
+    lo_buf->add( '  this.pageId = "RepoOverViewHelperState"; // constant is OK for this case' ).
+    lo_buf->add( '  this.isDetailsDisplayed = false;' ).
+    lo_buf->add( '  this.detailCssClass = findStyleSheetByName(".ro-detail");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListDetail = function(forceDisplay) {' ).
+    lo_buf->add( '  if (this.detailCssClass) {' ).
+    lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
+    lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function() {' ).
+    lo_buf->add( '  window.onbeforeunload = this.onPageUnload.bind(this);' ).
+    lo_buf->add( '  window.onload         = this.onPageLoad.bind(this);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.onPageUnload = function() {' ).
+    lo_buf->add( '  if (!window.sessionStorage) return;' ).
+    lo_buf->add( '  var data = { isDetailsDisplayed: this.isDetailsDisplayed };' ).
+    lo_buf->add( '  window.sessionStorage.setItem(this.pageId, JSON.stringify(data));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function() {' ).
+    lo_buf->add( '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageId));' ).
+    lo_buf->add( '  if (data && data.isDetailsDisplayed) this.toggleRepoListDetail(true);' ).
+    lo_buf->add( '  debugOutput("RepoOverViewHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * STAGE PAGE Logic' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Stage helper constructor' ).
+    lo_buf->add( 'function StageHelper(params) {' ).
+    lo_buf->add( '  this.pageSeed        = params.seed;' ).
+    lo_buf->add( '  this.formAction      = params.formAction;' ).
+    lo_buf->add( '  this.user            = params.user;' ).
+    lo_buf->add( '  this.selectedCount   = 0;' ).
+    lo_buf->add( '  this.filteredCount   = 0;' ).
+    lo_buf->add( '  this.lastFilterValue = "";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // DOM nodes' ).
+    lo_buf->add( '  this.dom = {' ).
+    lo_buf->add( '    stageTab:          document.getElementById(params.ids.stageTab),' ).
+    lo_buf->add( '    commitAllBtn:      document.getElementById(params.ids.commitAllBtn),' ).
+    lo_buf->add( '    commitSelectedBtn: document.getElementById(params.ids.commitSelectedBtn),' ).
+    lo_buf->add( '    commitFilteredBtn: document.getElementById(params.ids.commitFilteredBtn),' ).
+    lo_buf->add( '    objectSearch:      document.getElementById(params.ids.objectSearch),' ).
+    lo_buf->add( '    selectedCounter:   null,' ).
+    lo_buf->add( '    filteredCounter:   null,' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  this.findCounters();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Table columns (autodetection)' ).
+    lo_buf->add( '  this.colIndex      = this.detectColumns();' ).
+    lo_buf->add( '  this.filterTargets = ["name", "user", "transport"];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Constants' ).
+    lo_buf->add( '  this.HIGHLIGHT_STYLE = "highlight";' ).
+    lo_buf->add( '  this.STATUS = {' ).
+    lo_buf->add( '    add:    "A",' ).
+    lo_buf->add( '    remove: "R",' ).
+    lo_buf->add( '    ignore: "I",' ).
+    lo_buf->add( '    reset:  "?",' ).
+    lo_buf->add( '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.TEMPLATES = {' ).
+    lo_buf->add( '    cmdReset:  "<a>reset</a>",' ).
+    lo_buf->add( '    cmdLocal:  "<a>add</a>",' ).
+    lo_buf->add( '    cmdRemote: "<a>ignore</a><a>remove</a>"' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.setHooks();' ).
+    lo_buf->add( '  if (this.user) this.injectFilterMe();' ).
+    lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet("^Enter", "Commit");' ).
+    lo_buf->add( '  this.dom.objectSearch.focus();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.findCounters = function() {' ).
+    lo_buf->add( '  this.dom.selectedCounter = this.dom.commitSelectedBtn.querySelector("span.counter");' ).
+    lo_buf->add( '  this.dom.filteredCounter = this.dom.commitFilteredBtn.querySelector("span.counter");' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.injectFilterMe = function() {' ).
+    lo_buf->add( '  var tabFirstHead = this.dom.stageTab.tHead.rows[0];' ).
+    lo_buf->add( '  if (!tabFirstHead || tabFirstHead.className !== "local") {' ).
+    lo_buf->add( '    return; // for the case only "remove part" is displayed' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  var changedByHead = tabFirstHead.cells[this.colIndex.user];' ).
+    lo_buf->add( '  changedByHead.innerText = changedByHead.innerText + " (";' ).
+    lo_buf->add( '  var a = document.createElement("A");' ).
+    lo_buf->add( '  a.appendChild(document.createTextNode("me"));' ).
+    lo_buf->add( '  a.onclick = this.onFilterMe.bind(this);' ).
+    lo_buf->add( '  a.href = "#";' ).
+    lo_buf->add( '  changedByHead.appendChild(a);' ).
+    lo_buf->add( '  changedByHead.appendChild(document.createTextNode(")"));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.onFilterMe = function() {' ).
+    lo_buf->add( '  this.dom.objectSearch.value = this.user;' ).
+    lo_buf->add( '  this.onFilter({ type: "keypress", which: 13, target: this.dom.objectSearch });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Hook global click listener on table, load/unload actions' ).
+    lo_buf->add( 'StageHelper.prototype.setHooks = function() {' ).
+    lo_buf->add( '  window.onkeypress                  = this.onCtrlEnter.bind(this);' ).
+    lo_buf->add( '  this.dom.stageTab.onclick          = this.onTableClick.bind(this);' ).
+    lo_buf->add( '  this.dom.commitSelectedBtn.onclick = this.submit.bind(this);' ).
+    lo_buf->add( '  this.dom.commitFilteredBtn.onclick = this.submitVisible.bind(this);' ).
+    lo_buf->add( '  this.dom.objectSearch.oninput      = this.onFilter.bind(this);' ).
+    lo_buf->add( '  this.dom.objectSearch.onkeypress   = this.onFilter.bind(this);' ).
+    lo_buf->add( '  window.onbeforeunload              = this.onPageUnload.bind(this);' ).
+    lo_buf->add( '  window.onload                      = this.onPageLoad.bind(this);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Detect column index' ).
+    lo_buf->add( 'StageHelper.prototype.detectColumns = function() {' ).
+    lo_buf->add( '  var dataRow  = this.dom.stageTab.tBodies[0].rows[0];' ).
+    lo_buf->add( '  var colIndex = {};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (var i = dataRow.cells.length - 1; i >= 0; i--) {' ).
+    lo_buf->add( '    if (dataRow.cells[i].className) colIndex[dataRow.cells[i].className] = i;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return colIndex;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Store table state on leaving the page' ).
+    lo_buf->add( 'StageHelper.prototype.onPageUnload = function() {' ).
+    lo_buf->add( '  if (!window.sessionStorage) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var data = this.collectData();' ).
+    lo_buf->add( '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Re-store table state on entering the page' ).
+    lo_buf->add( 'StageHelper.prototype.onPageLoad = function() {' ).
+    lo_buf->add( '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.iterateStageTab(true, function (row) {' ).
+    lo_buf->add( '    var status = data && data[row.cells[this.colIndex["name"]].innerText];' ).
+    lo_buf->add( '    this.updateRow(row, status || this.STATUS.reset);' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.updateMenu();' ).
+    lo_buf->add( '  if (this.dom.objectSearch.value) {' ).
+    lo_buf->add( '    this.applyFilterValue(this.dom.objectSearch.value);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Table event handler, change status' ).
+    lo_buf->add( 'StageHelper.prototype.onTableClick = function (event) {' ).
+    lo_buf->add( '  var target = event.target || event.srcElement;' ).
+    lo_buf->add( '  if (!target) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var td;' ).
+    lo_buf->add( '  if (target.tagName === "A") {' ).
+    lo_buf->add( '    td = target.parentNode;' ).
+    lo_buf->add( '  } else if (target.tagName === "TD") {' ).
+    lo_buf->add( '    td = target;' ).
+    lo_buf->add( '    if (td.children.length === 1 && td.children[0].tagName === "A") {' ).
+    lo_buf->add( '      target = td.children[0];' ).
+    lo_buf->add( '    } else return;' ).
+    lo_buf->add( '  } else return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status' ).
+    lo_buf->add( '  var targetRow = td.parentNode;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (td.tagName === "TD") {' ).
+    lo_buf->add( '    this.updateRow(targetRow, status);' ).
+    lo_buf->add( '  } else { // TH' ).
+    lo_buf->add( '    this.iterateStageTab(true, function (row) {' ).
+    lo_buf->add( '      if (row.style.display !== "none"            // Not filtered out' ).
+    lo_buf->add( '        && row.className === targetRow.className  // Same context as header' ).
+    lo_buf->add( '      ) {' ).
+    lo_buf->add( '        this.updateRow(row, status);' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.updateMenu();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.onCtrlEnter = function (e) {' ).
+    lo_buf->add( '  if (e.ctrlKey && (e.which === 10 || e.key === "Enter")){' ).
+    lo_buf->add( '    var clickMap = {' ).
+    lo_buf->add( '      "default":  this.dom.commitAllBtn,' ).
+    lo_buf->add( '      "selected": this.dom.commitSelectedBtn,' ).
+    lo_buf->add( '      "filtered": this.dom.commitFilteredBtn' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '    clickMap[this.calculateActiveCommitCommand()].click();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Search object' ).
+    lo_buf->add( 'StageHelper.prototype.onFilter = function (e) {' ).
+    lo_buf->add( '  if ( // Enter hit or clear, IE SUCKS !' ).
+    lo_buf->add( '    e.type === "input" && !e.target.value && this.lastFilterValue' ).
+    lo_buf->add( '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") && !e.ctrlKey ) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    this.applyFilterValue(e.target.value);' ).
+    lo_buf->add( '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.lastFilterValue = sFilterValue;' ).
+    lo_buf->add( '  this.filteredCount = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);' ).
+    lo_buf->add( '  this.updateMenu();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Apply filter to a single stage line - hide or show' ).
+    lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function (row, filter) {' ).
+    lo_buf->add( '  // Collect data cells' ).
+    lo_buf->add( '  var targets = this.filterTargets.map(function(attr) {' ).
+    lo_buf->add( '    var elem = row.cells[this.colIndex[attr]];' ).
+    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;' ).
+    lo_buf->add( '    return {' ).
+    lo_buf->add( '      elem:      elem,' ).
+    lo_buf->add( '      plainText: elem.innerText.replace(/ /g, "\u00a0"), // without tags, with encoded spaces' ).
+    lo_buf->add( '      curHtml:   elem.innerHTML' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '  }, this);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var isVisible = false;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Apply filter to cells, mark filtered text' ).
+    lo_buf->add( '  for (var i = targets.length - 1; i >= 0; i--) {' ).
+    lo_buf->add( '    var target = targets[i];' ).
+    lo_buf->add( '    target.newHtml = (filter)' ).
+    lo_buf->add( '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")' ).
+    lo_buf->add( '      : target.plainText;' ).
+    lo_buf->add( '    target.isChanged = target.newHtml !== target.curHtml;' ).
+    lo_buf->add( '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Update DOM' ).
+    lo_buf->add( '  row.style.display = isVisible ? "" : "none";' ).
+    lo_buf->add( '  for (var j = targets.length - 1; j >= 0; j--) {' ).
+    lo_buf->add( '    if (targets[j].isChanged) targets[j].elem.innerHTML = targets[j].newHtml;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return isVisible ? 1 : 0;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Get how status should affect object counter' ).
+    lo_buf->add( 'StageHelper.prototype.getStatusImpact = function (status) {' ).
+    lo_buf->add( '  if (typeof status !== "string"' ).
+    lo_buf->add( '    || status.length !== 1' ).
+    lo_buf->add( '    || this.STATUS.isValid(status) ) {' ).
+    lo_buf->add( '    alert("Unknown status");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    return (status !== this.STATUS.reset) ? 1 : 0;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Update table line' ).
+    lo_buf->add( 'StageHelper.prototype.updateRow = function (row, newStatus) {' ).
+    lo_buf->add( '  var oldStatus = row.cells[this.colIndex["status"]].innerText;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (oldStatus !== newStatus) {' ).
+    lo_buf->add( '    this.updateRowStatus(row, newStatus);' ).
+    lo_buf->add( '    this.updateRowCommand(row, newStatus);' ).
+    lo_buf->add( '  } else if (!row.cells[this.colIndex["cmd"]].children.length) {' ).
+    lo_buf->add( '    this.updateRowCommand(row, newStatus); // For initial run' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.selectedCount += this.getStatusImpact(newStatus) - this.getStatusImpact(oldStatus);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Update Status cell (render set of commands)' ).
+    lo_buf->add( 'StageHelper.prototype.updateRowStatus = function (row, status) {' ).
+    lo_buf->add( '  row.cells[this.colIndex["status"]].innerText = status;' ).
+    lo_buf->add( '  if (status === this.STATUS.reset) {' ).
+    lo_buf->add( '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    row.cells[this.colIndex["status"]].classList.add(this.HIGHLIGHT_STYLE);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Update Command cell (render set of commands)' ).
+    lo_buf->add( 'StageHelper.prototype.updateRowCommand = function (row, status) {' ).
+    lo_buf->add( '  var cell = row.cells[this.colIndex["cmd"]];' ).
+    lo_buf->add( '  if (status === this.STATUS.reset) {' ).
+    lo_buf->add( '    cell.innerHTML = (row.className == "local")' ).
+    lo_buf->add( '      ? this.TEMPLATES.cmdLocal' ).
+    lo_buf->add( '      : this.TEMPLATES.cmdRemote;' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    cell.innerHTML = this.TEMPLATES.cmdReset;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.calculateActiveCommitCommand = function () {' ).
+    lo_buf->add( '  var active;' ).
+    lo_buf->add( '  if (this.selectedCount > 0) {' ).
+    lo_buf->add( '    active = "selected";' ).
+    lo_buf->add( '  } else if (this.lastFilterValue) {' ).
+    lo_buf->add( '    active = "filtered";' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    active = "default";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return active;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Update menu items visibility' ).
+    lo_buf->add( 'StageHelper.prototype.updateMenu = function () {' ).
+    lo_buf->add( '  var display = this.calculateActiveCommitCommand();' ).
+    lo_buf->add( '  if (display === "selected") this.dom.selectedCounter.innerText = this.selectedCount.toString();' ).
+    lo_buf->add( '  if (display === "filtered") this.dom.filteredCounter.innerText = this.filteredCount.toString();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.dom.commitAllBtn.style.display      = display === "default" ? "" : "none";' ).
+    lo_buf->add( '  this.dom.commitSelectedBtn.style.display = display === "selected" ? "" : "none";' ).
+    lo_buf->add( '  this.dom.commitFilteredBtn.style.display = display === "filtered" ? "" : "none";' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Submit stage state to the server' ).
+    lo_buf->add( 'StageHelper.prototype.submit = function () {' ).
+    lo_buf->add( '  submitSapeventForm(this.collectData(), this.formAction);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.submitVisible = function () {' ).
+    lo_buf->add( '  this.markVisiblesAsAdded();' ).
+    lo_buf->add( '  submitSapeventForm(this.collectData(), this.formAction);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Extract data from the table' ).
+    lo_buf->add( 'StageHelper.prototype.collectData = function () {' ).
+    lo_buf->add( '  var data  = {};' ).
+    lo_buf->add( '  this.iterateStageTab(false, function (row) {' ).
+    lo_buf->add( '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  return data;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.markVisiblesAsAdded = function () {' ).
+    lo_buf->add( '  this.iterateStageTab(false, function (row) {' ).
+    lo_buf->add( '    // TODO refacotr, unify updateRow logic' ).
+    lo_buf->add( '    if (row.style.display === "" && row.className === "local") { // visible' ).
+    lo_buf->add( '      this.updateRow(row, this.STATUS.add);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      this.updateRow(row, this.STATUS.reset);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Table iteration helper' ).
+    lo_buf->add( 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {' ).
+    lo_buf->add( '  var restArgs = Array.prototype.slice.call(arguments, 2);' ).
+    lo_buf->add( '  var table    = this.dom.stageTab;' ).
+    lo_buf->add( '  var retTotal = 0;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (changeMode) {' ).
+    lo_buf->add( '    var scrollOffset = window.pageYOffset;' ).
+    lo_buf->add( '    this.dom.stageTab.style.display = "none";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {' ).
+    lo_buf->add( '    var tbody = table.tBodies[b];' ).
+    lo_buf->add( '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {' ).
+    lo_buf->add( '      var args = [tbody.rows[r]].concat(restArgs);' ).
+    lo_buf->add( '      var retVal = cb.apply(this, args); // callback' ).
+    lo_buf->add( '      if (typeof retVal === "number") retTotal += retVal;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (changeMode) {' ).
+    lo_buf->add( '    this.dom.stageTab.style.display = "";' ).
+    lo_buf->add( '    window.scrollTo(0, scrollOffset);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return retTotal;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Check list wrapper' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function CheckListWrapper(id, cbAction) {' ).
+    lo_buf->add( '  this.id         = document.getElementById(id);' ).
+    lo_buf->add( '  this.cbAction   = cbAction;' ).
+    lo_buf->add( '  this.id.onclick = this.onClick.bind(this);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '  // Get nodes' ).
+    lo_buf->add( '  var target = event.target || event.srcElement;' ).
+    lo_buf->add( '  if (!target) return;' ).
+    lo_buf->add( '  if (target.tagName !== "A") { target = target.parentNode } // icon clicked' ).
+    lo_buf->add( '  if (target.tagName !== "A") return;' ).
+    lo_buf->add( '  if (target.parentNode.tagName !== "LI") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var nodeA    = target;' ).
+    lo_buf->add( '  var nodeLi   = target.parentNode;' ).
+    lo_buf->add( '  var nodeIcon = target.children[0];' ).
+    lo_buf->add( '  if (!nodeIcon.classList.contains("icon")) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Node updates' ).
+    lo_buf->add( '  var option   = nodeA.innerText;' ).
+    lo_buf->add( '  var oldState = nodeLi.getAttribute("data-check");' ).
+    lo_buf->add( '  if (oldState === null) return; // no data-check attribute - non-checkbox' ).
+    lo_buf->add( '  var newState = oldState === "X" ? false : true;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (newState) {' ).
+    lo_buf->add( '    nodeIcon.classList.remove("grey");' ).
+    lo_buf->add( '    nodeIcon.classList.add("blue");' ).
+    lo_buf->add( '    nodeLi.setAttribute("data-check", "X");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    nodeIcon.classList.remove("blue");' ).
+    lo_buf->add( '    nodeIcon.classList.add("grey");' ).
+    lo_buf->add( '    nodeLi.setAttribute("data-check", "");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Action callback' ).
+    lo_buf->add( '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Diff page logic' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Diff helper constructor' ).
+    lo_buf->add( 'function DiffHelper(params) {' ).
+    lo_buf->add( '  this.pageSeed    = params.seed;' ).
+    lo_buf->add( '  this.counter     = 0;' ).
+    lo_buf->add( '  this.stageAction = params.stageAction;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // DOM nodes' ).
+    lo_buf->add( '  this.dom = {' ).
+    lo_buf->add( '    diffList:    document.getElementById(params.ids.diffList),' ).
+    lo_buf->add( '    stageButton: document.getElementById(params.ids.stageButton)' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");' ).
+    lo_buf->add( '  if (!this.repoKey) return; // Unexpected' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.dom.jump = document.getElementById(params.ids.jump);' ).
+    lo_buf->add( '  this.dom.jump.onclick = this.onJump.bind(this);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Checklist wrapper' ).
+    lo_buf->add( '  if (document.getElementById(params.ids.filterMenu)) {' ).
+    lo_buf->add( '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));' ).
+    lo_buf->add( '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Hijack stage command' ).
+    lo_buf->add( '  if (this.dom.stageButton) {' ).
+    lo_buf->add( '    this.dom.stageButton.href    = "#";' ).
+    lo_buf->add( '    this.dom.stageButton.onclick = this.onStage.bind(this);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Action on jump click' ).
+    lo_buf->add( 'DiffHelper.prototype.onJump = function(e){' ).
+    lo_buf->add( '  var text = ((e.target && e.target.text) || e);' ).
+    lo_buf->add( '  if (!text) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elFile = document.querySelector("[data-file*=''" + text + "'']");' ).
+    lo_buf->add( '  if (!elFile) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  setTimeout(function(){' ).
+    lo_buf->add( '    elFile.scrollIntoView();' ).
+    lo_buf->add( '  }, 100);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Action on filter click' ).
+    lo_buf->add( 'DiffHelper.prototype.onFilter = function(attr, target, state) {' ).
+    lo_buf->add( '  this.applyFilter(attr, target, state);' ).
+    lo_buf->add( '  this.highlightButton(state);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Hide/show diff based on params' ).
+    lo_buf->add( 'DiffHelper.prototype.applyFilter = function (attr, target, state) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
+    lo_buf->add( '    if (div.getAttribute("data-"+attr) === target) {' ).
+    lo_buf->add( '      div.style.display = state ? "" : "none";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // hide the file in the jump list' ).
+    lo_buf->add( '      var dataFile = div.getAttribute("data-file");' ).
+    lo_buf->add( '      jumpListItems' ).
+    lo_buf->add( '        .filter(function(item){ return dataFile.includes(item.text) })' ).
+    lo_buf->add( '        .map(function(item){ item.style.display = div.style.display });' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Action on stage -> save visible diffs as state for stage page' ).
+    lo_buf->add( 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '  if (window.sessionStorage) {' ).
+    lo_buf->add( '    var data = this.buildStageCache();' ).
+    lo_buf->add( '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  var getParams = {key: this.repoKey, seed: this.pageSeed};' ).
+    lo_buf->add( '  submitSapeventForm(getParams, this.stageAction, "get");' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Collect visible diffs' ).
+    lo_buf->add( 'DiffHelper.prototype.buildStageCache = function () {' ).
+    lo_buf->add( '  var list = {};' ).
+    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
+    lo_buf->add( '    var filename = div.getAttribute("data-file");' ).
+    lo_buf->add( '    if (!div.style.display && filename) { // No display override - visible !!' ).
+    lo_buf->add( '      list[filename] = "A"; // Add' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  return list;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Table iterator' ).
+    lo_buf->add( 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {' ).
+    lo_buf->add( '  var restArgs = Array.prototype.slice.call(arguments, 1);' ).
+    lo_buf->add( '  var diffList = this.dom.diffList;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (var i = 0, iN = diffList.children.length; i < iN; i++) {' ).
+    lo_buf->add( '    var div = diffList.children[i];' ).
+    lo_buf->add( '    if (div.className !== "diff") continue;' ).
+    lo_buf->add( '    var args = [div].concat(restArgs);' ).
+    lo_buf->add( '    cb.apply(this, args); // callback' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Highlight Filter button if filter is activate' ).
+    lo_buf->add( 'DiffHelper.prototype.highlightButton = function(state) {' ).
+    lo_buf->add( '  this.counter += state ? -1 : 1;' ).
+    lo_buf->add( '  if (this.counter > 0) {' ).
+    lo_buf->add( '    this.dom.filterButton.classList.add("bgorange");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Add Bottom margin, so that we can scroll to the top of the last file' ).
+    lo_buf->add( 'function addMarginBottom(){' ).
+    lo_buf->add( '  document.getElementsByTagName("body")[0].style.marginBottom = screen.height + "px";' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Diff page logic of column selection' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function DiffColumnSelection() {' ).
+    lo_buf->add( '  this.selectedColumnIdx = -1;' ).
+    lo_buf->add( '  this.lineNumColumnIdx = -1;' ).
+    lo_buf->add( '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution' ).
+    lo_buf->add( '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));' ).
+    lo_buf->add( '  document.addEventListener("copy", this.copyEventListener.bind(this));' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffColumnSelection.prototype.mousedownEventListener = function(e) {' ).
+    lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
+    lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
+    lo_buf->add( '  // Process mousedown event for all TD elements -> apply CSS class at TABLE level.' ).
+    lo_buf->add( '  // (https://stackoverflow.com/questions/40956717/how-to-addeventlistener-to-multiple-elements-in-a-single-line)' ).
+    lo_buf->add( '  var unifiedLineNumColumnIdx = 0;' ).
+    lo_buf->add( '  var unifiedCodeColumnIdx = 3;' ).
+    lo_buf->add( '  var splitLineNumLeftColumnIdx = 0;' ).
+    lo_buf->add( '  var splitCodeLeftColumnIdx = 2;' ).
+    lo_buf->add( '  var splitLineNumRightColumnIdx = 3;' ).
+    lo_buf->add( '  var splitCodeRightColumnIdx = 5;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (e.button !== 0) return; // function is only valid for left button, not right button' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var td = e.target;' ).
+    lo_buf->add( '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;' ).
+    lo_buf->add( '  if (td == undefined) return;' ).
+    lo_buf->add( '  var table = td.parentElement.parentElement;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var patchColumnCount = 0;' ).
+    lo_buf->add( '  if (td.parentElement.cells[0].classList.contains("patch")) {' ).
+    lo_buf->add( '    patchColumnCount = 1;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (td.classList.contains("diff_left")) {' ).
+    lo_buf->add( '    table.classList.remove("diff_select_right");' ).
+    lo_buf->add( '    table.classList.add("diff_select_left");' ).
+    lo_buf->add( '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeLeftColumnIdx + patchColumnCount ) {' ).
+    lo_buf->add( '      // De-select to avoid effect of dragging selection in case the right column was first selected' ).
+    lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
+    lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
+    lo_buf->add( '        // so use this code which is equivalent but does not fail' ).
+    lo_buf->add( '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)' ).
+    lo_buf->add( '        range = document.body.createTextRange();' ).
+    lo_buf->add( '        range.collapse();' ).
+    lo_buf->add( '        range.select();' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        document.getSelection().removeAllRanges();' ).
+    lo_buf->add( '      }}' ).
+    lo_buf->add( '    this.selectedColumnIdx = splitCodeLeftColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '    this.lineNumColumnIdx = splitLineNumLeftColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  } else if (td.classList.contains("diff_right")) {' ).
+    lo_buf->add( '    table.classList.remove("diff_select_left");' ).
+    lo_buf->add( '    table.classList.add("diff_select_right");' ).
+    lo_buf->add( '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeRightColumnIdx + patchColumnCount ) {' ).
+    lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
+    lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
+    lo_buf->add( '        // so use this code which is equivalent but does not fail' ).
+    lo_buf->add( '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)' ).
+    lo_buf->add( '        var range = document.body.createTextRange();' ).
+    lo_buf->add( '        range.collapse();' ).
+    lo_buf->add( '        range.select();' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        document.getSelection().removeAllRanges();' ).
+    lo_buf->add( '      }}' ).
+    lo_buf->add( '    this.selectedColumnIdx = splitCodeRightColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '    this.lineNumColumnIdx = splitLineNumRightColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  } else if (td.classList.contains("diff_unified")) {' ).
+    lo_buf->add( '    this.selectedColumnIdx = unifiedCodeColumnIdx;' ).
+    lo_buf->add( '    this.lineNumColumnIdx = unifiedLineNumColumnIdx;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.selectedColumnIdx = -1;' ).
+    lo_buf->add( '    this.lineNumColumnIdx = -1;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffColumnSelection.prototype.copyEventListener = function(e) {' ).
+    lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
+    lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
+    lo_buf->add( '  var td = e.target;' ).
+    lo_buf->add( '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;' ).
+    lo_buf->add( '  if(td != undefined){' ).
+    lo_buf->add( '    // Use window.clipboardData instead of e.clipboardData' ).
+    lo_buf->add( '    // (https://stackoverflow.com/questions/23470958/ie-10-copy-paste-issue)' ).
+    lo_buf->add( '    var clipboardData = ( e.clipboardData == undefined ? window.clipboardData : e.clipboardData );' ).
+    lo_buf->add( '    var text = this.getSelectedText();' ).
+    lo_buf->add( '    clipboardData.setData("text", text);' ).
+    lo_buf->add( '    e.preventDefault();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffColumnSelection.prototype.getSelectedText = function() {' ).
+    lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
+    lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
+    lo_buf->add( '  var sel = window.getSelection(),' ).
+    lo_buf->add( '    range = sel.getRangeAt(0),' ).
+    lo_buf->add( '    doc = range.cloneContents(),' ).
+    lo_buf->add( '    nodes = doc.querySelectorAll("tr"),' ).
+    lo_buf->add( '    text = "";' ).
+    lo_buf->add( '  if (nodes.length === 0) {' ).
+    lo_buf->add( '    text = doc.textContent;' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    var newline = "",' ).
+    lo_buf->add( '      realThis = this;' ).
+    lo_buf->add( '    [].forEach.call(nodes, function(tr, i) {' ).
+    lo_buf->add( '      var cellIdx = ( i==0 ? 0 : realThis.selectedColumnIdx );' ).
+    lo_buf->add( '      if (tr.cells.length > cellIdx) {' ).
+    lo_buf->add( '        var tdSelected = tr.cells[cellIdx];' ).
+    lo_buf->add( '        var tdLineNum = tr.cells[realThis.lineNumColumnIdx];' ).
+    lo_buf->add( '        // copy is interesting for remote code, don''t copy lines which exist only locally' ).
+    lo_buf->add( '        if (i==0 || tdLineNum.getAttribute("line-num")!="") {' ).
+    lo_buf->add( '          text += newline + tdSelected.textContent;' ).
+    lo_buf->add( '          // special processing for TD tag which sometimes contains newline' ).
+    lo_buf->add( '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so don''t add newline again in that case.' ).
+    lo_buf->add( '          var lastChar = tdSelected.textContent[ tdSelected.textContent.length - 1 ];' ).
+    lo_buf->add( '          if ( lastChar == "\n" ) newline = "";' ).
+    lo_buf->add( '          else newline = "\n";' ).
+    lo_buf->add( '        }}});}' ).
+    lo_buf->add( '  return text;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Other functions' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// News announcement' ).
+    lo_buf->add( 'function toggleDisplay(divId) {' ).
+    lo_buf->add( '  var div = document.getElementById(divId);' ).
+    lo_buf->add( '  if (div) div.style.display = (div.style.display) ? "" : "none";' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function KeyNavigation() { }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.onkeydown = function(event) {' ).
+    lo_buf->add( '  if (event.defaultPrevented) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // navigate with arrows through list items and support pressing links with enter and space' ).
+    lo_buf->add( '  var isHandled = false;' ).
+    lo_buf->add( '  if (event.key === "Enter" || event.key === "") {' ).
+    lo_buf->add( '    isHandled = this.onEnterOrSpace();' ).
+    lo_buf->add( '  } else if (/Down$/.test(event.key)) {' ).
+    lo_buf->add( '    isHandled = this.onArrowDown();' ).
+    lo_buf->add( '  } else if (/Up$/.test(event.key)) {' ).
+    lo_buf->add( '    isHandled = this.onArrowUp();' ).
+    lo_buf->add( '  } else if (event.key === "Backspace") {' ).
+    lo_buf->add( '    isHandled = this.onBackspace();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (isHandled) event.preventDefault();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.onEnterOrSpace = function () {' ).
+    lo_buf->add( '  if (document.activeElement.nodeName !== "A") return;' ).
+    lo_buf->add( '  var anchor = document.activeElement;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (anchor.href.replace(/#$/, "") === document.location.href.replace(/#$/, "")' ).
+    lo_buf->add( '    && !anchor.onclick' ).
+    lo_buf->add( '    && anchor.parentElement' ).
+    lo_buf->add( '    && anchor.parentElement.nodeName === "LI" ) {' ).
+    lo_buf->add( '    anchor.parentElement.classList.toggle("force-nav-hover");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    anchor.click();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return true;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.focusListItem = function (li) {' ).
+    lo_buf->add( '  var anchor = li.firstElementChild;' ).
+    lo_buf->add( '  if (!anchor || anchor.nodeName !== "A") return false;' ).
+    lo_buf->add( '  anchor.focus();' ).
+    lo_buf->add( '  return true;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.closeDropdown = function (dropdownLi) {' ).
+    lo_buf->add( '  dropdownLi.classList.remove("force-nav-hover");' ).
+    lo_buf->add( '  if (dropdownLi.firstElementChild.nodeName === "A") dropdownLi.firstElementChild.focus();' ).
+    lo_buf->add( '  return true;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.onBackspace = function () {' ).
+    lo_buf->add( '  var activeElement = document.activeElement;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Detect opened subsequent dropdown' ).
+    lo_buf->add( '  if (activeElement.nodeName === "A"' ).
+    lo_buf->add( '    && activeElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.classList.contains("force-nav-hover")) {' ).
+    lo_buf->add( '    return this.closeDropdown(activeElement.parentElement);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Detect opened parent dropdown' ).
+    lo_buf->add( '  if (activeElement.nodeName === "A"' ).
+    lo_buf->add( '    && activeElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.parentElement.nodeName === "UL"' ).
+    lo_buf->add( '    && activeElement.parentElement.parentElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.parentElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.parentElement.parentElement.classList.contains("force-nav-hover")) {' ).
+    lo_buf->add( '    return this.closeDropdown(activeElement.parentElement.parentElement.parentElement);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.onArrowDown = function () {' ).
+    lo_buf->add( '  var activeElement = document.activeElement;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Start of dropdown list: LI > selected A :: UL > LI > A' ).
+    lo_buf->add( '  if (activeElement.nodeName === "A"' ).
+    lo_buf->add( '    && activeElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.classList.contains("force-nav-hover") // opened dropdown' ).
+    lo_buf->add( '    && activeElement.nextElementSibling' ).
+    lo_buf->add( '    && activeElement.nextElementSibling.nodeName === "UL"' ).
+    lo_buf->add( '    && activeElement.nextElementSibling.firstElementChild' ).
+    lo_buf->add( '    && activeElement.nextElementSibling.firstElementChild.nodeName === "LI") {' ).
+    lo_buf->add( '    return this.focusListItem(activeElement.nextElementSibling.firstElementChild);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Next item of dropdown list: ( LI > selected A ) :: LI > A' ).
+    lo_buf->add( '  if (activeElement.nodeName === "A"' ).
+    lo_buf->add( '    && activeElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.nextElementSibling' ).
+    lo_buf->add( '    && activeElement.parentElement.nextElementSibling.nodeName === "LI") {' ).
+    lo_buf->add( '    return this.focusListItem(activeElement.parentElement.nextElementSibling);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.onArrowUp = function () {' ).
+    lo_buf->add( '  var activeElement = document.activeElement;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Prev item of dropdown list: ( LI > selected A ) <:: LI > A' ).
+    lo_buf->add( '  if (activeElement.nodeName === "A"' ).
+    lo_buf->add( '    && activeElement.parentElement' ).
+    lo_buf->add( '    && activeElement.parentElement.nodeName === "LI"' ).
+    lo_buf->add( '    && activeElement.parentElement.previousElementSibling' ).
+    lo_buf->add( '    && activeElement.parentElement.previousElementSibling.nodeName === "LI") {' ).
+    lo_buf->add( '    return this.focusListItem(activeElement.parentElement.previousElementSibling);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'KeyNavigation.prototype.getHandler = function () {' ).
+    lo_buf->add( '  return this.onkeydown.bind(this);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// this functions enables the navigation with arrows through list items (li)' ).
+    lo_buf->add( '// e.g. in dropdown menus' ).
+    lo_buf->add( 'function enableArrowListNavigation() {' ).
+    lo_buf->add( '  document.addEventListener("keydown", new KeyNavigation().getHandler());' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* LINK HINTS - Vimium like link hints */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function LinkHints(linkHintHotKey){' ).
+    lo_buf->add( '  this.linkHintHotKey    = linkHintHotKey;' ).
+    lo_buf->add( '  this.areHintsDisplayed = false;' ).
+    lo_buf->add( '  this.pendingPath       = ""; // already typed code prefix' ).
+    lo_buf->add( '  this.hintsMap          = this.deployHintContainers();' ).
+    lo_buf->add( '  this.activatedDropdown = null;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.getHintStartValue = function(targetsCount){' ).
+    lo_buf->add( '  // e.g. if we have 89 tooltips we start from 10' ).
+    lo_buf->add( '  //      if we have 90 tooltips we start from 100' ).
+    lo_buf->add( '  //      if we have 900 tooltips we start from 1000' ).
+    lo_buf->add( '  var' ).
+    lo_buf->add( '    baseLength = Math.pow(10, targetsCount.toString().length - 1),' ).
+    lo_buf->add( '    maxHintStringLength = (targetsCount + baseLength).toString().length;' ).
+    lo_buf->add( '  return Math.pow(10, maxHintStringLength - 1);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.deployHintContainers = function() {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input[type=''checkbox'']");' ).
+    lo_buf->add( '  var codeCounter = this.getHintStartValue(hintTargets.length);' ).
+    lo_buf->add( '  var hintsMap    = { first: codeCounter };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // <span class="link-hint" data-code="123">' ).
+    lo_buf->add( '  //   <span class="pending">12</span><span>3</span>' ).
+    lo_buf->add( '  // </span>' ).
+    lo_buf->add( '  for (var i = 0, N = hintTargets.length; i < N; i++) {' ).
+    lo_buf->add( '    var hint = {};' ).
+    lo_buf->add( '    hint.container     = document.createElement("span");' ).
+    lo_buf->add( '    hint.pendingSpan   = document.createElement("span");' ).
+    lo_buf->add( '    hint.remainingSpan = document.createElement("span");' ).
+    lo_buf->add( '    hint.parent        = hintTargets[i];' ).
+    lo_buf->add( '    hint.code          = codeCounter.toString();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    hint.container.appendChild(hint.pendingSpan);' ).
+    lo_buf->add( '    hint.container.appendChild(hint.remainingSpan);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    hint.pendingSpan.classList.add("pending");' ).
+    lo_buf->add( '    hint.container.classList.add("link-hint");' ).
+    lo_buf->add( '    if (hint.parent.nodeName === "INPUT"){' ).
+    lo_buf->add( '      hint.container.classList.add("link-hint-input");' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      hint.container.classList.add("link-hint-a");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    hint.container.classList.add("nodisplay");            // hide by default' ).
+    lo_buf->add( '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT") {' ).
+    lo_buf->add( '      // does not work if inside the input, so appending right after' ).
+    lo_buf->add( '      hintTargets[i].insertAdjacentElement("afterend", hint.container);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      hintTargets[i].appendChild(hint.container);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    hintsMap[codeCounter++] = hint;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  hintsMap.last = codeCounter - 1;' ).
+    lo_buf->add( '  return hintsMap;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.getHandler = function() {' ).
+    lo_buf->add( '  return this.handleKey.bind(this);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.handleKey = function(event){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (event.defaultPrevented) {' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var activeElementType = (document.activeElement && document.activeElement.nodeName) || "";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // link hints are disabled for input and textareas for obvious reasons.' ).
+    lo_buf->add( '  // Maybe we must add other types here in the future' ).
+    lo_buf->add( '  if (event.key === this.linkHintHotKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // on user hide hints, close an opened dropdown too' ).
+    lo_buf->add( '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    this.pendingPath = "";' ).
+    lo_buf->add( '    this.displayHints(!this.areHintsDisplayed);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  } else if (this.areHintsDisplayed) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // the user tries to reach a hint' ).
+    lo_buf->add( '    this.pendingPath += event.key;' ).
+    lo_buf->add( '    var hint = this.hintsMap[this.pendingPath];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate it' ).
+    lo_buf->add( '      this.displayHints(false);' ).
+    lo_buf->add( '      this.hintActivate(hint);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      // we are not there yet, but let''s filter the link so that only' ).
+    lo_buf->add( '      // the partially matched are shown' ).
+    lo_buf->add( '      var visibleHints = this.filterHints();' ).
+    lo_buf->add( '      if (!visibleHints) {' ).
+    lo_buf->add( '        this.displayHints(false);' ).
+    lo_buf->add( '        if (this.activatedDropdown) this.closeActivatedDropdown();' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.closeActivatedDropdown = function() {' ).
+    lo_buf->add( '  if (!this.activatedDropdown) return;' ).
+    lo_buf->add( '  this.activatedDropdown.classList.remove("force-nav-hover");' ).
+    lo_buf->add( '  this.activatedDropdown = null;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.displayHints = function(isActivate) {' ).
+    lo_buf->add( '  this.areHintsDisplayed = isActivate;' ).
+    lo_buf->add( '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {' ).
+    lo_buf->add( '    var hint = this.hintsMap[i];' ).
+    lo_buf->add( '    if (isActivate) {' ).
+    lo_buf->add( '      hint.container.classList.remove("nodisplay");' ).
+    lo_buf->add( '      hint.pendingSpan.innerText   = "";' ).
+    lo_buf->add( '      hint.remainingSpan.innerText = hint.code;' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      hint.container.classList.add("nodisplay");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.hintActivate = function (hint) {' ).
+    lo_buf->add( '  if (hint.parent.nodeName === "A"' ).
+    lo_buf->add( '    // hint.parent.href doesn''t have a # at the end while accessing dropdowns the first time.' ).
+    lo_buf->add( '    // Seems like a idiosyncrasy of SAPGUI''s IE. So let''s ignore the last character.' ).
+    lo_buf->add( '    && ( hint.parent.href.substr(0, hint.parent.href.length - 1) === document.location.href ) // href is #' ).
+    lo_buf->add( '    && !hint.parent.onclick                         // no handler' ).
+    lo_buf->add( '    && hint.parent.parentElement && hint.parent.parentElement.nodeName === "LI") {' ).
+    lo_buf->add( '    // probably it is a dropdown ...' ).
+    lo_buf->add( '    this.activatedDropdown = hint.parent.parentElement;' ).
+    lo_buf->add( '    this.activatedDropdown.classList.toggle("force-nav-hover");' ).
+    lo_buf->add( '    hint.parent.focus();' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    hint.parent.click();' ).
+    lo_buf->add( '    if (this.activatedDropdown) this.closeActivatedDropdown();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.filterHints = function () {' ).
+    lo_buf->add( '  var visibleHints = 0;' ).
+    lo_buf->add( '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {' ).
+    lo_buf->add( '    var hint = this.hintsMap[i];' ).
+    lo_buf->add( '    if (i.toString().startsWith(this.pendingPath)) {' ).
+    lo_buf->add( '      hint.pendingSpan.innerText   = this.pendingPath;' ).
+    lo_buf->add( '      hint.remainingSpan.innerText = hint.code.substring(this.pendingPath.length);' ).
+    lo_buf->add( '      // hint.container.classList.remove("nodisplay"); // for backspace' ).
+    lo_buf->add( '      visibleHints++;' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      hint.container.classList.add("nodisplay");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return visibleHints;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function activateLinkHints(linkHintHotKey) {' ).
+    lo_buf->add( '  if (!linkHintHotKey) return;' ).
+    lo_buf->add( '  var oLinkHint = new LinkHints(linkHintHotKey);' ).
+    lo_buf->add( '  document.addEventListener("keypress", oLinkHint.getHandler());' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function Hotkeys(oKeyMap){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.oKeyMap = oKeyMap || {};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // these are the hotkeys provided by the backend' ).
+    lo_buf->add( '  Object.keys(this.oKeyMap).forEach(function(sKey){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    var action = this.oKeyMap[sKey];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // add a tooltip/title with the hotkey, currently only sapevents are supported' ).
+    lo_buf->add( '    [].slice.call(document.querySelectorAll("a[href^=''sapevent:" + action + "'']")).forEach(function(elAnchor) {' ).
+    lo_buf->add( '      elAnchor.title = elAnchor.title + " [" + sKey + "]";' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // We replace the actions with callback functions to unify' ).
+    lo_buf->add( '    // the hotkey execution' ).
+    lo_buf->add( '    this.oKeyMap[sKey] = function(oEvent) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // We have either a js function on this' ).
+    lo_buf->add( '      if (this[action]) {' ).
+    lo_buf->add( '        this[action].call(this);' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // Or a global function' ).
+    lo_buf->add( '      if (window[action]) {' ).
+    lo_buf->add( '        window[action].call(this);' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // Or a SAP event' ).
+    lo_buf->add( '      var sUiSapEvent = this.getSapEvent(action);' ).
+    lo_buf->add( '      if (sUiSapEvent) {' ).
+    lo_buf->add( '        submitSapeventForm({}, sUiSapEvent, "post");' ).
+    lo_buf->add( '        oEvent.preventDefault();' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  }.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.showHotkeys = function() {' ).
+    lo_buf->add( '  var elHotkeys = document.querySelector("#hotkeys");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (elHotkeys) {' ).
+    lo_buf->add( '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {' ).
+    lo_buf->add( '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)' ).
+    lo_buf->add( '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {' ).
+    lo_buf->add( '      return oSapEvent.href.replace("sapevent:","");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var aFilteredAndNormalizedSapEvents =' ).
+    lo_buf->add( '    [].map.call(aSapEvents, function(oSapEvent){' ).
+    lo_buf->add( '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);' ).
+    lo_buf->add( '    }).filter(function(elem){' ).
+    lo_buf->add( '      // remove false positives' ).
+    lo_buf->add( '      return (elem && !elem.includes("sapevent:"));' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (oEvent.defaultPrevented) {' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var' ).
+    lo_buf->add( '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),' ).
+    lo_buf->add( '    fnHotkey = this.oKeyMap[sKey];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (fnHotkey) {' ).
+    lo_buf->add( '    fnHotkey.call(this, oEvent);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {' ).
+    lo_buf->add( '  var hotkeysUl = document.querySelector("#hotkeys ul.hotkeys");' ).
+    lo_buf->add( '  if (!hotkeysUl) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var li              = document.createElement("li");' ).
+    lo_buf->add( '  var spanId          = document.createElement("span");' ).
+    lo_buf->add( '  spanId.className    = "key-id";' ).
+    lo_buf->add( '  spanId.innerText    = key;' ).
+    lo_buf->add( '  var spanDescr       = document.createElement("span");' ).
+    lo_buf->add( '  spanDescr.className = "key-descr";' ).
+    lo_buf->add( '  spanDescr.innerText = description;' ).
+    lo_buf->add( '  li.appendChild(spanId);' ).
+    lo_buf->add( '  li.appendChild(spanDescr);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  hotkeysUl.appendChild(li);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function setKeyBindings(oKeyMap){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var oHotkeys = new Hotkeys(oKeyMap);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));' ).
+    lo_buf->add( '  setTimeout(function(){' ).
+    lo_buf->add( '    var div = document.getElementById("hotkeys-hint");' ).
+    lo_buf->add( '    if (div) div.style.opacity = 0.2;' ).
+    lo_buf->add( '  }, 4900);' ).
+    lo_buf->add( '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*' ).
+    lo_buf->add( '  Patch / git add -p' ).
+    lo_buf->add( '  */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*' ).
+    lo_buf->add( '  We have three type of cascading checkboxes.' ).
+    lo_buf->add( '  Which means that by clicking a file or section checkbox all corresponding line checkboxes are checked.' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  The id of the checkbox indicates its semantics and its membership.' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*' ).
+    lo_buf->add( '  1) file links' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      example id of file link' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      patch_file_zcl_abapgit_user_exit.clas.abap' ).
+    lo_buf->add( '      \________/ \_____________________________/' ).
+    lo_buf->add( '          |                   |' ).
+    lo_buf->add( '          |                   |____ file name' ).
+    lo_buf->add( '          |' ).
+    lo_buf->add( '          |' ).
+    lo_buf->add( '          |' ).
+    lo_buf->add( '      constant prefix' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function PatchFile(sId){' ).
+    lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*$)");' ).
+    lo_buf->add( '  var oMatch = sId.match(oRegex);' ).
+    lo_buf->add( '  this.id        = sId;' ).
+    lo_buf->add( '  this.prefix    = oMatch[1];' ).
+    lo_buf->add( '  this.file_name = oMatch[2];' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'PatchFile.prototype.ID = "patch_file";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*' ).
+    lo_buf->add( '  2) section links within a file' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      example id of section link' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      patch_section_zcl_abapgit_user_exit.clas.abap_1' ).
+    lo_buf->add( '      \___________/ \_____________________________/ ^' ).
+    lo_buf->add( '            |                   |                   |' ).
+    lo_buf->add( '            |               file name               |' ).
+    lo_buf->add( '            |                                       |' ).
+    lo_buf->add( '            |                                       ------ section' ).
+    lo_buf->add( '            |' ).
+    lo_buf->add( '      constant prefix' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function PatchSection(sId){' ).
+    lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*)_(\\d+$)");' ).
+    lo_buf->add( '  var oMatch = sId.match(oRegex);' ).
+    lo_buf->add( '  this.id        = sId;' ).
+    lo_buf->add( '  this.prefix    = oMatch[1];' ).
+    lo_buf->add( '  this.file_name = oMatch[2];' ).
+    lo_buf->add( '  this.section   = oMatch[3];' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'PatchSection.prototype.ID = "patch_section";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/*' ).
+    lo_buf->add( '  3) line links within a section' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      example id of line link' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      patch_line_zcl_abapgit_user_exit.clas.abap_1_25' ).
+    lo_buf->add( '      \________/ \_____________________________/ ^  ^' ).
+    lo_buf->add( '            ^                  ^                 |  |' ).
+    lo_buf->add( '            |                  |                 |  ------- line number' ).
+    lo_buf->add( '            |               file name            |' ).
+    lo_buf->add( '            |                                 section' ).
+    lo_buf->add( '            |' ).
+    lo_buf->add( '            |' ).
+    lo_buf->add( '      constant prefix' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  */' ).
+    lo_buf->add( 'function PatchLine(){' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'PatchLine.prototype.ID = "patch_line";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function Patch() { }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.ID = {' ).
+    lo_buf->add( '  STAGE: "stage"' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.ACTION = {' ).
+    lo_buf->add( '  PATCH_STAGE: "patch_stage"' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.escape = function(sFileName){' ).
+    lo_buf->add( '  return sFileName' ).
+    lo_buf->add( '    .replace(/\./g, "\\.")' ).
+    lo_buf->add( '    .replace(/#/g, "\\#");' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.preparePatch = function(){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.registerClickHandlerForFiles();' ).
+    lo_buf->add( '  this.registerClickHandlerForSections();' ).
+    lo_buf->add( '  this.registerClickHandlerForLines();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.buildSelectorInputStartsWithId = function(sId){' ).
+    lo_buf->add( '  return "input[id^=''" + sId + "'']";' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForFiles = function(){' ).
+    lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchFile.prototype.ID), this.onClickFileCheckbox);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForSections = function(){' ).
+    lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchSection.prototype.ID), this.onClickSectionCheckbox);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForLines = function(){' ).
+    lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchLine.prototype.ID), this.onClickLineCheckbox);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elAll = document.querySelectorAll(sSelector);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  [].forEach.call(elAll, function(elem){' ).
+    lo_buf->add( '    elem.parentElement.addEventListener("click", fnCallback.bind(this));' ).
+    lo_buf->add( '  }.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForFile = function(oFile){' ).
+    lo_buf->add( '  return this.getAllLineCheckboxesForId(oFile.id, PatchFile.prototype.ID);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForFile = function(oFile){' ).
+    lo_buf->add( '  return this.getAllSectionCheckboxesForId(oFile.id, PatchFile.prototype.ID);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForSection = function(oSection){' ).
+    lo_buf->add( '  return this.getAllLineCheckboxesForId(oSection.id, PatchSection.prototype.ID);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForId = function(sId, sIdPrefix){' ).
+    lo_buf->add( '  return this.getAllCheckboxesForId(sId, sIdPrefix,PatchLine.prototype.ID);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForId = function(sId, sIdPrefix){' ).
+    lo_buf->add( '  return this.getAllCheckboxesForId(sId, sIdPrefix, PatchSection.prototype.ID);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix){' ).
+    lo_buf->add( '  var oRegex = new RegExp("^" + sIdPrefix);' ).
+    lo_buf->add( '  sId = sId.replace(oRegex, sNewIdPrefix);' ).
+    lo_buf->add( '  return document.querySelectorAll(this.buildSelectorInputStartsWithId(this.escape(sId)));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getToggledCheckbox = function(oEvent){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elCheckbox = null;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // We have either an input element or any element with input child' ).
+    lo_buf->add( '  // in the latter case we have to toggle the checkbox manually' ).
+    lo_buf->add( '  if (oEvent.srcElement.nodeName === "INPUT"){' ).
+    lo_buf->add( '    elCheckbox = oEvent.srcElement;' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    elCheckbox = this.toggleCheckbox(oEvent.srcElement.querySelector("INPUT"));' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return elCheckbox;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.toggleCheckbox = function(elCheckbox) {' ).
+    lo_buf->add( '  elCheckbox.checked = !elCheckbox.checked;' ).
+    lo_buf->add( '  return elCheckbox;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.onClickFileCheckbox = function(oEvent) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elCheckbox = this.getToggledCheckbox(oEvent);' ).
+    lo_buf->add( '  var oFile = new PatchFile(elCheckbox.id);' ).
+    lo_buf->add( '  var elAllLineCheckboxesOfFile = this.getAllLineCheckboxesForFile(oFile);' ).
+    lo_buf->add( '  var elAllSectionCheckboxesOfFile = this.getAllSectionCheckboxesForFile(oFile);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfFile,function(elem){' ).
+    lo_buf->add( '    elem.checked = elCheckbox.checked;' ).
+    lo_buf->add( '  }.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  [].forEach.call(elAllSectionCheckboxesOfFile,function(elem){' ).
+    lo_buf->add( '    elem.checked = elCheckbox.checked;' ).
+    lo_buf->add( '  }.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.onClickSectionCheckbox = function(oEvent){' ).
+    lo_buf->add( '  var elSrcElement = this.getToggledCheckbox(oEvent);' ).
+    lo_buf->add( '  var oSection = new PatchSection(elSrcElement.id);' ).
+    lo_buf->add( '  this.clickAllLineCheckboxesInSection(oSection, elSrcElement.checked);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.onClickLineCheckbox = function(oEvent){' ).
+    lo_buf->add( '  this.getToggledCheckbox(oEvent);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.clickAllLineCheckboxesInSection = function(oSection, bChecked){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elAllLineCheckboxesOfSection = this.getAllLineCheckboxesForSection(oSection);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfSection,function(elem){' ).
+    lo_buf->add( '    elem.checked = bChecked;' ).
+    lo_buf->add( '  }.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerStagePatch = function registerStagePatch(){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var elStage = document.querySelector("#" + this.ID.STAGE);' ).
+    lo_buf->add( '  elStage.addEventListener("click", this.stagePatch.bind(this));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // for hotkeys' ).
+    lo_buf->add( '  window.stagePatch = function(){' ).
+    lo_buf->add( '    this.stagePatch();' ).
+    lo_buf->add( '  }.bind(this);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.stagePatch = function() {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Collect add and remove info and submit to backend' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var aAddPatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, true);' ).
+    lo_buf->add( '  var aRemovePatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, false);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  submitSapeventForm({"add": aAddPatch, "remove": aRemovePatch}, this.ACTION.PATCH_STAGE, "post");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var sSelector = this.buildSelectorInputStartsWithId(sId);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return [].slice.call(document.querySelectorAll(sSelector))' ).
+    lo_buf->add( '    .filter(function(elem){' ).
+    lo_buf->add( '      return (elem.checked === bChecked);' ).
+    lo_buf->add( '    }).map(function(elem){' ).
+    lo_buf->add( '      return elem.id;' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function preparePatch(){' ).
+    lo_buf->add( '  var oPatch = new Patch();' ).
+    lo_buf->add( '  oPatch.preparePatch();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function registerStagePatch(){' ).
+    lo_buf->add( '  var oPatch = new Patch();' ).
+    lo_buf->add( '  oPatch.registerStagePatch();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Page branch overview' ).
+    lo_buf->add( ' *' ).
+    lo_buf->add( ' * Hovering a commit node in the branch overview will show' ).
+    lo_buf->add( ' * a popup with the commit details. Single click on a node' ).
+    lo_buf->add( ' * will fix the popup, so that users can select text. The' ).
+    lo_buf->add( ' * fixation is removed when any node is hovered or the popup' ).
+    lo_buf->add( ' * is closed via ''X''.' ).
+    lo_buf->add( ' *' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function BranchOverview() {' ).
+    lo_buf->add( '  this.bFixed = false;' ).
+    lo_buf->add( '  this.elCurrentCommit = {' ).
+    lo_buf->add( '    style : {' ).
+    lo_buf->add( '      display: "none"' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // If the popup is fixed, we just remove the fixation.' ).
+    lo_buf->add( '  // The popup will then be hidden by the next call of hideCommit' ).
+    lo_buf->add( '  if (this.bFixed) {' ).
+    lo_buf->add( '    this.bFixed = false;' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // We hide the previous shown commit popup' ).
+    lo_buf->add( '  this.elCurrentCommit.style.display = "none";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Display the new commit popup if sha1 is supplied' ).
+    lo_buf->add( '  if (sSha1){' ).
+    lo_buf->add( '    this.elCurrentCommit = document.getElementById(sSha1);' ).
+    lo_buf->add( '    this.elCurrentCommit.style.display = "";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // and fix the popup so that the next hideCommit won''t hide it.' ).
+    lo_buf->add( '    this.bFixed = bFixPopup;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// called by onClick of commit nodes in branch overview' ).
+    lo_buf->add( 'BranchOverview.prototype.onCommitClick = function(commit){' ).
+    lo_buf->add( '  this.toggleCommit(commit.sha1, true);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Called by commit:mouseover' ).
+    lo_buf->add( 'BranchOverview.prototype.showCommit = function(event){' ).
+    lo_buf->add( '  this.toggleCommit(event.data.sha1);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Called by commit:mouseout' ).
+    lo_buf->add( 'BranchOverview.prototype.hideCommit = function (){' ).
+    lo_buf->add( '  this.toggleCommit();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Initialize Top Horizontal Scroller on GitGraph' ).
+    lo_buf->add( 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Get gitGraph Element Canvas Width' ).
+    lo_buf->add( '  var gitGraphEl = document.getElementById("gitGraph");' ).
+    lo_buf->add( '  var gitGraphWidth = gitGraphEl.offsetWidth;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Initialize gitGraph-HTopScroller Element width as gitGraph' ).
+    lo_buf->add( '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");' ).
+    lo_buf->add( '  HTopScrollerEl.style.width = gitGraphWidth + "px";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Setup Top Horizontal Scroller on GitGraph event' ).
+    lo_buf->add( 'function GitGraphScroller() { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");' ).
+    lo_buf->add( '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");' ).
+    lo_buf->add( '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Ctrl + P - command palette' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// fuzzy match helper' ).
+    lo_buf->add( '// return non empty marked string in case it fits the filter' ).
+    lo_buf->add( '// abc + b = a<mark>b</mark>c' ).
+    lo_buf->add( 'function fuzzyMatchAndMark(str, filter){' ).
+    lo_buf->add( '  var markedStr   = "";' ).
+    lo_buf->add( '  var filterLower = filter.toLowerCase();' ).
+    lo_buf->add( '  var strLower    = str.toLowerCase();' ).
+    lo_buf->add( '  var cur         = 0;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (var i = 0; i < filter.length; i++) {' ).
+    lo_buf->add( '    while (filterLower[i] !== strLower[cur] && cur < str.length) {' ).
+    lo_buf->add( '      markedStr += str[cur++];' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    if (cur === str.length) break;' ).
+    lo_buf->add( '    markedStr += "<mark>" + str[cur++] + "</mark>";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var matched = i === filter.length;' ).
+    lo_buf->add( '  if (matched && cur < str.length) markedStr += str.substring(cur);' ).
+    lo_buf->add( '  return matched ? markedStr : null;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function CommandPalette(commandEnumerator, opts) {' ).
+    lo_buf->add( '  if (typeof commandEnumerator !== "function") throw Error("commandEnumerator must be a function");' ).
+    lo_buf->add( '  if (typeof opts !== "object") throw Error("opts must be an object");' ).
+    lo_buf->add( '  if (typeof opts.toggleKey !== "string" || !opts.toggleKey) throw Error("toggleKey must be a string");' ).
+    lo_buf->add( '  this.commands = commandEnumerator();' ).
+    lo_buf->add( '  if (!this.commands) return;' ).
+    lo_buf->add( '  // this.commands = [{' ).
+    lo_buf->add( '  //   action:    "sap_event_action_code_with_params"' ).
+    lo_buf->add( '  //   iconClass: "icon icon_x ..."' ).
+    lo_buf->add( '  //   title:     "my command X"' ).
+    lo_buf->add( '  // }, ...];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (opts.toggleKey[0] === "^") {' ).
+    lo_buf->add( '    this.toggleKeyCtrl = true;' ).
+    lo_buf->add( '    this.toggleKey     = opts.toggleKey.substring(1);' ).
+    lo_buf->add( '    if (!this.toggleKey) throw Error("Incorrect toggleKey");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.toggleKeyCtrl = false;' ).
+    lo_buf->add( '    this.toggleKey     = opts.toggleKey;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.hotkeyDescription = opts.hotkeyDescription;' ).
+    lo_buf->add( '  this.elements = {' ).
+    lo_buf->add( '    palette: null,' ).
+    lo_buf->add( '    ul:      null,' ).
+    lo_buf->add( '    input:   null' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  this.selectIndex       = -1; // not selected' ).
+    lo_buf->add( '  this.filter            = "";' ).
+    lo_buf->add( '  this.renderAndBindElements();' ).
+    lo_buf->add( '  this.hookEvents();' ).
+    lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.hookEvents = function(){' ).
+    lo_buf->add( '  document.addEventListener("keydown", this.handleToggleKey.bind(this));' ).
+    lo_buf->add( '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));' ).
+    lo_buf->add( '  this.elements.ul.addEventListener("click", this.handleUlClick.bind(this));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.renderCommandItem = function(cmd){' ).
+    lo_buf->add( '  var li = document.createElement("li");' ).
+    lo_buf->add( '  if (cmd.iconClass) {' ).
+    lo_buf->add( '    var icon       = document.createElement("i");' ).
+    lo_buf->add( '    icon.className = cmd.iconClass;' ).
+    lo_buf->add( '    li.appendChild(icon);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  var titleSpan = document.createElement("span");' ).
+    lo_buf->add( '  li.appendChild(titleSpan);' ).
+    lo_buf->add( '  cmd.element   = li;' ).
+    lo_buf->add( '  cmd.titleSpan = titleSpan;' ).
+    lo_buf->add( '  return li;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.renderAndBindElements = function(){' ).
+    lo_buf->add( '  var div           = document.createElement("div");' ).
+    lo_buf->add( '  div.className     = "cmd-palette";' ).
+    lo_buf->add( '  div.style.display = "none";' ).
+    lo_buf->add( '  var input         = document.createElement("input");' ).
+    lo_buf->add( '  input.placeholder = this.hotkeyDescription;' ).
+    lo_buf->add( '  var ul            = document.createElement("ul");' ).
+    lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) ul.appendChild(this.renderCommandItem(this.commands[i]));' ).
+    lo_buf->add( '  div.appendChild(input);' ).
+    lo_buf->add( '  div.appendChild(ul);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.elements.palette = div;' ).
+    lo_buf->add( '  this.elements.input   = input;' ).
+    lo_buf->add( '  this.elements.ul      = ul;' ).
+    lo_buf->add( '  document.body.appendChild(div);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.handleToggleKey = function(event){' ).
+    lo_buf->add( '  if (event.key !== this.toggleKey) return;' ).
+    lo_buf->add( '  if (this.toggleKeyCtrl && !event.ctrlKey) return;' ).
+    lo_buf->add( '  this.toggleDisplay();' ).
+    lo_buf->add( '  event.preventDefault();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.handleInputKey = function(event){' ).
+    lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up") {' ).
+    lo_buf->add( '    this.selectPrev();' ).
+    lo_buf->add( '  } else if (event.key === "ArrowDown" || event.key === "Down") {' ).
+    lo_buf->add( '    this.selectNext();' ).
+    lo_buf->add( '  } else if (event.key === "Enter") {' ).
+    lo_buf->add( '    this.exec(this.getSelected());' ).
+    lo_buf->add( '  } else if (event.key === "Backspace" && !this.filter) {' ).
+    lo_buf->add( '    this.toggleDisplay(false);' ).
+    lo_buf->add( '  } else if (this.filter !== this.elements.input.value) {' ).
+    lo_buf->add( '    this.filter = this.elements.input.value;' ).
+    lo_buf->add( '    this.applyFilter();' ).
+    lo_buf->add( '    this.selectFirst();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  event.preventDefault();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.applyFilter = function(){' ).
+    lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
+    lo_buf->add( '    var cmd = this.commands[i];' ).
+    lo_buf->add( '    if (!this.filter) {' ).
+    lo_buf->add( '      cmd.element.style.display = "";' ).
+    lo_buf->add( '      cmd.titleSpan.innerText   = cmd.title;' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      var matchedTitle = fuzzyMatchAndMark(cmd.title, this.filter);' ).
+    lo_buf->add( '      if (matchedTitle) {' ).
+    lo_buf->add( '        cmd.titleSpan.innerHTML   = matchedTitle;' ).
+    lo_buf->add( '        cmd.element.style.display = "";' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        cmd.element.style.display = "none";' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.applySelectIndex = function(newIndex){' ).
+    lo_buf->add( '  if (newIndex !== this.selectIndex) {' ).
+    lo_buf->add( '    if (this.selectIndex >= 0) this.commands[this.selectIndex].element.classList.remove("selected");' ).
+    lo_buf->add( '    var newCmd = this.commands[newIndex];' ).
+    lo_buf->add( '    newCmd.element.classList.add("selected");' ).
+    lo_buf->add( '    this.selectIndex = newIndex;' ).
+    lo_buf->add( '    this.adjustScrollPosition(newCmd.element);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.selectFirst = function(){' ).
+    lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
+    lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
+    lo_buf->add( '    this.applySelectIndex(i);' ).
+    lo_buf->add( '    break;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.selectNext = function(){' ).
+    lo_buf->add( '  for (var i = this.selectIndex + 1; i < this.commands.length; i++) {' ).
+    lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
+    lo_buf->add( '    this.applySelectIndex(i);' ).
+    lo_buf->add( '    break;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.selectPrev = function(){' ).
+    lo_buf->add( '  for (var i = this.selectIndex - 1; i >= 0; i--) {' ).
+    lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
+    lo_buf->add( '    this.applySelectIndex(i);' ).
+    lo_buf->add( '    break;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.getSelected = function(){' ).
+    lo_buf->add( '  return this.commands[this.selectIndex];' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.adjustScrollPosition = function(itemElement){' ).
+    lo_buf->add( '  var bItem         = itemElement.getBoundingClientRect();' ).
+    lo_buf->add( '  var bContainer    = this.elements.ul.getBoundingClientRect();' ).
+    lo_buf->add( '  bItem.top         = Math.round(bItem.top);' ).
+    lo_buf->add( '  bItem.bottom      = Math.round(bItem.bottom);' ).
+    lo_buf->add( '  bItem.height      = Math.round(bItem.height);' ).
+    lo_buf->add( '  bItem.mid         = Math.round(bItem.top + bItem.height / 2);' ).
+    lo_buf->add( '  bContainer.top    = Math.round(bContainer.top);' ).
+    lo_buf->add( '  bContainer.bottom = Math.round(bContainer.bottom);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if ( bItem.mid > bContainer.bottom - 2 ) {' ).
+    lo_buf->add( '    this.elements.ul.scrollTop += bItem.bottom - bContainer.bottom;' ).
+    lo_buf->add( '  } else if ( bItem.mid < bContainer.top + 2 ) {' ).
+    lo_buf->add( '    this.elements.ul.scrollTop += bItem.top - bContainer.top;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.toggleDisplay = function(forceState) {' ).
+    lo_buf->add( '  var isDisplayed = (this.elements.palette.style.display !== "none");' ).
+    lo_buf->add( '  var tobeDisplayed = (forceState !== undefined) ? forceState : !isDisplayed;' ).
+    lo_buf->add( '  this.elements.palette.style.display = tobeDisplayed ? "" : "none";' ).
+    lo_buf->add( '  if (tobeDisplayed) {' ).
+    lo_buf->add( '    this.elements.input.value = "";' ).
+    lo_buf->add( '    this.elements.input.focus();' ).
+    lo_buf->add( '    this.applyFilter();' ).
+    lo_buf->add( '    this.selectFirst();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.getCommandByElement = function(element) {' ).
+    lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
+    lo_buf->add( '    if (this.commands[i].element === element) return this.commands[i];' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.handleUlClick = function(event) {' ).
+    lo_buf->add( '  var element = event.target || event.srcElement;' ).
+    lo_buf->add( '  if (!element) return;' ).
+    lo_buf->add( '  if (element.nodeName === "SPAN") element = element.parentNode;' ).
+    lo_buf->add( '  if (element.nodeName === "I") element = element.parentNode;' ).
+    lo_buf->add( '  if (element.nodeName !== "LI") return;' ).
+    lo_buf->add( '  this.exec(this.getCommandByElement(element));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.exec = function(cmd) {' ).
+    lo_buf->add( '  if (!cmd) return;' ).
+    lo_buf->add( '  this.toggleDisplay(false);' ).
+    lo_buf->add( '  if (typeof cmd.action === "function"){' ).
+    lo_buf->add( '    cmd.action();' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    submitSapeventForm(null, cmd.action);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COMMAND ENUMERATORS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function enumerateTocAllRepos() {' ).
+    lo_buf->add( '  var root = document.getElementById("toc-all-repos");' ).
+    lo_buf->add( '  if (!root || root.nodeName !== "UL") return null;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var items = [];' ).
+    lo_buf->add( '  for (var i = 0; i < root.children.length; i++) {' ).
+    lo_buf->add( '    if (root.children[i].nodeName === "LI") items.push(root.children[i]);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  items = items.map(function(listItem) {' ).
+    lo_buf->add( '    var anchor = listItem.children[0];' ).
+    lo_buf->add( '    return {' ).
+    lo_buf->add( '      action:    anchor.href.replace("sapevent:", ""),  // a' ).
+    lo_buf->add( '      iconClass: anchor.childNodes[0].className,        // i with icon' ).
+    lo_buf->add( '      title:     anchor.childNodes[1].textContent       // text with repo name' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return items;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function enumerateToolbarActions() {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var items = [];' ).
+    lo_buf->add( '  function processUL(ulNode, prefix) {' ).
+    lo_buf->add( '    for (var i = 0; i < ulNode.children.length; i++) {' ).
+    lo_buf->add( '      var item = ulNode.children[i];' ).
+    lo_buf->add( '      if (item.nodeName !== "LI") continue; // unexpected node' ).
+    lo_buf->add( '      if (item.children.length >=2 && item.children[1].nodeName === "UL") {' ).
+    lo_buf->add( '        // submenu detected' ).
+    lo_buf->add( '        processUL(item.children[1], item.children[0].innerText);' ).
+    lo_buf->add( '      } else if (item.firstElementChild && item.firstElementChild.nodeName === "A") {' ).
+    lo_buf->add( '        var anchor = item.firstElementChild;' ).
+    lo_buf->add( '        if (anchor.href && anchor.href !== "#") items.push([anchor, prefix]);' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var toolbarRoot = document.getElementById("toolbar-main");' ).
+    lo_buf->add( '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);' ).
+    lo_buf->add( '  toolbarRoot = document.getElementById("toolbar-repo");' ).
+    lo_buf->add( '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);' ).
+    lo_buf->add( '  // Add more toolbars ?' ).
+    lo_buf->add( '  if (items.length === 0) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  items = items.map(function(item) {' ).
+    lo_buf->add( '    var anchor = item[0];' ).
+    lo_buf->add( '    var prefix = item[1];' ).
+    lo_buf->add( '    return {' ).
+    lo_buf->add( '      action:    anchor.href.replace("sapevent:", ""),' ).
+    lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return items;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function enumerateJumpAllFiles() {' ).
+    lo_buf->add( '  var root = document.getElementById("jump");' ).
+    lo_buf->add( '  if (!root || root.nodeName !== "UL") return null;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return Array' ).
+    lo_buf->add( '    .prototype.slice.call(root.children)' ).
+    lo_buf->add( '    .filter(function(elem) { return elem.nodeName === "LI" })' ).
+    lo_buf->add( '    .map(function(listItem) {' ).
+    lo_buf->add( '      var title = listItem.children[0].childNodes[0].textContent;' ).
+    lo_buf->add( '      return {' ).
+    lo_buf->add( '        action: root.onclick.bind(null, title),' ).
+    lo_buf->add( '        title:  title' ).
+    lo_buf->add( '      };});' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'js/common.js'
       iv_type      = 'text/javascript'
       iv_mime_name = 'ZABAPGIT_JS_COMMON'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
 ****************************************************
-    _inline '@font-face {'.
-    _inline '    font-family: "ag-icons";'.
-    _inline '    font-weight: normal;'.
-    _inline '    font-style: normal;'.
-    _inline '    src: url("../font/ag-icons.woff") format("woff");'.
-    _inline '}'.
-    _inline ''.
-    _inline '.icon {'.
-    _inline '    line-height: 1;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.icon:before {'.
-    _inline '    font-family: ag-icons !important;'.
-    _inline '    font-style: normal;'.
-    _inline '    font-weight: normal !important;'.
-    _inline ''.
-    _inline '    display: inline-block;'.
-    _inline '    text-decoration: none;'.
-    _inline '    text-align: center;'.
-    _inline '    vertical-align: text-top;'.
-    _inline '    width: 1em;'.
-    _inline ''.
-    _inline '    /* For safety - reset parent styles, that can break glyph codes*/'.
-    _inline '    font-variant: normal;'.
-    _inline '    text-transform: none;'.
-    _inline '}'.
-    _inline ''.
-    _inline '.icon.large { font-size: 200%; }'.
-    _inline ''.
-    _inline '.icon-arrow-circle-up:before { content: "\f101"; }'.
-    _inline '.icon-bars:before { content: "\f102"; }'.
-    _inline '.icon-bolt:before { content: "\f103"; }'.
-    _inline '.icon-box:before { content: "\f104"; }'.
-    _inline '.icon-briefcase:before { content: "\f105"; }'.
-    _inline '.icon-check:before { content: "\f106"; }'.
-    _inline '.icon-cloud-upload-alt:before { content: "\f107"; }'.
-    _inline '.icon-code-branch:before { content: "\f108"; }'.
-    _inline '.icon-code-commit:before { content: "\f109"; }'.
-    _inline '.icon-cog:before { content: "\f10a"; }'.
-    _inline '.icon-exclamation-circle:before { content: "\f10b"; }'.
-    _inline '.icon-exclamation-triangle:before { content: "\f10c"; }'.
-    _inline '.icon-file-alt:before { content: "\f10d"; }'.
-    _inline '.icon-file-code:before { content: "\f10e"; }'.
-    _inline '.icon-file-image:before { content: "\f10f"; }'.
-    _inline '.icon-file:before { content: "\f110"; }'.
-    _inline '.icon-fire-alt:before { content: "\f111"; }'.
-    _inline '.icon-folder:before { content: "\f112"; }'.
-    _inline '.icon-lock:before { content: "\f113"; }'.
-    _inline '.icon-plug:before { content: "\f114"; }'.
-    _inline '.icon-sliders-h:before { content: "\f115"; }'.
-    _inline '.icon-snowflake:before { content: "\f116"; }'.
-    _inline '.icon-star:before { content: "\f117"; }'.
+    lo_buf->add( '@font-face {' ).
+    lo_buf->add( '    font-family: "ag-icons";' ).
+    lo_buf->add( '    font-weight: normal;' ).
+    lo_buf->add( '    font-style: normal;' ).
+    lo_buf->add( '    src: url("../font/ag-icons.woff") format("woff");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.icon {' ).
+    lo_buf->add( '    line-height: 1;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.icon:before {' ).
+    lo_buf->add( '    font-family: ag-icons !important;' ).
+    lo_buf->add( '    font-style: normal;' ).
+    lo_buf->add( '    font-weight: normal !important;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    display: inline-block;' ).
+    lo_buf->add( '    text-decoration: none;' ).
+    lo_buf->add( '    text-align: center;' ).
+    lo_buf->add( '    vertical-align: text-top;' ).
+    lo_buf->add( '    width: 1em;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    /* For safety - reset parent styles, that can break glyph codes*/' ).
+    lo_buf->add( '    font-variant: normal;' ).
+    lo_buf->add( '    text-transform: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.icon.large { font-size: 200%; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.icon-arrow-circle-up:before { content: "\f101"; }' ).
+    lo_buf->add( '.icon-bars:before { content: "\f102"; }' ).
+    lo_buf->add( '.icon-bolt:before { content: "\f103"; }' ).
+    lo_buf->add( '.icon-box:before { content: "\f104"; }' ).
+    lo_buf->add( '.icon-briefcase:before { content: "\f105"; }' ).
+    lo_buf->add( '.icon-check:before { content: "\f106"; }' ).
+    lo_buf->add( '.icon-cloud-upload-alt:before { content: "\f107"; }' ).
+    lo_buf->add( '.icon-code-branch:before { content: "\f108"; }' ).
+    lo_buf->add( '.icon-code-commit:before { content: "\f109"; }' ).
+    lo_buf->add( '.icon-cog:before { content: "\f10a"; }' ).
+    lo_buf->add( '.icon-exclamation-circle:before { content: "\f10b"; }' ).
+    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f10c"; }' ).
+    lo_buf->add( '.icon-file-alt:before { content: "\f10d"; }' ).
+    lo_buf->add( '.icon-file-code:before { content: "\f10e"; }' ).
+    lo_buf->add( '.icon-file-image:before { content: "\f10f"; }' ).
+    lo_buf->add( '.icon-file:before { content: "\f110"; }' ).
+    lo_buf->add( '.icon-fire-alt:before { content: "\f111"; }' ).
+    lo_buf->add( '.icon-folder:before { content: "\f112"; }' ).
+    lo_buf->add( '.icon-lock:before { content: "\f113"; }' ).
+    lo_buf->add( '.icon-plug:before { content: "\f114"; }' ).
+    lo_buf->add( '.icon-sliders-h:before { content: "\f115"; }' ).
+    lo_buf->add( '.icon-snowflake:before { content: "\f116"; }' ).
+    lo_buf->add( '.icon-star:before { content: "\f117"; }' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/ag-icons.css'
       iv_type      = 'text/css'
       iv_mime_name = 'ZABAPGIT_ICON_FONT_CSS'
-      iv_inline    = concat_lines_of( table = lt_inline sep = cl_abap_char_utilities=>newline ) ).
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
-    CLEAR lt_inline.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
 ****************************************************
-    _inline 'd09GRgABAAAAAA1AAAsAAAAAFqgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH'.
-    _inline 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3DY21hcAAA'.
-    _inline 'AYQAAACvAAACpPLiSE5nbHlmAAACNAAACDIAAA5EJqME8WhlYWQAAApoAAAA'.
-    _inline 'MAAAADYVkKSdaGhlYQAACpgAAAAdAAAAJASAApVobXR4AAAKuAAAADkAAABg'.
-    _inline 'KRj/92xvY2EAAAr0AAAAMgAAADInniRsbWF4cAAACygAAAAfAAAAIAEoALpu'.
-    _inline 'YW1lAAALSAAAASgAAAIWQeF35nBvc3QAAAxwAAAAzwAAAS5N67fPeJxjYGRg'.
-    _inline 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm'.
-    _inline 'g4gCACY7BUgAeJxjYGTcxjiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV'.
-    _inline 'BKS5pjA4fGT8KM4E4uoxMTOAVDKCOAC/rAkAAHic7dFbDsIgFEXRjaX1Va2t'.
-    _inline 'Dybgp2NxQH45ZUag93AchiSLnRLaNAD0QBceIUN6k9B4xWpq6x27tp55tj1Z'.
-    _inline '67V8PjEnzfGc27yKvTm+OLBmwzbe2zNy4MjEiZmFMxeu3CixfeA/Rk3p/nsq'.
-    _inline 'OlFrZ7wy1M50VzWbTr32pnusg6GuDXVjqFtD3Znut+4NdTT9XT0Y6tFQJ0M9'.
-    _inline 'GepsqIuhng31YqhXQ70ZajHKF8VcODYAeJylV0tsJEcZrr+7p6p7eqbn0a8Z'.
-    _inline 'z4w9j3X3uB15vJ5HO+PHPmy89mIkJ7KEObHSIm1kLtYihIRi5JAF5UAka5FQ'.
-    _inline 'LiBLEY8LaA8R4RCEiSKBBEh74bCc9sYhEmtOmEPa/FU97X0TIca9VX9V/fXX'.
-    _inline '9/9V9f21RCL4g1M4JRkSEGL2lmFuHCwDmjNwCWzLWYC5wRK4ztwlGPQ64DVz'.
-    _inline 'QK0JcObUldvfv70iisN1I51PG+vMZjpj32MW/kPJBrIy0li57W1+mDaM9Ieb'.
-    _inline 'fMRidxh+Foq4vCwwHMMnJEcmSAdRNPiaPa/VaNIaWI77Oe08HDFNY9ENXr5E'.
-    _inline 'hjc11uYtLI5eKBI4ixDHKobExboVDrxpaFL0F4PAqNOdC82BB+1vBLKROdQM'.
-    _inline 'qIOhf2sGGwa7xwy48V3dzGgnev7jTDEDs5kSSXyTiASEoXdltOvPwDTY3ckW'.
-    _inline 'mpa6DEPcFe5A1E2V8+8+iv75br6cmpMenVQtOLKqcO29XPH4uJh7j9VPrGrV'.
-    _inline 'OnnCLjwkJvHJNCGTFkW03hK0zi22wla/J3yoQYsXDdHsd+GyxjAmxzUTjsza'.
-    _inline '8eFWzcR6y6xJpPb+wcE9HpDZQ7NWMw+PZnk1WzO3cLiO8Efr/o5YhIS+18Nj'.
-    _inline 'MTcBIS8ciwFt/urnjE0yW907UW0UWPSAORs/Yw67oPI+9QKK0d9UYYYXb6EP'.
-    _inline 'VTKHpgcIr9VkM9A0oAYGnr5xQE+WAfsZupU42PTiRR0qjdH5dq1kX//y9elg'.
-    _inline '4F/1Ya+10Bz+9griZ9oVXWW7iqHsMhVqhWJ7Pn/hlenr02ruegdVmwutmbXe'.
-    _inline 'Hvd1z0I9VEOXlDP8wQHuV0gukw3yOuLqeU2KQXUNPAXiry8gxZ02x+nMcez+'.
-    _inline 'MsYh7A5C/rcMk3OORZteb2DygjfMpAcOOlc79TGwS7kLVcPNlyewPVEWVdVN'.
-    _inline 'WaZehmm7ZdpQGo/uI0QDUcbVg7iCvUan06gEammMyvhT2CELKnEf++NILE9p'.
-    _inline 'aloBWaFpdyxQg10+09Cig7jGYyDqeEvJ2Rn5K/pdIg28gfy4GPyqCeeWYBmj'.
-    _inline '4PN9SFzYzZr1IKibY2YjCBpmVstmC9msRHLGvj6/Np/eN/J5Yz+Nor6fzX+K'.
-    _inline 'VwK/0Z7DIzgj18gWnlp/4GOofA9vRQ7ECr7H+PZT5nsi2s4EUBe7XMcdR0oS'.
-    _inline 'iFwHJy3BIHQdEW2PJSGGvweUBooMBU9WlaDSTClhqKSalUBRZa+AsXh2PDUQ'.
-    _inline '49NyPP4pBu5qp/NJudUqS6rSn5IlqexmLioMMhlgysWMW5YkeaqvqNKzOinK'.
-    _inline 'dWhK6IDCdYrc2NXOiONO4d/IszaZRDnm2JhvWZPyMKPzbsy4/TC+uHD6mGVP'.
-    _inline 'zUrFq1QuqSw1m2JYXk6xJxn2m3zUq/z0HYUx5R3KmOCJs88w6CuSTAxkNR8j'.
-    _inline '7hiAvDkDobmMwZRftrI0VOlYMaoXx6h6ojUaWvCC5dfzDddtIP3mdT0f/foF'.
-    _inline 'AFLC77dw2zm3XyQ9soTt87vcG+CaDmvFPB7nmp4XFiyKGL1+QYzjTfftrllo'.
-    _inline 'idtfgDpL/SLFRJFJBHarakUPOT3+2TK2jYNN5Y20cQRqlY/z4ktxxYuPog+4'.
-    _inline 'IidXVF3cjO5B3Ui/Ed1AqFTg5fffxmgFpEtWyFeQ6S7yY/pk+uPpEPmPh8ou'.
-    _inline 'xIyLcH23ZTYKXZE3mSdyByoPUNnz7Yv8GCdzE1s/ajQkkIoyk4ayPJSYXJAf'.
-    _inline 'bBvoBUdYt6oHm5tb0cMjxPcdhUKIB7g0qvlE1GbyqzJ+fOL7tZqkSqYsD7AK'.
-    _inline 'JRmtRtsGBuaGsLZpCV+PMDIezv8I7bBRvfb8zGTveCwKyPY1EQ3MX8/6zFp9'.
-    _inline 'eeRyYbLb97lfogiTswW3n/Sot3mfu3NGHrpKWt7xlbTiz+Jgu1qFnzwFN78Z'.
-    _inline 'fU3AjR7OHpRkeacty+17XLFdPX83PMb3OdheiOLlKyZc9XusiqSJEmWeH2el'.
-    _inline 'OCf5nkzxTPZ7SEFuiKREYXW8Ery68dXFW9++tdiojA+a0/NfLObaN4eUWkX4'.
-    _inline 'S7U+7K8eDZZ3l/GrbAcz0Z9KX5ivTJRn91d0rb2T5ERcFfN6hb9CnnaJ3w4Z'.
-    _inline 'D5iLDsH941DL/jA5ytyLH2DHH+Ag1JLLgEV0AvUw4Xj+zsKqzDke8HUwyrWj'.
-    _inline '+5esgG8EzqY2HJam1l5fmyqJNXiM3jwMFgOor0+tTeG3XrWO+RAW6+NBMH6+'.
-    _inline 'J/y+M9Li75LYVA3cRnLHRdbs9jmBd+P1fJFNawAE08lsJB5t+Y3wcriRR/Ff'.
-    _inline '2Al7e1nTzO7lNVZnWn24o9+8qe8M66KZj8eQ685Gb6IWZpevI9c1nn7/jFaP'.
-    _inline 'aWbkq//4jdRIonCu031O53k7Ix04ie4JNFsc/ZYQ4Qk5Eq8q2Hqsc1+I958W'.
-    _inline 'D/LC+divx+LR/9TNt+AswnfMx7gPv+RZVpAXT7E+T5mcjjpw3hfyFpKV1A8T'.
-    _inline 'Xjr3108Yz451OYH5CbEJOuNJ2WXP97ER9Uk2Sxjz+f9O9GNdjmSEC37jNymT'.
-    _inline 'FEmnW+vrW1RHkdGmj68cVc6m2mm8hjnstdeHqZSeyipl9JpqZZQyijK85kCG'.
-    _inline '5hiVNJ9mcYZM/7s5TYrNOdeGivKUuZSuKAvrwhwaQHMZfEHIP3Y1SWe4ADhB'.
-    _inline 'YPPJTJc0V8lQA026rdECrwXbi/jyRERjM3xfZsoCbGphO3gthsOaLoIzEGRi'.
-    _inline 'UbKDwIH/32JGXEF8z30mvYJ5n/Mi3ze+N1RslsPDjbvvdaQZoCBfuZvNgbZb'.
-    _inline 'lrIl/e239VJWKu9qkMvevUJdF/5xx5asknbrbsamdHWVUjtz95ZWssC5k1H5'.
-    _inline 'M/4/KqL1UwAAeJxjYGRgYADiQjtr/nh+m68M3EwMIHDz58YLMPr/3/9/mRqZ'.
-    _inline 'mIFcDgawNABa/w3YeJxjYGRgYGIAAaaG/3///2FqZGBkQAUSAHBYBRkAAAB4'.
-    _inline 'nE2MsQ0AMAjDApdxGqdxRN9p0xR1YLCUeDAAuLASweP/NymXJNZwwW3tBzUa'.
-    _inline '+TZppVYAF+kvEigAAAAAAAAAAEIAhgCwANwBGAE+AYgCBAI4ArQC8AMwA4gE'.
-    _inline 'DgReBI4EyAT2BSgFZgXsBuwHIgAAeJxjYGRgYJBgWMfAxgACTEDMBYQMDP/B'.
-    _inline 'fAYAHFoB4wB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNmHYTghKAk'.
-    _inline 'jhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1cM3un5uk'.
-    _inline 'e+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/hFvlTuI1H'.
-    _inline 'fAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5qrkttI6fX'.
-    _inline 'anVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANkiGFQosYC'.
-    _inline 'mmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2QmtQ8I+Ycag'.
-    _inline 'IM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3BcoJAEES3'.
-    _inline 'ZTGiSTTGJOYj+KhhWGCLgbF2l9LPD2IOOaRPr7pedZuVeSQ3/+eMFTJY5Fjj'.
-    _inline 'CRsU2GKHZ7zgFXsc8IYj3nHCBz7xhTO+zZ5C0GvJPrC4crrYikK0lUrKKr0V'.
-    _inline 'VfCuYYou585xf2DRqZ41UapLkrRjrV1ZBRq5ezDrMPiUsbZHd2OhgZLX8ffg'.
-    _inline '9LdKwdPYits0fr6ex4oF7ivbhfxArbN3nJWwKOtGpXbBinJvLzK1RRQ/F7Hs'.
-    _inline 'ijjqtRHqnY2JgjE/K3FPhwA='.
+    lo_buf->add( 'd09GRgABAAAAAA1AAAsAAAAAFqgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
+    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3DY21hcAAA' ).
+    lo_buf->add( 'AYQAAACvAAACpPLiSE5nbHlmAAACNAAACDIAAA5EJqME8WhlYWQAAApoAAAA' ).
+    lo_buf->add( 'MAAAADYVkKSdaGhlYQAACpgAAAAdAAAAJASAApVobXR4AAAKuAAAADkAAABg' ).
+    lo_buf->add( 'KRj/92xvY2EAAAr0AAAAMgAAADInniRsbWF4cAAACygAAAAfAAAAIAEoALpu' ).
+    lo_buf->add( 'YW1lAAALSAAAASgAAAIWQeF35nBvc3QAAAxwAAAAzwAAAS5N67fPeJxjYGRg' ).
+    lo_buf->add( 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm' ).
+    lo_buf->add( 'g4gCACY7BUgAeJxjYGTcxjiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
+    lo_buf->add( 'BKS5pjA4fGT8KM4E4uoxMTOAVDKCOAC/rAkAAHic7dFbDsIgFEXRjaX1Va2t' ).
+    lo_buf->add( 'Dybgp2NxQH45ZUag93AchiSLnRLaNAD0QBceIUN6k9B4xWpq6x27tp55tj1Z' ).
+    lo_buf->add( '67V8PjEnzfGc27yKvTm+OLBmwzbe2zNy4MjEiZmFMxeu3CixfeA/Rk3p/nsq' ).
+    lo_buf->add( 'OlFrZ7wy1M50VzWbTr32pnusg6GuDXVjqFtD3Znut+4NdTT9XT0Y6tFQJ0M9' ).
+    lo_buf->add( 'GepsqIuhng31YqhXQ70ZajHKF8VcODYAeJylV0tsJEcZrr+7p6p7eqbn0a8Z' ).
+    lo_buf->add( 'z4w9j3X3uB15vJ5HO+PHPmy89mIkJ7KEObHSIm1kLtYihIRi5JAF5UAka5FQ' ).
+    lo_buf->add( 'LiBLEY8LaA8R4RCEiSKBBEh74bCc9sYhEmtOmEPa/FU97X0TIca9VX9V/fXX' ).
+    lo_buf->add( '9/9V9f21RCL4g1M4JRkSEGL2lmFuHCwDmjNwCWzLWYC5wRK4ztwlGPQ64DVz' ).
+    lo_buf->add( 'QK0JcObUldvfv70iisN1I51PG+vMZjpj32MW/kPJBrIy0li57W1+mDaM9Ieb' ).
+    lo_buf->add( 'fMRidxh+Foq4vCwwHMMnJEcmSAdRNPiaPa/VaNIaWI77Oe08HDFNY9ENXr5E' ).
+    lo_buf->add( 'hjc11uYtLI5eKBI4ixDHKobExboVDrxpaFL0F4PAqNOdC82BB+1vBLKROdQM' ).
+    lo_buf->add( 'qIOhf2sGGwa7xwy48V3dzGgnev7jTDEDs5kSSXyTiASEoXdltOvPwDTY3ckW' ).
+    lo_buf->add( 'mpa6DEPcFe5A1E2V8+8+iv75br6cmpMenVQtOLKqcO29XPH4uJh7j9VPrGrV' ).
+    lo_buf->add( 'OnnCLjwkJvHJNCGTFkW03hK0zi22wla/J3yoQYsXDdHsd+GyxjAmxzUTjsza' ).
+    lo_buf->add( '8eFWzcR6y6xJpPb+wcE9HpDZQ7NWMw+PZnk1WzO3cLiO8Efr/o5YhIS+18Nj' ).
+    lo_buf->add( 'MTcBIS8ciwFt/urnjE0yW907UW0UWPSAORs/Yw67oPI+9QKK0d9UYYYXb6EP' ).
+    lo_buf->add( 'VTKHpgcIr9VkM9A0oAYGnr5xQE+WAfsZupU42PTiRR0qjdH5dq1kX//y9elg' ).
+    lo_buf->add( '4F/1Ya+10Bz+9griZ9oVXWW7iqHsMhVqhWJ7Pn/hlenr02ruegdVmwutmbXe' ).
+    lo_buf->add( 'Hvd1z0I9VEOXlDP8wQHuV0gukw3yOuLqeU2KQXUNPAXiry8gxZ02x+nMcez+' ).
+    lo_buf->add( 'MsYh7A5C/rcMk3OORZteb2DygjfMpAcOOlc79TGwS7kLVcPNlyewPVEWVdVN' ).
+    lo_buf->add( 'WaZehmm7ZdpQGo/uI0QDUcbVg7iCvUan06gEammMyvhT2CELKnEf++NILE9p' ).
+    lo_buf->add( 'aloBWaFpdyxQg10+09Cig7jGYyDqeEvJ2Rn5K/pdIg28gfy4GPyqCeeWYBmj' ).
+    lo_buf->add( '4PN9SFzYzZr1IKibY2YjCBpmVstmC9msRHLGvj6/Np/eN/J5Yz+Nor6fzX+K' ).
+    lo_buf->add( 'VwK/0Z7DIzgj18gWnlp/4GOofA9vRQ7ECr7H+PZT5nsi2s4EUBe7XMcdR0oS' ).
+    lo_buf->add( 'iFwHJy3BIHQdEW2PJSGGvweUBooMBU9WlaDSTClhqKSalUBRZa+AsXh2PDUQ' ).
+    lo_buf->add( '49NyPP4pBu5qp/NJudUqS6rSn5IlqexmLioMMhlgysWMW5YkeaqvqNKzOinK' ).
+    lo_buf->add( 'dWhK6IDCdYrc2NXOiONO4d/IszaZRDnm2JhvWZPyMKPzbsy4/TC+uHD6mGVP' ).
+    lo_buf->add( 'zUrFq1QuqSw1m2JYXk6xJxn2m3zUq/z0HYUx5R3KmOCJs88w6CuSTAxkNR8j' ).
+    lo_buf->add( '7hiAvDkDobmMwZRftrI0VOlYMaoXx6h6ojUaWvCC5dfzDddtIP3mdT0f/foF' ).
+    lo_buf->add( 'AFLC77dw2zm3XyQ9soTt87vcG+CaDmvFPB7nmp4XFiyKGL1+QYzjTfftrllo' ).
+    lo_buf->add( 'idtfgDpL/SLFRJFJBHarakUPOT3+2TK2jYNN5Y20cQRqlY/z4ktxxYuPog+4' ).
+    lo_buf->add( 'IidXVF3cjO5B3Ui/Ed1AqFTg5fffxmgFpEtWyFeQ6S7yY/pk+uPpEPmPh8ou' ).
+    lo_buf->add( 'xIyLcH23ZTYKXZE3mSdyByoPUNnz7Yv8GCdzE1s/ajQkkIoyk4ayPJSYXJAf' ).
+    lo_buf->add( 'bBvoBUdYt6oHm5tb0cMjxPcdhUKIB7g0qvlE1GbyqzJ+fOL7tZqkSqYsD7AK' ).
+    lo_buf->add( 'JRmtRtsGBuaGsLZpCV+PMDIezv8I7bBRvfb8zGTveCwKyPY1EQ3MX8/6zFp9' ).
+    lo_buf->add( 'eeRyYbLb97lfogiTswW3n/Sot3mfu3NGHrpKWt7xlbTiz+Jgu1qFnzwFN78Z' ).
+    lo_buf->add( 'fU3AjR7OHpRkeacty+17XLFdPX83PMb3OdheiOLlKyZc9XusiqSJEmWeH2el' ).
+    lo_buf->add( 'OCf5nkzxTPZ7SEFuiKREYXW8Ery68dXFW9++tdiojA+a0/NfLObaN4eUWkX4' ).
+    lo_buf->add( 'S7U+7K8eDZZ3l/GrbAcz0Z9KX5ivTJRn91d0rb2T5ERcFfN6hb9CnnaJ3w4Z' ).
+    lo_buf->add( 'D5iLDsH941DL/jA5ytyLH2DHH+Ag1JLLgEV0AvUw4Xj+zsKqzDke8HUwyrWj' ).
+    lo_buf->add( '+5esgG8EzqY2HJam1l5fmyqJNXiM3jwMFgOor0+tTeG3XrWO+RAW6+NBMH6+' ).
+    lo_buf->add( 'J/y+M9Li75LYVA3cRnLHRdbs9jmBd+P1fJFNawAE08lsJB5t+Y3wcriRR/Ff' ).
+    lo_buf->add( '2Al7e1nTzO7lNVZnWn24o9+8qe8M66KZj8eQ685Gb6IWZpevI9c1nn7/jFaP' ).
+    lo_buf->add( 'aWbkq//4jdRIonCu031O53k7Ix04ie4JNFsc/ZYQ4Qk5Eq8q2Hqsc1+I958W' ).
+    lo_buf->add( 'D/LC+divx+LR/9TNt+AswnfMx7gPv+RZVpAXT7E+T5mcjjpw3hfyFpKV1A8T' ).
+    lo_buf->add( 'Xjr3108Yz451OYH5CbEJOuNJ2WXP97ER9Uk2Sxjz+f9O9GNdjmSEC37jNymT' ).
+    lo_buf->add( 'FEmnW+vrW1RHkdGmj68cVc6m2mm8hjnstdeHqZSeyipl9JpqZZQyijK85kCG' ).
+    lo_buf->add( '5hiVNJ9mcYZM/7s5TYrNOdeGivKUuZSuKAvrwhwaQHMZfEHIP3Y1SWe4ADhB' ).
+    lo_buf->add( 'YPPJTJc0V8lQA026rdECrwXbi/jyRERjM3xfZsoCbGphO3gthsOaLoIzEGRi' ).
+    lo_buf->add( 'UbKDwIH/32JGXEF8z30mvYJ5n/Mi3ze+N1RslsPDjbvvdaQZoCBfuZvNgbZb' ).
+    lo_buf->add( 'lrIl/e239VJWKu9qkMvevUJdF/5xx5asknbrbsamdHWVUjtz95ZWssC5k1H5' ).
+    lo_buf->add( 'M/4/KqL1UwAAeJxjYGRgYADiQjtr/nh+m68M3EwMIHDz58YLMPr/3/9/mRqZ' ).
+    lo_buf->add( 'mIFcDgawNABa/w3YeJxjYGRgYGIAAaaG/3///2FqZGBkQAUSAHBYBRkAAAB4' ).
+    lo_buf->add( 'nE2MsQ0AMAjDApdxGqdxRN9p0xR1YLCUeDAAuLASweP/NymXJNZwwW3tBzUa' ).
+    lo_buf->add( '+TZppVYAF+kvEigAAAAAAAAAAEIAhgCwANwBGAE+AYgCBAI4ArQC8AMwA4gE' ).
+    lo_buf->add( 'DgReBI4EyAT2BSgFZgXsBuwHIgAAeJxjYGRgYJBgWMfAxgACTEDMBYQMDP/B' ).
+    lo_buf->add( 'fAYAHFoB4wB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNmHYTghKAk' ).
+    lo_buf->add( 'jhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1cM3un5uk' ).
+    lo_buf->add( 'e+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/hFvlTuI1H' ).
+    lo_buf->add( 'fAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5qrkttI6fX' ).
+    lo_buf->add( 'anVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANkiGFQosYC' ).
+    lo_buf->add( 'mmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2QmtQ8I+Ycag' ).
+    lo_buf->add( 'IM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3BcoJAEES3' ).
+    lo_buf->add( 'ZTGiSTTGJOYj+KhhWGCLgbF2l9LPD2IOOaRPr7pedZuVeSQ3/+eMFTJY5Fjj' ).
+    lo_buf->add( 'CRsU2GKHZ7zgFXsc8IYj3nHCBz7xhTO+zZ5C0GvJPrC4crrYikK0lUrKKr0V' ).
+    lo_buf->add( 'VfCuYYou585xf2DRqZ41UapLkrRjrV1ZBRq5ezDrMPiUsbZHd2OhgZLX8ffg' ).
+    lo_buf->add( '9LdKwdPYits0fr6ex4oF7ivbhfxArbN3nJWwKOtGpXbBinJvLzK1RRQ/F7Hs' ).
+    lo_buf->add( 'ijjqtRHqnY2JgjE/K3FPhwA=' ).
     ro_asset_man->register_asset(
       iv_url       = 'font/ag-icons.woff'
       iv_type      = 'font/woff'
       iv_mime_name = 'ZABAPGIT_ICON_FONT'
-      iv_base64    = concat_lines_of( table = lt_inline ) ).
+      iv_base64    = lo_buf->join_and_flush( ) ).
 
     " see https://github.com/larshp/abapGit/issues/201 for source SVG
     ro_asset_man->register_asset(
@@ -79637,5 +79656,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-01-30T06:49:59.463Z
+* abapmerge 0.13.1 - 2020-01-30T06:59:11.489Z
 ****************************************************
