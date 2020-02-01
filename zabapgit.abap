@@ -12372,9 +12372,14 @@ CLASS zcl_abapgit_convert DEFINITION
         VALUE(rv_xstring) TYPE xstring .
     CLASS-METHODS xstring_to_string_utf8
       IMPORTING
-        !iv_data         TYPE xstring
+        !iv_data         TYPE xsequence
       RETURNING
         VALUE(rv_string) TYPE string .
+    CLASS-METHODS string_to_xstring_utf8_bom
+      IMPORTING
+        !iv_string        TYPE string
+      RETURNING
+        VALUE(rv_xstring) TYPE xstring .
     CLASS-METHODS xstring_to_int
       IMPORTING
         !iv_xstring TYPE xstring
@@ -22220,11 +22225,19 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize.
 
-    DATA: lv_xml TYPE string.
+    DATA: lv_xml  TYPE string,
+          lv_mark TYPE string.
 
     lv_xml = to_xml( ms_data ).
 
-    rv_xstr = zcl_abapgit_convert=>string_to_xstring_utf8( lv_xml ).
+    "unicode systems always add the byte order mark to the xml, while non-unicode does not
+    "this code will always add the byte order mark if it is not in the xml
+    lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
+    IF lv_xml(1) <> lv_mark.
+      CONCATENATE lv_mark lv_xml INTO lv_xml.
+    ENDIF.
+
+    rv_xstr = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
 
   ENDMETHOD.
   METHOD set_folder_logic.
@@ -23847,6 +23860,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
     DATA: li_ostream       TYPE REF TO if_ixml_ostream,
           li_renderer      TYPE REF TO if_ixml_renderer,
+          lv_mark          TYPE string,
           li_streamfactory TYPE REF TO if_ixml_stream_factory.
     li_streamfactory = mi_ixml->create_stream_factory( ).
 
@@ -23857,6 +23871,13 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     li_renderer->set_normalizing( iv_normalize ).
 
     li_renderer->render( ).
+
+    "unicode systems always add the byte order mark to the xml, while non-unicode does not
+    "this code will always add the byte order mark if it is not in the xml
+    lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
+    IF rv_xml(1) <> lv_mark.
+      CONCATENATE lv_mark rv_xml INTO rv_xml.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -25265,6 +25286,26 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
             cx_sy_conversion_codepage
             cx_parameter_invalid_type.                  "#EC NO_HANDLER
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD string_to_xstring_utf8_bom.
+
+    DATA: lv_hex     TYPE x LENGTH 1 VALUE '23',
+          lv_hex_bom TYPE x LENGTH 3 VALUE 'EFBBBF'.
+
+    rv_xstring = string_to_xstring_utf8( iv_string ).
+
+    "unicode systems always add the byte order mark to the xml, while non-unicode does not
+    "in class ZCL_ABAPGIT_XML~TO_XML byte order mark was added to XML as #
+    "In non-unicode systems zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 )
+    "has result # as HEX 23 and not HEX EFBBBF.
+    "So we have to remove 23 first and add EFBBBF after to serialized string
+    IF rv_xstring(3) <> cl_abap_char_utilities=>byte_order_mark_utf8
+    AND rv_xstring(1) = lv_hex.
+      REPLACE FIRST OCCURRENCE
+        OF lv_hex IN rv_xstring WITH lv_hex_bom IN BYTE MODE.
+      ASSERT sy-subrc = 0.
+    ENDIF.
 
   ENDMETHOD.
   METHOD xstring_to_bintab.
@@ -46973,6 +47014,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     DATA: lv_xml  TYPE string,
           ls_file TYPE zif_abapgit_definitions=>ty_file.
+
     lv_xml = io_xml->render( iv_normalize = iv_normalize
                              is_metadata = is_metadata ).
     ls_file-path = '/'.
@@ -46986,11 +47028,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
     ASSERT sy-subrc = 0.
 
-    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_xml ).
+    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
 
     APPEND ls_file TO mt_files.
-
   ENDMETHOD.
+
   METHOD constructor.
     ms_item = is_item.
     mv_path = iv_path.
@@ -79695,5 +79737,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-01T06:39:20.737Z
+* abapmerge 0.13.1 - 2020-02-01T06:44:28.340Z
 ****************************************************
