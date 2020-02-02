@@ -20841,7 +20841,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_merge IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   METHOD all_files.
 
     APPEND LINES OF ms_merge-stree TO rt_files.
@@ -20852,18 +20852,6 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD calculate_result.
-
-    DEFINE _from_source.
-      READ TABLE mt_objects ASSIGNING <ls_object>
-        WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>c_type-blob
-          sha1 = <ls_source>-sha1.
-      ASSERT sy-subrc = 0.
-
-      ms_merge-stage->add( iv_path     = <ls_file>-path
-                           iv_filename = <ls_file>-name
-                           iv_data     = <ls_object>-data ).
-    END-OF-DEFINITION.
 
     DATA: lt_files        TYPE zif_abapgit_definitions=>ty_expanded_tt,
           lv_found_source TYPE abap_bool,
@@ -20925,7 +20913,15 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
 
       IF lv_found_target = abap_false.
 * added in source
-        _from_source.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        ASSERT sy-subrc = 0.
+
+        ms_merge-stage->add( iv_path     = <ls_file>-path
+                             iv_filename = <ls_file>-name
+                             iv_data     = <ls_object>-data ).
         <ls_result>-sha1 = <ls_source>-sha1.
         CONTINUE.
       ELSEIF lv_found_source = abap_false.
@@ -20972,7 +20968,15 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
         <ls_result>-sha1 = <ls_source>-sha1.
       ELSEIF <ls_target>-sha1 = <ls_common>-sha1.
 * changed in source
-        _from_source.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        ASSERT sy-subrc = 0.
+
+        ms_merge-stage->add( iv_path     = <ls_file>-path
+                             iv_filename = <ls_file>-name
+                             iv_data     = <ls_object>-data ).
         <ls_result>-sha1 = <ls_source>-sha1.
       ELSEIF <ls_source>-sha1 = <ls_common>-sha1.
 * changed in target
@@ -79727,5 +79731,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-02T06:03:10.634Z
+* abapmerge 0.13.1 - 2020-02-02T08:26:26.132Z
 ****************************************************
