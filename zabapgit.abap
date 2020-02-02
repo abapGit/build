@@ -13901,7 +13901,7 @@ CLASS zcl_abapgit_objects DEFINITION
   PUBLIC SECTION.
 
     TYPES:
-      ty_types_tt TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY .
+      ty_types_tt TYPE SORTED TABLE OF tadir-object WITH UNIQUE KEY table_line.
     TYPES:
       BEGIN OF ty_deserialization,
         obj     TYPE REF TO zif_abapgit_object,
@@ -20154,7 +20154,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         iv_native_only = abap_true ).
 
       IF lv_supported = abap_true.
-        APPEND <ls_object>-object TO rt_types.
+        INSERT <ls_object>-object INTO TABLE rt_types.
       ENDIF.
     ENDLOOP.
 
@@ -79731,5 +79731,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-02T08:49:28.403Z
+* abapmerge 0.13.1 - 2020-02-02T09:13:24.655Z
 ****************************************************
