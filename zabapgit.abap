@@ -3225,6 +3225,34 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
       RETURNING
         VALUE(rv_head_symref) TYPE string .
 ENDCLASS.
+CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR DEFINITION DEFERRED.
+*"* use this source file for any type of declarations (class
+*"* definitions, interfaces or type declarations) you need for
+*"* components in the private section
+
+* renamed: zcl_abapgit_git_pack :: lcl_stream
+CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR DEFINITION FINAL.
+  PUBLIC SECTION.
+    TYPES: ty_hex TYPE x LENGTH 1.
+
+    METHODS:
+      constructor
+        IMPORTING
+          iv_data TYPE xstring,
+      get
+        RETURNING VALUE(rv_data) TYPE xstring,
+      eat_byte
+        RETURNING VALUE(rv_x) TYPE ty_hex,
+      eat_bytes
+        IMPORTING
+          iv_length   TYPE i
+        RETURNING
+          VALUE(rv_x) TYPE xstring.
+
+  PRIVATE SECTION.
+    DATA: mv_data TYPE xstring.
+ENDCLASS.
+
 CLASS zcl_abapgit_git_pack DEFINITION
   CREATE PUBLIC .
 
@@ -3318,7 +3346,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
       c_zlib       TYPE x LENGTH 2 VALUE '789C' ##NO_TEXT.
     CONSTANTS:
       c_zlib_hmm   TYPE x LENGTH 2 VALUE '7801' ##NO_TEXT.
-    CONSTANTS:                                                  " PACK
+    CONSTANTS:                                                    " PACK
       c_version    TYPE x LENGTH 4 VALUE '00000002' ##NO_TEXT.
 
     CLASS-METHODS decode_deltas
@@ -3334,10 +3362,10 @@ CLASS zcl_abapgit_git_pack DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS delta_header
-      EXPORTING
-        !ev_header TYPE i
-      CHANGING
-        !cv_delta  TYPE xstring .
+      IMPORTING
+        !io_stream       TYPE REF TO kHGwlHhZbTrIxNkYzsWttffscEwAXR
+      RETURNING
+        VALUE(rv_header) TYPE i .
     CLASS-METHODS sort_tree
       IMPORTING
         !it_nodes       TYPE ty_nodes_tt
@@ -77585,7 +77613,33 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_pack IMPLEMENTATION.
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+
+CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR IMPLEMENTATION.
+
+  METHOD constructor.
+    mv_data = iv_data.
+  ENDMETHOD.
+
+  METHOD eat_byte.
+    rv_x = mv_data(1).
+    mv_data = mv_data+1.
+  ENDMETHOD.
+
+  METHOD get.
+    rv_data = mv_data.
+  ENDMETHOD.
+
+  METHOD eat_bytes.
+    rv_x = mv_data(iv_length).
+    mv_data = mv_data+iv_length.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -77900,23 +77954,20 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
                lc_64  TYPE x VALUE '40',
                lc_128 TYPE x VALUE '80'.
 
-    DEFINE _eat_byte.
-      lv_x = lv_delta(1).
-      lv_delta = lv_delta+1.
-    END-OF-DEFINITION.
-
-    DATA: lv_delta  TYPE xstring,
-          lv_base   TYPE xstring,
+    DATA: lv_base   TYPE xstring,
           lv_result TYPE xstring,
           lv_offset TYPE i,
+          lo_stream TYPE REF TO kHGwlHhZbTrIxNkYzsWttffscEwAXR,
           lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1,
           ls_object LIKE LINE OF ct_objects,
           lv_len    TYPE i,
-          lv_org    TYPE x,
-          lv_x      TYPE x.
+          lv_tmp    TYPE xstring,
+          lv_org    TYPE x.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF ct_objects.
-    lv_delta = is_object-data.
+    CREATE OBJECT lo_stream
+      EXPORTING
+        iv_data = is_object-data.
 
 * find base
     READ TABLE ct_objects ASSIGNING <ls_object>
@@ -77931,46 +77982,38 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
     lv_base = <ls_object>-data.
 
 * skip the 2 headers
-    delta_header( CHANGING cv_delta = lv_delta ).
-    delta_header( CHANGING cv_delta = lv_delta ).
+    delta_header( lo_stream ).
+    delta_header( lo_stream ).
 
-    WHILE xstrlen( lv_delta ) > 0.
+    WHILE xstrlen( lo_stream->get( ) ) > 0.
 
-      _eat_byte.
-      lv_org = lv_x.
+      lv_org = lo_stream->eat_byte( ).
 
-      IF lv_x BIT-AND lc_128 = lc_128. " MSB = 1
+      IF lv_org BIT-AND lc_128 = lc_128. " MSB = 1
 
         lv_offset = 0.
         IF lv_org BIT-AND lc_1 = lc_1.
-          _eat_byte.
-          lv_offset = lv_x.
+          lv_offset = lo_stream->eat_byte( ).
         ENDIF.
         IF lv_org BIT-AND lc_2 = lc_2.
-          _eat_byte.
-          lv_offset = lv_offset + lv_x * 256.
+          lv_offset = lv_offset + lo_stream->eat_byte( ) * 256.
         ENDIF.
         IF lv_org BIT-AND lc_4 = lc_4.
-          _eat_byte.
-          lv_offset = lv_offset + lv_x * 65536.
+          lv_offset = lv_offset + lo_stream->eat_byte( ) * 65536.
         ENDIF.
         IF lv_org BIT-AND lc_8 = lc_8.
-          _eat_byte.
-          lv_offset = lv_offset + lv_x * 16777216. " hmm, overflow?
+          lv_offset = lv_offset + lo_stream->eat_byte( ) * 16777216. " hmm, overflow?
         ENDIF.
 
         lv_len = 0.
         IF lv_org BIT-AND lc_16 = lc_16.
-          _eat_byte.
-          lv_len = lv_x.
+          lv_len = lo_stream->eat_byte( ).
         ENDIF.
         IF lv_org BIT-AND lc_32 = lc_32.
-          _eat_byte.
-          lv_len = lv_len + lv_x * 256.
+          lv_len = lv_len + lo_stream->eat_byte( ) * 256.
         ENDIF.
         IF lv_org BIT-AND lc_64 = lc_64.
-          _eat_byte.
-          lv_len = lv_len + lv_x * 65536.
+          lv_len = lv_len + lo_stream->eat_byte( ) * 65536.
         ENDIF.
 
         IF lv_len = 0.
@@ -77981,9 +78024,9 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
           INTO lv_result IN BYTE MODE.
       ELSE. " lv_bitbyte(1) = '0'
 * insert from delta
-        lv_len = lv_x.
-        CONCATENATE lv_result lv_delta(lv_len) INTO lv_result IN BYTE MODE.
-        lv_delta = lv_delta+lv_len.
+        lv_len = lv_org. " convert to int
+        lv_tmp = lo_stream->eat_bytes( lv_len ).
+        CONCATENATE lv_result lv_tmp INTO lv_result IN BYTE MODE.
       ENDIF.
 
     ENDWHILE.
@@ -78005,15 +78048,14 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
           lv_x       TYPE x.
     lv_bits = ''.
     DO.
-      lv_x = cv_delta(1).
-      cv_delta = cv_delta+1.
+      lv_x = io_stream->eat_byte( ).
       lv_bitbyte = zcl_abapgit_convert=>x_to_bitbyte( lv_x ).
       CONCATENATE lv_bitbyte+1 lv_bits INTO lv_bits.
       IF lv_bitbyte(1) = '0'.
         EXIT. " current loop
       ENDIF.
     ENDDO.
-    ev_header = zcl_abapgit_convert=>bitbyte_to_int( lv_bits ).
+    rv_header = zcl_abapgit_convert=>bitbyte_to_int( lv_bits ).
 
   ENDMETHOD.
   METHOD encode.
@@ -79731,5 +79773,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-02T11:27:17.419Z
+* abapmerge 0.13.1 - 2020-02-03T05:59:06.367Z
 ****************************************************
