@@ -3607,7 +3607,6 @@ CLASS zcl_abapgit_git_transport DEFINITION
     CLASS-METHODS branches
       IMPORTING
         !iv_url               TYPE string
-        !iv_filter            TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(ro_branch_list) TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
@@ -4967,6 +4966,7 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
       RAISING
         zcx_abapgit_exception .
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -6468,8 +6468,6 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
   METHODS:
     get_elements
-      IMPORTING
-        iv_with_deleted_elements TYPE flag DEFAULT 'X'
       EXPORTING
         et_elements              TYPE tpak_package_interf_elem_list
       RAISING
@@ -6482,9 +6480,6 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
         zcx_abapgit_exception,
 
     save_elements
-      IMPORTING
-        iv_transport_request TYPE trkorr OPTIONAL
-        iv_suppress_dialog   TYPE flag DEFAULT ' '
       RAISING
         zcx_abapgit_exception,
 
@@ -6501,15 +6496,10 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
         zcx_abapgit_exception,
 
     delete
-      IMPORTING
-        iv_suppress_dialog TYPE flag DEFAULT abap_false
       RAISING
         zcx_abapgit_exception,
 
     save
-      IMPORTING
-        iv_transport_request TYPE trkorr OPTIONAL
-        iv_suppress_dialog   TYPE flag DEFAULT ' '
       RAISING
         zcx_abapgit_exception,
 
@@ -7251,24 +7241,35 @@ CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: ty_string_range TYPE RANGE OF string.
 
-    CLASS-DATA: gt_range_node_codes TYPE ty_string_range.
-    CONSTANTS: attrib_abapgit_leadig_spaces TYPE string VALUE 'abapgit-leadig-spaces' ##NO_TEXT.
+    TYPES:
+      ty_string_range TYPE RANGE OF string .
 
-    METHODS fix_ids IMPORTING ii_xml_doc TYPE REF TO if_ixml_document.
-    METHODS set_attribute_leading_spaces IMPORTING iv_name                TYPE string
-                                                   ii_node                TYPE REF TO if_ixml_node
-                                         CHANGING  cv_within_code_section TYPE abap_bool.
-    METHODS handle_attrib_leading_spaces IMPORTING iv_name                TYPE string
-                                                   ii_node                TYPE REF TO if_ixml_node
-                                         CHANGING  cv_within_code_section TYPE abap_bool.
-    METHODS get_range_node_codes RETURNING VALUE(rt_range_node_codes) TYPE ty_string_range.
-    METHODS code_item_section_handling IMPORTING iv_name                TYPE string
-                                                 ii_node                TYPE REF TO if_ixml_node
-                                       EXPORTING ei_code_item_element   TYPE REF TO if_ixml_element
-                                       CHANGING  cv_within_code_section TYPE abap_bool
-                                       RAISING   zcx_abapgit_exception.
+    CLASS-DATA gt_range_node_codes TYPE ty_string_range .
+    CONSTANTS attrib_abapgit_leadig_spaces TYPE string VALUE 'abapgit-leadig-spaces' ##NO_TEXT.
+
+    METHODS fix_ids
+      IMPORTING
+        !ii_xml_doc TYPE REF TO if_ixml_document .
+    METHODS handle_attrib_leading_spaces
+      IMPORTING
+        !iv_name                TYPE string
+        !ii_node                TYPE REF TO if_ixml_node
+      CHANGING
+        !cv_within_code_section TYPE abap_bool .
+    METHODS get_range_node_codes
+      RETURNING
+        VALUE(rt_range_node_codes) TYPE ty_string_range .
+    METHODS code_item_section_handling
+      IMPORTING
+        !iv_name                TYPE string
+        !ii_node                TYPE REF TO if_ixml_node
+      EXPORTING
+        !ei_code_item_element   TYPE REF TO if_ixml_element
+      CHANGING
+        !cv_within_code_section TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_ssst DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -9507,15 +9508,12 @@ CLASS zcl_abapgit_gui DEFINITION
     METHODS handle_action
       IMPORTING
         iv_action      TYPE c
-        iv_frame       TYPE c OPTIONAL
         iv_getdata     TYPE c OPTIONAL
-        it_postdata    TYPE cnht_post_data_tab OPTIONAL
-        it_query_table TYPE cnht_query_table OPTIONAL.
+        it_postdata    TYPE cnht_post_data_tab OPTIONAL.
 
     METHODS handle_error
       IMPORTING
         ix_exception TYPE REF TO zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
@@ -10829,8 +10827,6 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS build_menu
-      IMPORTING
-        VALUE(iv_with_conflict) TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(ro_menu)          TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS is_binary
@@ -10865,7 +10861,6 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
     METHODS render_line_split
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
-        !iv_fstate     TYPE char1
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_table_head
@@ -12344,19 +12339,22 @@ CLASS zcl_abapgit_ui_injector DEFINITION
           ii_gui_functions TYPE REF TO zif_abapgit_gui_functions.
 
 ENDCLASS.
-CLASS zcl_abapgit_adt_link DEFINITION FINAL.
+CLASS zcl_abapgit_adt_link DEFINITION
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      generate
-        IMPORTING iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
-                  iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
-                  iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-                  iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
-                  iv_line_number  TYPE i OPTIONAL
-        RETURNING VALUE(rv_result)   TYPE string
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS generate
+      IMPORTING
+        !iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
+        !iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
+        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+        !iv_line_number  TYPE i OPTIONAL
+      RETURNING
+        VALUE(rv_result) TYPE string
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS:
@@ -15498,9 +15496,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   ENDMETHOD.
   METHOD decompress.
 
-    DATA: lv_x      TYPE x LENGTH 1,
-          lv_symbol TYPE i,
-          lv_bfinal TYPE c LENGTH 1,
+    DATA: lv_bfinal TYPE c LENGTH 1,
           lv_btype  TYPE c LENGTH 2.
     IF iv_compressed IS INITIAL.
       RETURN.
@@ -15796,7 +15792,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   METHOD not_compressed.
 
     DATA: lv_len  TYPE i,
-          lv_nlen TYPE i.
+          lv_nlen TYPE i ##NEEDED.
 
     go_stream->take_bits( 5 ).
 
@@ -23396,11 +23392,8 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
           lv_name     TYPE string,
           lt_temp     LIKE it_commits.
 
-    FIELD-SYMBOLS: <ls_branch>   LIKE LINE OF mt_branches,
-                   <ls_new>      LIKE LINE OF rt_commits,
-                   <ls_temp>     LIKE LINE OF lt_temp,
-                   <ls_temp_end> LIKE LINE OF lt_temp,
-                   <ls_commit>   LIKE LINE OF it_commits.
+    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF mt_branches,
+                   <ls_commit> LIKE LINE OF it_commits.
 
     LOOP AT mt_branches ASSIGNING <ls_branch>.
 
@@ -25390,8 +25383,7 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_adt_link IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
   METHOD generate.
 
     DATA: lv_adt_link       TYPE string.
@@ -25504,7 +25496,6 @@ CLASS zcl_abapgit_adt_link IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD is_adt_jump_possible.
 
     DATA: lo_wb_request         TYPE REF TO cl_wb_request,
@@ -25547,7 +25538,6 @@ CLASS zcl_abapgit_adt_link IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
@@ -36658,8 +36648,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       CONDENSE <ls_diff>-new_num. "get rid of leading spaces
       CONDENSE <ls_diff>-old_num.
 
-      ro_html->add( render_line_split( is_diff_line = <ls_diff>
-                                       iv_fstate    = is_diff-fstate ) ).
+      ro_html->add( render_line_split( is_diff_line = <ls_diff> ) ).
 
     ENDLOOP.
 
@@ -42032,7 +42021,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -42061,6 +42050,43 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     mi_cur_page = ls_stack-page. " last page always stays
     render( ).
+
+  ENDMETHOD.
+  METHOD cache_asset.
+
+    DATA: lv_xstr  TYPE xstring,
+          lt_xdata TYPE lvc_t_mime,
+          lv_size  TYPE int4.
+
+    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
+
+    IF iv_text IS SUPPLIED. " String input
+      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
+    ELSE. " Raw input
+      lv_xstr = iv_xdata.
+    ENDIF.
+
+    zcl_abapgit_convert=>xstring_to_bintab(
+      EXPORTING
+        iv_xstr   = lv_xstr
+      IMPORTING
+        ev_size   = lv_size
+        et_bintab = lt_xdata ).
+
+    mo_html_viewer->load_data(
+      EXPORTING
+        type         = iv_type
+        subtype      = iv_subtype
+        size         = lv_size
+        url          = iv_url
+      IMPORTING
+        assigned_url = rv_url
+      CHANGING
+        data_table   = lt_xdata
+      EXCEPTIONS
+        OTHERS       = 1 ) ##NO_TEXT.
+
+    ASSERT sy-subrc = 0. " Image data error
 
   ENDMETHOD.
   METHOD cache_html.
@@ -42207,14 +42233,33 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD handle_error.
+
+    DATA: li_gui_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+          lx_exception         TYPE REF TO cx_root.
+
+    TRY.
+        li_gui_error_handler ?= mi_cur_page.
+
+        IF li_gui_error_handler->handle_error( ix_exception ) = abap_true.
+          " We rerender the current page to display the error box
+          render( ).
+        ELSE.
+          MESSAGE ix_exception TYPE 'S' DISPLAY LIKE 'E'.
+        ENDIF.
+
+      CATCH zcx_abapgit_exception cx_sy_move_cast_error INTO lx_exception.
+        " In case of fire we just fallback to plain old message
+        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD on_event.
 
     handle_action(
-      iv_action      = action
-      iv_frame       = frame
-      iv_getdata     = getdata
-      it_postdata    = postdata
-      it_query_table = query_table ).
+      iv_action   = action
+      iv_getdata  = getdata
+      it_postdata = postdata ).
 
   ENDMETHOD.
   METHOD render.
@@ -42271,66 +42316,6 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
     SET HANDLER me->on_event FOR mo_html_viewer.
 
   ENDMETHOD.
-  METHOD cache_asset.
-
-    DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE int4.
-
-    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
-
-    IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
-    ELSE. " Raw input
-      lv_xstr = iv_xdata.
-    ENDIF.
-
-    zcl_abapgit_convert=>xstring_to_bintab(
-      EXPORTING
-        iv_xstr   = lv_xstr
-      IMPORTING
-        ev_size   = lv_size
-        et_bintab = lt_xdata ).
-
-    mo_html_viewer->load_data(
-      EXPORTING
-        type         = iv_type
-        subtype      = iv_subtype
-        size         = lv_size
-        url          = iv_url
-      IMPORTING
-        assigned_url = rv_url
-      CHANGING
-        data_table   = lt_xdata
-      EXCEPTIONS
-        OTHERS       = 1 ) ##NO_TEXT.
-
-    ASSERT sy-subrc = 0. " Image data error
-
-  ENDMETHOD.
-
-  METHOD handle_error.
-
-    DATA: li_gui_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
-          lx_exception         TYPE REF TO cx_root.
-
-    TRY.
-        li_gui_error_handler ?= mi_cur_page.
-
-        IF li_gui_error_handler->handle_error( ix_exception ) = abap_true.
-          " We rerender the current page to display the error box
-          render( ).
-        ELSE.
-          MESSAGE ix_exception TYPE 'S' DISPLAY LIKE 'E'.
-        ENDIF.
-
-      CATCH zcx_abapgit_exception cx_sy_move_cast_error INTO lx_exception.
-        " In case of fire we just fallback to plain old message
-        MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_test_serialize IMPLEMENTATION.
@@ -45141,7 +45126,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_super IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD check_timestamp.
 
     DATA: lv_ts TYPE timestamp.
@@ -45243,7 +45228,6 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD get_metadata.
 
     DATA: lv_class TYPE string.
@@ -45285,17 +45269,16 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD jump_adt.
 
-    DATA: lv_adt_link   TYPE string,
-          lx_error TYPE REF TO cx_root.
+    DATA: lv_adt_link TYPE string,
+          lx_error    TYPE REF TO cx_root.
 
     TRY.
 
         lv_adt_link = zcl_abapgit_adt_link=>generate(
-          iv_obj_name = iv_obj_name
-          iv_obj_type = iv_obj_type
+          iv_obj_name     = iv_obj_name
+          iv_obj_type     = iv_obj_type
           iv_sub_obj_name = iv_sub_obj_name
-          iv_sub_obj_type = iv_sub_obj_type
-          iv_line_number = iv_line_number ).
+          iv_line_number  = iv_line_number ).
 
         cl_gui_frontend_services=>execute(
           EXPORTING  document = lv_adt_link
@@ -55504,11 +55487,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD set_attribute_leading_spaces.
-
-    RETURN.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lastuser FROM stxfadm INTO rv_user
@@ -55742,10 +55720,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
           OR lv_name = 'LASTUSER'.
         li_node->set_value( 'DUMMY' ).
       ENDIF.
-      set_attribute_leading_spaces( EXPORTING iv_name                = lv_name
-                                              ii_node                = li_node
-                                    CHANGING  cv_within_code_section = lv_within_code_section ).
-
       li_node = li_iterator->get_next( ).
     ENDWHILE.
 
@@ -58409,7 +58383,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -58497,12 +58471,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: ls_extension TYPE ty_extension,
-          lt_struc_id  TYPE STANDARD TABLE OF hier_guid,
-          lv_struc_id  TYPE hier_guid,
-          lt_nodes     TYPE TABLE OF hier_iface,
-          lt_texts     TYPE TABLE OF hier_texts,
-          lt_refs      TYPE TABLE OF hier_ref.
+    DATA: ls_extension TYPE ty_extension.
 
     CALL FUNCTION 'STREE_EXTENSION_EXISTS'
       EXPORTING
@@ -79786,5 +79755,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-08T13:36:00.164Z
+* abapmerge 0.13.1 - 2020-02-09T08:39:36.929Z
 ****************************************************
