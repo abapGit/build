@@ -2165,8 +2165,7 @@ INTERFACE zif_abapgit_log .
     RETURNING
       VALUE(rt_msg) TYPE tty_log_out .
   METHODS get_item_status
-    EXPORTING
-      !et_item_status TYPE tty_item_status_out .
+    RETURNING VALUE(rt_item_status) TYPE tty_item_status_out .
   METHODS get_status
     RETURNING
       VALUE(rv_status) TYPE symsgty .
@@ -6099,7 +6098,7 @@ CLASS zcl_abapgit_object_iatu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING   zcx_abapgit_exception,
       w3_api_load
         IMPORTING is_name     TYPE iacikeyt
-        EXPORTING eo_template TYPE REF TO if_w3_api_template
+        RETURNING VALUE(ro_template) TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_set_changeable
         IMPORTING iv_changeable TYPE abap_bool
@@ -6113,15 +6112,15 @@ CLASS zcl_abapgit_object_iatu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING   zcx_abapgit_exception,
       w3_api_get_attributes
         IMPORTING io_template   TYPE REF TO if_w3_api_template
-        EXPORTING es_attributes TYPE w3tempattr
+        RETURNING VALUE(rs_attributes) TYPE w3tempattr
         RAISING   zcx_abapgit_exception,
       w3_api_get_source
         IMPORTING io_template TYPE REF TO if_w3_api_template
-        EXPORTING et_source   TYPE w3htmltabtype
+        RETURNING VALUE(rt_source)   TYPE w3htmltabtype
         RAISING   zcx_abapgit_exception,
       w3_api_create_new
         IMPORTING is_template_data TYPE w3tempattr
-        EXPORTING eo_template      TYPE REF TO if_w3_api_template
+        RETURNING VALUE(ro_template)      TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_set_attributes
         IMPORTING io_template TYPE REF TO if_w3_api_template
@@ -6145,7 +6144,7 @@ CLASS zcl_abapgit_object_iaxu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     METHODS:
       read
-        EXPORTING es_attr TYPE w3tempattr
+        RETURNING VALUE(rs_attr) TYPE w3tempattr
         RAISING   zcx_abapgit_exception,
       save
         IMPORTING is_attr TYPE w3tempattr
@@ -6166,8 +6165,8 @@ CLASS zcl_abapgit_object_iaxu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING io_xml_api TYPE REF TO object
         RAISING   zcx_abapgit_exception,
       w3_api_create_new
-        IMPORTING is_attr    TYPE w3tempattr
-        EXPORTING eo_xml_api TYPE REF TO object
+        IMPORTING is_attr           TYPE w3tempattr
+        RETURNING VALUE(ro_xml_api) TYPE REF TO object
         RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
@@ -11884,8 +11883,8 @@ CLASS zcl_abapgit_log_viewer DEFINITION
       prepare_log_for_display
         IMPORTING
           ii_log     TYPE REF TO zif_abapgit_log
-        EXPORTING
-          et_log_out TYPE tty_log_out,
+        RETURNING
+          VALUE(rt_log_out) TYPE tty_log_out,
 
       show_longtext
         IMPORTING
@@ -13793,27 +13792,27 @@ CLASS zcl_abapgit_message_helper DEFINITION
 
       set_single_msg_var
         IMPORTING
-          iv_arg    TYPE clike
-        EXPORTING
-          ev_target TYPE c,
+          iv_arg           TYPE clike
+        RETURNING
+          VALUE(rv_target) TYPE char01,
 
       set_single_msg_var_clike
         IMPORTING
-          iv_arg    TYPE clike
-        EXPORTING
-          ev_target TYPE c,
+          iv_arg           TYPE clike
+        RETURNING
+          VALUE(rv_target) TYPE char01,
 
       set_single_msg_var_numeric
         IMPORTING
-          iv_arg    TYPE numeric
-        EXPORTING
-          ev_target TYPE c,
+          iv_arg           TYPE numeric
+        RETURNING
+          VALUE(rv_target) TYPE char01,
 
       set_single_msg_var_xseq
         IMPORTING
-          iv_arg    TYPE xsequence
-        EXPORTING
-          ev_target TYPE c.
+          iv_arg           TYPE xsequence
+        RETURNING
+          VALUE(rv_target) TYPE char01.
 
 ENDCLASS.
 CLASS zcl_abapgit_migrations DEFINITION
@@ -20604,38 +20603,22 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
         OTHERS = 1.
 
     IF sy-subrc = 0.
-      set_single_msg_var(
-        EXPORTING
-          iv_arg    = mi_t100_message->t100key-attr1
-        IMPORTING
-          ev_target = sy-msgv1 ).
+      sy-msgv1 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr1 ).
 
       REPLACE '&V1&' IN TABLE rt_itf
                      WITH sy-msgv1.
 
-      set_single_msg_var(
-        EXPORTING
-          iv_arg    = mi_t100_message->t100key-attr2
-        IMPORTING
-          ev_target = sy-msgv2 ).
+      sy-msgv2 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr2 ).
 
       REPLACE '&V2&' IN TABLE rt_itf
                      WITH sy-msgv2.
 
-      set_single_msg_var(
-        EXPORTING
-          iv_arg    = mi_t100_message->t100key-attr3
-        IMPORTING
-          ev_target = sy-msgv3 ).
+      sy-msgv3 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr3 ).
 
       REPLACE '&V3&' IN TABLE rt_itf
                      WITH sy-msgv3.
 
-      set_single_msg_var(
-        EXPORTING
-          iv_arg    = mi_t100_message->t100key-attr4
-        IMPORTING
-          ev_target = sy-msgv4 ).
+      sy-msgv4 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr4 ).
 
       REPLACE '&V4&' IN TABLE rt_itf
                      WITH sy-msgv4.
@@ -20750,24 +20733,18 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
     FIELD-SYMBOLS <lv_arg> TYPE any.
 
-    CLEAR ev_target.
-
     IF iv_arg IS INITIAL.
       RETURN.
     ENDIF.
 
     ASSIGN me->(iv_arg) TO <lv_arg>.
     IF sy-subrc <> 0.
-      CONCATENATE '&' iv_arg '&' INTO ev_target.
+      CONCATENATE '&' iv_arg '&' INTO rv_target.
       RETURN.
     ENDIF.
 
     TRY.
-        set_single_msg_var_clike(
-          EXPORTING
-            iv_arg    = <lv_arg>
-          IMPORTING
-            ev_target = ev_target ).
+        rv_target = set_single_msg_var_clike( iv_arg = <lv_arg> ).
 
         RETURN.
 
@@ -20775,11 +20752,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        set_single_msg_var_numeric(
-          EXPORTING
-            iv_arg    = <lv_arg>
-          IMPORTING
-            ev_target = ev_target ).
+        rv_target = set_single_msg_var_numeric( iv_arg = <lv_arg> ).
 
         RETURN.
 
@@ -20787,31 +20760,27 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        set_single_msg_var_xseq(
-          EXPORTING
-            iv_arg    = <lv_arg>
-          IMPORTING
-            ev_target = ev_target ).
+        rv_target = set_single_msg_var_xseq( iv_arg = <lv_arg> ).
 
         RETURN.
 
       CATCH cx_sy_dyn_call_illegal_type ##no_handler.
     ENDTRY.
 
-    CONCATENATE '&' iv_arg '&' INTO ev_target.
+    CONCATENATE '&' iv_arg '&' INTO rv_target.
 
   ENDMETHOD.
   METHOD set_single_msg_var_clike.
     " a kind of MOVE where all conversion errors are signalled by exceptions
-    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
+    WRITE iv_arg LEFT-JUSTIFIED TO rv_target.
   ENDMETHOD.
   METHOD set_single_msg_var_numeric.
     " a kind of MOVE where all conversion errors are signalled by exceptions
-    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
+    WRITE iv_arg LEFT-JUSTIFIED TO rv_target.
   ENDMETHOD.
   METHOD set_single_msg_var_xseq.
     " a kind of MOVE where all conversion errors are signalled by exceptions
-    WRITE iv_arg LEFT-JUSTIFIED TO ev_target.
+    WRITE iv_arg LEFT-JUSTIFIED TO rv_target.
   ENDMETHOD.
   METHOD split_text.
 
@@ -24681,17 +24650,15 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
     DATA ls_item_status TYPE zif_abapgit_log=>ty_item_status_out.
     DATA lr_item_status TYPE REF TO zif_abapgit_log=>ty_item_status_out.
 
-    CLEAR et_item_status.
-
     "collect all message for all objects
     LOOP AT mt_log REFERENCE INTO lr_log.
       CLEAR ls_item_status.
       ls_item_status-item = lr_log->item.
-      READ TABLE et_item_status REFERENCE INTO lr_item_status
+      READ TABLE rt_item_status REFERENCE INTO lr_item_status
            WITH KEY item-obj_type = ls_item_status-item-obj_type
                     item-obj_name = ls_item_status-item-obj_name.
       IF sy-subrc <> 0.
-        INSERT ls_item_status INTO TABLE et_item_status.
+        INSERT ls_item_status INTO TABLE rt_item_status.
         GET REFERENCE OF ls_item_status INTO lr_item_status.
       ENDIF.
       CLEAR ls_msg.
@@ -24701,7 +24668,7 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
     ENDLOOP.
 
     "determine object status from object messages
-    LOOP AT et_item_status REFERENCE INTO lr_item_status.
+    LOOP AT rt_item_status REFERENCE INTO lr_item_status.
       lr_item_status->status = get_messages_status( lr_item_status->messages ).
       IF lr_item_status->messages IS INITIAL.
         CLEAR ls_msg.
@@ -31975,7 +31942,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
       ls_log-obj_type = lr_message->obj_type.
       ls_log-obj_name = lr_message->obj_name.
 
-      INSERT ls_log INTO TABLE et_log_out.
+      INSERT ls_log INTO TABLE rt_log_out.
 
     ENDLOOP.
 
@@ -31992,11 +31959,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lv_add_obj_col TYPE abap_bool,
           lo_event       TYPE REF TO cl_salv_events_table.
 
-    prepare_log_for_display(
-      EXPORTING
-        ii_log     = ii_log
-      IMPORTING
-        et_log_out = gt_log ).
+    gt_log = prepare_log_for_display( ii_log = ii_log ).
 
     "check if log contains any object info
     LOOP AT gt_log REFERENCE INTO lr_log.
@@ -64019,20 +63982,19 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
     ls_name = ms_item-obj_name.
 
     w3_api_load( EXPORTING is_name = ls_name
-                 IMPORTING es_attr = es_attr ).
+                 IMPORTING es_attr = rs_attr ).
 
-    CLEAR: es_attr-chname,
-           es_attr-tdate,
-           es_attr-ttime,
-           es_attr-devclass.
+    CLEAR: rs_attr-chname,
+           rs_attr-tdate,
+           rs_attr-ttime,
+           rs_attr-devclass.
 
   ENDMETHOD.
   METHOD save.
 
     DATA: lo_xml_api TYPE REF TO object.
 
-    w3_api_create_new( EXPORTING is_attr    = is_attr
-                       IMPORTING eo_xml_api = lo_xml_api ).
+    lo_xml_api = w3_api_create_new( is_attr = is_attr ).
 
     w3_api_save( io_xml_api = lo_xml_api ).
 
@@ -64070,7 +64032,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from w3_api_xml3~create_new subrc={ sy-subrc }| ).
     ENDIF.
 
-    eo_xml_api ?= <lo_xml_api>.
+    ro_xml_api ?= <lo_xml_api>.
 
   ENDMETHOD.
   METHOD w3_api_delete.
@@ -64239,7 +64201,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    read( IMPORTING es_attr = ls_attr ).
+    ls_attr = read( ).
 
     io_xml->add( iv_name = 'ATTR'
                  ig_data = ls_attr ).
@@ -64255,19 +64217,16 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
           ls_name     TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
-    w3_api_load( EXPORTING is_name     = ls_name
-                 IMPORTING eo_template = lo_template ).
+    lo_template = w3_api_load( is_name = ls_name ).
 
-    w3_api_get_attributes( EXPORTING io_template   = lo_template
-                           IMPORTING es_attributes = es_attr ).
+    es_attr = w3_api_get_attributes( io_template = lo_template ).
 
     CLEAR: es_attr-chname,
            es_attr-tdate,
            es_attr-ttime,
            es_attr-devclass.
 
-    w3_api_get_source( EXPORTING io_template = lo_template
-                       IMPORTING et_source   = lt_source ).
+    lt_source = w3_api_get_source( io_template = lo_template ).
 
     CONCATENATE LINES OF lt_source INTO ev_source RESPECTING BLANKS.
 
@@ -64277,8 +64236,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     DATA: lt_source   TYPE w3htmltabtype,
           lv_source   TYPE string,
           lo_template TYPE REF TO if_w3_api_template.
-    w3_api_create_new( EXPORTING is_template_data = is_attr
-                       IMPORTING eo_template      = lo_template ).
+    lo_template = w3_api_create_new( is_template_data = is_attr ).
 
     w3_api_set_attributes( io_template = lo_template
                            is_attr     = is_attr ).
@@ -64307,8 +64265,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
           ls_name     TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
-    w3_api_load( EXPORTING is_name     = ls_name
-                 IMPORTING eo_template = lo_template ).
+    lo_template = w3_api_load( is_name = ls_name ).
 
     w3_api_set_changeable( io_template   = lo_template
                            iv_changeable = abap_true ).
@@ -64389,7 +64346,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
       EXPORTING
         p_template_name     = is_name
       IMPORTING
-        p_template          = eo_template
+        p_template          = ro_template
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
@@ -64463,7 +64420,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     io_template->get_attributes(
       IMPORTING
-        p_attributes     = es_attributes
+        p_attributes     = rs_attributes
       EXCEPTIONS
         object_invalid   = 1
         template_deleted = 2
@@ -64479,7 +64436,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     io_template->get_source(
       IMPORTING
-        p_source         = et_source
+        p_source         = rt_source
       EXCEPTIONS
         object_invalid   = 1
         template_deleted = 2
@@ -64498,7 +64455,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
         p_template_data          = is_template_data
         p_program_name           = is_template_data-programm
       IMPORTING
-        p_template               = eo_template
+        p_template               = ro_template
       EXCEPTIONS
         object_already_existing  = 1
         object_just_created      = 2
@@ -79755,5 +79712,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-09T08:39:36.929Z
+* abapmerge 0.13.1 - 2020-02-11T09:21:58.878Z
 ****************************************************
