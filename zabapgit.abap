@@ -16099,7 +16099,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
   METHOD constructor.
     mt_transport_objects = it_transport_objects.
   ENDMETHOD.
@@ -16137,8 +16137,12 @@ CLASS ZCL_ABAPGIT_TRANSPORT_OBJECTS IMPLEMENTATION.
             ENDIF.
           WHEN zif_abapgit_definitions=>c_state-deleted.
 * SUSC, see https://github.com/larshp/abapGit/issues/2772
-            IF ls_transport_object-delflag = abap_false AND ls_transport_object-object <> 'SUSC'
-                AND ls_transport_object-object <> 'IWOM'.
+            IF ls_transport_object-delflag = abap_false
+                AND ls_transport_object-object <> 'SUSC'
+                AND ls_transport_object-object <> 'IWOM'
+                AND ls_transport_object-object <> 'IWMO'
+                AND ls_transport_object-object <> 'IWSG'
+                AND ls_transport_object-object <> 'IWSV'.
               zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
                 } should be removed, but has NO deletion flag in transport| ).
             ENDIF.
@@ -79712,5 +79716,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-11T09:21:58.878Z
+* abapmerge 0.13.1 - 2020-02-11T09:24:43.632Z
 ****************************************************
