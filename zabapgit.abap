@@ -12467,6 +12467,7 @@ CLASS zcl_abapgit_diff DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    CONSTANTS co_starting_beacon TYPE i VALUE 1.
 
 * assumes data is UTF8 based with newlines
 * only works with lines up to 255 characters
@@ -24923,7 +24924,7 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD map_beacons.
 
-    DATA: lv_beacon_idx  TYPE i,
+    DATA: lv_beacon_idx  TYPE i VALUE co_starting_beacon,
           lv_offs        TYPE i,
           lv_beacon_str  TYPE string,
           lv_beacon_2lev TYPE string,
@@ -37941,7 +37942,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     DATA: lo_highlighter TYPE REF TO zcl_abapgit_syntax_highlighter,
           lt_diffs       TYPE zif_abapgit_definitions=>ty_diffs_tt,
-          lv_insert_nav  TYPE abap_bool,
+          lv_insert_nav  TYPE abap_bool VALUE abap_true,
           lv_tabix       TYPE syst-tabix.
 
     FIELD-SYMBOLS <ls_diff>  LIKE LINE OF lt_diffs.
@@ -79716,5 +79717,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-11T09:24:43.632Z
+* abapmerge 0.13.1 - 2020-02-19T11:49:47.929Z
 ****************************************************
