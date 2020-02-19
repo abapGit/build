@@ -1223,7 +1223,8 @@ INTERFACE zif_abapgit_html.
       !iv_title TYPE string OPTIONAL.
   METHODS add_checkbox
     IMPORTING
-      iv_id TYPE string.
+      iv_id      TYPE string
+      iv_checked TYPE abap_bool OPTIONAL.
   CLASS-METHODS a
     IMPORTING
       !iv_txt       TYPE string
@@ -9735,6 +9736,7 @@ CLASS zcl_abapgit_html DEFINITION
     METHODS checkbox
       IMPORTING
         iv_id          TYPE string
+        iv_checked     TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -10604,7 +10606,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         iv_patch_line_possible TYPE abap_bool
         iv_filename            TYPE string
         is_diff_line           TYPE zif_abapgit_definitions=>ty_diff
-        iv_index               TYPE sy-tabix.
+        iv_index               TYPE sy-tabix
+      RAISING
+        zcx_abapgit_exception.
     METHODS start_staging
       IMPORTING
         it_postdata TYPE cnht_post_data_tab
@@ -12496,6 +12500,13 @@ CLASS zcl_abapgit_diff DEFINITION
     METHODS get_beacons
       RETURNING
         VALUE(rt_beacons) TYPE zif_abapgit_definitions=>ty_string_tt .
+    METHODS is_line_patched
+      IMPORTING
+        iv_index          TYPE i
+      RETURNING
+        VALUE(rv_patched) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -25148,6 +25159,19 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
           ignore_case = abap_true.
       APPEND lo_regex TO rt_regex_set.
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_line_patched.
+
+    FIELD-SYMBOLS: <ls_diff> TYPE zif_abapgit_definitions=>ty_diff.
+
+    READ TABLE mt_diff INDEX iv_index
+                       ASSIGNING <ls_diff>.
+    IF sy-subrc = 0.
+      rv_patched = <ls_diff>-patch_flag.
+    ELSE.
+      zcx_abapgit_exception=>raise( |Diff line not found { iv_index }| ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -38123,17 +38147,19 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         patch TYPE string VALUE `patch` ##NO_TEXT,
       END OF c_css_class.
 
-    DATA: lv_id     TYPE string,
-          lv_object TYPE string.
+    DATA: lv_id      TYPE string,
+          lv_patched TYPE abap_bool.
 
-    lv_object = iv_filename.
+    lv_patched = get_diff_object( iv_filename )->is_line_patched( iv_index ).
 
     IF iv_patch_line_possible = abap_true.
 
-      lv_id = |{ lv_object }_{ mv_section_count }_{ iv_index }|.
+      lv_id = |{ iv_filename }_{ mv_section_count }_{ iv_index }|.
 
       io_html->add( |<td class="{ c_css_class-patch }">| ).
-      io_html->add_checkbox( iv_id = |patch_line_{ lv_id }| ).
+      io_html->add_checkbox(
+          iv_id      = |patch_line_{ lv_id }|
+          iv_checked = lv_patched ).
       io_html->add( |</td>| ).
 
     ELSE.
@@ -41371,7 +41397,13 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD checkbox.
 
-    rv_html = |<input type="checkbox" id="{ iv_id }">|.
+    DATA: lv_checked TYPE string.
+
+    IF iv_checked = abap_true.
+      lv_checked = |checked|.
+    ENDIF.
+
+    rv_html = |<input type="checkbox" id="{ iv_id }" { lv_checked }>|.
 
   ENDMETHOD.
   METHOD class_constructor.
@@ -41581,7 +41613,8 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
 
-    add( checkbox( iv_id ) ).
+    add( checkbox( iv_id      = iv_id
+                   iv_checked = iv_checked ) ).
 
   ENDMETHOD.
   METHOD icon.
@@ -79717,5 +79750,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-19T11:49:47.929Z
+* abapmerge 0.13.1 - 2020-02-19T12:56:31.940Z
 ****************************************************
