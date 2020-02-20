@@ -4367,6 +4367,7 @@ CLASS zcl_abapgit_longtexts DEFINITION
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_longtext,
@@ -74101,7 +74102,22 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_longtexts IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
+  METHOD changed_by.
+
+    DATA: lt_longtexts TYPE tty_longtexts.
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    lt_longtexts = read( iv_object_name = iv_object_name
+                         iv_longtext_id = iv_longtext_id
+                         it_dokil       = it_dokil ).
+
+    READ TABLE lt_longtexts INDEX 1 ASSIGNING <ls_longtext>.
+    IF sy-subrc = 0.
+      rv_user = <ls_longtext>-head-tdluser.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
 
     IF iv_longtexts_name IS NOT INITIAL.
@@ -74169,33 +74185,6 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD serialize.
-
-    DATA: lt_longtexts TYPE tty_longtexts.
-
-    lt_longtexts = read( iv_object_name = iv_object_name
-                         iv_longtext_id = iv_longtext_id
-                         it_dokil       = it_dokil ).
-
-    io_xml->add( iv_name = mv_longtexts_name
-                 ig_data = lt_longtexts ).
-
-  ENDMETHOD.
-  METHOD changed_by.
-
-    DATA: lt_longtexts TYPE tty_longtexts.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
-
-    lt_longtexts = read( iv_object_name = iv_object_name
-                         iv_longtext_id = iv_longtext_id
-                         it_dokil       = it_dokil ).
-
-    READ TABLE lt_longtexts INDEX 1 ASSIGNING <ls_longtext>.
-    IF sy-subrc = 0.
-      rv_user = <ls_longtext>-head-tdluser.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD read.
 
     DATA: ls_longtext TYPE ty_longtext,
@@ -74254,7 +74243,24 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD serialize.
 
+    DATA lt_longtexts TYPE tty_longtexts.
+    DATA lt_dokil LIKE it_dokil.
+
+    lt_dokil = it_dokil.
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      DELETE lt_dokil WHERE masterlang <> abap_true.
+    ENDIF.
+
+    lt_longtexts = read( iv_object_name = iv_object_name
+                         iv_longtext_id = iv_longtext_id
+                         it_dokil       = lt_dokil ).
+
+    io_xml->add( iv_name = mv_longtexts_name
+                 ig_data = lt_longtexts ).
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
@@ -79792,5 +79798,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-19T13:25:22.623Z
+* abapmerge 0.13.1 - 2020-02-20T07:29:32.691Z
 ****************************************************
