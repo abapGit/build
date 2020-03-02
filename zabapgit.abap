@@ -1728,6 +1728,10 @@ INTERFACE zif_abapgit_definitions .
     tty_col_spec TYPE STANDARD TABLE OF ty_col_spec
                       WITH NON-UNIQUE KEY tech_name.
 
+  TYPES:
+    ty_proxy_bypass_url       TYPE c LENGTH 255,
+    ty_range_proxy_bypass_url TYPE RANGE OF ty_proxy_bypass_url.
+
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -2516,8 +2520,8 @@ INTERFACE zif_abapgit_popups .
 
   METHODS popup_package_export
     EXPORTING
-      !ev_package      TYPE devclass
-      !ev_folder_logic TYPE string
+      !ev_package                    TYPE devclass
+      !ev_folder_logic               TYPE string
       !ev_serialize_master_lang_only TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
@@ -2641,6 +2645,13 @@ INTERFACE zif_abapgit_popups .
       !is_transport_type  TYPE zif_abapgit_definitions=>ty_transport_type
     RETURNING
       VALUE(rv_transport) TYPE trkorr
+    RAISING
+      zcx_abapgit_exception.
+  METHODS popup_proxy_bypass
+    IMPORTING
+      !it_proxy_bypass       TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
+    RETURNING
+      VALUE(rt_proxy_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
@@ -3996,6 +4007,13 @@ CLASS zcl_abapgit_proxy_config DEFINITION FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
           mi_exit     TYPE REF TO zif_abapgit_exit.
+
+    METHODS:
+      bypass_proxy
+        IMPORTING
+          iv_repo_url            TYPE csequence OPTIONAL
+        RETURNING
+          VALUE(rv_bypass_proxy) TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION
@@ -11061,7 +11079,8 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
 
     CONSTANTS:
       BEGIN OF c_action,
-        save_settings TYPE string VALUE 'save_settings',
+        save_settings       TYPE string VALUE 'save_settings',
+        change_proxy_bypass TYPE string VALUE 'change_proxy_bypass',
       END OF c_action.
 
     METHODS constructor.
@@ -11075,6 +11094,7 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     DATA mo_settings TYPE REF TO zcl_abapgit_settings .
     DATA mv_error TYPE abap_bool .
     DATA mt_post_fields TYPE tihttpnvp .
+    DATA mt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
 
     METHODS post_commit_msg .
     METHODS post_development_internals .
@@ -11992,7 +12012,8 @@ CLASS zcl_abapgit_popups DEFINITION
       popup_to_select_from_list     FOR zif_abapgit_popups~popup_to_select_from_list,
       branch_popup_callback         FOR zif_abapgit_popups~branch_popup_callback,
       package_popup_callback        FOR zif_abapgit_popups~package_popup_callback,
-      popup_transport_request       FOR zif_abapgit_popups~popup_transport_request.
+      popup_transport_request       FOR zif_abapgit_popups~popup_transport_request,
+      popup_proxy_bypass            FOR zif_abapgit_popups~popup_proxy_bypass.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -14681,8 +14702,8 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
     CONSTANTS:
       BEGIN OF c_ui_theme,
         default TYPE string VALUE 'default',
-        dark TYPE string VALUE 'dark',
-        belize TYPE string VALUE 'belize',
+        dark    TYPE string VALUE 'dark',
+        belize  TYPE string VALUE 'belize',
       END OF c_ui_theme.
 
     METHODS:
@@ -14695,6 +14716,9 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       set_proxy_authentication
         IMPORTING
           iv_auth TYPE abap_bool,
+      set_proxy_bypass
+        IMPORTING
+          it_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url OPTIONAL,
       get_proxy_url
         RETURNING
           VALUE(rv_proxy_url) TYPE string,
@@ -14704,6 +14728,8 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       get_proxy_authentication
         RETURNING
           VALUE(rv_auth) TYPE abap_bool,
+      get_proxy_bypass
+        RETURNING VALUE(rt_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
       set_run_critical_tests
         IMPORTING
           iv_run TYPE abap_bool,
@@ -14810,6 +14836,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
              proxy_url                TYPE string,
              proxy_port               TYPE string,
              proxy_auth               TYPE string,
+             proxy_bypass             TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
              run_critical_tests       TYPE abap_bool,
              experimental_features    TYPE abap_bool,
              commitmsg_comment_length TYPE i,
@@ -17229,7 +17256,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
   ENDMETHOD.
@@ -17268,6 +17295,9 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_proxy_url.
     rv_proxy_url = ms_settings-proxy_url.
+  ENDMETHOD.
+  METHOD get_proxy_bypass.
+    rt_bypass = ms_settings-proxy_bypass.
   ENDMETHOD.
   METHOD get_run_critical_tests.
     rv_run = ms_settings-run_critical_tests.
@@ -17353,6 +17383,10 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD set_proxy_url.
     ms_settings-proxy_url = iv_url.
   ENDMETHOD.
+  METHOD set_proxy_bypass.
+    ms_settings-proxy_bypass = it_bypass.
+  ENDMETHOD.
+
   METHOD set_run_critical_tests.
     ms_settings-run_critical_tests = iv_run.
   ENDMETHOD.
@@ -17389,6 +17423,7 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
         cg_data = ms_settings ).
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
@@ -30684,7 +30719,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31732,6 +31767,30 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_proxy_bypass.
+    rt_proxy_bypass = it_proxy_bypass.
+    CALL FUNCTION 'COMPLEX_SELECTIONS_DIALOG'
+      EXPORTING
+        title             = 'Bypass proxy settings for these Hosts & Domains'
+        signed            = abap_false
+        lower_case        = abap_true
+        no_interval_check = abap_true
+      TABLES
+        range             = rt_proxy_bypass
+      EXCEPTIONS
+        no_range_tab      = 1
+        cancelled         = 2
+        internal_error    = 3
+        invalid_fieldname = 4
+        OTHERS            = 5.
+    CASE sy-subrc.
+      WHEN 0.
+      WHEN 2.
+        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( 'Error from COMPLEX_SELECTIONS_DIALOG' ).
+    ENDCASE.
+  ENDMETHOD.
   METHOD _popup_3_get_values.
 
     DATA lv_answer TYPE c LENGTH 1.
@@ -31774,6 +31833,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
@@ -35075,7 +35135,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_settings IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'SETTINGS'.
@@ -35291,6 +35351,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_proxy_authentication( abap_false ).
     ENDIF.
 
+    mo_settings->set_proxy_bypass( mt_proxy_bypass ).
+
   ENDMETHOD.
   METHOD read_settings.
 
@@ -35504,8 +35566,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_link_hints.
 
-    DATA: lv_checked               TYPE string,
-          lv_link_hint_key         TYPE char01.
+    DATA: lv_checked       TYPE string,
+          lv_link_hint_key TYPE char01.
 
     IF mo_settings->get_link_hints_enabled( ) = abap_true.
       lv_checked = 'checked'.
@@ -35573,6 +35635,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       ro_html->add( `<input name="proxy_auth" type="checkbox">` ).
     ENDIF.
     ro_html->add( |<br>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<label for="proxy_bypass">Bypass proxy settings for these Hosts & Domains</label>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<button type="button" name="proxy_bypass" class="grey-set"|
+                & |onclick="location.href='sapevent:{ c_action-change_proxy_bypass }';">Maintain</button>| ).
+    ro_html->add( |<br>| ).
 
     ro_html->add( |<br>| ).
 
@@ -35614,8 +35682,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     DATA:
       BEGIN OF ls_sel,
         default TYPE string,
-        dark TYPE string,
-        belize TYPE string,
+        dark    TYPE string,
+        belize  TYPE string,
       END OF ls_sel.
 
     CASE mo_settings->get_ui_theme( ).
@@ -35673,6 +35741,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         ENDIF.
 
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
+      WHEN c_action-change_proxy_bypass.
+        mt_proxy_bypass = zcl_abapgit_ui_factory=>get_popups( )->popup_proxy_bypass( mo_settings->get_proxy_bypass( ) ).
+
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
   ENDMETHOD.
@@ -75814,7 +75886,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
+CLASS zcl_abapgit_proxy_config IMPLEMENTATION.
   METHOD constructor.
 
     mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
@@ -75824,7 +75896,9 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_proxy_authentication.
 
-    rv_auth = mo_settings->get_proxy_authentication( ).
+    IF bypass_proxy( iv_repo_url ) = abap_false.
+      rv_auth = mo_settings->get_proxy_authentication( ).
+    ENDIF.
 
     mi_exit->change_proxy_authentication(
       EXPORTING
@@ -75835,7 +75909,9 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_proxy_port.
 
-    rv_port = mo_settings->get_proxy_port( ).
+    IF bypass_proxy( iv_repo_url ) = abap_false.
+      rv_port = mo_settings->get_proxy_port( ).
+    ENDIF.
 
     mi_exit->change_proxy_port(
       EXPORTING
@@ -75848,7 +75924,9 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_proxy_url.
 
-    rv_proxy_url = mo_settings->get_proxy_url( ).
+    IF bypass_proxy( iv_repo_url ) = abap_false.
+      rv_proxy_url = mo_settings->get_proxy_url( ).
+    ENDIF.
 
     mi_exit->change_proxy_url(
       EXPORTING
@@ -75857,6 +75935,19 @@ CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
         cv_proxy_url = rv_proxy_url ).
 
   ENDMETHOD.
+  METHOD bypass_proxy.
+
+    DATA lt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
+
+    lt_proxy_bypass = mo_settings->get_proxy_bypass( ).
+
+    IF lt_proxy_bypass IS NOT INITIAL
+    AND iv_repo_url IN lt_proxy_bypass.
+      rv_bypass_proxy = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
@@ -79806,5 +79897,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-02-27T09:53:34.674Z
+* abapmerge 0.13.1 - 2020-03-02T14:31:46.529Z
 ****************************************************
