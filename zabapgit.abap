@@ -37102,7 +37102,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -37201,7 +37201,9 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
 
-    ro_html->add( mo_repo_content->render( ) ).
+    IF mo_repo_content IS BOUND.
+      ro_html->add( mo_repo_content->render( ) ).
+    ENDIF.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
@@ -79897,5 +79899,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-02T14:31:46.529Z
+* abapmerge 0.13.1 - 2020-03-03T09:13:09.629Z
 ****************************************************
