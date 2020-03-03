@@ -8461,6 +8461,11 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
     TYPES:
       tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n .
 
+    METHODS check_rfc_parameters
+      IMPORTING
+        !is_function TYPE ty_function
+      RAISING
+        zcx_abapgit_exception .
     METHODS update_where_used
       IMPORTING
         !it_includes TYPE ty_sobj_name_tt .
@@ -65673,6 +65678,48 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from FUNCTION_IMPORT_DOKU' ).
     ENDIF.
   ENDMETHOD.
+  METHOD check_rfc_parameters.
+
+* function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
+* message is not returned to the user, this is a workaround to give a proper error
+* message to the user
+
+    DATA: ls_parameter TYPE rsfbpara,
+          lt_fupa      TYPE rsfb_param,
+          ls_fupa      LIKE LINE OF lt_fupa.
+    IF is_function-remote_call = 'R'.
+      cl_fb_parameter_conversion=>convert_parameter_old_to_fupa(
+        EXPORTING
+          functionname = is_function-funcname
+          import       = is_function-import
+          export       = is_function-export
+          change       = is_function-changing
+          tables       = is_function-tables
+          except       = is_function-exception
+        IMPORTING
+          fupararef    = lt_fupa ).
+
+      LOOP AT lt_fupa INTO ls_fupa WHERE paramtype = 'I' OR paramtype = 'E' OR paramtype = 'C' OR paramtype = 'T'.
+        cl_fb_parameter_conversion=>convert_intern_to_extern(
+          EXPORTING
+            parameter_db  = ls_fupa
+          IMPORTING
+            parameter_vis = ls_parameter ).
+
+        CALL FUNCTION 'RS_FB_CHECK_PARAMETER_REMOTE'
+          EXPORTING
+            parameter             = ls_parameter
+            basxml_enabled        = is_function-remote_basxml
+          EXCEPTIONS
+            not_remote_compatible = 1
+            OTHERS                = 2.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD deserialize_functions.
 
     DATA: lv_include   TYPE rs38l-include,
@@ -65681,11 +65728,11 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           lv_namespace TYPE rs38l-namespace,
           lt_source    TYPE TABLE OF abaptxt255,
           lv_msg       TYPE string,
+          lx_error     TYPE REF TO zcx_abapgit_exception,
           lv_corrnum   TYPE e070use-ordernum.
 
     FIELD-SYMBOLS: <ls_func> LIKE LINE OF it_functions.
-
-    lv_corrnum   = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
+    lv_corrnum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     LOOP AT it_functions ASSIGNING <ls_func>.
 
@@ -65731,6 +65778,15 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           CONTINUE. "with next function module
         ENDIF.
       ENDIF.
+
+      TRY.
+          check_rfc_parameters( <ls_func> ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          ii_log->add_error(
+            iv_msg  = |Function module { <ls_func>-funcname }: { lx_error->get_text( ) }|
+            is_item = ms_item ).
+          CONTINUE. "with next function module
+      ENDTRY.
 
       CALL FUNCTION 'RS_FUNCTIONMODULE_INSERT'
         EXPORTING
@@ -79899,5 +79955,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-03T09:13:09.629Z
+* abapmerge 0.13.1 - 2020-03-03T09:22:52.820Z
 ****************************************************
