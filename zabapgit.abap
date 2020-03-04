@@ -18977,6 +18977,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     IF sy-subrc = 0.
       ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
       set_dot_abapgit( ro_dot ).
+      COMMIT WORK AND WAIT. " to release lock
     ENDIF.
 
   ENDMETHOD.
@@ -56018,6 +56019,10 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
     DATA: li_srfc_persist TYPE REF TO if_wb_object_persist,
           lx_error        TYPE REF TO cx_root,
           lv_text         TYPE string.
+    IF zif_abapgit_object~exists( ) = abap_false.
+* the SRFC might already have been deleted with the function module
+      RETURN.
+    ENDIF.
 
     TRY.
         CREATE OBJECT li_srfc_persist TYPE ('CL_UCONRFC_OBJECT_PERSIST').
@@ -56039,11 +56044,27 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
           lr_srfc_data    TYPE REF TO data,
           lx_error        TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <lg_srfc_data> TYPE any.
+    FIELD-SYMBOLS: <lg_srfc_data> TYPE any,
+                   <lg_any>       TYPE any.
     TRY.
         CREATE DATA lr_srfc_data TYPE ('UCONRFCSERV_COMPLETE').
         ASSIGN lr_srfc_data->* TO <lg_srfc_data>.
         ASSERT sy-subrc = 0.
+
+        ASSIGN COMPONENT 'HEADER-CREATEDBY' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          <lg_any> = sy-uname.
+        ENDIF.
+
+        ASSIGN COMPONENT 'HEADER-CREATEDON' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          <lg_any> = sy-datum.
+        ENDIF.
+
+        ASSIGN COMPONENT 'HEADER-CREATEDAT' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          <lg_any> = sy-uzeit.
+        ENDIF.
 
         io_xml->read(
           EXPORTING
@@ -56133,7 +56154,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
           lx_error        TYPE REF TO cx_root,
           lv_text         TYPE string.
 
-    FIELD-SYMBOLS: <lg_srfc_data> TYPE any.
+    FIELD-SYMBOLS: <lg_srfc_data> TYPE any,
+                   <lg_any>       TYPE any.
     TRY.
         CREATE DATA lr_srfc_data TYPE ('UCONRFCSERV_COMPLETE').
         ASSIGN lr_srfc_data->* TO <lg_srfc_data>.
@@ -56149,6 +56171,20 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
             p_object_data = li_object_data ).
 
         li_object_data->get_data( IMPORTING p_data = <lg_srfc_data> ).
+        ASSIGN COMPONENT 'HEADER-CREATEDBY' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          CLEAR <lg_any>.
+        ENDIF.
+
+        ASSIGN COMPONENT 'HEADER-CREATEDON' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          CLEAR <lg_any>.
+        ENDIF.
+
+        ASSIGN COMPONENT 'HEADER-CREATEDAT' OF STRUCTURE <lg_srfc_data> TO <lg_any>.
+        IF sy-subrc = 0.
+          CLEAR <lg_any>.
+        ENDIF.
 
       CATCH cx_root INTO lx_error.
         lv_text = lx_error->get_text( ).
@@ -80435,5 +80471,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-04T05:32:02.514Z
+* abapmerge 0.13.1 - 2020-03-04T05:37:05.836Z
 ****************************************************
