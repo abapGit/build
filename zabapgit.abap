@@ -7546,17 +7546,17 @@ CLASS zcl_abapgit_object_tran DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                                      WITH NON-UNIQUE DEFAULT KEY .
 
     CONSTANTS:
-      c_oo_program TYPE c LENGTH 9 VALUE '\PROGRAM=' ##NO_TEXT,
-      c_oo_class TYPE c LENGTH 7 VALUE '\CLASS=' ##NO_TEXT,
-      c_oo_method TYPE c LENGTH 8 VALUE '\METHOD=' ##NO_TEXT,
-      c_oo_tcode TYPE tcode VALUE 'OS_APPLICATION' ##NO_TEXT,
-      c_oo_frclass TYPE c LENGTH 30 VALUE 'CLASS' ##NO_TEXT,
-      c_oo_frmethod TYPE c LENGTH 30 VALUE 'METHOD' ##NO_TEXT,
+      c_oo_program   TYPE c LENGTH 9 VALUE '\PROGRAM=' ##NO_TEXT,
+      c_oo_class     TYPE c LENGTH 7 VALUE '\CLASS=' ##NO_TEXT,
+      c_oo_method    TYPE c LENGTH 8 VALUE '\METHOD=' ##NO_TEXT,
+      c_oo_tcode     TYPE tcode VALUE 'OS_APPLICATION' ##NO_TEXT,
+      c_oo_frclass   TYPE c LENGTH 30 VALUE 'CLASS' ##NO_TEXT,
+      c_oo_frmethod  TYPE c LENGTH 30 VALUE 'METHOD' ##NO_TEXT,
       c_oo_frupdtask TYPE c LENGTH 30 VALUE 'UPDATE_MODE' ##NO_TEXT,
-      c_oo_synchron TYPE c VALUE 'S' ##NO_TEXT,
+      c_oo_synchron  TYPE c VALUE 'S' ##NO_TEXT,
       c_oo_asynchron TYPE c VALUE 'U' ##NO_TEXT,
-      c_true TYPE c VALUE 'X' ##NO_TEXT,
-      c_false TYPE c VALUE space ##NO_TEXT.
+      c_true         TYPE c VALUE 'X' ##NO_TEXT,
+      c_false        TYPE c VALUE space ##NO_TEXT.
 
     DATA:
       mt_bcdata TYPE STANDARD TABLE OF bdcdata .
@@ -52688,7 +52688,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
+CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD add_data.
 
     DATA: ls_bcdata LIKE LINE OF mt_bcdata.
@@ -53106,10 +53106,10 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     CONSTANTS: lc_hex_tra TYPE x VALUE '00',
-*               c_hex_men TYPE x VALUE '01',
+*               lc_hex_men TYPE x VALUE '01',
                lc_hex_par TYPE x VALUE '02',
                lc_hex_rep TYPE x VALUE '80',
-*               c_hex_rpv TYPE x VALUE '10',
+*               lc_hex_rpv TYPE x VALUE '10',
                lc_hex_obj TYPE x VALUE '08'.
 
     DATA: lv_dynpro       TYPE d020s-dnum,
@@ -53135,19 +53135,18 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
 
     lv_dynpro = ls_tstc-dypno.
 
-    CASE ls_tstc-cinfo.
-      WHEN lc_hex_tra.
-        lv_type = ststc_c_type_dialog.
-      WHEN lc_hex_rep.
-        lv_type = ststc_c_type_report.
-      WHEN lc_hex_par.
-        lv_type = ststc_c_type_parameters.
-      WHEN lc_hex_obj.
-        lv_type = ststc_c_type_object.
-* todo, or ststc_c_type_variant?
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'Transaction, unknown CINFO' ).
-    ENDCASE.
+    IF     ls_tstc-cinfo O lc_hex_rep.
+      lv_type = ststc_c_type_report.
+    ELSEIF ls_tstc-cinfo O lc_hex_obj.
+      lv_type = ststc_c_type_object.
+      " todo, or ststc_c_type_variant?
+    ELSEIF ls_tstc-cinfo O lc_hex_par.
+      lv_type = ststc_c_type_parameters.
+    ELSEIF ls_tstc-cinfo O lc_hex_tra.
+      lv_type = ststc_c_type_dialog.
+    ELSE.
+      zcx_abapgit_exception=>raise( 'Transaction, unknown CINFO' ).
+    ENDIF.
 
     IF ls_tstcp IS NOT INITIAL.
       split_parameters(
@@ -80471,5 +80470,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-04T05:37:05.836Z
+* abapmerge 0.13.1 - 2020-03-04T05:42:27.381Z
 ****************************************************
