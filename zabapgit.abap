@@ -1162,7 +1162,7 @@ INTERFACE zif_abapgit_gui_renderable .
 
   METHODS render
     RETURNING
-      VALUE(ro_html) TYPE REF TO zif_abapgit_html
+      VALUE(ri_html) TYPE REF TO zif_abapgit_html
     RAISING
       zcx_abapgit_exception.
 
@@ -2877,7 +2877,7 @@ INTERFACE zif_abapgit_sap_package.
       RETURNING VALUE(rv_are_changes_rec_in_tr_req) TYPE abap_bool
       RAISING   zcx_abapgit_exception,
     get_transport_type
-      RETURNING VALUE(rv_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
+      RETURNING VALUE(rs_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
       RAISING   zcx_abapgit_exception.
 
 ENDINTERFACE.
@@ -4100,9 +4100,9 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
     CLASS-METHODS:
       build_xml_of_object
         IMPORTING
-          im_object_name       TYPE etobj_name
-          im_object_version    TYPE etobj_ver
-          im_object_type       TYPE etobj_type
+          iv_object_name       TYPE etobj_name
+          iv_object_version    TYPE etobj_ver
+          iv_object_type       TYPE etobj_type
           io_download          TYPE REF TO cl_apl_ecatt_download
         RETURNING
           VALUE(rv_xml_stream) TYPE xstring
@@ -4939,7 +4939,7 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
     METHODS corr_insert
       IMPORTING
         !iv_package      TYPE devclass
-        !iv_object_class TYPE any OPTIONAL
+        !ig_object_class TYPE any OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS tadir_insert
@@ -5275,7 +5275,7 @@ CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PRIVATE SECTION.
-    DATA mo_persistence TYPE REF TO if_wb_object_persist .
+    DATA mi_persistence TYPE REF TO if_wb_object_persist .
     METHODS get_persistence
       RETURNING
         VALUE(ri_persistence) TYPE REF TO if_wb_object_persist
@@ -5283,12 +5283,12 @@ CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         zcx_abapgit_exception .
     METHODS clear_fields
       CHANGING
-        !cs_data TYPE any .
+        !cg_data TYPE any .
     METHODS clear_field
       IMPORTING
         !iv_fieldname TYPE csequence
       CHANGING
-        !cs_metadata  TYPE any .
+        !cg_metadata  TYPE any .
 ENDCLASS.
 CLASS zcl_abapgit_object_devc DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -5952,7 +5952,7 @@ CLASS zcl_abapgit_object_ftgl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           iv_fieldname TYPE string
         CHANGING
-          cs_header    TYPE any.
+          cg_header    TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_g4ba DEFINITION
@@ -5989,7 +5989,7 @@ CLASS zcl_abapgit_object_iamu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
              length     TYPE i,
            END OF ty_internet_appl_comp_binary.
 
-    DATA: mo_mime_api TYPE REF TO if_w3_api_mime.
+    DATA: mi_mime_api TYPE REF TO if_w3_api_mime.
 
     METHODS:
       load_mime_api
@@ -6168,36 +6168,36 @@ CLASS zcl_abapgit_object_iatu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING   zcx_abapgit_exception,
       w3_api_load
         IMPORTING is_name     TYPE iacikeyt
-        RETURNING VALUE(ro_template) TYPE REF TO if_w3_api_template
+        RETURNING VALUE(ri_template) TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_set_changeable
         IMPORTING iv_changeable TYPE abap_bool
-                  io_template   TYPE REF TO if_w3_api_template
+                  ii_template   TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_delete
-        IMPORTING io_template TYPE REF TO if_w3_api_template
+        IMPORTING ii_template TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_save
-        IMPORTING io_template TYPE REF TO if_w3_api_template
+        IMPORTING ii_template TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_get_attributes
-        IMPORTING io_template   TYPE REF TO if_w3_api_template
+        IMPORTING ii_template   TYPE REF TO if_w3_api_template
         RETURNING VALUE(rs_attributes) TYPE w3tempattr
         RAISING   zcx_abapgit_exception,
       w3_api_get_source
-        IMPORTING io_template TYPE REF TO if_w3_api_template
+        IMPORTING ii_template TYPE REF TO if_w3_api_template
         RETURNING VALUE(rt_source)   TYPE w3htmltabtype
         RAISING   zcx_abapgit_exception,
       w3_api_create_new
         IMPORTING is_template_data TYPE w3tempattr
-        RETURNING VALUE(ro_template)      TYPE REF TO if_w3_api_template
+        RETURNING VALUE(ri_template)      TYPE REF TO if_w3_api_template
         RAISING   zcx_abapgit_exception,
       w3_api_set_attributes
-        IMPORTING io_template TYPE REF TO if_w3_api_template
+        IMPORTING ii_template TYPE REF TO if_w3_api_template
                   is_attr     TYPE w3tempattr
         RAISING   zcx_abapgit_exception,
       w3_api_set_source
-        IMPORTING io_template TYPE REF TO if_w3_api_template
+        IMPORTING ii_template TYPE REF TO if_w3_api_template
                   it_source   TYPE w3htmltabtype
         RAISING   zcx_abapgit_exception.
 
@@ -6209,8 +6209,8 @@ CLASS zcl_abapgit_object_iaxu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: mc_source_style_2006 TYPE w3style VALUE 'XML',
-          mc_generator_class   TYPE w3styleclass VALUE 'CL_ITS_GENERATE_XML3'.
+    DATA: mv_source_style_2006 TYPE w3style VALUE 'XML',
+          mv_generator_class   TYPE w3styleclass VALUE 'CL_ITS_GENERATE_XML3'.
 
     METHODS:
       read
@@ -6250,7 +6250,7 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-    CLASS-METHODS clear_idoc_segement_fields CHANGING cs_structure TYPE any.
+    CLASS-METHODS clear_idoc_segement_fields CHANGING cg_structure TYPE any.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -6262,7 +6262,7 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     DATA: mv_idoctyp TYPE edi_iapi00-idoctyp.
 
-    CLASS-METHODS clear_idoc_segement_field  IMPORTING iv_fieldname TYPE csequence CHANGING cs_structure TYPE any.
+    CLASS-METHODS clear_idoc_segement_field  IMPORTING iv_fieldname TYPE csequence CHANGING cg_structure TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -6299,7 +6299,7 @@ CLASS zcl_abapgit_object_iobj DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           iv_fieldname TYPE string
         CHANGING
-          cs_metadata  TYPE any.
+          cg_metadata  TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_iwmo DEFINITION
@@ -6487,7 +6487,7 @@ CLASS zcl_abapgit_object_odso DEFINITION
         IMPORTING
           iv_fieldname TYPE string
         CHANGING
-          cs_metadata  TYPE any.
+          cg_metadata  TYPE any.
 ENDCLASS.
 CLASS zcl_abapgit_object_para DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -6580,7 +6580,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     add_elements
       IMPORTING
-        is_elements_data TYPE scomeldata
+        it_elements_data TYPE scomeldata
       RAISING
         zcx_abapgit_exception,
 
@@ -7070,7 +7070,7 @@ CLASS zcl_abapgit_object_smtg DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         IMPORTING
           iv_fieldname TYPE string
         CHANGING
-          cs_header    TYPE any,
+          cg_header    TYPE any,
 
       get_structure
         RETURNING
@@ -8715,8 +8715,8 @@ CLASS zcl_abapgit_objects_saxx_super DEFINITION
         VALUE(rv_data_structure_name) TYPE string .
   PRIVATE SECTION.
 
-    DATA mo_persistence TYPE REF TO if_wb_object_persist .
-    DATA mo_appl_obj_data TYPE REF TO if_wb_object_data_model .
+    DATA mi_persistence TYPE REF TO if_wb_object_persist .
+    DATA mi_appl_obj_data TYPE REF TO if_wb_object_data_model .
     DATA mv_data_structure_name TYPE string .
     DATA mv_appl_obj_cls_name TYPE seoclsname .
     DATA mv_persistence_cls_name TYPE seoclsname .
@@ -8874,7 +8874,7 @@ CLASS zcl_abapgit_oo_factory DEFINITION.
         IMPORTING
           iv_object_type                   TYPE tadir-object
         RETURNING
-          VALUE(ro_object_oriented_object) TYPE REF TO zif_abapgit_oo_object_fnc.
+          VALUE(ri_object_oriented_object) TYPE REF TO zif_abapgit_oo_object_fnc.
   PRIVATE SECTION.
 
     CLASS-DATA gi_object_oriented_object TYPE REF TO zif_abapgit_oo_object_fnc .
@@ -9523,7 +9523,7 @@ CLASS zcl_abapgit_gui DEFINITION
 
     METHODS go_page
       IMPORTING
-        io_page        TYPE REF TO zif_abapgit_gui_renderable
+        ii_page        TYPE REF TO zif_abapgit_gui_renderable
         iv_clear_stack TYPE abap_bool DEFAULT abap_true
       RAISING
         zcx_abapgit_exception.
@@ -13577,7 +13577,7 @@ CLASS zcl_abapgit_factory DEFINITION
         VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api .
     CLASS-METHODS get_environment
       RETURNING
-        VALUE(ro_environment) TYPE REF TO zif_abapgit_environment .
+        VALUE(ri_environment) TYPE REF TO zif_abapgit_environment .
     CLASS-METHODS get_longtexts
       IMPORTING
         iv_longtexts_name   TYPE string OPTIONAL
@@ -13617,7 +13617,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
-    CLASS-DATA go_environment TYPE REF TO zif_abapgit_environment .
+    CLASS-DATA gi_environment TYPE REF TO zif_abapgit_environment .
     CLASS-DATA gt_longtexts TYPE tty_longtexts.
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
@@ -13676,8 +13676,8 @@ CLASS zcl_abapgit_file_status DEFINITION
         RAISING   zcx_abapgit_exception,
       get_object_package
         IMPORTING
-          iv_object       TYPE tadir-object
-          iv_obj_name     TYPE tadir-obj_name
+          iv_object          TYPE tadir-object
+          iv_obj_name        TYPE tadir-obj_name
         RETURNING
           VALUE(rv_devclass) TYPE devclass
         RAISING
@@ -13754,7 +13754,7 @@ CLASS zcl_abapgit_injector DEFINITION
         !ii_cts_api TYPE REF TO zif_abapgit_cts_api .
     CLASS-METHODS set_environment
       IMPORTING
-        !io_environment TYPE REF TO zif_abapgit_environment .
+        !ii_environment TYPE REF TO zif_abapgit_environment .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -16434,7 +16434,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
                          RAISING   zcx_abapgit_exception.
 
     METHODS generate_files IMPORTING it_trkorr TYPE trwbo_request_headers
-                                     iv_logic  TYPE any
+                                     ig_logic  TYPE any
                            RAISING   zcx_abapgit_exception.
 
     METHODS get_folder RETURNING VALUE(rv_full_folder) TYPE ty_folder.
@@ -16444,9 +16444,9 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
                                     RAISING   zcx_abapgit_exception.
 
   PRIVATE SECTION.
-    DATA: gv_timestamp   TYPE string,
-          gv_separator   TYPE c,
-          gv_full_folder TYPE ty_folder.
+    DATA: mv_timestamp   TYPE string,
+          mv_separator   TYPE c,
+          mv_full_folder TYPE ty_folder.
 
     METHODS get_full_folder IMPORTING iv_folder             TYPE ty_folder
                             RETURNING VALUE(rv_full_folder) TYPE ty_folder
@@ -16461,26 +16461,26 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
   METHOD constructor.
 
-    CONCATENATE sy-datlo sy-timlo INTO me->gv_timestamp SEPARATED BY '_'.
+    CONCATENATE sy-datlo sy-timlo INTO me->mv_timestamp SEPARATED BY '_'.
 
-    me->gv_full_folder = get_full_folder( iv_folder = iv_folder ).
+    me->mv_full_folder = get_full_folder( iv_folder = iv_folder ).
 
     cl_gui_frontend_services=>get_file_separator(
       CHANGING
-        file_separator       = gv_separator
+        file_separator       = mv_separator
       EXCEPTIONS
         cntl_error           = 1
         error_no_gui         = 2
         not_supported_by_gui = 3
         OTHERS               = 4 ).
     IF sy-subrc <> 0.
-      gv_separator = '\'. "Default MS Windows separator
+      mv_separator = '\'. "Default MS Windows separator
     ENDIF.
 
   ENDMETHOD.
 
   METHOD get_folder.
-    rv_full_folder = gv_full_folder.
+    rv_full_folder = mv_full_folder.
   ENDMETHOD.
 
   METHOD does_folder_exist.
@@ -16521,7 +16521,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
     ENDIF.
 
     CONCATENATE iv_folder
-                gv_timestamp
+                mv_timestamp
            INTO rv_full_folder SEPARATED BY lv_sep.
 
     IF does_folder_exist( iv_folder = rv_full_folder ) = abap_false.
@@ -16553,13 +16553,13 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
   METHOD get_filename.
 
 * Generate filename
-    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' gv_timestamp gc_zip_ext
+    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' mv_timestamp gc_zip_ext
       INTO rv_filename.
 
 * Remove reserved characters (for Windows based systems)
     TRANSLATE rv_filename USING '/ \ : " * > < ? | '.
 
-    CONCATENATE gv_full_folder rv_filename INTO rv_filename SEPARATED BY gv_separator.
+    CONCATENATE mv_full_folder rv_filename INTO rv_filename SEPARATED BY mv_separator.
 
   ENDMETHOD.
 
@@ -16571,7 +16571,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
     LOOP AT it_trkorr INTO ls_trkorr.
 
       lv_zipbinstring = zcl_abapgit_transport_mass=>zip( is_trkorr         = ls_trkorr
-                                                         iv_logic          = iv_logic
+                                                         iv_logic          = ig_logic
                                                          iv_show_log_popup = abap_false ).
 
       zcl_abapgit_zip=>save_binstring_to_localfile( iv_binstring = lv_zipbinstring
@@ -16583,13 +16583,13 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
+CLASS zcl_abapgit_transport_mass IMPLEMENTATION.
   METHOD run.
 
     DATA:
       lt_trkorr           TYPE trwbo_request_headers,
       lo_transport_zipper TYPE REF TO kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr,
-      lo_except           TYPE REF TO cx_root,
+      lx_except           TYPE REF TO cx_root,
       lv_folder           TYPE string,
       lv_text             TYPE string.
 
@@ -16614,7 +16614,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
 * Generate the local zip files from the given list of transport requests
           lo_transport_zipper->generate_files(
             it_trkorr = lt_trkorr
-            iv_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
+            ig_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
 
 * Open output folder if user asked it
           kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->get_folder( ) ).
@@ -16624,9 +16624,9 @@ CLASS ZCL_ABAPGIT_TRANSPORT_MASS IMPLEMENTATION.
           zcx_abapgit_exception=>raise( 'No transport requests selected' ).
         ENDIF.
 
-      CATCH zcx_abapgit_exception INTO lo_except.
+      CATCH zcx_abapgit_exception INTO lx_except.
 
-        lv_text = lo_except->get_text( ).
+        lv_text = lx_except->get_text( ).
         MESSAGE lv_text TYPE 'S' DISPLAY LIKE 'E'.
 
     ENDTRY.
@@ -16894,7 +16894,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
       lt_packages    TYPE zif_abapgit_sap_package=>ty_devclass_tt.
 
     FIELD-SYMBOLS:
-      <ls_package> TYPE devclass,
+      <lv_package> TYPE devclass,
       <ls_object>  TYPE tadir.
 
     lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -16902,13 +16902,13 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     lt_packages = zcl_abapgit_factory=>get_sap_package( lv_package )->list_subpackages( ).
     INSERT lv_package INTO TABLE lt_packages.
 
-    LOOP AT lt_packages ASSIGNING <ls_package>.
+    LOOP AT lt_packages ASSIGNING <lv_package>.
 
       CLEAR: lt_objects.
 
       CALL FUNCTION 'TRINT_SELECT_OBJECTS'
         EXPORTING
-          iv_devclass       = <ls_package>
+          iv_devclass       = <lv_package>
           iv_via_selscreen  = abap_false
         IMPORTING
           et_objects_tadir  = lt_objects
@@ -17936,8 +17936,8 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
         iv_object                  = 'DEVC'
         iv_obj_name                = lv_pkg_name
       IMPORTING
-        ev_request_type            = rv_transport_type-request
-        ev_task_type               = rv_transport_type-task
+        ev_request_type            = rs_transport_type-request
+        ev_task_type               = rs_transport_type-task
       EXCEPTIONS
         no_request_needed          = 1
         internal_error             = 2
@@ -18086,22 +18086,22 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD validate_sub_super_packages.
     DATA:
       ls_repo     LIKE LINE OF it_repos,
-      lo_package  TYPE REF TO zif_abapgit_sap_package,
+      li_package  TYPE REF TO zif_abapgit_sap_package,
       lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
       lo_repo     TYPE REF TO zcl_abapgit_repo.
 
     LOOP AT it_repos INTO ls_repo.
       lo_repo = get( ls_repo-key ).
 
-      lo_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
-      IF lo_package->exists( ) = abap_false.
+      li_package = zcl_abapgit_factory=>get_sap_package( ls_repo-package ).
+      IF li_package->exists( ) = abap_false.
         " Skip dangling repository
         CONTINUE.
       ENDIF.
 
       CLEAR lt_packages.
       IF lo_repo->get_local_settings( )-ignore_subpackages = abap_false.
-        APPEND LINES OF lo_package->list_subpackages( ) TO lt_packages.
+        APPEND LINES OF li_package->list_subpackages( ) TO lt_packages.
         READ TABLE lt_packages TRANSPORTING NO FIELDS
           WITH KEY table_line = iv_package.
         IF sy-subrc = 0.
@@ -18110,7 +18110,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       ENDIF.
 
       IF iv_ign_subpkg = abap_false.
-        APPEND LINES OF lo_package->list_superpackages( ) TO lt_packages.
+        APPEND LINES OF li_package->list_superpackages( ) TO lt_packages.
         READ TABLE lt_packages TRANSPORTING NO FIELDS
           WITH KEY table_line = iv_package.
         IF sy-subrc = 0.
@@ -19578,19 +19578,18 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lv_duplicates     LIKE LINE OF lt_duplicates,
           lv_all_duplicates TYPE string.
 
-    FIELD-SYMBOLS:
-      <lv_file> LIKE LINE OF it_files.
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF it_files.
 
     lt_files = it_files.
     SORT lt_files BY path ASCENDING filename ASCENDING.
 
-    LOOP AT lt_files ASSIGNING <lv_file>.
-      IF lv_path = <lv_file>-path AND lv_filename = <lv_file>-filename.
-        CONCATENATE <lv_file>-path <lv_file>-filename INTO lv_duplicates.
+    LOOP AT lt_files ASSIGNING <ls_file>.
+      IF lv_path = <ls_file>-path AND lv_filename = <ls_file>-filename.
+        CONCATENATE <ls_file>-path <ls_file>-filename INTO lv_duplicates.
         APPEND lv_duplicates TO lt_duplicates.
       ENDIF.
-      lv_path = <lv_file>-path.
-      lv_filename = <lv_file>-filename.
+      lv_path = <ls_file>-path.
+      lv_filename = <ls_file>-filename.
     ENDLOOP.
 
     IF lt_duplicates IS NOT INITIAL.
@@ -20859,7 +20858,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
     DATA:
       lt_stream      TYPE TABLE OF tdline,
       lt_string      TYPE TABLE OF string,
-      ls_string      LIKE LINE OF lt_string,
+      lv_string      LIKE LINE OF lt_string,
       lt_itf         TYPE tline_tab,
       lv_has_content TYPE abap_bool,
       lv_tabix_from  TYPE syst-tabix,
@@ -20916,11 +20915,11 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
         itf_text     = lt_itf
         text_stream  = lt_stream.
 
-    LOOP AT lt_string INTO ls_string.
+    LOOP AT lt_string INTO lv_string.
       IF sy-tabix = 1.
-        rv_result = ls_string.
+        rv_result = lv_string.
       ELSE.
-        CONCATENATE rv_result ls_string
+        CONCATENATE rv_result lv_string
                     INTO rv_result
                     SEPARATED BY cl_abap_char_utilities=>newline.
       ENDIF.
@@ -20958,20 +20957,20 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_single_msg_var.
 
-    FIELD-SYMBOLS <lv_arg> TYPE any.
+    FIELD-SYMBOLS <lg_arg> TYPE any.
 
     IF iv_arg IS INITIAL.
       RETURN.
     ENDIF.
 
-    ASSIGN me->(iv_arg) TO <lv_arg>.
+    ASSIGN me->(iv_arg) TO <lg_arg>.
     IF sy-subrc <> 0.
       CONCATENATE '&' iv_arg '&' INTO rv_target.
       RETURN.
     ENDIF.
 
     TRY.
-        rv_target = set_single_msg_var_clike( iv_arg = <lv_arg> ).
+        rv_target = set_single_msg_var_clike( iv_arg = <lg_arg> ).
 
         RETURN.
 
@@ -20979,7 +20978,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        rv_target = set_single_msg_var_numeric( iv_arg = <lv_arg> ).
+        rv_target = set_single_msg_var_numeric( iv_arg = <lg_arg> ).
 
         RETURN.
 
@@ -20987,7 +20986,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        rv_target = set_single_msg_var_xseq( iv_arg = <lv_arg> ).
+        rv_target = set_single_msg_var_xseq( iv_arg = <lg_arg> ).
 
         RETURN.
 
@@ -21442,7 +21441,7 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
     zcl_abapgit_factory=>gi_cts_api = ii_cts_api.
   ENDMETHOD.
   METHOD set_environment.
-    zcl_abapgit_factory=>go_environment = io_environment.
+    zcl_abapgit_factory=>gi_environment = ii_environment.
   ENDMETHOD.
   METHOD set_sap_package.
 
@@ -21625,7 +21624,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -21997,8 +21996,8 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_object_package.
-    DATA: lv_name TYPE devclass,
-          lo_package     TYPE REF TO zif_abapgit_sap_package.
+    DATA: lv_name    TYPE devclass,
+          li_package TYPE REF TO zif_abapgit_sap_package.
 
     rv_devclass = zcl_abapgit_factory=>get_tadir( )->get_object_package(
       iv_object   = iv_object
@@ -22006,8 +22005,8 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     IF rv_devclass IS INITIAL AND iv_object = 'DEVC' AND iv_obj_name(1) = '$'.
       " local packages usually have no tadir entry
       lv_name = iv_obj_name.
-      lo_package = zcl_abapgit_factory=>get_sap_package( lv_name ).
-      IF lo_package->exists(  ) = abap_true.
+      li_package = zcl_abapgit_factory=>get_sap_package( lv_name ).
+      IF li_package->exists(  ) = abap_true.
         rv_devclass = lv_name.
       ENDIF.
     ENDIF.
@@ -22054,10 +22053,10 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_cts_api = gi_cts_api.
   ENDMETHOD.
   METHOD get_environment.
-    IF go_environment IS NOT BOUND.
-      CREATE OBJECT go_environment TYPE zcl_abapgit_environment.
+    IF gi_environment IS NOT BOUND.
+      CREATE OBJECT gi_environment TYPE zcl_abapgit_environment.
     ENDIF.
-    ro_environment = go_environment.
+    ri_environment = gi_environment.
   ENDMETHOD.
   METHOD get_sap_package.
 
@@ -22249,11 +22248,11 @@ CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
     rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
   ENDMETHOD.
   METHOD zif_abapgit_environment~is_merged.
-    DATA lo_marker TYPE REF TO data ##NEEDED.
+    DATA lr_marker TYPE REF TO data ##NEEDED.
 
     IF mv_is_merged = abap_undefined.
       TRY.
-          CREATE DATA lo_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
+          CREATE DATA lr_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
           "No exception --> marker found
           mv_is_merged = abap_true.
 
@@ -25357,16 +25356,16 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
 
     DATA: lo_regex TYPE REF TO cl_abap_regex,
           lt_regex TYPE zif_abapgit_definitions=>ty_string_tt,
-          ls_regex LIKE LINE OF lt_regex.
+          lv_regex LIKE LINE OF lt_regex.
 
     APPEND '^\s*(CLASS|FORM|MODULE|REPORT|METHOD)\s' TO lt_regex.
     APPEND '^\s*START-OF-' TO lt_regex.
     APPEND '^\s*INITIALIZATION(\s|\.)' TO lt_regex.
 
-    LOOP AT lt_regex INTO ls_regex.
+    LOOP AT lt_regex INTO lv_regex.
       CREATE OBJECT lo_regex
         EXPORTING
-          pattern     = ls_regex
+          pattern     = lv_regex
           ignore_case = abap_true.
       APPEND lo_regex TO rt_regex_set.
     ENDLOOP.
@@ -30395,11 +30394,11 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch,
           lv_msg    TYPE string,
-          lo_popups TYPE REF TO zif_abapgit_popups.
+          li_popups TYPE REF TO zif_abapgit_popups.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    lo_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    ls_branch = lo_popups->branch_list_popup( iv_url         = lo_repo->get_url( )
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    ls_branch = li_popups->branch_list_popup( iv_url         = lo_repo->get_url( )
                                               iv_hide_branch = lo_repo->get_branch_name( )
                                               iv_hide_head   = abap_true ).
     IF ls_branch IS INITIAL.
@@ -30615,11 +30614,11 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     DATA:
       lv_answer           TYPE char1,
       ls_settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
-      lo_user_persistence TYPE REF TO zif_abapgit_persist_user.
+      li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
-    lo_user_persistence = zcl_abapgit_persistence_user=>get_instance( ).
+    li_user_persistence = zcl_abapgit_persistence_user=>get_instance( ).
 
-    ls_settings = lo_user_persistence->get_settings( ).
+    ls_settings = li_user_persistence->get_settings( ).
 
     IF ls_settings-hide_sapgui_hint = abap_true.
       RETURN.
@@ -30640,7 +30639,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
     IF lv_answer = lc_hide_sapgui_hint.
       ls_settings-hide_sapgui_hint = abap_true.
-      lo_user_persistence->set_settings( ls_settings ).
+      li_user_persistence->set_settings( ls_settings ).
     ENDIF.
 
   ENDMETHOD.
@@ -30684,7 +30683,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     DATA: ls_item    TYPE zif_abapgit_definitions=>ty_item,
           lr_context TYPE REF TO data,
           lt_fields  TYPE tihttpnvp.
-    FIELD-SYMBOLS: <ls_context>    TYPE any,
+    FIELD-SYMBOLS: <lg_context>    TYPE any,
                    <lv_parameters> TYPE string,
                    <ls_field>      LIKE LINE OF lt_fields.
 
@@ -30699,15 +30698,15 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     TRY.
         CREATE DATA lr_context TYPE ('CL_ADT_GUI_INTEGRATION_CONTEXT=>TY_CONTEXT_INFO').
 
-        ASSIGN lr_context->* TO <ls_context>.
+        ASSIGN lr_context->* TO <lg_context>.
         ASSERT sy-subrc = 0.
 
         CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>read_context
           RECEIVING
-            result = <ls_context>.
+            result = <lg_context>.
 
         ASSIGN COMPONENT 'PARAMETERS'
-               OF STRUCTURE <ls_context>
+               OF STRUCTURE <lg_context>
                TO <lv_parameters>.
         ASSERT sy-subrc = 0.
 
@@ -30723,7 +30722,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
           CLEAR <lv_parameters>.
           CALL METHOD ('CL_ADT_GUI_INTEGRATION_CONTEXT')=>initialize_instance
             EXPORTING
-              context_info = <ls_context>.
+              context_info = <lg_context>.
 
         ENDIF.
 
@@ -30836,15 +30835,15 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
           lt_r_package     TYPE RANGE OF devclass,
           ls_r_package     LIKE LINE OF lt_r_package,
           lt_superpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-          lo_package       TYPE REF TO zif_abapgit_sap_package,
+          li_package       TYPE REF TO zif_abapgit_sap_package,
           lt_repo_list     TYPE zif_abapgit_definitions=>ty_repo_ref_tt.
 
     FIELD-SYMBOLS: <lo_repo>         TYPE LINE OF zif_abapgit_definitions=>ty_repo_ref_tt,
                    <lv_superpackage> LIKE LINE OF lt_superpackages.
 
-    lo_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+    li_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
 
-    IF lo_package->exists( ) = abap_false.
+    IF li_package->exists( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -30855,7 +30854,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
     " Also consider superpackages. E.g. when some open $abapgit_ui, abapGit repo
     " should be found via package $abapgit
-    lt_superpackages = lo_package->list_superpackages( ).
+    lt_superpackages = li_package->list_superpackages( ).
     LOOP AT lt_superpackages ASSIGNING <lv_superpackage>.
       ls_r_package-low = <lv_superpackage>.
       INSERT ls_r_package INTO TABLE lt_r_package.
@@ -32864,7 +32863,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_local_intf_implementations.
 
-    DATA: lt_type_infos             TYPE saboo_vseot,
+    DATA: ls_type_infos             TYPE saboo_vseot,
           lt_method_implementations TYPE saboo_method_impl_tab,
           lt_source                 TYPE saboo_sourt.
 
@@ -32877,7 +32876,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
 
       CALL FUNCTION 'SCAN_ABAP_OBJECTS_CLASSES'
         CHANGING
-          vseo_tabs                   = lt_type_infos
+          vseo_tabs                   = ls_type_infos
           method_impls                = lt_method_implementations
           sourc_tab                   = lt_source
         EXCEPTIONS
@@ -32888,7 +32887,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
-      gt_interface_implementations = lt_type_infos-iimpl_tab.
+      gt_interface_implementations = ls_type_infos-iimpl_tab.
 
     ENDIF.
 
@@ -32960,11 +32959,11 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<div class="tutorial">' ).
-    ro_html->add( render_content( ) ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="tutorial">' ).
+    ri_html->add( render_content( ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -33294,8 +33293,6 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
 
     DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
           lv_package  TYPE devclass.
-
-    super->constructor( ).
 
     mv_key           = iv_key.
     mo_repo          = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -33714,7 +33711,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
-    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     TRY.
 
@@ -33740,74 +33737,74 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
                                      CHANGING cv_prev = lv_rstate ).
         ENDLOOP.
 
-        ro_html->add( render_head_line( iv_lstate = lv_lstate
+        ri_html->add( render_head_line( iv_lstate = lv_lstate
                                         iv_rstate = lv_rstate ) ).
 
         li_log = lo_browser->get_log( ).
         IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
-          ro_html->add( '<div class="log">' ).
-          ro_html->add( zcl_abapgit_log_viewer=>to_html( li_log ) ). " shows eg. list of unsupported objects
-          ro_html->add( '</div>' ).
+          ri_html->add( '<div class="log">' ).
+          ri_html->add( zcl_abapgit_log_viewer=>to_html( li_log ) ). " shows eg. list of unsupported objects
+          ri_html->add( '</div>' ).
         ENDIF.
 
-        ro_html->add( '<div class="repo_container">' ).
+        ri_html->add( '<div class="repo_container">' ).
 
         " Offline match banner
         IF mo_repo->is_offline( ) = abap_true
             AND mo_repo->has_remote_source( ) = abap_true
             AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
-          ro_html->add(
+          ri_html->add(
             |<div class="repo_banner panel success">|
             && |ZIP source is attached and completely <b>matches</b> to the local state|
             && |</div>| ).
         ENDIF.
 
         " Repo content table
-        ro_html->add( '<table class="repo_tab">' ).
+        ri_html->add( '<table class="repo_tab">' ).
 
         IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
-          ro_html->add( render_parent_dir( ) ).
+          ri_html->add( render_parent_dir( ) ).
         ENDIF.
 
         IF mv_show_order_by = abap_true.
-          ro_html->add( render_order_by( ) ).
+          ri_html->add( render_order_by( ) ).
         ENDIF.
 
         IF lines( lt_repo_items ) = 0.
-          ro_html->add( render_empty_package( ) ).
+          ri_html->add( render_empty_package( ) ).
         ELSE.
           LOOP AT lt_repo_items ASSIGNING <ls_item>.
             IF mv_max_lines > 0 AND sy-tabix > mv_max_lines.
               lv_max = abap_true.
               EXIT. " current loop
             ENDIF.
-            ro_html->add( render_item( is_item = <ls_item> iv_render_transports = lv_render_transports ) ).
+            ri_html->add( render_item( is_item = <ls_item> iv_render_transports = lv_render_transports ) ).
           ENDLOOP.
         ENDIF.
 
-        ro_html->add( '</table>' ).
+        ri_html->add( '</table>' ).
 
         IF lv_max = abap_true.
-          ro_html->add( '<div class = "dummydiv">' ).
+          ri_html->add( '<div class = "dummydiv">' ).
           IF mv_max_lines = 1.
             lv_max_str = '1 object'.
           ELSE.
             lv_max_str = |first { mv_max_lines } objects|.
           ENDIF.
           lv_add_str = |+{ mv_max_setting }|.
-          ro_html->add( |Only { lv_max_str } shown in list. Display {
+          ri_html->add( |Only { lv_max_str } shown in list. Display {
             zcl_abapgit_html=>a( iv_txt = lv_add_str iv_act = c_actions-display_more )
             } more. (Set in Advanced > {
             zcl_abapgit_html=>a( iv_txt = 'Settings' iv_act = zif_abapgit_definitions=>c_action-go_settings )
             } )| ).
-          ro_html->add( '</div>' ).
+          ri_html->add( '</div>' ).
         ENDIF.
 
-        ro_html->add( '</div>' ).
+        ri_html->add( '</div>' ).
 
       CATCH zcx_abapgit_exception INTO lx_error.
-        ro_html->add( render_head_line( iv_lstate = lv_lstate iv_rstate = lv_rstate ) ).
-        ro_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
+        ri_html->add( render_head_line( iv_lstate = lv_lstate iv_rstate = lv_rstate ) ).
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
     ENDTRY.
 
   ENDMETHOD.
@@ -33828,7 +33825,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
     CASE is_event_data-action.
@@ -33867,21 +33864,21 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
     DATA:
       lv_path    TYPE string,
       lv_default TYPE string,
-      lo_fe_serv TYPE REF TO zif_abapgit_frontend_services,
+      li_fe_serv TYPE REF TO zif_abapgit_frontend_services,
       lv_package TYPE devclass.
 
     lv_package = iv_package.
     TRANSLATE lv_package USING '/#'.
     CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
 
-    lo_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+    li_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
-    lv_path = lo_fe_serv->show_file_save_dialog(
+    lv_path = li_fe_serv->show_file_save_dialog(
       iv_title            = 'Export ZIP'
       iv_extension        = 'zip'
       iv_default_filename = lv_default ).
 
-    lo_fe_serv->file_download(
+    li_fe_serv->file_download(
       iv_path = lv_path
       iv_xstr = iv_xstr ).
 
@@ -34722,7 +34719,7 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   METHOD zif_abapgit_gui_renderable~render.
 
     ms_control-page_menu = build_menu( ).
-    ro_html = super->zif_abapgit_gui_renderable~render( ).
+    ri_html = super->zif_abapgit_gui_renderable~render( ).
 
   ENDMETHOD.
 
@@ -38404,9 +38401,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD render_patch.
 
     CONSTANTS:
-      BEGIN OF c_css_class,
+      BEGIN OF lc_css_class,
         patch TYPE string VALUE `patch` ##NO_TEXT,
-      END OF c_css_class.
+      END OF lc_css_class.
 
     DATA: lv_id      TYPE string,
           lv_patched TYPE abap_bool.
@@ -38417,7 +38414,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
       lv_id = |{ iv_filename }_{ mv_section_count }_{ iv_index }|.
 
-      io_html->add( |<td class="{ c_css_class-patch }">| ).
+      io_html->add( |<td class="{ lc_css_class-patch }">| ).
       io_html->add_checkbox(
           iv_id      = |patch_line_{ lv_id }|
           iv_checked = lv_patched ).
@@ -38425,7 +38422,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     ELSE.
 
-      io_html->add( |<td class="{ c_css_class-patch }">| ).
+      io_html->add( |<td class="{ lc_css_class-patch }">| ).
       io_html->add( |</td>| ).
 
     ENDIF.
@@ -39379,7 +39376,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD zif_abapgit_gui_renderable~render.
 
     ms_control-page_menu = build_menu( ).
-    ro_html = super->zif_abapgit_gui_renderable~render( ).
+    ri_html = super->zif_abapgit_gui_renderable~render( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -40330,42 +40327,42 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     " Redirect
     IF ms_control-redirect_url IS NOT INITIAL.
-      ro_html = redirect( ).
+      ri_html = redirect( ).
       RETURN.
     ENDIF.
 
     mt_hotkeys = define_hotkeys( ).
 
     " Real page
-    CREATE OBJECT ro_html TYPE zcl_abapgit_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
-    ro_html->add( '<html>' ).                               "#EC NOTEXT
-    ro_html->add( html_head( ) ).
-    ro_html->add( '<body>' ).                               "#EC NOTEXT
-    ro_html->add( title( ) ).
-    ro_html->add( render_hotkey_overview( ) ).
-    ro_html->add( render_content( ) ).
-    ro_html->add( render_error_message_box( ) ).
+    ri_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
+    ri_html->add( '<html>' ).                               "#EC NOTEXT
+    ri_html->add( html_head( ) ).
+    ri_html->add( '<body>' ).                               "#EC NOTEXT
+    ri_html->add( title( ) ).
+    ri_html->add( render_hotkey_overview( ) ).
+    ri_html->add( render_content( ) ).
+    ri_html->add( render_error_message_box( ) ).
 
     lt_events = me->get_events( ).
     LOOP AT lt_events ASSIGNING <ls_event>.
-      ro_html->add( render_event_as_form( <ls_event> ) ).
+      ri_html->add( render_event_as_form( <ls_event> ) ).
     ENDLOOP.
 
-    ro_html->add( footer( ) ).
-    ro_html->add( '</body>' ).                              "#EC NOTEXT
+    ri_html->add( footer( ) ).
+    ri_html->add( '</body>' ).                              "#EC NOTEXT
 
     lo_script = scripts( ).
 
     IF lo_script IS BOUND AND lo_script->is_empty( ) = abap_false.
-      ro_html->add( '<script type="text/javascript">' ).
-      ro_html->add( lo_script ).
-      ro_html->add( 'confirmInitialized();' ).
-      ro_html->add( '</script>' ).
+      ri_html->add( '<script type="text/javascript">' ).
+      ri_html->add( lo_script ).
+      ri_html->add( 'confirmInitialized();' ).
+      ri_html->add( '</script>' ).
     ENDIF.
 
-    ro_html->add( '</html>' ).                              "#EC NOTEXT
+    ri_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
 ENDCLASS.
@@ -41997,8 +41994,8 @@ CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
     DATA lv_len TYPE i.
     DATA lv_cur TYPE i.
 
-    DATA lc_css_build TYPE string VALUE '<link rel="stylesheet" type="text/css" href="$BUILD_NAME">'.
-    REPLACE FIRST OCCURRENCE OF '$BUILD_NAME' IN lc_css_build WITH c_css_build_name. " Mmmm
+    DATA lv_css_build TYPE string VALUE '<link rel="stylesheet" type="text/css" href="$BUILD_NAME">'.
+    REPLACE FIRST OCCURRENCE OF '$BUILD_NAME' IN lv_css_build WITH c_css_build_name. " Mmmm
 
     CLEAR: ev_html, et_css_urls.
 
@@ -42029,7 +42026,7 @@ CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
         && c_preprocess_marker
         && cl_abap_char_utilities=>newline
         && `    `.
-      ev_html = ev_html && lv_marker && lc_css_build.
+      ev_html = ev_html && lv_marker && lv_css_build.
     ENDIF.
     ev_html = ev_html && substring( val = iv_html off = lv_head_end ).
 
@@ -42452,7 +42449,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       CLEAR mt_stack.
     ENDIF.
 
-    mi_cur_page = io_page.
+    mi_cur_page = ii_page.
     render( ).
 
   ENDMETHOD.
@@ -43575,8 +43572,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       ls_persistent_meta TYPE zif_abapgit_persistence=>ty_repo.
 
     FIELD-SYMBOLS <lv_field>   LIKE LINE OF mt_meta_fields.
-    FIELD-SYMBOLS <lv_dst>     TYPE any.
-    FIELD-SYMBOLS <lv_src>     TYPE any.
+    FIELD-SYMBOLS <lg_dst>     TYPE any.
+    FIELD-SYMBOLS <lg_src>     TYPE any.
     FIELD-SYMBOLS <lv_changed> TYPE abap_bool.
 
     ASSERT NOT iv_key IS INITIAL.
@@ -43601,11 +43598,11 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       ASSIGN COMPONENT <lv_field> OF STRUCTURE is_change_mask TO <lv_changed>.
       ASSERT sy-subrc = 0.
       CHECK <lv_changed> = abap_true.
-      ASSIGN COMPONENT <lv_field> OF STRUCTURE ls_persistent_meta TO <lv_dst>.
+      ASSIGN COMPONENT <lv_field> OF STRUCTURE ls_persistent_meta TO <lg_dst>.
       ASSERT sy-subrc = 0.
-      ASSIGN COMPONENT <lv_field> OF STRUCTURE is_meta TO <lv_src>.
+      ASSIGN COMPONENT <lv_field> OF STRUCTURE is_meta TO <lg_src>.
       ASSERT sy-subrc = 0.
-      <lv_dst> = <lv_src>.
+      <lg_dst> = <lg_src>.
     ENDLOOP.
 
     lv_blob = to_xml( ls_persistent_meta ).
@@ -44528,16 +44525,16 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_oo_factory IMPLEMENTATION.
   METHOD make.
     IF gi_object_oriented_object IS BOUND.
-      ro_object_oriented_object = gi_object_oriented_object.
+      ri_object_oriented_object = gi_object_oriented_object.
       RETURN.
     ENDIF.
     IF iv_object_type = 'CLAS'.
-      CREATE OBJECT ro_object_oriented_object TYPE zcl_abapgit_oo_class.
+      CREATE OBJECT ri_object_oriented_object TYPE zcl_abapgit_oo_class.
     ELSEIF iv_object_type = 'INTF'.
-      CREATE OBJECT ro_object_oriented_object TYPE zcl_abapgit_oo_interface.
+      CREATE OBJECT ri_object_oriented_object TYPE zcl_abapgit_oo_interface.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
@@ -45443,9 +45440,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
     DATA: lv_object       TYPE string,
           lv_object_class TYPE string.
 
-    IF iv_object_class IS NOT INITIAL.
-      lv_object_class = iv_object_class.
-      IF iv_object_class = 'DICT'.
+    IF ig_object_class IS NOT INITIAL.
+      lv_object_class = ig_object_class.
+      IF ig_object_class = 'DICT'.
         CONCATENATE ms_item-obj_type ms_item-obj_name INTO lv_object.
       ELSE.
         lv_object = ms_item-obj_name.
@@ -45644,18 +45641,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
   METHOD create_channel_objects.
 
     get_names( ).
 
     TRY.
-        IF mo_appl_obj_data IS NOT BOUND.
-          CREATE OBJECT mo_appl_obj_data TYPE (mv_appl_obj_cls_name).
+        IF mi_appl_obj_data IS NOT BOUND.
+          CREATE OBJECT mi_appl_obj_data TYPE (mv_appl_obj_cls_name).
         ENDIF.
 
-        IF mo_persistence IS NOT BOUND.
-          CREATE OBJECT mo_persistence TYPE (mv_persistence_cls_name).
+        IF mi_persistence IS NOT BOUND.
+          CREATE OBJECT mi_persistence TYPE (mv_persistence_cls_name).
         ENDIF.
 
       CATCH cx_root.
@@ -45670,18 +45667,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     lv_object_key = ms_item-obj_name.
 
     TRY.
-        mo_persistence->get(
+        mi_persistence->get(
           EXPORTING
             p_object_key  = lv_object_key
             p_version     = 'A'
           CHANGING
-            p_object_data = mo_appl_obj_data ).
+            p_object_data = mi_appl_obj_data ).
 
       CATCH cx_root.
         zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
     ENDTRY.
 
-    mo_appl_obj_data->get_data( IMPORTING p_data = eg_data ).
+    mi_appl_obj_data->get_data( IMPORTING p_data = eg_data ).
 
   ENDMETHOD.
   METHOD get_names.
@@ -45708,7 +45705,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     lv_object_key = ms_item-obj_name.
     lv_objtype    = ms_item-obj_type.
 
-    mo_persistence->lock(
+    mi_persistence->lock(
       EXPORTING
         p_objname_tr   = lv_objname
         p_object_key   = lv_object_key
@@ -45733,7 +45730,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     lv_object_key = ms_item-obj_name.
     lv_objtype    = ms_item-obj_type.
 
-    mo_persistence->unlock( p_objname_tr = lv_objname
+    mi_persistence->unlock( p_objname_tr = lv_objname
                             p_object_key = lv_object_key
                             p_objtype_tr = lv_objtype ).
 
@@ -45781,7 +45778,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     TRY.
         lock( ).
 
-        mo_persistence->delete( lv_object_key ).
+        mi_persistence->delete( lv_object_key ).
 
         unlock( ).
 
@@ -45838,9 +45835,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
           zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
         ENDIF.
 
-        mo_appl_obj_data->set_data( <lg_data> ).
+        mi_appl_obj_data->set_data( <lg_data> ).
 
-        mo_persistence->save( mo_appl_obj_data ).
+        mi_persistence->save( mi_appl_obj_data ).
 
         unlock( ).
 
@@ -45858,7 +45855,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SAXX_SUPER IMPLEMENTATION.
     lv_object_key = ms_item-obj_name.
 
     TRY.
-        mo_persistence->get( p_object_key           = lv_object_key
+        mi_persistence->get( p_object_key           = lv_object_key
                              p_version              = 'A'
                              p_existence_check_only = abap_true ).
 
@@ -47946,21 +47943,21 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     " Reimplement FM RS_DD_INDX_DELETE as it calls the UI
 
-    DATA: lv_enqueue      TYPE ddenqs,
+    DATA: ls_enqueue      TYPE ddenqs,
           lv_protname     TYPE tstrf01-file,
-          lv_del_concname LIKE lv_enqueue-objname,
+          lv_del_concname LIKE ls_enqueue-objname,
           lv_concname     TYPE rsdxx-objname,
-          lv_transp_key   TYPE trkey,
+          ls_transp_key   TYPE trkey,
           ls_e071         TYPE e071,
           lv_clm_corrnum  TYPE e070-trkorr,
           lv_message      TYPE string.
 
     CONCATENATE mv_name '-' mv_id INTO lv_concname.
-    lv_enqueue-objtype = c_objtype_extension_index.
+    ls_enqueue-objtype = c_objtype_extension_index.
 
     CALL FUNCTION 'INT_INDX_DEL_LOCK'
       EXPORTING
-        i_trobjtype        = lv_enqueue-objtype
+        i_trobjtype        = ls_enqueue-objtype
         i_tabname          = mv_name
         i_indexname        = mv_id
       EXCEPTIONS
@@ -47973,15 +47970,15 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    lv_enqueue-objname = mv_name.
-    lv_enqueue-secname = mv_id.
+    ls_enqueue-objname = mv_name.
+    ls_enqueue-secname = mv_id.
     CALL FUNCTION 'RS_CORR_INSERT'
       EXPORTING
-        object        = lv_enqueue
+        object        = ls_enqueue
         object_class  = 'DICT'
         mode          = 'DELETE'
       IMPORTING
-        transport_key = lv_transp_key
+        transport_key = ls_transp_key
       EXCEPTIONS
         OTHERS        = 1.
 
@@ -47994,9 +47991,9 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     CALL FUNCTION 'DD_LOGNPROT_NAME_GET'
       EXPORTING
         task        = 'DEL'
-        obj_type    = lv_enqueue-objtype
-        obj_name    = lv_enqueue-objname
-        ind_name    = lv_enqueue-secname
+        obj_type    = ls_enqueue-objtype
+        obj_name    = ls_enqueue-objname
+        ind_name    = ls_enqueue-secname
       IMPORTING
         protname    = lv_protname
       EXCEPTIONS
@@ -48004,12 +48001,12 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     PERFORM logdelete IN PROGRAM rddu0001 USING lv_protname.
 
-    lv_del_concname = lv_enqueue-objname.
-    lv_del_concname+16 = lv_enqueue-secname.
+    lv_del_concname = ls_enqueue-objname.
+    lv_del_concname+16 = ls_enqueue-secname.
     CALL FUNCTION 'DD_OBJ_DEL'
       EXPORTING
         object_name = lv_del_concname
-        object_type = lv_enqueue-objtype
+        object_type = ls_enqueue-objtype
         del_state   = 'M'
       EXCEPTIONS
         OTHERS      = 1.
@@ -48020,9 +48017,9 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     CALL FUNCTION 'DD_DD_TO_E071'
       EXPORTING
-        type          = lv_enqueue-objtype
-        name          = lv_enqueue-objname
-        id            = lv_enqueue-secname
+        type          = ls_enqueue-objtype
+        name          = ls_enqueue-objname
+        id            = ls_enqueue-secname
       IMPORTING
         obj_name      = ls_e071-obj_name
       EXCEPTIONS
@@ -48035,7 +48032,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    ls_e071-object = lv_enqueue-objtype.
+    ls_e071-object = ls_enqueue-objtype.
     CALL FUNCTION 'RS_DELETE_FROM_WORKING_AREA'
       EXPORTING
         object                 = ls_e071-object
@@ -48056,18 +48053,18 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     IF mv_id(1) CA 'YZ'.
       CALL FUNCTION 'CLM_INDX_MODIFICATION_DELETE'
         EXPORTING
-          idxobj_name   = lv_enqueue-objname
-          idx_type      = lv_enqueue-objtype
+          idxobj_name   = ls_enqueue-objname
+          idx_type      = ls_enqueue-objtype
           idx_name      = mv_id
-          transport_key = lv_transp_key
+          transport_key = ls_transp_key
           corrnum       = lv_clm_corrnum.
     ENDIF.
 
     CALL FUNCTION 'RS_DD_DEQUEUE'
       EXPORTING
-        objtype = lv_enqueue-objtype
-        objname = lv_enqueue-objname
-        secname = lv_enqueue-secname.
+        objtype = ls_enqueue-objtype
+        objname = ls_enqueue-objname
+        secname = ls_enqueue-secname.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -48124,19 +48121,19 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lv_dd12v TYPE dd12v.
+    DATA: ls_dd12v TYPE dd12v.
 
     CALL FUNCTION 'DDIF_INDX_GET'
       EXPORTING
         name          = mv_name
         id            = mv_id
       IMPORTING
-        dd12v_wa      = lv_dd12v
+        dd12v_wa      = ls_dd12v
       EXCEPTIONS
         illegal_input = 1
         OTHERS        = 2.
 
-    rv_bool = boolc( lv_dd12v IS NOT INITIAL ).
+    rv_bool = boolc( ls_dd12v IS NOT INITIAL ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -50624,7 +50621,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD28V_TABLE'
                   CHANGING cg_data = lt_dd28v ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -52581,7 +52578,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD43V'
                   CHANGING cg_data = lt_dd43v ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -54095,9 +54092,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       ENDIF.
 
       zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
-                                 CHANGING cs_structure = ls_segment_definition-segmentdefinition ).
+                                 CHANGING cg_structure = ls_segment_definition-segmentdefinition ).
       zcl_abapgit_object_idoc=>clear_idoc_segement_fields(
-                                 CHANGING cs_structure = ls_segment_definition-segmentheader ).
+                                 CHANGING cg_structure = ls_segment_definition-segmentheader ).
 
       APPEND ls_segment_definition TO lt_segment_definitions.
     ENDLOOP.
@@ -54247,7 +54244,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
       io_xml->read( EXPORTING iv_name = 'DD36M'
                     CHANGING cg_data = lt_dd36m ).
 
-      corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+      corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
       lv_name = ms_item-obj_name. " type conversion
 
@@ -54803,14 +54800,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
       lo_suso                TYPE REF TO object,
       lv_failed              TYPE abap_bool,
       lv_suso_collect_in_cts TYPE i,
-      lv_clskey              TYPE seoclskey.
+      ls_clskey              TYPE seoclskey.
 
     " Downport: CL_SUSO_GEN doesn't exist in 702
-    lv_clskey-clsname = |CL_SUSO_GEN|.
+    ls_clskey-clsname = |CL_SUSO_GEN|.
 
     CALL FUNCTION 'SEO_CLASS_EXISTENCE_CHECK'
       EXPORTING
-        clskey        = lv_clskey
+        clskey        = ls_clskey
       EXCEPTIONS
         not_specified = 1
         not_existing  = 2
@@ -56854,7 +56851,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
           lv_source_langu          TYPE spras,
           ls_header                TYPE btfr_head,
           lv_flag_is_string        TYPE btfr_flag VALUE abap_true,
-          lv_text_tab              TYPE sotr_text_tt,
+          lt_text_tab              TYPE sotr_text_tt,
           lv_concept_default       TYPE sotr_conc,
           lt_entries               TYPE sotr_textl_tt,
           lv_concept               LIKE is_sots-header-concept,
@@ -56874,7 +56871,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
             lv_source_langu
             lv_flag_correction_entry
             lv_flag_is_string
-      CHANGING lv_text_tab
+      CHANGING lt_text_tab
                lt_entries
                ls_header
                lv_concept
@@ -57180,41 +57177,41 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
       lo_template TYPE REF TO object.
 
     FIELD-SYMBOLS:
-      <ls_template>    TYPE data,
-      <ls_header>      TYPE data,
+      <lg_template>    TYPE data,
+      <lg_header>      TYPE data,
       <lt_header>      TYPE INDEX TABLE,
       <lt_content>     TYPE INDEX TABLE,
-      <lv_name>        TYPE data,
-      <lv_description> TYPE data,
-      <lv_header_text> TYPE data.
+      <lg_name>        TYPE data,
+      <lg_description> TYPE data,
+      <lg_header_text> TYPE data.
 
     mo_structdescr = get_structure( ).
 
     CREATE DATA lr_template TYPE HANDLE mo_structdescr.
-    ASSIGN lr_template->* TO <ls_template>.
+    ASSIGN lr_template->* TO <lg_template>.
     ASSERT sy-subrc = 0.
 
     io_xml->read(
       EXPORTING
         iv_name = 'SMTG'
       CHANGING
-        cg_data = <ls_template> ).
+        cg_data = <lg_template> ).
 
     ASSIGN
       COMPONENT 'HEADER'
-      OF STRUCTURE <ls_template>
-      TO <ls_header>.
+      OF STRUCTURE <lg_template>
+      TO <lg_header>.
     ASSERT sy-subrc = 0.
 
     ASSIGN
       COMPONENT 'HEADER_T'
-      OF STRUCTURE <ls_template>
+      OF STRUCTURE <lg_template>
       TO <lt_header>.
     ASSERT sy-subrc = 0.
 
     ASSIGN
       COMPONENT 'CONTENT'
-      OF STRUCTURE <ls_template>
+      OF STRUCTURE <lg_template>
       TO <lt_content>.
     ASSERT sy-subrc = 0.
 
@@ -57228,7 +57225,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
         ELSE.
           CALL METHOD ('CL_SMTG_EMAIL_TEMPLATE')=>create
             EXPORTING
-              is_tmpl_hdr       = <ls_header>
+              is_tmpl_hdr       = <lg_header>
             RECEIVING
               ro_email_template = lo_template.
         ENDIF.
@@ -57237,25 +57234,25 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
           EXPORTING
             it_tmpl_cont = <lt_content>.
 
-        READ TABLE <lt_header> ASSIGNING <lv_header_text>
+        READ TABLE <lt_header> ASSIGNING <lg_header_text>
                                INDEX 1.
         IF sy-subrc = 0.
           ASSIGN
             COMPONENT 'NAME'
-            OF STRUCTURE <lv_header_text>
-            TO <lv_name>.
+            OF STRUCTURE <lg_header_text>
+            TO <lg_name>.
           ASSERT sy-subrc = 0.
 
           ASSIGN
             COMPONENT 'DESCRIPTION'
-            OF STRUCTURE <lv_header_text>
-            TO <lv_description>.
+            OF STRUCTURE <lg_header_text>
+            TO <lg_description>.
           ASSERT sy-subrc = 0.
 
           CALL METHOD lo_template->('IF_SMTG_EMAIL_TEMPLATE~SET_TEXT')
             EXPORTING
-              iv_name        = <lv_name>
-              iv_description = <lv_description>.
+              iv_name        = <lg_name>
+              iv_description = <lg_description>.
         ENDIF.
 
         tadir_insert( iv_package ).
@@ -57330,32 +57327,32 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
       lo_template TYPE REF TO object.
 
     FIELD-SYMBOLS:
-      <ls_template> TYPE data,
-      <ls_header>   TYPE data,
+      <lg_template> TYPE data,
+      <lg_header>   TYPE data,
       <lt_header>   TYPE INDEX TABLE,
       <lt_content>  TYPE INDEX TABLE.
 
     mo_structdescr = get_structure( ).
 
     CREATE DATA lr_template TYPE HANDLE mo_structdescr.
-    ASSIGN lr_template->* TO <ls_template>.
+    ASSIGN lr_template->* TO <lg_template>.
     ASSERT sy-subrc = 0.
 
     ASSIGN
       COMPONENT 'HEADER'
-      OF STRUCTURE <ls_template>
-      TO <ls_header>.
+      OF STRUCTURE <lg_template>
+      TO <lg_header>.
     ASSERT sy-subrc = 0.
 
     ASSIGN
       COMPONENT 'HEADER_T'
-      OF STRUCTURE <ls_template>
+      OF STRUCTURE <lg_template>
       TO <lt_header>.
     ASSERT sy-subrc = 0.
 
     ASSIGN
       COMPONENT 'CONTENT'
-      OF STRUCTURE <ls_template>
+      OF STRUCTURE <lg_template>
       TO <lt_content>.
     ASSERT sy-subrc = 0.
 
@@ -57368,7 +57365,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
 
         CALL METHOD lo_template->('IF_SMTG_EMAIL_TEMPLATE~GET_TMPL_HDR')
           RECEIVING
-            rs_tmpl_hdr = <ls_header>.
+            rs_tmpl_hdr = <lg_header>.
 
         CALL METHOD lo_template->('IF_SMTG_EMAIL_TEMPLATE~GET_TMPL_HDR_T_ALL')
           RECEIVING
@@ -57378,14 +57375,14 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
           RECEIVING
             rt_tmpl_cont = <lt_content>.
 
-        clear_field( EXPORTING iv_fieldname = 'CREA_DATE_TIME'   CHANGING cs_header = <ls_header> ).
-        clear_field( EXPORTING iv_fieldname = 'CREA_USER_ACCT'   CHANGING cs_header = <ls_header> ).
-        clear_field( EXPORTING iv_fieldname = 'LST_CH_DATE_TIME' CHANGING cs_header = <ls_header> ).
-        clear_field( EXPORTING iv_fieldname = 'LST_CH_USER_ACCT' CHANGING cs_header = <ls_header> ).
+        clear_field( EXPORTING iv_fieldname = 'CREA_DATE_TIME'   CHANGING cg_header = <lg_header> ).
+        clear_field( EXPORTING iv_fieldname = 'CREA_USER_ACCT'   CHANGING cg_header = <lg_header> ).
+        clear_field( EXPORTING iv_fieldname = 'LST_CH_DATE_TIME' CHANGING cg_header = <lg_header> ).
+        clear_field( EXPORTING iv_fieldname = 'LST_CH_USER_ACCT' CHANGING cg_header = <lg_header> ).
 
         io_xml->add(
             iv_name = 'SMTG'
-            ig_data = <ls_template> ).
+            ig_data = <lg_template> ).
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise(
@@ -57396,15 +57393,15 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
   ENDMETHOD.
   METHOD clear_field.
 
-    FIELD-SYMBOLS: <lv_field> TYPE data.
+    FIELD-SYMBOLS: <lg_field> TYPE data.
 
     ASSIGN
       COMPONENT iv_fieldname
-      OF STRUCTURE cs_header
-      TO <lv_field>.
+      OF STRUCTURE cg_header
+      TO <lg_field>.
     ASSERT sy-subrc = 0.
 
-    CLEAR: <lv_field>.
+    CLEAR: <lg_field>.
 
   ENDMETHOD.
   METHOD get_structure.
@@ -58515,7 +58512,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD33V_TABLE'
                   CHANGING cg_data = lt_dd33v ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name.
 
@@ -61057,7 +61054,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
     mi_interface->add_elements(
       EXPORTING
-        i_elements_data        = is_elements_data
+        i_elements_data        = it_elements_data
       EXCEPTIONS
         object_invalid         = 1
         intern_err             = 2
@@ -61767,8 +61764,8 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
           ls_return  TYPE bapiret2,
           lr_details TYPE REF TO data.
 
-    FIELD-SYMBOLS: <ls_details> TYPE any,
-                   <lv_tstpnm>  TYPE any.
+    FIELD-SYMBOLS: <lg_details> TYPE any,
+                   <lg_tstpnm>  TYPE any.
 
     TRY.
         CREATE DATA lr_details TYPE ('BAPI6116').
@@ -61776,7 +61773,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |ODSO is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->* TO <ls_details>.
+    ASSIGN lr_details->* TO <lg_details>.
 
     lv_dsonam = ms_item-obj_name.
 
@@ -61784,16 +61781,16 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
       EXPORTING
         odsobject = lv_dsonam
       IMPORTING
-        details   = <ls_details>
+        details   = <lg_details>
         return    = ls_return.
 
     IF ls_return-type = 'E'.
       zcx_abapgit_exception=>raise( |Error when geting changed by of ODSO: { ls_return-message }| ).
     ENDIF.
 
-    ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <ls_details> TO <lv_tstpnm>.
+    ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <lg_details> TO <lg_tstpnm>.
 
-    rv_user = <lv_tstpnm>.
+    rv_user = <lg_tstpnm>.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -61853,7 +61850,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
           ls_return      TYPE bapiret2.
 
     FIELD-SYMBOLS:
-      <ls_details>     TYPE any,
+      <lg_details>     TYPE any,
       <lt_infoobjects> TYPE STANDARD TABLE,
       <lt_navigation>  TYPE STANDARD TABLE,
       <lt_indexes>     TYPE STANDARD TABLE,
@@ -61869,14 +61866,14 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |ODSO is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->*     TO <ls_details>.
+    ASSIGN lr_details->*     TO <lg_details>.
     ASSIGN lr_infoobjects->* TO <lt_infoobjects>.
     ASSIGN lr_navigation->*  TO <lt_navigation>.
     ASSIGN lr_indexes->*     TO <lt_indexes>.
     ASSIGN lr_index_iobj->*  TO <lt_index_iobj>.
 
     io_xml->read( EXPORTING iv_name = 'ODSO'
-                  CHANGING  cg_data = <ls_details> ).
+                  CHANGING  cg_data = <lg_details> ).
 
     io_xml->read( EXPORTING iv_name = 'INFOOBJECTS'
                   CHANGING  cg_data =  <lt_infoobjects> ).
@@ -61892,7 +61889,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
     TRY.
         CALL FUNCTION 'BAPI_ODSO_CREATE'
           EXPORTING
-            details              = <ls_details>
+            details              = <lg_details>
           IMPORTING
             odsobject            = lv_dsonam
           TABLES
@@ -61995,7 +61992,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
           ls_return      TYPE bapiret2.
 
     FIELD-SYMBOLS:
-      <ls_details>     TYPE any,
+      <lg_details>     TYPE any,
       <lt_infoobjects> TYPE STANDARD TABLE,
       <lt_navigation>  TYPE STANDARD TABLE,
       <lt_indexes>     TYPE STANDARD TABLE,
@@ -62011,7 +62008,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |ODSO is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->*     TO <ls_details>.
+    ASSIGN lr_details->*     TO <lg_details>.
     ASSIGN lr_infoobjects->* TO <lt_infoobjects>.
     ASSIGN lr_navigation->*  TO <lt_navigation>.
     ASSIGN lr_indexes->*     TO <lt_indexes>.
@@ -62023,7 +62020,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
       EXPORTING
         odsobject            = lv_dsonam
       IMPORTING
-        details              = <ls_details>
+        details              = <lg_details>
         return               = ls_return
       TABLES
         infoobjects          = <lt_infoobjects>
@@ -62036,19 +62033,19 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
     ENDIF.
 
     clear_field( EXPORTING iv_fieldname = 'TSTPNM'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     clear_field( EXPORTING iv_fieldname = 'TIMESTMP'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     clear_field( EXPORTING iv_fieldname = 'CONTTIMESTMP'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     clear_field( EXPORTING iv_fieldname = 'OWNER'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     io_xml->add( iv_name = 'ODSO'
-                 ig_data = <ls_details> ).
+                 ig_data = <lg_details> ).
 
     io_xml->add( iv_name = 'INFOOBJECTS'
                  ig_data = <lt_infoobjects> ).
@@ -62069,7 +62066,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_field> TYPE data.
 
     ASSIGN COMPONENT iv_fieldname
-           OF STRUCTURE cs_metadata
+           OF STRUCTURE cg_metadata
            TO <lg_field>.
     ASSERT sy-subrc = 0.
 
@@ -62519,7 +62516,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
-    DATA: lv_t100a          TYPE t100a,
+    DATA: ls_t100a          TYPE t100a,
           lv_frozen         TYPE abap_bool,
           lv_message_id     TYPE arbgb,
           lv_access_granted TYPE abap_bool.
@@ -62531,7 +62528,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."blank message id
     ENDIF.
 
-    SELECT SINGLE * FROM t100a INTO lv_t100a WHERE arbgb = ms_item-obj_name.
+    SELECT SINGLE * FROM t100a INTO ls_t100a WHERE arbgb = ms_item-obj_name.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."not found
     ENDIF.
@@ -63341,8 +63338,8 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
           lr_viobj TYPE REF TO data.
 
     FIELD-SYMBOLS:
-      <lv_tstpnm> TYPE any,
-      <ls_viobj>  TYPE any.
+      <lg_tstpnm> TYPE any,
+      <lg_viobj>  TYPE any.
 
     lv_objna = ms_item-obj_name.
 
@@ -63352,18 +63349,18 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |IOBJ is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_viobj->* TO <ls_viobj>.
+    ASSIGN lr_viobj->* TO <lg_viobj>.
 
     CALL FUNCTION 'RSD_IOBJ_GET'
       EXPORTING
         i_iobjnm  = lv_objna
         i_objvers = 'A'
       IMPORTING
-        e_s_viobj = <ls_viobj>.
+        e_s_viobj = <lg_viobj>.
 
-    ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <ls_viobj> TO <lv_tstpnm>.
+    ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <lg_viobj> TO <lg_tstpnm>.
 
-    rv_user = <lv_tstpnm>.
+    rv_user = <lg_tstpnm>.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -63431,7 +63428,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       lr_xxlattributes            TYPE REF TO data.
 
     FIELD-SYMBOLS:
-      <ls_details>                  TYPE any,
+      <lg_details>                  TYPE any,
       <lt_compounds>                TYPE STANDARD TABLE,
       <lt_attributes>               TYPE STANDARD TABLE,
       <lt_navigationattributes>     TYPE STANDARD TABLE,
@@ -63440,7 +63437,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       <lt_elimination>              TYPE STANDARD TABLE,
       <lt_hanafieldsmapping>        TYPE STANDARD TABLE,
       <lt_xxlattributes>            TYPE STANDARD TABLE,
-      <ls_infoobject>               TYPE data,
+      <lg_infoobject>               TYPE data,
       <lt_infoobjects>              TYPE STANDARD TABLE.
 
     TRY.
@@ -63458,7 +63455,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |IOBJ is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->* TO <ls_details>.
+    ASSIGN lr_details->* TO <lg_details>.
     ASSIGN lr_compounds->* TO <lt_compounds>.
     ASSIGN lr_attributes->* TO <lt_attributes>.
     ASSIGN lr_navigationattributes->* TO <lt_navigationattributes>.
@@ -63470,7 +63467,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     ASSIGN lr_infoobj->* TO <lt_infoobjects>.
 
     io_xml->read( EXPORTING iv_name = 'IOBJ'
-                  CHANGING cg_data = <ls_details> ).
+                  CHANGING cg_data = <lg_details> ).
 
     io_xml->read( EXPORTING iv_name = 'COMPOUNDS'
                   CHANGING  cg_data = <lt_compounds> ).
@@ -63500,7 +63497,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
         CALL FUNCTION 'BAPI_IOBJ_CREATE'
           EXPORTING
-            details                  = <ls_details>
+            details                  = <lg_details>
           IMPORTING
             return                   = ls_return
           TABLES
@@ -63519,11 +63516,11 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
         ASSIGN
           COMPONENT 'INFOOBJECT'
-          OF STRUCTURE <ls_details>
-          TO <ls_infoobject>.
+          OF STRUCTURE <lg_details>
+          TO <lg_infoobject>.
         ASSERT sy-subrc = 0.
 
-        APPEND <ls_infoobject> TO <lt_infoobjects>.
+        APPEND <lg_infoobject> TO <lt_infoobjects>.
 
         CALL FUNCTION 'BAPI_IOBJ_ACTIVATE_MULTIPLE'
           TABLES
@@ -63572,8 +63569,8 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
           lr_viobj TYPE REF TO data.
 
     FIELD-SYMBOLS:
-      <lv_objstat> TYPE any,
-      <ls_viobj>   TYPE any.
+      <lg_objstat> TYPE any,
+      <lg_viobj>   TYPE any.
 
     lv_objna = ms_item-obj_name.
 
@@ -63583,18 +63580,18 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |IOBJ is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_viobj->* TO <ls_viobj>.
+    ASSIGN lr_viobj->* TO <lg_viobj>.
 
     CALL FUNCTION 'RSD_IOBJ_GET'
       EXPORTING
         i_iobjnm  = lv_objna
         i_objvers = 'A'
       IMPORTING
-        e_s_viobj = <ls_viobj>.
+        e_s_viobj = <lg_viobj>.
 
-    ASSIGN COMPONENT 'OBJSTAT' OF STRUCTURE <ls_viobj> TO <lv_objstat>.
+    ASSIGN COMPONENT 'OBJSTAT' OF STRUCTURE <lg_viobj> TO <lg_objstat>.
 
-    IF <lv_objstat> = 'ACT' AND sy-subrc = 0.
+    IF <lg_objstat> = 'ACT' AND sy-subrc = 0.
       rv_active = abap_true.
     ENDIF.
 
@@ -63630,7 +63627,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       lr_xxlattributes            TYPE REF TO data.
 
     FIELD-SYMBOLS:
-      <ls_details>                  TYPE any,
+      <lg_details>                  TYPE any,
       <lt_compounds>                TYPE STANDARD TABLE,
       <lt_attributes>               TYPE STANDARD TABLE,
       <lt_navigationattributes>     TYPE STANDARD TABLE,
@@ -63654,7 +63651,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |IOBJ is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->* TO <ls_details>.
+    ASSIGN lr_details->* TO <lg_details>.
     ASSIGN lr_compounds->* TO <lt_compounds>.
     ASSIGN lr_attributes->* TO <lt_attributes>.
     ASSIGN lr_navigationattributes->* TO <lt_navigationattributes>.
@@ -63670,7 +63667,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       EXPORTING
         infoobject               = lv_iobjnam
       IMPORTING
-        details                  = <ls_details>
+        details                  = <lg_details>
         return                   = ls_return
       TABLES
         compounds                = <lt_compounds>
@@ -63687,16 +63684,16 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     ENDIF.
 
     clear_field( EXPORTING iv_fieldname = 'TSTPNM'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     clear_field( EXPORTING iv_fieldname = 'TIMESTMP'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     clear_field( EXPORTING iv_fieldname = 'DBROUTID'
-                 CHANGING  cs_metadata  = <ls_details> ).
+                 CHANGING  cg_metadata  = <lg_details> ).
 
     io_xml->add( iv_name = 'IOBJ'
-                 ig_data = <ls_details> ).
+                 ig_data = <lg_details> ).
 
     io_xml->add( iv_name = 'COMPOUNDS'
                  ig_data = <lt_compounds> ).
@@ -63728,7 +63725,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_field> TYPE data.
 
     ASSIGN COMPONENT iv_fieldname
-           OF STRUCTURE cs_metadata
+           OF STRUCTURE cg_metadata
            TO <lg_field>.
     ASSERT sy-subrc = 0.
 
@@ -64168,7 +64165,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    zcl_abapgit_object_idoc=>clear_idoc_segement_fields( CHANGING cs_structure = ls_extension-attributes ).
+    zcl_abapgit_object_idoc=>clear_idoc_segement_fields( CHANGING cg_structure = ls_extension-attributes ).
 
     io_xml->add( iv_name = c_dataname_iext
                  ig_data = ls_extension ).
@@ -64179,32 +64176,32 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
   METHOD clear_idoc_segement_field.
 
-    FIELD-SYMBOLS <lv_any_field> TYPE any.
+    FIELD-SYMBOLS <lg_any_field> TYPE any.
 
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_structure TO <lv_any_field>.
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cg_structure TO <lg_any_field>.
     IF sy-subrc = 0.
-      CLEAR <lv_any_field>.
+      CLEAR <lg_any_field>.
     ENDIF.
 
   ENDMETHOD.
   METHOD clear_idoc_segement_fields.
 
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'DEVC'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'PLAST'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'PWORK'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'PRESP'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'CREDATE'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'CRETIME'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'LDATE'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
     clear_idoc_segement_field( EXPORTING iv_fieldname = 'LTIME'
-                               CHANGING  cs_structure = cs_structure ).
+                               CHANGING  cg_structure = cg_structure ).
   ENDMETHOD.
   METHOD constructor.
 
@@ -64371,7 +64368,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    clear_idoc_segement_fields( CHANGING cs_structure = ls_idoc-attributes ).
+    clear_idoc_segement_fields( CHANGING cg_structure = ls_idoc-attributes ).
 
     io_xml->add( iv_name = 'IDOC'
                  ig_data = ls_idoc ).
@@ -64379,7 +64376,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_IAXU IMPLEMENTATION.
   METHOD read.
 
     DATA: ls_name TYPE iacikeyt.
@@ -64410,20 +64407,20 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
 
     DATA: lr_xml_api TYPE REF TO data.
 
-    FIELD-SYMBOLS: <lo_xml_api> TYPE any.
+    FIELD-SYMBOLS: <lg_xml_api> TYPE any.
 
     CREATE DATA lr_xml_api TYPE REF TO ('CL_W3_API_XML3').
-    ASSIGN lr_xml_api->* TO <lo_xml_api>.
+    ASSIGN lr_xml_api->* TO <lg_xml_api>.
     ASSERT sy-subrc = 0.
 
     CALL METHOD ('CL_W3_API_XML3')=>create_new
       EXPORTING
-        p_source_style_2006     = mc_source_style_2006
+        p_source_style_2006     = mv_source_style_2006
         p_xml_data              = is_attr
-        p_generator_class       = mc_generator_class
+        p_generator_class       = mv_generator_class
         p_program_name          = is_attr-programm
       IMPORTING
-        p_xml                   = <lo_xml_api>
+        p_xml                   = <lg_xml_api>
       EXCEPTIONS
         undefined_name          = 1
         error_occured           = 2
@@ -64436,7 +64433,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from w3_api_xml3~create_new subrc={ sy-subrc }| ).
     ENDIF.
 
-    ro_xml_api ?= <lo_xml_api>.
+    ro_xml_api ?= <lg_xml_api>.
 
   ENDMETHOD.
   METHOD w3_api_delete.
@@ -64458,10 +64455,10 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
 
     DATA: lr_xml_api TYPE REF TO data.
 
-    FIELD-SYMBOLS: <lo_xml_api> TYPE any.
+    FIELD-SYMBOLS: <lg_xml_api> TYPE any.
 
     CREATE DATA lr_xml_api TYPE REF TO ('CL_W3_API_XML3').
-    ASSIGN lr_xml_api->* TO <lo_xml_api>.
+    ASSIGN lr_xml_api->* TO <lg_xml_api>.
     ASSERT sy-subrc = 0.
 
     CALL METHOD ('CL_W3_API_XML3')=>load
@@ -64469,7 +64466,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
         p_xml_name          = is_name
       IMPORTING
         p_attributes        = es_attr
-        p_xml               = <lo_xml_api>
+        p_xml               = <lg_xml_api>
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
@@ -64481,7 +64478,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from w3_api_xml3~load subrc={ sy-subrc }| ).
     ENDIF.
 
-    eo_xml_api ?= <lo_xml_api>.
+    eo_xml_api ?= <lg_xml_api>.
 
   ENDMETHOD.
   METHOD w3_api_save.
@@ -64616,21 +64613,22 @@ ENDCLASS.
 CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   METHOD read.
 
-    DATA: lo_template TYPE REF TO if_w3_api_template,
+    DATA: li_template TYPE REF TO if_w3_api_template,
           lt_source   TYPE w3htmltabtype,
           ls_name     TYPE iacikeyt.
+
     ls_name = ms_item-obj_name.
 
-    lo_template = w3_api_load( is_name = ls_name ).
+    li_template = w3_api_load( is_name = ls_name ).
 
-    es_attr = w3_api_get_attributes( io_template = lo_template ).
+    es_attr = w3_api_get_attributes( ii_template = li_template ).
 
     CLEAR: es_attr-chname,
            es_attr-tdate,
            es_attr-ttime,
            es_attr-devclass.
 
-    lt_source = w3_api_get_source( io_template = lo_template ).
+    lt_source = w3_api_get_source( ii_template = li_template ).
 
     CONCATENATE LINES OF lt_source INTO ev_source RESPECTING BLANKS.
 
@@ -64639,10 +64637,10 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     DATA: lt_source   TYPE w3htmltabtype,
           lv_source   TYPE string,
-          lo_template TYPE REF TO if_w3_api_template.
-    lo_template = w3_api_create_new( is_template_data = is_attr ).
+          li_template TYPE REF TO if_w3_api_template.
+    li_template = w3_api_create_new( is_template_data = is_attr ).
 
-    w3_api_set_attributes( io_template = lo_template
+    w3_api_set_attributes( ii_template = li_template
                            is_attr     = is_attr ).
 
     lv_source = iv_source.
@@ -64654,10 +64652,10 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
       APPEND lv_source TO lt_source.
     ENDIF.
 
-    w3_api_set_source( io_template = lo_template
+    w3_api_set_source( ii_template = li_template
                        it_source   = lt_source ).
 
-    w3_api_save( lo_template ).
+    w3_api_save( li_template ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -64665,18 +64663,18 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_template TYPE REF TO if_w3_api_template,
+    DATA: li_template TYPE REF TO if_w3_api_template,
           ls_name     TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
-    lo_template = w3_api_load( is_name = ls_name ).
+    li_template = w3_api_load( is_name = ls_name ).
 
-    w3_api_set_changeable( io_template   = lo_template
+    w3_api_set_changeable( ii_template   = li_template
                            iv_changeable = abap_true ).
 
-    w3_api_delete( io_template = lo_template ).
+    w3_api_delete( ii_template = li_template ).
 
-    w3_api_save( io_template = lo_template ).
+    w3_api_save( ii_template = li_template ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -64750,7 +64748,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
       EXPORTING
         p_template_name     = is_name
       IMPORTING
-        p_template          = ro_template
+        p_template          = ri_template
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
@@ -64764,7 +64762,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD w3_api_set_changeable.
 
-    io_template->if_w3_api_object~set_changeable(
+    ii_template->if_w3_api_object~set_changeable(
       EXPORTING
         p_changeable                 = iv_changeable
       EXCEPTIONS
@@ -64788,7 +64786,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD w3_api_delete.
 
-    io_template->if_w3_api_object~delete(
+    ii_template->if_w3_api_object~delete(
       EXCEPTIONS
         object_not_empty      = 1
         object_not_changeable = 2
@@ -64803,7 +64801,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD w3_api_save.
 
-    io_template->if_w3_api_object~save(
+    ii_template->if_w3_api_object~save(
       EXCEPTIONS
         object_invalid        = 1
         object_not_changeable = 2
@@ -64822,7 +64820,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   METHOD w3_api_get_attributes.
 
-    io_template->get_attributes(
+    ii_template->get_attributes(
       IMPORTING
         p_attributes     = rs_attributes
       EXCEPTIONS
@@ -64838,7 +64836,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD w3_api_get_source.
 
-    io_template->get_source(
+    ii_template->get_source(
       IMPORTING
         p_source         = rt_source
       EXCEPTIONS
@@ -64859,7 +64857,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
         p_template_data          = is_template_data
         p_program_name           = is_template_data-programm
       IMPORTING
-        p_template               = ro_template
+        p_template               = ri_template
       EXCEPTIONS
         object_already_existing  = 1
         object_just_created      = 2
@@ -64879,7 +64877,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   METHOD w3_api_set_attributes.
 
-    io_template->set_attributes(
+    ii_template->set_attributes(
       EXPORTING
         p_attributes          = is_attr
       EXCEPTIONS
@@ -64898,7 +64896,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD w3_api_set_source.
 
-    io_template->set_source(
+    ii_template->set_source(
       EXPORTING
         p_source              = it_source
       EXCEPTIONS
@@ -65490,7 +65488,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
       EXPORTING
         p_mime_name         = ls_mime_name
       IMPORTING
-        p_mime              = mo_mime_api
+        p_mime              = mi_mime_api
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
@@ -65507,7 +65505,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
 
     load_mime_api( ).
 
-    mo_mime_api->get_attributes(
+    mi_mime_api->get_attributes(
       IMPORTING
         p_attributes   = rs_internet_appl_comp_binary-attributes
       EXCEPTIONS
@@ -65525,7 +65523,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
            rs_internet_appl_comp_binary-attributes-ttime,
            rs_internet_appl_comp_binary-attributes-devclass.
 
-    mo_mime_api->get_source(
+    mi_mime_api->get_source(
       IMPORTING
         p_source       = rs_internet_appl_comp_binary-source
         p_datalength   = rs_internet_appl_comp_binary-length
@@ -65543,7 +65541,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
   METHOD release_lock.
 
     " As a side effect this method removes also existing locks
-    mo_mime_api->if_w3_api_object~set_changeable(
+    mi_mime_api->if_w3_api_object~set_changeable(
       EXPORTING
         p_changeable                 = abap_false
       EXCEPTIONS
@@ -65573,7 +65571,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
         p_mime_content          = is_internet_appl_comp_binary-source
         p_datalength            = is_internet_appl_comp_binary-length
       IMPORTING
-        p_mime                  = mo_mime_api
+        p_mime                  = mi_mime_api
       EXCEPTIONS
         object_already_existing = 1
         object_just_created     = 2
@@ -65588,7 +65586,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from if_w3_api_mime~create_new| ).
     ENDIF.
 
-    mo_mime_api->if_w3_api_object~save(
+    mi_mime_api->if_w3_api_object~save(
       EXCEPTIONS
         object_invalid        = 1
         object_not_changeable = 2
@@ -65615,7 +65613,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
 
     load_mime_api( ).
 
-    mo_mime_api->if_w3_api_object~set_changeable(
+    mi_mime_api->if_w3_api_object~set_changeable(
       EXPORTING
         p_changeable                 = abap_true
       EXCEPTIONS
@@ -65636,7 +65634,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from if_w3_api_mime~set_changeable| ).
     ENDIF.
 
-    mo_mime_api->if_w3_api_object~delete(
+    mi_mime_api->if_w3_api_object~delete(
       EXCEPTIONS
         object_not_empty      = 1
         object_not_changeable = 2
@@ -65647,7 +65645,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from if_w3_api_mime~delete| ).
     ENDIF.
 
-    mo_mime_api->if_w3_api_object~save(
+    mi_mime_api->if_w3_api_object~save(
       EXCEPTIONS
         object_invalid        = 1
         object_not_changeable = 2
@@ -66911,21 +66909,21 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
       lo_toggle TYPE REF TO object,
       lx_error  TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <ls_toggle> TYPE data.
+    FIELD-SYMBOLS: <lg_toggle> TYPE data.
 
-    ASSIGN mr_toggle->* TO <ls_toggle>.
+    ASSIGN mr_toggle->* TO <lg_toggle>.
     ASSERT sy-subrc = 0.
 
     io_xml->read(
       EXPORTING
         iv_name = 'FTGL'
       CHANGING
-        cg_data = <ls_toggle> ).
+        cg_data = <lg_toggle> ).
 
     TRY.
         CALL METHOD ('CL_FEATURE_TOGGLE_OBJECT')=>create_toggle_by_content
           EXPORTING
-            is_content = <ls_toggle>
+            is_content = <lg_toggle>
           RECEIVING
             ro_toggle  = lo_toggle.
 
@@ -66991,9 +66989,9 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
       lx_error  TYPE REF TO cx_root,
       lo_toggle TYPE REF TO object.
 
-    FIELD-SYMBOLS: <ls_toggle> TYPE data.
+    FIELD-SYMBOLS: <lg_toggle> TYPE data.
 
-    ASSIGN mr_toggle->* TO <ls_toggle>.
+    ASSIGN mr_toggle->* TO <lg_toggle>.
     ASSERT sy-subrc = 0.
 
     TRY.
@@ -67011,31 +67009,31 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
 
     CALL METHOD lo_toggle->('GET_CONTENT')
       RECEIVING
-        rs_content = <ls_toggle>.
+        rs_content = <lg_toggle>.
 
-    clear_field( EXPORTING iv_fieldname = 'HEADER-OWNER'        CHANGING cs_header = <ls_toggle> ).
-    clear_field( EXPORTING iv_fieldname = 'HEADER-CREATED_DATE' CHANGING cs_header = <ls_toggle> ).
-    clear_field( EXPORTING iv_fieldname = 'HEADER-CREATED_TIME' CHANGING cs_header = <ls_toggle> ).
-    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGEDBY   ' CHANGING cs_header = <ls_toggle> ).
-    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGED_DATE' CHANGING cs_header = <ls_toggle> ).
-    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGED_TIME' CHANGING cs_header = <ls_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-OWNER'        CHANGING cg_header = <lg_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-CREATED_DATE' CHANGING cg_header = <lg_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-CREATED_TIME' CHANGING cg_header = <lg_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGEDBY   ' CHANGING cg_header = <lg_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGED_DATE' CHANGING cg_header = <lg_toggle> ).
+    clear_field( EXPORTING iv_fieldname = 'HEADER-CHANGED_TIME' CHANGING cg_header = <lg_toggle> ).
 
     io_xml->add(
         iv_name = 'FTGL'
-        ig_data = <ls_toggle> ).
+        ig_data = <lg_toggle> ).
 
   ENDMETHOD.
   METHOD clear_field.
 
-    FIELD-SYMBOLS: <lv_field> TYPE data.
+    FIELD-SYMBOLS: <lg_field> TYPE data.
 
     ASSIGN
       COMPONENT iv_fieldname
-      OF STRUCTURE cs_header
-      TO <lv_field>.
+      OF STRUCTURE cg_header
+      TO <lg_field>.
     ASSERT sy-subrc = 0.
 
-    CLEAR: <lv_field>.
+    CLEAR: <lg_field>.
 
   ENDMETHOD.
 
@@ -67142,7 +67140,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD order_check_and_insert.
 
-    DATA: ls_order TYPE e071k-trkorr.
+    DATA: lv_order TYPE e071k-trkorr.
 
     CALL FUNCTION 'SAPSCRIPT_ORDER_CHECK'
       EXPORTING
@@ -67164,7 +67162,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
         form           = mv_form_name
         masterlang     = mv_language
       CHANGING
-        order          = ls_order
+        order          = lv_order
       EXCEPTIONS
         invalid_input  = 1
         order_canceled = 2
@@ -67662,7 +67660,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD27P_TABLE'
                   CHANGING cg_data = lt_dd27p ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name.
 
@@ -69316,8 +69314,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
           lv_longtext_id      TYPE enhdocuobject,
           lv_shorttext        TYPE string.
 
-    FIELD-SYMBOLS: <ls_composite_child> TYPE enhcompositename,
-                   <ls_enh_child>       LIKE LINE OF lt_enh_childs.
+    FIELD-SYMBOLS: <lv_composite_child> TYPE enhcompositename,
+                   <lv_enh_child>       LIKE LINE OF lt_enh_childs.
 
     lv_package = iv_package.
     io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
@@ -69341,12 +69339,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
 
         li_enh_composite->if_enh_object_docu~set_shorttext( lv_shorttext ).
 
-        LOOP AT lt_composite_childs ASSIGNING <ls_composite_child>.
-          li_enh_composite->add_composite_child( <ls_composite_child> ).
+        LOOP AT lt_composite_childs ASSIGNING <lv_composite_child>.
+          li_enh_composite->add_composite_child( <lv_composite_child> ).
         ENDLOOP.
 
-        LOOP AT lt_enh_childs ASSIGNING <ls_enh_child>.
-          li_enh_composite->add_enh_child( <ls_enh_child> ).
+        LOOP AT lt_enh_childs ASSIGNING <lv_enh_child>.
+          li_enh_composite->add_enh_child( <lv_enh_child> ).
         ENDLOOP.
 
         li_enh_composite->set_longtext_id( lv_longtext_id ).
@@ -69619,25 +69617,25 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   METHOD clear_attributes.
 
-    DATA: lo_element     TYPE REF TO if_ixml_element,
+    DATA: li_element     TYPE REF TO if_ixml_element,
           lv_object_type TYPE etobj_type.
 
     lv_object_type = get_object_type( ).
 
-    lo_element = ci_document->find_from_name( |{ lv_object_type }| ).
-    lo_element->remove_attribute( |SAPRL| ).
-    lo_element->remove_attribute( |DOWNLOADDATE| ).
-    lo_element->remove_attribute( |DOWNLOADTIME| ).
+    li_element = ci_document->find_from_name( |{ lv_object_type }| ).
+    li_element->remove_attribute( |SAPRL| ).
+    li_element->remove_attribute( |DOWNLOADDATE| ).
+    li_element->remove_attribute( |DOWNLOADTIME| ).
 
   ENDMETHOD.
   METHOD clear_element.
 
-    DATA: lo_element TYPE REF TO if_ixml_element.
+    DATA: li_element TYPE REF TO if_ixml_element.
 
-    lo_element = ci_document->find_from_name( iv_name ).
+    li_element = ci_document->find_from_name( iv_name ).
 
-    IF lo_element IS BOUND.
-      lo_element->set_value( || ).
+    IF li_element IS BOUND.
+      li_element->set_value( || ).
     ENDIF.
 
   ENDMETHOD.
@@ -69758,9 +69756,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     lv_object_type = get_object_type( ).
 
     lv_xml = zcl_abapgit_ecatt_helper=>build_xml_of_object(
-                 im_object_name    = mv_object_name
-                 im_object_version = is_version_info-version
-                 im_object_type    = lv_object_type
+                 iv_object_name    = mv_object_name
+                 iv_object_version = is_version_info-version
+                 iv_object_type    = lv_object_type
                  io_download       = lo_download ).
 
     li_document = cl_ixml_80_20=>parse_to_document( stream_xstring = lv_xml ).
@@ -69799,7 +69797,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     DATA: li_document    TYPE REF TO if_ixml_document,
           lv_xml         TYPE xstring,
-          lo_node        TYPE REF TO if_ixml_element,
+          li_node        TYPE REF TO if_ixml_element,
           lo_download    TYPE REF TO cl_apl_ecatt_download,
           lv_object_type TYPE etobj_type.
 
@@ -69808,9 +69806,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     lv_object_type = get_object_type( ).
 
     lv_xml = zcl_abapgit_ecatt_helper=>build_xml_of_object(
-                 im_object_name    = mv_object_name
-                 im_object_version = iv_version
-                 im_object_type    = lv_object_type
+                 iv_object_name    = mv_object_name
+                 iv_object_version = iv_version
+                 iv_object_type    = lv_object_type
                  io_download       = lo_download ).
 
     IF lv_xml IS INITIAL.
@@ -69823,10 +69821,10 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 
     clear_elements( CHANGING ci_document = li_document ).
 
-    lo_node = li_document->create_element( co_name-version ).
-    lo_node->append_child( li_document->get_root_element( ) ).
+    li_node = li_document->create_element( co_name-version ).
+    li_node->append_child( li_document->get_root_element( ) ).
 
-    ci_node->append_child( lo_node ).
+    ci_node->append_child( li_node ).
 
   ENDMETHOD.
   METHOD serialize_versions.
@@ -69936,7 +69934,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     DATA: li_document         TYPE REF TO if_ixml_document,
           li_versions         TYPE REF TO if_ixml_node_collection,
           li_version_iterator TYPE REF TO if_ixml_node_iterator,
-          lo_version_node     TYPE REF TO if_ixml_node.
+          li_version_node     TYPE REF TO if_ixml_node.
 
     li_document = io_xml->get_raw( ).
 
@@ -69946,13 +69944,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
     li_version_iterator = li_versions->create_iterator( ).
 
     DO.
-      lo_version_node = li_version_iterator->get_next( ).
+      li_version_node = li_version_iterator->get_next( ).
 
-      IF lo_version_node IS NOT BOUND.
+      IF li_version_node IS NOT BOUND.
         EXIT.
       ENDIF.
 
-      deserialize_version( ii_version_node = lo_version_node
+      deserialize_version( ii_version_node = li_version_node
                            iv_package      = iv_package ).
 
     ENDDO.
@@ -70230,7 +70228,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD04V'
                   CHANGING cg_data = ls_dd04v ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -70697,7 +70695,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD07V_TAB'
                   CHANGING cg_data = lt_dd07v ).
 
-    corr_insert( iv_package = iv_package iv_object_class = 'DICT' ).
+    corr_insert( iv_package = iv_package ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
 
@@ -71865,13 +71863,13 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
+CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
 
     ASSIGN COMPONENT iv_fieldname
-           OF STRUCTURE cs_metadata
+           OF STRUCTURE cg_metadata
            TO <lg_field>.
     ASSERT sy-subrc = 0.
 
@@ -71883,39 +71881,39 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_metadata> TYPE any.
 
     ASSIGN COMPONENT 'METADATA'
-           OF STRUCTURE cs_data
+           OF STRUCTURE cg_data
            TO <lg_metadata>.
     ASSERT sy-subrc = 0.
 
     clear_field( EXPORTING iv_fieldname = 'CHANGED_AT'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'CHANGED_BY'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'CREATED_AT'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'CREATED_BY'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'RESPONSIBLE'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'PACKAGE_REF-NAME'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'CONTAINER_REF-PACKAGE_NAME'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'VERSION'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'RESPONSIBLE'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
     clear_field( EXPORTING iv_fieldname = 'MASTER_SYSTEM'
-                 CHANGING  cs_metadata  = <lg_metadata> ).
+                 CHANGING  cg_metadata  = <lg_metadata> ).
 
   ENDMETHOD.
   METHOD get_persistence.
@@ -71923,9 +71921,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
     DATA: lx_error TYPE REF TO cx_root.
 
     TRY.
-        IF mo_persistence IS NOT BOUND.
+        IF mi_persistence IS NOT BOUND.
 
-          CREATE OBJECT mo_persistence
+          CREATE OBJECT mi_persistence
                  TYPE ('CL_DDLX_ADT_OBJECT_PERSIST').
 
         ENDIF.
@@ -71935,7 +71933,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
                                       ix_previous = lx_error ).
     ENDTRY.
 
-    ri_persistence = mo_persistence.
+    ri_persistence = mi_persistence.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -72120,7 +72118,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLX IMPLEMENTATION.
 
         li_data_model->get_data( IMPORTING p_data = <lg_data> ).
 
-        clear_fields( CHANGING cs_data = <lg_data> ).
+        clear_fields( CHANGING cg_data = <lg_data> ).
 
         ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
         ASSERT sy-subrc = 0.
@@ -72416,8 +72414,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_data>          TYPE any,
                    <lg_field>         TYPE any,
                    <lv_comp>          LIKE LINE OF lt_clr_comps,
-                   <lg_data_baseinfo> TYPE ANY TABLE,
-                   <ls_data_baseinfo> TYPE any,
+                   <lt_data_baseinfo> TYPE ANY TABLE,
+                   <lg_data_baseinfo> TYPE any,
                    <lg_ddlname>       TYPE any,
                    <lg_as4local>      TYPE any.
     TRY.
@@ -72430,8 +72428,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
         IF is_baseinfo_supported( ) = abap_true.
           CREATE DATA lr_data_baseinfo TYPE ('IF_DD_DDL_TYPES=>TY_T_BASEINFO_STRING').
+          ASSIGN lr_data_baseinfo->* TO <lt_data_baseinfo>.
           ASSIGN lr_data_baseinfo->* TO <lg_data_baseinfo>.
-          ASSIGN lr_data_baseinfo->* TO <ls_data_baseinfo>.
 
           CALL METHOD lo_ddl->('IF_DD_DDL_HANDLER~READ')
             EXPORTING
@@ -72439,17 +72437,17 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
               get_state       = 'A'
             IMPORTING
               ddddlsrcv_wa    = <lg_data>
-              baseinfo_string = <lg_data_baseinfo>.
+              baseinfo_string = <lt_data_baseinfo>.
 
-          LOOP AT <lg_data_baseinfo> ASSIGNING <ls_data_baseinfo>.
-            ASSIGN COMPONENT 'DDLNAME' OF STRUCTURE <ls_data_baseinfo> TO <lg_ddlname>.
+          LOOP AT <lt_data_baseinfo> ASSIGNING <lg_data_baseinfo>.
+            ASSIGN COMPONENT 'DDLNAME' OF STRUCTURE <lg_data_baseinfo> TO <lg_ddlname>.
             ASSERT sy-subrc = 0.
 
-            ASSIGN COMPONENT 'AS4LOCAL' OF STRUCTURE <ls_data_baseinfo> TO <lg_as4local>.
+            ASSIGN COMPONENT 'AS4LOCAL' OF STRUCTURE <lg_data_baseinfo> TO <lg_as4local>.
             ASSERT sy-subrc = 0.
 
             IF <lg_ddlname> = ms_item-obj_name AND <lg_as4local> = 'A'.
-              ASSIGN COMPONENT 'BASEINFO_STRING' OF STRUCTURE <ls_data_baseinfo> TO <lg_field>.
+              ASSIGN COMPONENT 'BASEINFO_STRING' OF STRUCTURE <lg_data_baseinfo> TO <lg_field>.
               ASSERT sy-subrc = 0.
               mo_files->add_string( iv_ext    = 'baseinfo'
                                     iv_string = <lg_field> ) ##no_text.
@@ -75158,18 +75156,18 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any,
                    <lg_params>   TYPE data,
-                   <lv_d_akh>    TYPE data,
-                   <lv_i_akh>    TYPE data.
+                   <lg_d_akh>    TYPE data,
+                   <lg_i_akh>    TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
 
         ASSIGN COMPONENT 'D_AKH' OF STRUCTURE ch_object
-               TO <lv_d_akh>. " doesn't exist in 702
+               TO <lg_d_akh>. " doesn't exist in 702
         ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
-               TO <lv_i_akh>. " doesn't exist in 702
-        IF <lv_d_akh> IS ASSIGNED AND <lv_i_akh> IS ASSIGNED.
-          <lv_i_akh> = <lv_d_akh>.
+               TO <lg_i_akh>. " doesn't exist in 702
+        IF <lg_d_akh> IS ASSIGNED AND <lg_i_akh> IS ASSIGNED.
+          <lg_i_akh> = <lg_d_akh>.
         ENDIF.
 
         super->upload( CHANGING ch_object = ch_object ).
@@ -75681,18 +75679,18 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
           lo_ecatt_sp TYPE REF TO object.
 
     FIELD-SYMBOLS: <lg_ecatt_sp> TYPE any,
-                   <lv_d_akh>    TYPE data,
-                   <lv_i_akh>    TYPE data.
+                   <lg_d_akh>    TYPE data,
+                   <lg_i_akh>    TYPE data.
 
     TRY.
         ch_object-i_devclass = ch_object-d_devclass.
 
         ASSIGN COMPONENT 'D_AKH' OF STRUCTURE ch_object
-               TO <lv_d_akh>. " doesn't exist in 702
+               TO <lg_d_akh>. " doesn't exist in 702
         ASSIGN COMPONENT 'I_AKH' OF STRUCTURE ch_object
-               TO <lv_i_akh>. " doesn't exist in 702
-        IF <lv_d_akh> IS ASSIGNED AND <lv_i_akh> IS ASSIGNED.
-          <lv_i_akh> = <lv_d_akh>.
+               TO <lg_i_akh>. " doesn't exist in 702
+        IF <lg_d_akh> IS ASSIGNED AND <lg_i_akh> IS ASSIGNED.
+          <lg_i_akh> = <lg_d_akh>.
         ENDIF.
 
         super->upload( CHANGING ch_object = ch_object ).
@@ -76288,9 +76286,9 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
           EXPORTING
             im_maintain_function = ''.
 
-        io_download->download( im_object_name    = im_object_name
-                               im_object_version = im_object_version
-                               im_object_type    = im_object_type
+        io_download->download( im_object_name    = iv_object_name
+                               im_object_version = iv_object_version
+                               im_object_type    = iv_object_type
                                im_load_help      = lo_load_help_dummy ).
 
       CATCH cx_ecatt_apl INTO lx_ecatt.
@@ -80436,14 +80434,14 @@ ENDFORM.
 
 FORM password_popup
       USING
-        iv_repo_url TYPE string
+        pv_repo_url TYPE string
       CHANGING
         cv_user     TYPE string
         cv_pass     TYPE string.
 
   lcl_password_dialog=>popup(
     EXPORTING
-      iv_repo_url     = iv_repo_url
+      iv_repo_url     = pv_repo_url
     CHANGING
       cv_user         = cv_user
       cv_pass         = cv_pass ).
@@ -80534,5 +80532,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-08T04:42:05.073Z
+* abapmerge 0.13.1 - 2020-03-09T16:35:58.607Z
 ****************************************************
