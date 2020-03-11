@@ -42789,7 +42789,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
     " Create instance of highighter dynamically dependent on syntax type
     IF iv_filename CP '*.abap'.
       CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_abap.
-    ELSEIF iv_filename CP '*.xml'.
+    ELSEIF iv_filename CP '*.xml' OR iv_filename CP '*.html'.
       CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_xml.
     ELSE.
       CLEAR ro_instance.
@@ -80836,5 +80836,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-11T11:55:43.339Z
+* abapmerge 0.13.1 - 2020-03-11T15:47:45.636Z
 ****************************************************
