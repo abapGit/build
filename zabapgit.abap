@@ -30370,7 +30370,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -30602,6 +30602,10 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    IF lo_repo->get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
+    ENDIF.
 
     ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
       iv_url             = lo_repo->get_url( )
@@ -41712,7 +41716,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
+CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD add_icon.
 
     add( icon( iv_name  = iv_name
@@ -41866,7 +41870,8 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ENDIF.
 
     lv_href  = ' href="#"'. " Default, dummy
-    IF iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy.
+    IF ( iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy )
+        AND iv_opt NA zif_abapgit_html=>c_html_opt-crossout.
       CASE iv_typ.
         WHEN zif_abapgit_html=>c_action_type-url.
           lv_href  = | href="{ iv_act }"|.
@@ -41944,12 +41949,12 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD icon.
 
-    DATA: lv_hint          TYPE string,
-          lv_name          TYPE string,
-          lv_color         TYPE string,
-          lv_class         TYPE string,
-          lv_large_icon    TYPE string,
-          lv_xpixel        TYPE i.
+    DATA: lv_hint       TYPE string,
+          lv_name       TYPE string,
+          lv_color      TYPE string,
+          lv_class      TYPE string,
+          lv_large_icon TYPE string,
+          lv_xpixel     TYPE i.
 
     SPLIT iv_name AT '/' INTO lv_name lv_color.
 
@@ -80831,5 +80836,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-11T11:48:51.904Z
+* abapmerge 0.13.1 - 2020-03-11T11:55:43.339Z
 ****************************************************
