@@ -6534,11 +6534,12 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet DEFINITION DEFERRED.
 INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT DEFERRED.
 * renamed: zcl_abapgit_object_pinf :: lif_package_interface_facade
 INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+  TYPES ty_tpak_package_interf_elem_tt TYPE STANDARD TABLE OF tpak_package_interf_elem_ref WITH DEFAULT KEY.
 
   METHODS:
     get_elements
-      EXPORTING
-        et_elements              TYPE tpak_package_interf_elem_list
+      RETURNING
+        VALUE(rt_elements) TYPE ty_tpak_package_interf_elem_tt
       RAISING
         zcx_abapgit_exception,
 
@@ -6553,8 +6554,8 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
         zcx_abapgit_exception,
 
     get_all_attributes
-      EXPORTING
-        es_package_interface_data TYPE scompidtln
+      RETURNING
+        VALUE(rs_package_interface_data) TYPE scompidtln
       RAISING
         zcx_abapgit_exception,
 
@@ -6592,8 +6593,8 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
         zcx_abapgit_exception,
 
     get_changeable
-      EXPORTING
-        VALUE(ev_changeable) TYPE flag
+      RETURNING
+        VALUE(rv_changeable) TYPE flag
       RAISING
         zcx_abapgit_exception.
 
@@ -60930,7 +60931,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
     mi_interface->get_elements(
       IMPORTING
-        e_elements     = et_elements
+        e_elements     = rt_elements
       EXCEPTIONS
         object_invalid = 1
         intern_err     = 2
@@ -60987,7 +60988,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
     mi_interface->get_all_attributes(
       IMPORTING
-        e_package_interface_data = es_package_interface_data
+        e_package_interface_data = rs_package_interface_data
       EXCEPTIONS
         object_invalid           = 1
         OTHERS                   = 2 ).
@@ -61120,7 +61121,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
     mi_interface->get_changeable(
       IMPORTING
-        e_changeable   = ev_changeable
+        e_changeable   = rv_changeable
       EXCEPTIONS
         object_invalid = 1
         OTHERS         = 2 ).
@@ -61133,7 +61134,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
+CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD create_facade.
 
     CREATE OBJECT ri_facade TYPE kHGwlqJyKbsVHldwKaGddDbbHeNaet
@@ -61178,7 +61179,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
     FIELD-SYMBOLS: <li_element> LIKE LINE OF lt_elements.
     ii_interface->set_elements_changeable( abap_true ).
 
-    ii_interface->get_elements( IMPORTING et_elements = lt_elements ).
+    lt_elements = ii_interface->get_elements( ).
 
     LOOP AT lt_elements ASSIGNING <li_element>.
       <li_element>->delete( ).
@@ -61205,7 +61206,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
     DATA: ls_sign       TYPE scompisign,
           lv_changeable TYPE abap_bool.
-    ii_interface->get_changeable( IMPORTING ev_changeable = lv_changeable ).
+    lv_changeable = ii_interface->get_changeable( ).
     IF lv_changeable = abap_false.
 * at creation the object is already in change mode
       ii_interface->set_changeable( abap_true ).
@@ -61245,7 +61246,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
     ii_interface->set_elements_changeable( abap_true ).
 
-    ii_interface->get_elements( IMPORTING et_elements = lt_existing ).
+    lt_existing = ii_interface->get_elements( ).
 
     LOOP AT is_pinf-elements ASSIGNING <ls_element>.
 
@@ -61381,7 +61382,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 
     li_interface = load( |{ ms_item-obj_name }| ).
 
-    li_interface->get_all_attributes( IMPORTING es_package_interface_data = ls_pinf-attributes ).
+    ls_pinf-attributes = li_interface->get_all_attributes( ).
 
     CLEAR: ls_pinf-attributes-pack_name,
            ls_pinf-attributes-author,
@@ -61401,7 +61402,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
       CLEAR <lg_any>.
     ENDIF.
 
-    li_interface->get_elements( IMPORTING et_elements = lt_elements ).
+    lt_elements = li_interface->get_elements( ).
 
     LOOP AT lt_elements ASSIGNING <li_element>.
       APPEND INITIAL LINE TO ls_pinf-elements ASSIGNING <ls_element>.
@@ -80558,5 +80559,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-10T07:18:36.131Z
+* abapmerge 0.13.1 - 2020-03-11T10:43:35.397Z
 ****************************************************
