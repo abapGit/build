@@ -1245,6 +1245,7 @@ INTERFACE zif_abapgit_html.
       !iv_name      TYPE string
       !iv_hint      TYPE string OPTIONAL
       !iv_class     TYPE string OPTIONAL
+      !iv_onclick   TYPE string OPTIONAL
     RETURNING
       VALUE(rv_str) TYPE string .
 
@@ -9800,9 +9801,10 @@ CLASS zcl_abapgit_html DEFINITION
     CLASS-METHODS class_constructor.
     METHODS add_icon
       IMPORTING
-        !iv_name  TYPE string
-        !iv_hint  TYPE string OPTIONAL
-        !iv_class TYPE string OPTIONAL.
+        !iv_name    TYPE string
+        !iv_hint    TYPE string OPTIONAL
+        !iv_class   TYPE string OPTIONAL
+        !iv_onclick TYPE string OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-DATA: go_single_tags_re TYPE REF TO cl_abap_regex.
@@ -25949,6 +25951,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '.cursor-pointer {' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* MODIFIERS */' ).
     lo_buf->add( '.emphasis     { font-weight: bold !important; }' ).
     lo_buf->add( '.crossout     { text-decoration: line-through !important; }' ).
@@ -27502,6 +27508,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* exported enumerateTocAllRepos */' ).
     lo_buf->add( '/* exported enumerateJumpAllFiles */' ).
     lo_buf->add( '/* exported enumerateToolbarActions */' ).
+    lo_buf->add( '/* exported onDiffCollapse */' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Polyfills' ).
@@ -28241,6 +28248,25 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '//Collapse/Expand diffs' ).
+    lo_buf->add( 'function onDiffCollapse(event) {' ).
+    lo_buf->add( '  var source = event.target || event.srcElement;' ).
+    lo_buf->add( '  var nextDiffContent = source.parentElement.nextElementSibling;' ).
+    lo_buf->add( '  var hide;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if(source.classList.contains("icon-chevron-down")){' ).
+    lo_buf->add( '    source.classList.remove("icon-chevron-down");' ).
+    lo_buf->add( '    source.classList.add("icon-chevron-right");' ).
+    lo_buf->add( '    hide = true;' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    source.classList.remove("icon-chevron-right");' ).
+    lo_buf->add( '    source.classList.add("icon-chevron-down");' ).
+    lo_buf->add( '    hide = false;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  hide ? nextDiffContent.classList.add("nodisplay") : nextDiffContent.classList.remove("nodisplay");' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Add Bottom margin, so that we can scroll to the top of the last file' ).
     lo_buf->add( 'function addMarginBottom(){' ).
@@ -29489,23 +29515,27 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.icon-box:before { content: "\f104"; }' ).
     lo_buf->add( '.icon-briefcase:before { content: "\f105"; }' ).
     lo_buf->add( '.icon-check:before { content: "\f106"; }' ).
-    lo_buf->add( '.icon-cloud-upload-alt:before { content: "\f107"; }' ).
-    lo_buf->add( '.icon-code-branch:before { content: "\f108"; }' ).
-    lo_buf->add( '.icon-code-commit:before { content: "\f109"; }' ).
-    lo_buf->add( '.icon-cog:before { content: "\f10a"; }' ).
-    lo_buf->add( '.icon-exclamation-circle:before { content: "\f10b"; }' ).
-    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f10c"; }' ).
-    lo_buf->add( '.icon-file-alt:before { content: "\f10d"; }' ).
-    lo_buf->add( '.icon-file-code:before { content: "\f10e"; }' ).
-    lo_buf->add( '.icon-file-image:before { content: "\f10f"; }' ).
-    lo_buf->add( '.icon-file:before { content: "\f110"; }' ).
-    lo_buf->add( '.icon-fire-alt:before { content: "\f111"; }' ).
-    lo_buf->add( '.icon-folder:before { content: "\f112"; }' ).
-    lo_buf->add( '.icon-lock:before { content: "\f113"; }' ).
-    lo_buf->add( '.icon-plug:before { content: "\f114"; }' ).
-    lo_buf->add( '.icon-sliders-h:before { content: "\f115"; }' ).
-    lo_buf->add( '.icon-snowflake:before { content: "\f116"; }' ).
-    lo_buf->add( '.icon-star:before { content: "\f117"; }' ).
+    lo_buf->add( '.icon-chevron-down:before { content: "\f107"; }' ).
+    lo_buf->add( '.icon-chevron-left:before { content: "\f108"; }' ).
+    lo_buf->add( '.icon-chevron-right:before { content: "\f109"; }' ).
+    lo_buf->add( '.icon-chevron-up:before { content: "\f10a"; }' ).
+    lo_buf->add( '.icon-cloud-upload-alt:before { content: "\f10b"; }' ).
+    lo_buf->add( '.icon-code-branch:before { content: "\f10c"; }' ).
+    lo_buf->add( '.icon-code-commit:before { content: "\f10d"; }' ).
+    lo_buf->add( '.icon-cog:before { content: "\f10e"; }' ).
+    lo_buf->add( '.icon-exclamation-circle:before { content: "\f10f"; }' ).
+    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f110"; }' ).
+    lo_buf->add( '.icon-file-alt:before { content: "\f111"; }' ).
+    lo_buf->add( '.icon-file-code:before { content: "\f112"; }' ).
+    lo_buf->add( '.icon-file-image:before { content: "\f113"; }' ).
+    lo_buf->add( '.icon-file:before { content: "\f114"; }' ).
+    lo_buf->add( '.icon-fire-alt:before { content: "\f115"; }' ).
+    lo_buf->add( '.icon-folder:before { content: "\f116"; }' ).
+    lo_buf->add( '.icon-lock:before { content: "\f117"; }' ).
+    lo_buf->add( '.icon-plug:before { content: "\f118"; }' ).
+    lo_buf->add( '.icon-sliders-h:before { content: "\f119"; }' ).
+    lo_buf->add( '.icon-snowflake:before { content: "\f11a"; }' ).
+    lo_buf->add( '.icon-star:before { content: "\f11b"; }' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/ag-icons.css'
       iv_type      = 'text/css'
@@ -29515,82 +29545,86 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
 ****************************************************
-    lo_buf->add( 'd09GRgABAAAAAA1AAAsAAAAAFqgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
-    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU3DY21hcAAA' ).
-    lo_buf->add( 'AYQAAACvAAACpPLiSE5nbHlmAAACNAAACDIAAA5EJqME8WhlYWQAAApoAAAA' ).
-    lo_buf->add( 'MAAAADYVkKSdaGhlYQAACpgAAAAdAAAAJASAApVobXR4AAAKuAAAADkAAABg' ).
-    lo_buf->add( 'KRj/92xvY2EAAAr0AAAAMgAAADInniRsbWF4cAAACygAAAAfAAAAIAEoALpu' ).
-    lo_buf->add( 'YW1lAAALSAAAASgAAAIWQeF35nBvc3QAAAxwAAAAzwAAAS5N67fPeJxjYGRg' ).
+    lo_buf->add( 'd09GRgABAAAAAA3wAAsAAAAAGGQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
+    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU2/Y21hcAAA' ).
+    lo_buf->add( 'AYQAAAC9AAAC3PMd0gpnbHlmAAACRAAACKcAAA90hJ/IV2hlYWQAAArsAAAA' ).
+    lo_buf->add( 'MAAAADYWvIbJaGhlYQAACxwAAAAdAAAAJASAAplobXR4AAALPAAAAD0AAABw' ).
+    lo_buf->add( 'Lxj/92xvY2EAAAt8AAAAOgAAADowCiyMbWF4cAAAC7gAAAAfAAAAIAEsALpu' ).
+    lo_buf->add( 'YW1lAAAL2AAAASgAAAIWQeF35nBvc3QAAA0AAAAA7wAAAWkl9uZgeJxjYGRg' ).
     lo_buf->add( 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm' ).
-    lo_buf->add( 'g4gCACY7BUgAeJxjYGTcxjiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
-    lo_buf->add( 'BKS5pjA4fGT8KM4E4uoxMTOAVDKCOAC/rAkAAHic7dFbDsIgFEXRjaX1Va2t' ).
-    lo_buf->add( 'Dybgp2NxQH45ZUag93AchiSLnRLaNAD0QBceIUN6k9B4xWpq6x27tp55tj1Z' ).
-    lo_buf->add( '67V8PjEnzfGc27yKvTm+OLBmwzbe2zNy4MjEiZmFMxeu3CixfeA/Rk3p/nsq' ).
-    lo_buf->add( 'OlFrZ7wy1M50VzWbTr32pnusg6GuDXVjqFtD3Znut+4NdTT9XT0Y6tFQJ0M9' ).
-    lo_buf->add( 'GepsqIuhng31YqhXQ70ZajHKF8VcODYAeJylV0tsJEcZrr+7p6p7eqbn0a8Z' ).
-    lo_buf->add( 'z4w9j3X3uB15vJ5HO+PHPmy89mIkJ7KEObHSIm1kLtYihIRi5JAF5UAka5FQ' ).
-    lo_buf->add( 'LiBLEY8LaA8R4RCEiSKBBEh74bCc9sYhEmtOmEPa/FU97X0TIca9VX9V/fXX' ).
-    lo_buf->add( '9/9V9f21RCL4g1M4JRkSEGL2lmFuHCwDmjNwCWzLWYC5wRK4ztwlGPQ64DVz' ).
-    lo_buf->add( 'QK0JcObUldvfv70iisN1I51PG+vMZjpj32MW/kPJBrIy0li57W1+mDaM9Ieb' ).
-    lo_buf->add( 'fMRidxh+Foq4vCwwHMMnJEcmSAdRNPiaPa/VaNIaWI77Oe08HDFNY9ENXr5E' ).
-    lo_buf->add( 'hjc11uYtLI5eKBI4ixDHKobExboVDrxpaFL0F4PAqNOdC82BB+1vBLKROdQM' ).
-    lo_buf->add( 'qIOhf2sGGwa7xwy48V3dzGgnev7jTDEDs5kSSXyTiASEoXdltOvPwDTY3ckW' ).
-    lo_buf->add( 'mpa6DEPcFe5A1E2V8+8+iv75br6cmpMenVQtOLKqcO29XPH4uJh7j9VPrGrV' ).
-    lo_buf->add( 'OnnCLjwkJvHJNCGTFkW03hK0zi22wla/J3yoQYsXDdHsd+GyxjAmxzUTjsza' ).
-    lo_buf->add( '8eFWzcR6y6xJpPb+wcE9HpDZQ7NWMw+PZnk1WzO3cLiO8Efr/o5YhIS+18Nj' ).
-    lo_buf->add( 'MTcBIS8ciwFt/urnjE0yW907UW0UWPSAORs/Yw67oPI+9QKK0d9UYYYXb6EP' ).
-    lo_buf->add( 'VTKHpgcIr9VkM9A0oAYGnr5xQE+WAfsZupU42PTiRR0qjdH5dq1kX//y9elg' ).
-    lo_buf->add( '4F/1Ya+10Bz+9griZ9oVXWW7iqHsMhVqhWJ7Pn/hlenr02ruegdVmwutmbXe' ).
-    lo_buf->add( 'Hvd1z0I9VEOXlDP8wQHuV0gukw3yOuLqeU2KQXUNPAXiry8gxZ02x+nMcez+' ).
-    lo_buf->add( 'MsYh7A5C/rcMk3OORZteb2DygjfMpAcOOlc79TGwS7kLVcPNlyewPVEWVdVN' ).
-    lo_buf->add( 'WaZehmm7ZdpQGo/uI0QDUcbVg7iCvUan06gEammMyvhT2CELKnEf++NILE9p' ).
-    lo_buf->add( 'aloBWaFpdyxQg10+09Cig7jGYyDqeEvJ2Rn5K/pdIg28gfy4GPyqCeeWYBmj' ).
-    lo_buf->add( '4PN9SFzYzZr1IKibY2YjCBpmVstmC9msRHLGvj6/Np/eN/J5Yz+Nor6fzX+K' ).
-    lo_buf->add( 'VwK/0Z7DIzgj18gWnlp/4GOofA9vRQ7ECr7H+PZT5nsi2s4EUBe7XMcdR0oS' ).
-    lo_buf->add( 'iFwHJy3BIHQdEW2PJSGGvweUBooMBU9WlaDSTClhqKSalUBRZa+AsXh2PDUQ' ).
-    lo_buf->add( '49NyPP4pBu5qp/NJudUqS6rSn5IlqexmLioMMhlgysWMW5YkeaqvqNKzOinK' ).
-    lo_buf->add( 'dWhK6IDCdYrc2NXOiONO4d/IszaZRDnm2JhvWZPyMKPzbsy4/TC+uHD6mGVP' ).
-    lo_buf->add( 'zUrFq1QuqSw1m2JYXk6xJxn2m3zUq/z0HYUx5R3KmOCJs88w6CuSTAxkNR8j' ).
-    lo_buf->add( '7hiAvDkDobmMwZRftrI0VOlYMaoXx6h6ojUaWvCC5dfzDddtIP3mdT0f/foF' ).
-    lo_buf->add( 'AFLC77dw2zm3XyQ9soTt87vcG+CaDmvFPB7nmp4XFiyKGL1+QYzjTfftrllo' ).
-    lo_buf->add( 'idtfgDpL/SLFRJFJBHarakUPOT3+2TK2jYNN5Y20cQRqlY/z4ktxxYuPog+4' ).
-    lo_buf->add( 'IidXVF3cjO5B3Ui/Ed1AqFTg5fffxmgFpEtWyFeQ6S7yY/pk+uPpEPmPh8ou' ).
-    lo_buf->add( 'xIyLcH23ZTYKXZE3mSdyByoPUNnz7Yv8GCdzE1s/ajQkkIoyk4ayPJSYXJAf' ).
-    lo_buf->add( 'bBvoBUdYt6oHm5tb0cMjxPcdhUKIB7g0qvlE1GbyqzJ+fOL7tZqkSqYsD7AK' ).
-    lo_buf->add( 'JRmtRtsGBuaGsLZpCV+PMDIezv8I7bBRvfb8zGTveCwKyPY1EQ3MX8/6zFp9' ).
-    lo_buf->add( 'eeRyYbLb97lfogiTswW3n/Sot3mfu3NGHrpKWt7xlbTiz+Jgu1qFnzwFN78Z' ).
-    lo_buf->add( 'fU3AjR7OHpRkeacty+17XLFdPX83PMb3OdheiOLlKyZc9XusiqSJEmWeH2el' ).
-    lo_buf->add( 'OCf5nkzxTPZ7SEFuiKREYXW8Ery68dXFW9++tdiojA+a0/NfLObaN4eUWkX4' ).
-    lo_buf->add( 'S7U+7K8eDZZ3l/GrbAcz0Z9KX5ivTJRn91d0rb2T5ERcFfN6hb9CnnaJ3w4Z' ).
-    lo_buf->add( 'D5iLDsH941DL/jA5ytyLH2DHH+Ag1JLLgEV0AvUw4Xj+zsKqzDke8HUwyrWj' ).
-    lo_buf->add( '+5esgG8EzqY2HJam1l5fmyqJNXiM3jwMFgOor0+tTeG3XrWO+RAW6+NBMH6+' ).
-    lo_buf->add( 'J/y+M9Li75LYVA3cRnLHRdbs9jmBd+P1fJFNawAE08lsJB5t+Y3wcriRR/Ff' ).
-    lo_buf->add( '2Al7e1nTzO7lNVZnWn24o9+8qe8M66KZj8eQ685Gb6IWZpevI9c1nn7/jFaP' ).
-    lo_buf->add( 'aWbkq//4jdRIonCu031O53k7Ix04ie4JNFsc/ZYQ4Qk5Eq8q2Hqsc1+I958W' ).
-    lo_buf->add( 'D/LC+divx+LR/9TNt+AswnfMx7gPv+RZVpAXT7E+T5mcjjpw3hfyFpKV1A8T' ).
-    lo_buf->add( 'Xjr3108Yz451OYH5CbEJOuNJ2WXP97ER9Uk2Sxjz+f9O9GNdjmSEC37jNymT' ).
-    lo_buf->add( 'FEmnW+vrW1RHkdGmj68cVc6m2mm8hjnstdeHqZSeyipl9JpqZZQyijK85kCG' ).
-    lo_buf->add( '5hiVNJ9mcYZM/7s5TYrNOdeGivKUuZSuKAvrwhwaQHMZfEHIP3Y1SWe4ADhB' ).
-    lo_buf->add( 'YPPJTJc0V8lQA026rdECrwXbi/jyRERjM3xfZsoCbGphO3gthsOaLoIzEGRi' ).
-    lo_buf->add( 'UbKDwIH/32JGXEF8z30mvYJ5n/Mi3ze+N1RslsPDjbvvdaQZoCBfuZvNgbZb' ).
-    lo_buf->add( 'lrIl/e239VJWKu9qkMvevUJdF/5xx5asknbrbsamdHWVUjtz95ZWssC5k1H5' ).
-    lo_buf->add( 'M/4/KqL1UwAAeJxjYGRgYADiQjtr/nh+m68M3EwMIHDz58YLMPr/3/9/mRqZ' ).
-    lo_buf->add( 'mIFcDgawNABa/w3YeJxjYGRgYGIAAaaG/3///2FqZGBkQAUSAHBYBRkAAAB4' ).
-    lo_buf->add( 'nE2MsQ0AMAjDApdxGqdxRN9p0xR1YLCUeDAAuLASweP/NymXJNZwwW3tBzUa' ).
-    lo_buf->add( '+TZppVYAF+kvEigAAAAAAAAAAEIAhgCwANwBGAE+AYgCBAI4ArQC8AMwA4gE' ).
-    lo_buf->add( 'DgReBI4EyAT2BSgFZgXsBuwHIgAAeJxjYGRgYJBgWMfAxgACTEDMBYQMDP/B' ).
-    lo_buf->add( 'fAYAHFoB4wB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuAOQNmHYTghKAk' ).
-    lo_buf->add( 'jhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx53E1cM3un5uk' ).
-    lo_buf->add( 'e+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN+g/hFvlTuI1H' ).
-    lo_buf->add( 'fAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGocjk5qrkttI6fX' ).
-    lo_buf->add( 'anVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCEFANkiGFQosYC' ).
-    lo_buf->add( 'mmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae2QmtQ8I+Ycag' ).
-    lo_buf->add( 'IM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHicbY3BcoJAEES3' ).
-    lo_buf->add( 'ZTGiSTTGJOYj+KhhWGCLgbF2l9LPD2IOOaRPr7pedZuVeSQ3/+eMFTJY5Fjj' ).
-    lo_buf->add( 'CRsU2GKHZ7zgFXsc8IYj3nHCBz7xhTO+zZ5C0GvJPrC4crrYikK0lUrKKr0V' ).
-    lo_buf->add( 'VfCuYYou585xf2DRqZ41UapLkrRjrV1ZBRq5ezDrMPiUsbZHd2OhgZLX8ffg' ).
-    lo_buf->add( '9LdKwdPYits0fr6ex4oF7ivbhfxArbN3nJWwKOtGpXbBinJvLzK1RRQ/F7Hs' ).
-    lo_buf->add( 'ijjqtRHqnY2JgjE/K3FPhwA=' ).
+    lo_buf->add( 'g4gCACY7BUgAeJxjYGRcxziBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
+    lo_buf->add( 'BKS5pjA4fGT8KM0E4uoxMTOAVDKCOAC9YAj8AHic7dFZDsIgGEXhg8U61XmW' ).
+    lo_buf->add( 'Lbgc44J8crusQP/LdRk2+TiB0KYBYAx04R4ypDcJPa9YTW29Y97WM8+2J2u9' ).
+    lo_buf->add( 'ls8nxqQx5rmNo9ib44s9E6bM4r0FA0tWrNmwZceeA0dOnLlw5UaJ13r+z6Ah' ).
+    lo_buf->add( 'PX6zopO1dtYjQ+1Md1az6fTr2HSftTfUiaFODXVmqHPTPdeFoQ6mv6tLQ10Z' ).
+    lo_buf->add( '6tpQN4a6NdSdoe4N9WCoR0M9GerZUC+GejXUm6EWo3wBEIJBrgAAAHicpVdN' ).
+    lo_buf->add( 'aBzJFa7X3VPVPT89P/03o5mRZnqs7lFr0cian9aObflHXll2FNAugjinGBzw' ).
+    lo_buf->add( 'olyEQwiEVdDG3rCHLAgHwsKSIFjyc0nwIWQD2RCtWEggCfElBycX33JYiLWn' ).
+    lo_buf->add( 'OIdt5VX1tGRbcpaQ0ajqVdWrV997r+q9N0Qi+IEn8IRkSUCI0VuAuXEwdXBn' ).
+    lo_buf->add( '4DxYpn0G5gbnwLHnzsOg1wHPzQM1J8CeUxdvf/f2omi2l/V0Ia0vM4tlGHuL' ).
+    lo_buf->add( 'mfiPlAVkccSxeNtb+SCt6+kPVviKye4y/JpI4vGywLALH5M8mSAdRNHkZ/a8' ).
+    lo_buf->add( 'VtOldTBt53PGBdhhmsaiG7x9AQ1vaKzNR9jsnEgSOIgQx2U0iYN9Kxx40+BS' ).
+    lo_buf->add( '1BeNwKjdnQuNgQftrweynt3WdGiAnvnmDA50dp/pcOM7GSOr7WcKe9lSFmaz' ).
+    lo_buf->add( 'ZZLoJhEJCEPtKijXn4FpsLqTLRQtdRmauCvUgaibqhTeeRx9+k6hkpqTHu/X' ).
+    lo_buf->add( 'TNgxa3Dl3Xxpd7eUf5c19s1azdx/Si48IgbxyTQhkyZFtN45aB1KbIWtfk/o' ).
+    lo_buf->add( 'UIcWb5pi2O/CBY2hTXbrBuwY9d3t1bqB/apRl0j9/a2t+9wgs9tGvW5s78zy' ).
+    lo_buf->add( 'brZurOJyA+GPzv0dMQkJfa+H12JuAkLe2CYD6v7ip4xNMkvd2FctJFj0kNlX' ).
+    lo_buf->add( 'f8Jsdkrlc+opJKO/qWQkC34Dbx3JWgAuy+ay0O7uX/YYcpvsvfewsRnbY+ad' ).
+    lo_buf->add( 'PUECnwOxuHckaxL+zmUZAs445PHecv+5eG97rRM2QvH4Ac/JmmR8O38MvjeI' ).
+    lo_buf->add( 'lbVNqJ8g7PGLZY10NByulg4dvE4ex8TlfXp8G2yeqKR4q9Kb6PMamUOpA3Rn' ).
+    lo_buf->add( 'y2Uz4OpQR7GWOQ7o+QXAeYbXILkQrjfCTaUxOt+ul61rX7o2HQz8Sz5stM64' ).
+    lo_buf->add( 'w99eRH8z7WJGZeuKrqwzFerFUnu+cOql6WvTav5aB1ndM62Zpd4GvxsbJvIh' ).
+    lo_buf->add( 'G6qkHOAHtvB+h+QCuUpeQ1w9z6V4CR0d1RR/fQEpnrQ4TnuOY/cX0NdhdxDy' ).
+    lo_buf->add( 'vwWYnLNN6nq9gcEbPjCSGdjqXOo0xsAq50/VdKdQmcDxREV0NSdlGpkKTFst' ).
+    lo_buf->add( 'w4LyePQAIeqIMu4exh1sNDudZjVQy2NUxo/CtllQjefYH0ZkZUpT0wrICk07' ).
+    lo_buf->add( 'Y4EarPOduhZtxT0+G9HHT4AcHJC/ot5l0kTP8uel89AklDuHFxn1435IVFjP' ).
+    lo_buf->add( 'GY0gaBhjRjMImkZOy+WKuZxE8vpmZn5pPr2pFwr6ZhrJzGau8AmGEPyOfA6P' ).
+    lo_buf->add( '4YBcIat4G/2Bj6byPYwieRAn+B7j7qfM94S18fFQB6cc2xnHWysQOTZuOgeD' ).
+    lo_buf->add( '0LGFtT2WmBj+EVAaKDIUPVlVgqqbUsJQSbnVQFFlr4i2eH49NRDr03K8/gka' ).
+    lo_buf->add( '7lKn83Gl1apIqtKfkiWp4mRPKwyyWWDK6axTkSR5qq+o0vM8Kcp5aErwgMJ5' ).
+    lo_buf->add( 'SlzYpc4oJzyBf2Nessgk0nFOivMTcyk3MyrvxBmqH8aBDp4cZaUnRrXqVavn' ).
+    lo_buf->add( 'VZaaTTFsL6TY0xnpG3zVq/74bYUx5W3KmIirB5+h0RclmeiYBXy0uK0D5pkZ' ).
+    lo_buf->add( 'CI0FNKb8opOloUrHSlGjNEbVfa3Z1IITjl8uNB2niemqkMkUol+dACAl9H4T' ).
+    lo_buf->add( '3c5z4WnSI+dwfPiWewM802atOO/FubnnhUWTIkavXxTr+NJ9q2sUW+L1F6HB' ).
+    lo_buf->add( 'Uj9LMdFkE4LdqpnRI55O/mTqa/rWivJ6Wt8BtcbXefPFuOPNh9EvOSNPRsh6' ).
+    lo_buf->add( 'diW6Dw09/Xp0A6FSgZe/fwutFZAuWSRfxmh+ml/Tp8sFXj5gjOemsopxhkK4' ).
+    lo_buf->add( 'vtMymsWuqDOYJ3ItMvM46/nWaX6Nk72JrB80mxJIJZlJQ1keSkwuyg/XdNSC' ).
+    lo_buf->add( 'I2yYta2VldXo0Q7i+7ZCIcQLXB71fCNyM/llGb984/v1uqRKhiwPsAslGaVG' ).
+    lo_buf->add( 'azoa5oaQtmIKXXfQMh7u/xDlsFG/dHxn4jtuiyJG+7qwBub753Vmrb48Urk4' ).
+    lo_buf->add( '2e37XC/RhMndgttPa9RbecDVOSCPHCUtX/eVtOLP4mK7VoMfPQO3sBJ9VcCN' ).
+    lo_buf->add( 'Hs1ulWX5eluW2/c5Y7t2WGcd4fscbCeiePGJSaz6CLsScZGizPPjrBTnJN+T' ).
+    lo_buf->add( 'Kd7Jfg9DkBNiUKJwebwavHz1K2dvfevW2WZ1fOBOz3+hlG/fHFJqluDPtcaw' ).
+    lo_buf->add( 'f3lnsLC+gN/qWjAT/bH8ynx1ojK7uZjR2teTnIinYh1U5VXbsyrx1yHjBXNQ' ).
+    lo_buf->add( 'IXiwG2q57ydXmWvxPZz4PWyFWvIYsIn2oREmMZ7XpdhVeIwHrKZGuXb0/pIT' ).
+    lo_buf->add( 'sKbi0dSC7fLU0mtLU2VxBrfRG9vB2QAay1NLU/hdrpm7fAmb5fEgGD/0CX/v' ).
+    lo_buf->add( 'jLR4HReLqoPTTN64yJrdPg/g3fg8X2TTOgDBdDIbiSK3cDW8EF4tIPkvnISN' ).
+    lo_buf->add( 'jZxh5DYKGmswrTG8nrl5M3N92BDDQryGse5gVEO2MLt8DWNd89l6cXR6HGZG' ).
+    lo_buf->add( 'uvpHNWUzscIhT/cYz3E5Ix7Yj+4LNKsc/aog4Sk6ElUorB7xPBDkg2fJrYJQ' ).
+    lo_buf->add( 'PtbriNz5n6a5Cw4irGP20A8/51lWBC+eYn2eMnk46sDhXMhHGKykfpjEpUN9' ).
+    lo_buf->add( '/STiWTEvD2B+EthEOONJ2WHH59go9EkWSyLm8Z9f/ZiXIxnhgl/7LmWSImXo' ).
+    lo_buf->add( '6vLyKs0giSWrj1WOKudS7TQ+wzzOWsvDVCqTyikV1JpqFaSyijK8YkOW5hmV' ).
+    lo_buf->add( 'NJ/mcIdM/7s4TYrF2VeGivKMuFRGUc4sC3EoAMVlsYKQf+hoUobhAWAHgcU3' ).
+    lo_buf->add( 's4ykOUqW6ijSaY0OeDVYO4uVJyIam+F+makIsKkza8GrMRzmOghOR5CJRMkK' ).
+    lo_buf->add( 'Ahv+f4lZEv9+OPhMegnzPo+L3G/cN1Q4y+bmRu97HWkGKMgX7+XyoK1XpFw5' ).
+    lo_buf->add( 'c+dOppyTKusa5HP3LlLHgX/etSSzrN26l7UovXyZUit775ZWNsG+m1X5T5X/' ).
+    lo_buf->add( 'AKHaIccAeJxjYGRgYADip/VJ7+L5bb4ycDMxgMCt/kXPYPT/v///MjUyMQO5' ).
+    lo_buf->add( 'HAxgaQCUEQ7PeJxjYGRgYGIAAaaG/3///2FqZGBkQAUyAHBcBR0AAAB4nE2M' ).
+    lo_buf->add( '0REAIAhC0ckazdEconWKqPMuP96JHAAALizF4Pb6v1dIe+gGifkzPrjs+Y1s' ).
+    lo_buf->add( '/biatNS2dg609hQsAAAAAAAAAABCAIYAsADcARgBPgFkAYoBsAHWAiACnALQ' ).
+    lo_buf->add( 'A0wDiAPIBCAEpgT2BSYFYAWOBcAF/gaEB4QHugAAeJxjYGRgYJBhWMfAxgAC' ).
+    lo_buf->add( 'TEDMBYQMDP/BfAYAHMYB5wB4nGWNS27CMBRFb/j0A1KLVKkd1qMOqAifIQuA' ).
+    lo_buf->add( 'OQNmHYTghKAkjhyDxKwr6BK6hK6i6gq6oF7cxwRsye+8865tAD38IMBxBbjx' ).
+    lo_buf->add( '53E1cM3un5uke+EW+Um4jS6eha/o+8IdvGIi3MUD3vhC0Lql6aESbuAO78JN' ).
+    lo_buf->add( '+g/hFvlTuI1HfAlf0X8Ld7DEr3AXL0E/SgdZbMp6odNdHtlTe6pLbevMlGoc' ).
+    lo_buf->add( 'jk5qrkttI6fXanVQ9T6dOJeoxJpCzUzpdJ4bVVmz1bELN85V0+EwER/GpkCE' ).
+    lo_buf->add( 'FANkiGFQosYCmmaHnBN7MT3vl0xb1sz3CmOEGF2k5kyVPhnBsa6ZXOHAs8ae' ).
+    lo_buf->add( '2QmtQ8I+YcagIM383WM65zY0lZ9taWL6EBt/q8IUQ+7kLB/634s/3IhcMHic' ).
+    lo_buf->add( 'bY7vcoIwEMRZCSqo1Vr73z4CDxVCgAwHxySh+PiNMnb6offh5rc7ezcbLaJ5' ).
+    lo_buf->add( 'kuj/OWOBGAIJllhhjRQZNthihwfsccAjjnjCCc94wSve8I4PfOKMr2gvreUp' ).
+    lo_buf->add( 'V8Yq0vk4iEJaJwomHxd8SQtrdKWk04lqtGq3YX9b7vOSp/5XkK787i6sqRuf' ).
+    lo_buf->add( '3dU4HBTxWAYglmUuyW8UlzovrOxVM7PirjM+Vlwf9UWR7KQ34XbudPpreWtk' ).
+    lo_buf->add( 'X5NeVya0Dc/SG1y/ZDcynay1uGKI2FtkWTGV2gpi1YqBxjp1ZILh8iZ1PU8V' ).
+    lo_buf->add( 'yVYL56WNoh8WkmMaAA==' ).
     ro_asset_man->register_asset(
       iv_url       = 'font/ag-icons.woff'
       iv_type      = 'font/woff'
@@ -37685,7 +37719,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -38244,6 +38278,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->add( '<div class="diff_head">' ).              "#EC NOTEXT
+
+    ro_html->add_icon(
+      iv_name    = 'chevron-down'
+      iv_hint    = 'Collapse/Expand'
+      iv_class   = 'cursor-pointer'
+      iv_onclick = 'onDiffCollapse(event)' ).
 
     IF is_diff-type <> 'binary'.
       ls_stats = is_diff-o_diff->stats( ).
@@ -41719,9 +41759,10 @@ ENDCLASS.
 CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD add_icon.
 
-    add( icon( iv_name  = iv_name
-               iv_class = iv_class
-               iv_hint  = iv_hint ) ).
+    add( icon( iv_name    = iv_name
+               iv_class   = iv_class
+               iv_hint    = iv_hint
+               iv_onclick = iv_onclick  ) ).
 
   ENDMETHOD.
   METHOD checkbox.
@@ -41954,12 +41995,16 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
           lv_color      TYPE string,
           lv_class      TYPE string,
           lv_large_icon TYPE string,
-          lv_xpixel     TYPE i.
+          lv_xpixel     TYPE i,
+          lv_onclick    TYPE string.
 
     SPLIT iv_name AT '/' INTO lv_name lv_color.
 
     IF iv_hint IS NOT INITIAL.
       lv_hint  = | title="{ iv_hint }"|.
+    ENDIF.
+    IF iv_onclick IS NOT INITIAL.
+      lv_onclick = | onclick="{ iv_onclick }"|.
     ENDIF.
     IF iv_class IS NOT INITIAL.
       lv_class = | { iv_class }|.
@@ -41973,7 +42018,8 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
       lv_large_icon = ' large'.
     ENDIF.
 
-    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }{ lv_class }" { lv_hint }></i>|.
+    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }|.
+    rv_str = |{ rv_str }{ lv_class }"{ lv_onclick }{ lv_hint }></i>|.
 
   ENDMETHOD.
   METHOD is_empty.
@@ -80836,5 +80882,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-11T15:47:45.636Z
+* abapmerge 0.13.1 - 2020-03-12T16:10:25.156Z
 ****************************************************
