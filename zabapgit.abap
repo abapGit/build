@@ -5154,6 +5154,12 @@ CLASS zcl_abapgit_object_chdo DEFINITION
            tt_change_document TYPE STANDARD TABLE OF ty_change_document.
 
     DATA: mv_object TYPE cdobjectcl.
+    METHODS:
+      clear_field
+        IMPORTING
+          iv_fieldname TYPE string
+        CHANGING
+          cs_structure TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_cmpt DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -74032,11 +74038,37 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
              <ls_reports_generated>-author, <ls_reports_generated>-updname,
              <ls_reports_generated>-devclass.
     ENDLOOP.
+
     LOOP AT ls_change_object-objects ASSIGNING <ls_objects>.
-      CLEAR: <ls_objects>-udate, <ls_objects>-utime.
+
+      clear_field(
+        EXPORTING
+          iv_fieldname = |UDATE|
+        CHANGING
+          cs_structure = <ls_objects> ).
+
+      clear_field(
+        EXPORTING
+          iv_fieldname = |UTIME|
+        CHANGING
+          cs_structure = <ls_objects> ).
+
     ENDLOOP.
+
     LOOP AT ls_change_object-objects_text ASSIGNING <ls_objects_text>.
-      CLEAR: <ls_objects_text>-udate, <ls_objects_text>-utime.
+
+      clear_field(
+        EXPORTING
+          iv_fieldname = |UDATE|
+        CHANGING
+          cs_structure = <ls_objects_text> ).
+
+      clear_field(
+        EXPORTING
+          iv_fieldname = |UTIME|
+        CHANGING
+          cs_structure = <ls_objects_text> ).
+
     ENDLOOP.
 
     io_xml->add( iv_name = 'CHDO'
@@ -74184,6 +74216,22 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lv_field> TYPE data.
+
+    ASSIGN
+      COMPONENT iv_fieldname
+      OF STRUCTURE cs_structure
+      TO <lv_field>.
+    IF sy-subrc <> 0.
+      RETURN. " Field is not available in lower NW versions
+    ENDIF.
+
+    CLEAR: <lv_field>.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
@@ -80882,5 +80930,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-12T16:10:25.156Z
+* abapmerge 0.13.1 - 2020-03-13T09:48:08.877Z
 ****************************************************
