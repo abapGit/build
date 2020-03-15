@@ -74193,6 +74193,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   METHOD instantiate_char.
 
@@ -80889,5 +80890,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-14T10:15:49.924Z
+* abapmerge 0.13.1 - 2020-03-15T06:35:36.490Z
 ****************************************************
