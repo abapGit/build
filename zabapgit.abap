@@ -26121,6 +26121,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  line-height: 1.5;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab th {' ).
     lo_buf->add( '  text-align: left;' ).
@@ -26153,6 +26154,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td.files {' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  line-height: 1.5;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td.cmd, .repo_tab th.cmd {' ).
     lo_buf->add( '  text-align: right;' ).
@@ -26165,12 +26167,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo_tab tr:first-child td { border-top: 0px; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
-    lo_buf->add( 'div.stage-container { width: 900px; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'th.stage-status { width: 30px; }' ).
+    lo_buf->add( 'th.stage-objtype { width: 30px; }' ).
     lo_buf->add( 'input.stage-filter { width: 18em; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '.stage_tab {' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  margin-top: 0.2em;' ).
+    lo_buf->add( '  line-height: 1.5;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td {' ).
     lo_buf->add( '  border-top: 1px solid;' ).
@@ -34815,6 +34820,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     IF lines( ms_files-local ) > 0.
       ro_menu->add( iv_txt = |All diffs|
                     iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }| ).
+
+      ro_menu->add( iv_txt = |Patch|
+                    iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?key={ mo_repo->get_key( ) }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -34945,9 +34953,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD render_actions.
 
     DATA: lv_local_count TYPE i,
-          lv_add_all_txt TYPE string,
-          lv_param       TYPE string,
-          ls_file        TYPE zif_abapgit_definitions=>ty_file.
+          lv_add_all_txt TYPE string.
 
     CREATE OBJECT ro_html.
     lv_local_count = count_default_files_to_commit( ).
@@ -34974,15 +34980,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
                     iv_txt = lv_add_all_txt ) ##NO_TEXT.
-
-    lv_param = zcl_abapgit_html_action_utils=>file_encode( iv_key  = mo_repo->get_key( )
-                                                           ig_file = ls_file ).
-    ro_html->add( '</td>' ).
-
-    ro_html->add( '<td class="pad-sides">' ).
-    ro_html->add_a(
-      iv_txt = |Patch|
-      iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?{ lv_param }| ).
     ro_html->add( '</td>' ).
 
     " Filter bar
@@ -35089,8 +35086,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     LOOP AT ms_files-local ASSIGNING <ls_local>.
       AT FIRST.
         ro_html->add( '<thead><tr class="local">' ).
-        ro_html->add( '<th></th>' ). " Diff state
-        ro_html->add( '<th>Type</th>' ).
+        ro_html->add( '<th class="stage-status"></th>' ). " Diff state
+        ro_html->add( '<th class="stage-objtype">Type</th>' ).
         ro_html->add( '<th>Files to add (click to see diff)</th>' ).
         ro_html->add( '<th>Changed by</th>' ).
         ro_html->add( '<th>Transport</th>' ).
@@ -80890,5 +80887,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-15T06:35:36.490Z
+* abapmerge 0.13.1 - 2020-03-21T12:35:36.887Z
 ****************************************************
