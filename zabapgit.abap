@@ -70849,7 +70849,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -71159,7 +71159,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
     CLEAR: ls_dd01v-as4user,
            ls_dd01v-as4date,
-           ls_dd01v-as4time.
+           ls_dd01v-as4time,
+           ls_dd01v-appexist.
 
 * make sure XML serialization does not dump if the field contains invalid data
 * note that this is a N field, so '' is not valid
@@ -71170,6 +71171,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     IF lv_masklen = '' OR NOT lv_masklen CO '0123456789'.
       CLEAR ls_dd01v-masklen.
     ENDIF.
+
+    DELETE lt_dd07v WHERE appval = abap_true.
 
     SORT lt_dd07v BY
       valpos ASCENDING
@@ -81167,5 +81170,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-26T11:31:44.475Z
+* abapmerge 0.13.1 - 2020-03-29T07:19:11.896Z
 ****************************************************
