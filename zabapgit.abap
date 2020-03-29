@@ -2931,7 +2931,7 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_version .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.93.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.94.0' ##NO_TEXT.
 
 ENDINTERFACE.
 
@@ -81170,5 +81170,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-29T12:06:19.375Z
+* abapmerge 0.13.1 - 2020-03-29T12:17:57.352Z
 ****************************************************
