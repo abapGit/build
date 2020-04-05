@@ -1434,7 +1434,8 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_files_item_tt TYPE STANDARD TABLE OF ty_file_item WITH DEFAULT KEY .
   TYPES:
-    ty_yes_no TYPE c LENGTH 1 .
+    ty_yes_no         TYPE c LENGTH 1,
+    ty_yes_no_partial TYPE c LENGTH 1.
   TYPES:
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
@@ -1825,6 +1826,11 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE' ##NO_TEXT.
+
+  CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
+  CONSTANTS gc_no TYPE ty_yes_no VALUE 'N'.
+  CONSTANTS gc_partial TYPE ty_yes_no_partial VALUE 'P'.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_apack_definitions.
@@ -2987,7 +2993,7 @@ CLASS zcl_abapgit_apack_helper DEFINITION
 
     TYPES:
       BEGIN OF ty_dependency_status,
-        met(1) TYPE c.
+        met TYPE zif_abapgit_definitions=>ty_yes_no_partial.
         INCLUDE TYPE zif_abapgit_apack_definitions=>ty_dependency.
     TYPES: END OF ty_dependency_status,
       tt_dependency_status TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY.
@@ -19269,11 +19275,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     deserialize_checks( ).
 
-    IF is_checks-requirements-met = 'N' AND is_checks-requirements-decision IS INITIAL.
+    IF is_checks-requirements-met = zif_abapgit_definitions=>gc_no AND is_checks-requirements-decision IS INITIAL.
       zcx_abapgit_exception=>raise( 'Requirements not met and undecided' ).
     ENDIF.
 
-    IF is_checks-dependencies-met = 'N'.
+    IF is_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
       zcx_abapgit_exception=>raise( 'APACK dependencies not met' ).
     ENDIF.
 
@@ -24892,7 +24898,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
+CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
   METHOD get_requirement_met_status.
 
     DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
@@ -24941,9 +24947,9 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
     READ TABLE lt_met_status TRANSPORTING NO FIELDS WITH KEY met = abap_false.
     IF sy-subrc = 0.
-      rv_status = 'N'.
+      rv_status = zif_abapgit_definitions=>gc_no.
     ELSE.
-      rv_status = 'Y'.
+      rv_status = zif_abapgit_definitions=>gc_yes.
     ENDIF.
 
   ENDMETHOD.
@@ -24969,7 +24975,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
     TYPES: BEGIN OF lty_color_line,
              color TYPE lvc_t_scol.
-        INCLUDE TYPE ty_requirement_status.
+             INCLUDE TYPE ty_requirement_status.
     TYPES: END OF lty_color_line.
 
     TYPES: lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
@@ -30530,13 +30536,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
         popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
         popup_package_overwrite( CHANGING ct_overwrite = ls_checks-warning_package ).
 
-        IF ls_checks-requirements-met = 'N'.
+        IF ls_checks-requirements-met = zif_abapgit_definitions=>gc_no.
           lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
           zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
-          ls_checks-requirements-decision = 'Y'.
+          ls_checks-requirements-decision = zif_abapgit_definitions=>gc_yes.
         ENDIF.
 
-        IF ls_checks-dependencies-met = 'N'.
+        IF ls_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
           lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
           zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
         ENDIF.
@@ -81382,7 +81388,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
     DATA: lt_dependencies_status TYPE tt_dependency_status.
 
     IF it_dependencies IS INITIAL.
-      rv_status = 'Y'.
+      rv_status = zif_abapgit_definitions=>gc_yes.
       RETURN.
     ENDIF.
 
@@ -81393,9 +81399,9 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
     ENDLOOP.
 
     IF sy-subrc = 0.
-      rv_status = 'N'.
+      rv_status = zif_abapgit_definitions=>gc_no.
     ELSE.
-      rv_status = 'Y'.
+      rv_status = zif_abapgit_definitions=>gc_yes.
     ENDIF.
 
   ENDMETHOD.
@@ -81430,14 +81436,14 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
         WITH KEY group_id    = ls_dependecy-group_id
                  artifact_id = ls_dependecy-artifact_id.
       IF sy-subrc <> 0.
-        ls_dependecy_popup-met = 'N'.
+        ls_dependecy_popup-met = zif_abapgit_definitions=>gc_no.
       ELSE.
         TRY.
             zcl_abapgit_version=>check_dependant_version( is_current   = ls_installed_package-sem_version
                                                           is_dependant = ls_dependecy-sem_version ).
-            ls_dependecy_popup-met = 'Y'.
+            ls_dependecy_popup-met = zif_abapgit_definitions=>gc_yes.
           CATCH zcx_abapgit_exception.
-            ls_dependecy_popup-met = 'P'.
+            ls_dependecy_popup-met = zif_abapgit_definitions=>gc_partial.
         ENDTRY.
       ENDIF.
 
@@ -81586,13 +81592,13 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
           MOVE-CORRESPONDING <ls_dependency> TO <ls_line>.
 
           CASE <ls_line>-met.
-            WHEN 'Y'.
+            WHEN zif_abapgit_definitions=>gc_yes.
               <ls_line>-color     = lt_color_positive.
               <ls_line>-exception = '3'.
-            WHEN 'P'.
+            WHEN zif_abapgit_definitions=>gc_partial.
               <ls_line>-color     = lt_color_normal.
               <ls_line>-exception = '2'.
-            WHEN 'N'.
+            WHEN zif_abapgit_definitions=>gc_no.
               <ls_line>-color     = lt_color_negative.
               <ls_line>-exception = '1'.
           ENDCASE.
@@ -82025,5 +82031,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-04-05T06:59:21.601Z
+* abapmerge 0.13.1 - 2020-04-05T08:56:48.885Z
 ****************************************************
