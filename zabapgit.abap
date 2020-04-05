@@ -599,6 +599,7 @@ CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml DEFINITION DEFERRED.
+CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_master_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
@@ -842,41 +843,7 @@ CLASS zcl_abapgit_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_writer DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_reader DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_migration DEFINITION DEFERRED.
-INTERFACE zif_abapgit_apack_definitions.
-
-  TYPES:
-    BEGIN OF ty_dependency,
-      group_id       TYPE string,
-      artifact_id    TYPE string,
-      version        TYPE string,
-      git_url        TYPE string,
-      target_package TYPE devclass,
-    END OF ty_dependency,
-
-    tt_dependencies    TYPE STANDARD TABLE OF ty_dependency
-                    WITH NON-UNIQUE DEFAULT KEY,
-
-    ty_repository_type TYPE string,
-
-    BEGIN OF ty_descriptor_wo_dependencies,
-      group_id        TYPE string,
-      artifact_id     TYPE string,
-      version         TYPE string,
-      repository_type TYPE ty_repository_type,
-      git_url         TYPE string,
-    END OF ty_descriptor_wo_dependencies,
-
-    BEGIN OF ty_descriptor.
-      INCLUDE TYPE ty_descriptor_wo_dependencies.
-  TYPES:
-    dependencies TYPE tt_dependencies,
-    END OF ty_descriptor.
-
-  CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
-  CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
-
-ENDINTERFACE.
-
+CLASS zcl_abapgit_apack_helper DEFINITION DEFERRED.
 INTERFACE zif_abapgit_background .
   TYPES:
     BEGIN OF ty_settings,
@@ -1395,7 +1362,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_file.
       INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
-         END OF ty_file .
+    END OF ty_file .
   TYPES:
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
@@ -1472,7 +1439,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
-         END OF ty_overwrite .
+    END OF ty_overwrite .
   TYPES:
     ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
                               WITH UNIQUE HASHED KEY object_type_and_name
@@ -1482,6 +1449,10 @@ INTERFACE zif_abapgit_definitions .
       met      TYPE ty_yes_no,
       decision TYPE ty_yes_no,
     END OF ty_requirements .
+  TYPES:
+    BEGIN OF ty_dependencies,
+      met TYPE ty_yes_no,
+    END OF ty_dependencies .
   TYPES:
     BEGIN OF ty_transport_type,
       request TYPE trfunction,
@@ -1498,6 +1469,7 @@ INTERFACE zif_abapgit_definitions .
       overwrite       TYPE ty_overwrite_tt,
       warning_package TYPE ty_overwrite_tt,
       requirements    TYPE ty_requirements,
+      dependencies    TYPE ty_dependencies,
       transport       TYPE ty_transport,
     END OF ty_deserialize_checks .
   TYPES:
@@ -1737,6 +1709,15 @@ INTERFACE zif_abapgit_definitions .
     ty_proxy_bypass_url       TYPE c LENGTH 255,
     ty_range_proxy_bypass_url TYPE RANGE OF ty_proxy_bypass_url.
 
+  TYPES:
+    BEGIN OF ty_version,
+      major           TYPE i,
+      minor           TYPE i,
+      patch           TYPE i,
+      prerelase       TYPE string,
+      prerelase_patch TYPE i,
+    END OF ty_version.
+
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -1844,6 +1825,45 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE' ##NO_TEXT.
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_apack_definitions.
+
+  TYPES:
+    BEGIN OF ty_dependency,
+      group_id       TYPE string,
+      artifact_id    TYPE string,
+      version        TYPE string,
+      sem_version    TYPE zif_abapgit_definitions=>ty_version,
+      git_url        TYPE string,
+      target_package TYPE devclass,
+    END OF ty_dependency,
+
+    tt_dependencies    TYPE STANDARD TABLE OF ty_dependency
+                    WITH NON-UNIQUE DEFAULT KEY,
+
+    ty_repository_type TYPE string,
+
+    BEGIN OF ty_descriptor_wo_dependencies,
+      group_id        TYPE string,
+      artifact_id     TYPE string,
+      version         TYPE string,
+      sem_version     TYPE zif_abapgit_definitions=>ty_version,
+      repository_type TYPE ty_repository_type,
+      git_url         TYPE string,
+    END OF ty_descriptor_wo_dependencies,
+
+    BEGIN OF ty_descriptor.
+      INCLUDE TYPE ty_descriptor_wo_dependencies.
+  TYPES:
+    dependencies TYPE tt_dependencies,
+    END OF ty_descriptor,
+
+    tt_descriptor TYPE STANDARD TABLE OF ty_descriptor WITH NON-UNIQUE DEFAULT KEY.
+
+  CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
+  CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_object .
@@ -2936,6 +2956,63 @@ INTERFACE zif_abapgit_version .
 
 ENDINTERFACE.
 
+CLASS zcl_abapgit_apack_helper DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS are_dependencies_met
+      IMPORTING
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+      RETURNING
+        VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS dependencies_popup
+      IMPORTING
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_manifest_declaration,
+        clsname  TYPE seometarel-clsname,
+        devclass TYPE devclass,
+      END OF ty_manifest_declaration,
+      tt_manifest_declaration TYPE STANDARD TABLE OF ty_manifest_declaration WITH NON-UNIQUE DEFAULT KEY.
+
+    TYPES:
+      BEGIN OF ty_dependency_status,
+        met(1) TYPE c.
+        INCLUDE TYPE zif_abapgit_apack_definitions=>ty_dependency.
+    TYPES: END OF ty_dependency_status,
+      tt_dependency_status TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY.
+
+    CLASS-METHODS get_dependencies_met_status
+      IMPORTING
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+      RETURNING
+        VALUE(rt_status) TYPE tt_dependency_status
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS get_installed_packages
+      RETURNING
+        VALUE(rt_packages) TYPE zif_abapgit_apack_definitions=>tt_descriptor
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS show_dependencies_popup
+      IMPORTING
+        !it_dependencies TYPE tt_dependency_status
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_apack_migration DEFINITION
   FINAL
   CREATE PRIVATE.
@@ -2973,18 +3050,34 @@ CLASS zcl_abapgit_apack_reader DEFINITION
         !iv_package_name          TYPE ty_package_name
       RETURNING
         VALUE(ro_manifest_reader) TYPE REF TO zcl_abapgit_apack_reader .
+    CLASS-METHODS deserialize
+      IMPORTING
+        !iv_package_name          TYPE ty_package_name
+        !iv_xstr                  TYPE xstring
+      RETURNING
+        VALUE(ro_manifest_reader) TYPE REF TO zcl_abapgit_apack_reader
+      RAISING
+        zcx_abapgit_exception.
     METHODS get_manifest_descriptor
       RETURNING
-        VALUE(rs_manifest_descriptor) TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+        VALUE(rs_manifest_descriptor) TYPE zif_abapgit_apack_definitions=>ty_descriptor
+      RAISING
+        zcx_abapgit_exception.
     METHODS set_manifest_descriptor
       IMPORTING
-        !is_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+        !is_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor
+      RAISING
+        zcx_abapgit_exception.
     METHODS copy_manifest_descriptor
       IMPORTING
-        !io_manifest_provider TYPE REF TO object .
+        !io_manifest_provider TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
     METHODS has_manifest
       RETURNING
-        VALUE(rv_has_manifest) TYPE abap_bool .
+        VALUE(rv_has_manifest) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !iv_package_name TYPE ty_package_name .
@@ -3000,6 +3093,17 @@ CLASS zcl_abapgit_apack_reader DEFINITION
     DATA mv_package_name TYPE ty_package_name .
     DATA ms_cached_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
     DATA mv_is_cached TYPE abap_bool .
+
+    CLASS-METHODS from_xml
+      IMPORTING
+        iv_xml         TYPE string
+      RETURNING
+        VALUE(rs_data) TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    METHODS format_version
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_apack_writer DEFINITION
   FINAL
@@ -13225,6 +13329,29 @@ CLASS zcl_abapgit_utils DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_version DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS conv_str_to_version
+      IMPORTING
+        !iv_version       TYPE csequence
+      RETURNING
+        VALUE(rs_version) TYPE zif_abapgit_definitions=>ty_version
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS check_dependant_version
+      IMPORTING
+        !is_current   TYPE zif_abapgit_definitions=>ty_version
+        !is_dependant TYPE zif_abapgit_definitions=>ty_version
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_xml DEFINITION
   ABSTRACT
   CREATE PUBLIC .
@@ -14560,6 +14687,9 @@ CLASS zcl_abapgit_repo DEFINITION
         !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit
       RAISING
         zcx_abapgit_exception .
+    METHODS get_dot_apack
+      RETURNING
+        VALUE(ro_dot_apack) TYPE REF TO zcl_abapgit_apack_reader .
     METHODS deserialize
       IMPORTING
         !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
@@ -14582,6 +14712,11 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS find_remote_dot_abapgit
       RETURNING
         VALUE(ro_dot) TYPE REF TO zcl_abapgit_dot_abapgit
+      RAISING
+        zcx_abapgit_exception .
+    METHODS find_remote_dot_apack
+      RETURNING
+        VALUE(ro_dot) TYPE REF TO zcl_abapgit_apack_reader
       RAISING
         zcx_abapgit_exception .
     METHODS is_offline
@@ -14627,13 +14762,13 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS reset_log .
     METHODS refresh_local_object
       IMPORTING
-        iv_obj_type TYPE tadir-object
-        iv_obj_name TYPE tadir-obj_name
+        !iv_obj_type TYPE tadir-object
+        !iv_obj_name TYPE tadir-obj_name
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS refresh_local_objects
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS reset_status .
   PROTECTED SECTION.
 
@@ -14645,6 +14780,11 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mi_log TYPE REF TO zif_abapgit_log .
 
+    METHODS set_dot_apack
+      IMPORTING
+        !io_dot_apack TYPE REF TO zcl_abapgit_apack_reader
+      RAISING
+        zcx_abapgit_exception .
     METHODS set
       IMPORTING
         !it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
@@ -14661,7 +14801,8 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS reset_remote .
   PRIVATE SECTION.
 
-    DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
+    DATA mi_listener TYPE REF TO zif_abapgit_repo_listener.
+    DATA mo_apack_reader TYPE REF TO zcl_abapgit_apack_reader.
 
     METHODS get_local_checksums
       RETURNING
@@ -19068,7 +19209,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -19125,10 +19266,15 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
           lx_error         TYPE REF TO zcx_abapgit_exception.
+
     deserialize_checks( ).
 
     IF is_checks-requirements-met = 'N' AND is_checks-requirements-decision IS INITIAL.
       zcx_abapgit_exception=>raise( 'Requirements not met and undecided' ).
+    ENDIF.
+
+    IF is_checks-dependencies-met = 'N'.
+      zcx_abapgit_exception=>raise( 'APACK dependencies not met' ).
     ENDIF.
 
     IF is_checks-transport-required = abap_true AND is_checks-transport-transport IS INITIAL.
@@ -19160,9 +19306,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD deserialize_checks.
 
     DATA: lt_requirements    TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
+          lt_dependencies    TYPE zif_abapgit_apack_definitions=>tt_dependencies,
           lv_master_language TYPE spras,
           lv_logon_language  TYPE spras.
     find_remote_dot_abapgit( ).
+    find_remote_dot_apack( ).
 
     lv_master_language = get_dot_abapgit( )->get_master_language( ).
     lv_logon_language  = sy-langu.
@@ -19182,6 +19330,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     lt_requirements = get_dot_abapgit( )->get_data( )-requirements.
     rs_checks-requirements-met = zcl_abapgit_requirement_helper=>is_requirements_met( lt_requirements ).
 
+    lt_dependencies = get_dot_apack( )->get_manifest_descriptor( )-dependencies.
+    rs_checks-dependencies-met = zcl_abapgit_apack_helper=>are_dependencies_met( lt_dependencies ).
+
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
 
@@ -19199,10 +19350,34 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD find_remote_dot_apack.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
+
+    get_files_remote( ).
+
+    READ TABLE mt_remote ASSIGNING <ls_remote>
+      WITH KEY path     = zif_abapgit_definitions=>c_root_dir
+               filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
+    IF sy-subrc = 0.
+      ro_dot = zcl_abapgit_apack_reader=>deserialize( iv_package_name = ms_data-package
+                                                      iv_xstr         = <ls_remote>-data ).
+      set_dot_apack( ro_dot ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_dot_abapgit.
     CREATE OBJECT ro_dot_abapgit
       EXPORTING
         is_data = ms_data-dot_abapgit.
+  ENDMETHOD.
+  METHOD get_dot_apack.
+    IF mo_apack_reader IS NOT BOUND.
+      mo_apack_reader = zcl_abapgit_apack_reader=>create_instance( ms_data-package ).
+    ENDIF.
+
+    ro_dot_apack = mo_apack_reader.
+
   ENDMETHOD.
   METHOD get_files_local.
 
@@ -19361,6 +19536,44 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD refresh_local_object.
+
+    DATA:
+      ls_tadir           TYPE zif_abapgit_definitions=>ty_tadir,
+      lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
+      lt_new_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt,
+      lo_serialize       TYPE REF TO zcl_abapgit_serialize.
+
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+                   iv_package = ms_data-package
+                   io_dot     = get_dot_abapgit( ) ).
+
+    DELETE mt_local WHERE item-obj_type = iv_obj_type
+                    AND   item-obj_name = iv_obj_name.
+
+    READ TABLE lt_tadir INTO ls_tadir
+                        WITH KEY object   = iv_obj_type
+                                 obj_name = iv_obj_name.
+    IF sy-subrc <> 0 OR ls_tadir-delflag = abap_true.
+      " object doesn't exist anymore, nothing todo here
+      RETURN.
+    ENDIF.
+
+    CLEAR lt_tadir.
+    INSERT ls_tadir INTO TABLE lt_tadir.
+
+    CREATE OBJECT lo_serialize.
+    lt_new_local_files = lo_serialize->serialize( lt_tadir ).
+
+    INSERT LINES OF lt_new_local_files INTO TABLE mt_local.
+
+  ENDMETHOD.
+  METHOD refresh_local_objects.
+
+    mv_request_local_refresh = abap_true.
+    get_files_local( ).
+
+  ENDMETHOD.
   METHOD reset_log.
     CLEAR mi_log.
   ENDMETHOD.
@@ -19376,8 +19589,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
 * TODO: refactor
 
-    DATA:
-          ls_mask        TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
+    DATA: ls_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
     ASSERT it_checksums IS SUPPLIED
       OR iv_url IS SUPPLIED
       OR iv_branch_name IS SUPPLIED
@@ -19434,6 +19646,10 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_dot_abapgit.
     set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
+  ENDMETHOD.
+  METHOD set_dot_apack.
+    get_dot_apack( ).
+    mo_apack_reader->set_manifest_descriptor( io_dot_apack->get_manifest_descriptor( ) ).
   ENDMETHOD.
   METHOD set_files_remote.
 
@@ -19563,45 +19779,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.
-  METHOD refresh_local_object.
-
-    DATA:
-      ls_tadir           TYPE zif_abapgit_definitions=>ty_tadir,
-      lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
-      lt_new_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt,
-      lo_serialize       TYPE REF TO zcl_abapgit_serialize.
-
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-                   iv_package = ms_data-package
-                   io_dot     = get_dot_abapgit( ) ).
-
-    DELETE mt_local WHERE item-obj_type = iv_obj_type
-                    AND   item-obj_name = iv_obj_name.
-
-    READ TABLE lt_tadir INTO ls_tadir
-                        WITH KEY object   = iv_obj_type
-                                 obj_name = iv_obj_name.
-    IF sy-subrc <> 0 OR ls_tadir-delflag = abap_true.
-      " object doesn't exist anymore, nothing todo here
-      RETURN.
-    ENDIF.
-
-    CLEAR lt_tadir.
-    INSERT ls_tadir INTO TABLE lt_tadir.
-
-    CREATE OBJECT lo_serialize.
-    lt_new_local_files = lo_serialize->serialize( lt_tadir ).
-
-    INSERT LINES OF lt_new_local_files INTO TABLE mt_local.
-
-  ENDMETHOD.
-  METHOD refresh_local_objects.
-
-    mv_request_local_refresh = abap_true.
-    get_files_local( ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
@@ -24328,6 +24505,114 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
     IF rv_xml(1) <> lv_mark.
       CONCATENATE lv_mark rv_xml INTO rv_xml.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_version IMPLEMENTATION.
+  METHOD conv_str_to_version.
+
+    DATA: lt_segments TYPE STANDARD TABLE OF string,
+          lt_parts    TYPE STANDARD TABLE OF string,
+          lv_segment  TYPE string.
+
+    SPLIT iv_version AT '-' INTO TABLE lt_segments.
+
+    READ TABLE lt_segments INTO lv_segment INDEX 1. " Version
+    IF sy-subrc <> 0.   " No version
+      RETURN.
+    ENDIF.
+
+    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
+
+    LOOP AT lt_parts INTO lv_segment.
+
+      TRY.
+          CASE sy-tabix.
+            WHEN 1.
+              rs_version-major = lv_segment.
+            WHEN 2.
+              rs_version-minor = lv_segment.
+            WHEN 3.
+              rs_version-patch = lv_segment.
+          ENDCASE.
+        CATCH cx_sy_conversion_no_number.
+          zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
+      ENDTRY.
+
+    ENDLOOP.
+
+    READ TABLE lt_segments INTO lv_segment INDEX 2. " Pre-release Version
+    IF sy-subrc <> 0.   " No version
+      RETURN.
+    ENDIF.
+
+    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
+
+    LOOP AT lt_parts INTO lv_segment.
+
+      CASE sy-tabix.
+        WHEN 1.
+          rs_version-prerelase = lv_segment.
+          TRANSLATE rs_version-prerelase TO LOWER CASE.
+        WHEN 2.
+          rs_version-prerelase_patch = lv_segment.
+      ENDCASE.
+
+    ENDLOOP.
+
+    IF rs_version-prerelase <> 'rc' AND rs_version-prerelase <> 'beta' AND rs_version-prerelase <> 'alpha'.
+      zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD check_dependant_version.
+
+    CONSTANTS: lc_message TYPE string VALUE 'Current version is older than required'.
+
+    IF is_dependant-major > is_current-major.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-major < is_current-major.
+      RETURN.
+    ENDIF.
+
+    IF is_dependant-minor > is_current-minor.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-minor < is_current-minor.
+      RETURN.
+    ENDIF.
+
+    IF is_dependant-patch > is_current-patch.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-patch < is_current-patch.
+      RETURN.
+    ENDIF.
+
+    IF is_current-prerelase IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CASE is_current-prerelase.
+      WHEN 'rc'.
+        IF is_dependant-prerelase = ''.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'beta'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'alpha'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc' OR is_dependant-prerelase = 'beta'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+    ENDCASE.
+
+    IF is_dependant-prerelase = is_current-prerelase AND is_dependant-prerelase_patch > is_current-prerelase_patch.
+      zcx_abapgit_exception=>raise( lc_message ).
     ENDIF.
 
   ENDMETHOD.
@@ -30231,11 +30516,12 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
-          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
+          lt_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies.
 * find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
@@ -30248,6 +30534,11 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
           lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
           zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
           ls_checks-requirements-decision = 'Y'.
+        ENDIF.
+
+        IF ls_checks-dependencies-met = 'N'.
+          lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
+          zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
         ENDIF.
 
         IF ls_checks-transport-required = abap_true.
@@ -80702,7 +80993,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_APACK_WRITER IMPLEMENTATION.
+CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
   METHOD constructor.
     me->ms_manifest_descriptor = is_apack_manifest_descriptor.
   ENDMETHOD.
@@ -80711,12 +81002,22 @@ CLASS ZCL_ABAPGIT_APACK_WRITER IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize.
 
+    DATA: ls_manifest_descriptor LIKE ms_manifest_descriptor.
+    FIELD-SYMBOLS: <ls_dependency> LIKE LINE OF ls_manifest_descriptor-dependencies.
+
     " Setting repository type automatically to 'abapGit' as there is no other one right now
     ms_manifest_descriptor-repository_type = zif_abapgit_apack_definitions=>c_repository_type_abapgit.
 
+    ls_manifest_descriptor = ms_manifest_descriptor.
+    CLEAR: ls_manifest_descriptor-sem_version.
+
+    LOOP AT ls_manifest_descriptor-dependencies ASSIGNING <ls_dependency>.
+      CLEAR: <ls_dependency>-sem_version.
+    ENDLOOP.
+
     CALL TRANSFORMATION id
       OPTIONS initial_components = 'suppress'
-      SOURCE data = ms_manifest_descriptor
+      SOURCE data = ls_manifest_descriptor
       RESULT XML rv_xml.
 
     rv_xml = zcl_abapgit_xml_pretty=>print( rv_xml ).
@@ -80731,10 +81032,41 @@ ENDCLASS.
 
 CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
   METHOD constructor.
-    me->mv_package_name = iv_package_name.
+    mv_package_name = iv_package_name.
   ENDMETHOD.
   METHOD create_instance.
     CREATE OBJECT ro_manifest_reader EXPORTING iv_package_name = iv_package_name.
+  ENDMETHOD.
+  METHOD deserialize.
+
+    DATA: lv_xml  TYPE string,
+          ls_data TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( iv_xstr ).
+
+    ls_data = from_xml( lv_xml ).
+
+    ro_manifest_reader = create_instance( iv_package_name ).
+
+    ro_manifest_reader = create_instance( iv_package_name ).
+    ro_manifest_reader->set_manifest_descriptor( ls_data ).
+
+  ENDMETHOD.
+  METHOD from_xml.
+
+    DATA: lv_xml TYPE string.
+
+    lv_xml = iv_xml.
+
+    " fix downward compatibility
+    REPLACE ALL OCCURRENCES OF '<_--28C_DATA_--29>' IN lv_xml WITH '<DATA>'.
+    REPLACE ALL OCCURRENCES OF '</_--28C_DATA_--29>' IN lv_xml WITH '</DATA>'.
+
+    CALL TRANSFORMATION id
+      OPTIONS value_handling = 'accept_data_loss'
+      SOURCE XML lv_xml
+      RESULT data = rs_data ##NO_TEXT.
+
   ENDMETHOD.
   METHOD get_manifest_descriptor.
 
@@ -80770,7 +81102,9 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
           me->copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
         ENDIF.
       ENDIF.
-      me->mv_is_cached = abap_true.
+
+      mv_is_cached = abap_true.
+
     ENDIF.
 
     rs_manifest_descriptor = me->ms_cached_descriptor.
@@ -80779,7 +81113,7 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
 
     DATA: ls_returned_manifest TYPE zif_abapgit_apack_definitions=>ty_descriptor.
 
-    ls_returned_manifest = me->get_manifest_descriptor( ).
+    ls_returned_manifest = get_manifest_descriptor( ).
 
     rv_has_manifest = abap_false.
     IF ls_returned_manifest IS NOT INITIAL.
@@ -80788,14 +81122,16 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_manifest_descriptor.
-    me->mv_is_cached = abap_true.
-    me->ms_cached_descriptor = is_manifest_descriptor.
+    mv_is_cached = abap_true.
+    ms_cached_descriptor = is_manifest_descriptor.
+    format_version( ).
   ENDMETHOD.
 
   METHOD copy_manifest_descriptor.
 
     DATA: ls_my_manifest_wo_deps TYPE zif_abapgit_apack_definitions=>ty_descriptor_wo_dependencies,
-          ls_my_dependency       TYPE zif_abapgit_apack_definitions=>ty_dependency.
+          ls_my_dependency       TYPE zif_abapgit_apack_definitions=>ty_dependency,
+          ls_descriptor          TYPE zif_abapgit_apack_definitions=>ty_descriptor.
 
     FIELD-SYMBOLS: <lg_descriptor>   TYPE any,
                    <lt_dependencies> TYPE ANY TABLE,
@@ -80812,15 +81148,28 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
       IF <lt_dependencies> IS ASSIGNED.
         LOOP AT <lt_dependencies> ASSIGNING <lg_dependency>.
           MOVE-CORRESPONDING <lg_dependency> TO ls_my_dependency.
-          INSERT ls_my_dependency INTO TABLE me->ms_cached_descriptor-dependencies.
+          INSERT ls_my_dependency INTO TABLE ls_descriptor-dependencies.
         ENDLOOP.
         MOVE-CORRESPONDING <lg_descriptor> TO ls_my_manifest_wo_deps.
-        MOVE-CORRESPONDING ls_my_manifest_wo_deps TO me->ms_cached_descriptor.
+        MOVE-CORRESPONDING ls_my_manifest_wo_deps TO ls_descriptor.
       ENDIF.
     ENDIF.
 
-  ENDMETHOD.
+    set_manifest_descriptor( ls_descriptor ).
 
+  ENDMETHOD.
+  METHOD format_version.
+
+    FIELD-SYMBOLS: <ls_dependency> TYPE zif_abapgit_apack_definitions=>ty_dependency.
+
+    TRANSLATE ms_cached_descriptor-version TO LOWER CASE.
+    ms_cached_descriptor-sem_version = zcl_abapgit_version=>conv_str_to_version( ms_cached_descriptor-version ).
+
+    LOOP AT ms_cached_descriptor-dependencies ASSIGNING <ls_dependency>.
+      <ls_dependency>-sem_version = zcl_abapgit_version=>conv_str_to_version( <ls_dependency>-version ).
+    ENDLOOP.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
@@ -81025,6 +81374,254 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
 
   ENDMETHOD.
 
+ENDCLASS.
+
+CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
+  METHOD are_dependencies_met.
+
+    DATA: lt_dependencies_status TYPE tt_dependency_status.
+
+    IF it_dependencies IS INITIAL.
+      rv_status = 'Y'.
+      RETURN.
+    ENDIF.
+
+    lt_dependencies_status = get_dependencies_met_status( it_dependencies ).
+
+    LOOP AT lt_dependencies_status TRANSPORTING NO FIELDS WHERE met <> 'Y'.
+      EXIT.
+    ENDLOOP.
+
+    IF sy-subrc = 0.
+      rv_status = 'N'.
+    ELSE.
+      rv_status = 'Y'.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD dependencies_popup.
+
+    DATA: lt_met_status TYPE tt_dependency_status.
+
+    lt_met_status = get_dependencies_met_status( it_dependencies ).
+
+    show_dependencies_popup( lt_met_status ).
+
+  ENDMETHOD.
+  METHOD get_dependencies_met_status.
+
+    DATA: lt_installed_packages TYPE zif_abapgit_apack_definitions=>tt_descriptor,
+          ls_installed_package  TYPE zif_abapgit_apack_definitions=>ty_descriptor,
+          ls_dependecy          TYPE zif_abapgit_apack_definitions=>ty_dependency,
+          ls_dependecy_popup    TYPE ty_dependency_status.
+
+    IF it_dependencies IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lt_installed_packages = get_installed_packages( ).
+
+    LOOP AT it_dependencies INTO ls_dependecy.
+      CLEAR: ls_dependecy_popup.
+
+      MOVE-CORRESPONDING ls_dependecy TO ls_dependecy_popup.
+
+      READ TABLE lt_installed_packages INTO ls_installed_package
+        WITH KEY group_id    = ls_dependecy-group_id
+                 artifact_id = ls_dependecy-artifact_id.
+      IF sy-subrc <> 0.
+        ls_dependecy_popup-met = 'N'.
+      ELSE.
+        TRY.
+            zcl_abapgit_version=>check_dependant_version( is_current   = ls_installed_package-sem_version
+                                                          is_dependant = ls_dependecy-sem_version ).
+            ls_dependecy_popup-met = 'Y'.
+          CATCH zcx_abapgit_exception.
+            ls_dependecy_popup-met = 'P'.
+        ENDTRY.
+      ENDIF.
+
+      INSERT ls_dependecy_popup INTO TABLE rt_status.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_installed_packages.
+
+    DATA: lo_apack_reader            TYPE REF TO zcl_abapgit_apack_reader,
+          lt_manifest_implementation TYPE tt_manifest_declaration,
+          ls_manifest_implementation TYPE ty_manifest_declaration,
+          lo_manifest_provider       TYPE REF TO object,
+          ls_descriptor              TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    SELECT seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
+       INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
+       INTO TABLE lt_manifest_implementation
+       WHERE tadir~pgmid = 'R3TR'
+         AND tadir~object = 'CLAS'
+         AND seometarel~version = '1'
+         AND ( seometarel~refclsname = 'ZIF_APACK_MANIFEST' OR seometarel~refclsname = 'IF_APACK_MANIFEST' ).
+
+    LOOP AT lt_manifest_implementation INTO ls_manifest_implementation.
+      CLEAR: lo_manifest_provider, lo_apack_reader.
+
+      TRY.
+          CREATE OBJECT lo_manifest_provider TYPE (ls_manifest_implementation-clsname).
+        CATCH cx_sy_create_object_error.
+          CLEAR: lo_manifest_provider.
+      ENDTRY.
+
+      IF lo_manifest_provider IS NOT BOUND.
+        CONTINUE.
+      ENDIF.
+
+      lo_apack_reader = zcl_abapgit_apack_reader=>create_instance( ls_manifest_implementation-devclass ).
+      lo_apack_reader->copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
+      ls_descriptor = lo_apack_reader->get_manifest_descriptor( ).
+
+      IF ls_descriptor IS NOT INITIAL.
+        INSERT ls_descriptor INTO TABLE rt_packages.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD show_dependencies_popup.
+
+    TYPES:
+      BEGIN OF lty_color_line,
+        exception(1) TYPE c,
+        color        TYPE lvc_t_scol.
+        INCLUDE TYPE ty_dependency_status.
+    TYPES: t_hyperlink  TYPE salv_t_int4_column,
+      END OF lty_color_line.
+
+    TYPES: lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
+
+    DATA: lo_alv                 TYPE REF TO cl_salv_table,
+          lo_functional_settings TYPE REF TO cl_salv_functional_settings,
+          lo_hyperlinks          TYPE REF TO cl_salv_hyperlinks,
+          lo_column              TYPE REF TO cl_salv_column,
+          lo_column_table        TYPE REF TO cl_salv_column_table,
+          lo_columns             TYPE REF TO cl_salv_columns_table,
+          lt_columns             TYPE salv_t_column_ref,
+          ls_column              LIKE LINE OF lt_columns,
+          lt_color_table         TYPE lty_color_tab,
+          lt_color_negative      TYPE lvc_t_scol,
+          lt_color_normal        TYPE lvc_t_scol,
+          lt_color_positive      TYPE lvc_t_scol,
+          ls_color               TYPE lvc_s_scol,
+          lv_handle              TYPE i,
+          ls_hyperlink           TYPE salv_s_int4_column,
+          lv_hyperlink           TYPE service_rl,
+          lx_ex                  TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS: <ls_line>       TYPE lty_color_line,
+                   <ls_dependency> LIKE LINE OF it_dependencies.
+
+    IF it_dependencies IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_negative.
+    APPEND ls_color TO lt_color_negative.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_normal.
+    APPEND ls_color TO lt_color_normal.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_positive.
+    APPEND ls_color TO lt_color_positive.
+
+    TRY.
+        cl_salv_table=>factory( IMPORTING r_salv_table  = lo_alv
+                                CHANGING  t_table       = lt_color_table ).
+
+        lo_functional_settings = lo_alv->get_functional_settings( ).
+        lo_hyperlinks = lo_functional_settings->get_hyperlinks( ).
+
+        lo_columns = lo_alv->get_columns( ).
+        lt_columns = lo_columns->get( ).
+        LOOP AT lt_columns INTO ls_column WHERE columnname CP 'SEM_VERSION-*'.
+          ls_column-r_column->set_technical( ).
+        ENDLOOP.
+
+        lo_column = lo_columns->get_column( 'MET' ).
+        lo_column->set_technical( ).
+
+        lo_column = lo_columns->get_column( 'GROUP_ID' ).
+        lo_column->set_short_text( 'Org/ProjId' ).
+
+        lo_columns->set_color_column( 'COLOR' ).
+        lo_columns->set_exception_column( 'EXCEPTION' ).
+        lo_columns->set_hyperlink_entry_column( 'T_HYPERLINK' ).
+        lo_columns->set_optimize( ).
+
+        lo_column = lo_columns->get_column( 'GROUP_ID' ).
+        lo_column->set_short_text( 'Org/ProjId' ).
+
+        lo_column = lo_columns->get_column( 'ARTIFACT_ID' ).
+        lo_column->set_short_text( 'Proj. Name' ).
+
+        lo_column = lo_columns->get_column( 'GIT_URL' ).
+        lo_column->set_short_text( 'Git URL' ).
+
+        lo_column_table ?= lo_column.
+        lo_column_table->set_cell_type( if_salv_c_cell_type=>link ).
+        lo_column = lo_columns->get_column( 'VERSION' ).
+        lo_column->set_short_text( 'Version' ).
+
+        lo_column = lo_columns->get_column( 'TARGET_PACKAGE' ).
+        lo_column->set_technical( ).
+
+        lo_hyperlinks = lo_functional_settings->get_hyperlinks( ).
+
+        CLEAR: lv_handle, ls_color.
+        LOOP AT it_dependencies ASSIGNING <ls_dependency>.
+          lv_handle = lv_handle + 1.
+
+          APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
+          MOVE-CORRESPONDING <ls_dependency> TO <ls_line>.
+
+          CASE <ls_line>-met.
+            WHEN 'Y'.
+              <ls_line>-color     = lt_color_positive.
+              <ls_line>-exception = '3'.
+            WHEN 'P'.
+              <ls_line>-color     = lt_color_normal.
+              <ls_line>-exception = '2'.
+            WHEN 'N'.
+              <ls_line>-color     = lt_color_negative.
+              <ls_line>-exception = '1'.
+          ENDCASE.
+
+          CLEAR: ls_hyperlink.
+          ls_hyperlink-columnname = 'GIT_URL'.
+          ls_hyperlink-value      = lv_handle.
+          APPEND ls_hyperlink TO <ls_line>-t_hyperlink.
+
+          lv_hyperlink = <ls_line>-git_url.
+          lo_hyperlinks->add_hyperlink( handle    = lv_handle
+                                        hyperlink = lv_hyperlink ).
+
+        ENDLOOP.
+
+        UNASSIGN <ls_line>.
+
+        lo_alv->set_screen_popup( start_column = 30
+                                  end_column   = 120
+                                  start_line   = 10
+                                  end_line     = 20 ).
+        lo_alv->get_display_settings( )->set_list_header( 'APACK dependencies' ).
+        lo_alv->display( ).
+
+      CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error cx_salv_existing INTO lx_ex.
+        zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
 ENDCLASS.
 
 SELECTION-SCREEN BEGIN OF SCREEN 1001.
@@ -81428,5 +82025,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-03-31T15:23:40.834Z
+* abapmerge 0.13.1 - 2020-04-05T06:59:21.601Z
 ****************************************************
