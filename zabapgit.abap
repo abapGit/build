@@ -22829,10 +22829,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
     lv_xml = iv_xml.
 
-* fix downward compatibility
-    REPLACE ALL OCCURRENCES OF '<_--28C_DATA_--29>' IN lv_xml WITH '<DATA>'.
-    REPLACE ALL OCCURRENCES OF '</_--28C_DATA_--29>' IN lv_xml WITH '</DATA>'.
-
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
@@ -81130,10 +81126,6 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
 
     lv_xml = iv_xml.
 
-    " fix downward compatibility
-    REPLACE ALL OCCURRENCES OF '<_--28C_DATA_--29>' IN lv_xml WITH '<DATA>'.
-    REPLACE ALL OCCURRENCES OF '</_--28C_DATA_--29>' IN lv_xml WITH '</DATA>'.
-
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
@@ -82097,5 +82089,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-04-07T16:41:10.852Z
+* abapmerge 0.13.1 - 2020-04-07T16:50:13.945Z
 ****************************************************
