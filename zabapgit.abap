@@ -11290,8 +11290,9 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
 
       is_every_changed_line_patched
         RETURNING
-          VALUE(rv_everything_patched) TYPE abap_bool,
+          VALUE(rv_everything_patched) TYPE abap_bool.
 
+    CLASS-METHODS:
       is_patch_line_possible
         IMPORTING
           is_diff_line                     TYPE zif_abapgit_definitions=>ty_diff
@@ -82089,5 +82090,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-04-07T16:50:13.945Z
+* abapmerge 0.13.1 - 2020-04-08T13:59:29.554Z
 ****************************************************
