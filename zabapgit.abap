@@ -10171,8 +10171,8 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(rv_normalized_program_name) TYPE string.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_component DEFINITION ABSTRACT
-  PUBLIC
+CLASS zcl_abapgit_gui_component DEFINITION
+  ABSTRACT
   CREATE PUBLIC .
 
   PUBLIC SECTION.
@@ -82090,5 +82090,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-04-09T05:51:04.790Z
+* abapmerge 0.13.1 - 2020-04-09T07:40:32.954Z
 ****************************************************
