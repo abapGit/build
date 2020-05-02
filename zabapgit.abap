@@ -578,8 +578,6 @@ CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_stvi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_scvi DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_message_helper DEFINITION DEFERRED.
@@ -714,6 +712,7 @@ CLASS zcl_abapgit_object_suso DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_susc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sucu DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_styl DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_stvi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ssst DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ssfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_srvb DEFINITION DEFERRED.
@@ -735,6 +734,7 @@ CLASS zcl_abapgit_object_sfpi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sfpf DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sfbs DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sfbf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_scvi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_scp1 DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sapc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_samc DEFINITION DEFERRED.
@@ -7017,6 +7017,26 @@ CLASS zcl_abapgit_object_scp1 DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_object_scvi DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_screen_variant,
+        shdsvci    TYPE shdsvci,
+        shdsvtxci  TYPE STANDARD TABLE OF shdsvtxci  WITH DEFAULT KEY,
+        shdsvfvci  TYPE STANDARD TABLE OF shdsvfvci  WITH DEFAULT KEY,
+        shdguixt   TYPE STANDARD TABLE OF shdguixt   WITH DEFAULT KEY,
+        shdgxtcode TYPE STANDARD TABLE OF shdgxtcode WITH DEFAULT KEY,
+      END OF ty_screen_variant .
+ENDCLASS.
 CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
   PUBLIC SECTION.
@@ -7650,6 +7670,25 @@ CLASS zcl_abapgit_object_ssst DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING iv_tdfamily TYPE tdfamily
       RAISING   zcx_abapgit_exception.
 
+ENDCLASS.
+CLASS zcl_abapgit_object_stvi DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_transaction_variant,
+        shdtvciu   TYPE shdtvciu,
+        shdttciu   TYPE STANDARD TABLE OF shdttciu   WITH DEFAULT KEY,
+        shdfvguicu TYPE STANDARD TABLE OF shdfvguicu WITH DEFAULT KEY,
+        shdtvsvciu TYPE STANDARD TABLE OF shdtvsvciu WITH DEFAULT KEY,
+      END OF ty_transaction_variant.
 ENDCLASS.
 CLASS zcl_abapgit_object_styl DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -14581,45 +14620,6 @@ CLASS zcl_abapgit_news DEFINITION
       RETURNING
         VALUE(rt_log)       TYPE tt_log .
 ENDCLASS.
-CLASS zcl_abapgit_object_scvi DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_object .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_screen_variant,
-        shdsvci    TYPE shdsvci,
-        shdsvtxci  TYPE STANDARD TABLE OF shdsvtxci  WITH DEFAULT KEY,
-        shdsvfvci  TYPE STANDARD TABLE OF shdsvfvci  WITH DEFAULT KEY,
-        shdguixt   TYPE STANDARD TABLE OF shdguixt   WITH DEFAULT KEY,
-        shdgxtcode TYPE STANDARD TABLE OF shdgxtcode WITH DEFAULT KEY,
-      END OF ty_screen_variant .
-ENDCLASS.
-CLASS zcl_abapgit_object_stvi DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_object .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_transaction_variant,
-        shdtvciu   TYPE shdtvciu,
-        shdttciu   TYPE STANDARD TABLE OF shdttciu   WITH DEFAULT KEY,
-        shdfvguicu TYPE STANDARD TABLE OF shdfvguicu WITH DEFAULT KEY,
-        shdtvsvciu TYPE STANDARD TABLE OF shdtvsvciu WITH DEFAULT KEY,
-      END OF ty_transaction_variant.
-ENDCLASS.
 CLASS zcl_abapgit_objects DEFINITION
   CREATE PUBLIC .
 
@@ -21225,324 +21225,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
 
     rt_overwrite = lt_overwrite_uniqe.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
-  METHOD zif_abapgit_object~changed_by.
-
-    DATA: lv_transaction_variant TYPE utcvariant.
-
-    lv_transaction_variant = ms_item-obj_name.
-
-    SELECT SINGLE chuser
-    FROM shdtvciu
-    INTO rv_user
-    WHERE tcvariant = lv_transaction_variant.
-    IF sy-subrc <> 0
-    OR rv_user IS INITIAL.
-      rv_user = c_user_unknown.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_transaction_variant TYPE tcvariant.
-
-    lv_transaction_variant = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_HDSYS_DELETE_VARIANT'
-      EXPORTING
-        tcvariant                 = lv_transaction_variant
-        i_flag_client_independent = abap_true
-      EXCEPTIONS
-        variant_enqueued          = 1
-        no_correction             = 2
-        OTHERS                    = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: ls_transaction_variant TYPE ty_transaction_variant.
-
-    DATA: lv_text TYPE natxt.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = 'STVI'
-      CHANGING
-        cg_data = ls_transaction_variant ).
-
-    CALL FUNCTION 'ENQUEUE_ESTCVARCIU'
-      EXPORTING
-        tcvariant = ls_transaction_variant-shdtvciu-tcvariant
-      EXCEPTIONS
-        OTHERS    = 01.
-    IF sy-subrc <> 0.
-      MESSAGE e413(ms) WITH ls_transaction_variant-shdtvciu-tcvariant INTO lv_text.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    corr_insert( iv_package = iv_package ).
-
-*   Populate user details
-    ls_transaction_variant-shdtvciu-crdate = sy-datum.
-    ls_transaction_variant-shdtvciu-cruser = sy-uname.
-    ls_transaction_variant-shdtvciu-chdate = sy-datum.
-    ls_transaction_variant-shdtvciu-chuser = sy-uname.
-
-    MODIFY shdtvciu   FROM ls_transaction_variant-shdtvciu.
-    MODIFY shdttciu   FROM TABLE ls_transaction_variant-shdttciu[].
-    INSERT shdfvguicu FROM TABLE ls_transaction_variant-shdfvguicu[] ACCEPTING DUPLICATE KEYS.
-    INSERT shdtvsvciu FROM TABLE ls_transaction_variant-shdtvsvciu[] ACCEPTING DUPLICATE KEYS.
-
-    CALL FUNCTION 'DEQUEUE_ESTCVARCIU'
-      EXPORTING
-        tcvariant = ls_transaction_variant-shdtvciu-tcvariant.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_transaction_variant TYPE tcvariant.
-
-    lv_transaction_variant = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_HDSYS_EXIST_CHECK_VARIANT'
-      EXPORTING
-        tcvariant                 = lv_transaction_variant
-        i_flag_client_independent = abap_true
-      EXCEPTIONS
-        no_variant                = 1
-        OTHERS                    = 2.
-    IF sy-subrc = 0.
-      rv_bool = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_comparator.
-    RETURN.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_deserialize_steps.
-
-    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_metadata.
-
-    rs_metadata = get_metadata( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-
-    rv_active = is_active( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_transaction_variant TYPE ty_transaction_variant.
-
-    ls_transaction_variant-shdtvciu-tcvariant = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_HDSYS_READ_TC_VARIANT_DB'
-      EXPORTING
-        tcvariant               = ls_transaction_variant-shdtvciu-tcvariant
-        flag_client_independent = abap_true
-      IMPORTING
-        header_tcvariant        = ls_transaction_variant-shdtvciu
-      TABLES
-        screen_variants         = ls_transaction_variant-shdtvsvciu[]
-        inactive_functions      = ls_transaction_variant-shdfvguicu[]
-      EXCEPTIONS
-        no_variant              = 1
-        OTHERS                  = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-*   Clear all user details
-    CLEAR: ls_transaction_variant-shdtvciu-crdate,
-           ls_transaction_variant-shdtvciu-cruser,
-           ls_transaction_variant-shdtvciu-chdate,
-           ls_transaction_variant-shdtvciu-chuser.
-
-    SELECT *
-    FROM shdttciu
-    INTO TABLE ls_transaction_variant-shdttciu[]
-    WHERE tcvariant = ls_transaction_variant-shdtvciu-tcvariant.
-
-    io_xml->add( iv_name = 'STVI'
-                 ig_data = ls_transaction_variant ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECT_SCVI IMPLEMENTATION.
-  METHOD zif_abapgit_object~changed_by.
-
-    DATA: lv_screen_variant TYPE scvariant.
-
-    lv_screen_variant = ms_item-obj_name.
-
-    SELECT SINGLE chuser
-    FROM shdsvci
-    INTO rv_user
-    WHERE scvariant = lv_screen_variant.
-    IF sy-subrc <> 0
-    OR rv_user IS INITIAL.
-      rv_user = c_user_unknown.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_screen_variant TYPE scvariant.
-
-    lv_screen_variant = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_HDSYS_DELETE_SC_VARIANT'
-      EXPORTING
-        scvariant        = lv_screen_variant
-      EXCEPTIONS
-        variant_enqueued = 1
-        no_correction    = 2
-        scvariant_used   = 3
-        OTHERS           = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: ls_screen_variant TYPE ty_screen_variant.
-
-    DATA: lv_text TYPE natxt.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = 'SCVI'
-      CHANGING
-        cg_data = ls_screen_variant ).
-
-    CALL FUNCTION 'ENQUEUE_ESSCVARCIU'
-      EXPORTING
-        scvariant = ls_screen_variant-shdsvci-scvariant
-      EXCEPTIONS
-        OTHERS    = 01.
-    IF sy-subrc <> 0.
-      MESSAGE e413(ms) WITH ls_screen_variant-shdsvci-scvariant INTO lv_text.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    corr_insert( iv_package = iv_package ).
-
-*   Populate user details
-    ls_screen_variant-shdsvci-crdate = sy-datum.
-    ls_screen_variant-shdsvci-cruser = sy-uname.
-    ls_screen_variant-shdsvci-chdate = sy-datum.
-    ls_screen_variant-shdsvci-chuser = sy-uname.
-
-    MODIFY shdsvci    FROM ls_screen_variant-shdsvci.
-    MODIFY shdsvtxci  FROM TABLE ls_screen_variant-shdsvtxci[].
-    MODIFY shdsvfvci  FROM TABLE ls_screen_variant-shdsvfvci[].
-    MODIFY shdguixt   FROM TABLE ls_screen_variant-shdguixt[].
-    MODIFY shdgxtcode FROM TABLE ls_screen_variant-shdgxtcode[].
-
-    CALL FUNCTION 'DEQUEUE_ESSCVARCIU'
-      EXPORTING
-        scvariant = ls_screen_variant-shdsvci-scvariant.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lo_screen_variant TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_screen_variant
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_screen_variant->exists( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_comparator.
-    RETURN.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_deserialize_steps.
-    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_metadata.
-
-    rs_metadata = get_metadata( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-
-    rv_active = is_active( ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: ls_screen_variant TYPE ty_screen_variant.
-
-    ls_screen_variant-shdsvci-scvariant = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_HDSYS_READ_SC_VARIANT_DB'
-      EXPORTING
-        scvariant        = ls_screen_variant-shdsvci-scvariant
-      IMPORTING
-        header_scvariant = ls_screen_variant-shdsvci
-      TABLES
-        values_scvariant = ls_screen_variant-shdsvfvci[]
-        guixt_scripts    = ls_screen_variant-shdguixt[]
-      EXCEPTIONS
-        no_variant       = 1
-        OTHERS           = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-*   Clear all user details
-    CLEAR: ls_screen_variant-shdsvci-crdate,
-           ls_screen_variant-shdsvci-cruser,
-           ls_screen_variant-shdsvci-chdate,
-           ls_screen_variant-shdsvci-chuser.
-
-    SELECT *
-    FROM shdsvtxci
-    INTO TABLE ls_screen_variant-shdsvtxci[]
-    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
-
-    SELECT *
-    FROM shdgxtcode
-    INTO TABLE ls_screen_variant-shdgxtcode[]
-    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
-
-    io_xml->add( iv_name = 'SCVI'
-                 ig_data = ls_screen_variant ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -56975,6 +56657,167 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+
+    DATA: lv_transaction_variant TYPE utcvariant.
+
+    lv_transaction_variant = ms_item-obj_name.
+
+    SELECT SINGLE chuser
+    FROM shdtvciu
+    INTO rv_user
+    WHERE tcvariant = lv_transaction_variant.
+    IF sy-subrc <> 0
+    OR rv_user IS INITIAL.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lv_transaction_variant TYPE tcvariant.
+
+    lv_transaction_variant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_DELETE_VARIANT'
+      EXPORTING
+        tcvariant                 = lv_transaction_variant
+        i_flag_client_independent = abap_true
+      EXCEPTIONS
+        variant_enqueued          = 1
+        no_correction             = 2
+        OTHERS                    = 3.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: ls_transaction_variant TYPE ty_transaction_variant.
+
+    DATA: lv_text TYPE natxt.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = 'STVI'
+      CHANGING
+        cg_data = ls_transaction_variant ).
+
+    CALL FUNCTION 'ENQUEUE_ESTCVARCIU'
+      EXPORTING
+        tcvariant = ls_transaction_variant-shdtvciu-tcvariant
+      EXCEPTIONS
+        OTHERS    = 01.
+    IF sy-subrc <> 0.
+      MESSAGE e413(ms) WITH ls_transaction_variant-shdtvciu-tcvariant INTO lv_text.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    corr_insert( iv_package = iv_package ).
+
+*   Populate user details
+    ls_transaction_variant-shdtvciu-crdate = sy-datum.
+    ls_transaction_variant-shdtvciu-cruser = sy-uname.
+    ls_transaction_variant-shdtvciu-chdate = sy-datum.
+    ls_transaction_variant-shdtvciu-chuser = sy-uname.
+
+    MODIFY shdtvciu   FROM ls_transaction_variant-shdtvciu.
+    MODIFY shdttciu   FROM TABLE ls_transaction_variant-shdttciu[].
+    INSERT shdfvguicu FROM TABLE ls_transaction_variant-shdfvguicu[] ACCEPTING DUPLICATE KEYS.
+    INSERT shdtvsvciu FROM TABLE ls_transaction_variant-shdtvsvciu[] ACCEPTING DUPLICATE KEYS.
+
+    CALL FUNCTION 'DEQUEUE_ESTCVARCIU'
+      EXPORTING
+        tcvariant = ls_transaction_variant-shdtvciu-tcvariant.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_transaction_variant TYPE tcvariant.
+
+    lv_transaction_variant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_EXIST_CHECK_VARIANT'
+      EXPORTING
+        tcvariant                 = lv_transaction_variant
+        i_flag_client_independent = abap_true
+      EXCEPTIONS
+        no_variant                = 1
+        OTHERS                    = 2.
+    IF sy-subrc = 0.
+      rv_bool = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+
+    rs_metadata = get_metadata( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+
+    rv_active = is_active( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: ls_transaction_variant TYPE ty_transaction_variant.
+
+    ls_transaction_variant-shdtvciu-tcvariant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_READ_TC_VARIANT_DB'
+      EXPORTING
+        tcvariant               = ls_transaction_variant-shdtvciu-tcvariant
+        flag_client_independent = abap_true
+      IMPORTING
+        header_tcvariant        = ls_transaction_variant-shdtvciu
+      TABLES
+        screen_variants         = ls_transaction_variant-shdtvsvciu[]
+        inactive_functions      = ls_transaction_variant-shdfvguicu[]
+      EXCEPTIONS
+        no_variant              = 1
+        OTHERS                  = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+*   Clear all user details
+    CLEAR: ls_transaction_variant-shdtvciu-crdate,
+           ls_transaction_variant-shdtvciu-cruser,
+           ls_transaction_variant-shdtvciu-chdate,
+           ls_transaction_variant-shdtvciu-chuser.
+
+    SELECT *
+    FROM shdttciu
+    INTO TABLE ls_transaction_variant-shdttciu[]
+    WHERE tcvariant = ls_transaction_variant-shdtvciu-tcvariant.
+
+    io_xml->add( iv_name = 'STVI'
+                 ig_data = ls_transaction_variant ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
   METHOD validate_font.
 
@@ -61910,6 +61753,163 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
                  iv_name = 'CONTENT_RN' ).
     io_xml->add( ig_data = lt_parent_bfs
                  iv_name = 'PARENT_BFS' ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECT_SCVI IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+
+    DATA: lv_screen_variant TYPE scvariant.
+
+    lv_screen_variant = ms_item-obj_name.
+
+    SELECT SINGLE chuser
+    FROM shdsvci
+    INTO rv_user
+    WHERE scvariant = lv_screen_variant.
+    IF sy-subrc <> 0
+    OR rv_user IS INITIAL.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lv_screen_variant TYPE scvariant.
+
+    lv_screen_variant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_DELETE_SC_VARIANT'
+      EXPORTING
+        scvariant        = lv_screen_variant
+      EXCEPTIONS
+        variant_enqueued = 1
+        no_correction    = 2
+        scvariant_used   = 3
+        OTHERS           = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: ls_screen_variant TYPE ty_screen_variant.
+
+    DATA: lv_text TYPE natxt.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = 'SCVI'
+      CHANGING
+        cg_data = ls_screen_variant ).
+
+    CALL FUNCTION 'ENQUEUE_ESSCVARCIU'
+      EXPORTING
+        scvariant = ls_screen_variant-shdsvci-scvariant
+      EXCEPTIONS
+        OTHERS    = 01.
+    IF sy-subrc <> 0.
+      MESSAGE e413(ms) WITH ls_screen_variant-shdsvci-scvariant INTO lv_text.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    corr_insert( iv_package = iv_package ).
+
+*   Populate user details
+    ls_screen_variant-shdsvci-crdate = sy-datum.
+    ls_screen_variant-shdsvci-cruser = sy-uname.
+    ls_screen_variant-shdsvci-chdate = sy-datum.
+    ls_screen_variant-shdsvci-chuser = sy-uname.
+
+    MODIFY shdsvci    FROM ls_screen_variant-shdsvci.
+    MODIFY shdsvtxci  FROM TABLE ls_screen_variant-shdsvtxci[].
+    MODIFY shdsvfvci  FROM TABLE ls_screen_variant-shdsvfvci[].
+    MODIFY shdguixt   FROM TABLE ls_screen_variant-shdguixt[].
+    MODIFY shdgxtcode FROM TABLE ls_screen_variant-shdgxtcode[].
+
+    CALL FUNCTION 'DEQUEUE_ESSCVARCIU'
+      EXPORTING
+        scvariant = ls_screen_variant-shdsvci-scvariant.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lo_screen_variant TYPE REF TO zcl_abapgit_objects_generic.
+
+    CREATE OBJECT lo_screen_variant
+      EXPORTING
+        is_item = ms_item.
+
+    rv_bool = lo_screen_variant->exists( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+
+    rs_metadata = get_metadata( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+
+    rv_active = is_active( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: ls_screen_variant TYPE ty_screen_variant.
+
+    ls_screen_variant-shdsvci-scvariant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_READ_SC_VARIANT_DB'
+      EXPORTING
+        scvariant        = ls_screen_variant-shdsvci-scvariant
+      IMPORTING
+        header_scvariant = ls_screen_variant-shdsvci
+      TABLES
+        values_scvariant = ls_screen_variant-shdsvfvci[]
+        guixt_scripts    = ls_screen_variant-shdguixt[]
+      EXCEPTIONS
+        no_variant       = 1
+        OTHERS           = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+*   Clear all user details
+    CLEAR: ls_screen_variant-shdsvci-crdate,
+           ls_screen_variant-shdsvci-cruser,
+           ls_screen_variant-shdsvci-chdate,
+           ls_screen_variant-shdsvci-chuser.
+
+    SELECT *
+    FROM shdsvtxci
+    INTO TABLE ls_screen_variant-shdsvtxci[]
+    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
+
+    SELECT *
+    FROM shdgxtcode
+    INTO TABLE ls_screen_variant-shdgxtcode[]
+    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
+
+    io_xml->add( iv_name = 'SCVI'
+                 ig_data = ls_screen_variant ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -83894,5 +83894,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-02T14:31:00.495Z
+* abapmerge 0.13.1 - 2020-05-02T14:33:40.687Z
 ****************************************************
