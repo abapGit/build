@@ -76119,6 +76119,10 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
            ls_customizing_attribute-header-ldatetime,
            ls_customizing_attribute-header-luser.
 
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      DELETE ls_customizing_attribute-titles WHERE spras <> sy-langu.
+    ENDIF.
+
     io_xml->add( iv_name = 'CUS2'
                  ig_data = ls_customizing_attribute ).
 
@@ -76254,6 +76258,10 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
            ls_customzing_activity-activity_header-ldatetime,
            ls_customzing_activity-activity_header-luser.
 
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      DELETE ls_customzing_activity-activity_title WHERE spras <> sy-langu.
+    ENDIF.
+
     io_xml->add( iv_name = 'CUS1'
                  ig_data = ls_customzing_activity ).
 
@@ -76386,6 +76394,10 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
            ls_img_activity-header-luser,
            ls_img_activity-header-ldate,
            ls_img_activity-header-ltime.
+
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      DELETE ls_img_activity-texts WHERE spras <> sy-langu.
+    ENDIF.
 
     io_xml->add( iv_name = 'CUS0'
                  ig_data = ls_img_activity ).
@@ -85237,5 +85249,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-04T09:37:48.289Z
+* abapmerge 0.13.1 - 2020-05-04T14:03:43.046Z
 ****************************************************
