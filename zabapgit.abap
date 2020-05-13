@@ -659,6 +659,7 @@ CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_parts DEFINITION DEFERRED.
 CLASS zcl_abapgit_html DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_html_processor DEFINITION DEFERRED.
@@ -1171,6 +1172,10 @@ INTERFACE zif_abapgit_gui_services .
     RETURNING
       VALUE(ri_hotkey_ctl) TYPE REF TO zif_abapgit_gui_hotkey_ctl.
 
+  METHODS get_html_parts
+    RETURNING
+      VALUE(ro_parts) TYPE REF TO zcl_abapgit_html_parts.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_html.
@@ -1189,6 +1194,9 @@ INTERFACE zif_abapgit_html.
       cancel   TYPE c VALUE 'C',
       crossout TYPE c VALUE 'X',
     END OF c_html_opt .
+
+  TYPES:
+    tty_table_of TYPE STANDARD TABLE OF REF TO zif_abapgit_html WITH DEFAULT KEY.
 
   METHODS add
     IMPORTING
@@ -10030,8 +10038,6 @@ CLASS zcl_abapgit_gui DEFINITION
       END OF c_action.
 
     INTERFACES zif_abapgit_gui_services.
-    ALIASES:
-      cache_asset FOR zif_abapgit_gui_services~cache_asset.
 
     METHODS go_home
       RAISING
@@ -10080,14 +10086,16 @@ CLASS zcl_abapgit_gui DEFINITION
         bookmark TYPE abap_bool,
       END OF ty_page_stack.
 
-    DATA: mi_cur_page       TYPE REF TO zif_abapgit_gui_renderable,
-          mt_stack          TYPE STANDARD TABLE OF ty_page_stack,
-          mt_event_handlers TYPE STANDARD TABLE OF REF TO zif_abapgit_gui_event_handler,
-          mi_router         TYPE REF TO zif_abapgit_gui_event_handler,
-          mi_asset_man      TYPE REF TO zif_abapgit_gui_asset_manager,
-          mi_hotkey_ctl     TYPE REF TO zif_abapgit_gui_hotkey_ctl,
-          mi_html_processor TYPE REF TO zif_abapgit_gui_html_processor,
-          mo_html_viewer    TYPE REF TO cl_gui_html_viewer.
+    DATA:
+      mi_cur_page       TYPE REF TO zif_abapgit_gui_renderable,
+      mt_stack          TYPE STANDARD TABLE OF ty_page_stack,
+      mt_event_handlers TYPE STANDARD TABLE OF REF TO zif_abapgit_gui_event_handler,
+      mi_router         TYPE REF TO zif_abapgit_gui_event_handler,
+      mi_asset_man      TYPE REF TO zif_abapgit_gui_asset_manager,
+      mi_hotkey_ctl     TYPE REF TO zif_abapgit_gui_hotkey_ctl,
+      mi_html_processor TYPE REF TO zif_abapgit_gui_html_processor,
+      mo_html_viewer    TYPE REF TO cl_gui_html_viewer,
+      mo_html_parts     TYPE REF TO zcl_abapgit_html_parts.
 
     METHODS startup
       RAISING
@@ -10348,6 +10356,50 @@ CLASS zcl_abapgit_html DEFINITION
         VALUE(rv_html) TYPE string.
 
 ENDCLASS.
+CLASS zcl_abapgit_html_parts DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS add_part
+      IMPORTING
+        !iv_collection TYPE string
+        !ii_part TYPE REF TO zif_abapgit_html .
+    METHODS get_parts
+      IMPORTING
+        !iv_collection TYPE string
+      RETURNING
+        VALUE(rt_parts) TYPE zif_abapgit_html=>tty_table_of .
+    METHODS get_collection_names
+      RETURNING
+        VALUE(rt_list) TYPE string_table .
+    METHODS get_collection_size
+      IMPORTING
+        !iv_collection TYPE string
+      RETURNING
+        VALUE(rv_size) TYPE i .
+    METHODS clear.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_named_collection,
+        name TYPE string,
+        pile TYPE zif_abapgit_html=>tty_table_of,
+      END OF ty_named_collection.
+    TYPES:
+      tty_named_collection TYPE STANDARD TABLE OF ty_named_collection WITH KEY name.
+
+    DATA mt_part_collections TYPE tty_named_collection.
+
+    METHODS get_collection
+      IMPORTING
+        !iv_collection TYPE string
+        !iv_create_if_missing TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rr_collection) TYPE REF TO ty_named_collection .
+
+ENDCLASS.
 CLASS zcl_abapgit_exception_viewer DEFINITION
   CREATE PUBLIC.
   PUBLIC SECTION.
@@ -10551,6 +10603,12 @@ CLASS zcl_abapgit_gui_component DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_html_parts,
+        scripts TYPE string VALUE 'scripts',
+      END OF c_html_parts.
+
     METHODS constructor RAISING zcx_abapgit_exception.
   PROTECTED SECTION.
     DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
@@ -10607,8 +10665,10 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       RAISING   zcx_abapgit_exception.
 
     METHODS scripts
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
   PRIVATE SECTION.
     DATA: mo_settings         TYPE REF TO zcl_abapgit_settings,
@@ -10627,12 +10687,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
     METHODS link_hints
-      IMPORTING
-        io_html TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS insert_hotkeys_to_page
       IMPORTING
         io_html TYPE REF TO zcl_abapgit_html
       RAISING
@@ -12459,7 +12513,13 @@ CLASS zcl_abapgit_hotkeys DEFINITION
         RETURNING
           VALUE(rt_interface_implementations) TYPE saboo_iimpt
         RAISING
-          zcx_abapgit_exception.
+          zcx_abapgit_exception,
+
+      render_js_part
+        IMPORTING
+          it_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+        RETURNING
+          VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
 ENDCLASS.
 CLASS zcl_abapgit_html_action_utils DEFINITION
@@ -26734,6 +26794,8 @@ CLASS kHGwlHozdwRdXiqHvuagHhZDCxeUTC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_hotkeys_ctl.
   ENDMETHOD.
+  METHOD zif_abapgit_gui_services~get_html_parts.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
@@ -34137,6 +34199,31 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD render_js_part.
+
+    DATA lv_json TYPE string.
+    DATA lt_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr.
+
+    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF lt_hotkeys.
+
+    lv_json = `{`.
+
+    LOOP AT it_hotkeys ASSIGNING <ls_hotkey>.
+
+      IF sy-tabix > 1.
+        lv_json = lv_json && |,|.
+      ENDIF.
+
+      lv_json = lv_json && |  "{ <ls_hotkey>-hotkey }" : "{ <ls_hotkey>-action }" |.
+
+    ENDLOOP.
+
+    lv_json = lv_json && `}`.
+
+    CREATE OBJECT ro_html.
+    ro_html->add( |setKeyBindings({ lv_json });| ).
+
+  ENDMETHOD.
   METHOD should_show_hint.
     IF gv_hint_was_shown = abap_false.
       rv_yes = abap_true.
@@ -34199,6 +34286,19 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
 
     lt_registered_hotkeys = zif_abapgit_gui_hotkey_ctl~get_registered_hotkeys( ).
     SORT lt_registered_hotkeys BY ui_component description.
+
+    " Note
+    " normally render method should be able to call mi_gui_services->get_html_parts( )
+    " thus the class must inherit from zcl_abapgit_gui_component
+    " but problem is that component constructor calls get_gui which creates gui if it is missing
+    " and the hotkeys class itself is created during get_gui so it is infinite loop
+    " solutions:
+    " A) separate hotkeys into logic and render (which is actually a good way, but it so nicely fit together ...)
+    " B) convert mi_gui_services to a getter - which I will do but later
+
+    zcl_abapgit_ui_factory=>get_gui_services( )->get_html_parts( )->add_part(
+      iv_collection = zcl_abapgit_gui_component=>c_html_parts-scripts
+      ii_part       = render_js_part( lt_registered_hotkeys ) ).
 
     " Render hotkeys
     ri_html->add( '<ul class="hotkeys">' ).
@@ -41612,32 +41712,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD insert_hotkeys_to_page.
-
-    DATA lv_json TYPE string.
-    DATA lt_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr.
-
-    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF lt_hotkeys.
-
-    lt_hotkeys = mi_gui_services->get_hotkeys_ctl( )->get_registered_hotkeys( ).
-
-    lv_json = `{`.
-
-    LOOP AT lt_hotkeys ASSIGNING <ls_hotkey>.
-
-      IF sy-tabix > 1.
-        lv_json = lv_json && |,|.
-      ENDIF.
-
-      lv_json = lv_json && |  "{ <ls_hotkey>-hotkey }" : "{ <ls_hotkey>-action }" |.
-
-    ENDLOOP.
-
-    lv_json = lv_json && `}`.
-
-    io_html->add( |setKeyBindings({ lv_json });| ).
-
-  ENDMETHOD.
   METHOD link_hints.
 
     DATA: lv_link_hint_key TYPE char01.
@@ -41709,10 +41783,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
+    DATA lt_script_parts TYPE zif_abapgit_html=>tty_table_of.
+    DATA li_part LIKE LINE OF lt_script_parts.
+
     CREATE OBJECT ro_html.
 
+    lt_script_parts = mi_gui_services->get_html_parts( )->get_parts( c_html_parts-scripts ).
+    LOOP AT lt_script_parts INTO li_part.
+      ro_html->add( li_part ).
+    ENDLOOP.
+
     link_hints( ro_html ).
-    insert_hotkeys_to_page( ro_html ).
 
     ro_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
     ro_html->add( '  toggleKey: "F2",' ).
@@ -43061,6 +43142,56 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
+  METHOD add_part.
+
+    DATA lr_collection TYPE REF TO ty_named_collection.
+    lr_collection = get_collection(
+      iv_collection = iv_collection
+      iv_create_if_missing = abap_true ).
+    APPEND ii_part TO lr_collection->pile.
+
+  ENDMETHOD.
+  METHOD clear.
+    CLEAR mt_part_collections.
+  ENDMETHOD.
+  METHOD get_collection.
+
+    READ TABLE mt_part_collections REFERENCE INTO rr_collection WITH KEY name = iv_collection.
+    IF sy-subrc <> 0 AND iv_create_if_missing = abap_true.
+      APPEND INITIAL LINE TO mt_part_collections REFERENCE INTO rr_collection.
+      rr_collection->name = iv_collection.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_collection_names.
+
+    FIELD-SYMBOLS <ls_coll> LIKE LINE OF mt_part_collections.
+    LOOP AT mt_part_collections ASSIGNING <ls_coll>.
+      APPEND <ls_coll>-name TO rt_list.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_collection_size.
+
+    DATA lr_collection TYPE REF TO ty_named_collection.
+    lr_collection = get_collection( iv_collection ).
+    IF lr_collection IS BOUND.
+      rv_size = lines( lr_collection->pile ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_parts.
+
+    DATA lr_collection TYPE REF TO ty_named_collection.
+    lr_collection = get_collection( iv_collection ).
+    IF lr_collection IS BOUND.
+      rt_parts = lr_collection->pile.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD add_icon.
 
@@ -43734,46 +43865,9 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     render( ).
 
   ENDMETHOD.
-  METHOD cache_asset.
-
-    DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE int4.
-
-    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
-
-    IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
-    ELSE. " Raw input
-      lv_xstr = iv_xdata.
-    ENDIF.
-
-    zcl_abapgit_convert=>xstring_to_bintab(
-      EXPORTING
-        iv_xstr   = lv_xstr
-      IMPORTING
-        ev_size   = lv_size
-        et_bintab = lt_xdata ).
-
-    mo_html_viewer->load_data(
-      EXPORTING
-        type         = iv_type
-        subtype      = iv_subtype
-        size         = lv_size
-        url          = iv_url
-      IMPORTING
-        assigned_url = rv_url
-      CHANGING
-        data_table   = lt_xdata
-      EXCEPTIONS
-        OTHERS       = 1 ) ##NO_TEXT.
-
-    ASSERT sy-subrc = 0. " Image data error
-
-  ENDMETHOD.
   METHOD cache_html.
 
-    rv_url = cache_asset(
+    rv_url = zif_abapgit_gui_services~cache_asset(
       iv_text    = iv_text
       iv_type    = 'text'
       iv_subtype = 'html' ).
@@ -43805,6 +43899,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         mi_router ?= io_component.
       ENDIF.
     ENDIF.
+
+    CREATE OBJECT mo_html_parts.
 
     mi_asset_man      = ii_asset_man.
     mi_hotkey_ctl     = ii_hotkey_ctl.
@@ -43940,6 +44036,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ENDIF.
 
     CLEAR mt_event_handlers.
+    mo_html_parts->clear( ).
+
     IF mi_router IS BOUND.
       APPEND mi_router TO mt_event_handlers.
     ENDIF.
@@ -43977,7 +44075,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     IF mi_asset_man IS BOUND.
       lt_assets = mi_asset_man->get_all_assets( ).
       LOOP AT lt_assets ASSIGNING <ls_asset> WHERE is_cacheable = abap_true.
-        cache_asset( iv_xdata   = <ls_asset>-content
+        zif_abapgit_gui_services~cache_asset( iv_xdata   = <ls_asset>-content
                      iv_url     = <ls_asset>-url
                      iv_type    = <ls_asset>-type
                      iv_subtype = <ls_asset>-subtype ).
@@ -43992,6 +44090,43 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     SET HANDLER me->on_event FOR mo_html_viewer.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_services~cache_asset.
+
+    DATA: lv_xstr  TYPE xstring,
+          lt_xdata TYPE lvc_t_mime,
+          lv_size  TYPE int4.
+
+    ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
+
+    IF iv_text IS SUPPLIED. " String input
+      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
+    ELSE. " Raw input
+      lv_xstr = iv_xdata.
+    ENDIF.
+
+    zcl_abapgit_convert=>xstring_to_bintab(
+      EXPORTING
+        iv_xstr   = lv_xstr
+      IMPORTING
+        ev_size   = lv_size
+        et_bintab = lt_xdata ).
+
+    mo_html_viewer->load_data(
+      EXPORTING
+        type         = iv_type
+        subtype      = iv_subtype
+        size         = lv_size
+        url          = iv_url
+      IMPORTING
+        assigned_url = rv_url
+      CHANGING
+        data_table   = lt_xdata
+      EXCEPTIONS
+        OTHERS       = 1 ) ##NO_TEXT.
+
+    ASSERT sy-subrc = 0. " Image data error
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_current_page_name.
 
     IF mi_cur_page IS BOUND.
@@ -44001,6 +44136,9 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_hotkeys_ctl.
     ri_hotkey_ctl = mi_hotkey_ctl.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_services~get_html_parts.
+    ro_parts = mo_html_parts.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~register_event_handler.
     ASSERT ii_event_handler IS BOUND.
@@ -85253,5 +85391,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-13T10:43:15.136Z
+* abapmerge 0.13.1 - 2020-05-13T10:59:34.678Z
 ****************************************************
