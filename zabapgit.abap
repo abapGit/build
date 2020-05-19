@@ -40269,9 +40269,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     cl_gui_frontend_services=>get_gui_version(
       CHANGING version_table = lt_ver_tab rc = lv_rc
       EXCEPTIONS OTHERS = 1 ).
-    READ TABLE lt_ver_tab INTO ls_version INDEX 1.
+    READ TABLE lt_ver_tab INTO ls_version INDEX 1. " gui release
     lv_gui_version = ls_version-filename.
-    READ TABLE lt_ver_tab INTO ls_version INDEX 2.
+    READ TABLE lt_ver_tab INTO ls_version INDEX 2. " gui sp
+    lv_gui_version = |{ lv_gui_version }.{ ls_version-filename }|.
+    READ TABLE lt_ver_tab INTO ls_version INDEX 3. " gui patch
     lv_gui_version = |{ lv_gui_version }.{ ls_version-filename }|.
 
     CREATE OBJECT ro_html.
@@ -40279,6 +40281,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( |<p>abapGit version: { zif_abapgit_version=>gc_abap_version }</p>| ).
     ro_html->add( |<p>XML version:     { zif_abapgit_version=>gc_xml_version }</p>| ).
     ro_html->add( |<p>GUI version:     { lv_gui_version }</p>| ).
+    ro_html->add( |<p>APACK version:   { zcl_abapgit_apack_migration=>c_apack_interface_version }</p>| ).
     ro_html->add( |<p>LCL_TIME:        { zcl_abapgit_time=>get_unix( ) }</p>| ).
     ro_html->add( |<p>SY time:         { sy-datum } { sy-uzeit } { sy-tzone }</p>| ).
 
@@ -85396,5 +85399,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-19T05:31:46.418Z
+* abapmerge 0.13.1 - 2020-05-19T15:47:00.697Z
 ****************************************************
