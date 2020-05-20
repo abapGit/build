@@ -10489,6 +10489,12 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
 
   PUBLIC SECTION.
 
+    TYPES:
+      BEGIN OF ty_event_signature,
+        method TYPE string,
+        name   TYPE string,
+      END OF  ty_event_signature.
+
     CLASS-METHODS class_constructor.
     CLASS-METHODS render_error
       IMPORTING
@@ -10573,6 +10579,11 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS render_event_as_form
+      IMPORTING
+        is_event       TYPE ty_event_signature
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -10608,12 +10619,20 @@ CLASS zcl_abapgit_gui_component DEFINITION
 
     CONSTANTS:
       BEGIN OF c_html_parts,
-        scripts TYPE string VALUE 'scripts',
+        scripts      TYPE string VALUE 'scripts',
+        hidden_forms TYPE string VALUE 'hidden_forms',
       END OF c_html_parts.
 
     METHODS constructor RAISING zcx_abapgit_exception.
   PROTECTED SECTION.
     DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
+
+    METHODS register_deferred_script
+      IMPORTING
+        ii_part TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
@@ -10638,18 +10657,13 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       constructor RAISING zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    TYPES: BEGIN OF ty_control,
-             redirect_url TYPE string,
-             page_title   TYPE string,
-             page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
-           END OF  ty_control.
 
-    TYPES: BEGIN OF ty_event,
-             method TYPE string,
-             name   TYPE string,
-           END OF  ty_event.
-
-    TYPES: tt_events TYPE STANDARD TABLE OF ty_event WITH DEFAULT KEY.
+    TYPES:
+      BEGIN OF ty_control,
+        redirect_url TYPE string,
+        page_title   TYPE string,
+        page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
+      END OF  ty_control.
 
     DATA: ms_control TYPE ty_control.
 
@@ -10657,25 +10671,17 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING   zcx_abapgit_exception.
 
-    METHODS get_events
-      RETURNING VALUE(rt_events) TYPE tt_events
-      RAISING   zcx_abapgit_exception.
-
-    METHODS render_event_as_form
-      IMPORTING is_event       TYPE ty_event
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING   zcx_abapgit_exception.
-
-    METHODS scripts
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception.
-
   PRIVATE SECTION.
-    DATA: mo_settings         TYPE REF TO zcl_abapgit_settings,
-          mx_error            TYPE REF TO zcx_abapgit_exception,
-          mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer.
+    DATA:
+      mo_settings         TYPE REF TO zcl_abapgit_settings,
+      mx_error            TYPE REF TO zcx_abapgit_exception,
+      mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer.
+
+    METHODS render_deferred_parts
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html
+        iv_part_category TYPE string.
+
     METHODS html_head
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
@@ -10688,7 +10694,13 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     METHODS redirect
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
-    METHODS link_hints
+    METHODS render_link_hints
+      IMPORTING
+        io_html TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS render_command_palettes
       IMPORTING
         io_html TYPE REF TO zcl_abapgit_html
       RAISING
@@ -10707,6 +10719,12 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         zcx_abapgit_exception.
 
     METHODS render_error_message_box
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS scripts
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
@@ -11081,10 +11099,8 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       EXPORTING
         !eg_fields   TYPE any .
 
-    METHODS render_content
-        REDEFINITION .
-    METHODS scripts
-        REDEFINITION .
+    METHODS render_content REDEFINITION .
+
   PRIVATE SECTION.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
@@ -11125,6 +11141,13 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         !it_stage      TYPE zcl_abapgit_stage=>ty_stage_tt
       RETURNING
         VALUE(rv_text) TYPE string .
+
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -11138,8 +11161,7 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
 
   PROTECTED SECTION.
     METHODS:
-      render_content REDEFINITION,
-      scripts        REDEFINITION.
+      render_content REDEFINITION.
 
   PRIVATE SECTION.
     METHODS render_debug_info
@@ -11147,6 +11169,11 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
       RAISING   zcx_abapgit_exception.
     METHODS render_supported_object_types
       RETURNING VALUE(rv_html) TYPE string.
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_diff DEFINITION
@@ -11211,7 +11238,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         RETURNING
           VALUE(rv_normalized) TYPE string,
       render_content REDEFINITION,
-      scripts REDEFINITION,
       add_menu_end
         IMPORTING
           io_menu TYPE REF TO zcl_abapgit_html_toolbar ,
@@ -11331,6 +11357,11 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS render_table_head_unified
       IMPORTING
         io_html TYPE REF TO zcl_abapgit_html.
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_explore DEFINITION
@@ -11572,7 +11603,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
   PROTECTED SECTION.
     METHODS:
       render_content REDEFINITION,
-      scripts REDEFINITION,
       add_menu_end REDEFINITION,
       add_menu_begin REDEFINITION,
       render_table_head_non_unified REDEFINITION,
@@ -11710,6 +11740,12 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         RETURNING
           VALUE(rv_is_patch_line_possible) TYPE abap_bool.
 
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -11724,8 +11760,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
   PROTECTED SECTION.
     METHODS:
-      render_content REDEFINITION,
-      scripts REDEFINITION.
+      render_content REDEFINITION.
 
   PRIVATE SECTION.
     TYPES:
@@ -11805,6 +11840,12 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       _add_col
         IMPORTING
           iv_descriptor TYPE string.
+
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
@@ -11998,9 +12039,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
   PROTECTED SECTION.
     METHODS:
-      render_content REDEFINITION,
-      get_events     REDEFINITION,
-      scripts        REDEFINITION.
+      render_content REDEFINITION.
 
   PRIVATE SECTION.
 
@@ -12073,6 +12112,14 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS count_default_files_to_commit
       RETURNING
         VALUE(rv_count) TYPE i.
+    METHODS render_deferred_hidden_events
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
@@ -12136,8 +12183,7 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
 
   PROTECTED SECTION.
     METHODS:
-      render_content REDEFINITION,
-      scripts        REDEFINITION.
+      render_content REDEFINITION.
 
   PRIVATE SECTION.
     CONSTANTS: BEGIN OF c_tag_type,
@@ -12173,6 +12219,12 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
       parse_change_tag_type_request
         IMPORTING
           it_postdata TYPE cnht_post_data_tab.
+
+    METHODS render_scripts
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_router DEFINITION
@@ -35930,6 +35982,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ro_html->add( render_form( ) ).
     ro_html->add( '</div>' ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_form.
 
@@ -36062,6 +36116,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'setInitialFocus("name");' ).
+
+  ENDMETHOD.
   METHOD render_text_input.
 
     DATA lv_attrs TYPE string.
@@ -36080,13 +36141,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
     ro_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'setInitialFocus("name");' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -36292,15 +36346,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD get_events.
-
-    FIELD-SYMBOLS: <ls_event> TYPE zcl_abapgit_gui_page=>ty_event.
-
-    APPEND INITIAL LINE TO rt_events ASSIGNING <ls_event>.
-    <ls_event>-method = 'post'.
-    <ls_event>-name = 'stage_commit'.
-
-  ENDMETHOD.
   METHOD get_page_patch.
 
     DATA: lo_page TYPE REF TO zcl_abapgit_gui_page_patch,
@@ -36379,6 +36424,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
     mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
+    mi_gui_services->get_html_parts( )->add_part(
+      iv_collection = zcl_abapgit_gui_component=>c_html_parts-hidden_forms
+      ii_part       = render_deferred_hidden_events( ) ).
+    register_deferred_script( render_scripts( ) ).
+
+  ENDMETHOD.
+  METHOD render_deferred_hidden_events.
+
+    DATA ls_event TYPE zcl_abapgit_gui_chunk_lib=>ty_event_signature.
+
+    ls_event-method = 'post'.
+    ls_event-name   = 'stage_commit'.
+    ro_html = zcl_abapgit_gui_chunk_lib=>render_event_as_form( ls_event ).
 
   ENDMETHOD.
   METHOD render_file.
@@ -36542,9 +36600,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD scripts.
+  METHOD render_scripts.
 
-    ro_html = super->scripts( ).
+    CREATE OBJECT ro_html.
 
     ro_html->add( 'var gStageParams = {' ).
     ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
@@ -37809,6 +37867,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     render_table( io_html     = ro_html
                   it_overview = lt_overview ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_header_bar.
 
@@ -37829,6 +37889,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
 
     io_html->add( |</div>| ).
+
+  ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'setInitialFocus("filter");' ).
+    ro_html->add( 'var gHelper = new RepoOverViewHelper();' ).
 
   ENDMETHOD.
   METHOD render_table.
@@ -37946,14 +38014,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'setInitialFocus("filter");' ).
-    ro_html->add( 'var gHelper = new RepoOverViewHelper();' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -38381,6 +38441,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
     ro_html = super->render_content( ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_diff_head_after_state.
 
@@ -38465,6 +38527,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     io_html->add( '</th>' ).
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'preparePatch();' ).
+    ro_html->add( 'registerStagePatch();' ).
+
+  ENDMETHOD.
   METHOD render_table_head_non_unified.
 
     render_patch_head( io_html = io_html
@@ -38507,14 +38577,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
       ENDLOOP.
 
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'preparePatch();' ).
-    ro_html->add( 'registerStagePatch();' ).
 
   ENDMETHOD.
   METHOD start_staging.
@@ -39934,6 +39996,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
     ro_html->add( '</div>' ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_diff.
 
@@ -40197,6 +40261,31 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ro_html->add( '</tr>' ).                                "#EC NOTEXT
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'restoreScrollPosition();' ).
+    ro_html->add( 'var gHelper = new DiffHelper({' ).
+    ro_html->add( |  seed:        "{ mv_seed }",| ).
+    ro_html->add( '  ids: {' ).
+    ro_html->add( '    jump:        "jump",' ).
+    ro_html->add( '    diffList:    "diff-list",' ).
+    ro_html->add( '    filterMenu:  "diff-filter",' ).
+    ro_html->add( '  }' ).
+    ro_html->add( '});' ).
+
+    ro_html->add( 'addMarginBottom();' ).
+
+    ro_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
+    ro_html->add( '  toggleKey: "F2",' ).
+    ro_html->add( '  hotkeyDescription: "Jump to file ..."' ).
+    ro_html->add( '});' ).
+
+    " Feature for selecting ABAP code by column and copy to clipboard
+    ro_html->add( 'var columnSelection = new DiffColumnSelection();' ).
+
+  ENDMETHOD.
   METHOD render_table_head.
 
     CREATE OBJECT ro_html.
@@ -40238,31 +40327,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     io_html->add( '<th>code</th>' ).                        "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'restoreScrollPosition();' ).
-    ro_html->add( 'var gHelper = new DiffHelper({' ).
-    ro_html->add( |  seed:        "{ mv_seed }",| ).
-    ro_html->add( '  ids: {' ).
-    ro_html->add( '    jump:        "jump",' ).
-    ro_html->add( '    diffList:    "diff-list",' ).
-    ro_html->add( '    filterMenu:  "diff-filter",' ).
-    ro_html->add( '  }' ).
-    ro_html->add( '});' ).
-
-    ro_html->add( 'addMarginBottom();' ).
-
-    ro_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
-    ro_html->add( '  toggleKey: "F2",' ).
-    ro_html->add( '  hotkeyDescription: "Jump to file ..."' ).
-    ro_html->add( '});' ).
-
-    " Feature for selecting ABAP code by column and copy to clipboard
-    ro_html->add( 'var columnSelection = new DiffColumnSelection();' ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE iv_action.
@@ -40301,6 +40365,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( render_supported_object_types( ) ).
     ro_html->add( '</div>' ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_debug_info.
 
@@ -40329,6 +40395,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ro_html->add( |<p>SY time:         { sy-datum } { sy-uzeit } { sy-tzone }</p>| ).
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
+      '"<br>Frontend time: " + new Date(), "debug_info");' ).
+
+  ENDMETHOD.
   METHOD render_supported_object_types.
 
     DATA: lv_list  TYPE string,
@@ -40345,14 +40419,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     ENDLOOP.
 
     rv_html = |<p>Supported objects: { lv_list }</p>|.
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
-      '"<br>Frontend time: " + new Date(), "debug_info");' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -40515,6 +40581,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( render_stage( ) ).
     ro_html->add( '</div>' ).
 
+    register_deferred_script( render_scripts( ) ).
+
   ENDMETHOD.
   METHOD render_form.
 
@@ -40643,6 +40711,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ro_html.
+
+    ro_html->add( 'setInitialFocus("comment");' ).
+
+  ENDMETHOD.
   METHOD render_stage.
 
     DATA: lt_stage TYPE zcl_abapgit_stage=>ty_stage_tt.
@@ -40700,13 +40775,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
     ro_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    ro_html = super->scripts( ).
-
-    ro_html->add( 'setInitialFocus("comment");' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -41804,11 +41872,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</div>' ).                               "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD get_events.
-
-    " Return actions you need on your page.
-
-  ENDMETHOD.
   METHOD html_head.
 
     CREATE OBJECT ro_html.
@@ -41843,21 +41906,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD link_hints.
-
-    DATA: lv_link_hint_key TYPE char01.
-
-    lv_link_hint_key = mo_settings->get_link_hint_key( ).
-
-    IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
-
-      io_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
-      io_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
-      io_html->add( |enableArrowListNavigation();| ).
-
-    ENDIF.
-
-  ENDMETHOD.
   METHOD redirect.
 
     CREATE OBJECT ro_html.
@@ -41868,6 +41916,30 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( |<meta http-equiv="refresh" content="0; url={ ms_control-redirect_url }">| ). "#EC NOTEXT
     ro_html->add( '</head>' ).                              "#EC NOTEXT
     ro_html->add( '</html>' ).                              "#EC NOTEXT
+
+  ENDMETHOD.
+  METHOD render_command_palettes.
+
+    io_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
+    io_html->add( '  toggleKey: "F2",' ).
+    io_html->add( '  hotkeyDescription: "Go to repo ..."' ).
+    io_html->add( '});' ).
+
+    io_html->add( 'var gCommandPalette = new CommandPalette(enumerateToolbarActions, {' ).
+    io_html->add( '  toggleKey: "F1",' ).
+    io_html->add( '  hotkeyDescription: "Command ..."' ).
+    io_html->add( '});' ).
+
+  ENDMETHOD.
+  METHOD render_deferred_parts.
+
+    DATA lt_parts TYPE zif_abapgit_html=>tty_table_of.
+    DATA li_part LIKE LINE OF lt_parts.
+
+    lt_parts = mi_gui_services->get_html_parts( )->get_parts( iv_part_category ).
+    LOOP AT lt_parts INTO li_part.
+      ii_html->add( li_part ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD render_error_message_box.
@@ -41897,13 +41969,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       mx_error.
 
   ENDMETHOD.
-  METHOD render_event_as_form.
-
-    CREATE OBJECT ro_html.
-    ro_html->add(
-      |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></from>| ).
-
-  ENDMETHOD.
   METHOD render_hotkey_overview.
 
     DATA lo_hotkeys_component TYPE REF TO zif_abapgit_gui_renderable.
@@ -41912,29 +41977,31 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html = lo_hotkeys_component->render( ).
 
   ENDMETHOD.
-  METHOD scripts.
+  METHOD render_link_hints.
 
-    DATA lt_script_parts TYPE zif_abapgit_html=>tty_table_of.
-    DATA li_part LIKE LINE OF lt_script_parts.
+    DATA: lv_link_hint_key TYPE char01.
+
+    lv_link_hint_key = mo_settings->get_link_hint_key( ).
+
+    IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
+
+      io_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
+      io_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
+      io_html->add( |enableArrowListNavigation();| ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD scripts.
 
     CREATE OBJECT ro_html.
 
-    lt_script_parts = mi_gui_services->get_html_parts( )->get_parts( c_html_parts-scripts ).
-    LOOP AT lt_script_parts INTO li_part.
-      ro_html->add( li_part ).
-    ENDLOOP.
+    render_deferred_parts(
+      ii_html          = ro_html
+      iv_part_category = c_html_parts-scripts ).
 
-    link_hints( ro_html ).
-
-    ro_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
-    ro_html->add( '  toggleKey: "F2",' ).
-    ro_html->add( '  hotkeyDescription: "Go to repo ..."' ).
-    ro_html->add( '});' ).
-
-    ro_html->add( 'var gCommandPalette = new CommandPalette(enumerateToolbarActions, {' ).
-    ro_html->add( '  toggleKey: "F1",' ).
-    ro_html->add( '  hotkeyDescription: "Command ..."' ).
-    ro_html->add( '});' ).
+    render_link_hints( ro_html ).
+    render_command_palettes( ro_html ).
 
   ENDMETHOD.
   METHOD title.
@@ -42002,11 +42069,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA: lo_script TYPE REF TO zcl_abapgit_html,
-          lt_events TYPE tt_events.
-
-    FIELD-SYMBOLS:
-          <ls_event> LIKE LINE OF lt_events.
+    DATA: lo_script TYPE REF TO zcl_abapgit_html.
 
     mi_gui_services->register_event_handler( me ).
 
@@ -42030,15 +42093,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( render_hotkey_overview( ) ).
     ri_html->add( render_error_message_box( ) ).
 
-    lt_events = me->get_events( ). " TODO refactor ???
-    LOOP AT lt_events ASSIGNING <ls_event>.
-      ri_html->add( render_event_as_form( <ls_event> ) ).
-    ENDLOOP.
+    render_deferred_parts(
+      ii_html          = ri_html
+      iv_part_category = c_html_parts-hidden_forms ).
 
     ri_html->add( footer( ) ).
     ri_html->add( '</body>' ).                              "#EC NOTEXT
 
-    lo_script = scripts( ). " TODO refactor
+    lo_script = scripts( ).
 
     IF lo_script IS BOUND AND lo_script->is_empty( ) = abap_false.
       ri_html->add( '<script type="text/javascript">' ).
@@ -42074,6 +42136,12 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   METHOD constructor.
     mi_gui_services = zcl_abapgit_ui_factory=>get_gui_services( ).
+  ENDMETHOD.
+  METHOD register_deferred_script.
+    " TODO refactor to mi_gui_services getter !
+    zcl_abapgit_ui_factory=>get_gui_services( )->get_html_parts( )->add_part(
+      iv_collection = c_html_parts-scripts
+      ii_part       = ii_part ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -42266,6 +42334,13 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ro_html->add( |{ lv_longtext }| ).
     ro_html->add( |</div>| ).
     ro_html->add( |</div>| ).
+
+  ENDMETHOD.
+  METHOD render_event_as_form.
+
+    CREATE OBJECT ro_html.
+    ro_html->add(
+      |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></form>| ).
 
   ENDMETHOD.
   METHOD render_infopanel.
@@ -85555,5 +85630,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-20T10:43:36.709Z
+* abapmerge 0.13.1 - 2020-05-20T15:50:54.109Z
 ****************************************************
