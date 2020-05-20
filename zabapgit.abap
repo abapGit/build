@@ -641,7 +641,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_explore DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
@@ -11357,23 +11356,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_explore DEFINITION
-  FINAL
-  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
-
-  PUBLIC SECTION.
-
-    CONSTANTS c_explore_url TYPE string
-      VALUE 'https://dotabap.github.io/explore.html'.
-
-    METHODS constructor
-      RAISING zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_gui_page_main DEFINITION
   FINAL
   CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
@@ -12963,8 +12945,9 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
   PUBLIC SECTION.
 
     CONSTANTS: c_abapgit_repo     TYPE string   VALUE 'https://github.com/larshp/abapGit'     ##NO_TEXT,
-               c_abapgit_homepage TYPE string   VALUE 'http://www.abapgit.org'                ##NO_TEXT,
-               c_abapgit_wikipage TYPE string   VALUE 'http://docs.abapgit.org'               ##NO_TEXT,
+               c_abapgit_homepage TYPE string   VALUE 'https://www.abapgit.org'                ##NO_TEXT,
+               c_abapgit_wikipage TYPE string   VALUE 'https://docs.abapgit.org'               ##NO_TEXT,
+               c_dotabap_homepage TYPE string   VALUE 'https://dotabap.org'               ##NO_TEXT,
                c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
                c_abapgit_url      TYPE string   VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT,
                c_abapgit_tcode    TYPE tcode    VALUE `ZABAPGIT`                              ##NO_TEXT.
@@ -12973,6 +12956,9 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS open_abapgit_wikipage
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS open_dotabap_homepage
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS open_abapgit_changelog
@@ -32058,6 +32044,17 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD open_dotabap_homepage.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING document = c_dotabap_homepage
+      EXCEPTIONS OTHERS = 1 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD prepare_gui_startup.
 
     DATA: lv_repo_key    TYPE zif_abapgit_persistence=>ty_value,
@@ -35308,7 +35305,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
     CASE is_event_data-action.
@@ -35637,9 +35634,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         zcl_abapgit_services_repo=>remove( lv_key ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.
-        zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN 'install'.    " 'install' is for explore page
         zcl_abapgit_services_repo=>new_online( lv_url ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuild local checksums
@@ -39207,7 +39201,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -39238,6 +39232,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
                      iv_act = zif_abapgit_definitions=>c_action-go_tutorial ) ##NO_TEXT.
     lo_helpsub->add( iv_txt = 'Documentation'
                      iv_act = c_actions-documentation ) ##NO_TEXT.
+    lo_helpsub->add( iv_txt = 'Explore'
+                     iv_act = zif_abapgit_definitions=>c_action-go_explore ) ##NO_TEXT.
     lo_helpsub->add( iv_txt = 'Changelog'
                      iv_act = c_actions-changelog ) ##NO_TEXT.
 
@@ -39245,8 +39241,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
                   iv_act = zif_abapgit_definitions=>c_action-repo_newonline ) ##NO_TEXT.
     ro_menu->add( iv_txt = '+ Offline'
                   iv_act = zif_abapgit_definitions=>c_action-repo_newoffline ) ##NO_TEXT.
-    ro_menu->add( iv_txt = 'Explore'
-                  iv_act = zif_abapgit_definitions=>c_action-go_explore ) ##NO_TEXT.
 
     ro_menu->add( iv_txt = 'Advanced'
                   io_sub = lo_advsub ) ##NO_TEXT.
@@ -39488,6 +39482,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
       WHEN c_actions-documentation.
         zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-go_explore.
+        zcl_abapgit_services_abapgit=>open_dotabap_homepage( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN c_actions-changelog.
         zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -39568,16 +39565,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     ls_hotkey_action-hotkey = |l|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_GUI_PAGE_EXPLORE IMPLEMENTATION.
-  METHOD constructor.
-    super->constructor( ).
-    ms_control-redirect_url = c_explore_url.
-  ENDMETHOD.
-  METHOD render_content.
-    ASSERT 1 = 1. " Dummy
   ENDMETHOD.
 ENDCLASS.
 
@@ -85565,5 +85552,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-20T16:28:50.036Z
+* abapmerge 0.13.1 - 2020-05-20T17:48:35.330Z
 ****************************************************
