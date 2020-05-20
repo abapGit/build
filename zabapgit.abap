@@ -1840,7 +1840,6 @@ INTERFACE zif_abapgit_definitions .
       go_commit                     TYPE string VALUE 'go_commit',
       go_branch_overview            TYPE string VALUE 'go_branch_overview',
       go_tag_overview               TYPE string VALUE 'go_tag_overview',
-      go_playground                 TYPE string VALUE 'go_playground',
       go_debuginfo                  TYPE string VALUE 'go_debuginfo',
       go_settings                   TYPE string VALUE 'go_settings',
       go_tutorial                   TYPE string VALUE 'go_tutorial',
@@ -2613,12 +2612,6 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception .
   METHODS create_branch_popup
-    EXPORTING
-      !ev_name   TYPE string
-      !ev_cancel TYPE abap_bool
-    RAISING
-      zcx_abapgit_exception .
-  METHODS run_page_class_popup
     EXPORTING
       !ev_name   TYPE string
       !ev_cancel TYPE abap_bool
@@ -12344,11 +12337,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
-    METHODS get_page_playground
-      RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
-      RAISING
-        zcx_abapgit_exception.
+
     CLASS-METHODS jump_display_transport
       IMPORTING
         !iv_getdata TYPE clike
@@ -12883,7 +12872,6 @@ CLASS zcl_abapgit_popups DEFINITION
       popup_folder_logic            FOR zif_abapgit_popups~popup_folder_logic,
       popup_object                  FOR zif_abapgit_popups~popup_object,
       create_branch_popup           FOR zif_abapgit_popups~create_branch_popup,
-      run_page_class_popup          FOR zif_abapgit_popups~run_page_class_popup,
       repo_new_offline              FOR zif_abapgit_popups~repo_new_offline,
       branch_list_popup             FOR zif_abapgit_popups~branch_list_popup,
       repo_popup                    FOR zif_abapgit_popups~repo_popup,
@@ -33255,32 +33243,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     rs_popup-ign_subpkg   = lv_ign_subpkg.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~run_page_class_popup.
-
-    DATA: lt_fields TYPE TABLE OF sval.
-    DATA: lv_name   TYPE spo_value.
-
-    CLEAR: ev_name, ev_cancel.
-
-    add_field( EXPORTING iv_tabname   = 'TEXTL'
-                         iv_fieldname = 'LINE'
-                         iv_fieldtext = 'Name'
-                         iv_value     = 'zcl_abapgit_gui_page_'
-               CHANGING  ct_fields    = lt_fields ).
-
-    TRY.
-
-        _popup_3_get_values( EXPORTING iv_popup_title = 'Run page manually' "#EC NOTEXT
-                             IMPORTING ev_value_1     = lv_name
-                             CHANGING ct_fields       = lt_fields ).
-
-        ev_name = to_upper( lv_name ).
-
-      CATCH zcx_abapgit_cancel.
-        ev_cancel = abap_true.
-    ENDTRY.
-
-  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_proxy_bypass.
     rt_proxy_bypass = it_proxy_bypass.
     CALL FUNCTION 'COMPLEX_SELECTIONS_DIALOG'
@@ -35448,9 +35410,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_branch_overview.              " Go repo branch overview
         ei_page  = get_page_branch_overview( is_event_data-getdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-go_playground.                   " Create playground page
-        ei_page  = get_page_playground( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_tutorial.                     " Go to tutorial
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( '' ).        " Clear show_id
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.          " Assume we are on main page
@@ -35501,28 +35460,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         is_object = ls_object.
 
     ri_page = lo_page.
-
-  ENDMETHOD.
-  METHOD get_page_playground.
-    DATA: lv_class_name TYPE string,
-          lv_cancel     TYPE abap_bool,
-          li_popups     TYPE REF TO zif_abapgit_popups.
-
-    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    li_popups->run_page_class_popup(
-      IMPORTING
-        ev_name   = lv_class_name
-        ev_cancel = lv_cancel ).
-
-    IF lv_cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    TRY.
-        CREATE OBJECT ri_page TYPE (lv_class_name).
-      CATCH cx_sy_create_object_error.
-        zcx_abapgit_exception=>raise( |Cannot create page class { lv_class_name }| ).
-    ENDTRY.
 
   ENDMETHOD.
   METHOD get_page_stage.
@@ -39292,8 +39229,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
                     iv_act = zif_abapgit_definitions=>c_action-zip_object ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Test changed by'
                     iv_act = c_actions-changed_by ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Page playground'
-                    iv_act = zif_abapgit_definitions=>c_action-go_playground ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Debug info'
                     iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ) ##NO_TEXT.
     lo_advsub->add( iv_txt = 'Settings'
@@ -85630,5 +85565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-20T15:50:54.109Z
+* abapmerge 0.13.1 - 2020-05-20T16:28:50.036Z
 ****************************************************
