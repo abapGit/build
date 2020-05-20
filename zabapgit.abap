@@ -1272,6 +1272,7 @@ INTERFACE zif_abapgit_frontend_services.
   METHODS show_file_open_dialog
     IMPORTING
       !iv_title            TYPE string
+      !iv_extension        TYPE string
       !iv_default_filename TYPE string
     RETURNING
       VALUE(rv_path)       TYPE string
@@ -11110,6 +11111,19 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         !iv_max_length TYPE string OPTIONAL
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    METHODS get_comment_default
+      RETURNING
+        VALUE(rv_text) TYPE string .
+    METHODS get_comment_object
+      IMPORTING
+        !it_stage      TYPE zcl_abapgit_stage=>ty_stage_tt
+      RETURNING
+        VALUE(rv_text) TYPE string .
+    METHODS get_comment_file
+      IMPORTING
+        !it_stage      TYPE zcl_abapgit_stage=>ty_stage_tt
+      RETURNING
+        VALUE(rv_text) TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -15608,6 +15622,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
     CONSTANTS: c_commitmsg_comment_length_dft TYPE i VALUE 50.
+    CONSTANTS: c_commitmsg_comment_default    TYPE string VALUE 'Update $OBJECT'.
     CONSTANTS: c_commitmsg_body_size_dft      TYPE i VALUE 72.
 
     CONSTANTS:
@@ -15676,6 +15691,12 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       get_commitmsg_comment_length
         RETURNING
           VALUE(rv_length) TYPE i,
+      set_commitmsg_comment_default
+        IMPORTING
+          iv_default TYPE string,
+      get_commitmsg_comment_default
+        RETURNING
+          VALUE(rv_default) TYPE string,
       set_commitmsg_body_size
         IMPORTING
           iv_length TYPE i,
@@ -15757,6 +15778,7 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
              run_critical_tests       TYPE abap_bool,
              experimental_features    TYPE abap_bool,
              commitmsg_comment_length TYPE i,
+             commitmsg_comment_deflt  TYPE string,
              commitmsg_body_size      TYPE i,
            END OF ty_s_settings.
 
@@ -18180,6 +18202,9 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_commitmsg_body_size.
     rv_length = ms_settings-commitmsg_body_size.
   ENDMETHOD.
+  METHOD get_commitmsg_comment_default.
+    rv_default = ms_settings-commitmsg_comment_deflt.
+  ENDMETHOD.
   METHOD get_commitmsg_comment_length.
     rv_length = ms_settings-commitmsg_comment_length.
   ENDMETHOD.
@@ -18245,6 +18270,9 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD set_commitmsg_body_size.
     ms_settings-commitmsg_body_size = iv_length.
   ENDMETHOD.
+  METHOD set_commitmsg_comment_default.
+    ms_settings-commitmsg_comment_deflt = iv_default.
+  ENDMETHOD.
   METHOD set_commitmsg_comment_length.
     ms_settings-commitmsg_comment_length = iv_length.
   ENDMETHOD.
@@ -18259,6 +18287,7 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
     set_adt_jump_enanbled( abap_true ).
     set_show_default_repo( abap_false ).
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
+    set_commitmsg_comment_default( c_commitmsg_comment_default ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
     set_default_link_hint_key( ).
     set_icon_scaling( '' ).
@@ -35746,6 +35775,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         lv_path = zcl_abapgit_ui_factory=>get_frontend_services( )->show_file_open_dialog(
           iv_title            = 'Import ZIP'
+          iv_extension        = 'zip'
           iv_default_filename = '*.zip' ).
         lv_xstr = zcl_abapgit_ui_factory=>get_frontend_services( )->file_upload( lv_path ).
         lo_repo->set_files_remote( zcl_abapgit_zip=>load( lv_xstr ) ).
@@ -36829,6 +36859,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       mo_settings->set_commitmsg_comment_length( zcl_abapgit_settings=>c_commitmsg_comment_length_dft ).
     ENDIF.
 
+    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_default'.
+    IF sy-subrc = 0.
+      mo_settings->set_commitmsg_comment_default( <ls_post_field>-value ).
+    ELSE.
+      mo_settings->set_commitmsg_comment_default( zcl_abapgit_settings=>c_commitmsg_comment_default ).
+    ENDIF.
+
     READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'body_size'.
     IF sy-subrc = 0.
       lv_i_param_value = <ls_post_field>-value.
@@ -36944,6 +36981,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<br>| ).
     ro_html->add( |<input name="comment_length" type="number" step="10" size="3" maxlength="3" min="50"| &&
                   | value="{ mo_settings->get_commitmsg_comment_length( ) }">| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<label for="comment_default">Default for comment (possible variables: $OBJECT, $FILE)</label>| ).
+    ro_html->add( |<br>| ).
+    ro_html->add( |<input name="comment_default" type="text" size="80" maxlength="255"| &&
+                  | value="{ mo_settings->get_commitmsg_comment_default( ) }">| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<label for="body_size">Max. line size of body (recommendation 72)</label>| ).
     ro_html->add( |<br>| ).
@@ -40323,6 +40365,82 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     ms_control-page_title = 'COMMIT'.
   ENDMETHOD.
+  METHOD get_comment_default.
+
+    DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
+          lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
+
+    " Get setting for default comment text
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    rv_text = lo_settings->get_commitmsg_comment_default( ).
+
+    IF rv_text IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Determine texts for scope of commit
+    lt_stage = mo_stage->get_all( ).
+
+    REPLACE '$FILE'   IN rv_text WITH get_comment_file( lt_stage ).
+
+    REPLACE '$OBJECT' IN rv_text WITH get_comment_object( lt_stage ).
+
+  ENDMETHOD.
+  METHOD get_comment_file.
+
+    DATA: lv_count TYPE i,
+          lv_value TYPE c LENGTH 10.
+
+    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF it_stage.
+
+    lv_count = lines( it_stage ).
+
+    IF lv_count = 1.
+      " Just one file so we use the file name
+      READ TABLE it_stage ASSIGNING <ls_stage> INDEX 1.
+      ASSERT sy-subrc = 0.
+
+      rv_text = <ls_stage>-file-filename.
+    ELSE.
+      " For multiple file we use the count instead
+      WRITE lv_count TO lv_value LEFT-JUSTIFIED.
+      CONCATENATE lv_value 'files' INTO rv_text SEPARATED BY space.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_comment_object.
+
+    DATA: lv_count TYPE i,
+          lv_value TYPE c LENGTH 10,
+          ls_item  TYPE zif_abapgit_definitions=>ty_item,
+          lt_items TYPE zif_abapgit_definitions=>ty_items_tt.
+
+    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF it_stage.
+
+    " Get objects
+    LOOP AT it_stage ASSIGNING <ls_stage>.
+      CLEAR ls_item.
+      ls_item-obj_type = <ls_stage>-status-obj_type.
+      ls_item-obj_name = <ls_stage>-status-obj_name.
+      COLLECT ls_item INTO lt_items.
+    ENDLOOP.
+
+    lv_count = lines( lt_items ).
+
+    IF lv_count = 1.
+      " Just one object so we use the object name
+      READ TABLE lt_items INTO ls_item INDEX 1.
+      ASSERT sy-subrc = 0.
+
+      CONCATENATE ls_item-obj_type ls_item-obj_name INTO rv_text SEPARATED BY space.
+    ELSE.
+      " For multiple objects we use the count instead
+      WRITE lv_count TO lv_value LEFT-JUSTIFIED.
+      CONCATENATE lv_value 'objects' INTO rv_text SEPARATED BY space.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD parse_commit_request.
 
     CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
@@ -40443,6 +40561,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       lv_body = ms_commit-body.
       lv_author_name = ms_commit-author_name.
       lv_author_email = ms_commit-author_email.
+    ENDIF.
+
+    IF lv_comment IS INITIAL.
+      lv_comment = get_comment_default( ).
     ENDIF.
 
     CREATE OBJECT ro_html.
@@ -42544,13 +42666,19 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
     DATA:
       lt_file_table TYPE filetable,
       ls_file_table LIKE LINE OF lt_file_table,
+      lv_filter     TYPE string,
       lv_action     TYPE i,
       lv_rc         TYPE i.
+
+    IF iv_extension = 'zip'.
+      lv_filter = 'ZIP Files (*.ZIP)|*.ZIP|' && cl_gui_frontend_services=>filetype_all.
+    ENDIF.
 
     cl_gui_frontend_services=>file_open_dialog(
       EXPORTING
         window_title            = iv_title
         default_filename        = iv_default_filename
+        file_filter             = lv_filter
       CHANGING
         file_table              = lt_file_table
         rc                      = lv_rc
@@ -42577,14 +42705,20 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
 
     DATA:
       lv_action   TYPE i,
+      lv_filter   TYPE string,
       lv_filename TYPE string,
       lv_path     TYPE string.
+
+    IF iv_extension = 'zip'.
+      lv_filter = 'ZIP Files (*.ZIP)|*.ZIP|' && cl_gui_frontend_services=>filetype_all.
+    ENDIF.
 
     cl_gui_frontend_services=>file_save_dialog(
       EXPORTING
         window_title         = iv_title
         default_extension    = iv_extension
         default_file_name    = iv_default_filename
+        file_filter          = lv_filter
       CHANGING
         filename             = lv_filename
         path                 = lv_path
@@ -85399,5 +85533,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-19T15:47:00.697Z
+* abapmerge 0.13.1 - 2020-05-20T10:38:52.052Z
 ****************************************************
