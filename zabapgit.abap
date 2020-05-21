@@ -35373,9 +35373,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zcl_abapgit_gui=>c_action-go_home.                          " Go Main page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_main.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-go_explore.                     " Go Explore page
-        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_explore.
-        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_repo_overview.               " Go Repository overview
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_over.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -85552,5 +85549,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-20T17:48:35.330Z
+* abapmerge 0.13.1 - 2020-05-21T04:59:30.788Z
 ****************************************************
