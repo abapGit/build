@@ -1424,8 +1424,8 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_hotkey,
       ui_component TYPE string,
-      action TYPE string,
-      hotkey TYPE string,
+      action       TYPE string,
+      hotkey       TYPE string,
     END OF ty_hotkey .
   TYPES:
     tty_hotkey TYPE STANDARD TABLE OF ty_hotkey
@@ -1859,6 +1859,26 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
   CONSTANTS gc_no TYPE ty_yes_no VALUE 'N'.
   CONSTANTS gc_partial TYPE ty_yes_no_partial VALUE 'P'.
+
+  TYPES:
+    ty_method TYPE c LENGTH 1 .
+  TYPES:
+    BEGIN OF ty_stage,
+      file   TYPE ty_file,
+      method TYPE ty_method,
+      status TYPE ty_result,
+    END OF ty_stage .
+  TYPES:
+    ty_stage_tt TYPE SORTED TABLE OF ty_stage
+          WITH UNIQUE KEY file-path file-filename .
+
+  CONSTANTS:
+    BEGIN OF c_method,
+      add    TYPE ty_method VALUE 'A',
+      rm     TYPE ty_method VALUE 'R',
+      ignore TYPE ty_method VALUE 'I',
+      skip   TYPE ty_method VALUE '?',
+    END OF c_method .
 
 ENDINTERFACE.
 
@@ -11125,12 +11145,12 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         VALUE(rv_text) TYPE string .
     METHODS get_comment_object
       IMPORTING
-        !it_stage      TYPE zcl_abapgit_stage=>ty_stage_tt
+        !it_stage      TYPE zif_abapgit_definitions=>ty_stage_tt
       RETURNING
         VALUE(rv_text) TYPE string .
     METHODS get_comment_file
       IMPORTING
-        !it_stage      TYPE zcl_abapgit_stage=>ty_stage_tt
+        !it_stage      TYPE zif_abapgit_definitions=>ty_stage_tt
       RETURNING
         VALUE(rv_text) TYPE string .
 
@@ -15841,29 +15861,9 @@ CLASS zcl_abapgit_stage DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES:
-      ty_method TYPE c LENGTH 1 .
-    TYPES:
-      BEGIN OF ty_stage,
-        file   TYPE zif_abapgit_definitions=>ty_file,
-        method TYPE ty_method,
-        status TYPE zif_abapgit_definitions=>ty_result,
-      END OF ty_stage .
-    TYPES:
-      ty_stage_tt TYPE SORTED TABLE OF ty_stage
-            WITH UNIQUE KEY file-path file-filename .
-
-    CONSTANTS:
-      BEGIN OF c_method,
-        add    TYPE ty_method VALUE 'A',
-        rm     TYPE ty_method VALUE 'R',
-        ignore TYPE ty_method VALUE 'I',
-        skip   TYPE ty_method VALUE '?',
-      END OF c_method .
-
     CLASS-METHODS method_description
       IMPORTING
-        !iv_method            TYPE ty_method
+        !iv_method            TYPE zif_abapgit_definitions=>ty_method
       RETURNING
         VALUE(rv_description) TYPE string
       RAISING
@@ -15906,18 +15906,18 @@ CLASS zcl_abapgit_stage DEFINITION
         VALUE(rv_count) TYPE i .
     METHODS get_all
       RETURNING
-        VALUE(rt_stage) TYPE ty_stage_tt .
+        VALUE(rt_stage) TYPE zif_abapgit_definitions=>ty_stage_tt .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA mt_stage TYPE ty_stage_tt .
+    DATA mt_stage TYPE zif_abapgit_definitions=>ty_stage_tt .
     DATA mv_merge_source TYPE zif_abapgit_definitions=>ty_sha1 .
 
     METHODS append
       IMPORTING
         !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
         !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
-        !iv_method   TYPE ty_method
+        !iv_method   TYPE zif_abapgit_definitions=>ty_method
         !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
         !iv_data     TYPE xstring OPTIONAL
       RAISING
@@ -18106,7 +18106,7 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
 
     append( iv_path     = iv_path
             iv_filename = iv_filename
-            iv_method   = c_method-add
+            iv_method   = zif_abapgit_definitions=>c_method-add
             is_status   = is_status
             iv_data     = iv_data ).
 
@@ -18148,16 +18148,16 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
   METHOD ignore.
     append( iv_path     = iv_path
             iv_filename = iv_filename
-            iv_method   = c_method-ignore ).
+            iv_method   = zif_abapgit_definitions=>c_method-ignore ).
   ENDMETHOD.
   METHOD method_description.
 
     CASE iv_method.
-      WHEN c_method-add.
+      WHEN zif_abapgit_definitions=>c_method-add.
         rv_description = 'add'.
-      WHEN c_method-rm.
+      WHEN zif_abapgit_definitions=>c_method-rm.
         rv_description = 'rm'.
-      WHEN c_method-ignore.
+      WHEN zif_abapgit_definitions=>c_method-ignore.
         rv_description = 'ignore' ##NO_TEXT.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'unknown staging method type' ).
@@ -18172,7 +18172,7 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
     append( iv_path     = iv_path
             iv_filename = iv_filename
             is_status   = is_status
-            iv_method   = c_method-rm ).
+            iv_method   = zif_abapgit_definitions=>c_method-rm ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -19277,12 +19277,12 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     DATA: lv_add         TYPE abap_bool,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
-          lt_stage       TYPE zcl_abapgit_stage=>ty_stage_tt.
+          lt_stage       TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     FIELD-SYMBOLS: <ls_stage> LIKE LINE OF lt_stage.
     lo_dot_abapgit = get_dot_abapgit( ).
     lt_stage = io_stage->get_all( ).
-    LOOP AT lt_stage ASSIGNING <ls_stage> WHERE method = zcl_abapgit_stage=>c_method-ignore.
+    LOOP AT lt_stage ASSIGNING <ls_stage> WHERE method = zif_abapgit_definitions=>c_method-ignore.
 
       lo_dot_abapgit->add_ignore(
         iv_path     = <ls_stage>-file-path
@@ -36625,7 +36625,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       ASSERT sy-subrc = 0.
 
       CASE <ls_item>-value.
-        WHEN zcl_abapgit_stage=>c_method-add.
+        WHEN zif_abapgit_definitions=>c_method-add.
           READ TABLE ms_files-local ASSIGNING <ls_file>
             WITH KEY file-path     = ls_file-path
                      file-filename = ls_file-filename.
@@ -36638,14 +36638,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                          iv_filename = <ls_file>-file-filename
                          is_status   = <ls_status>
                          iv_data     = <ls_file>-file-data ).
-        WHEN zcl_abapgit_stage=>c_method-ignore.
+        WHEN zif_abapgit_definitions=>c_method-ignore.
           ro_stage->ignore( iv_path     = ls_file-path
                             iv_filename = ls_file-filename ).
-        WHEN zcl_abapgit_stage=>c_method-rm.
+        WHEN zif_abapgit_definitions=>c_method-rm.
           ro_stage->rm( iv_path     = ls_file-path
                         is_status   = <ls_status>
                         iv_filename = ls_file-filename ).
-        WHEN zcl_abapgit_stage=>c_method-skip.
+        WHEN zif_abapgit_definitions=>c_method-skip.
           " Do nothing
         WHEN OTHERS.
           zcx_abapgit_exception=>raise( |process_stage_list: unknown method { <ls_item>-value }| ).
@@ -40354,7 +40354,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD get_comment_default.
 
     DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
-          lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
+          lt_stage    TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     " Get setting for default comment text
     lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
@@ -40639,7 +40639,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_stage.
 
-    DATA: lt_stage TYPE zcl_abapgit_stage=>ty_stage_tt.
+    DATA: lt_stage TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     FIELD-SYMBOLS: <ls_stage> LIKE LINE OF lt_stage.
     CREATE OBJECT ro_html.
@@ -82765,7 +82765,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
           lv_sha1     TYPE zif_abapgit_definitions=>ty_sha1,
           lv_new_tree TYPE zif_abapgit_definitions=>ty_sha1,
           lt_trees    TYPE ty_trees_tt,
-          lt_stage    TYPE zcl_abapgit_stage=>ty_stage_tt.
+          lt_stage    TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     FIELD-SYMBOLS: <ls_stage>   LIKE LINE OF lt_stage,
                    <ls_updated> LIKE LINE OF rs_result-updated_files,
@@ -82781,7 +82781,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
       MOVE-CORRESPONDING <ls_stage>-file TO <ls_updated>.
 
       CASE <ls_stage>-method.
-        WHEN zcl_abapgit_stage=>c_method-add.
+        WHEN zif_abapgit_definitions=>c_method-add.
 
           APPEND <ls_stage>-file TO lt_blobs.
 
@@ -82803,7 +82803,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
           <ls_updated>-sha1 = lv_sha1.   "New sha1
 
-        WHEN zcl_abapgit_stage=>c_method-rm.
+        WHEN zif_abapgit_definitions=>c_method-rm.
           DELETE lt_expanded
             WHERE name = <ls_stage>-file-filename
             AND path = <ls_stage>-file-path.
@@ -85549,5 +85549,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-21T04:59:30.788Z
+* abapmerge 0.13.1 - 2020-05-21T05:27:05.577Z
 ****************************************************
