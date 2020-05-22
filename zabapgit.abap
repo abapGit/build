@@ -27247,6 +27247,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab tr:first-child td { border-top: 0px; }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '.repo_tab tr:hover {' ).
+    lo_buf->add( '  background-color: rgb(245, 245, 245) !important;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'th.stage-status { width: 30px; }' ).
@@ -27274,6 +27279,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td.highlight {' ).
     lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.stage_tab tr:hover {' ).
+    lo_buf->add( '  background-color: rgb(245, 245, 245) !important;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.stage_tab td.cmd {  cursor: pointer; }' ).
@@ -27357,6 +27366,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  padding-left: 0.3em;' ).
     lo_buf->add( '  padding-right: 0.3em;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.diff_content {' ).
     lo_buf->add( '  border-top: 1px solid;' ).
     lo_buf->add( '  border-bottom: 1px solid;' ).
@@ -28459,7 +28469,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  --theme-greyscale-medium: #bfbfbf;' ).
     lo_buf->add( '  --theme-greyscale-light: #CCCCCC;' ).
     lo_buf->add( '  --theme-greyscale-lighter: #E5E5E5;' ).
-    lo_buf->add( '  --theme-list-hover-background-color: #666666;' ).
+    lo_buf->add( '  --theme-list-hover-background-color: black;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* GLOBALS */' ).
@@ -28483,7 +28493,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.nav-container ul ul { background-color: #555555; }' ).
     lo_buf->add( '.nav-container ul ul li:hover { background-color: var(--theme-list-hover-background-color); }' ).
     lo_buf->add( 'table.repo_tab {' ).
-    lo_buf->add( '    border-color: #var(--theme-container-background-color);' ).
+    lo_buf->add( '    border-color: var(--theme-container-background-color);' ).
     lo_buf->add( '    background-color: var(--theme-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -28506,6 +28516,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo_tab td { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '.repo_tab tr.unsupported { background-color: #555; }' ).
     lo_buf->add( '.repo_tab tr.modified { background-color: #555; }' ).
+    lo_buf->add( '.repo_tab tr:hover {background-color: var(--theme-list-hover-background-color) !important;}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
     lo_buf->add( '.stage_tab { background-color: var(--theme-background-color); }' ).
@@ -28519,6 +28530,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  background-color: var(--theme-background-color); ' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab th { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '.stage_tab tr:hover {background-color: var(--theme-list-hover-background-color) !important;}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COMMIT */' ).
     lo_buf->add( 'div.form-container { background-color: var(--theme-background-color); }' ).
@@ -28553,7 +28566,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( 'table.db_tab td.data { opacity: 0.5; }' ).
     lo_buf->add( 'table.db_tab tbody tr:hover, tr:active { background-color: var(--theme-list-hover-background-color); }' ).
     lo_buf->add( 'table.db_tab th {' ).
-    lo_buf->add( '  color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '  border-bottom-color: #333;' ).
     lo_buf->add( '}' ).
     ro_asset_man->register_asset(
@@ -85552,5 +85565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-22T08:03:30.587Z
+* abapmerge 0.13.1 - 2020-05-22T08:11:43.059Z
 ****************************************************
