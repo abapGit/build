@@ -33173,8 +33173,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
                            iv_value      = lv_display_name
                  CHANGING ct_fields      = lt_fields ).
 
-      add_field( EXPORTING iv_tabname    = 'ZABAPGIT'
-                           iv_fieldname  = 'VALUE'
+      add_field( EXPORTING iv_tabname    = 'TADIR'
+                           iv_fieldname  = 'AUTHOR'
                            iv_fieldtext  = 'Folder logic'
                            iv_obligatory = abap_true
                            iv_value      = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
@@ -85565,5 +85565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-22T08:11:43.059Z
+* abapmerge 0.13.1 - 2020-05-22T15:44:18.711Z
 ****************************************************
