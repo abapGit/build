@@ -83280,7 +83280,8 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     ENDLOOP.
 
-    IF lv_string+0(6) = 'gpgsig'.
+    lv_length = strlen( lv_string ).
+    IF lv_length >= 6 AND lv_string+0(6) = 'gpgsig'.
       FIND REGEX |-----END PGP SIGNATURE-----[[:space:]]+|
         IN lv_string
         MATCH OFFSET lv_offset
@@ -85570,5 +85571,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-23T09:50:55.299Z
+* abapmerge 0.13.1 - 2020-05-23T09:54:06.305Z
 ****************************************************
