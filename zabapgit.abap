@@ -36635,7 +36635,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         WITH TABLE KEY
           path     = ls_file-path
           filename = ls_file-filename.
-      ASSERT sy-subrc = 0.
+      IF sy-subrc <> 0.
+* see https://github.com/larshp/abapGit/issues/3073
+        zcx_abapgit_exception=>raise( iv_text =
+          |Unable to stage { ls_file-filename }. If the filename contains spaces, this is a known issue.| &&
+          | Consider ignoring or staging the file at a later time.| ).
+      ENDIF.
 
       CASE <ls_item>-value.
         WHEN zif_abapgit_definitions=>c_method-add.
@@ -85565,5 +85570,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-23T04:33:38.472Z
+* abapmerge 0.13.1 - 2020-05-23T09:43:30.883Z
 ****************************************************
