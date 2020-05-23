@@ -2120,6 +2120,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     read_descriptions
       IMPORTING
         iv_obejct_name         TYPE seoclsname
+        iv_language            TYPE spras OPTIONAL
       RETURNING
         VALUE(rt_descriptions) TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
     delete
@@ -47052,10 +47053,20 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
       ORDER BY PRIMARY KEY.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_descriptions.
-    SELECT * FROM seocompotx INTO TABLE rt_descriptions
-      WHERE clsname   = iv_obejct_name
-        AND descript <> ''
-      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
+    IF iv_language IS INITIAL.
+      " load all languages
+      SELECT * FROM seocompotx INTO TABLE rt_descriptions
+             WHERE clsname   = iv_obejct_name
+               AND descript <> ''
+             ORDER BY PRIMARY KEY.                        "#EC CI_SUBRC
+    ELSE.
+      " load master language
+      SELECT * FROM seocompotx INTO TABLE rt_descriptions
+              WHERE clsname   = iv_obejct_name
+                AND langu = iv_language
+                AND descript <> ''
+              ORDER BY PRIMARY KEY.                       "#EC CI_SUBRC
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_documentation.
     DATA: lv_state  TYPE dokstate,
@@ -66533,7 +66544,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
+CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
@@ -66628,7 +66639,8 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
       lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
       ls_vseointerf   TYPE vseointerf,
       ls_clskey       TYPE seoclskey,
-      lt_lines        TYPE tlinetab.
+      lt_lines        TYPE tlinetab,
+      lv_language     TYPE spras.
     ls_clskey-clsname = ms_item-obj_name.
 
     ls_vseointerf = mi_object_oriented_object_fct->get_interface_properties( ls_clskey ).
@@ -66654,7 +66666,14 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
                    ig_data = lt_lines ).
     ENDIF.
 
-    lt_descriptions = mi_object_oriented_object_fct->read_descriptions( ls_clskey-clsname ).
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      lv_language = mv_language.
+    ENDIF.
+
+    lt_descriptions = mi_object_oriented_object_fct->read_descriptions(
+      iv_obejct_name = ls_clskey-clsname
+      iv_language = lv_language ).
+
     IF lines( lt_descriptions ) > 0.
       io_xml->add( iv_name = 'DESCRIPTIONS'
                    ig_data = lt_descriptions ).
@@ -76394,7 +76413,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
            ls_customizing_attribute-header-luser.
 
     IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
-      DELETE ls_customizing_attribute-titles WHERE spras <> sy-langu.
+      DELETE ls_customizing_attribute-titles WHERE spras <> mv_language.
     ENDIF.
 
     io_xml->add( iv_name = 'CUS2'
@@ -76533,7 +76552,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
            ls_customzing_activity-activity_header-luser.
 
     IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
-      DELETE ls_customzing_activity-activity_title WHERE spras <> sy-langu.
+      DELETE ls_customzing_activity-activity_title WHERE spras <> mv_language.
     ENDIF.
 
     io_xml->add( iv_name = 'CUS1'
@@ -76670,7 +76689,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
            ls_img_activity-header-ltime.
 
     IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
-      DELETE ls_img_activity-texts WHERE spras <> sy-langu.
+      DELETE ls_img_activity-texts WHERE spras <> mv_language.
     ENDIF.
 
     io_xml->add( iv_name = 'CUS0'
@@ -77117,9 +77136,17 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_descr.
 
-    DATA: lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt.
+    DATA: lt_descriptions TYPE zif_abapgit_definitions=>ty_seocompotx_tt,
+          lv_language     TYPE spras.
 
-    lt_descriptions = mi_object_oriented_object_fct->read_descriptions( iv_clsname ).
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+      lv_language = mv_language.
+    ENDIF.
+
+    lt_descriptions = mi_object_oriented_object_fct->read_descriptions(
+      iv_obejct_name = iv_clsname
+      iv_language = lv_language ).
+
     IF lines( lt_descriptions ) = 0.
       RETURN.
     ENDIF.
@@ -85571,5 +85598,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-23T09:56:34.098Z
+* abapmerge 0.13.1 - 2020-05-23T11:00:42.174Z
 ****************************************************
