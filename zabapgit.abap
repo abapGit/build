@@ -35125,7 +35125,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
       zcl_abapgit_html=>icon( lv_icon ) &&
       zcl_abapgit_html=>a(
         iv_txt = |diffs first|
-        iv_act = c_actions-toggle_diff_first ).
+        iv_act = c_actions-toggle_diff_first ) && |</th>|.
     ro_html->add( lv_html ).
 
     ro_html->add( '</tr>' ).
@@ -85565,5 +85565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-22T15:44:18.711Z
+* abapmerge 0.13.1 - 2020-05-23T04:33:38.472Z
 ****************************************************
