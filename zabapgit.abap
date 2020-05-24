@@ -20526,7 +20526,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DATA: lt_files          TYPE zif_abapgit_definitions=>ty_files_tt,
           lv_path           TYPE string,
           lv_filename       TYPE string,
-          lt_duplicates     TYPE stringtab,
+          lt_duplicates     TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
           lv_duplicates     LIKE LINE OF lt_duplicates,
           lv_all_duplicates TYPE string.
 
@@ -34056,7 +34056,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_fields.
 
-    DATA: lt_substrings TYPE stringtab,
+    DATA: lt_substrings TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
           ls_field      LIKE LINE OF rt_fields.
 
     FIELD-SYMBOLS: <lv_substring> LIKE LINE OF lt_substrings.
@@ -85598,5 +85598,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-24T08:28:34.288Z
+* abapmerge 0.13.1 - 2020-05-24T08:31:43.513Z
 ****************************************************
