@@ -9348,6 +9348,9 @@ CLASS zcl_abapgit_oo_class DEFINITION
     METHODS zif_abapgit_oo_object_fnc~deserialize_source
         REDEFINITION .
   PROTECTED SECTION.
+    TYPES: ty_char1 TYPE c LENGTH 1,
+           ty_char2 TYPE c LENGTH 2.
+
   PRIVATE SECTION.
 
     CLASS-METHODS update_source_index
@@ -9399,8 +9402,8 @@ CLASS zcl_abapgit_oo_class DEFINITION
       IMPORTING
         !iv_program      TYPE programm
         !it_source       TYPE string_table
-        !iv_extension    TYPE sychar02
-        !iv_program_type TYPE sychar01
+        !iv_extension    TYPE ty_char2
+        !iv_program_type TYPE ty_char1
         !iv_version      TYPE r3state .
     CLASS-METHODS update_cs_number_of_methods
       IMPORTING
@@ -14125,7 +14128,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
 
     DATA mv_success TYPE abap_bool .
 
-    TYPES: t_run_mode TYPE sychar01.
+    TYPES: t_run_mode TYPE c LENGTH 1.
     CONSTANTS:
       BEGIN OF co_run_mode,
         run_with_popup   TYPE t_run_mode VALUE 'P',
@@ -14137,7 +14140,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
       END OF co_run_mode .
     DATA mo_inspection TYPE REF TO cl_ci_inspection .
     DATA mv_name TYPE sci_objs .
-    DATA mv_run_mode TYPE sychar01 .
+    DATA mv_run_mode TYPE c LENGTH 1 .
     METHODS create_objectset
       RETURNING
         VALUE(ro_set) TYPE REF TO cl_ci_objectset .
@@ -15586,6 +15589,7 @@ CLASS zcl_abapgit_serialize DEFINITION
         zcx_abapgit_exception .
 
   PROTECTED SECTION.
+    TYPES: ty_char32 TYPE c LENGTH 32.
 
     CLASS-DATA gv_max_threads TYPE i .
     DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -15602,7 +15606,7 @@ CLASS zcl_abapgit_serialize DEFINITION
       IMPORTING
         !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
         !iv_language TYPE langu
-        !iv_task     TYPE sychar32
+        !iv_task     TYPE ty_char32
       RAISING
         zcx_abapgit_exception .
     METHODS run_sequential
@@ -46106,7 +46110,7 @@ CLASS zcl_abapgit_oo_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
+CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -46238,8 +46242,8 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_full_class_include.
 
-    CONSTANTS: lc_class_source_extension TYPE sychar02 VALUE 'CS',
-               lc_include_program_type   TYPE sychar01 VALUE 'I',
+    CONSTANTS: lc_class_source_extension TYPE c LENGTH 2 VALUE 'CS',
+               lc_include_program_type   TYPE c LENGTH 1 VALUE 'I',
                lc_active_version         TYPE r3state VALUE 'A'.
     create_report( iv_program      = cl_oo_classname_service=>get_cs_name( iv_classname )
                    it_source       = it_source
@@ -85461,5 +85465,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.0 - 2020-05-24T08:43:46.661Z
+* abapmerge 0.14.0 - 2020-05-24T09:25:16.634Z
 ****************************************************
