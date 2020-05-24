@@ -1194,6 +1194,11 @@ INTERFACE zif_abapgit_html.
   TYPES:
     tty_table_of TYPE STANDARD TABLE OF REF TO zif_abapgit_html WITH DEFAULT KEY.
 
+  DATA mv_chunk_title TYPE string READ-ONLY. " Primarily for debug of posponed html parts
+
+  METHODS set_title
+    IMPORTING
+      iv_title TYPE string.
   METHODS add
     IMPORTING
       !ig_chunk TYPE any .
@@ -10059,6 +10064,7 @@ CLASS zcl_abapgit_gui DEFINITION
         ii_asset_man      TYPE REF TO zif_abapgit_gui_asset_manager OPTIONAL
         ii_hotkey_ctl     TYPE REF TO zif_abapgit_gui_hotkey_ctl OPTIONAL
         ii_html_processor TYPE REF TO zif_abapgit_gui_html_processor OPTIONAL
+        iv_rollback_on_error TYPE abap_bool DEFAULT abap_true
       RAISING
         zcx_abapgit_exception.
 
@@ -10074,6 +10080,7 @@ CLASS zcl_abapgit_gui DEFINITION
       END OF ty_page_stack.
 
     DATA:
+      mv_rollback_on_error TYPE abap_bool,
       mi_cur_page       TYPE REF TO zif_abapgit_gui_renderable,
       mt_stack          TYPE STANDARD TABLE OF ty_page_stack,
       mt_event_handlers TYPE STANDARD TABLE OF REF TO zif_abapgit_gui_event_handler,
@@ -10608,17 +10615,21 @@ CLASS zcl_abapgit_gui_component DEFINITION
         hidden_forms TYPE string VALUE 'hidden_forms',
       END OF c_html_parts.
 
-    METHODS constructor RAISING zcx_abapgit_exception.
   PROTECTED SECTION.
-    DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
 
     METHODS register_deferred_script
       IMPORTING
         ii_part TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception.
+    METHODS gui_services
+      RETURNING
+        VALUE(ri_gui_services) TYPE REF TO zif_abapgit_gui_services
+      RAISING
+        zcx_abapgit_exception.
 
   PRIVATE SECTION.
+    DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
 ENDCLASS.
 CLASS zcl_abapgit_gui_functions DEFINITION
   CREATE PUBLIC .
@@ -10645,7 +10656,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
 
     TYPES:
       BEGIN OF ty_control,
-        redirect_url TYPE string,
         page_title   TYPE string,
         page_menu    TYPE REF TO zcl_abapgit_html_toolbar,
       END OF  ty_control.
@@ -10665,7 +10675,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     METHODS render_deferred_parts
       IMPORTING
         ii_html TYPE REF TO zif_abapgit_html
-        iv_part_category TYPE string.
+        iv_part_category TYPE string
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS html_head
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
@@ -10674,9 +10686,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
     METHODS footer
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
-    METHODS redirect
       RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
 
     METHODS render_link_hints
@@ -12464,6 +12473,7 @@ CLASS zcl_abapgit_gui_view_tutorial DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_hotkeys DEFINITION
   FINAL
+  INHERITING FROM zcl_abapgit_gui_component
   CREATE PUBLIC .
 
   PUBLIC SECTION.
@@ -12544,9 +12554,10 @@ CLASS zcl_abapgit_hotkeys DEFINITION
         RETURNING
           VALUE(rt_interface_implementations) TYPE saboo_iimpt
         RAISING
-          zcx_abapgit_exception,
+          zcx_abapgit_exception.
 
-      render_js_part
+    METHODS
+      render_scripts
         IMPORTING
           it_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
         RETURNING
@@ -34138,7 +34149,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD render_js_part.
+  METHOD render_scripts.
 
     DATA lv_json TYPE string.
     DATA lt_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr.
@@ -34160,6 +34171,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
     lv_json = lv_json && `}`.
 
     CREATE OBJECT ro_html.
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( |setKeyBindings({ lv_json });| ).
 
   ENDMETHOD.
@@ -34226,18 +34238,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
     lt_registered_hotkeys = zif_abapgit_gui_hotkey_ctl~get_registered_hotkeys( ).
     SORT lt_registered_hotkeys BY ui_component description.
 
-    " Note
-    " normally render method should be able to call mi_gui_services->get_html_parts( )
-    " thus the class must inherit from zcl_abapgit_gui_component
-    " but problem is that component constructor calls get_gui which creates gui if it is missing
-    " and the hotkeys class itself is created during get_gui so it is infinite loop
-    " solutions:
-    " A) separate hotkeys into logic and render (which is actually a good way, but it so nicely fit together ...)
-    " B) convert mi_gui_services to a getter - which I will do but later
-
-    zcl_abapgit_ui_factory=>get_gui_services( )->get_html_parts( )->add_part(
-      iv_collection = zcl_abapgit_gui_component=>c_html_parts-scripts
-      ii_part       = render_js_part( lt_registered_hotkeys ) ).
+    register_deferred_script( render_scripts( lt_registered_hotkeys ) ).
 
     " Render hotkeys
     ri_html->add( '<ul class="hotkeys">' ).
@@ -35084,7 +35085,7 @@ CLASS ZCL_ABAPGIT_GUI_VIEW_REPO IMPLEMENTATION.
           lv_render_transports TYPE abap_bool.
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
-    mi_gui_services->register_event_handler( me ).
+    gui_services( )->register_event_handler( me ).
 
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
@@ -35946,6 +35947,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( 'setInitialFocus("name");' ).
 
   ENDMETHOD.
@@ -36249,8 +36251,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     ro_html->add( '</div>' ).
 
-    mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
-    mi_gui_services->get_html_parts( )->add_part(
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
+    gui_services( )->get_html_parts( )->add_part(
       iv_collection = zcl_abapgit_gui_component=>c_html_parts-hidden_forms
       ii_part       = render_deferred_hidden_events( ) ).
     register_deferred_script( render_scripts( ) ).
@@ -36263,6 +36265,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ls_event-method = 'post'.
     ls_event-name   = 'stage_commit'.
     ro_html = zcl_abapgit_gui_chunk_lib=>render_event_as_form( ls_event ).
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
 
   ENDMETHOD.
   METHOD render_file.
@@ -36429,6 +36432,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD render_scripts.
 
     CREATE OBJECT ro_html.
+
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
 
     ro_html->add( 'var gStageParams = {' ).
     ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
@@ -37726,6 +37731,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( 'setInitialFocus("filter");' ).
     ro_html->add( 'var gHelper = new RepoOverViewHelper();' ).
 
@@ -38269,7 +38275,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
       CLEAR: mv_pushed.
     ENDIF.
 
-    mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
     ro_html = super->render_content( ).
 
     register_deferred_script( render_scripts( ) ).
@@ -38362,6 +38368,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( 'preparePatch();' ).
     ro_html->add( 'registerStagePatch();' ).
 
@@ -39101,7 +39108,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -39163,7 +39170,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     retrieve_active_repo( ). " Get and validate key of user default repo
 
     CREATE OBJECT ro_html.
-    mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
 
     TRY.
         lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
@@ -40090,6 +40097,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+
     ro_html->add( 'restoreScrollPosition();' ).
     ro_html->add( 'var gHelper = new DiffHelper({' ).
     ro_html->add( |  seed:        "{ mv_seed }",| ).
@@ -40224,6 +40233,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
       '"<br>Frontend time: " + new Date(), "debug_info");' ).
 
@@ -40540,6 +40550,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
+    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ro_html->add( 'setInitialFocus("comment");' ).
 
   ENDMETHOD.
@@ -40922,7 +40933,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    mi_gui_services->get_hotkeys_ctl( )->register_hotkeys( me ).
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
 
     ro_html->add( '<div class="ci-head">' ).
     ro_html->add( |Code inspector check variant: <span class="ci-variant">{ mv_check_variant }</span>| ).
@@ -41731,18 +41742,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ro_html->add( '</head>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
-  METHOD redirect.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
-    ro_html->add( '<html>' ).                               "#EC NOTEXT
-    ro_html->add( '<head>' ).                               "#EC NOTEXT
-    ro_html->add( |<meta http-equiv="refresh" content="0; url={ ms_control-redirect_url }">| ). "#EC NOTEXT
-    ro_html->add( '</head>' ).                              "#EC NOTEXT
-    ro_html->add( '</html>' ).                              "#EC NOTEXT
-
-  ENDMETHOD.
   METHOD render_command_palettes.
 
     io_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
@@ -41761,7 +41760,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     DATA lt_parts TYPE zif_abapgit_html=>tty_table_of.
     DATA li_part LIKE LINE OF lt_parts.
 
-    lt_parts = mi_gui_services->get_html_parts( )->get_parts( iv_part_category ).
+    lt_parts = gui_services( )->get_html_parts( )->get_parts( iv_part_category ).
     LOOP AT lt_parts INTO li_part.
       ii_html->add( li_part ).
     ENDLOOP.
@@ -41798,7 +41797,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     DATA lo_hotkeys_component TYPE REF TO zif_abapgit_gui_renderable.
 
-    lo_hotkeys_component ?= mi_gui_services->get_hotkeys_ctl( ). " Mmmm ...
+    lo_hotkeys_component ?= gui_services( )->get_hotkeys_ctl( ). " Mmmm ...
     ro_html = lo_hotkeys_component->render( ).
 
   ENDMETHOD.
@@ -41896,13 +41895,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     DATA: lo_script TYPE REF TO zcl_abapgit_html.
 
-    mi_gui_services->register_event_handler( me ).
-
-    " Redirect
-    IF ms_control-redirect_url IS NOT INITIAL.
-      ri_html = redirect( ).
-      RETURN.
-    ENDIF.
+    gui_services( )->register_event_handler( me ).
 
     " Real page
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -41959,12 +41952,14 @@ CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
-  METHOD constructor.
-    mi_gui_services = zcl_abapgit_ui_factory=>get_gui_services( ).
+  METHOD gui_services.
+    IF mi_gui_services IS NOT BOUND.
+      mi_gui_services = zcl_abapgit_ui_factory=>get_gui_services( ).
+    ENDIF.
+    ri_gui_services = mi_gui_services.
   ENDMETHOD.
   METHOD register_deferred_script.
-    " TODO refactor to mi_gui_services getter !
-    zcl_abapgit_ui_factory=>get_gui_services( )->get_html_parts( )->add_part(
+    gui_services( )->get_html_parts( )->add_part(
       iv_collection = c_html_parts-scripts
       ii_part       = ii_part ).
   ENDMETHOD.
@@ -43235,135 +43230,7 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html IMPLEMENTATION.
-  METHOD add_icon.
-
-    add( icon( iv_name    = iv_name
-               iv_class   = iv_class
-               iv_hint    = iv_hint
-               iv_onclick = iv_onclick  ) ).
-
-  ENDMETHOD.
-  METHOD checkbox.
-
-    DATA: lv_checked TYPE string.
-
-    IF iv_checked = abap_true.
-      lv_checked = |checked|.
-    ENDIF.
-
-    rv_html = |<input type="checkbox" id="{ iv_id }" { lv_checked }>|.
-
-  ENDMETHOD.
-  METHOD class_constructor.
-    CREATE OBJECT go_single_tags_re
-      EXPORTING
-        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
-        ignore_case = abap_false.
-  ENDMETHOD.
-  METHOD indent_line.
-
-    DATA: ls_study TYPE ty_study_result,
-          lv_x_str TYPE string.
-
-    ls_study = study_line(
-      is_context = cs_context
-      iv_line    = cv_line ).
-
-    " First closing tag - shift back exceptionally
-    IF ( ls_study-script_close = abap_true
-        OR ls_study-style_close = abap_true
-        OR ls_study-curly_close = abap_true
-        OR ls_study-tag_close = abap_true )
-        AND cs_context-indent > 0.
-      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
-      cv_line  = lv_x_str && cv_line.
-    ELSE.
-      cv_line = cs_context-indent_str && cv_line.
-    ENDIF.
-
-    " Context status update
-    CASE abap_true.
-      WHEN ls_study-script_open.
-        cs_context-within_js    = abap_true.
-        cs_context-within_style = abap_false.
-      WHEN ls_study-style_open.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_true.
-      WHEN ls_study-script_close OR ls_study-style_close.
-        cs_context-within_js    = abap_false.
-        cs_context-within_style = abap_false.
-        ls_study-closings       = ls_study-closings + 1.
-    ENDCASE.
-
-    " More-less logic chosen due to possible double tags in a line '<a><b>'
-    IF ls_study-openings <> ls_study-closings.
-      IF ls_study-openings > ls_study-closings.
-        cs_context-indent = cs_context-indent + 1.
-      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
-        cs_context-indent = cs_context-indent - 1.
-      ENDIF.
-      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD study_line.
-
-    DATA: lv_line TYPE string,
-          lv_len  TYPE i.
-
-    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
-    lv_len  = strlen( lv_line ).
-
-    " Some assumptions for simplification and speed
-    " - style & scripts tag should be opened/closed in a separate line
-    " - style & scripts opening and closing in one line is possible but only once
-
-    " TODO & Issues
-    " - What if the string IS a well formed html already not just single line ?
-
-    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
-
-      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
-        rs_result-script_close = abap_true.
-      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
-        rs_result-style_close = abap_true.
-      ENDIF.
-
-      IF is_context-no_indent_jscss = abap_false.
-        IF lv_len >= 1 AND lv_line(1) = '}'.
-          rs_result-curly_close = abap_true.
-        ENDIF.
-
-        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
-        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
-      ENDIF.
-
-    ELSE.
-      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
-        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-script_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
-        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
-        IF sy-subrc > 0. " Not found
-          rs_result-style_open = abap_true.
-        ENDIF.
-      ENDIF.
-      IF lv_len >= 2 AND lv_line(2) = '</'.
-        rs_result-tag_close = abap_true.
-      ENDIF.
-
-      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
-      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
-      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
-      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
-
-    ENDIF.
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD a.
 
     DATA: lv_class TYPE string,
@@ -43461,11 +43328,30 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
             iv_title = iv_title ) ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_html~add_checkbox.
+  METHOD add_icon.
 
-    add( checkbox( iv_id      = iv_id
-                   iv_checked = iv_checked ) ).
+    add( icon( iv_name    = iv_name
+               iv_class   = iv_class
+               iv_hint    = iv_hint
+               iv_onclick = iv_onclick  ) ).
 
+  ENDMETHOD.
+  METHOD checkbox.
+
+    DATA: lv_checked TYPE string.
+
+    IF iv_checked = abap_true.
+      lv_checked = |checked|.
+    ENDIF.
+
+    rv_html = |<input type="checkbox" id="{ iv_id }" { lv_checked }>|.
+
+  ENDMETHOD.
+  METHOD class_constructor.
+    CREATE OBJECT go_single_tags_re
+      EXPORTING
+        pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
+        ignore_case = abap_false.
   ENDMETHOD.
   METHOD icon.
 
@@ -43501,6 +43387,52 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
     rv_str = |{ rv_str }{ lv_class }"{ lv_onclick }{ lv_hint }></i>|.
 
   ENDMETHOD.
+  METHOD indent_line.
+
+    DATA: ls_study TYPE ty_study_result,
+          lv_x_str TYPE string.
+
+    ls_study = study_line(
+      is_context = cs_context
+      iv_line    = cv_line ).
+
+    " First closing tag - shift back exceptionally
+    IF ( ls_study-script_close = abap_true
+        OR ls_study-style_close = abap_true
+        OR ls_study-curly_close = abap_true
+        OR ls_study-tag_close = abap_true )
+        AND cs_context-indent > 0.
+      lv_x_str = repeat( val = ` ` occ = ( cs_context-indent - 1 ) * c_indent_size ).
+      cv_line  = lv_x_str && cv_line.
+    ELSE.
+      cv_line = cs_context-indent_str && cv_line.
+    ENDIF.
+
+    " Context status update
+    CASE abap_true.
+      WHEN ls_study-script_open.
+        cs_context-within_js    = abap_true.
+        cs_context-within_style = abap_false.
+      WHEN ls_study-style_open.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_true.
+      WHEN ls_study-script_close OR ls_study-style_close.
+        cs_context-within_js    = abap_false.
+        cs_context-within_style = abap_false.
+        ls_study-closings       = ls_study-closings + 1.
+    ENDCASE.
+
+    " More-less logic chosen due to possible double tags in a line '<a><b>'
+    IF ls_study-openings <> ls_study-closings.
+      IF ls_study-openings > ls_study-closings.
+        cs_context-indent = cs_context-indent + 1.
+      ELSEIF cs_context-indent > 0. " AND ls_study-openings < ls_study-closings
+        cs_context-indent = cs_context-indent - 1.
+      ENDIF.
+      cs_context-indent_str = repeat( val = ` ` occ = cs_context-indent * c_indent_size ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD is_empty.
     rv_yes = boolc( lines( mt_buffer ) = 0 ).
   ENDMETHOD.
@@ -43521,6 +43453,72 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
     CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
+  ENDMETHOD.
+  METHOD study_line.
+
+    DATA: lv_line TYPE string,
+          lv_len  TYPE i.
+
+    lv_line = to_upper( shift_left( val = iv_line sub = ` ` ) ).
+    lv_len  = strlen( lv_line ).
+
+    " Some assumptions for simplification and speed
+    " - style & scripts tag should be opened/closed in a separate line
+    " - style & scripts opening and closing in one line is possible but only once
+
+    " TODO & Issues
+    " - What if the string IS a well formed html already not just single line ?
+
+    IF is_context-within_js = abap_true OR is_context-within_style = abap_true.
+
+      IF is_context-within_js = abap_true AND lv_len >= 8 AND lv_line(8) = '</SCRIPT'.
+        rs_result-script_close = abap_true.
+      ELSEIF is_context-within_style = abap_true AND lv_len >= 7 AND lv_line(7) = '</STYLE'.
+        rs_result-style_close = abap_true.
+      ENDIF.
+
+      IF is_context-no_indent_jscss = abap_false.
+        IF lv_len >= 1 AND lv_line(1) = '}'.
+          rs_result-curly_close = abap_true.
+        ENDIF.
+
+        FIND ALL OCCURRENCES OF '{' IN lv_line MATCH COUNT rs_result-openings.
+        FIND ALL OCCURRENCES OF '}' IN lv_line MATCH COUNT rs_result-closings.
+      ENDIF.
+
+    ELSE.
+      IF lv_len >= 7 AND lv_line(7) = '<SCRIPT'.
+        FIND FIRST OCCURRENCE OF '</SCRIPT' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-script_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 6 AND lv_line(6) = '<STYLE'.
+        FIND FIRST OCCURRENCE OF '</STYLE' IN lv_line.
+        IF sy-subrc > 0. " Not found
+          rs_result-style_open = abap_true.
+        ENDIF.
+      ENDIF.
+      IF lv_len >= 2 AND lv_line(2) = '</'.
+        rs_result-tag_close = abap_true.
+      ENDIF.
+
+      FIND ALL OCCURRENCES OF '<'  IN lv_line MATCH COUNT rs_result-openings.
+      FIND ALL OCCURRENCES OF '</' IN lv_line MATCH COUNT rs_result-closings.
+      FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
+      rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~add_checkbox.
+
+    add( checkbox( iv_id      = iv_id
+                   iv_checked = iv_checked ) ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~set_title.
+    zif_abapgit_html~mv_chunk_title = iv_title.
   ENDMETHOD.
 ENDCLASS.
 
@@ -43945,6 +43943,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     CREATE OBJECT mo_html_parts.
 
+    mv_rollback_on_error = iv_rollback_on_error.
     mi_asset_man      = ii_asset_man.
     mi_hotkey_ctl     = ii_hotkey_ctl.
     mi_html_processor = ii_html_processor. " Maybe improve to middlewares stack ??
@@ -44034,7 +44033,6 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = gc_event_state-no_more_act
       CATCH zcx_abapgit_exception INTO lx_exception.
-        ROLLBACK WORK.
         handle_error( lx_exception ).
     ENDTRY.
 
@@ -44043,6 +44041,10 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     DATA: li_gui_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
           lx_exception         TYPE REF TO cx_root.
+
+    IF mv_rollback_on_error = abap_true.
+      ROLLBACK WORK.
+    ENDIF.
 
     TRY.
         li_gui_error_handler ?= mi_cur_page.
@@ -85459,5 +85461,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.0 - 2020-05-24T08:37:30.919Z
+* abapmerge 0.14.0 - 2020-05-24T08:43:46.661Z
 ****************************************************
