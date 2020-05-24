@@ -1935,9 +1935,9 @@ INTERFACE zif_abapgit_object .
 
   CONSTANTS:
     BEGIN OF gc_step_id,
-      abap TYPE zif_abapgit_object=>ty_deserialization_step VALUE `ABAP`,
-      ddic TYPE zif_abapgit_object=>ty_deserialization_step VALUE `DDIC`,
-      late TYPE zif_abapgit_object=>ty_deserialization_step VALUE `LATE`,
+      abap TYPE ty_deserialization_step VALUE `ABAP`,
+      ddic TYPE ty_deserialization_step VALUE `DDIC`,
+      late TYPE ty_deserialization_step VALUE `LATE`,
     END OF gc_step_id.
 
   CONSTANTS c_abap_version_sap_cp TYPE progdir-uccheck VALUE '5' ##NO_TEXT.
@@ -2392,7 +2392,7 @@ INTERFACE zif_abapgit_persistence.
     END OF ty_repo_meta_mask.
 
   TYPES: BEGIN OF ty_repo,
-           key TYPE zif_abapgit_persistence=>ty_value.
+           key TYPE ty_value.
       INCLUDE TYPE ty_repo_xml.
   TYPES: END OF ty_repo.
   TYPES: tt_repo TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY.
@@ -2641,7 +2641,7 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS repo_new_offline
     RETURNING
-      VALUE(rs_popup) TYPE zif_abapgit_popups=>ty_popup
+      VALUE(rs_popup) TYPE ty_popup
     RAISING
       zcx_abapgit_exception .
   METHODS branch_list_popup
@@ -2665,7 +2665,7 @@ INTERFACE zif_abapgit_popups .
       !iv_title          TYPE clike DEFAULT 'New Online Project'
       !iv_display_name   TYPE string OPTIONAL
     RETURNING
-      VALUE(rs_popup)    TYPE zif_abapgit_popups=>ty_popup
+      VALUE(rs_popup)    TYPE ty_popup
     RAISING
       zcx_abapgit_exception ##NO_TEXT.
   METHODS popup_to_confirm
@@ -85465,5 +85465,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.0 - 2020-05-24T09:25:16.634Z
+* abapmerge 0.14.0 - 2020-05-24T13:29:46.973Z
 ****************************************************
