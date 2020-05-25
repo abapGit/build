@@ -583,6 +583,7 @@ CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_message_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
@@ -664,6 +665,7 @@ CLASS zcl_abapgit_gui_html_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
+CLASS zcl_abapgit_test_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_js DEFINITION DEFERRED.
@@ -675,6 +677,7 @@ CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
@@ -9583,6 +9586,18 @@ CLASS zcl_abapgit_persist_factory DEFINITION
 
     CLASS-DATA gi_repo TYPE REF TO zif_abapgit_persist_repo .
 ENDCLASS.
+CLASS zcl_abapgit_persist_injector DEFINITION
+  CREATE PRIVATE
+  FOR TESTING .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS set_repo
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_persist_repo .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -10200,6 +10215,19 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
 
     METHODS order_matches REDEFINITION.
 
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_test_serialize DEFINITION
+  CREATE PUBLIC
+  FOR TESTING .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS check
+      IMPORTING VALUE(is_item) TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+                zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
@@ -14766,6 +14794,35 @@ CLASS zcl_abapgit_folder_logic DEFINITION
       ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
         WITH UNIQUE KEY devclass .
     DATA mt_parent TYPE ty_devclass_info_tt .
+ENDCLASS.
+CLASS zcl_abapgit_injector DEFINITION
+  CREATE PRIVATE
+  FOR TESTING .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS set_tadir
+      IMPORTING
+        !ii_tadir TYPE REF TO zif_abapgit_tadir .
+    CLASS-METHODS set_sap_package
+      IMPORTING
+        !iv_package     TYPE devclass
+        !ii_sap_package TYPE REF TO zif_abapgit_sap_package .
+    CLASS-METHODS set_code_inspector
+      IMPORTING
+        !iv_package        TYPE devclass
+        !ii_code_inspector TYPE REF TO zif_abapgit_code_inspector .
+    CLASS-METHODS set_stage_logic
+      IMPORTING
+        !ii_logic TYPE REF TO zif_abapgit_stage_logic .
+    CLASS-METHODS set_cts_api
+      IMPORTING
+        !ii_cts_api TYPE REF TO zif_abapgit_cts_api .
+    CLASS-METHODS set_environment
+      IMPORTING
+        !ii_environment TYPE REF TO zif_abapgit_environment .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_merge DEFINITION
   FINAL
@@ -22513,6 +22570,65 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
+  METHOD set_code_inspector.
+
+    DATA: ls_code_inspector LIKE LINE OF zcl_abapgit_factory=>gt_code_inspector.
+    FIELD-SYMBOLS: <ls_code_inspector> LIKE LINE OF zcl_abapgit_factory=>gt_code_inspector.
+
+    READ TABLE zcl_abapgit_factory=>gt_code_inspector
+         ASSIGNING <ls_code_inspector>
+         WITH TABLE KEY package = iv_package.
+    IF sy-subrc <> 0.
+
+      ls_code_inspector-package = iv_package.
+
+      INSERT ls_code_inspector
+             INTO TABLE zcl_abapgit_factory=>gt_code_inspector
+             ASSIGNING <ls_code_inspector>.
+
+    ENDIF.
+
+    <ls_code_inspector>-instance = ii_code_inspector.
+
+  ENDMETHOD.
+  METHOD set_cts_api.
+    zcl_abapgit_factory=>gi_cts_api = ii_cts_api.
+  ENDMETHOD.
+  METHOD set_environment.
+    zcl_abapgit_factory=>gi_environment = ii_environment.
+  ENDMETHOD.
+  METHOD set_sap_package.
+
+    DATA: ls_sap_package TYPE zcl_abapgit_factory=>ty_sap_package.
+    FIELD-SYMBOLS: <ls_sap_package> TYPE zcl_abapgit_factory=>ty_sap_package.
+
+    READ TABLE zcl_abapgit_factory=>gt_sap_package
+         ASSIGNING <ls_sap_package>
+         WITH TABLE KEY package = iv_package.
+
+    IF sy-subrc <> 0.
+
+      ls_sap_package-package = iv_package.
+      INSERT ls_sap_package
+             INTO TABLE zcl_abapgit_factory=>gt_sap_package
+             ASSIGNING <ls_sap_package>.
+
+    ENDIF.
+
+    <ls_sap_package>-instance = ii_sap_package.
+
+  ENDMETHOD.
+  METHOD set_stage_logic.
+
+    zcl_abapgit_factory=>gi_stage_logic = ii_logic.
+
+  ENDMETHOD.
+  METHOD set_tadir.
+    zcl_abapgit_factory=>gi_tadir = ii_tadir.
   ENDMETHOD.
 ENDCLASS.
 
@@ -44414,6 +44530,21 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_test_serialize IMPLEMENTATION.
+  METHOD check.
+
+    DATA: ls_files_item TYPE zcl_abapgit_objects=>ty_serialization.
+
+    ls_files_item = zcl_abapgit_objects=>serialize( is_item     = is_item
+                                                    iv_language = zif_abapgit_definitions=>c_english ).
+
+    cl_abap_unit_assert=>assert_not_initial( ls_files_item-files ).
+    cl_abap_unit_assert=>assert_equals( act = ls_files_item-item
+                                        exp = is_item ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
 
@@ -46659,6 +46790,14 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
       iv_type  = zcl_abapgit_persistence_db=>c_type_settings
       iv_value = ''
       iv_data  = lv_settings_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PERSIST_INJECTOR IMPLEMENTATION.
+  METHOD set_repo.
+
+    zcl_abapgit_persist_factory=>gi_repo = ii_repo.
 
   ENDMETHOD.
 ENDCLASS.
@@ -86389,5 +86528,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.0 - 2020-05-25T04:30:24.386Z
+* abapmerge 0.13.1 - 2020-05-25T05:19:22.960Z
 ****************************************************
