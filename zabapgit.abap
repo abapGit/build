@@ -1404,7 +1404,7 @@ INTERFACE zif_abapgit_definitions .
     ty_string_tt TYPE STANDARD TABLE OF string WITH DEFAULT KEY .
   TYPES:
     ty_repo_ref_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY .
-  TYPES ty_git_branch_type TYPE char2 .
+  TYPES ty_git_branch_type TYPE c LENGTH 2 .
   TYPES:
     BEGIN OF ty_git_branch,
       sha1         TYPE ty_sha1,
@@ -1526,8 +1526,8 @@ INTERFACE zif_abapgit_definitions .
       path       TYPE string,
       filename   TYPE string,
       is_changed TYPE abap_bool,
-      rstate     TYPE char1,
-      lstate     TYPE char1,
+      rstate     TYPE c LENGTH 1,
+      lstate     TYPE c LENGTH 1,
     END OF ty_repo_file .
   TYPES:
     tt_repo_files TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
@@ -1567,8 +1567,8 @@ INTERFACE zif_abapgit_definitions .
       filename TYPE string,
       package  TYPE devclass,
       match    TYPE abap_bool,
-      lstate   TYPE char1,
-      rstate   TYPE char1,
+      lstate   TYPE c LENGTH 1,
+      rstate   TYPE c LENGTH 1,
     END OF ty_result .
   TYPES:
     ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY .
@@ -1626,10 +1626,10 @@ INTERFACE zif_abapgit_definitions .
       email      TYPE string,
       time       TYPE string,
       message    TYPE string,
-      body       TYPE string_table,
+      body       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
       branch     TYPE string,
       merge      TYPE string,
-      tags       TYPE stringtab,
+      tags       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
       create     TYPE STANDARD TABLE OF ty_create WITH DEFAULT KEY,
       compressed TYPE abap_bool,
     END OF ty_commit .
@@ -1705,8 +1705,8 @@ INTERFACE zif_abapgit_definitions .
       path     TYPE string,
       is_dir   TYPE abap_bool,
       changes  TYPE i,
-      lstate   TYPE char1,
-      rstate   TYPE char1,
+      lstate   TYPE c LENGTH 1,
+      rstate   TYPE c LENGTH 1,
       files    TYPE tt_repo_files,
     END OF ty_repo_item .
   TYPES:
@@ -1781,11 +1781,11 @@ INTERFACE zif_abapgit_definitions .
     END OF c_type .
   CONSTANTS:
     BEGIN OF c_state, " https://git-scm.com/docs/git-status
-      unchanged TYPE char1 VALUE '',
-      added     TYPE char1 VALUE 'A',
-      modified  TYPE char1 VALUE 'M',
-      deleted   TYPE char1 VALUE 'D', "For future use
-      mixed     TYPE char1 VALUE '*',
+      unchanged TYPE c LENGTH 1 VALUE '',
+      added     TYPE c LENGTH 1 VALUE 'A',
+      modified  TYPE c LENGTH 1 VALUE 'M',
+      deleted   TYPE c LENGTH 1 VALUE 'D', "For future use
+      mixed     TYPE c LENGTH 1 VALUE '*',
     END OF c_state .
   CONSTANTS:
     BEGIN OF c_chmod,
@@ -1861,8 +1861,8 @@ INTERFACE zif_abapgit_definitions .
       direction                     TYPE string VALUE 'direction',
     END OF c_action .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
-  CONSTANTS c_spagpa_param_repo_key TYPE char20 VALUE 'REPO_KEY' ##NO_TEXT.
-  CONSTANTS c_spagpa_param_package TYPE char20 VALUE 'PACKAGE' ##NO_TEXT.
+  CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
+  CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
 
   CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
   CONSTANTS gc_no TYPE ty_yes_no VALUE 'N'.
@@ -3861,9 +3861,9 @@ CLASS zcl_abapgit_git_utils DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
+    TYPES ty_null TYPE C LENGTH 1.
     CLASS-METHODS get_null
-      RETURNING VALUE(rv_c) TYPE char1.
+      RETURNING VALUE(rv_c) TYPE ty_null.
 
     CLASS-METHODS pkt_string
       IMPORTING iv_string     TYPE string
@@ -4315,7 +4315,7 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
-      co_xml TYPE int4 VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
+      co_xml TYPE i VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION
@@ -6979,7 +6979,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     set_elements_changeable
       IMPORTING
-        VALUE(iv_changeable) TYPE flag
+        VALUE(iv_changeable) TYPE abap_bool
       RAISING
         zcx_abapgit_exception,
 
@@ -6995,7 +6995,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     set_changeable
       IMPORTING
-        VALUE(iv_changeable) TYPE flag
+        VALUE(iv_changeable) TYPE abap_bool
       RAISING
         zcx_abapgit_exception,
 
@@ -7028,7 +7028,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     get_changeable
       RETURNING
-        VALUE(rv_changeable) TYPE flag
+        VALUE(rv_changeable) TYPE abap_bool
       RAISING
         zcx_abapgit_exception.
 
@@ -7924,7 +7924,7 @@ CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
 
-    CONSTANTS transobjecttype_class TYPE char1 VALUE 'C' ##NO_TEXT.
+    CONSTANTS transobjecttype_class TYPE c LENGTH 1 VALUE 'C' ##NO_TEXT.
 
     METHODS has_authorization
       IMPORTING
@@ -13101,7 +13101,7 @@ CLASS zcl_abapgit_popups DEFINITION
       ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
 
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
-    CONSTANTS c_answer_cancel      TYPE char1 VALUE 'A' ##NO_TEXT.
+    CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
 
     DATA mo_select_list_popup TYPE REF TO cl_salv_table .
     DATA mr_table TYPE REF TO data .
@@ -17917,7 +17917,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
       ls_request      TYPE trwbo_request_header,
       lt_e071         TYPE tr_objects,
       lv_text         TYPE string,
-      lv_answer       TYPE char1,
+      lv_answer       TYPE c LENGTH 1,
       lv_lock_objects TYPE trparflag.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
@@ -44478,7 +44478,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     DATA: lv_xstr  TYPE xstring,
           lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE int4.
+          lv_size  TYPE i.
 
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
@@ -52869,7 +52869,7 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
     DATA lv_xstring   TYPE xstring.
     DATA lt_w3mime    TYPE STANDARD TABLE OF w3mime.
     DATA lt_w3html    TYPE STANDARD TABLE OF w3html.
-    DATA lv_size      TYPE int4.
+    DATA lv_size      TYPE i.
     DATA lv_tadir_obj TYPE tadir-object.
     io_xml->read( EXPORTING iv_name = 'TEXT'
                   CHANGING  cg_data = ms_key-text ).
@@ -53092,7 +53092,7 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
     DATA lt_w3html    TYPE STANDARD TABLE OF w3html.
     DATA lt_w3params  TYPE STANDARD TABLE OF wwwparams.
     DATA lv_xstring   TYPE xstring.
-    DATA lv_size      TYPE int4.
+    DATA lv_size      TYPE i.
 
     SELECT SINGLE * INTO CORRESPONDING FIELDS OF ms_key
       FROM wwwdata
@@ -65708,8 +65708,8 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   METHOD zif_abapgit_object~is_locked.
 
     DATA: lv_profile_name TYPE eqegraarg,
-          lv_lock_number  TYPE int4,
-          lt_locks        TYPE  STANDARD TABLE OF seqg3.
+          lv_lock_number  TYPE i,
+          lt_locks        TYPE STANDARD TABLE OF seqg3.
 
     lv_profile_name = mv_profile.
 
@@ -81676,7 +81676,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
     DATA: li_artmp_node   TYPE REF TO if_ixml_element,
           lv_rc           TYPE sy-subrc,
           lv_text         TYPE string,
-          lv_rc_args_tmpl TYPE int4,
+          lv_rc_args_tmpl TYPE i,
           lv_errmsg       TYPE string.
 
     li_artmp_node = template_over_all->create_simple_element(
@@ -83217,7 +83217,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
           lv_char4   TYPE c LENGTH 4,
           lv_x       TYPE x LENGTH 2,
           lo_obj     TYPE REF TO cl_abap_conv_in_ce,
-          lv_len     TYPE int4.
+          lv_len     TYPE i.
 
 * hmm, can this be done easier?
 
@@ -86528,5 +86528,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-25T05:19:22.960Z
+* abapmerge 0.13.1 - 2020-05-26T03:57:02.587Z
 ****************************************************
