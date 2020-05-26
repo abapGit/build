@@ -2965,13 +2965,15 @@ INTERFACE zif_abapgit_sap_package.
       IMPORTING is_package TYPE scompkdtln
       RAISING   zcx_abapgit_exception,
     create_local
-      RAISING   zcx_abapgit_exception,
+      RAISING zcx_abapgit_exception,
     list_subpackages
       RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
     list_superpackages
-      RETURNING VALUE(rt_list) TYPE ty_devclass_tt,
+      RETURNING VALUE(rt_list) TYPE ty_devclass_tt
+      RAISING   zcx_abapgit_exception,
     read_parent
-      RETURNING VALUE(rv_parentcl) TYPE tdevc-parentcl,
+      RETURNING VALUE(rv_parentcl) TYPE tdevc-parentcl
+      RAISING   zcx_abapgit_exception,
     create_child
       IMPORTING iv_child TYPE devclass
       RAISING   zcx_abapgit_exception,
@@ -16223,7 +16225,9 @@ CLASS zcl_abapgit_transport DEFINITION
       IMPORTING
         !it_tadir         TYPE zif_abapgit_definitions=>ty_tadir_tt
       RETURNING
-        VALUE(rv_package) TYPE devclass .
+        VALUE(rv_package) TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS resolve
       IMPORTING
         !it_requests    TYPE trwbo_requests
@@ -19084,8 +19088,10 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD zif_abapgit_sap_package~read_parent.
 
     SELECT SINGLE parentcl FROM tdevc INTO rv_parentcl
-      WHERE devclass = mv_package.        "#EC CI_SUBRC "#EC CI_GENBUFF
-    ASSERT sy-subrc = 0.
+      WHERE devclass = mv_package.        "#EC CI_GENBUFF
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Inconsistent package structure! Cannot find parent for { mv_package }| ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -86530,5 +86536,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-26T04:06:43.300Z
+* abapmerge 0.13.1 - 2020-05-26T04:10:39.308Z
 ****************************************************
