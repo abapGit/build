@@ -59237,9 +59237,10 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         CREATE OBJECT li_object_data_model TYPE ('CL_SRVB_OBJECT_DATA').
         li_object_data_model->set_data( <ls_service_binding> ).
 
-        mi_persistence->save(
+        CALL METHOD mi_persistence->('SAVE')
+          EXPORTING
             p_object_data = li_object_data_model
-            p_access_mode = lv_access_mode ).
+            p_access_mode = lv_access_mode. " does not exist in 702
 
         corr_insert( iv_package ).
 
@@ -86528,5 +86529,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-26T03:59:26.951Z
+* abapmerge 0.13.1 - 2020-05-26T04:02:44.526Z
 ****************************************************
