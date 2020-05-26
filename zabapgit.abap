@@ -13176,6 +13176,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
                c_dotabap_homepage TYPE string   VALUE 'https://dotabap.org'               ##NO_TEXT,
                c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
                c_abapgit_url      TYPE string   VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT,
+               c_abapgit_class    TYPE tcode    VALUE `ZCL_ABAPGIT_REPO`                      ##NO_TEXT,
                c_abapgit_tcode    TYPE tcode    VALUE `ZABAPGIT`                              ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
@@ -32259,7 +32260,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD is_installed.
 
     SELECT SINGLE devclass FROM tadir INTO rv_devclass
-      WHERE object = 'TRAN' AND obj_name = c_abapgit_tcode.
+      WHERE object = 'CLAS' AND obj_name = c_abapgit_class.
 
   ENDMETHOD.
   METHOD open_abapgit_changelog.
@@ -86529,5 +86530,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-26T04:02:44.526Z
+* abapmerge 0.13.1 - 2020-05-26T04:06:43.300Z
 ****************************************************
