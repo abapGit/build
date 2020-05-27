@@ -14785,11 +14785,14 @@ CLASS zcl_abapgit_folder_logic DEFINITION
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_folder_logic .
   PROTECTED SECTION.
+
     METHODS get_parent
       IMPORTING
         !iv_package      TYPE devclass
       RETURNING
-        VALUE(rv_parent) TYPE devclass.
+        VALUE(rv_parent) TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_devclass_info,
@@ -86614,5 +86617,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-27T13:08:16.898Z
+* abapmerge 0.13.1 - 2020-05-27T16:37:22.382Z
 ****************************************************
