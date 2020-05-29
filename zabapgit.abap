@@ -9608,6 +9608,7 @@ CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
   PUBLIC SECTION.
     CLASS-METHODS: run RAISING zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_settings_to_migrate,
              name  TYPE string,
@@ -32488,7 +32489,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -33070,6 +33071,30 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_proxy_bypass.
+    rt_proxy_bypass = it_proxy_bypass.
+    CALL FUNCTION 'COMPLEX_SELECTIONS_DIALOG'
+      EXPORTING
+        title             = 'Bypass proxy settings for these Hosts & Domains'
+        signed            = abap_false
+        lower_case        = abap_true
+        no_interval_check = abap_true
+      TABLES
+        range             = rt_proxy_bypass
+      EXCEPTIONS
+        no_range_tab      = 1
+        cancelled         = 2
+        internal_error    = 3
+        invalid_fieldname = 4
+        OTHERS            = 5.
+    CASE sy-subrc.
+      WHEN 0.
+      WHEN 2.
+        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( 'Error from COMPLEX_SELECTIONS_DIALOG' ).
+    ENDCASE.
+  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_confirm.
 
     CALL FUNCTION 'POPUP_TO_CONFIRM'
@@ -33166,8 +33191,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_inform.
 
-    DATA: lv_line1 TYPE char70,
-          lv_line2 TYPE char70.
+    DATA: lv_line1 TYPE c LENGTH 70,
+          lv_line2 TYPE c LENGTH 70.
 
     lv_line1 = iv_text_message.
     IF strlen( iv_text_message ) > 70.
@@ -33607,30 +33632,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     rs_popup-master_lang_only   = lv_master_lang_only.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_proxy_bypass.
-    rt_proxy_bypass = it_proxy_bypass.
-    CALL FUNCTION 'COMPLEX_SELECTIONS_DIALOG'
-      EXPORTING
-        title             = 'Bypass proxy settings for these Hosts & Domains'
-        signed            = abap_false
-        lower_case        = abap_true
-        no_interval_check = abap_true
-      TABLES
-        range             = rt_proxy_bypass
-      EXCEPTIONS
-        no_range_tab      = 1
-        cancelled         = 2
-        internal_error    = 3
-        invalid_fieldname = 4
-        OTHERS            = 5.
-    CASE sy-subrc.
-      WHEN 0.
-      WHEN 2.
-        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'Error from COMPLEX_SELECTIONS_DIALOG' ).
-    ENDCASE.
-  ENDMETHOD.
   METHOD _popup_3_get_values.
 
     DATA lv_answer TYPE c LENGTH 1.
@@ -33673,7 +33674,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
@@ -41727,7 +41727,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_commit_popups.
 
-    DATA: lv_time    TYPE char10,
+    DATA: lv_time    TYPE c LENGTH 10,
           lv_date    TYPE sy-datum,
           lv_content TYPE string.
 
@@ -46570,13 +46570,15 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
   METHOD distribute_settings_to_users.
 
-    DATA: lt_abapgit_users    TYPE STANDARD TABLE OF char12
+    TYPES: ty_char12 TYPE c LENGTH 12.
+
+    DATA: lt_abapgit_users    TYPE STANDARD TABLE OF ty_char12
                                    WITH NON-UNIQUE DEFAULT KEY,
           ls_user_settings    TYPE zif_abapgit_definitions=>ty_s_user_settings,
           li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
-    FIELD-SYMBOLS: <lv_user>                     LIKE LINE OF lt_abapgit_users,
-                   <ls_setting_to_migrate>       TYPE ty_settings_to_migrate,
+    FIELD-SYMBOLS: <lv_user>                      LIKE LINE OF lt_abapgit_users,
+                   <ls_setting_to_migrate>        TYPE ty_settings_to_migrate,
                    <lg_user_specific_setting_val> TYPE data.
 
     " distribute settings to all abapGit users
@@ -86322,7 +86324,7 @@ CLASS lcl_password_dialog DEFINITION FINAL.
 **************
 
   PUBLIC SECTION.
-    CONSTANTS c_dynnr TYPE char4 VALUE '1002'.
+    CONSTANTS c_dynnr TYPE c LENGTH 4 VALUE '1002'.
 
     CLASS-METHODS popup
       IMPORTING
@@ -86685,5 +86687,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-28T05:24:23.370Z
+* abapmerge 0.13.1 - 2020-05-29T04:31:42.624Z
 ****************************************************
