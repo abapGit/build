@@ -37310,6 +37310,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
     mo_settings = lo_settings_persistence->read( ).
 
+    mt_proxy_bypass = mo_settings->get_proxy_bypass( ).
+
   ENDMETHOD.
   METHOD render_adt_jump_enabled.
 
@@ -37658,7 +37660,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
         ev_state = zcl_abapgit_gui=>c_event_state-go_back.
       WHEN c_action-change_proxy_bypass.
-        mt_proxy_bypass = zcl_abapgit_ui_factory=>get_popups( )->popup_proxy_bypass( mo_settings->get_proxy_bypass( ) ).
+        mt_proxy_bypass = zcl_abapgit_ui_factory=>get_popups( )->popup_proxy_bypass( mt_proxy_bypass ).
 
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
@@ -86687,5 +86689,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-05-29T08:08:04.870Z
+* abapmerge 0.13.1 - 2020-05-31T08:32:18.057Z
 ****************************************************
