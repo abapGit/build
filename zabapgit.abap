@@ -38086,14 +38086,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'ignore_files'.
     ASSERT sy-subrc = 0.
 
-    SPLIT ls_post_field-value AT zif_abapgit_definitions=>c_newline INTO TABLE lt_ignore.
-    DELETE lt_ignore WHERE table_line IS INITIAL.
     " Remove everything
-    LOOP AT lo_dot->get_data( )-ignore INTO lv_ignore.
+    lt_ignore = lo_dot->get_data( )-ignore.
+    LOOP AT lt_ignore INTO lv_ignore.
       lo_dot->remove_ignore( iv_path = ''
                              iv_filename = lv_ignore ).
     ENDLOOP.
+
     " Add newly entered files
+    CLEAR lt_ignore.
+    SPLIT ls_post_field-value AT zif_abapgit_definitions=>c_newline INTO TABLE lt_ignore.
+    DELETE lt_ignore WHERE table_line IS INITIAL.
     LOOP AT lt_ignore INTO lv_ignore.
       lo_dot->add_ignore( iv_path = ''
                           iv_filename = lv_ignore ).
@@ -87061,5 +87064,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.13.1 - 2020-06-04T13:12:05.473Z
+* abapmerge 0.13.1 - 2020-06-05T13:47:11.956Z
 ****************************************************
