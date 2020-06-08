@@ -1755,6 +1755,32 @@ INTERFACE zif_abapgit_definitions .
            length TYPE lvc_outlen,
          END OF ty_alv_column,
          ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
+  TYPES:
+    BEGIN OF ty_deserialization,
+      obj     TYPE REF TO zif_abapgit_object,
+      xml     TYPE REF TO zcl_abapgit_xml_input,
+      package TYPE devclass,
+      item    TYPE ty_item,
+    END OF ty_deserialization .
+  TYPES:
+    ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY .
+  TYPES:
+    ty_deserialization_step TYPE string.
+  TYPES:
+    ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
+                                          WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_step_data,
+      step_id      TYPE ty_deserialization_step,
+      order        TYPE i,
+      descr        TYPE string,
+      is_ddic      TYPE abap_bool,
+      syntax_check TYPE abap_bool,
+      objects      TYPE ty_deserialization_tt,
+    END OF ty_step_data .
+  TYPES:
+    ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
+                                WITH DEFAULT KEY .
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -1861,7 +1887,6 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
-
   CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
   CONSTANTS gc_no TYPE ty_yes_no VALUE 'N'.
   CONSTANTS gc_partial TYPE ty_yes_no_partial VALUE 'P'.
@@ -1929,19 +1954,13 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_object .
 
-  TYPES:
-    ty_deserialization_step TYPE string.
-  TYPES:
-    ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
-                                          WITH DEFAULT KEY .
-
   DATA mo_files TYPE REF TO zcl_abapgit_objects_files .
 
   CONSTANTS:
     BEGIN OF gc_step_id,
-      abap TYPE ty_deserialization_step VALUE `ABAP`,
-      ddic TYPE ty_deserialization_step VALUE `DDIC`,
-      late TYPE ty_deserialization_step VALUE `LATE`,
+      abap TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `ABAP`,
+      ddic TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `DDIC`,
+      late TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `LATE`,
     END OF gc_step_id.
 
   CONSTANTS c_abap_version_sap_cp TYPE progdir-uccheck VALUE '5' ##NO_TEXT.
@@ -1956,7 +1975,7 @@ INTERFACE zif_abapgit_object .
     IMPORTING
       !iv_package TYPE devclass
       !io_xml     TYPE REF TO zcl_abapgit_xml_input
-      !iv_step    TYPE ty_deserialization_step
+      !iv_step    TYPE zif_abapgit_definitions=>ty_deserialization_step
       !ii_log     TYPE REF TO zif_abapgit_log
     RAISING
       zcx_abapgit_exception .
@@ -1998,7 +2017,7 @@ INTERFACE zif_abapgit_object .
       zcx_abapgit_exception .
   METHODS get_deserialize_steps
     RETURNING
-      VALUE(rt_steps) TYPE ty_deserialization_step_tt .
+      VALUE(rt_steps) TYPE zif_abapgit_definitions=>ty_deserialization_step_tt .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_oo_object_fnc.
@@ -2841,11 +2860,15 @@ INTERFACE zif_abapgit_exit .
       VALUE(rv_ssl_id) TYPE ssfapplssl .
   METHODS custom_serialize_abap_clif
     IMPORTING
-      is_class_key     TYPE seoclskey
+      !is_class_key    TYPE seoclskey
     RETURNING
       VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
+  METHODS deserialize_postprocess
+    IMPORTING
+      !is_step TYPE zif_abapgit_definitions=>ty_step_data
+      !ii_log  TYPE REF TO zif_abapgit_log .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_git_operations .
@@ -15137,18 +15160,6 @@ CLASS zcl_abapgit_objects DEFINITION
         files TYPE zif_abapgit_definitions=>ty_files_tt,
         item  TYPE zif_abapgit_definitions=>ty_item,
       END OF ty_serialization .
-    TYPES:
-      BEGIN OF ty_step_data,
-        step_id      TYPE zif_abapgit_object=>ty_deserialization_step,
-        order        TYPE i,
-        descr        TYPE string,
-        is_ddic      TYPE abap_bool,
-        syntax_check TYPE abap_bool,
-        objects      TYPE ty_deserialization_tt,
-      END OF ty_step_data .
-    TYPES:
-      ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
-                                  WITH DEFAULT KEY .
 
     CLASS-METHODS serialize
       IMPORTING
@@ -15312,7 +15323,7 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
       IMPORTING
-        !is_step  TYPE ty_step_data
+        !is_step  TYPE zif_abapgit_definitions=>ty_step_data
         !ii_log   TYPE REF TO zif_abapgit_log
       CHANGING
         !ct_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
@@ -15357,7 +15368,7 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt .
     CLASS-METHODS get_deserialize_steps
       RETURNING
-        VALUE(rt_steps) TYPE ty_step_data_tt .
+        VALUE(rt_steps) TYPE zif_abapgit_definitions=>ty_step_data_tt .
 ENDCLASS.
 CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM zcl_abapgit_objects_super.
 
@@ -21026,14 +21037,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           li_progress TYPE REF TO zif_abapgit_progress,
           lv_path     TYPE string,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
-          lt_steps_id TYPE zif_abapgit_object=>ty_deserialization_step_tt,
-          lt_steps    TYPE ty_step_data_tt,
+          lt_steps_id TYPE zif_abapgit_definitions=>ty_deserialization_step_tt,
+          lt_steps    TYPE zif_abapgit_definitions=>ty_step_data_tt,
           lx_exc      TYPE REF TO zcx_abapgit_exception.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
-                   <lv_step_id> TYPE LINE OF zif_abapgit_object=>ty_deserialization_step_tt,
-                   <ls_step>    TYPE LINE OF ty_step_data_tt,
+                   <lv_step_id> TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_step_tt,
+                   <ls_step>    TYPE LINE OF zif_abapgit_definitions=>ty_step_data_tt,
                    <ls_deser>   TYPE LINE OF ty_deserialization_tt.
 
     lt_steps = get_deserialize_steps( ).
@@ -21179,6 +21190,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD deserialize_objects.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
+          li_exit     TYPE REF TO zif_abapgit_exit,
           lx_exc      TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF is_step-objects.
@@ -21211,6 +21223,12 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     ENDLOOP.
 
     zcl_abapgit_objects_activation=>activate( is_step-is_ddic ).
+
+*   Call postprocessing
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+
+    li_exit->deserialize_postprocess( is_step = is_step
+                                      ii_log  = ii_log ).
 
   ENDMETHOD.
   METHOD exists.
@@ -21320,7 +21338,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_deserialize_steps.
-    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF ty_step_data_tt.
+    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF zif_abapgit_definitions=>ty_step_data_tt.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
@@ -23347,6 +23365,21 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~custom_serialize_abap_clif.
+    TRY.
+        rt_source = gi_exit->custom_serialize_abap_clif( is_class_key ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~deserialize_postprocess.
+
+    TRY.
+        gi_exit->deserialize_postprocess( is_step = is_step
+                                          ii_log  = ii_log ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_exit~get_ssl_id.
 
     TRY.
@@ -23368,13 +23401,6 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_exit~custom_serialize_abap_clif.
-    TRY.
-        rt_source = gi_exit->custom_serialize_abap_clif( is_class_key ).
-      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
-    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -86925,5 +86951,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-08T04:02:57.104Z
+* abapmerge 0.14.1 - 2020-06-08T04:07:18.907Z
 ****************************************************
