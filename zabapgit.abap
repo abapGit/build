@@ -64970,7 +64970,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   METHOD create_facade.
 
     CREATE OBJECT ri_facade TYPE kHGwlqJyKbsVHldwKaGddDbbHeNaet
@@ -64980,13 +64980,25 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   ENDMETHOD.
   METHOD create_or_load.
 
-    DATA: li_interface TYPE REF TO if_package_interface.
+    DATA: li_interface          TYPE REF TO if_package_interface,
+          lv_pkg_interface_data TYPE scompidtln.
+
+    lv_pkg_interface_data-default_if = is_pinf-attributes-default_if.
+    lv_pkg_interface_data-tadir_devc = iv_package.
+
+    "Important if the package name comes from another package
+    IF is_pinf-attributes-pack_name IS INITIAL.
+      lv_pkg_interface_data-pack_name = iv_package.
+    ELSE.
+      lv_pkg_interface_data-pack_name = is_pinf-attributes-pack_name.
+    ENDIF.
 
     IF zif_abapgit_object~exists( ) = abap_false.
       cl_package_interface=>create_new_package_interface(
         EXPORTING
           i_pkg_interface_name    = is_pinf-attributes-intf_name
-          i_publisher_pkg_name    = iv_package
+          i_publisher_pkg_name    = lv_pkg_interface_data-pack_name
+          i_pkg_interface_data    = lv_pkg_interface_data
         IMPORTING
           e_package_interface     = li_interface
         EXCEPTIONS
@@ -65144,6 +65156,9 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'PINF'
                   CHANGING cg_data = ls_pinf ).
 
+    "needed for update_attributes
+    ls_pinf-attributes-tadir_devc = iv_package.
+
     li_interface = create_or_load(
       is_pinf    = ls_pinf
       iv_package = iv_package ).
@@ -65220,8 +65235,12 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
     ls_pinf-attributes = li_interface->get_all_attributes( ).
 
-    CLEAR: ls_pinf-attributes-pack_name,
-           ls_pinf-attributes-author,
+    "Delete the package name if it comes from the same package
+    IF ls_pinf-attributes-tadir_devc = ls_pinf-attributes-pack_name.
+      CLEAR ls_pinf-attributes-pack_name.
+    ENDIF.
+
+    CLEAR: ls_pinf-attributes-author,
            ls_pinf-attributes-created_by,
            ls_pinf-attributes-created_on,
            ls_pinf-attributes-changed_by,
@@ -86951,5 +86970,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-08T04:07:18.907Z
+* abapmerge 0.14.1 - 2020-06-08T04:13:25.321Z
 ****************************************************
