@@ -61783,12 +61783,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    IF lines( lt_tadir ) = 1.
-      READ TABLE lt_tadir INDEX 1 ASSIGNING <ls_tadir>.
-      ASSERT sy-subrc = 0.
-      rs_tadir = <ls_tadir>.
-    ENDIF.
-
   ENDMETHOD.
   METHOD to_icfhndlist.
 
@@ -87063,5 +87057,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-09T04:13:16.654Z
+* abapmerge 0.14.1 - 2020-06-10T04:15:18.905Z
 ****************************************************
