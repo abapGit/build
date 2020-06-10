@@ -40738,6 +40738,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     ro_html->add( '<div id="debug_info" class="debug_container">' ).
     ro_html->add( render_debug_info( ) ).
+    ro_html->add( '</div>' ).
+
+    ro_html->add( '<div id="supported_objects" class="debug_container">' ).
     ro_html->add( render_supported_object_types( ) ).
     ro_html->add( '</div>' ).
 
@@ -40780,8 +40783,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'debugOutput("Browser: " + navigator.userAgent + ' &&
-      '"<br>Frontend time: " + new Date(), "debug_info");' ).
+    ro_html->add( 'debugOutput("<table><tr><td>Browser:</td><td>" + navigator.userAgent + ' &&
+      '"</td></tr><tr><td>Frontend time:</td><td>" + new Date() + "</td></tr></table>", "debug_info");' ).
 
   ENDMETHOD.
   METHOD render_supported_object_types.
@@ -87057,5 +87060,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-10T04:26:44.348Z
+* abapmerge 0.14.1 - 2020-06-10T13:13:33.512Z
 ****************************************************
