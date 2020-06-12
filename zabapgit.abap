@@ -75013,7 +75013,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lv_prefix    TYPE namespace,
@@ -75030,6 +75030,50 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
         name_without_namespace = lv_bare_name.
 
     mv_doc_object = |{ lv_bare_name+0(4) }{ lv_prefix }{ lv_bare_name+4(*) }|.
+
+  ENDMETHOD.
+  METHOD deserialize_dsys.
+
+    DATA: ls_data      TYPE ty_data,
+          ls_docu_info TYPE dokil,
+          lv_version   TYPE dokvers.
+
+    io_xml->read( EXPORTING iv_name = 'DSYS'
+                  CHANGING cg_data = ls_data ).
+
+    CALL FUNCTION 'DOCU_INIT'
+      EXPORTING
+        id     = c_id
+        langu  = mv_language
+        object = mv_doc_object
+        typ    = c_typ
+      IMPORTING
+        xdokil = ls_docu_info.
+
+    lv_version = ls_docu_info-version.
+
+    CALL FUNCTION 'DOCU_UPDATE'
+      EXPORTING
+        head    = ls_data-head
+        state   = 'A'
+        typ     = c_typ
+        version = lv_version
+      TABLES
+        line    = ls_data-lines.
+
+  ENDMETHOD.
+  METHOD get_master_lang.
+
+    DATA: lv_language TYPE spras.
+
+    SELECT SINGLE langu FROM dokil INTO rv_language
+      WHERE id = c_id
+      AND object = mv_doc_object
+      AND masterlang = abap_true.
+
+    IF sy-subrc <> 0.
+      rv_language = mv_language.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -75100,11 +75144,15 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
+    DATA lv_lang TYPE sy-langu.
+
+    lv_lang = get_master_lang( ).
+
     CALL FUNCTION 'DSYS_EDIT'
       EXPORTING
         dokclass         = mv_doc_object+0(4)
         dokname          = mv_doc_object+4(*)
-        doklangu         = get_master_lang( )
+        doklangu         = lv_lang
       EXCEPTIONS
         class_unknown    = 1
         object_not_found = 2
@@ -75125,51 +75173,6 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       io_xml         = io_xml ).
 
   ENDMETHOD.
-  METHOD deserialize_dsys.
-
-    DATA: ls_data      TYPE ty_data,
-          ls_docu_info TYPE dokil,
-          lv_version   TYPE dokvers.
-
-    io_xml->read( EXPORTING iv_name = 'DSYS'
-                  CHANGING cg_data = ls_data ).
-
-    CALL FUNCTION 'DOCU_INIT'
-      EXPORTING
-        id     = c_id
-        langu  = mv_language
-        object = mv_doc_object
-        typ    = c_typ
-      IMPORTING
-        xdokil = ls_docu_info.
-
-    lv_version = ls_docu_info-version.
-
-    CALL FUNCTION 'DOCU_UPDATE'
-      EXPORTING
-        head    = ls_data-head
-        state   = 'A'
-        typ     = c_typ
-        version = lv_version
-      TABLES
-        line    = ls_data-lines.
-
-  ENDMETHOD.
-  METHOD get_master_lang.
-
-    DATA: lv_language TYPE spras.
-
-    SELECT SINGLE langu FROM dokil INTO rv_language
-      WHERE id = c_id
-      AND object = mv_doc_object
-      AND masterlang = abap_true.
-
-    IF sy-subrc <> 0.
-      rv_language = mv_language.
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_drul IMPLEMENTATION.
@@ -87094,5 +87097,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-12T16:07:36.058Z
+* abapmerge 0.14.1 - 2020-06-12T18:59:05.087Z
 ****************************************************
