@@ -14051,6 +14051,7 @@ CLASS zcl_abapgit_url DEFINITION
     CLASS-METHODS name
       IMPORTING
         !iv_url        TYPE string
+        !iv_validate   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rv_name) TYPE string
       RAISING
@@ -19505,7 +19506,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     rt_files = super->get_files_remote( ).
   ENDMETHOD.
   METHOD get_name.
-    rv_name = zcl_abapgit_url=>name( ms_data-url ).
     rv_name = super->get_name( ).
     IF rv_name IS INITIAL.
       rv_name = zcl_abapgit_url=>name( ms_data-url ).
@@ -25527,7 +25527,7 @@ CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_url IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
   METHOD host.
 
     regex( EXPORTING iv_url = iv_url
@@ -25538,16 +25538,25 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
 
     DATA: lv_path TYPE string.
 
-    regex( EXPORTING iv_url = iv_url
-           IMPORTING ev_name = rv_name
-                     ev_path = lv_path ).
+    TRY.
+        regex( EXPORTING iv_url = iv_url
+               IMPORTING ev_name = rv_name
+                         ev_path = lv_path ).
 
-    IF rv_name IS INITIAL.
-      FIND REGEX '([\w-]+)/$' IN lv_path SUBMATCHES rv_name.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Malformed URL' ).
-      ENDIF.
-    ENDIF.
+        IF rv_name IS INITIAL.
+          FIND REGEX '([\w-]+)/$' IN lv_path SUBMATCHES rv_name.
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise( 'Malformed URL' ).
+          ENDIF.
+        ENDIF.
+
+      CATCH zcx_abapgit_exception.
+        IF iv_validate = abap_true.
+          zcx_abapgit_exception=>raise( 'Malformed URL' ).
+        ELSE.
+          rv_name = 'URL error (fix repo with "Advanced > Change Remote")'.
+        ENDIF.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD path_name.
@@ -25560,7 +25569,7 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
   METHOD regex.
 
-    FIND REGEX '(.*://[^/]*)(.*/)([^\.]*)[\.git]?' IN iv_url
+    FIND REGEX '(https?://[^/]*)(.*/)([^\.]*)[\.git]?' IN iv_url
       SUBMATCHES ev_host ev_path ev_name.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Malformed URL' ).
@@ -25569,7 +25578,8 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate.
 
-    name( iv_url ).
+    name( iv_url      = iv_url
+          iv_validate = abap_true ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -33439,6 +33449,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       lv_finished = abap_true.
 
       TRY.
+          zcl_abapgit_url=>validate( rs_popup-url ).
           zcl_abapgit_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
           validate_folder_logic( rs_popup-folder_logic ).
 
@@ -33585,7 +33596,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       lv_finished = abap_true.
 
       TRY.
-          zcl_abapgit_url=>validate( |{ lv_url }| ).
+          IF iv_freeze_url = abap_false.
+            zcl_abapgit_url=>validate( |{ lv_url }| ).
+          ENDIF.
           IF iv_freeze_package = abap_false.
             zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = lv_package
                                                                      iv_ign_subpkg = lv_ign_subpkg ).
@@ -87119,5 +87132,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-14T18:06:20.274Z
+* abapmerge 0.14.1 - 2020-06-14T18:16:08.413Z
 ****************************************************
