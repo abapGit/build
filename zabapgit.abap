@@ -15904,7 +15904,6 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
     CONSTANTS: c_commitmsg_comment_length_dft TYPE i VALUE 50.
-    CONSTANTS: c_commitmsg_comment_default    TYPE string VALUE 'Update $OBJECT'.
     CONSTANTS: c_commitmsg_body_size_dft      TYPE i VALUE 72.
 
     CONSTANTS:
@@ -18551,7 +18550,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
     set_adt_jump_enanbled( abap_true ).
     set_show_default_repo( abap_false ).
     set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
-    set_commitmsg_comment_default( c_commitmsg_comment_default ).
     set_commitmsg_body_size( c_commitmsg_body_size_dft ).
     set_default_link_hint_key( ).
     set_icon_scaling( '' ).
@@ -37241,8 +37239,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_default'.
     IF sy-subrc = 0.
       mo_settings->set_commitmsg_comment_default( <ls_post_field>-value ).
-    ELSE.
-      mo_settings->set_commitmsg_comment_default( zcl_abapgit_settings=>c_commitmsg_comment_default ).
     ENDIF.
 
     READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'body_size'.
@@ -87132,5 +87128,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-16T11:11:41.052Z
+* abapmerge 0.14.1 - 2020-06-16T13:59:39.754Z
 ****************************************************
