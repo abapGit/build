@@ -38024,6 +38024,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     " Add newly entered files
     CLEAR lt_ignore.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN ls_post_field-value
+      WITH zif_abapgit_definitions=>c_newline.
     SPLIT ls_post_field-value AT zif_abapgit_definitions=>c_newline INTO TABLE lt_ignore.
     DELETE lt_ignore WHERE table_line IS INITIAL.
     LOOP AT lt_ignore INTO lv_ignore.
@@ -87128,5 +87130,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-16T13:59:39.754Z
+* abapmerge 0.14.1 - 2020-06-16T14:01:59.679Z
 ****************************************************
