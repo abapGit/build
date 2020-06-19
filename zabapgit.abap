@@ -14062,6 +14062,11 @@ CLASS zcl_abapgit_url DEFINITION
         VALUE(rv_path_name) TYPE string
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS is_abapgit_repo
+      IMPORTING
+        !iv_url           TYPE string
+      RETURNING
+        VALUE(rv_abapgit) TYPE abap_bool .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -14144,6 +14149,12 @@ CLASS zcl_abapgit_version DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    CLASS-METHODS normalize
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE string.
+
     CLASS-METHODS conv_str_to_version
       IMPORTING
         !iv_version       TYPE csequence
@@ -15111,11 +15122,6 @@ CLASS zcl_abapgit_news DEFINITION
     DATA mv_lastseen_version TYPE string .
     DATA mv_latest_version TYPE string .
 
-    CLASS-METHODS is_relevant
-      IMPORTING
-        !iv_url            TYPE string
-      RETURNING
-        VALUE(rv_relevant) TYPE abap_bool .
     METHODS latest_version
       RETURNING
         VALUE(rv_version) TYPE string .
@@ -21769,23 +21775,31 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
+CLASS zcl_abapgit_news IMPLEMENTATION.
   METHOD compare_versions.
 
-    DATA: lv_version_a TYPE i,
-          lv_version_b TYPE i.
+    DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
+          ls_version_b TYPE zif_abapgit_definitions=>ty_version.
 
-    " Convert versions to numeric
-    lv_version_a = version_to_numeric( iv_a ).
-    lv_version_b = version_to_numeric( iv_b ).
+    TRY.
+        ls_version_a = zcl_abapgit_version=>conv_str_to_version( iv_a ).
+        ls_version_b = zcl_abapgit_version=>conv_str_to_version( iv_b ).
+      CATCH zcx_abapgit_exception.
+        rv_result = 0.
+        RETURN.
+    ENDTRY.
 
-    " Compare versions
-    IF lv_version_a > lv_version_b.
-      rv_result = 1.
-    ELSEIF lv_version_a < lv_version_b.
-      rv_result = -1.
-    ELSE.
+    IF ls_version_a = ls_version_b.
       rv_result = 0.
+    ELSE.
+      TRY.
+          zcl_abapgit_version=>check_dependant_version( is_current   = ls_version_a
+                                                        is_dependant = ls_version_b ).
+          rv_result = 1.
+        CATCH zcx_abapgit_exception.
+          rv_result = -1.
+          RETURN.
+      ENDTRY.
     ENDIF.
 
   ENDMETHOD.
@@ -21812,13 +21826,15 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD create.
-    " TODO REFACTOR !
 
     CONSTANTS: " TODO refactor
-      lc_log_path     TYPE string VALUE '/',
-      lc_log_filename TYPE string VALUE 'changelog.txt'.
+      lc_log_path        TYPE string VALUE '/',
+      lc_log_filename    TYPE string VALUE 'changelog*',
+      lc_log_filename_up TYPE string VALUE 'CHANGELOG*'.
 
-    DATA: lt_remote      TYPE zif_abapgit_definitions=>ty_files_tt,
+    DATA: lo_apack       TYPE REF TO zcl_abapgit_apack_reader,
+          lt_remote      TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_version     TYPE string,
           lv_last_seen   TYPE string,
           lv_url         TYPE string,
           lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
@@ -21831,28 +21847,43 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
     lo_repo_online ?= io_repo.
     lv_url          = lo_repo_online->get_url( ).
 
-    IF is_relevant( lv_url ) = abap_false.
+    IF zcl_abapgit_url=>is_abapgit_repo( lv_url ) = abap_true.
+      lv_version = zif_abapgit_version=>gc_abap_version. " TODO refactor
+    ELSE.
+
+      lo_apack = io_repo->get_dot_apack( ).
+      IF lo_apack IS NOT BOUND.
+        RETURN.
+      ENDIF.
+
+      lv_version = lo_apack->get_manifest_descriptor( )-version.
+
+    ENDIF.
+
+    IF lv_version IS INITIAL.
       RETURN.
     ENDIF.
 
     lv_last_seen = zcl_abapgit_persistence_user=>get_instance( )->get_repo_last_change_seen( lv_url ).
 
-    TRY.
-        " Find changelog
+    TRY. " Find changelog
         lt_remote = io_repo->get_files_remote( ).
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
 
-    READ TABLE lt_remote ASSIGNING <ls_file>
-      WITH KEY path = lc_log_path filename = lc_log_filename.
-    IF sy-subrc = 0.
+    LOOP AT lt_remote ASSIGNING <ls_file> WHERE path = lc_log_path
+                                            AND ( filename CP lc_log_filename OR filename CP lc_log_filename_up ).
+
       CREATE OBJECT ro_instance
         EXPORTING
           iv_rawdata          = <ls_file>-data
-          iv_current_version  = zif_abapgit_version=>gc_abap_version " TODO refactor
+          iv_current_version  = lv_version
           iv_lastseen_version = normalize_version( lv_last_seen ).
-    ENDIF.
+
+      EXIT.
+
+    ENDLOOP.
 
     IF ro_instance IS BOUND AND lv_last_seen <> ro_instance->latest_version( ).
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_last_change_seen(
@@ -21881,24 +21912,12 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       iv_a = mv_latest_version
       iv_b = mv_current_version ) > 0 ).
   ENDMETHOD.
-  METHOD is_relevant.
-
-    " News announcement restricted to abapGit only
-    IF iv_url CS '/abapGit' OR iv_url CS '/abapGit.git'.
-      rv_relevant = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD latest_version.
     rv_version = me->mv_latest_version.
   ENDMETHOD.
   METHOD normalize_version.
 
-    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
-    CONSTANTS: lc_version_pattern TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$'.
-
-    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
-      IN iv_version SUBMATCHES rv_version.
+    rv_version = zcl_abapgit_version=>normalize( iv_version ).
 
   ENDMETHOD.
   METHOD parse.
@@ -25274,6 +25293,41 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_version IMPLEMENTATION.
+  METHOD normalize.
+
+    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
+    CONSTANTS:
+      lc_version_pattern    TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$',
+      lc_prerelease_pattern TYPE string VALUE '^((rc|beta|alpha)\.\d{1,3})\s*$'.
+
+    DATA: lv_version      TYPE string,
+          lv_prerelease   TYPE string,
+          lv_version_n    TYPE string,
+          lv_prerelease_n TYPE string.
+
+    SPLIT iv_version AT '-' INTO lv_version lv_prerelease.
+
+    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
+      IN lv_version SUBMATCHES lv_version_n.
+
+    IF lv_prerelease IS NOT INITIAL.
+
+      FIND FIRST OCCURRENCE OF REGEX lc_prerelease_pattern
+        IN lv_prerelease SUBMATCHES lv_prerelease_n.
+
+    ENDIF.
+
+    IF lv_version_n IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    rv_version = lv_version_n.
+
+    IF lv_prerelease_n IS NOT INITIAL.
+      CONCATENATE rv_version '-' lv_prerelease_n INTO rv_version.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD conv_str_to_version.
 
     DATA: lt_segments TYPE STANDARD TABLE OF string,
@@ -25579,6 +25633,13 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
     name( iv_url      = iv_url
           iv_validate = abap_true ).
+
+  ENDMETHOD.
+  METHOD is_abapgit_repo.
+
+    IF iv_url CS '/abapGit' OR iv_url CS '/abapGit.git'.
+      rv_abapgit = abap_true.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -86146,7 +86207,9 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
     mv_package_name = iv_package_name.
   ENDMETHOD.
   METHOD create_instance.
-    CREATE OBJECT ro_manifest_reader EXPORTING iv_package_name = iv_package_name.
+    CREATE OBJECT ro_manifest_reader
+      EXPORTING
+        iv_package_name = iv_package_name.
   ENDMETHOD.
   METHOD deserialize.
 
@@ -87132,5 +87195,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-18T15:04:43.298Z
+* abapmerge 0.14.1 - 2020-06-19T06:48:48.488Z
 ****************************************************
