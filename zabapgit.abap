@@ -53574,10 +53574,11 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
         change_of_class_not_allowed    = 23
         no_change_from_sap_to_tmp      = 24
         OTHERS                         = 99.
-
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot update TADIR for W3xx' ).
     ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -87195,5 +87196,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-19T06:48:48.488Z
+* abapmerge 0.14.1 - 2020-06-20T05:53:53.767Z
 ****************************************************
