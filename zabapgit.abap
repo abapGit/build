@@ -2946,19 +2946,19 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS new_offline
     IMPORTING
-      !iv_url         TYPE string
-      !iv_package     TYPE devclass
-      !iv_folder_logic TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
+      !iv_url              TYPE string
+      !iv_package          TYPE devclass
+      !iv_folder_logic     TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
       !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_offline
+      VALUE(ro_repo)       TYPE REF TO zcl_abapgit_repo_offline
     RAISING
       zcx_abapgit_exception .
   METHODS new_online
     IMPORTING
       !iv_url              TYPE string
       !iv_branch_name      TYPE string
-      iv_display_name      TYPE string OPTIONAL
+      !iv_display_name     TYPE string OPTIONAL
       !iv_package          TYPE devclass
       !iv_folder_logic     TYPE string DEFAULT 'PREFIX'
       !iv_ign_subpkg       TYPE abap_bool DEFAULT abap_false
@@ -2969,14 +2969,24 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS purge
     IMPORTING
-      !io_repo  TYPE REF TO zcl_abapgit_repo
-      is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
+      !io_repo   TYPE REF TO zcl_abapgit_repo
+      !is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
     RAISING
       zcx_abapgit_exception .
   METHODS validate_package
     IMPORTING
       !iv_package    TYPE devclass
       !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
+      !iv_chk_exists TYPE abap_bool DEFAULT abap_true
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_repo_from_package
+    IMPORTING
+      !iv_package    TYPE devclass
+      !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
+    EXPORTING
+      VALUE(eo_repo) TYPE REF TO zcl_abapgit_repo
+      !ev_reason     TYPE string
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -15777,10 +15787,12 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     INTERFACES zif_abapgit_repo_srv .
     INTERFACES zif_abapgit_repo_listener .
 
+    ALIASES get_repo_from_package
+      FOR zif_abapgit_repo_srv~get_repo_from_package .
+
     CLASS-METHODS get_instance
       RETURNING
         VALUE(ri_srv) TYPE REF TO zif_abapgit_repo_srv .
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -15826,9 +15838,11 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         !iv_package    TYPE devclass
         !it_repos      TYPE zif_abapgit_persistence=>tt_repo
         !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
+      EXPORTING
+        VALUE(eo_repo) TYPE REF TO zcl_abapgit_repo
+        !ev_reason     TYPE string
       RAISING
         zcx_abapgit_exception .
-
 ENDCLASS.
 CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
     FRIENDS ZCL_ABAPGIT_factory.
@@ -19125,7 +19139,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -19203,6 +19217,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD validate_sub_super_packages.
+
     DATA:
       ls_repo     LIKE LINE OF it_repos,
       li_package  TYPE REF TO zif_abapgit_sap_package,
@@ -19224,7 +19239,9 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
         READ TABLE lt_packages TRANSPORTING NO FIELDS
           WITH KEY table_line = iv_package.
         IF sy-subrc = 0.
-          zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } already contains { iv_package } | ).
+          eo_repo = lo_repo.
+          ev_reason = |Repository { lo_repo->get_name( ) } already contains { iv_package } |.
+          RETURN.
         ENDIF.
       ENDIF.
 
@@ -19233,12 +19250,14 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
         READ TABLE lt_packages TRANSPORTING NO FIELDS
           WITH KEY table_line = iv_package.
         IF sy-subrc = 0.
-          zcx_abapgit_exception=>raise( |Repository { lo_repo->get_name( ) } |
-                                    &&  |already contains subpackage of { iv_package } | ).
+          eo_repo = lo_repo.
+          ev_reason = |Repository { lo_repo->get_name( ) } already contains subpackage of { iv_package } |.
+          RETURN.
         ENDIF.
       ENDIF.
 
     ENDLOOP.
+
   ENDMETHOD.
   METHOD zif_abapgit_repo_listener~on_meta_change.
 
@@ -19291,6 +19310,37 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDDO.
 
     zcx_abapgit_exception=>raise( 'repo not found, get' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~get_repo_from_package.
+
+    DATA:
+      lt_repos TYPE zif_abapgit_persistence=>tt_repo,
+      lv_name  TYPE zif_abapgit_persistence=>ty_local_settings-display_name,
+      lv_owner TYPE zif_abapgit_persistence=>ty_local_settings-display_name.
+
+    FIELD-SYMBOLS:
+      <ls_repo> LIKE LINE OF lt_repos.
+
+    " check if package is already in use for a different repository
+    lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
+    READ TABLE lt_repos WITH KEY package = iv_package ASSIGNING <ls_repo>.
+    IF sy-subrc = 0.
+      eo_repo = get_instance( )->get( <ls_repo>-key ).
+      lv_name = eo_repo->get_name( ).
+      lv_owner = <ls_repo>-created_by.
+      ev_reason =  |Package { iv_package } already versioned as { lv_name } by { lv_owner }|.
+    ELSE.
+      " check if package is include as sub-package in a different repo
+      validate_sub_super_packages(
+        EXPORTING
+          iv_package    = iv_package
+          it_repos      = lt_repos
+          iv_ign_subpkg = iv_ign_subpkg
+        IMPORTING
+          eo_repo       = eo_repo
+          ev_reason     = ev_reason ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~is_repo_installed.
@@ -19435,12 +19485,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD zif_abapgit_repo_srv~validate_package.
 
     DATA: lv_as4user TYPE tdevc-as4user,
-          lt_repos   TYPE zif_abapgit_persistence=>tt_repo,
-          lv_name    TYPE zif_abapgit_persistence=>ty_local_settings-display_name,
-          lv_owner   TYPE zif_abapgit_persistence=>ty_local_settings-display_name.
-
-    FIELD-SYMBOLS:
-          <ls_repo>  LIKE LINE OF lt_repos.
+          lo_repo    TYPE REF TO zcl_abapgit_repo,
+          lv_reason  TYPE string.
 
     IF iv_package IS INITIAL.
       zcx_abapgit_exception=>raise( 'add, package empty' ).
@@ -19461,19 +19507,19 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Package { iv_package } not allowed, responsible user = 'SAP'| ).
     ENDIF.
 
-    " make sure its not already in use for a different repository
-    lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
-    READ TABLE lt_repos WITH KEY package = iv_package ASSIGNING <ls_repo>.
-    IF sy-subrc = 0.
-      lv_name = get_instance( )->get( <ls_repo>-key )->get_name( ).
-      lv_owner = <ls_repo>-created_by.
-      zcx_abapgit_exception=>raise( |Package { iv_package } already versioned as { lv_name } by { lv_owner }| ).
+    IF iv_chk_exists = abap_true.
+      get_repo_from_package(
+        EXPORTING
+          iv_package = iv_package
+        IMPORTING
+          eo_repo    = lo_repo
+          ev_reason  = lv_reason ).
+
+      IF lo_repo IS BOUND.
+        zcx_abapgit_exception=>raise( lv_reason ).
+      ENDIF.
     ENDIF.
 
-    validate_sub_super_packages(
-      iv_package    = iv_package
-      it_repos      = lt_repos
-      iv_ign_subpkg = iv_ign_subpkg ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -31482,7 +31528,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -31523,50 +31569,85 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD new_offline.
 
-    DATA: lo_repo  TYPE REF TO zcl_abapgit_repo,
-          ls_popup TYPE zif_abapgit_popups=>ty_popup.
+    DATA: ls_popup        TYPE zif_abapgit_popups=>ty_popup,
+          lo_repo         TYPE REF TO zcl_abapgit_repo,
+          lo_repo_offline TYPE REF TO zcl_abapgit_repo_offline,
+          lv_reason       TYPE string.
 
     ls_popup  = zcl_abapgit_ui_factory=>get_popups( )->repo_new_offline( ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-      iv_url          = ls_popup-url
-      iv_package      = ls_popup-package
-      iv_folder_logic = ls_popup-folder_logic
-      iv_master_lang_only = ls_popup-master_lang_only ).
+    " make sure package is not already in use for a different repository
+    zcl_abapgit_repo_srv=>get_instance( )->get_repo_from_package(
+      EXPORTING
+        iv_package = ls_popup-package
+      IMPORTING
+        eo_repo    = lo_repo
+        ev_reason  = lv_reason ).
 
-    lo_repo->rebuild_local_checksums( ).
+    IF lo_repo IS BOUND.
+      MESSAGE lv_reason TYPE 'S'.
+    ELSE.
+      " create new repo and add to favorites
+      lo_repo_offline = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
+        iv_url          = ls_popup-url
+        iv_package      = ls_popup-package
+        iv_folder_logic = ls_popup-folder_logic
+        iv_master_lang_only = ls_popup-master_lang_only ).
 
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ). " Set default repo for user
-    toggle_favorite( lo_repo->get_key( ) ).
+      lo_repo_offline->rebuild_local_checksums( ).
+
+      lo_repo ?= lo_repo_offline.
+
+      toggle_favorite( lo_repo->get_key( ) ).
+    ENDIF.
+
+    " Set default repo for user
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
 
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
   METHOD new_online.
 
-    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup.
+    DATA: ls_popup  TYPE zif_abapgit_popups=>ty_popup,
+          lo_repo   TYPE REF TO zcl_abapgit_repo,
+          lv_reason TYPE string.
 
     ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup( iv_url ).
     IF ls_popup-cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-      iv_url              = ls_popup-url
-      iv_branch_name      = ls_popup-branch_name
-      iv_package          = ls_popup-package
-      iv_display_name     = ls_popup-display_name
-      iv_folder_logic     = ls_popup-folder_logic
-      iv_ign_subpkg       = ls_popup-ign_subpkg
-      iv_master_lang_only = ls_popup-master_lang_only ).
+    " make sure package is not already in use for a different repository
+    zcl_abapgit_repo_srv=>get_instance( )->get_repo_from_package(
+      EXPORTING
+        iv_package = ls_popup-package
+      IMPORTING
+        eo_repo    = lo_repo
+        ev_reason  = lv_reason ).
 
-    toggle_favorite( ro_repo->get_key( ) ).
+    IF lo_repo IS BOUND.
+      MESSAGE lv_reason TYPE 'S'.
+    ELSE.
+      ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
+        iv_url              = ls_popup-url
+        iv_branch_name      = ls_popup-branch_name
+        iv_package          = ls_popup-package
+        iv_display_name     = ls_popup-display_name
+        iv_folder_logic     = ls_popup-folder_logic
+        iv_ign_subpkg       = ls_popup-ign_subpkg
+        iv_master_lang_only = ls_popup-master_lang_only ).
 
-* Set default repo for user
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( ro_repo->get_key( ) ).
+      toggle_favorite( ro_repo->get_key( ) ).
+
+      lo_repo ?= ro_repo.
+    ENDIF.
+
+    " Set default repo for user
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
 
     COMMIT WORK.
 
@@ -33509,7 +33590,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       lv_finished = abap_true.
 
       TRY.
-          zcl_abapgit_repo_srv=>get_instance( )->validate_package( rs_popup-package ).
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = rs_popup-package
+                                                                   iv_chk_exists = abap_false ).
           validate_folder_logic( rs_popup-folder_logic ).
 
         CATCH zcx_abapgit_exception INTO lx_error.
@@ -33660,7 +33742,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           ENDIF.
           IF iv_freeze_package = abap_false.
             zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = lv_package
-                                                                     iv_ign_subpkg = lv_ign_subpkg ).
+                                                                     iv_ign_subpkg = lv_ign_subpkg
+                                                                     iv_chk_exists = abap_false ).
           ENDIF.
           validate_folder_logic( lv_folder_logic ).
         CATCH zcx_abapgit_exception INTO lx_error.
@@ -87196,5 +87279,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-20T05:53:53.767Z
+* abapmerge 0.14.1 - 2020-06-20T12:33:25.751Z
 ****************************************************
