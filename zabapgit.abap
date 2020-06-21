@@ -525,6 +525,8 @@ INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_xml_output DEFERRED.
+INTERFACE zif_abapgit_xml_input DEFERRED.
 INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
@@ -2301,6 +2303,55 @@ INTERFACE zif_abapgit_log .
   METHODS set_title
     IMPORTING
       !iv_title TYPE string .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_xml_input .
+  METHODS read
+    IMPORTING
+      !iv_name TYPE clike
+    CHANGING
+      !cg_data TYPE any
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_raw
+    RETURNING
+      VALUE(ri_raw) TYPE REF TO if_ixml_document .
+* todo, add read_xml to match add_xml in lcl_xml_output
+  METHODS get_metadata
+    RETURNING
+      VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_xml_output .
+  TYPES:
+    BEGIN OF ty_i18n_params,
+      serialize_master_lang_only TYPE abap_bool,
+    END OF ty_i18n_params.
+
+  METHODS add
+    IMPORTING
+      !iv_name TYPE clike
+      !ig_data TYPE any
+    RAISING
+      zcx_abapgit_exception .
+  METHODS set_raw
+    IMPORTING
+      !ii_raw TYPE REF TO if_ixml_element .
+  METHODS add_xml
+    IMPORTING
+      !iv_name TYPE clike
+      !ii_xml  TYPE REF TO if_ixml_element .
+  METHODS render
+    IMPORTING
+      !iv_normalize TYPE sap_bool DEFAULT abap_true
+      !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+    RETURNING
+      VALUE(rv_xml) TYPE string .
+  METHODS i18n_params
+    IMPORTING
+      iv_serialize_master_lang_only TYPE ty_i18n_params-serialize_master_lang_only OPTIONAL
+    RETURNING
+      VALUE(rs_params)              TYPE ty_i18n_params.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_branch_overview .
@@ -14224,26 +14275,19 @@ CLASS zcl_abapgit_xml_input DEFINITION
 
   PUBLIC SECTION.
 
+    INTERFACES zif_abapgit_xml_input.
+
+    ALIASES:
+      read FOR zif_abapgit_xml_input~read,
+      get_raw FOR zif_abapgit_xml_input~get_raw,
+      get_metadata FOR zif_abapgit_xml_input~get_metadata.
+
     METHODS constructor
       IMPORTING
         !iv_xml      TYPE clike
         !iv_filename TYPE string OPTIONAL
       RAISING
         zcx_abapgit_exception .
-    METHODS read
-      IMPORTING
-        !iv_name TYPE clike
-      CHANGING
-        !cg_data TYPE any
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_raw
-      RETURNING
-        VALUE(ri_raw) TYPE REF TO if_ixml_document .
-* todo, add read_xml to match add_xml in lcl_xml_output
-    METHODS get_metadata
-      RETURNING
-        VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
 
   PRIVATE SECTION.
     METHODS: fix_xml.
@@ -14255,41 +14299,20 @@ CLASS zcl_abapgit_xml_output DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES:
-      BEGIN OF ty_i18n_params,
-        serialize_master_lang_only TYPE abap_bool,
-      END OF ty_i18n_params.
+    INTERFACES zif_abapgit_xml_output.
 
-    METHODS add
-      IMPORTING
-        !iv_name TYPE clike
-        !ig_data TYPE any
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_raw
-      IMPORTING
-        !ii_raw TYPE REF TO if_ixml_element .
-    METHODS add_xml
-      IMPORTING
-        !iv_name TYPE clike
-        !ii_xml  TYPE REF TO if_ixml_element .
-    METHODS render
-      IMPORTING
-        !iv_normalize TYPE abap_bool DEFAULT abap_true
-        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-      RETURNING
-        VALUE(rv_xml) TYPE string .
-    METHODS i18n_params
-      IMPORTING
-        iv_serialize_master_lang_only TYPE ty_i18n_params-serialize_master_lang_only OPTIONAL
-      RETURNING
-        VALUE(rs_params) TYPE ty_i18n_params.
+    ALIASES:
+      add FOR zif_abapgit_xml_output~add,
+      set_raw FOR zif_abapgit_xml_output~set_raw,
+      add_xml FOR zif_abapgit_xml_output~add_xml,
+      render FOR zif_abapgit_xml_output~render,
+      i18n_params FOR zif_abapgit_xml_output~i18n_params.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mi_raw TYPE REF TO if_ixml_element .
-    DATA ms_i18n_params TYPE ty_i18n_params .
+    DATA ms_i18n_params TYPE zif_abapgit_xml_output~ty_i18n_params .
 
     METHODS build_asx_node
       RETURNING
@@ -25032,7 +25055,7 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
+CLASS zcl_abapgit_xml_output IMPLEMENTATION.
   METHOD add.
 
     DATA: li_node TYPE REF TO if_ixml_node,
@@ -25137,7 +25160,7 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_XML_INPUT IMPLEMENTATION.
+CLASS zcl_abapgit_xml_input IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( iv_filename ).
@@ -87279,5 +87302,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-20T12:33:25.751Z
+* abapmerge 0.14.1 - 2020-06-21T07:59:00.211Z
 ****************************************************
