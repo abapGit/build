@@ -62227,6 +62227,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
     CLEAR ls_icfservice-icf_cclnt.
     CLEAR ls_icfservice-icf_mclnt.
     CLEAR ls_icfservice-icfaltnme_orig.
+    CLEAR ls_icfservice-icfbitmap.
 
     io_xml->add( iv_name = 'URL'
                  ig_data = lv_url ).
@@ -87333,5 +87334,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-23T15:42:46.092Z
+* abapmerge 0.14.1 - 2020-06-25T04:40:46.182Z
 ****************************************************
