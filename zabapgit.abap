@@ -54773,7 +54773,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
       FROM dokvl
       INTO CORRESPONDING FIELDS OF TABLE lt_dokvl
       WHERE id = c_text_object_type
-      AND   object LIKE ls_dokvl-object.
+      AND   object LIKE ls_dokvl-object ##TOO_MANY_ITAB_FIELDS.
 
     LOOP AT lt_dokvl INTO ls_dokvl.
 
@@ -56346,7 +56346,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM tstct
       WHERE sprsl <> mv_language
-      AND   tcode = ms_item-obj_name.                   "#EC CI_GENBUFF
+      AND   tcode = ms_item-obj_name ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF
 
     IF lines( lt_tpool_i18n ) > 0.
       SORT lt_tpool_i18n BY sprsl ASCENDING.
@@ -62022,7 +62022,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
       WHERE pgmid = iv_pgmid
       AND object = 'SICF'
       AND obj_name LIKE lv_obj_name
-      ORDER BY PRIMARY KEY.                             "#EC CI_GENBUFF
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       IF read_sicf_url( <ls_tadir>-obj_name ) = lv_hash.
@@ -64808,7 +64808,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
       FROM d010tinf
       WHERE r3state = 'A'
       AND prog = ms_item-obj_name
-      AND language <> mv_language.
+      AND language <> mv_language ##TOO_MANY_ITAB_FIELDS.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -71084,7 +71084,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       FROM d010tinf
       WHERE r3state = 'A'
       AND prog = iv_prog_name
-      AND language <> mv_language.
+      AND language <> mv_language ##TOO_MANY_ITAB_FIELDS.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -87340,5 +87340,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-27T14:26:37.105Z
+* abapmerge 0.14.1 - 2020-06-27T14:31:32.835Z
 ****************************************************
