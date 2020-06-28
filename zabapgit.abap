@@ -50843,6 +50843,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
+* TOBJ has to be handled before ODSO
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'TOBJ'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
     LOOP AT it_results ASSIGNING <ls_result>
         WHERE obj_type <> 'IASP'
         AND obj_type <> 'PROG'
@@ -50853,7 +50858,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         AND obj_type <> 'DDLS'
         AND obj_type <> 'SPRX'
         AND obj_type <> 'WEBI'
-        AND obj_type <> 'IOBJ'.
+        AND obj_type <> 'IOBJ'
+        AND obj_type <> 'TOBJ'.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
@@ -64704,7 +64710,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
-    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
@@ -87397,5 +87403,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-28T08:48:54.891Z
+* abapmerge 0.14.1 - 2020-06-28T08:54:52.173Z
 ****************************************************
