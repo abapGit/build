@@ -3043,6 +3043,7 @@ INTERFACE zif_abapgit_repo_srv .
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_sap_package.
 
   TYPES: ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY.
@@ -3121,7 +3122,7 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_version .
 
   CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.96.0' ##NO_TEXT.
+  CONSTANTS gc_abap_version TYPE string VALUE '1.97.0' ##NO_TEXT.
 
 ENDINTERFACE.
 
@@ -30896,6 +30897,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD checkout_commit_build_popup.
 
@@ -35568,6 +35570,7 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
 
   METHOD constructor.
@@ -35629,6 +35632,7 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -38953,6 +38957,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
@@ -87347,5 +87352,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-29T14:41:23.768Z
+* abapmerge 0.14.1 - 2020-06-29T14:53:29.315Z
 ****************************************************
