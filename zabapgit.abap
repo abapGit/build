@@ -34318,7 +34318,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       lt_sort TYPE abap_sortorder_tab,
       ls_sort LIKE LINE OF lt_sort.
 
-    ls_sort-name = 'favorite'.
+    ls_sort-name = 'FAVORITE'.
     ls_sort-descending = abap_true.
     ls_sort-astext = abap_true.
     INSERT ls_sort INTO TABLE lt_sort.
@@ -87352,5 +87352,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-29T14:53:29.315Z
+* abapmerge 0.14.1 - 2020-06-30T08:12:47.233Z
 ****************************************************
