@@ -20358,7 +20358,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
       set_dot_abapgit( ro_dot ).
       COMMIT WORK AND WAIT. " to release lock
-    ELSE.
+    ELSEIF lines( mt_remote ) > 3.
+      " Less files means it's a new repo (with just readme and license, for example) which is ok
       zcx_abapgit_exception=>raise( |Cannot find .abapgit.xml - Is this an abapGit repo?| ).
     ENDIF.
 
@@ -87352,5 +87353,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-30T08:12:47.233Z
+* abapmerge 0.14.1 - 2020-06-30T15:29:34.553Z
 ****************************************************
