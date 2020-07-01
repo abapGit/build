@@ -34680,13 +34680,16 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
         IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_true.
           lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
-          CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_view_repo
-          EXPORTING iv_key = lv_last_repo_key.
-          ev_state = zcl_abapgit_gui=>c_event_state-new_page.
-        ELSE.
-          CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_main.
-          ev_state = zcl_abapgit_gui=>c_event_state-new_page.
         ENDIF.
+
+        IF lv_last_repo_key IS INITIAL.
+          CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_main.
+        ELSE.
+          CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_view_repo
+            EXPORTING
+              iv_key = lv_last_repo_key.
+        ENDIF.
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN zif_abapgit_definitions=>c_action-go_repo_overview.               " Go Repository overview
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_repo_over.
@@ -46218,7 +46221,18 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_repo_show.
 
+    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
+
     rv_key = read( )-repo_show.
+
+    " Check if repo exists
+    TRY.
+        lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( rv_key ).
+      CATCH zcx_abapgit_exception.
+        " remove invalid key
+        CLEAR rv_key.
+        zif_abapgit_persist_user~set_repo_show( rv_key ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_settings.
@@ -88397,5 +88411,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-01T13:12:01.706Z
+* abapmerge 0.14.1 - 2020-07-01T13:25:48.146Z
 ****************************************************
