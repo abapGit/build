@@ -530,6 +530,7 @@ INTERFACE zif_abapgit_xml_input DEFERRED.
 INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_tag_popups DEFERRED.
+INTERFACE zif_abapgit_services_repo DEFERRED.
 INTERFACE zif_abapgit_services_git DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_gui_functions DEFERRED.
@@ -604,6 +605,7 @@ CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_master_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
+CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
@@ -620,11 +622,13 @@ CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_basis DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_hotkeys DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
@@ -648,6 +652,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
@@ -1284,6 +1289,21 @@ INTERFACE zif_abapgit_gui_functions.
     is_sapgui_for_java
       RETURNING
         VALUE(rv_result) TYPE abap_bool.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_services_repo .
+
+  TYPES:
+    BEGIN OF ty_repo_params,
+      url              TYPE string,
+      package          TYPE devclass,
+      branch_name      TYPE string,
+      display_name     TYPE string,
+      folder_logic     TYPE string,
+      ignore_subpackages TYPE abap_bool,
+      master_lang_only TYPE abap_bool,
+    END OF ty_repo_params .
 
 ENDINTERFACE.
 
@@ -2679,7 +2699,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
   TYPES:
-    BEGIN OF ty_popup,
+    BEGIN OF ty_popup, " TODO remove, use zif_abapgit_services_repo=>ty_repo_params instead
       url              TYPE string,
       package          TYPE devclass,
       branch_name      TYPE string,
@@ -2692,6 +2712,13 @@ INTERFACE zif_abapgit_popups .
 
   CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
 
+  METHODS popup_search_help
+    IMPORTING
+      !iv_tab_field TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE ddshretval-fieldval
+    RAISING
+      zcx_abapgit_exception .
   METHODS popup_package_export
     EXPORTING
       !ev_package                    TYPE devclass
@@ -10904,6 +10931,11 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_hint    TYPE string OPTIONAL
         !iv_class   TYPE string OPTIONAL
         !iv_onclick TYPE string OPTIONAL .
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -11418,6 +11450,72 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
         !is_content TYPE zif_abapgit_persistence=>ty_content
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_addonline DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      " TODO importing prefilled form data
+      RETURNING
+        VALUE(ro_page) TYPE REF TO zcl_abapgit_gui_page_addonline
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS zif_abapgit_gui_event_handler~on_event REDEFINITION .
+
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+
+    METHODS render_content REDEFINITION.
+
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        url                TYPE string VALUE 'url',
+        package            TYPE string VALUE 'package',
+        branch_name        TYPE string VALUE 'branch_name',
+        display_name       TYPE string VALUE 'display_name',
+        folder_logic       TYPE string VALUE 'folder_logic',
+        ignore_subpackages TYPE string VALUE 'ignore_subpackages',
+        master_lang_only   TYPE string VALUE 'master_lang_only',
+      END OF c_id.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back         TYPE string VALUE 'go-back',
+        choose_package  TYPE string VALUE 'choose-package',
+        create_package  TYPE string VALUE 'create-package',
+        choose_branch   TYPE string VALUE 'choose-branch',
+        add_online_repo TYPE string VALUE 'add-repo-online',
+      END OF c_event.
+
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+
+    METHODS parse_form
+      IMPORTING
+        it_post_data TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS validate_form
+      IMPORTING
+        io_form_data TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -13174,6 +13272,11 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
 
   PUBLIC SECTION.
 
+    CLASS-METHODS parse_post_data
+      IMPORTING
+        !it_post_data TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(rt_fields) TYPE tihttpnvp .
     CLASS-METHODS parse_fields
       IMPORTING
         !iv_string       TYPE clike
@@ -13273,6 +13376,121 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string       TYPE string
       RETURNING
         VALUE(rv_string) TYPE string .
+ENDCLASS.
+CLASS zcl_abapgit_html_form DEFINITION
+  FINAL
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      IMPORTING
+        iv_form_id TYPE string OPTIONAL
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+
+    METHODS render
+      IMPORTING
+        iv_form_class TYPE string
+        io_values TYPE REF TO zcl_abapgit_string_map
+        io_validation_log TYPE REF TO zcl_abapgit_string_map OPTIONAL
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html.
+
+    METHODS command
+      IMPORTING
+        iv_label TYPE string
+        iv_action TYPE string
+        iv_is_main TYPE abap_bool DEFAULT abap_false
+        iv_as_a TYPE abap_bool DEFAULT abap_false.
+
+    METHODS text
+      IMPORTING
+        iv_label TYPE string
+        iv_name TYPE string
+        iv_hint TYPE string OPTIONAL
+        iv_required TYPE abap_bool DEFAULT abap_false
+        iv_placeholder TYPE string OPTIONAL
+        iv_side_action TYPE string OPTIONAL.
+
+    METHODS checkbox
+      IMPORTING
+        iv_label TYPE string
+        iv_name TYPE string
+        iv_hint TYPE string OPTIONAL.
+
+    METHODS radio
+      IMPORTING
+        iv_label TYPE string
+        iv_name TYPE string
+        iv_default_value TYPE string OPTIONAL
+        iv_hint TYPE string OPTIONAL.
+
+    METHODS option
+      IMPORTING
+        iv_label TYPE string
+        iv_value TYPE string.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_subitem,
+        label TYPE string,
+        value TYPE string,
+      END OF ty_subitem.
+    TYPES:
+      tty_subitems TYPE STANDARD TABLE OF ty_subitem WITH DEFAULT KEY.
+
+    TYPES:
+      BEGIN OF ty_field,
+        type TYPE i,
+        name TYPE string,
+        label TYPE string,
+        hint TYPE string,
+        dblclick TYPE string,
+        placeholder TYPE string,
+        required TYPE string,
+        item_class TYPE string,
+        error TYPE string,
+        default_value TYPE string,
+        side_action TYPE string,
+        subitems TYPE tty_subitems,
+*        onclick ???
+      END OF ty_field.
+
+    TYPES:
+      BEGIN OF ty_command,
+        label TYPE string,
+        action TYPE string,
+        is_main TYPE abap_bool,
+        as_a TYPE abap_bool,
+*        onclick ???
+      END OF ty_command.
+
+    CONSTANTS:
+      BEGIN OF c_field_type,
+        text TYPE i VALUE 1,
+        radio TYPE i VALUE 2,
+        checkbox TYPE i VALUE 3,
+      END OF c_field_type.
+
+    DATA mt_fields TYPE STANDARD TABLE OF ty_field.
+    DATA mt_commands TYPE STANDARD TABLE OF ty_command.
+    DATA mv_form_id TYPE string.
+
+    CLASS-METHODS render_field
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html
+        io_values TYPE REF TO zcl_abapgit_string_map
+        io_validation_log TYPE REF TO zcl_abapgit_string_map
+        is_field TYPE ty_field.
+
+    CLASS-METHODS render_command
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html
+        is_cmd TYPE ty_command.
+
 ENDCLASS.
 CLASS zcl_abapgit_html_toolbar DEFINITION
   CREATE PUBLIC .
@@ -13607,6 +13825,22 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
         zcx_abapgit_exception.
 
 ENDCLASS.
+CLASS zcl_abapgit_services_basis DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS create_package
+      IMPORTING
+        iv_prefill_package TYPE devclass OPTIONAL
+      RETURNING
+        VALUE(rv_package) TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_services_git DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -13696,7 +13930,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
 
     CLASS-METHODS new_online
       IMPORTING
-        !iv_url        TYPE string
+        !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
       RETURNING
         VALUE(ro_repo) TYPE REF TO zcl_abapgit_repo_online
       RAISING
@@ -14336,6 +14570,66 @@ CLASS zcl_abapgit_state DEFINITION
           !iv_cur  TYPE char1
         CHANGING
           !cv_prev TYPE char1 .
+
+ENDCLASS.
+CLASS zcl_abapgit_string_map DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_entry,
+        k TYPE string,
+        v TYPE string,
+      END OF ty_entry,
+      tty_entries TYPE STANDARD TABLE OF ty_entry WITH KEY k,
+      tts_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map.
+
+    METHODS get
+      IMPORTING
+        iv_key        TYPE string
+      RETURNING
+        VALUE(rv_val) TYPE string.
+
+    METHODS has
+      IMPORTING
+        iv_key        TYPE string
+      RETURNING
+        VALUE(rv_has) TYPE abap_bool.
+
+    METHODS set
+      IMPORTING
+        iv_key TYPE string
+        iv_val TYPE string OPTIONAL.
+
+    METHODS size
+      RETURNING
+        VALUE(rv_size) TYPE i.
+
+    METHODS is_empty
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
+
+    METHODS delete
+      IMPORTING
+        iv_key TYPE string.
+
+    METHODS clear.
+
+    METHODS to_abap
+      CHANGING
+        !cs_container TYPE any
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mt_entries TYPE tts_entries.
 
 ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
@@ -19597,11 +19891,21 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD zif_abapgit_repo_srv~new_online.
 
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
+          lv_branch_name LIKE iv_branch_name,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
           ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
     ASSERT NOT iv_url IS INITIAL
-      AND NOT iv_branch_name IS INITIAL
       AND NOT iv_package IS INITIAL.
+
+    lv_branch_name = iv_branch_name.
+    IF lv_branch_name IS INITIAL.
+      lv_branch_name = 'refs/heads/master'.
+    ENDIF.
+    IF -1 = find(
+        val = lv_branch_name
+        sub = 'refs/heads/' ).
+      lv_branch_name = 'refs/heads/' && lv_branch_name. " Assume short branch name was received
+    ENDIF.
 
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
@@ -19617,7 +19921,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
       iv_url          = iv_url
-      iv_branch_name  = iv_branch_name
+      iv_branch_name  = lv_branch_name " local !
       iv_display_name = iv_display_name
       iv_package      = iv_package
       iv_offline      = abap_false
@@ -24619,6 +24923,85 @@ CLASS zcl_abapgit_time IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
+  METHOD clear.
+    CLEAR mt_entries.
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_instance.
+  ENDMETHOD.
+  METHOD delete.
+
+    DELETE mt_entries WHERE k = iv_key.
+
+  ENDMETHOD.
+  METHOD get.
+
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
+    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = iv_key.
+    IF sy-subrc IS INITIAL.
+      rv_val = <ls_entry>-v.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD has.
+
+    READ TABLE mt_entries TRANSPORTING NO FIELDS WITH KEY k = iv_key.
+    rv_has = boolc( sy-subrc IS INITIAL ).
+
+  ENDMETHOD.
+  METHOD is_empty.
+    rv_yes = boolc( lines( mt_entries ) = 0 ).
+  ENDMETHOD.
+  METHOD set.
+
+    DATA ls_entry LIKE LINE OF mt_entries.
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
+
+    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = iv_key.
+    IF sy-subrc IS INITIAL.
+      <ls_entry>-v = iv_val.
+    ELSE.
+      ls_entry-k = iv_key.
+      ls_entry-v = iv_val.
+      INSERT ls_entry INTO TABLE mt_entries.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD size.
+
+    rv_size = lines( mt_entries ).
+
+  ENDMETHOD.
+  METHOD to_abap.
+
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    DATA lo_struc TYPE REF TO cl_abap_structdescr.
+    DATA lv_field TYPE string.
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
+    FIELD-SYMBOLS <lv_val> TYPE any.
+
+    lo_type = cl_abap_typedescr=>describe_by_data( cs_container ).
+    IF lo_type->type_kind <> cl_abap_typedescr=>typekind_struct1
+      AND lo_type->type_kind <> cl_abap_typedescr=>typekind_struct2.
+      zcx_abapgit_exception=>raise( 'Only structures supported' ).
+    ENDIF.
+
+    lo_struc ?= lo_type.
+    LOOP AT mt_entries ASSIGNING <ls_entry>.
+      lv_field = to_upper( <ls_entry>-k ).
+      ASSIGN COMPONENT lv_field OF STRUCTURE cs_container TO <lv_val>.
+      IF sy-subrc = 0.
+        " TODO check target type ?
+        <lv_val> = <ls_entry>-v.
+      ELSE.
+        zcx_abapgit_exception=>raise( |Component { lv_field } not found in target| ).
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   METHOD reduce.
 
@@ -26226,7 +26609,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'input, textarea, select {' ).
-    lo_buf->add( '  padding: 3px 6px;' ).
+    lo_buf->add( '  padding: 3px 0.5em;' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'input:focus, textarea:focus {' ).
@@ -26261,6 +26644,14 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.inline       { display: inline; }' ).
     lo_buf->add( '.hidden       { visibility: hidden; }' ).
     lo_buf->add( '.nodisplay    { display: none }' ).
+    lo_buf->add( '.m-em5-sides  { margin-left: 0.5em; margin-right: 0.5em }' ).
+    lo_buf->add( '.w600px       { width: 600px }' ).
+    lo_buf->add( '.wmax600px    { max-width: 600px }' ).
+    lo_buf->add( '.auto-center  { /* use with max-width */' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  margin-left: auto;' ).
+    lo_buf->add( '  margin-right: auto;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
     lo_buf->add( 'div.panel {' ).
@@ -27203,6 +27594,118 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  text-align: center;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'settings_tab tr:first-child td { border-top: 0px; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DIALOGS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.dialog input::placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog input:-ms-input-placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog {' ).
+    lo_buf->add( '  border: 1px solid #cbcbcb;' ).
+    lo_buf->add( '  background-color: #f4f4f4;' ).
+    lo_buf->add( '  padding: 1em 1em;' ).
+    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li {' ).
+    lo_buf->add( '  padding: 5px 10px;' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  list-style: none;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands {' ).
+    lo_buf->add( '  text-align: right;' ).
+    lo_buf->add( '  margin-top: 12px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a {' ).
+    lo_buf->add( '  border: 1px solid #ccc;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '  text-decoration: none;' ).
+    lo_buf->add( '  padding: 6px 12px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  font-size: smaller;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
+    lo_buf->add( '  border: 1px solid #ccc;' ).
+    lo_buf->add( '  padding: 6px 12px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '  border: 1px solid transparent;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog label {' ).
+    lo_buf->add( '  color: #444;' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  font-size: 90%;' ).
+    lo_buf->add( '  margin-top: 6px;' ).
+    lo_buf->add( '  margin-bottom: 6px;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog label em {' ).
+    lo_buf->add( '  color: #64a8ff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.error small {' ).
+    lo_buf->add( '  color: #ff5959;' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  font-size: 75%;' ).
+    lo_buf->add( '  margin: 4px 0px;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.error input[type="text"] {' ).
+    lo_buf->add( '  border-color: #ff5959;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container {' ).
+    lo_buf->add( '  border: 1px solid #ddd;' ).
+    lo_buf->add( '  background-color: white;' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  padding: 4px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog input[type="checkbox"] + label {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog input[type="text"] {' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  box-sizing : border-box;' ).
+    lo_buf->add( '  height: 2.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container input[type="radio"] {' ).
+    lo_buf->add( '  visibility: hidden;' ).
+    lo_buf->add( '  display: none;' ).
+    lo_buf->add( '  height: 0px;' ).
+    lo_buf->add( '  width: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container input[type="radio"] + label {' ).
+    lo_buf->add( '  color: #808080;' ).
+    lo_buf->add( '  border: 1px solid transparent;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '  width: auto;' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '  padding: 3px 8px;' ).
+    lo_buf->add( '  border-radius: 2px;' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container input[type="radio"]:checked + label {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '  border: 1px solid transparent;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command div.input-container {' ).
+    lo_buf->add( '  display: table-cell;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command div.command-container {' ).
+    lo_buf->add( '  display: table-cell;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="submit"] {' ).
+    lo_buf->add( '  height: 2.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="submit"]:hover {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -30528,45 +31031,38 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD new_online.
 
-    DATA: ls_popup    TYPE zif_abapgit_popups=>ty_popup,
+    DATA:
           lo_repo     TYPE REF TO zcl_abapgit_repo,
           li_repo_srv TYPE REF TO zif_abapgit_repo_srv,
           lv_reason   TYPE string.
-
-    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup( iv_url ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
 
     " make sure package is not already in use for a different repository
     " 702: chaining calls with exp&imp parameters causes syntax error
     li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
     li_repo_srv->get_repo_from_package(
       EXPORTING
-        iv_package = ls_popup-package
+        iv_package = is_repo_params-package
       IMPORTING
         eo_repo    = lo_repo
         ev_reason  = lv_reason ).
 
     IF lo_repo IS BOUND.
-      MESSAGE lv_reason TYPE 'S'.
-    ELSE.
-      ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-        iv_url              = ls_popup-url
-        iv_branch_name      = ls_popup-branch_name
-        iv_package          = ls_popup-package
-        iv_display_name     = ls_popup-display_name
-        iv_folder_logic     = ls_popup-folder_logic
-        iv_ign_subpkg       = ls_popup-ign_subpkg
-        iv_master_lang_only = ls_popup-master_lang_only ).
-
-      toggle_favorite( ro_repo->get_key( ) ).
-
-      lo_repo ?= ro_repo.
+      zcx_abapgit_exception=>raise( lv_reason ).
     ENDIF.
 
+    ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
+      iv_url              = is_repo_params-url
+      iv_branch_name      = is_repo_params-branch_name
+      iv_package          = is_repo_params-package
+      iv_display_name     = is_repo_params-display_name
+      iv_folder_logic     = is_repo_params-folder_logic
+      iv_ign_subpkg       = is_repo_params-ignore_subpackages
+      iv_master_lang_only = is_repo_params-master_lang_only ).
+
+    toggle_favorite( ro_repo->get_key( ) ).
+
     " Set default repo for user
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( ro_repo->get_key( ) ).
 
     COMMIT WORK.
 
@@ -31236,6 +31732,28 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     zcl_abapgit_ui_factory=>get_tag_popups( )->tag_list_popup( lo_repo ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
+  METHOD create_package.
+
+    DATA ls_package_data TYPE scompkdtln.
+    DATA lv_create       TYPE abap_bool.
+
+    ls_package_data-devclass = to_upper( iv_prefill_package ).
+
+    zcl_abapgit_ui_factory=>get_popups( )->popup_to_create_package(
+      IMPORTING
+        es_package_data = ls_package_data
+        ev_create       = lv_create ).
+
+    IF lv_create = abap_true.
+      zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->create( ls_package_data ).
+      rv_package = ls_package_data-devclass.
+      COMMIT WORK.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -32129,6 +32647,37 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Error from COMPLEX_SELECTIONS_DIALOG' ).
     ENDCASE.
+  ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_search_help.
+
+    DATA lt_ret TYPE TABLE OF ddshretval.
+    DATA ls_ret LIKE LINE OF lt_ret.
+    DATA lv_tabname TYPE dfies-tabname.
+    DATA lv_fieldname TYPE dfies-fieldname.
+
+    SPLIT iv_tab_field AT '-' INTO lv_tabname lv_fieldname.
+    lv_tabname = to_upper( lv_tabname ).
+    lv_fieldname = to_upper( lv_fieldname ).
+
+    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
+      EXPORTING
+        tabname   = lv_tabname
+        fieldname = lv_fieldname
+      TABLES
+        return_tab = lt_ret
+      EXCEPTIONS
+        OTHERS = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |F4IF_FIELD_VALUE_REQUEST error [{ iv_tab_field }]| ).
+    ENDIF.
+
+    IF lines( lt_ret ) > 0.
+      READ TABLE lt_ret INDEX 1 INTO ls_ret.
+      ASSERT sy-subrc = 0.
+      rv_value = ls_ret-fieldval.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_confirm.
 
@@ -33287,6 +33836,256 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
+  METHOD checkbox.
+
+    DATA ls_field LIKE LINE OF mt_fields.
+
+    ls_field-type  = c_field_type-checkbox.
+    ls_field-name  = iv_name.
+    ls_field-label = iv_label.
+
+    IF iv_hint IS NOT INITIAL.
+      ls_field-hint    = | title="{ iv_hint }"|.
+    ENDIF.
+
+    APPEND ls_field TO mt_fields.
+
+  ENDMETHOD.
+  METHOD command.
+
+    DATA ls_cmd LIKE LINE OF mt_commands.
+
+    ASSERT iv_as_a IS INITIAL OR iv_is_main IS INITIAL.
+
+    ls_cmd-label = iv_label.
+    ls_cmd-action = iv_action.
+    ls_cmd-is_main = iv_is_main.
+    ls_cmd-as_a = iv_as_a.
+
+    APPEND ls_cmd TO mt_commands.
+
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_form.
+    ro_form->mv_form_id = iv_form_id.
+  ENDMETHOD.
+  METHOD option.
+
+    FIELD-SYMBOLS <ls_last> LIKE LINE OF mt_fields.
+    DATA ls_option LIKE LINE OF <ls_last>-subitems.
+    DATA lv_size TYPE i.
+
+    lv_size = lines( mt_fields ).
+    ASSERT lv_size > 0. " Exception ? Maybe add zcx_no_check ?
+
+    READ TABLE mt_fields INDEX lv_size ASSIGNING <ls_last>.
+    ASSERT sy-subrc = 0.
+    ASSERT <ls_last>-type = c_field_type-radio. " Or dropdown - TODO in future
+
+    ls_option-label = iv_label.
+    ls_option-value = iv_value.
+
+    APPEND ls_option TO <ls_last>-subitems.
+
+  ENDMETHOD.
+  METHOD radio.
+
+    DATA ls_field LIKE LINE OF mt_fields.
+
+    ls_field-type  = c_field_type-radio.
+    ls_field-name  = iv_name.
+    ls_field-label = iv_label.
+    ls_field-default_value = iv_default_value.
+
+    IF iv_hint IS NOT INITIAL.
+      ls_field-hint    = | title="{ iv_hint }"|.
+    ENDIF.
+
+    APPEND ls_field TO mt_fields.
+
+  ENDMETHOD.
+  METHOD render.
+
+    FIELD-SYMBOLS <ls_field> LIKE LINE OF mt_fields.
+    FIELD-SYMBOLS <ls_cmd> LIKE LINE OF mt_commands.
+    DATA ls_form_id TYPE string.
+
+    IF mv_form_id IS NOT INITIAL.
+      ls_form_id = | id="{ mv_form_id }"|.
+    ENDIF.
+
+    ri_html = zcl_abapgit_html=>create( ).
+
+    ri_html->add( |<ul class="{ iv_form_class }">| ).
+    ri_html->add( |<form method="post"{ ls_form_id }>| ).
+
+    LOOP AT mt_fields ASSIGNING <ls_field>.
+      render_field(
+        ii_html  = ri_html
+        io_values = io_values
+        io_validation_log = io_validation_log
+        is_field = <ls_field> ).
+    ENDLOOP.
+
+    ri_html->add( |<li class="dialog-commands">| ).
+
+    LOOP AT mt_commands ASSIGNING <ls_cmd>.
+      render_command(
+        ii_html = ri_html
+        is_cmd  = <ls_cmd> ).
+    ENDLOOP.
+
+    ri_html->add( |</li>| ).
+
+    ri_html->add( |</form>| ).
+    ri_html->add( |</ul>| ).
+
+  ENDMETHOD.
+  METHOD render_command.
+
+    DATA lv_main_submit TYPE string.
+
+    IF is_cmd-as_a = abap_true.
+      ii_html->add_a(
+        iv_txt = is_cmd-label
+        iv_act = is_cmd-action
+        iv_class = 'dialog-commands' ).
+    ELSE.
+      IF is_cmd-is_main = abap_true.
+        lv_main_submit = ' class="main"'.
+      ELSE.
+        CLEAR lv_main_submit.
+      ENDIF.
+      ii_html->add( |<input type="submit" value="{
+        is_cmd-label }"{ lv_main_submit } formaction="sapevent:{ is_cmd-action }">| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD render_field.
+
+    DATA lv_opt_id TYPE string.
+    DATA lv_error TYPE string.
+    DATA lv_value TYPE string.
+    DATA lv_checked TYPE string.
+    DATA lv_item_class TYPE string.
+    FIELD-SYMBOLS <ls_opt> LIKE LINE OF is_field-subitems.
+
+    " Get value and validation error from maps
+    lv_value = io_values->get( is_field-name ).
+    IF io_validation_log IS BOUND.
+      lv_error = io_validation_log->get( is_field-name ).
+    ENDIF.
+
+    " Prepare item class
+    lv_item_class = is_field-item_class.
+    IF lv_error IS NOT INITIAL.
+      lv_item_class = condense( lv_item_class && ' error' ).
+    ENDIF.
+    IF lv_item_class IS NOT INITIAL.
+      lv_item_class = | class="{ lv_item_class }"|.
+    ENDIF.
+
+    " Render field
+    ii_html->add( |<li{ lv_item_class }>| ).
+
+    CASE is_field-type.
+      WHEN c_field_type-text.
+
+        ii_html->add( |<label for="{ is_field-name }"{ is_field-hint }>{
+          is_field-label }{ is_field-required }</label>| ).
+        IF lv_error IS NOT INITIAL.
+          ii_html->add( |<small>{ lv_error }</small>| ).
+        ENDIF.
+
+        IF is_field-side_action IS NOT INITIAL.
+          ii_html->add( '<div class="input-container">' ). " Ugly :(
+        ENDIF.
+
+        ii_html->add( |<input type="text" name="{ is_field-name }" id="{
+          is_field-name }"{ is_field-placeholder } value="{ lv_value }"{ is_field-dblclick }>| ).
+
+        IF is_field-side_action IS NOT INITIAL.
+          ii_html->add( '</div>' ).
+          ii_html->add( '<div class="command-container">' ).
+          ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }">| ).
+          ii_html->add( '</div>' ).
+        ENDIF.
+
+      WHEN c_field_type-checkbox.
+
+        IF lv_error IS NOT INITIAL.
+          ii_html->add( |<small>{ lv_error }</small>| ).
+        ENDIF.
+        IF lv_value IS NOT INITIAL.
+          lv_checked = ' checked'.
+        ENDIF.
+        ii_html->add( |<input type="checkbox" name="{ is_field-name }" id="{ is_field-name }"{ lv_checked }>| ).
+        ii_html->add( |<label for="{ is_field-name }"{ is_field-hint }>{
+          is_field-label }{ is_field-required }</label>| ).
+
+      WHEN c_field_type-radio.
+
+        ii_html->add( |<label{ is_field-hint }>{ is_field-label }{ is_field-required }</label>| ).
+        IF lv_error IS NOT INITIAL.
+          ii_html->add( |<small>{ lv_error }</small>| ).
+        ENDIF.
+        ii_html->add( |<div class="radio-container">| ).
+
+        LOOP AT is_field-subitems ASSIGNING <ls_opt>.
+          CLEAR lv_checked.
+          IF lv_value = <ls_opt>-value OR ( lv_value IS INITIAL AND <ls_opt>-value = is_field-default_value ).
+            lv_checked = ' checked'.
+          ENDIF.
+          lv_opt_id = |{ is_field-name }{ sy-tabix }|.
+          ii_html->add( |<input type="radio" name="{ is_field-name }" id="{
+            lv_opt_id }" value="{ <ls_opt>-value }"{ lv_checked }>| ).
+          ii_html->add( |<label for="{ lv_opt_id }">{ <ls_opt>-label }</label>| ).
+        ENDLOOP.
+
+        ii_html->add( '</div>' ).
+
+      WHEN OTHERS.
+        ASSERT 1 = 0.
+    ENDCASE.
+
+    ii_html->add( '</li>' ).
+
+  ENDMETHOD.
+  METHOD text.
+
+    DATA ls_field LIKE LINE OF mt_fields.
+
+    ls_field-type  = c_field_type-text.
+    ls_field-name  = iv_name.
+    ls_field-label = iv_label.
+
+    IF iv_hint IS NOT INITIAL.
+      ls_field-hint    = | title="{ iv_hint }"|.
+    ENDIF.
+
+    IF iv_side_action IS NOT INITIAL AND mv_form_id IS NOT INITIAL.
+      ls_field-item_class = 'with-command'.
+      ls_field-side_action = iv_side_action.
+      ls_field-dblclick = | ondblclick="document.getElementById('{ mv_form_id
+        }').action = 'sapevent:{ iv_side_action
+        }'; document.getElementById('{ mv_form_id
+        }').submit()"|.
+    ENDIF.
+
+    IF iv_required = abap_true.
+      ls_field-required = ' <em>*</em>'.
+    ENDIF.
+
+    IF iv_placeholder IS NOT INITIAL.
+      ls_field-placeholder = | placeholder="{ iv_placeholder }"|.
+    ENDIF.
+
+    APPEND ls_field TO mt_fields.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
@@ -33498,6 +34297,14 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     rt_fields = parse_fields( iv_string ).
     field_keys_to_upper( CHANGING ct_fields = rt_fields ).
+
+  ENDMETHOD.
+  METHOD parse_post_data.
+
+    DATA lv_serialized_post_data TYPE string.
+
+    CONCATENATE LINES OF it_post_data INTO lv_serialized_post_data.
+    rt_fields = parse_fields( lv_serialized_post_data ).
 
   ENDMETHOD.
   METHOD stage_decode.
@@ -33802,7 +34609,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA: li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
     CASE is_event_data-action.
@@ -34139,8 +34946,8 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         zcl_abapgit_services_repo=>remove( lv_key ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.
-        zcl_abapgit_services_repo=>new_online( lv_url ).
-        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+        ei_page  = zcl_abapgit_gui_page_addonline=>create( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuild local checksums
         zcl_abapgit_services_repo=>refresh_local_checksums( lv_key ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -41260,6 +42067,238 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    ms_control-page_title = 'Clone online repository'. " TODO refactor
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_page.
+  ENDMETHOD.
+  METHOD parse_form.
+
+    DATA lt_form TYPE tihttpnvp.
+    DATA ls_field LIKE LINE OF lt_form.
+
+    lt_form = zcl_abapgit_html_action_utils=>parse_post_data( it_post_data ).
+    CREATE OBJECT ro_form_data.
+
+    LOOP AT lt_form INTO ls_field.
+      CASE ls_field-name.
+        WHEN c_id-url OR c_id-package OR c_id-branch_name OR c_id-display_name OR c_id-folder_logic.
+          ro_form_data->set(
+            iv_key = ls_field-name
+            iv_val = ls_field-value ).
+        WHEN c_id-ignore_subpackages OR c_id-master_lang_only. " Flags
+          ro_form_data->set(
+            iv_key = ls_field-name
+            iv_val = boolc( ls_field-value = 'on' ) ).
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |Unexpected form field [{ ls_field-name }]| ).
+      ENDCASE.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
+
+    ri_html = zcl_abapgit_html=>create( ).
+
+    lo_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-online-form' ).
+    lo_form->text(
+      iv_name        = c_id-url
+      iv_required    = abap_true
+      iv_label       = 'Git repository URL'
+      iv_hint        = 'HTTPS address of the repository to clone'
+      iv_placeholder = 'https://github.com/...git' ).
+    lo_form->text(
+      iv_name        = c_id-package
+      iv_side_action = c_event-choose_package
+      iv_required    = abap_true
+      iv_label       = 'Package'
+      iv_hint        = 'SAP package for the code (should be a dedicated one)'
+      iv_placeholder = 'Z... / $...' ).
+    lo_form->text(
+      iv_name        = c_id-branch_name
+      iv_side_action = c_event-choose_branch
+      iv_label       = 'Branch'
+      iv_hint        = 'Switch to a specific branch on clone (default: master)'
+      iv_placeholder = 'master' ).
+    lo_form->radio(
+      iv_name        = c_id-folder_logic
+      iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      iv_label       = 'Folder logic'
+      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)' ).
+    lo_form->option(
+      iv_label       = 'Prefix'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix ).
+    lo_form->option(
+      iv_label       = 'Full'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full ).
+    lo_form->text(
+      iv_name        = c_id-display_name
+      iv_label       = 'Display name'
+      iv_hint        = 'Name to show instead of original repo name (optional)' ).
+    lo_form->checkbox(
+      iv_name        = c_id-ignore_subpackages
+      iv_label       = 'Ignore subpackages'
+      iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)' ).
+    lo_form->checkbox(
+      iv_name        = c_id-master_lang_only
+      iv_label       = 'Serialize master language only'
+      iv_hint        = 'Ignore translations, serialize just master language' ).
+    lo_form->command(
+      iv_label       = 'Clone online repo'
+      iv_is_main     = abap_true
+      iv_action      = c_event-add_online_repo ).
+    lo_form->command(
+      iv_label       = 'Create package'
+      iv_action      = c_event-create_package ).
+    lo_form->command(
+      iv_label       = 'Back'
+      iv_action      = c_event-go_back ).
+
+    ri_html->add( lo_form->render(
+      iv_form_class     = 'dialog w600px m-em5-sides' " to center add wmax600px and auto-center instead
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
+
+  ENDMETHOD.
+  METHOD validate_form.
+
+    DATA lx_err TYPE REF TO zcx_abapgit_exception.
+
+    CREATE OBJECT ro_validation_log.
+
+    IF io_form_data->get( c_id-url ) IS INITIAL.
+      ro_validation_log->set(
+        iv_key = c_id-url
+        iv_val = 'Url cannot be empty' ).
+    ELSE.
+      TRY.
+          zcl_abapgit_url=>validate( io_form_data->get( c_id-url ) ).
+        CATCH zcx_abapgit_exception INTO lx_err.
+          ro_validation_log->set(
+            iv_key = c_id-url
+            iv_val = lx_err->get_text( ) ).
+      ENDTRY.
+    ENDIF.
+
+    IF io_form_data->get( c_id-package ) IS INITIAL.
+      ro_validation_log->set(
+        iv_key = c_id-package
+        iv_val = 'Package cannot be empty' ).
+    ELSE.
+      TRY.
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package(
+            iv_package    = |{ io_form_data->get( c_id-package ) }|
+            iv_ign_subpkg = |{ io_form_data->get( c_id-ignore_subpackages ) }| ).
+        CATCH zcx_abapgit_exception INTO lx_err.
+          ro_validation_log->set(
+            iv_key = c_id-package
+            iv_val = lx_err->get_text( ) ).
+      ENDTRY.
+    ENDIF.
+
+    IF io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+      ro_validation_log->set(
+        iv_key = c_id-folder_logic
+        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic )
+        }. Must be { zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+        } or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA ls_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params.
+
+    mo_form_data = parse_form( it_postdata ). " import data from html before re-render
+
+    CASE iv_action.
+      WHEN c_event-go_back.
+        ev_state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-create_package.
+
+        mo_form_data->set(
+          iv_key = c_id-package
+          iv_val = zcl_abapgit_services_basis=>create_package(
+            iv_prefill_package = |{ mo_form_data->get( 'package' ) }| ) ).
+        IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
+          mo_validation_log = validate_form( mo_form_data ).
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+
+      WHEN c_event-choose_package.
+
+        mo_form_data->set(
+          iv_key = c_id-package
+          iv_val = zcl_abapgit_ui_factory=>get_popups( )->popup_search_help( 'TDEVC-DEVCLASS' ) ).
+        IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
+          mo_validation_log = validate_form( mo_form_data ).
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+
+      WHEN c_event-choose_branch.
+
+        mo_validation_log = validate_form( mo_form_data ).
+        IF mo_validation_log->has( c_id-url ) = abap_true.
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
+          RETURN.
+        ENDIF.
+        mo_form_data->set(
+          iv_key = c_id-branch_name
+          iv_val = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup( mo_form_data->get( c_id-url ) )-name ).
+
+        IF mo_form_data->get( c_id-branch_name ) IS INITIAL.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ELSE.
+          mo_form_data->set(
+            iv_key = c_id-branch_name
+            iv_val = replace( " strip technical
+              val = mo_form_data->get( c_id-branch_name )
+              sub = 'refs/heads/'
+              with = '' ) ).
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+        ENDIF.
+
+      WHEN c_event-add_online_repo.
+
+        mo_validation_log = validate_form( mo_form_data ).
+
+        IF mo_validation_log->is_empty( ) = abap_true.
+          mo_form_data->to_abap( CHANGING cs_container = ls_repo_params ).
+          zcl_abapgit_services_repo=>new_online( ls_repo_params ).
+          ev_state = zcl_abapgit_gui=>c_event_state-go_back.
+        ELSE.
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
+        ENDIF.
+
+    ENDCASE.
+
+    IF ev_state IS INITIAL. " TODO !!! Refactor this disaster !!!
+      super->zif_abapgit_gui_event_handler~on_event(
+        EXPORTING
+          iv_action = iv_action
+          iv_getdata = iv_getdata
+          it_postdata = it_postdata
+        IMPORTING
+          ei_page = ei_page
+          ev_state = ev_state ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD call_browser.
 
@@ -42956,6 +43995,9 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       EXPORTING
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_html.
   ENDMETHOD.
   METHOD icon.
 
@@ -87353,5 +88395,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-06-30T15:29:34.553Z
+* abapmerge 0.14.1 - 2020-07-01T06:18:09.537Z
 ****************************************************
