@@ -28190,7 +28190,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  --theme-container-border-color: #D1E0EE;' ).
     lo_buf->add( '  --theme-table-border-color: #E5E5E5; /* ALV border color */' ).
     lo_buf->add( '  --theme-greyscale-dark: #666666;' ).
-    lo_buf->add( '  --theme-greyscale-medium: #bfbfbf;' ).
+    lo_buf->add( '  --theme-greyscale-medium: #999999;' ).
     lo_buf->add( '  --theme-greyscale-light: #CCCCCC;' ).
     lo_buf->add( '  --theme-greyscale-lighter: #E5E5E5;' ).
     lo_buf->add( '  --theme-list-hover-background-color: black;' ).
@@ -28221,9 +28221,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    background-color: var(--theme-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* PANELS */' ).
+    lo_buf->add( '#debug-output { color: var(--theme-greyscale-dark); }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* abapGit logo in header and footer */' ).
-    lo_buf->add( '#abapGitLogo>img { background-color: #bfbfbf; }' ).
-    lo_buf->add( '#footer>img { background-color: #bfbfbf; }' ).
+    lo_buf->add( '#abapGitLogo>img { background-color: var(--theme-background-color); }' ).
+    lo_buf->add( '#footer>img { background-color: var(--theme-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
     lo_buf->add( 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }' ).
@@ -28231,11 +28234,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* REPOSITORY */' ).
     lo_buf->add( 'div.repo { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.repo_name span.name { color: var(--theme-primary-font-color-reduced); }' ).
-    lo_buf->add( '.repo_name span.url  { color: #333; }' ).
-    lo_buf->add( '.repo_name a.url { color: #333; }' ).
+    lo_buf->add( '.repo_name span.url  { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( '.repo_name a.url { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( '.repo_attr { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '.repo_attr span.branch_branch {' ).
-    lo_buf->add( '  border-color: #ffffff;' ).
+    lo_buf->add( '  border-color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '  background-color: #777777;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -28245,9 +28248,22 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo_tab tr.modified { background-color: #555; }' ).
     lo_buf->add( '.repo_tab tr:hover {background-color: var(--theme-list-hover-background-color) !important;}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '.repo_tab th {' ).
+    lo_buf->add( '  border-top-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo_tab td {' ).
+    lo_buf->add( '  border-top-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
-    lo_buf->add( '.stage_tab { background-color: var(--theme-background-color); }' ).
-    lo_buf->add( '.stage_tab td { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.stage_tab { ' ).
+    lo_buf->add( '  border-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  background-color: var(--theme-background-color); ' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td { ' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color); ' ).
+    lo_buf->add( '  border-top-color:  var(--theme-greyscale-dark);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td.status.highlight { ' ).
     lo_buf->add( '  color: var(--theme-primary-font-color) !important;' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
@@ -28309,6 +28325,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '  border-bottom-color: #333;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* ERROR LOGS */' ).
+    lo_buf->add( 'div.log { color: var(--theme-greyscale-dark); }' ).
+    lo_buf->add( '.close-btn, .message-panel, .message-panel-commands a { color: var(--theme-greyscale-dark); }' ).
+    lo_buf->add( '.message-panel-commands a:hover { color: var(--theme-greyscale-dark); }' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-dark.css'
       iv_type      = 'text/css'
@@ -88411,5 +88432,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-01T13:25:48.146Z
+* abapmerge 0.14.1 - 2020-07-02T07:17:11.934Z
 ****************************************************
