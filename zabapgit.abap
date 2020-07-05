@@ -13446,6 +13446,12 @@ CLASS zcl_abapgit_html_form DEFINITION
         iv_label TYPE string
         iv_value TYPE string.
 
+    METHODS start_group
+      IMPORTING
+        iv_label TYPE string
+        iv_name TYPE string
+        iv_hint TYPE string OPTIONAL.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -13488,6 +13494,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         text TYPE i VALUE 1,
         radio TYPE i VALUE 2,
         checkbox TYPE i VALUE 3,
+        field_group TYPE i VALUE 4,
       END OF c_field_type.
 
     DATA mt_fields TYPE STANDARD TABLE OF ty_field.
@@ -26649,6 +26656,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.paddings     { padding: 0.5em 0.5em; }' ).
     lo_buf->add( '.pad-sides    { padding-left: 0.3em; padding-right: 0.3em; }' ).
     lo_buf->add( '.margin-v5    { margin-top: 0.5em; margin-bottom: 0.5em; }' ).
+    lo_buf->add( '.margin-v1    { margin-top: 1em; margin-bottom: 1em; }' ).
     lo_buf->add( '.indent5em    { padding-left: 0.5em; }' ).
     lo_buf->add( '.pad4px       { padding: 4px; }' ).
     lo_buf->add( '.w100         { width: 100%; }' ).
@@ -27620,14 +27628,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* DIALOGS */' ).
     lo_buf->add( '' ).
-    lo_buf->add( '.dialog input::placeholder { color: #ccc }' ).
-    lo_buf->add( '.dialog input:-ms-input-placeholder { color: #ccc }' ).
     lo_buf->add( '.dialog {' ).
-    lo_buf->add( '  border: 1px solid #cbcbcb;' ).
-    lo_buf->add( '  background-color: #f4f4f4;' ).
+    lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  padding: 1em 1em;' ).
-    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '  border-radius: 6px;' ).
     lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog ul {' ).
+    lo_buf->add( '  padding: 0;' ).
+    lo_buf->add( '  margin: 0;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li {' ).
     lo_buf->add( '  padding: 5px 10px;' ).
@@ -27640,7 +27649,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  margin-top: 12px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands a {' ).
-    lo_buf->add( '  border: 1px solid #ccc;' ).
+    lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  cursor: pointer;' ).
     lo_buf->add( '  text-decoration: none;' ).
     lo_buf->add( '  padding: 6px 12px;' ).
@@ -27648,40 +27657,29 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  font-size: smaller;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
-    lo_buf->add( '  border: 1px solid #ccc;' ).
+    lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  padding: 6px 12px;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  cursor: pointer;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
-    lo_buf->add( '  background-color: #64a8ff;' ).
-    lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '  border: 1px solid transparent;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog label {' ).
-    lo_buf->add( '  color: #444;' ).
     lo_buf->add( '  display: block;' ).
     lo_buf->add( '  font-size: 90%;' ).
     lo_buf->add( '  margin-top: 6px;' ).
     lo_buf->add( '  margin-bottom: 6px;' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.dialog label em {' ).
-    lo_buf->add( '  color: #64a8ff;' ).
-    lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.error small {' ).
-    lo_buf->add( '  color: #ff5959;' ).
     lo_buf->add( '  display: block;' ).
     lo_buf->add( '  font-size: 75%;' ).
     lo_buf->add( '  margin: 4px 0px;' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.dialog li.error input[type="text"] {' ).
-    lo_buf->add( '  border-color: #ff5959;' ).
-    lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container {' ).
-    lo_buf->add( '  border: 1px solid #ddd;' ).
-    lo_buf->add( '  background-color: white;' ).
+    lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '  padding: 4px;' ).
     lo_buf->add( '  border-radius: 3px;' ).
@@ -27701,7 +27699,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  width: 0px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"] + label {' ).
-    lo_buf->add( '  color: #808080;' ).
     lo_buf->add( '  border: 1px solid transparent;' ).
     lo_buf->add( '  cursor: pointer;' ).
     lo_buf->add( '  width: auto;' ).
@@ -27711,8 +27708,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"]:checked + label {' ).
-    lo_buf->add( '  background-color: #64a8ff;' ).
-    lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '  border: 1px solid transparent;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.with-command div.input-container {' ).
@@ -27725,9 +27720,20 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.dialog li.with-command input[type="submit"] {' ).
     lo_buf->add( '  height: 2.5em;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.dialog li.with-command input[type="submit"]:hover {' ).
-    lo_buf->add( '  background-color: #64a8ff;' ).
-    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '.dialog fieldset {' ).
+    lo_buf->add( '  margin-top: 1em;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 6px; /* doesn''t work in IE ? */' ).
+    lo_buf->add( '  padding-bottom: 1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog fieldset:first-child {' ).
+    lo_buf->add( '  margin-top: 0;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog fieldset legend {' ).
+    lo_buf->add( '  font-size: small;' ).
+    lo_buf->add( '  text-transform: uppercase;' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  padding-right: 0.5em;' ).
     lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
@@ -28185,6 +28191,58 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( 'table.settings_tab input:focus {' ).
     lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* HTML FORMS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.dialog input::placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog input:-ms-input-placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog {' ).
+    lo_buf->add( '  border-color: #cbcbcb;' ).
+    lo_buf->add( '  background-color: #f4f4f4;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a {' ).
+    lo_buf->add( '  border-color: #ccc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
+    lo_buf->add( '  border-color: #ccc;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog label {' ).
+    lo_buf->add( '  color: #444;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog label em {' ).
+    lo_buf->add( '  color: #64a8ff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.error small {' ).
+    lo_buf->add( '  color: #ff5959;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.error input[type="text"] {' ).
+    lo_buf->add( '  border-color: #ff5959;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container {' ).
+    lo_buf->add( '  border-color: #ddd;' ).
+    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container input[type="radio"] + label {' ).
+    lo_buf->add( '  color: #808080;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container input[type="radio"]:checked + label {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="submit"]:hover {' ).
+    lo_buf->add( '  background-color: #64a8ff;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog fieldset {' ).
+    lo_buf->add( '  border-color: #dfdfdf;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog fieldset legend {' ).
+    lo_buf->add( '  color: #ccc;' ).
     lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
@@ -33860,8 +33918,17 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD create.
+
+    DATA lv_ts TYPE timestampl.
+
     CREATE OBJECT ro_form.
     ro_form->mv_form_id = iv_form_id.
+
+    IF ro_form->mv_form_id IS INITIAL.
+      GET TIME STAMP FIELD lv_ts.
+      ro_form->mv_form_id = |form_{ lv_ts }|.
+    ENDIF.
+
   ENDMETHOD.
   METHOD option.
 
@@ -33903,6 +33970,7 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     FIELD-SYMBOLS <ls_field> LIKE LINE OF mt_fields.
     FIELD-SYMBOLS <ls_cmd> LIKE LINE OF mt_commands.
     DATA ls_form_id TYPE string.
+    DATA lv_cur_group TYPE string.
 
     IF mv_form_id IS NOT INITIAL.
       ls_form_id = | id="{ mv_form_id }"|.
@@ -33910,15 +33978,33 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
 
     ri_html = zcl_abapgit_html=>create( ).
 
-    ri_html->add( |<ul class="{ iv_form_class }">| ).
+    ri_html->add( |<div class="{ iv_form_class }">| ).
     ri_html->add( |<form method="post"{ ls_form_id }>| ).
+    ri_html->add( |<ul>| ).
 
     LOOP AT mt_fields ASSIGNING <ls_field>.
+
+      IF <ls_field>-type = c_field_type-field_group.
+        IF lv_cur_group IS NOT INITIAL AND lv_cur_group <> <ls_field>-name.
+          ri_html->add( '</fieldset>' ).
+        ENDIF.
+        lv_cur_group = <ls_field>-name.
+        ri_html->add( |<fieldset name="{ <ls_field>-name }">| ).
+        ri_html->add( |<legend{ <ls_field>-hint }>{ <ls_field>-label }</legend>| ).
+        CONTINUE.
+      ENDIF.
+
       render_field(
-        ii_html  = ri_html
-        io_values = io_values
+        ii_html           = ri_html
+        io_values         = io_values
         io_validation_log = io_validation_log
-        is_field = <ls_field> ).
+        is_field          = <ls_field> ).
+
+      AT LAST.
+        IF lv_cur_group IS NOT INITIAL.
+          ri_html->add( '</fieldset>' ).
+        ENDIF.
+      ENDAT.
     ENDLOOP.
 
     ri_html->add( |<li class="dialog-commands">| ).
@@ -33931,8 +34017,9 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
 
     ri_html->add( |</li>| ).
 
-    ri_html->add( |</form>| ).
     ri_html->add( |</ul>| ).
+    ri_html->add( |</form>| ).
+    ri_html->add( |</div>| ).
 
   ENDMETHOD.
   METHOD render_command.
@@ -34043,6 +34130,21 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     ENDCASE.
 
     ii_html->add( '</li>' ).
+
+  ENDMETHOD.
+  METHOD start_group.
+
+    DATA ls_field LIKE LINE OF mt_fields.
+
+    ls_field-type  = c_field_type-field_group.
+    ls_field-label = iv_label.
+    ls_field-name  = iv_name.
+
+    IF iv_hint IS NOT INITIAL.
+      ls_field-hint    = | title="{ iv_hint }"|.
+    ENDIF.
+
+    APPEND ls_field TO mt_fields.
 
   ENDMETHOD.
   METHOD text.
@@ -42197,7 +42299,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_action      = c_event-go_back ).
 
     ri_html->add( lo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides' " to center add wmax600px and auto-center instead
+      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
@@ -88455,5 +88557,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-05T15:48:46.321Z
+* abapmerge 0.14.1 - 2020-07-05T15:59:18.679Z
 ****************************************************
