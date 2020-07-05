@@ -36328,6 +36328,8 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
+    lo_news = zcl_abapgit_news=>create( mo_repo ).
+
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
@@ -88557,5 +88559,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-05T16:06:22.959Z
+* abapmerge 0.14.1 - 2020-07-05T16:10:18.842Z
 ****************************************************
