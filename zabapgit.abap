@@ -27814,9 +27814,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
     lo_buf->add( 'div#header { border-bottom-color: var(--theme-container-border-color); }' ).
-    lo_buf->add( 'div#header span.page_title { color: var(--theme-greyscale-medium); }' ).
-    lo_buf->add( 'div#toc    { background-color: var(--theme-container-background-color); }' ).
-    lo_buf->add( 'div#footer span.version { color: grey; }' ).
+    lo_buf->add( 'div#header .page-title { color: var(--theme-greyscale-medium); }' ).
+    lo_buf->add( 'div#footer .version { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( 'div#footer { border-top-color: var(--theme-container-border-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ERROR LOG */' ).
@@ -88559,5 +88558,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-06T05:46:28.881Z
+* abapmerge 0.14.1 - 2020-07-06T06:14:59.395Z
 ****************************************************
