@@ -5045,7 +5045,7 @@ CLASS zcl_abapgit_objects DEFINITION
       END OF ty_obj_serializer_map .
     TYPES:
       tty_obj_serializer_map
-          TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item .
+            TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item .
 
     CLASS-DATA gt_obj_serializer_map TYPE tty_obj_serializer_map .
 
@@ -5091,9 +5091,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !it_results         TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
-        VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt
-      RAISING
-        zcx_abapgit_exception .
+        VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt .
     CLASS-METHODS warning_package_adjust
       IMPORTING
         !io_repo      TYPE REF TO zcl_abapgit_repo
@@ -30992,7 +30990,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -31136,8 +31134,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     li_popups->popup_to_select_from_list(
       EXPORTING
         it_list               = ct_overwrite
-        iv_header_text        = |The following objects have been modified locally.|
-                             && | Select the objects which should be overwritten.|
+        iv_header_text        = |The following objects have been modified (or deleted) locally.|
+                             && | Select the objects which should be overwritten (or recreated).|
         iv_select_column_text = 'Overwrite?'
         it_columns_to_display = lt_columns
       IMPORTING
@@ -52142,13 +52140,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
 
-    LOOP AT it_results ASSIGNING <ls_result>
-        WHERE NOT obj_type IS INITIAL.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE NOT obj_type IS INITIAL.
       IF <ls_result>-lstate IS NOT INITIAL
-          AND <ls_result>-lstate <> zif_abapgit_definitions=>c_state-deleted
-          AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>c_state-added
-          AND <ls_result>-rstate IS INITIAL ).
-* current object has been modified locally, add to table
+        AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>c_state-added
+        AND <ls_result>-rstate IS INITIAL ).
+        " current object has been modified or deleted locally, add to table
         CLEAR ls_overwrite.
         MOVE-CORRESPONDING <ls_result> TO ls_overwrite.
         APPEND ls_overwrite TO rt_overwrite.
@@ -88579,5 +88575,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-07T13:23:05.416Z
+* abapmerge 0.14.1 - 2020-07-07T13:33:12.386Z
 ****************************************************
