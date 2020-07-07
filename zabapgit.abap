@@ -28309,8 +28309,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '#debug-output { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* abapGit logo in header and footer */' ).
-    lo_buf->add( '#abapGitLogo>img { background-color: var(--theme-background-color); }' ).
-    lo_buf->add( '#footer>img { background-color: var(--theme-background-color); }' ).
+    lo_buf->add( '.logo .icon.icon-abapgit { ' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color); ' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
     lo_buf->add( 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }' ).
@@ -88578,5 +88579,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-07T13:01:04.801Z
+* abapmerge 0.14.1 - 2020-07-07T13:23:05.416Z
 ****************************************************
