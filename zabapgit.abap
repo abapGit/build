@@ -5522,7 +5522,13 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
         VALUE(rv_active) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
-
+    METHODS delete_ddic
+      IMPORTING
+        VALUE(iv_objtype)              TYPE string
+        VALUE(iv_no_ask)               TYPE abap_bool DEFAULT abap_true
+        VALUE(iv_no_ask_delete_append) TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -48744,6 +48750,52 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD delete_ddic.
+
+    DATA: lv_objname TYPE rsedd0-ddobjname,
+          lv_objtype TYPE rsedd0-ddobjtype.
+
+    lv_objname = ms_item-obj_name.
+    lv_objtype = iv_objtype.
+
+    TRY.
+        CALL FUNCTION 'RS_DD_DELETE_OBJ'
+          EXPORTING
+            no_ask               = iv_no_ask
+            objname              = lv_objname
+            objtype              = lv_objtype
+            no_ask_delete_append = iv_no_ask_delete_append
+          EXCEPTIONS
+            not_executed         = 1
+            object_not_found     = 2
+            object_not_specified = 3
+            permission_failure   = 4
+            dialog_needed        = 5
+            OTHERS               = 6.
+      CATCH cx_sy_dyn_call_param_not_found.
+        " no_ask_delete_append not available in lower releases
+        CALL FUNCTION 'RS_DD_DELETE_OBJ'
+          EXPORTING
+            no_ask               = iv_no_ask
+            objname              = lv_objname
+            objtype              = lv_objtype
+          EXCEPTIONS
+            not_executed         = 1
+            object_not_found     = 2
+            object_not_specified = 3
+            permission_failure   = 4
+            dialog_needed        = 5
+            OTHERS               = 6.
+    ENDTRY.
+
+    IF sy-subrc = 5.
+      zcx_abapgit_exception=>raise( |Object { ms_item-obj_type } { ms_item-obj_name
+                                    } has dependencies and must be deleted manually| ).
+    ELSEIF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error deleting { ms_item-obj_type } { ms_item-obj_name }| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD delete_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->delete(
@@ -55095,6 +55147,33 @@ CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
+  METHOD read_view.
+
+    DATA: lv_name TYPE ddobjname.
+
+    lv_name = ms_item-obj_name.
+
+    CALL FUNCTION 'DDIF_VIEW_GET'
+      EXPORTING
+        name          = lv_name
+        state         = 'A'
+        langu         = mv_language
+      IMPORTING
+        dd25v_wa      = es_dd25v
+        dd09l_wa      = es_dd09l
+      TABLES
+        dd26v_tab     = et_dd26v
+        dd27p_tab     = et_dd27p
+        dd28j_tab     = et_dd28j
+        dd28v_tab     = et_dd28v
+      EXCEPTIONS
+        illegal_input = 1
+        OTHERS        = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_GET' ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd25l INTO rv_user
@@ -55108,22 +55187,11 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'V'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, VIEW' ).
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
     ENDIF.
+
+    delete_ddic( 'V' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -55321,35 +55389,6 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
                  iv_name = 'DD28V_TABLE' ).
 
   ENDMETHOD.
-
-  METHOD read_view.
-
-    DATA: lv_name TYPE ddobjname.
-
-    lv_name = ms_item-obj_name.
-
-    CALL FUNCTION 'DDIF_VIEW_GET'
-      EXPORTING
-        name          = lv_name
-        state         = 'A'
-        langu         = mv_language
-      IMPORTING
-        dd25v_wa      = es_dd25v
-        dd09l_wa      = es_dd09l
-      TABLES
-        dd26v_tab     = et_dd26v
-        dd27p_tab     = et_dd27p
-        dd28j_tab     = et_dd28j
-        dd28v_tab     = et_dd28v
-      EXCEPTIONS
-        illegal_input = 1
-        OTHERS        = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_VIEW_GET' ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
@@ -56901,7 +56940,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_type IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
   METHOD create.
 
     DATA: lv_progname  TYPE reposrc-progname,
@@ -56969,24 +57008,11 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'G'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4
-        dialog_needed        = 5
-        OTHERS               = 6.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error deleting TYPE' ).
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
     ENDIF.
+
+    delete_ddic( 'G' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -57076,27 +57102,11 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-
     IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
 
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'A'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    delete_ddic( 'A' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -58751,14 +58761,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         AND as4vers = '0000'.
       IF sy-subrc = 0 AND lv_tabclass = 'TRANSP'.
 
-* Avoid dump in dynamic SELECT in case the table does not exist on database
+        " Avoid dump in dynamic SELECT in case the table does not exist on database
         CALL FUNCTION 'DB_EXISTS_TABLE'
           EXPORTING
             tabname = lv_objname
           IMPORTING
             subrc   = lv_subrc.
         IF lv_subrc = 0.
-* it cannot delete table with table without asking
+          " it cannot delete table with data without asking
           CREATE DATA lr_data TYPE (lv_objname).
           ASSIGN lr_data->* TO <lg_data>.
           SELECT SINGLE * FROM (lv_objname) INTO <lg_data>.
@@ -58768,19 +58778,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         ENDIF.
       ENDIF.
 
-      CALL FUNCTION 'RS_DD_DELETE_OBJ'
-        EXPORTING
-          no_ask               = lv_no_ask
-          objname              = lv_objname
-          objtype              = 'T'
-        EXCEPTIONS
-          not_executed         = 1
-          object_not_found     = 2
-          object_not_specified = 3
-          permission_failure   = 4.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, TABL,' && sy-subrc ).
-      ENDIF.
+      delete_ddic( iv_objtype = 'T'
+                   iv_no_ask  = lv_no_ask ).
 
       delete_longtexts( c_longtext_id_tabl ).
 
@@ -63736,22 +63735,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'H'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, SHLP' ).
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
     ENDIF.
+
+    delete_ddic( 'H' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -73366,22 +73354,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
-
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'L'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, ENQU' ).
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
     ENDIF.
+
+    delete_ddic( 'L' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -75940,22 +75917,11 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-
-    lv_objname = ms_item-obj_name.
-    CALL FUNCTION 'RS_DD_DELETE_OBJ'
-      EXPORTING
-        no_ask               = abap_true
-        objname              = lv_objname
-        objtype              = 'E'
-      EXCEPTIONS
-        not_executed         = 1
-        object_not_found     = 2
-        object_not_specified = 3
-        permission_failure   = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DTEL,' && sy-subrc ).
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
     ENDIF.
+
+    delete_ddic( 'E' ).
 
     delete_longtexts( c_longtext_id_dtel ).
 
@@ -77043,7 +77009,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_doma IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -77198,45 +77164,13 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
-* see class CL_WB_DDIC
 
-    DATA: lv_objname TYPE rsedd0-ddobjname.
-    lv_objname = ms_item-obj_name.
+    IF zif_abapgit_object~exists( ) = abap_false.
+      RETURN.
+    ENDIF.
 
-    TRY.
-        CALL FUNCTION 'RS_DD_DELETE_OBJ'
-          EXPORTING
-            no_ask               = abap_true
-            objname              = lv_objname
-            objtype              = 'D'
-            no_ask_delete_append = abap_true
-          EXCEPTIONS
-            not_executed         = 1
-            object_not_found     = 2
-            object_not_specified = 3
-            permission_failure   = 4.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
-        ENDIF.
-
-      CATCH cx_sy_dyn_call_param_not_found.
-
-        CALL FUNCTION 'RS_DD_DELETE_OBJ'
-          EXPORTING
-            no_ask               = abap_true
-            objname              = lv_objname
-            objtype              = 'D'
-*           no_ask_delete_append = abap_true parameter not available in lower NW versions
-          EXCEPTIONS
-            not_executed         = 1
-            object_not_found     = 2
-            object_not_specified = 3
-            permission_failure   = 4.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'error from RS_DD_DELETE_OBJ, DOMA' ).
-        ENDIF.
-
-    ENDTRY.
+    delete_ddic( iv_objtype              = 'D'
+                 iv_no_ask_delete_append = abap_true ).
 
     delete_longtexts( c_longtext_id_doma ).
 
@@ -88575,5 +88509,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-07T13:33:12.386Z
+* abapmerge 0.14.1 - 2020-07-07T13:37:48.323Z
 ****************************************************
