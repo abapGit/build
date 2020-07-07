@@ -1886,6 +1886,7 @@ INTERFACE zif_abapgit_definitions .
       bg_update                     TYPE string VALUE 'bg_update',
       go_explore                    TYPE string VALUE 'go_explore',
       go_repo_overview              TYPE string VALUE 'go_repo_overview',
+      go_repo                       TYPE string VALUE 'go_repo',
       go_db                         TYPE string VALUE 'go_db',
       go_background                 TYPE string VALUE 'go_background',
       go_background_run             TYPE string VALUE 'go_background_run',
@@ -11219,6 +11220,13 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         is_event       TYPE ty_event_signature
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+    CLASS-METHODS render_repo_palette
+      IMPORTING
+        iv_action TYPE string
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -12098,14 +12106,9 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
     METHODS test_changed_by
       RAISING zcx_abapgit_exception.
 
-    METHODS render_scripts
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception.
-
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -28490,8 +28493,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* exported onTagTypeChange */' ).
     lo_buf->add( '/* exported getIndocStyleSheet */' ).
     lo_buf->add( '/* exported addMarginBottom */' ).
-    lo_buf->add( '/* exported enumerateTocAllRepos */' ).
     lo_buf->add( '/* exported enumerateJumpAllFiles */' ).
+    lo_buf->add( '/* exported createRepoCatalogEnumerator */' ).
     lo_buf->add( '/* exported enumerateToolbarActions */' ).
     lo_buf->add( '/* exported onDiffCollapse */' ).
     lo_buf->add( '/* exported restoreScrollPosition */' ).
@@ -30439,25 +30442,19 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* COMMAND ENUMERATORS */' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function enumerateTocAllRepos() {' ).
-    lo_buf->add( '  var root = document.getElementById("toc-all-repos");' ).
-    lo_buf->add( '  if (!root || root.nodeName !== "UL") return null;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var items = [];' ).
-    lo_buf->add( '  for (var i = 0; i < root.children.length; i++) {' ).
-    lo_buf->add( '    if (root.children[i].nodeName === "LI") items.push(root.children[i]);' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  items = items.map(function(listItem) {' ).
-    lo_buf->add( '    var anchor = listItem.children[0];' ).
-    lo_buf->add( '    return {' ).
-    lo_buf->add( '      action:    anchor.href.replace("sapevent:", ""),  // a' ).
-    lo_buf->add( '      iconClass: anchor.childNodes[0].className,        // i with icon' ).
-    lo_buf->add( '      title:     anchor.childNodes[1].textContent       // text with repo name' ).
-    lo_buf->add( '    };' ).
-    lo_buf->add( '  });' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  return items;' ).
+    lo_buf->add( 'function createRepoCatalogEnumerator(catalog, action) {' ).
+    lo_buf->add( '  // expecting [{ key, isOffline, displayName }]' ).
+    lo_buf->add( '  return function() {' ).
+    lo_buf->add( '    return catalog.map(function(i) {' ).
+    lo_buf->add( '      return {' ).
+    lo_buf->add( '        action:    action + "?" + i.key,' ).
+    lo_buf->add( '        iconClass: i.isOffline' ).
+    lo_buf->add( '          ? "icon icon-plug darkgrey"' ).
+    lo_buf->add( '          : "icon icon-cloud-upload-alt blue",' ).
+    lo_buf->add( '        title: i.displayName' ).
+    lo_buf->add( '      };' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  };' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function enumerateToolbarActions() {' ).
@@ -35229,7 +35226,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -35282,6 +35279,12 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+  METHOD has_favorites.
+    READ TABLE mt_overview WITH KEY favorite = abap_true TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      rv_has_favorites = abap_true.
+    ENDIF.
+  ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
     DATA: ls_overview LIKE LINE OF rt_overview,
@@ -35328,36 +35331,6 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       INSERT ls_overview INTO TABLE rt_overview.
 
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD set_filter.
-
-    FIELD-SYMBOLS: <lv_postdata> LIKE LINE OF it_postdata.
-
-    READ TABLE it_postdata ASSIGNING <lv_postdata>
-                           INDEX 1.
-    IF sy-subrc = 0.
-      FIND FIRST OCCURRENCE OF REGEX `filter=(.*)`
-           IN <lv_postdata>
-           SUBMATCHES mv_filter.
-    ENDIF.
-
-    mv_filter = condense( mv_filter ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_renderable~render.
-
-    mt_overview = map_repo_list_to_overview( zcl_abapgit_persist_factory=>get_repo( )->list( ) ).
-    apply_order_by( CHANGING ct_overview = mt_overview ).
-    apply_filter( CHANGING ct_overview = mt_overview ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    render_header_bar( ri_html ).
-    render_table( ii_html     = ri_html
-                  it_overview = mt_overview ).
-
-    register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
   METHOD render_header_bar.
@@ -35530,6 +35503,42 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
 
   ENDMETHOD.
+  METHOD set_filter.
+
+    FIELD-SYMBOLS: <lv_postdata> LIKE LINE OF it_postdata.
+
+    READ TABLE it_postdata ASSIGNING <lv_postdata>
+                           INDEX 1.
+    IF sy-subrc = 0.
+      FIND FIRST OCCURRENCE OF REGEX `filter=(.*)`
+           IN <lv_postdata>
+           SUBMATCHES mv_filter.
+    ENDIF.
+
+    mv_filter = condense( mv_filter ).
+
+  ENDMETHOD.
+  METHOD set_order_by.
+    mv_order_by = iv_order_by.
+  ENDMETHOD.
+  METHOD set_order_direction.
+    mv_order_descending = iv_order_descending.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    mt_overview = map_repo_list_to_overview( zcl_abapgit_persist_factory=>get_repo( )->list( ) ).
+    apply_order_by( CHANGING ct_overview = mt_overview ).
+    apply_filter( CHANGING ct_overview = mt_overview ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    render_header_bar( ri_html ).
+    render_table( ii_html     = ri_html
+                  it_overview = mt_overview ).
+
+    register_deferred_script( render_scripts( ) ).
+
+  ENDMETHOD.
   METHOD _add_col.
 
     FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
@@ -35545,24 +35554,9 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     CONDENSE <ls_col>-add_tz.
 
   ENDMETHOD.
-
-  METHOD set_order_by.
-    mv_order_by = iv_order_by.
-  ENDMETHOD.
-  METHOD set_order_direction.
-    mv_order_descending = iv_order_descending.
-  ENDMETHOD.
-
-  METHOD has_favorites.
-    READ TABLE mt_overview WITH KEY favorite = abap_true TRANSPORTING NO FIELDS.
-    IF sy-subrc = 0.
-      rv_has_favorites = abap_true.
-    ENDIF.
-  ENDMETHOD.
-
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -35792,6 +35786,17 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD build_main_menu.
+
+    DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
+          lo_helpsub TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
+
+    ro_menu->add( iv_txt = 'Repository list'
+                  iv_act = zif_abapgit_definitions=>c_action-abapgit_home ).
+
+  ENDMETHOD.
   METHOD build_main_toolbar.
 
     DATA:
@@ -36008,6 +36013,139 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     ENDIF.
 
     MESSAGE 'Repository opened in a new window' TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    DATA: lt_repo_items        TYPE zif_abapgit_definitions=>tt_repo_items,
+          lo_browser           TYPE REF TO zcl_abapgit_repo_content_list,
+          lx_error             TYPE REF TO zcx_abapgit_exception,
+          lv_lstate            TYPE char1,
+          lv_rstate            TYPE char1,
+          lv_max               TYPE abap_bool,
+          lv_max_str           TYPE string,
+          lv_add_str           TYPE string,
+          li_log               TYPE REF TO zif_abapgit_log,
+          lv_render_transports TYPE abap_bool,
+          lo_news              TYPE REF TO zcl_abapgit_news.
+
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
+
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
+    gui_services( )->register_event_handler( me ).
+    register_deferred_script(
+      zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
+
+    " Reinit, for the case of type change
+    mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
+
+    lo_news = zcl_abapgit_news=>create( mo_repo ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
+      io_repo               = mo_repo
+      io_news               = lo_news
+      iv_interactive_branch = abap_true ) ).
+
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
+
+    TRY.
+        lv_render_transports = zcl_abapgit_factory=>get_cts_api(
+          )->is_chrec_possible_for_package( mo_repo->get_package( ) ).
+
+        CREATE OBJECT lo_browser
+          EXPORTING
+            io_repo = mo_repo.
+
+        lt_repo_items = lo_browser->list( iv_path         = mv_cur_dir
+                                          iv_by_folders   = mv_show_folders
+                                          iv_changes_only = mv_changes_only ).
+
+        IF mv_show_order_by = abap_true.
+          apply_order_by( CHANGING ct_repo_items = lt_repo_items ).
+        ENDIF.
+
+        LOOP AT lt_repo_items ASSIGNING <ls_item>.
+          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-lstate
+                                     CHANGING cv_prev = lv_lstate ).
+          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-rstate
+                                     CHANGING cv_prev = lv_rstate ).
+        ENDLOOP.
+
+        ri_html->add( render_head_line( iv_lstate = lv_lstate
+                                        iv_rstate = lv_rstate ) ).
+
+        li_log = lo_browser->get_log( ).
+        IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
+          ri_html->add( '<div class="log">' ).
+          ri_html->add( zcl_abapgit_log_viewer=>to_html( li_log ) ). " shows eg. list of unsupported objects
+          ri_html->add( '</div>' ).
+        ENDIF.
+
+        ri_html->add( '<div class="repo_container">' ).
+
+        " Offline match banner
+        IF mo_repo->is_offline( ) = abap_true
+            AND mo_repo->has_remote_source( ) = abap_true
+            AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
+          ri_html->add(
+            |<div class="repo_banner panel success">|
+            && |ZIP source is attached and completely <b>matches</b> to the local state|
+            && |</div>| ).
+        ENDIF.
+
+        " Repo content table
+        ri_html->add( '<table class="repo_tab">' ).
+
+        IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
+          ri_html->add( render_parent_dir( ) ).
+        ENDIF.
+
+        IF mv_show_order_by = abap_true.
+          ri_html->add( render_order_by( ) ).
+        ENDIF.
+
+        IF lines( lt_repo_items ) = 0.
+          ri_html->add( render_empty_package( ) ).
+        ELSE.
+          LOOP AT lt_repo_items ASSIGNING <ls_item>.
+            IF mv_max_lines > 0 AND sy-tabix > mv_max_lines.
+              lv_max = abap_true.
+              EXIT. " current loop
+            ENDIF.
+            ri_html->add( render_item( is_item = <ls_item>
+                                       iv_render_transports = lv_render_transports ) ).
+          ENDLOOP.
+        ENDIF.
+
+        ri_html->add( '</table>' ).
+
+        IF lv_max = abap_true.
+          ri_html->add( '<div class = "dummydiv">' ).
+          IF mv_max_lines = 1.
+            lv_max_str = '1 object'.
+          ELSE.
+            lv_max_str = |first { mv_max_lines } objects|.
+          ENDIF.
+          lv_add_str = |+{ mv_max_setting }|.
+          ri_html->add( |Only { lv_max_str } shown in list. Display {
+            zcl_abapgit_html=>a( iv_txt = lv_add_str
+                                 iv_act = c_actions-display_more )
+            } more. (Set in Advanced > {
+            zcl_abapgit_html=>a( iv_txt = 'Settings'
+                                 iv_act = zif_abapgit_definitions=>c_action-go_settings )
+            } )| ).
+          ri_html->add( '</div>' ).
+        ENDIF.
+
+        ri_html->add( '</div>' ).
+        ri_html->add( '</div>' ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        ri_html->add( render_head_line( iv_lstate = lv_lstate
+                                        iv_rstate = lv_rstate ) ).
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD render_empty_package.
@@ -36259,6 +36397,12 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     DATA: lv_path TYPE string.
 
     CASE iv_action.
+      WHEN zif_abapgit_definitions=>c_action-go_repo. " Switch to another repo
+        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_view_repo
+          EXPORTING
+            iv_key = |{ iv_getdata }|.
+        ev_state        = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
         mv_hide_files   = zcl_abapgit_persistence_user=>get_instance( )->toggle_hide_files( ).
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
@@ -36305,165 +36449,6 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD render_content.
-
-    DATA: lt_repo_items        TYPE zif_abapgit_definitions=>tt_repo_items,
-          lo_browser           TYPE REF TO zcl_abapgit_repo_content_list,
-          lx_error             TYPE REF TO zcx_abapgit_exception,
-          lv_lstate            TYPE char1,
-          lv_rstate            TYPE char1,
-          lv_max               TYPE abap_bool,
-          lv_max_str           TYPE string,
-          lv_add_str           TYPE string,
-          li_log               TYPE REF TO zif_abapgit_log,
-          lv_render_transports TYPE abap_bool,
-          lo_news              TYPE REF TO zcl_abapgit_news.
-
-    FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
-
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
-    gui_services( )->register_event_handler( me ).
-
-    " Reinit, for the case of type change
-    mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
-
-    lo_news = zcl_abapgit_news=>create( mo_repo ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-      io_repo               = mo_repo
-      io_news               = lo_news
-      iv_interactive_branch = abap_true ) ).
-
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
-
-    TRY.
-        lv_render_transports = zcl_abapgit_factory=>get_cts_api(
-          )->is_chrec_possible_for_package( mo_repo->get_package( ) ).
-
-        CREATE OBJECT lo_browser
-          EXPORTING
-            io_repo = mo_repo.
-
-        lt_repo_items = lo_browser->list( iv_path         = mv_cur_dir
-                                          iv_by_folders   = mv_show_folders
-                                          iv_changes_only = mv_changes_only ).
-
-        IF mv_show_order_by = abap_true.
-          apply_order_by( CHANGING ct_repo_items = lt_repo_items ).
-        ENDIF.
-
-        LOOP AT lt_repo_items ASSIGNING <ls_item>.
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-lstate
-                                     CHANGING cv_prev = lv_lstate ).
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-rstate
-                                     CHANGING cv_prev = lv_rstate ).
-        ENDLOOP.
-
-        ri_html->add( render_head_line( iv_lstate = lv_lstate
-                                        iv_rstate = lv_rstate ) ).
-
-        li_log = lo_browser->get_log( ).
-        IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
-          ri_html->add( '<div class="log">' ).
-          ri_html->add( zcl_abapgit_log_viewer=>to_html( li_log ) ). " shows eg. list of unsupported objects
-          ri_html->add( '</div>' ).
-        ENDIF.
-
-        ri_html->add( '<div class="repo_container">' ).
-
-        " Offline match banner
-        IF mo_repo->is_offline( ) = abap_true
-            AND mo_repo->has_remote_source( ) = abap_true
-            AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
-          ri_html->add(
-            |<div class="repo_banner panel success">|
-            && |ZIP source is attached and completely <b>matches</b> to the local state|
-            && |</div>| ).
-        ENDIF.
-
-        " Repo content table
-        ri_html->add( '<table class="repo_tab">' ).
-
-        IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
-          ri_html->add( render_parent_dir( ) ).
-        ENDIF.
-
-        IF mv_show_order_by = abap_true.
-          ri_html->add( render_order_by( ) ).
-        ENDIF.
-
-        IF lines( lt_repo_items ) = 0.
-          ri_html->add( render_empty_package( ) ).
-        ELSE.
-          LOOP AT lt_repo_items ASSIGNING <ls_item>.
-            IF mv_max_lines > 0 AND sy-tabix > mv_max_lines.
-              lv_max = abap_true.
-              EXIT. " current loop
-            ENDIF.
-            ri_html->add( render_item( is_item = <ls_item>
-                                       iv_render_transports = lv_render_transports ) ).
-          ENDLOOP.
-        ENDIF.
-
-        ri_html->add( '</table>' ).
-
-        IF lv_max = abap_true.
-          ri_html->add( '<div class = "dummydiv">' ).
-          IF mv_max_lines = 1.
-            lv_max_str = '1 object'.
-          ELSE.
-            lv_max_str = |first { mv_max_lines } objects|.
-          ENDIF.
-          lv_add_str = |+{ mv_max_setting }|.
-          ri_html->add( |Only { lv_max_str } shown in list. Display {
-            zcl_abapgit_html=>a( iv_txt = lv_add_str
-                                 iv_act = c_actions-display_more )
-            } more. (Set in Advanced > {
-            zcl_abapgit_html=>a( iv_txt = 'Settings'
-                                 iv_act = zif_abapgit_definitions=>c_action-go_settings )
-            } )| ).
-          ri_html->add( '</div>' ).
-        ENDIF.
-
-        ri_html->add( '</div>' ).
-        ri_html->add( '</div>' ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        ri_html->add( render_head_line( iv_lstate = lv_lstate
-                                        iv_rstate = lv_rstate ) ).
-        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD _add_col.
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
-    APPEND INITIAL LINE TO mt_col_spec ASSIGNING <ls_col>.
-    SPLIT iv_str AT '/' INTO
-      <ls_col>-tech_name
-      <ls_col>-display_name
-      <ls_col>-css_class
-      <ls_col>-add_tz
-      <ls_col>-title.
-    CONDENSE <ls_col>-tech_name.
-    CONDENSE <ls_col>-display_name.
-    CONDENSE <ls_col>-css_class.
-    CONDENSE <ls_col>-add_tz.
-    CONDENSE <ls_col>-title.
-  ENDMETHOD.
-
-  METHOD build_main_menu.
-
-    DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
-          lo_helpsub TYPE REF TO zcl_abapgit_html_toolbar.
-
-    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
-
-    ro_menu->add( iv_txt = 'Repository list'
-                  iv_act = zif_abapgit_definitions=>c_action-abapgit_home ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
@@ -36514,6 +36499,21 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     ls_hotkey_action-hotkey = |l|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+  ENDMETHOD.
+  METHOD _add_col.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
+    APPEND INITIAL LINE TO mt_col_spec ASSIGNING <ls_col>.
+    SPLIT iv_str AT '/' INTO
+      <ls_col>-tech_name
+      <ls_col>-display_name
+      <ls_col>-css_class
+      <ls_col>-add_tz
+      <ls_col>-title.
+    CONDENSE <ls_col>-tech_name.
+    CONDENSE <ls_col>-display_name.
+    CONDENSE <ls_col>-css_class.
+    CONDENSE <ls_col>-add_tz.
+    CONDENSE <ls_col>-title.
   ENDMETHOD.
 ENDCLASS.
 
@@ -39717,8 +39717,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
@@ -39768,16 +39767,6 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ms_control-page_menu  = build_main_menu( ).
     ms_control-page_title = 'REPOSITORY LIST'.
   ENDMETHOD.
-
-  METHOD render_scripts.
-
-    CREATE OBJECT ro_html.
-
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'setInitialFocus("filter");' ).
-    ro_html->add( 'var gHelper = new RepoOverViewHelper();' ).
-
-  ENDMETHOD.
   METHOD render_content.
 
     DATA: lt_repos    TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
@@ -39793,6 +39782,8 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ENDIF.
 
     ri_html->add( mo_repo_overview->zif_abapgit_gui_renderable~render( ) ).
+
+    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_actions-select ) ).
 
   ENDMETHOD.
   METHOD test_changed_by.
@@ -39836,7 +39827,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
         mv_repo_key = lv_key.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_view_repo
-        EXPORTING iv_key = lv_key.
+          EXPORTING iv_key = lv_key.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN zif_abapgit_definitions=>c_action-change_order_by.
@@ -39901,7 +39892,6 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
@@ -42503,11 +42493,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_command_palettes.
 
-    ii_html->add( 'var gGoRepoPalette = new CommandPalette(enumerateTocAllRepos, {' ).
-    ii_html->add( '  toggleKey: "F2",' ).
-    ii_html->add( '  hotkeyDescription: "Go to repo ..."' ).
-    ii_html->add( '});' ).
-
     ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateToolbarActions, {' ).
     ii_html->add( '  toggleKey: "F1",' ).
     ii_html->add( '  hotkeyDescription: "Command ..."' ).
@@ -43102,6 +43087,41 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lv_tmp = lv_tmp && '</th>'.
       ro_html->add( lv_tmp ).
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_repo_palette.
+
+    DATA li_repo_srv TYPE REF TO zif_abapgit_repo_srv.
+    DATA lt_repo_list TYPE zif_abapgit_persistence=>tt_repo.
+    DATA lv_repo_json TYPE string.
+    DATA lv_size TYPE i.
+    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
+    FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_list.
+
+    li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
+    lt_repo_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
+    lv_size = lines( lt_repo_list ).
+
+    ri_html = zcl_abapgit_html=>create( ).
+
+    ri_html->add( 'var repoCatalog = [' ). " Maybe separate this into another method if needed in more places
+    LOOP AT lt_repo_list ASSIGNING <ls_repo>.
+      lo_repo = li_repo_srv->get( <ls_repo>-key ). " inefficient
+      lv_repo_json = |\{ key: "{ <ls_repo>-key
+        }", isOffline: "{ <ls_repo>-offline
+        }", displayName: "{ lo_repo->get_name( ) }"  \}|.
+      IF sy-tabix < lv_size.
+        lv_repo_json = lv_repo_json && ','.
+      ENDIF.
+      ri_html->add( lv_repo_json ).
+    ENDLOOP.
+    ri_html->add( '];' ).
+
+    ri_html->add( |var gGoRepoPalette = new CommandPalette(createRepoCatalogEnumerator(repoCatalog, "{
+      iv_action }"), \{| ).
+    ri_html->add( '  toggleKey: "F2",' ).
+    ri_html->add( '  hotkeyDescription: "Go to repo ..."' ).
+    ri_html->add( '});' ).
 
   ENDMETHOD.
   METHOD render_repo_top.
@@ -88558,5 +88578,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-06T06:14:59.395Z
+* abapmerge 0.14.1 - 2020-07-07T13:01:04.801Z
 ****************************************************
