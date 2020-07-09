@@ -657,6 +657,7 @@ CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
@@ -1417,7 +1418,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_file.
       INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
-         END OF ty_file .
+    END OF ty_file .
   TYPES:
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
@@ -1496,7 +1497,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
-         END OF ty_overwrite .
+    END OF ty_overwrite .
   TYPES:
     ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
                               WITH UNIQUE HASHED KEY object_type_and_name
@@ -1608,7 +1609,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_tpool.
       INCLUDE TYPE textpool.
-  TYPES:   split TYPE c LENGTH 8.
+  TYPES: split TYPE c LENGTH 8.
   TYPES: END OF ty_tpool .
   TYPES:
     ty_tpool_tt TYPE STANDARD TABLE OF ty_tpool WITH DEFAULT KEY .
@@ -1820,11 +1821,11 @@ INTERFACE zif_abapgit_definitions .
     END OF c_diff .
   CONSTANTS:
     BEGIN OF c_type,
-      commit TYPE ty_type VALUE 'commit', "#EC NOTEXT
-      tree   TYPE ty_type VALUE 'tree', "#EC NOTEXT
-      ref_d  TYPE ty_type VALUE 'ref_d', "#EC NOTEXT
-      tag    TYPE ty_type VALUE 'tag', "#EC NOTEXT
-      blob   TYPE ty_type VALUE 'blob', "#EC NOTEXT
+      commit TYPE ty_type VALUE 'commit',                   "#EC NOTEXT
+      tree   TYPE ty_type VALUE 'tree',                     "#EC NOTEXT
+      ref_d  TYPE ty_type VALUE 'ref_d',                    "#EC NOTEXT
+      tag    TYPE ty_type VALUE 'tag',                      "#EC NOTEXT
+      blob   TYPE ty_type VALUE 'blob',                     "#EC NOTEXT
     END OF c_type .
   CONSTANTS:
     BEGIN OF c_state, " https://git-scm.com/docs/git-status
@@ -1885,7 +1886,6 @@ INTERFACE zif_abapgit_definitions .
       db_edit                       TYPE string VALUE 'db_edit',
       bg_update                     TYPE string VALUE 'bg_update',
       go_explore                    TYPE string VALUE 'go_explore',
-      go_repo_overview              TYPE string VALUE 'go_repo_overview',
       go_repo                       TYPE string VALUE 'go_repo',
       go_db                         TYPE string VALUE 'go_db',
       go_background                 TYPE string VALUE 'go_background',
@@ -1907,7 +1907,10 @@ INTERFACE zif_abapgit_definitions .
       change_order_by               TYPE string VALUE 'change_order_by',
       goto_message                  TYPE string VALUE 'goto_message',
       direction                     TYPE string VALUE 'direction',
-    END OF c_action .
+      changed_by                    TYPE string VALUE 'changed_by',
+      documentation                 TYPE string VALUE 'documentation',
+      changelog                     TYPE string VALUE 'changelog',
+    END OF c_action.
   CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
@@ -11123,6 +11126,29 @@ CLASS zcl_abapgit_frontend_services DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_gui_buttons DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS new_online
+      RETURNING VALUE(rv_html_string) TYPE string.
+
+    CLASS-METHODS new_offline
+      RETURNING VALUE(rv_html_string) TYPE string.
+
+    CLASS-METHODS advanced
+      RETURNING VALUE(rv_html_string) TYPE string.
+
+    CLASS-METHODS help
+      RETURNING VALUE(rv_html_string) TYPE string.
+
+    CLASS-METHODS repo_list
+      RETURNING VALUE(rv_html_string) TYPE string.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -11231,6 +11257,12 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+
+    CLASS-METHODS advanced_submenu
+      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS help_submenu
+      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -11373,6 +11405,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception.
+
+    METHODS test_changed_by
+      RAISING zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_db DEFINITION
@@ -12095,10 +12130,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
     CONSTANTS:
       BEGIN OF c_actions,
         show          TYPE string VALUE 'show' ##NO_TEXT,
-        changed_by    TYPE string VALUE 'changed_by',
         overview      TYPE string VALUE 'overview',
-        documentation TYPE string VALUE 'documentation',
-        changelog     TYPE string VALUE 'changelog',
         select        TYPE string VALUE 'select',
         apply_filter  TYPE string VALUE 'apply_filter',
         abapgit_home  TYPE string VALUE 'abapgit_home',
@@ -12106,9 +12138,6 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
 
     DATA: mo_repo_overview TYPE REF TO zcl_abapgit_gui_repo_over,
           mv_repo_key      TYPE zif_abapgit_persistence=>ty_value.
-
-    METHODS test_changed_by
-      RAISING zcx_abapgit_exception.
 
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
@@ -12830,6 +12859,9 @@ CLASS zcl_abapgit_gui_page_tutorial DEFINITION
 
   PRIVATE SECTION.
 
+    METHODS build_main_menu
+      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_view_repo DEFINITION
   FINAL
@@ -12848,9 +12880,6 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
         toggle_order_by   TYPE string VALUE 'toggle_order_by' ##NO_TEXT,
         toggle_diff_first TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
         display_more      TYPE string VALUE 'display_more' ##NO_TEXT,
-        documentation     TYPE string VALUE 'documentation' ##NO_TEXT,
-        changelog         TYPE string VALUE 'changelog' ##NO_TEXT,
-        changed_by        TYPE string VALUE 'changed_by' ##NO_TEXT,
       END OF c_actions.
     INTERFACES: zif_abapgit_gui_hotkeys.
 
@@ -13531,17 +13560,19 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
           iv_id TYPE string OPTIONAL,
       add
         IMPORTING
-          iv_txt   TYPE string
-          io_sub   TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-          iv_typ   TYPE c         DEFAULT zif_abapgit_html=>c_action_type-sapevent
-          iv_act   TYPE string    OPTIONAL
-          iv_ico   TYPE string    OPTIONAL
-          iv_cur   TYPE abap_bool OPTIONAL
-          iv_opt   TYPE c         OPTIONAL
-          iv_chk   TYPE abap_bool DEFAULT abap_undefined
-          iv_aux   TYPE string    OPTIONAL
-          iv_id    TYPE string    OPTIONAL
-          iv_title TYPE string    OPTIONAL,
+          iv_txt         TYPE string
+          io_sub         TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+          iv_typ         TYPE c         DEFAULT zif_abapgit_html=>c_action_type-sapevent
+          iv_act         TYPE string    OPTIONAL
+          iv_ico         TYPE string    OPTIONAL
+          iv_cur         TYPE abap_bool OPTIONAL
+          iv_opt         TYPE c         OPTIONAL
+          iv_chk         TYPE abap_bool DEFAULT abap_undefined
+          iv_aux         TYPE string    OPTIONAL
+          iv_id          TYPE string    OPTIONAL
+          iv_title       TYPE string    OPTIONAL
+        RETURNING VALUE(ro_self) TYPE REF TO zcl_abapgit_html_toolbar,
+
       count
         RETURNING VALUE(rv_count) TYPE i,
       render
@@ -26709,8 +26740,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* official logo colors, not vars, redefine in themes directly*/' ).
     lo_buf->add( '.logo .icon.icon-git-alt { color: #f03c2e }' ).
-    lo_buf->add( '.logo .icon.icon-abapgit { ' ).
-    lo_buf->add( '  color: #362701; ' ).
+    lo_buf->add( '.logo .icon.icon-abapgit {' ).
+    lo_buf->add( '  color: #362701;' ).
     lo_buf->add( '  vertical-align: bottom;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -27741,6 +27772,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  text-transform: uppercase;' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '  padding-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* This icon is slightly wider than other icons */' ).
+    lo_buf->add( '.icon-cloud-upload-alt {' ).
+    lo_buf->add( '    padding-right: 5px;' ).
     lo_buf->add( '}' ).
     ro_asset_man->register_asset(
       iv_url       = 'css/common.css'
@@ -33729,7 +33765,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
+CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
@@ -33754,6 +33790,8 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
     ls_item-title = iv_title.
 
     APPEND ls_item TO mt_items.
+
+    ro_self = me.
 
   ENDMETHOD.
   METHOD constructor.
@@ -34787,9 +34825,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         ENDIF.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
-      WHEN zif_abapgit_definitions=>c_action-go_repo_overview.               " Go Repository overview
-        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_repo_over.
-        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_db.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -35561,7 +35596,7 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -35798,8 +35833,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
 
-    ro_menu->add( iv_txt = 'Repository list'
-                  iv_act = zif_abapgit_definitions=>c_action-abapgit_home ).
+    ro_menu->add(
+      iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>advanced( )
+      io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>help( )
+      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
   METHOD build_main_toolbar.
@@ -36451,6 +36493,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
         open_in_master_language( ).
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN OTHERS.
+
+        super->zif_abapgit_gui_event_handler~on_event(
+          EXPORTING
+            iv_action    = iv_action
+            iv_getdata   = iv_getdata
+            it_postdata  = it_postdata
+          IMPORTING
+            ei_page      = ei_page
+            ev_state     = ev_state ).
+
     ENDCASE.
 
   ENDMETHOD.
@@ -36527,6 +36580,7 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'Tutorial'.
+    ms_control-page_menu = build_main_menu( ).
   ENDMETHOD.
   METHOD render_content.
 
@@ -36543,7 +36597,7 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
     ri_html->add( '<p><ul>' ).
 
     ri_html->add( `<li>To clone a remote repository (e.g. from github) click ` ).
-    ri_html->add_a( iv_txt = '+ Online'
+    ri_html->add_a( iv_txt = zcl_abapgit_gui_buttons=>new_online( )
                     iv_act = zif_abapgit_definitions=>c_action-repo_newonline ).
     ri_html->add( ' from the top menu. This will link a remote repository with a package on your system.</li>' ).
     ri_html->add( '<li>Use the pull button to retrieve and activate the remote objects.</li>' ).
@@ -36556,7 +36610,7 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
     ri_html->add( '<p><ul>' ).
 
     ri_html->add( `<li>To add a package as an offline repository, click ` ).
-    ri_html->add_a( iv_txt = '+ Offline'
+    ri_html->add_a( iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
                     iv_act = zif_abapgit_definitions=>c_action-repo_newoffline ).
     ri_html->add( ' from the top menu.' ).
     ri_html->add( '<li>abapGit will start tracking changes for the package ' ).
@@ -36572,7 +36626,11 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
     ri_html->add( |<li>To favorite a repository, use the {
                   zcl_abapgit_html=>icon( 'star/darkgrey' ) } icon in the repository list.</li>| ).
     ri_html->add( |<li>To go to a repository, click on the repository name.</li>| ).
-    ri_html->add( |<li>To go back to your favorites, click the abapgit logo.</li>| ).
+    ri_html->add( |<li>To go back to your favorites, use the| ).
+    ri_html->add_a(
+      iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home ).
+    ri_html->add( |</li>| ).
 
     ri_html->add( `<li>` ).
     ri_html->add_a( iv_txt = 'Explore'
@@ -36580,6 +36638,25 @@ CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
     ri_html->add( ' to find projects using abapGit</li>' ).
     ri_html->add( '</ul></p>' ).
     ri_html->add( '</div>' ).
+  ENDMETHOD.
+
+  METHOD build_main_menu.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
+
+    ro_menu->add(
+      iv_txt = zcl_abapgit_gui_buttons=>new_online( )
+      iv_act = zif_abapgit_definitions=>c_action-repo_newonline
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
+      iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>advanced( )
+      io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>help( )
+      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -39722,49 +39799,23 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD build_main_menu.
 
-    DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
-          lo_helpsub TYPE REF TO zcl_abapgit_html_toolbar.
-
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
-    CREATE OBJECT lo_advsub.
-    CREATE OBJECT lo_helpsub.
 
-    lo_advsub->add( iv_txt = 'Database util'
-                    iv_act = zif_abapgit_definitions=>c_action-go_db ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Package to zip'
-                    iv_act = zif_abapgit_definitions=>c_action-zip_package ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Transport to zip'
-                    iv_act = zif_abapgit_definitions=>c_action-zip_transport ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Object to files'
-                    iv_act = zif_abapgit_definitions=>c_action-zip_object ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Test changed by'
-                    iv_act = c_actions-changed_by ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Debug info'
-                    iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ) ##NO_TEXT.
-    lo_advsub->add( iv_txt = 'Settings'
-                    iv_act = zif_abapgit_definitions=>c_action-go_settings ) ##NO_TEXT.
-
-    lo_helpsub->add( iv_txt = 'Tutorial'
-                     iv_act = zif_abapgit_definitions=>c_action-go_tutorial ) ##NO_TEXT.
-    lo_helpsub->add( iv_txt = 'Documentation'
-                     iv_act = c_actions-documentation ) ##NO_TEXT.
-    lo_helpsub->add( iv_txt = 'Explore'
-                     iv_act = zif_abapgit_definitions=>c_action-go_explore ) ##NO_TEXT.
-    lo_helpsub->add( iv_txt = 'Changelog'
-                     iv_act = c_actions-changelog ) ##NO_TEXT.
-
-    ro_menu->add( iv_txt = '+ Online'
-                  iv_act = zif_abapgit_definitions=>c_action-repo_newonline ) ##NO_TEXT.
-    ro_menu->add( iv_txt = '+ Offline'
-                  iv_act = zif_abapgit_definitions=>c_action-repo_newoffline ) ##NO_TEXT.
-
-    ro_menu->add( iv_txt = 'Advanced'
-                  io_sub = lo_advsub ) ##NO_TEXT.
-    ro_menu->add( iv_txt = 'Help'
-                  io_sub = lo_helpsub ) ##NO_TEXT.
+    ro_menu->add(
+      iv_txt = zcl_abapgit_gui_buttons=>new_online( )
+      iv_act = zif_abapgit_definitions=>c_action-repo_newonline
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
+      iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
+    )->add(
+      iv_txt = '<i class="icon icon-tools-solid"></i>'
+      io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
+    )->add(
+      iv_txt = '<i class="icon icon-question-circle-solid"></i>'
+      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -39791,24 +39842,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
     register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_actions-select ) ).
 
   ENDMETHOD.
-  METHOD test_changed_by.
-
-    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
-          lv_user  TYPE xubname,
-          ls_item  TYPE zif_abapgit_definitions=>ty_item.
-    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
-    IF ls_tadir IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    ls_item-obj_type = ls_tadir-object.
-    ls_item-obj_name = ls_tadir-obj_name.
-
-    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
-
-    MESSAGE lv_user TYPE 'S'.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_value,
@@ -39822,7 +39855,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
       WHEN c_actions-select.
 
         lv_key = iv_getdata.
-
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
 
         TRY.
@@ -39849,22 +39881,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
         mo_repo_overview->set_filter( it_postdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
-
-      WHEN c_actions-changed_by.
-        test_changed_by( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-      WHEN c_actions-documentation.
-        zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-      WHEN zif_abapgit_definitions=>c_action-go_explore.
-        zcl_abapgit_services_abapgit=>open_dotabap_homepage( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-      WHEN c_actions-changelog.
-        zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
-        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
       WHEN OTHERS.
 
@@ -42432,7 +42448,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -42629,6 +42645,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
         ENDIF.
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
+      WHEN zif_abapgit_definitions=>c_action-changed_by.
+        test_changed_by( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-documentation.
+        zcl_abapgit_services_abapgit=>open_abapgit_wikipage( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-go_explore.
+        zcl_abapgit_services_abapgit=>open_dotabap_homepage( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-changelog.
+        zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
     ENDCASE.
 
   ENDMETHOD.
@@ -42671,6 +42703,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '</html>' ).                              "#EC NOTEXT
 
   ENDMETHOD.
+
+  METHOD test_changed_by.
+
+    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
+          lv_user  TYPE xubname,
+          ls_item  TYPE zif_abapgit_definitions=>ty_item.
+    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
+    IF ls_tadir IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    ls_item-obj_type = ls_tadir-object.
+    ls_item-obj_name = ls_tadir-obj_name.
+
+    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
+
+    MESSAGE lv_user TYPE 'S'.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_functions IMPLEMENTATION.
@@ -42706,7 +42757,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD class_constructor.
 
     CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
@@ -43248,6 +43299,78 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+
+  METHOD advanced_submenu.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add(
+      iv_txt = 'Database util'
+      iv_act = zif_abapgit_definitions=>c_action-go_db
+    )->add(
+      iv_txt = 'Package to zip'
+      iv_act = zif_abapgit_definitions=>c_action-zip_package
+    )->add(
+      iv_txt = 'Transport to zip'
+      iv_act = zif_abapgit_definitions=>c_action-zip_transport
+    )->add(
+      iv_txt = 'Object to files'
+      iv_act = zif_abapgit_definitions=>c_action-zip_object
+    )->add(
+      iv_txt = 'Test changed by'
+      iv_act = zif_abapgit_definitions=>c_action-changed_by
+    )->add(
+      iv_txt = 'Debug info'
+      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
+    )->add(
+      iv_txt = 'Settings'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings ).
+
+  ENDMETHOD.
+
+  METHOD help_submenu.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add(
+      iv_txt = 'Tutorial'
+      iv_act = zif_abapgit_definitions=>c_action-go_tutorial
+    )->add(
+      iv_txt = 'Documentation'
+      iv_act = zif_abapgit_definitions=>c_action-documentation
+    )->add(
+      iv_txt = 'Explore'
+      iv_act = zif_abapgit_definitions=>c_action-go_explore
+    )->add(
+      iv_txt = 'Changelog'
+      iv_act = zif_abapgit_definitions=>c_action-changelog ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
+
+  METHOD new_online.
+    rv_html_string = `<i class="icon icon-cloud-upload-alt"></i> New Online`.
+  ENDMETHOD.
+
+  METHOD new_offline.
+    rv_html_string = `<i class="icon icon-plug"></i> New Offline`.
+  ENDMETHOD.
+
+  METHOD advanced.
+    rv_html_string = `<i class="icon icon-tools-solid"></i>`.
+  ENDMETHOD.
+
+  METHOD help.
+    rv_html_string = `<i class="icon icon-question-circle-solid"></i>`.
+  ENDMETHOD.
+
+  METHOD repo_list.
+    rv_html_string = `<i class="icon icon-bars"></i> Repository list`.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
@@ -88509,5 +88632,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-07T13:37:48.323Z
+* abapmerge 0.14.1 - 2020-07-09T07:14:39.560Z
 ****************************************************
