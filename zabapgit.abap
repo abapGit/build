@@ -22433,7 +22433,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   ENDMETHOD.
   METHOD identify_object.
 
-    DATA: lv_name TYPE tadir-obj_name,
+    DATA: lv_name TYPE string,
           lv_type TYPE string,
           lv_ext  TYPE string.
 
@@ -22445,14 +22445,18 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
     REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
 
-    " Try to get a unique package name for DEVC by using the path
+    " The counter part to this logic must be maintained in ZCL_ABAPGIT_OBJECTS_FILES->FILENAME
     IF lv_type = 'DEVC'.
+      " Try to get a unique package name for DEVC by using the path
       ASSERT lv_name = 'PACKAGE'.
       lv_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
         iv_top                  = iv_devclass
         io_dot                  = io_dot
         iv_create_if_not_exists = abap_false
         iv_path                 = iv_path ).
+    ELSE.
+      " Get original object name
+      lv_name = cl_http_utility=>unescape_url( lv_name ).
     ENDIF.
 
     CLEAR es_item.
@@ -50843,10 +50847,21 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     DATA: lv_obj_name TYPE string.
     lv_obj_name = ms_item-obj_name.
 
+    " The counter part to this logic must be maintained in ZCL_ABAPGIT_FILE_STATUS->IDENTIFY_OBJECT
     IF ms_item-obj_type = 'DEVC'.
       " Packages have a fixed filename so that the repository can be installed to a different
       " package(-hierarchy) on the client and not show up as a different package in the repo.
       lv_obj_name = 'package'.
+    ELSE.
+      " Some characters in object names cause problems when identifying the object later
+      " -> we escape these characters here
+      " cl_http_utility=>escape_url doesn't do dots but escapes slash which we use for namespaces
+      " -> we escape just some selected characters
+      REPLACE ALL OCCURRENCES OF `%` IN lv_obj_name WITH '%25'.
+      REPLACE ALL OCCURRENCES OF `#` IN lv_obj_name WITH '%23'.
+      REPLACE ALL OCCURRENCES OF `.` IN lv_obj_name WITH '%2e'.
+      REPLACE ALL OCCURRENCES OF `=` IN lv_obj_name WITH '%3d'.
+      REPLACE ALL OCCURRENCES OF `?` IN lv_obj_name WITH '%3f'.
     ENDIF.
 
     IF iv_extra IS INITIAL.
@@ -50862,7 +50877,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
         INTO rv_filename.
     ENDIF.
 
-* handle namespaces
+    " handle namespaces
     REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
     TRANSLATE rv_filename TO LOWER CASE.
 
@@ -88678,5 +88693,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-11T10:40:20.354Z
+* abapmerge 0.14.1 - 2020-07-11T14:07:46.072Z
 ****************************************************
