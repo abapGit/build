@@ -14260,41 +14260,41 @@ CLASS zcl_abapgit_convert DEFINITION
         VALUE(rt_lines) TYPE string_table .
     CLASS-METHODS conversion_exit_isola_output
       IMPORTING
-        iv_spras        TYPE spras
+        !iv_spras       TYPE spras
       RETURNING
-        VALUE(rv_spras) TYPE laiso.
+        VALUE(rv_spras) TYPE laiso .
     CLASS-METHODS alpha_output
       IMPORTING
-        iv_val        TYPE clike
+        !iv_val       TYPE clike
       RETURNING
-        VALUE(rv_str) TYPE string.
-
+        VALUE(rv_str) TYPE string .
     CLASS-METHODS string_to_xstring
       IMPORTING
-        iv_str         TYPE string
+        !iv_str        TYPE string
       RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
+        VALUE(rv_xstr) TYPE xstring .
+    CLASS-METHODS string_to_tab
+      IMPORTING
+        !iv_str       TYPE string
+      EXPORTING
+        VALUE(et_tab) TYPE STANDARD TABLE .
     CLASS-METHODS base64_to_xstring
       IMPORTING
-        iv_base64      TYPE string
+        !iv_base64     TYPE string
       RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
+        VALUE(rv_xstr) TYPE xstring .
     CLASS-METHODS bintab_to_xstring
       IMPORTING
-        it_bintab      TYPE lvc_t_mime
-        iv_size        TYPE i
+        !it_bintab     TYPE lvc_t_mime
+        !iv_size       TYPE i
       RETURNING
-        VALUE(rv_xstr) TYPE xstring.
-
+        VALUE(rv_xstr) TYPE xstring .
     CLASS-METHODS xstring_to_bintab
       IMPORTING
-        iv_xstr   TYPE xstring
+        !iv_xstr   TYPE xstring
       EXPORTING
-        ev_size   TYPE i
-        et_bintab TYPE lvc_t_mime.
-
+        !ev_size   TYPE i
+        !et_bintab TYPE lvc_t_mime .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -26205,6 +26205,19 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
     ELSE.
       SPLIT iv_string AT cl_abap_char_utilities=>newline INTO TABLE rt_lines.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD string_to_tab.
+
+    CLEAR et_tab[].
+    CALL FUNCTION 'SCMS_STRING_TO_FTEXT'
+      EXPORTING
+        text      = iv_str
+*     IMPORTING
+*         LENGTH    = LENGTH
+      TABLES
+        ftext_tab = et_tab.
+    ASSERT sy-subrc = 0.
 
   ENDMETHOD.
   METHOD string_to_xstring.
@@ -45066,34 +45079,50 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     DATA: lv_xstr  TYPE xstring,
           lt_xdata TYPE lvc_t_mime,
           lv_size  TYPE i.
+    DATA lt_html TYPE w3htmltab.
 
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
     IF iv_text IS SUPPLIED. " String input
-      lv_xstr = zcl_abapgit_convert=>string_to_xstring( iv_text ).
+
+      zcl_abapgit_convert=>string_to_tab( " FM SCMS_STRING_TO_FTEXT
+         EXPORTING
+           iv_str = iv_text
+         IMPORTING
+           et_tab = lt_html ).
+
+      mo_html_viewer->load_data(
+        EXPORTING
+          type         = iv_type
+          subtype      = iv_subtype
+          url          = iv_url
+        IMPORTING
+          assigned_url = rv_url
+        CHANGING
+          data_table   = lt_html
+        EXCEPTIONS
+          OTHERS       = 1 ) ##NO_TEXT.
     ELSE. " Raw input
-      lv_xstr = iv_xdata.
+      zcl_abapgit_convert=>xstring_to_bintab(
+        EXPORTING
+          iv_xstr   = iv_xdata
+        IMPORTING
+          ev_size   = lv_size
+          et_bintab = lt_xdata ).
+
+      mo_html_viewer->load_data(
+        EXPORTING
+          type         = iv_type
+          subtype      = iv_subtype
+          size         = lv_size
+          url          = iv_url
+        IMPORTING
+          assigned_url = rv_url
+        CHANGING
+          data_table   = lt_xdata
+        EXCEPTIONS
+          OTHERS       = 1 ) ##NO_TEXT.
     ENDIF.
-
-    zcl_abapgit_convert=>xstring_to_bintab(
-      EXPORTING
-        iv_xstr   = lv_xstr
-      IMPORTING
-        ev_size   = lv_size
-        et_bintab = lt_xdata ).
-
-    mo_html_viewer->load_data(
-      EXPORTING
-        type         = iv_type
-        subtype      = iv_subtype
-        size         = lv_size
-        url          = iv_url
-      IMPORTING
-        assigned_url = rv_url
-      CHANGING
-        data_table   = lt_xdata
-      EXCEPTIONS
-        OTHERS       = 1 ) ##NO_TEXT.
 
     ASSERT sy-subrc = 0. " Image data error
 
@@ -88632,5 +88661,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-09T07:14:39.560Z
+* abapmerge 0.14.1 - 2020-07-11T06:29:57.172Z
 ****************************************************
