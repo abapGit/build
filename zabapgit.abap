@@ -551,6 +551,7 @@ INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
 INTERFACE zif_abapgit_object_enhs DEFERRED.
 INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_longtexts DEFERRED.
 INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
@@ -1984,6 +1985,40 @@ INTERFACE zif_abapgit_apack_definitions.
   CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
   CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_longtexts .
+  METHODS changed_by
+    IMPORTING
+      !iv_object_name TYPE sobj_name
+      !iv_longtext_id TYPE dokil-id
+      !it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+    RETURNING
+      VALUE(rv_user)  TYPE xubname
+    RAISING
+      zcx_abapgit_exception .
+  METHODS serialize
+    IMPORTING
+      !iv_longtext_name TYPE string DEFAULT 'LONGTEXTS'
+      !iv_object_name   TYPE sobj_name
+      !iv_longtext_id   TYPE dokil-id
+      !it_dokil         TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+      !io_xml           TYPE REF TO zcl_abapgit_xml_output
+    RAISING
+      zcx_abapgit_exception .
+  METHODS deserialize
+    IMPORTING
+      !iv_longtext_name   TYPE string DEFAULT 'LONGTEXTS'
+      !io_xml             TYPE REF TO zcl_abapgit_xml_input
+      !iv_master_language TYPE langu
+    RAISING
+      zcx_abapgit_exception .
+  METHODS delete
+    IMPORTING
+      !iv_object_name TYPE sobj_name
+      !iv_longtext_id TYPE dokil-id
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_object .
@@ -4662,77 +4697,36 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_longtexts DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory.
+  FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING
-          iv_longtexts_name TYPE string OPTIONAL,
 
-      changed_by
-        IMPORTING
-          iv_object_name TYPE sobj_name
-          iv_longtext_id TYPE dokil-id
-          it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
-        RETURNING
-          VALUE(rv_user) TYPE xubname
-        RAISING
-          zcx_abapgit_exception,
-
-      serialize
-        IMPORTING
-          iv_object_name TYPE sobj_name
-          iv_longtext_id TYPE dokil-id
-          it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
-          io_xml         TYPE REF TO zcl_abapgit_xml_output
-        RAISING
-          zcx_abapgit_exception,
-
-      deserialize
-        IMPORTING
-          io_xml             TYPE REF TO zcl_abapgit_xml_input
-          iv_master_language TYPE langu
-        RAISING
-          zcx_abapgit_exception,
-
-      delete
-        IMPORTING
-          iv_object_name TYPE sobj_name
-          iv_longtext_id TYPE dokil-id
-        RAISING
-          zcx_abapgit_exception.
-
+    INTERFACES zif_abapgit_longtexts .
   PROTECTED SECTION.
-  PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_longtext,
         dokil TYPE dokil,
         head  TYPE thead,
         lines TYPE tline_tab,
-      END OF ty_longtext,
+      END OF ty_longtext .
+    TYPES:
       tty_longtexts TYPE STANDARD TABLE OF ty_longtext
-                         WITH NON-UNIQUE DEFAULT KEY.
+                           WITH NON-UNIQUE DEFAULT KEY .
 
-    CONSTANTS:
-      c_longtexts_name    TYPE string   VALUE 'LONGTEXTS' ##NO_TEXT,
-      c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
+    METHODS read
+      IMPORTING
+        !iv_object_name      TYPE sobj_name
+        !iv_longtext_id      TYPE dokil-id
+        !it_dokil            TYPE zif_abapgit_definitions=>tty_dokil
+        !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rt_longtexts)  TYPE tty_longtexts
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
 
-    DATA:
-      mv_longtexts_name TYPE string.
-
-    METHODS:
-      read
-        IMPORTING
-          iv_object_name      TYPE sobj_name
-          iv_longtext_id      TYPE dokil-id
-          it_dokil            TYPE zif_abapgit_definitions=>tty_dokil
-          iv_master_lang_only TYPE abap_bool DEFAULT abap_false
-        RETURNING
-          VALUE(rt_longtexts) TYPE tty_longtexts
-        RAISING
-          zcx_abapgit_exception.
-
+    CONSTANTS c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
 ENDCLASS.
 CLASS zcl_abapgit_object_enho_badi DEFINITION.
 
@@ -6031,20 +6025,17 @@ CLASS zcl_abapgit_object_doct DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS:
-      c_id      TYPE dokhl-id VALUE 'TX',
-      c_name    TYPE string VALUE 'DOC'.
-
-    DATA:
-      mo_longtexts TYPE REF TO zcl_abapgit_longtexts.
 
     TYPES:
       BEGIN OF ty_data,
         doctitle TYPE dsyst-doktitle,
         head     TYPE thead,
         lines    TYPE tline_tab,
-      END OF ty_data.
+      END OF ty_data .
 
+    CONSTANTS c_id TYPE dokhl-id VALUE 'TX' ##NO_TEXT.
+    CONSTANTS c_name TYPE string VALUE 'DOC' ##NO_TEXT.
+    DATA mi_longtexts TYPE REF TO zif_abapgit_longtexts .
 ENDCLASS.
 CLASS zcl_abapgit_object_docv DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -15314,7 +15305,9 @@ ENDCLASS.
 CLASS zcl_abapgit_factory DEFINITION
   CREATE PRIVATE
   .
+
   PUBLIC SECTION.
+
     CLASS-METHODS get_tadir
       RETURNING
         VALUE(ri_tadir) TYPE REF TO zif_abapgit_tadir .
@@ -15347,11 +15340,8 @@ CLASS zcl_abapgit_factory DEFINITION
       RETURNING
         VALUE(ri_environment) TYPE REF TO zif_abapgit_environment .
     CLASS-METHODS get_longtexts
-      IMPORTING
-        iv_longtexts_name   TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_longtexts) TYPE REF TO zcl_abapgit_longtexts.
-
+        VALUE(ri_longtexts) TYPE REF TO zif_abapgit_longtexts .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -15362,7 +15352,7 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_sap_package .
     TYPES:
       tty_sap_package TYPE HASHED TABLE OF ty_sap_package
-                                  WITH UNIQUE KEY package .
+                                    WITH UNIQUE KEY package .
     TYPES:
       BEGIN OF ty_code_inspector,
         package  TYPE devclass,
@@ -15370,8 +15360,7 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_code_inspector .
     TYPES:
       tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
-                                     WITH UNIQUE KEY package .
-
+                                       WITH UNIQUE KEY package .
     TYPES:
       BEGIN OF ty_longtexts,
         longtexts_name TYPE string,
@@ -15379,14 +15368,15 @@ CLASS zcl_abapgit_factory DEFINITION
       END OF ty_longtexts .
     TYPES:
       tty_longtexts TYPE HASHED TABLE OF ty_longtexts
-                         WITH UNIQUE KEY longtexts_name .
+                           WITH UNIQUE KEY longtexts_name .
+
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
     CLASS-DATA gt_sap_package TYPE tty_sap_package .
     CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
     CLASS-DATA gi_environment TYPE REF TO zif_abapgit_environment .
-    CLASS-DATA gt_longtexts TYPE tty_longtexts.
+    CLASS-DATA gi_longtext TYPE REF TO zif_abapgit_longtexts .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -22608,7 +22598,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_branch_overview.
 
     CREATE OBJECT ri_branch_overview
@@ -22653,6 +22643,14 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ENDIF.
     ri_environment = gi_environment.
   ENDMETHOD.
+  METHOD get_longtexts.
+
+    IF gi_longtext IS NOT BOUND.
+      CREATE OBJECT gi_longtext TYPE zcl_abapgit_longtexts.
+    ENDIF.
+    ri_longtexts = gi_longtext.
+
+  ENDMETHOD.
   METHOD get_sap_package.
 
     DATA: ls_sap_package TYPE ty_sap_package.
@@ -22695,30 +22693,6 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_tadir = gi_tadir.
 
   ENDMETHOD.
-  METHOD get_longtexts.
-
-    DATA: ls_longtext TYPE ty_longtexts.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtexts.
-
-    READ TABLE gt_longtexts ASSIGNING <ls_longtext>
-                            WITH TABLE KEY longtexts_name = iv_longtexts_name.
-    IF sy-subrc <> 0.
-
-      ls_longtext-longtexts_name = iv_longtexts_name.
-      CREATE OBJECT ls_longtext-instance
-        EXPORTING
-          iv_longtexts_name = iv_longtexts_name.
-
-      INSERT ls_longtext
-        INTO TABLE gt_longtexts
-        ASSIGNING <ls_longtext>.
-
-    ENDIF.
-
-    ro_longtexts = <ls_longtext>-instance.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_exit IMPLEMENTATION.
@@ -77627,20 +77601,19 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_doct IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
         is_item     = is_item
         iv_language = iv_language ).
 
-    mo_longtexts = zcl_abapgit_factory=>get_longtexts( c_name ).
+    mi_longtexts = zcl_abapgit_factory=>get_longtexts( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    rv_user = mo_longtexts->changed_by(
+    rv_user = mi_longtexts->changed_by(
                   iv_object_name = ms_item-obj_name
                   iv_longtext_id = c_id ).
 
@@ -77651,14 +77624,15 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    mo_longtexts->delete(
+    mi_longtexts->delete(
         iv_object_name = ms_item-obj_name
         iv_longtext_id = c_id ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    mo_longtexts->deserialize(
+    mi_longtexts->deserialize(
+        iv_longtext_name   = c_name
         io_xml             = io_xml
         iv_master_language = mv_language ).
 
@@ -77741,7 +77715,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    mo_longtexts->serialize(
+    mi_longtexts->serialize(
+        iv_longtext_name = c_name
         iv_object_name = ms_item-obj_name
         iv_longtext_id = c_id
         io_xml         = io_xml ).
@@ -82639,89 +82614,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_longtexts IMPLEMENTATION.
-  METHOD changed_by.
-
-    DATA: lt_longtexts TYPE tty_longtexts.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
-
-    lt_longtexts = read( iv_object_name = iv_object_name
-                         iv_longtext_id = iv_longtext_id
-                         it_dokil       = it_dokil ).
-
-    READ TABLE lt_longtexts INDEX 1 ASSIGNING <ls_longtext>.
-    IF sy-subrc = 0.
-      rv_user = <ls_longtext>-head-tdluser.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    IF iv_longtexts_name IS NOT INITIAL.
-      mv_longtexts_name = iv_longtexts_name.
-    ELSE.
-      mv_longtexts_name = c_longtexts_name.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD delete.
-
-    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
-    FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
-
-    SELECT * FROM dokil
-      INTO TABLE lt_dokil
-      WHERE id     = iv_longtext_id
-      AND   object = iv_object_name.
-
-    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
-
-      CALL FUNCTION 'DOCU_DEL'
-        EXPORTING
-          id       = <ls_dokil>-id
-          langu    = <ls_dokil>-langu
-          object   = <ls_dokil>-object
-          typ      = <ls_dokil>-typ
-        EXCEPTIONS
-          ret_code = 1
-          OTHERS   = 2.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD deserialize.
-
-    DATA: lt_longtexts     TYPE tty_longtexts,
-          lv_no_masterlang TYPE dokil-masterlang.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = mv_longtexts_name
-      CHANGING
-        cg_data = lt_longtexts ).
-
-    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
-
-      lv_no_masterlang = boolc( iv_master_language <> <ls_longtext>-dokil-langu ).
-
-      CALL FUNCTION 'DOCU_UPDATE'
-        EXPORTING
-          head          = <ls_longtext>-head
-          state         = c_docu_state_active
-          typ           = <ls_longtext>-dokil-typ
-          version       = <ls_longtext>-dokil-version
-          no_masterlang = lv_no_masterlang
-        TABLES
-          line          = <ls_longtext>-lines.
-
-    ENDLOOP.
-
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD read.
 
     DATA: ls_longtext TYPE ty_longtext,
@@ -82787,7 +82680,80 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD serialize.
+  METHOD zif_abapgit_longtexts~changed_by.
+
+    DATA: lt_longtexts TYPE tty_longtexts.
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    lt_longtexts = read( iv_object_name = iv_object_name
+                         iv_longtext_id = iv_longtext_id
+                         it_dokil       = it_dokil ).
+
+    READ TABLE lt_longtexts INDEX 1 ASSIGNING <ls_longtext>.
+    IF sy-subrc = 0.
+      rv_user = <ls_longtext>-head-tdluser.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_longtexts~delete.
+
+    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
+    FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
+
+    SELECT * FROM dokil
+      INTO TABLE lt_dokil
+      WHERE id     = iv_longtext_id
+      AND   object = iv_object_name.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
+
+      CALL FUNCTION 'DOCU_DEL'
+        EXPORTING
+          id       = <ls_dokil>-id
+          langu    = <ls_dokil>-langu
+          object   = <ls_dokil>-object
+          typ      = <ls_dokil>-typ
+        EXCEPTIONS
+          ret_code = 1
+          OTHERS   = 2.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_longtexts~deserialize.
+
+    DATA: lt_longtexts     TYPE tty_longtexts,
+          lv_no_masterlang TYPE dokil-masterlang.
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = iv_longtext_name
+      CHANGING
+        cg_data = lt_longtexts ).
+
+    LOOP AT lt_longtexts ASSIGNING <ls_longtext>.
+
+      lv_no_masterlang = boolc( iv_master_language <> <ls_longtext>-dokil-langu ).
+
+      CALL FUNCTION 'DOCU_UPDATE'
+        EXPORTING
+          head          = <ls_longtext>-head
+          state         = c_docu_state_active
+          typ           = <ls_longtext>-dokil-typ
+          version       = <ls_longtext>-dokil-version
+          no_masterlang = lv_no_masterlang
+        TABLES
+          line          = <ls_longtext>-lines.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_longtexts~serialize.
 
     DATA lt_longtexts TYPE tty_longtexts.
     DATA lt_dokil LIKE it_dokil.
@@ -82804,7 +82770,7 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
                          it_dokil       = lt_dokil
                          iv_master_lang_only = lv_master_lang_only ).
 
-    io_xml->add( iv_name = mv_longtexts_name
+    io_xml->add( iv_name = iv_longtext_name
                  ig_data = lt_longtexts ).
 
   ENDMETHOD.
@@ -88696,5 +88662,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-12T06:38:46.394Z
+* abapmerge 0.14.1 - 2020-07-12T06:41:29.020Z
 ****************************************************
