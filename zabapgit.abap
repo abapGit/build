@@ -1244,6 +1244,13 @@ INTERFACE zif_abapgit_html.
     RETURNING
       VALUE(rv_str) TYPE string .
 
+  METHODS add_icon
+    IMPORTING
+      !iv_name    TYPE string
+      !iv_hint    TYPE string OPTIONAL
+      !iv_class   TYPE string OPTIONAL
+      !iv_onclick TYPE string OPTIONAL .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_frontend_services.
@@ -10938,27 +10945,19 @@ CLASS zcl_abapgit_html DEFINITION
       FOR zif_abapgit_html~add_a .
     ALIASES add_checkbox
       FOR zif_abapgit_html~add_checkbox .
+    ALIASES add_icon
+      FOR zif_abapgit_html~add_icon .
     ALIASES icon
       FOR zif_abapgit_html~icon .
     ALIASES is_empty
       FOR zif_abapgit_html~is_empty .
-    ALIASES render
-      FOR zif_abapgit_html~render .
 
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
-    METHODS add_icon
-      IMPORTING
-        !iv_name    TYPE string
-        !iv_hint    TYPE string OPTIONAL
-        !iv_class   TYPE string OPTIONAL
-        !iv_onclick TYPE string OPTIONAL .
-
     CLASS-METHODS create
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -12916,7 +12915,7 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
       render_head_line
         IMPORTING iv_lstate      TYPE char1
                   iv_rstate      TYPE char1
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html
         RAISING   zcx_abapgit_exception,
       build_head_menu
         IMPORTING iv_lstate         TYPE char1
@@ -12929,14 +12928,14 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
       render_item
         IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_repo_item
                   iv_render_transports TYPE abap_bool
-        RETURNING VALUE(ro_html)       TYPE REF TO zcl_abapgit_html
+        RETURNING VALUE(ri_html)       TYPE REF TO zif_abapgit_html
         RAISING   zcx_abapgit_exception,
       render_item_files
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
       render_item_command
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
       get_item_class
         IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
         RETURNING VALUE(rv_html) TYPE string,
@@ -12949,7 +12948,7 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
       render_empty_package
         RETURNING VALUE(rv_html) TYPE string,
       render_parent_dir
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html
         RAISING   zcx_abapgit_exception.
 
     METHODS:
@@ -12998,7 +12997,6 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
 
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -13061,7 +13059,7 @@ CLASS zcl_abapgit_gui_repo_over DEFINITION
                 iv_label       TYPE string
                 iv_value       TYPE string OPTIONAL
                 iv_max_length  TYPE string OPTIONAL
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
+      RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
 
       apply_filter
         CHANGING
@@ -13102,10 +13100,9 @@ CLASS zcl_abapgit_gui_repo_over DEFINITION
 
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_router DEFINITION
   FINAL
@@ -13556,45 +13553,46 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING
-          iv_id TYPE string OPTIONAL,
-      add
-        IMPORTING
-          iv_txt         TYPE string
-          io_sub         TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-          iv_typ         TYPE c         DEFAULT zif_abapgit_html=>c_action_type-sapevent
-          iv_act         TYPE string    OPTIONAL
-          iv_ico         TYPE string    OPTIONAL
-          iv_cur         TYPE abap_bool OPTIONAL
-          iv_opt         TYPE c         OPTIONAL
-          iv_chk         TYPE abap_bool DEFAULT abap_undefined
-          iv_aux         TYPE string    OPTIONAL
-          iv_id          TYPE string    OPTIONAL
-          iv_title       TYPE string    OPTIONAL
-        RETURNING VALUE(ro_self) TYPE REF TO zcl_abapgit_html_toolbar,
 
-      count
-        RETURNING VALUE(rv_count) TYPE i,
-      render
-        IMPORTING
-          iv_right       TYPE abap_bool OPTIONAL
-          iv_sort        TYPE abap_bool OPTIONAL
-        RETURNING
-          VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
-      render_as_droplist
-        IMPORTING
-          iv_label       TYPE string
-          iv_right       TYPE abap_bool OPTIONAL
-          iv_sort        TYPE abap_bool OPTIONAL
-          iv_corner      TYPE abap_bool OPTIONAL
-          iv_action      TYPE string OPTIONAL
-        RETURNING
-          VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+    METHODS constructor
+      IMPORTING
+        !iv_id TYPE string OPTIONAL .
+    METHODS add
+      IMPORTING
+        !iv_txt        TYPE string
+        !io_sub        TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+        !iv_typ        TYPE c DEFAULT zif_abapgit_html=>c_action_type-sapevent
+        !iv_act        TYPE string OPTIONAL
+        !iv_ico        TYPE string OPTIONAL
+        !iv_cur        TYPE abap_bool OPTIONAL
+        !iv_opt        TYPE c OPTIONAL
+        !iv_chk        TYPE abap_bool DEFAULT abap_undefined
+        !iv_aux        TYPE string OPTIONAL
+        !iv_id         TYPE string OPTIONAL
+        !iv_title      TYPE string OPTIONAL
+      RETURNING
+        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_toolbar .
+    METHODS count
+      RETURNING
+        VALUE(rv_count) TYPE i .
+    METHODS render
+      IMPORTING
+        !iv_right      TYPE abap_bool OPTIONAL
+        !iv_sort       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS render_as_droplist
+      IMPORTING
+        !iv_label      TYPE string
+        !iv_right      TYPE abap_bool OPTIONAL
+        !iv_sort       TYPE abap_bool OPTIONAL
+        !iv_corner     TYPE abap_bool OPTIONAL
+        !iv_action     TYPE string OPTIONAL
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_item,
         txt   TYPE string,
@@ -13608,41 +13606,37 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         aux   TYPE string,
         id    TYPE string,
         title TYPE string,
-      END OF ty_item.
+      END OF ty_item .
+    TYPES:
+      tt_items TYPE STANDARD TABLE OF ty_item .
 
-    TYPES tt_items TYPE STANDARD TABLE OF ty_item.
+    DATA mt_items TYPE tt_items .
+    DATA mv_id TYPE string .
 
-    DATA: mt_items TYPE tt_items,
-          mv_id    TYPE string.
-
-    METHODS:
-      render_items
-        IMPORTING
-          iv_sort        TYPE abap_bool OPTIONAL
-        RETURNING
-          VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+    METHODS render_items
+      IMPORTING
+        !iv_sort       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
 ENDCLASS.
 CLASS zcl_abapgit_log_viewer DEFINITION
   FINAL
   CREATE PRIVATE .
 
   PUBLIC SECTION.
+
     CLASS-METHODS show_log
       IMPORTING
-        iv_header_text TYPE csequence DEFAULT 'Log'
-        ii_log         TYPE REF TO zif_abapgit_log.
-
+        !iv_header_text TYPE csequence DEFAULT 'Log'
+        !ii_log         TYPE REF TO zif_abapgit_log .
     CLASS-METHODS to_html
       IMPORTING
-        ii_log         TYPE REF TO zif_abapgit_log
+        !ii_log        TYPE REF TO zif_abapgit_log
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS write_log
       IMPORTING
-        ii_log TYPE REF TO zif_abapgit_log.
-
+        !ii_log TYPE REF TO zif_abapgit_log .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -13665,7 +13659,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
     CLASS-METHODS:
       prepare_log_for_display
         IMPORTING
-          ii_log     TYPE REF TO zif_abapgit_log
+          ii_log            TYPE REF TO zif_abapgit_log
         RETURNING
           VALUE(rt_log_out) TYPE tty_log_out,
 
@@ -33753,7 +33747,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lv_class   TYPE string,
           lv_icon    TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF ii_log->count( ) = 0.
       RETURN.
@@ -33774,10 +33768,10 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lv_class = 'error'.
       ENDCASE.
 
-      ro_html->add( |<span class="{ lv_class }">| ).
-      ro_html->add_icon( lv_icon ).
-      ro_html->add( lr_message->text ).
-      ro_html->add( '</span>' ).
+      ri_html->add( |<span class="{ lv_class }">| ).
+      ri_html->add_icon( lv_icon ).
+      ri_html->add( lr_message->text ).
+      ri_html->add( '</span>' ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -33801,7 +33795,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
@@ -33840,23 +33834,23 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
 
     DATA: lv_class TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lv_class = 'nav-container' ##NO_TEXT.
     IF iv_right = abap_true.
       lv_class = lv_class && ' float-right'.
     ENDIF.
 
-    ro_html->add( |<div class="{ lv_class }">| ).
-    ro_html->add( render_items( iv_sort = iv_sort ) ).
-    ro_html->add( '</div>' ).
+    ri_html->add( |<div class="{ lv_class }">| ).
+    ri_html->add( render_items( iv_sort = iv_sort ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_as_droplist.
 
     DATA: lv_class TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lv_class = 'nav-container' ##NO_TEXT.
     IF iv_right = abap_true.
@@ -33866,15 +33860,15 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
       lv_class = lv_class && ' corner'.
     ENDIF.
 
-    ro_html->add( |<div class="{ lv_class }">| ).
-    ro_html->add( '<ul><li>' ).
-    ro_html->add_a( iv_txt = iv_label
+    ri_html->add( |<div class="{ lv_class }">| ).
+    ri_html->add( '<ul><li>' ).
+    ri_html->add_a( iv_txt = iv_label
                     iv_typ = zif_abapgit_html=>c_action_type-sapevent
                     iv_act = iv_action ).
-    ro_html->add( '<div class="minizone"></div>' ).
-    ro_html->add( render_items( iv_sort = iv_sort ) ).
-    ro_html->add( '</li></ul>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="minizone"></div>' ).
+    ri_html->add( render_items( iv_sort = iv_sort ) ).
+    ri_html->add( '</li></ul>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_items.
@@ -33887,8 +33881,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
           lv_has_icons TYPE abap_bool.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF mt_items.
-
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_sort = abap_true.
       SORT mt_items BY txt ASCENDING AS TEXT.
@@ -33905,14 +33898,14 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
       lv_id = | id="{ mv_id }"|.
     ENDIF.
 
-    ro_html->add( |<ul{ lv_id }{ lv_class }>| ).
+    ri_html->add( |<ul{ lv_id }{ lv_class }>| ).
 
     " Render items
     LOOP AT mt_items ASSIGNING <ls_item>.
       CLEAR: lv_class, lv_icon.
 
       IF <ls_item>-typ = zif_abapgit_html=>c_action_type-separator.
-        ro_html->add( |<li class="separator">{ <ls_item>-txt }</li>| ).
+        ri_html->add( |<li class="separator">{ <ls_item>-txt }</li>| ).
         CONTINUE.
       ENDIF.
 
@@ -33936,28 +33929,28 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
         lv_aux = | data-aux="{ <ls_item>-aux }"|.
       ENDIF.
 
-      ro_html->add( |<li{ lv_class }{ lv_check }{ lv_aux }>| ).
+      ri_html->add( |<li{ lv_class }{ lv_check }{ lv_aux }>| ).
       IF <ls_item>-sub IS INITIAL.
-        ro_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
+        ri_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
                         iv_typ   = <ls_item>-typ
                         iv_act   = <ls_item>-act
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt
                         iv_title = <ls_item>-title ).
       ELSE.
-        ro_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
+        ri_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
                         iv_typ   = zif_abapgit_html=>c_action_type-dummy
                         iv_act   = ''
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt
                         iv_title = <ls_item>-title ).
-        ro_html->add( <ls_item>-sub->render_items( iv_sort ) ).
+        ri_html->add( <ls_item>-sub->render_items( iv_sort ) ).
       ENDIF.
-      ro_html->add( '</li>' ).
+      ri_html->add( '</li>' ).
 
     ENDLOOP.
 
-    ro_html->add( '</ul>' ).
+    ri_html->add( '</ul>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -35439,11 +35432,11 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'setInitialFocus("filter");' ).
-    ro_html->add( 'var gHelper = new RepoOverViewHelper();' ).
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( 'setInitialFocus("filter");' ).
+    ri_html->add( 'var gHelper = new RepoOverViewHelper();' ).
 
   ENDMETHOD.
   METHOD render_table.
@@ -35565,7 +35558,7 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
 
     DATA lv_attrs TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_value IS NOT INITIAL.
       lv_attrs = | value="{ iv_value }"|.
@@ -35575,8 +35568,8 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
       lv_attrs = | maxlength="{ iv_max_length }"|.
     ENDIF.
 
-    ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
-    ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
+    ri_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
+    ri_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
 
   ENDMETHOD.
   METHOD set_filter.
@@ -35632,7 +35625,7 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -36250,22 +36243,22 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     lo_toolbar = build_head_menu( iv_lstate = iv_lstate
                                   iv_rstate = iv_rstate ).
 
-    ro_html->add( '<div class="paddings">' ).
-    ro_html->add( '<table class="w100"><tr>' ).
+    ri_html->add( '<div class="paddings">' ).
+    ri_html->add( '<table class="w100"><tr>' ).
 
     IF mv_show_folders = abap_true.
-      ro_html->add( |<td class="current_dir">{ mv_cur_dir }</td>| ).
+      ri_html->add( |<td class="current_dir">{ mv_cur_dir }</td>| ).
     ENDIF.
 
-    ro_html->add( '<td class="right">' ).
-    ro_html->add( lo_toolbar->render( iv_right = abap_true ) ).
-    ro_html->add( '</td>' ).
-    ro_html->add( '</tr></table>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<td class="right">' ).
+    ri_html->add( lo_toolbar->render( iv_right = abap_true ) ).
+    ri_html->add( '</td>' ).
+    ri_html->add( '</tr></table>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_item.
@@ -36273,7 +36266,7 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     DATA: lv_link    TYPE string,
           lv_colspan TYPE i.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_render_transports = abap_false.
       lv_colspan = 2.
@@ -36281,42 +36274,42 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
       lv_colspan = 3.
     ENDIF.
 
-    ro_html->add( |<tr{ get_item_class( is_item ) }>| ).
+    ri_html->add( |<tr{ get_item_class( is_item ) }>| ).
 
     IF is_item-obj_name IS INITIAL AND is_item-is_dir = abap_false.
-      ro_html->add( |<td colspan="{ lv_colspan }"></td>|
+      ri_html->add( |<td colspan="{ lv_colspan }"></td>|
                  && '<td class="object">'
                  && '<i class="grey">non-code and meta files</i>'
                  && '</td>' ).
     ELSE.
-      ro_html->add( |<td class="icon">{ get_item_icon( is_item ) }</td>| ).
+      ri_html->add( |<td class="icon">{ get_item_icon( is_item ) }</td>| ).
       IF iv_render_transports = abap_true.
-        ro_html->add( render_item_lock_column( is_item ) ).
+        ri_html->add( render_item_lock_column( is_item ) ).
       ENDIF.
 
       IF is_item-is_dir = abap_true. " Subdir
         lv_link = build_dir_jump_link( is_item-path ).
-        ro_html->add( |<td class="dir" colspan="2">{ lv_link }</td>| ).
+        ri_html->add( |<td class="dir" colspan="2">{ lv_link }</td>| ).
       ELSE.
         lv_link = build_obj_jump_link( is_item ).
-        ro_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
-        ro_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item ) }</td>| ).
+        ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
+        ri_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item ) }</td>| ).
       ENDIF.
     ENDIF.
 
     " Files
-    ro_html->add( '<td class="files">' ).
-    ro_html->add( render_item_files( is_item ) ).
-    ro_html->add( '</td>' ).
+    ri_html->add( '<td class="files">' ).
+    ri_html->add( render_item_files( is_item ) ).
+    ri_html->add( '</td>' ).
 
     " Command
     IF mo_repo->has_remote_source( ) = abap_true.
-      ro_html->add( '<td class="cmd">' ).
-      ro_html->add( render_item_command( is_item ) ).
-      ro_html->add( '</td>' ).
+      ri_html->add( '<td class="cmd">' ).
+      ri_html->add( render_item_command( is_item ) ).
+      ri_html->add( '</td>' ).
     ENDIF.
 
-    ro_html->add( '</tr>' ).
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_item_command.
@@ -36324,16 +36317,16 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
     DATA: lv_difflink TYPE string,
           ls_file     LIKE LINE OF is_item-files.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF is_item-is_dir = abap_true. " Directory
 
-      ro_html->add( '<div>' ).
-      ro_html->add( |<span class="grey">{ is_item-changes } changes</span>| ).
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+      ri_html->add( '<div>' ).
+      ri_html->add( |<span class="grey">{ is_item-changes } changes</span>| ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
         iv_lstate = is_item-lstate
         iv_rstate = is_item-rstate ) ).
-      ro_html->add( '</div>' ).
+      ri_html->add( '</div>' ).
 
     ELSEIF is_item-changes > 0.
 
@@ -36343,29 +36336,29 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
           iv_key    = mo_repo->get_key( )
           ig_object = is_item ).
 
-        ro_html->add( '<div>' ).
-        ro_html->add_a( iv_txt = |diff ({ is_item-changes })|
+        ri_html->add( '<div>' ).
+        ri_html->add_a( iv_txt = |diff ({ is_item-changes })|
                         iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
-        ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
                                                             iv_rstate = is_item-rstate ) ).
-        ro_html->add( '</div>' ).
+        ri_html->add( '</div>' ).
 
       ELSE.
         LOOP AT is_item-files INTO ls_file.
 
-          ro_html->add( '<div>' ).
+          ri_html->add( '<div>' ).
           IF ls_file-is_changed = abap_true.
             lv_difflink = zcl_abapgit_html_action_utils=>file_encode(
               iv_key  = mo_repo->get_key( )
               ig_file = ls_file ).
-            ro_html->add_a( iv_txt = 'diff'
+            ri_html->add_a( iv_txt = 'diff'
                             iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
-            ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = ls_file-lstate
+            ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = ls_file-lstate
                                                                 iv_rstate = ls_file-rstate ) ).
           ELSE.
-            ro_html->add( '&nbsp;' ).
+            ri_html->add( '&nbsp;' ).
           ENDIF.
-          ro_html->add( '</div>' ).
+          ri_html->add( '</div>' ).
 
         ENDLOOP.
       ENDIF.
@@ -36375,16 +36368,16 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_item_files.
 
-    DATA: ls_file     LIKE LINE OF is_item-files.
+    DATA: ls_file LIKE LINE OF is_item-files.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF mv_hide_files = abap_true AND is_item-obj_type IS NOT INITIAL.
       RETURN.
     ENDIF.
 
     LOOP AT is_item-files INTO ls_file.
-      ro_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
+      ri_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -36464,15 +36457,15 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_parent_dir.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<tr class="folder">' ).
-    ro_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'folder' ) }</td>| ).
-    ro_html->add( |<td class="object" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
+    ri_html->add( '<tr class="folder">' ).
+    ri_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'folder' ) }</td>| ).
+    ri_html->add( |<td class="object" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
     IF mo_repo->has_remote_source( ) = abap_true.
-      ro_html->add( |<td colspan="1"></td>| ). " Dummy for online
+      ri_html->add( |<td colspan="1"></td>| ). " Dummy for online
     ENDIF.
-    ro_html->add( '</tr>' ).
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -44271,14 +44264,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
             iv_title = iv_title ) ).
 
   ENDMETHOD.
-  METHOD add_icon.
-
-    add( icon( iv_name    = iv_name
-               iv_class   = iv_class
-               iv_hint    = iv_hint
-               iv_onclick = iv_onclick  ) ).
-
-  ENDMETHOD.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -44385,24 +44370,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD is_empty.
     rv_yes = boolc( lines( mt_buffer ) = 0 ).
   ENDMETHOD.
-  METHOD render.
-
-    DATA: ls_context TYPE ty_indent_context,
-          lt_temp    TYPE string_table.
-
-    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
-                   <lv_line_c> LIKE LINE OF lt_temp.
-
-    ls_context-no_indent_jscss = iv_no_indent_jscss.
-
-    LOOP AT mt_buffer ASSIGNING <lv_line>.
-      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
-      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
-    ENDLOOP.
-
-    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
-
-  ENDMETHOD.
   METHOD study_line.
 
     DATA: lv_line TYPE string,
@@ -44465,6 +44432,32 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
 
     add( checkbox( iv_id      = iv_id
                    iv_checked = iv_checked ) ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~add_icon.
+
+    add( icon( iv_name    = iv_name
+               iv_class   = iv_class
+               iv_hint    = iv_hint
+               iv_onclick = iv_onclick  ) ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~render.
+
+    DATA: ls_context TYPE ty_indent_context,
+          lt_temp    TYPE string_table.
+
+    FIELD-SYMBOLS: <lv_line>   LIKE LINE OF lt_temp,
+                   <lv_line_c> LIKE LINE OF lt_temp.
+
+    ls_context-no_indent_jscss = iv_no_indent_jscss.
+
+    LOOP AT mt_buffer ASSIGNING <lv_line>.
+      APPEND <lv_line> TO lt_temp ASSIGNING <lv_line_c>.
+      indent_line( CHANGING cs_context = ls_context cv_line = <lv_line_c> ).
+    ENDLOOP.
+
+    CONCATENATE LINES OF lt_temp INTO rv_html SEPARATED BY cl_abap_char_utilities=>newline.
 
   ENDMETHOD.
   METHOD zif_abapgit_html~set_title.
@@ -88703,5 +88696,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-12T06:31:18.372Z
+* abapmerge 0.14.1 - 2020-07-12T06:38:46.394Z
 ****************************************************
