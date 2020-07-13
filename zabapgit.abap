@@ -11158,6 +11158,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         !ix_error      TYPE REF TO zcx_abapgit_exception OPTIONAL
         !iv_error      TYPE string OPTIONAL
+        !iv_extra_style TYPE string OPTIONAL
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     CLASS-METHODS render_repo_top
@@ -26797,6 +26798,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* PANELS */' ).
     lo_buf->add( 'div.panel {' ).
     lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 0.5em 0.5em;' ).
+    lo_buf->add( '  margin: 0.5em 0.5em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.dummydiv {' ).
@@ -26940,7 +26943,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.repo_banner {' ).
-    lo_buf->add( '  margin: 0em 1.2em 1em;' ).
+    lo_buf->add( '  margin: 0em 1em 1em;' ).
     lo_buf->add( '  padding: 0.5em 0.5em;' ).
     lo_buf->add( '  text-align: center;' ).
     lo_buf->add( '  font-size: 85%;' ).
@@ -27931,6 +27934,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( 'div.panel.success {' ).
     lo_buf->add( '  color: #589a58 !important;' ).
     lo_buf->add( '  background-color: #c5eac5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'div.panel.error {' ).
+    lo_buf->add( '  color: #d41919;' ).
+    lo_buf->add( '  background-color: #fad6d6;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '#debug-output { color: var(--theme-debug-color); }' ).
     lo_buf->add( 'div.dummydiv { background-color: var(--theme-container-background-color); }' ).
@@ -36233,7 +36240,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
             AND mo_repo->has_remote_source( ) = abap_true
             AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
           ri_html->add(
-            |<div class="repo_banner panel success">|
+            |<div class="panel success repo_banner">|
             && |ZIP source is attached and completely <b>matches</b> to the local state|
             && |</div>| ).
         ENDIF.
@@ -36285,9 +36292,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
         ri_html->add( '</div>' ).
         ri_html->add( '</div>' ).
       CATCH zcx_abapgit_exception INTO lx_error.
-        ri_html->add( render_head_line( iv_lstate = lv_lstate
-                                        iv_rstate = lv_rstate ) ).
-        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( ix_error = lx_error ) ).
+        ri_html->add(
+          render_head_line(
+            iv_lstate = lv_lstate
+            iv_rstate = lv_rstate ) ).
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error(
+          iv_extra_style = 'repo_banner'
+          ix_error = lx_error ) ).
     ENDTRY.
 
   ENDMETHOD.
@@ -42856,7 +42867,34 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+  METHOD advanced_submenu.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add(
+      iv_txt = 'Database util'
+      iv_act = zif_abapgit_definitions=>c_action-go_db
+    )->add(
+      iv_txt = 'Package to zip'
+      iv_act = zif_abapgit_definitions=>c_action-zip_package
+    )->add(
+      iv_txt = 'Transport to zip'
+      iv_act = zif_abapgit_definitions=>c_action-zip_transport
+    )->add(
+      iv_txt = 'Object to files'
+      iv_act = zif_abapgit_definitions=>c_action-zip_object
+    )->add(
+      iv_txt = 'Test changed by'
+      iv_act = zif_abapgit_definitions=>c_action-changed_by
+    )->add(
+      iv_txt = 'Debug info'
+      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
+    )->add(
+      iv_txt = 'Settings'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings ).
+
+  ENDMETHOD.
   METHOD class_constructor.
 
     CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
@@ -42876,6 +42914,24 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
            WHERE arbgb = iv_msgid
            AND msgnr = iv_msgno
            AND sprsl = sy-langu.
+
+  ENDMETHOD.
+  METHOD help_submenu.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add(
+      iv_txt = 'Tutorial'
+      iv_act = zif_abapgit_definitions=>c_action-go_tutorial
+    )->add(
+      iv_txt = 'Documentation'
+      iv_act = zif_abapgit_definitions=>c_action-documentation
+    )->add(
+      iv_txt = 'Explore'
+      iv_act = zif_abapgit_definitions=>c_action-go_explore
+    )->add(
+      iv_txt = 'Changelog'
+      iv_act = zif_abapgit_definitions=>c_action-changelog ).
 
   ENDMETHOD.
   METHOD normalize_program_name.
@@ -42950,6 +43006,11 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_error.
 
     DATA lv_error TYPE string.
+    DATA lv_class TYPE string VALUE 'panel error center'.
+
+    IF iv_extra_style IS NOT INITIAL.
+      lv_class = lv_class && ` ` && iv_extra_style.
+    ENDIF.
 
     CREATE OBJECT ro_html.
 
@@ -42959,7 +43020,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       lv_error = iv_error.
     ENDIF.
 
-    ro_html->add( '<div class="dummydiv error">' ).
+    ro_html->add( |<div class="{ lv_class }">| ).
     ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-circle/red' ) } Error: { lv_error }| ).
     ro_html->add( '</div>' ).
 
@@ -43398,54 +43459,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
-
-  METHOD advanced_submenu.
-
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add(
-      iv_txt = 'Database util'
-      iv_act = zif_abapgit_definitions=>c_action-go_db
-    )->add(
-      iv_txt = 'Package to zip'
-      iv_act = zif_abapgit_definitions=>c_action-zip_package
-    )->add(
-      iv_txt = 'Transport to zip'
-      iv_act = zif_abapgit_definitions=>c_action-zip_transport
-    )->add(
-      iv_txt = 'Object to files'
-      iv_act = zif_abapgit_definitions=>c_action-zip_object
-    )->add(
-      iv_txt = 'Test changed by'
-      iv_act = zif_abapgit_definitions=>c_action-changed_by
-    )->add(
-      iv_txt = 'Debug info'
-      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
-    )->add(
-      iv_txt = 'Settings'
-      iv_act = zif_abapgit_definitions=>c_action-go_settings ).
-
-  ENDMETHOD.
-
-  METHOD help_submenu.
-
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add(
-      iv_txt = 'Tutorial'
-      iv_act = zif_abapgit_definitions=>c_action-go_tutorial
-    )->add(
-      iv_txt = 'Documentation'
-      iv_act = zif_abapgit_definitions=>c_action-documentation
-    )->add(
-      iv_txt = 'Explore'
-      iv_act = zif_abapgit_definitions=>c_action-go_explore
-    )->add(
-      iv_txt = 'Changelog'
-      iv_act = zif_abapgit_definitions=>c_action-changelog ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
@@ -88758,5 +88771,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-13T09:18:43.480Z
+* abapmerge 0.14.1 - 2020-07-13T09:36:02.076Z
 ****************************************************
