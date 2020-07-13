@@ -11109,13 +11109,12 @@ CLASS zcl_abapgit_exception_viewer DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
-  FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_ui_factory .
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_frontend_services.
-
+    INTERFACES zif_abapgit_frontend_services .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -43593,7 +43592,7 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from file_open_dialog' ). "#EC NOTEXT
     ENDIF.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
     ENDIF.
 
     READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
@@ -88759,5 +88758,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-13T08:43:33.027Z
+* abapmerge 0.14.1 - 2020-07-13T09:18:43.480Z
 ****************************************************
