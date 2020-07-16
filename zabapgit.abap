@@ -84652,20 +84652,24 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
     mi_client->response->get_status( IMPORTING code = lv_code ).
     CASE lv_code.
       WHEN 200.
-        RETURN.
+        RETURN. " Success, OK
       WHEN 302.
-        zcx_abapgit_exception=>raise( 'HTTP redirect, check URL' ).
+        zcx_abapgit_exception=>raise( 'Resource access temporarily redirected. Check the URL (HTTP 302)' ).
       WHEN 401.
-        zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
+        zcx_abapgit_exception=>raise( 'Unauthorized access to resource. Check your credentials (HTTP 401)' ).
       WHEN 403.
-        zcx_abapgit_exception=>raise( 'HTTP 403, forbidden' ).
+        zcx_abapgit_exception=>raise( 'Access to resource forbidden (HTTP 403)' ).
       WHEN 404.
-        zcx_abapgit_exception=>raise( 'HTTP 404, not found' ).
+        zcx_abapgit_exception=>raise( 'Resource not found. Check the URL (HTTP 404)' ).
+      WHEN 407.
+        zcx_abapgit_exception=>raise( 'Proxy authentication required. Check your credentials (HTTP 407)' ).
+      WHEN 408.
+        zcx_abapgit_exception=>raise( 'Request timeout (HTTP 408)' ).
       WHEN 415.
-        zcx_abapgit_exception=>raise( 'HTTP 415, unsupported media type' ).
+        zcx_abapgit_exception=>raise( 'Unsupported media type (HTTP 415)' ).
       WHEN OTHERS.
         lv_text = mi_client->response->get_cdata( ).
-        zcx_abapgit_exception=>raise( |HTTP error code: { lv_code }, { lv_text }| ).
+        zcx_abapgit_exception=>raise( |{ lv_text } (HTTP { lv_code })| ).
     ENDCASE.
 
   ENDMETHOD.
@@ -88796,5 +88800,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-16T06:40:02.682Z
+* abapmerge 0.14.1 - 2020-07-16T08:31:31.497Z
 ****************************************************
