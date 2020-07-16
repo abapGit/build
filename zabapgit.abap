@@ -19841,6 +19841,11 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     zcl_abapgit_persist_factory=>get_repo( )->delete( io_repo->get_key( ) ).
 
+    " If favorite, remove it
+    IF zcl_abapgit_persistence_user=>get_instance( )->is_favorite_repo( io_repo->get_key( ) ) = abap_true.
+      zcl_abapgit_persistence_user=>get_instance( )->toggle_favorite( io_repo->get_key( ) ).
+    ENDIF.
+
     DELETE TABLE mt_list FROM io_repo.
     ASSERT sy-subrc = 0.
 
@@ -88791,5 +88796,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-13T15:44:01.696Z
+* abapmerge 0.14.1 - 2020-07-16T06:40:02.682Z
 ****************************************************
