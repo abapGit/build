@@ -14820,6 +14820,11 @@ CLASS zcl_abapgit_utils DEFINITION
         !ev_time    TYPE zif_abapgit_definitions=>ty_commit-time
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS translate_postdata
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(rv_string) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -24828,6 +24833,32 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error author regex value='{ iv_author }'| ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD translate_postdata.
+
+    DATA: lt_post_data       TYPE cnht_post_data_tab,
+          ls_last_line       TYPE cnht_post_data_line,
+          lv_last_line_index TYPE i.
+
+    IF it_postdata IS INITIAL.
+      "Nothing to do
+      RETURN.
+    ENDIF.
+
+    lt_post_data = it_postdata.
+
+    "Save the last line for separate merge, because we don't need its trailing spaces
+    WHILE ls_last_line IS INITIAL.
+      lv_last_line_index = lines( lt_post_data ).
+      READ TABLE lt_post_data INTO ls_last_line INDEX lv_last_line_index.
+      DELETE lt_post_data INDEX lv_last_line_index.
+    ENDWHILE.
+
+    CONCATENATE LINES OF lt_post_data INTO rv_string
+      IN CHARACTER MODE RESPECTING BLANKS.
+    CONCATENATE rv_string ls_last_line INTO rv_string
+      IN CHARACTER MODE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -36914,7 +36945,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     CLEAR eg_fields.
 
-    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
     REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
@@ -37646,7 +37677,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                    <ls_status> LIKE LINE OF ms_files-status,
                    <ls_item>   LIKE LINE OF lt_fields.
 
-    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
 
     IF lines( lt_fields ) = 0.
@@ -37800,7 +37831,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     DATA lv_serialized_post_data TYPE string.
 
-    CONCATENATE LINES OF it_postdata INTO lv_serialized_post_data.
+    lv_serialized_post_data = zcl_abapgit_utils=>translate_postdata( it_postdata ).
     rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
 
   ENDMETHOD.
@@ -38437,7 +38468,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     DATA lv_serialized_post_data TYPE string.
 
-    CONCATENATE LINES OF it_postdata INTO lv_serialized_post_data.
+    lv_serialized_post_data = zcl_abapgit_utils=>translate_postdata( it_postdata ).
     rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
 
   ENDMETHOD.
@@ -38917,7 +38948,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
           lv_add    TYPE string,
           lv_remove TYPE string.
 
-    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
 
     zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = c_patch_action-add
@@ -41932,7 +41963,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
           lt_fields TYPE tihttpnvp.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
 
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
 
@@ -43926,7 +43957,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     DATA: lt_fields TYPE tihttpnvp,
           lv_string TYPE string.
-    CONCATENATE LINES OF it_postdata INTO lv_string.
+    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
 
     lv_string = cl_http_utility=>unescape_url( lv_string ).
 
@@ -88800,5 +88831,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-16T08:34:57.138Z
+* abapmerge 0.14.1 - 2020-07-16T13:52:57.137Z
 ****************************************************
