@@ -23185,20 +23185,26 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
 
-* misuse field KORRNUM to fix deletion sequence
+    " misuse field KORRNUM to fix deletion sequence
 
     LOOP AT ct_tadir ASSIGNING <ls_tadir>.
       CASE <ls_tadir>-object.
         WHEN 'DEVC'.
+          " Packages last
           <ls_tadir>-korrnum = '9990'.
-        WHEN 'IATU'.
-          <ls_tadir>-korrnum = '5500'.
-        WHEN 'IARP'.
-          <ls_tadir>-korrnum = '5510'.
-        WHEN 'IASP'.
-          <ls_tadir>-korrnum = '5520'.
-        WHEN 'SUSC'.
-          <ls_tadir>-korrnum = '5000'.
+        WHEN 'DOMA'.
+          <ls_tadir>-korrnum = '9000'.
+        WHEN 'PARA'.
+          " PARA after DTEL
+          <ls_tadir>-korrnum = '8100'.
+        WHEN 'DTEL'.
+          <ls_tadir>-korrnum = '8000'.
+        WHEN 'DCLS'.
+          " AUTH after DCLS
+          <ls_tadir>-korrnum = '7100'.
+        WHEN 'AUTH'.
+          " AUTH after DCLS
+          <ls_tadir>-korrnum = '7050'.
         WHEN 'TTYP' OR 'TABL' OR 'VIEW'.
           SELECT SINGLE tabclass FROM dd02l
             INTO lv_tabclass
@@ -23206,28 +23212,24 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
             AND as4local = 'A'
             AND as4vers = '0000'.
           IF sy-subrc = 0 AND lv_tabclass = 'APPEND'.
-* delete append structures before database tables
+            " delete append structures before database tables
             <ls_tadir>-korrnum = '6500'.
           ELSE.
             <ls_tadir>-korrnum = '7000'.
           ENDIF.
-        WHEN 'DTEL'.
-          <ls_tadir>-korrnum = '8000'.
-* ACID after PROG/FUGR/CLAS
+        WHEN 'IASP'.
+          <ls_tadir>-korrnum = '5520'.
+        WHEN 'IARP'.
+          <ls_tadir>-korrnum = '5510'.
+        WHEN 'IATU'.
+          <ls_tadir>-korrnum = '5500'.
+        WHEN 'SUSC'.
+          <ls_tadir>-korrnum = '5000'.
         WHEN 'ACID'.
+          " ACID after PROG/FUGR/CLAS
           <ls_tadir>-korrnum = '3000'.
-        WHEN 'PARA'.
-* PARA after DTEL
-          <ls_tadir>-korrnum = '8100'.
-        WHEN 'DOMA'.
-          <ls_tadir>-korrnum = '9000'.
-* AUTH after DCLS
-        WHEN 'DCLS'.
-          <ls_tadir>-korrnum = '7100'.
-        WHEN 'AUTH'.
-          <ls_tadir>-korrnum = '7000'.
         WHEN 'PROG'.
-* delete includes after main programs
+          " delete includes after main programs
           SELECT COUNT(*) FROM reposrc
             WHERE progname = <ls_tadir>-obj_name
             AND r3state = 'A'
@@ -23279,9 +23281,11 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
                    <ls_edge>            LIKE LINE OF lt_edges,
                    <ls_found>           LIKE LINE OF lt_founds,
                    <ls_node>            LIKE LINE OF lt_nodes.
-* build nodes
+
+    " build nodes
     LOOP AT ct_tadir ASSIGNING <ls_tadir>
         WHERE object = 'TABL'
+        OR object = 'VIEW'
         OR object = 'TTYP'.
       APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
       <ls_node>-obj_name = <ls_tadir>-obj_name.
@@ -23289,10 +23293,11 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
     ENDLOOP.
 
     APPEND 'TABL' TO lt_scope.
+    APPEND 'VIEW' TO lt_scope.
     APPEND 'STRU' TO lt_scope.
     APPEND 'TTYP' TO lt_scope.
 
-* build edges
+    " build edges
     LOOP AT lt_nodes ASSIGNING <ls_node>.
 
       CLEAR lt_findstrings.
@@ -23329,6 +23334,8 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           WHEN 'DS'
               OR 'DT'.
             <ls_edge>-to-obj_type = 'TABL'.
+          WHEN 'DV'.
+            <ls_edge>-to-obj_type = 'VIEW'.
           WHEN 'DA'.
             <ls_edge>-to-obj_type = 'TTYP'.
           WHEN OTHERS.
@@ -23338,7 +23345,7 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
 
     ENDLOOP.
 
-* build DDLS edges
+    " build DDLS edges
     LOOP AT ct_tadir ASSIGNING <ls_tadir_ddls>
                      WHERE object = 'DDLS'.
 
@@ -88842,5 +88849,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-17T05:08:40.051Z
+* abapmerge 0.14.1 - 2020-07-17T05:11:13.803Z
 ****************************************************
