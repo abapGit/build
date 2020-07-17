@@ -67404,6 +67404,12 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
     ENDIF.
 
+    CALL FUNCTION 'RS_ACCESS_PERMISSION'
+      EXPORTING
+        mode         = 'FREE'
+        object       = lv_paramid
+        object_class = 'PARA'.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 * see fm RS_PARAMETER_ADD and RS_PARAMETER_EDIT
@@ -88849,5 +88855,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-17T05:11:13.803Z
+* abapmerge 0.14.1 - 2020-07-17T08:22:09.669Z
 ****************************************************
