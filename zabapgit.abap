@@ -72282,8 +72282,9 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD functions.
 
     DATA: lv_area TYPE rs38l-area.
-    lv_area = ms_item-obj_name.
+    FIELD-SYMBOLS: <ls_functab> TYPE LINE OF ty_rs38l_incl_tt.
 
+    lv_area = ms_item-obj_name.
     CALL FUNCTION 'RS_FUNCTION_POOL_CONTENTS'
       EXPORTING
         function_pool           = lv_area
@@ -72293,8 +72294,13 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         function_pool_not_found = 1
         OTHERS                  = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from RS_FUNCTION_POOL_CONTENTS' ).
+      zcx_abapgit_exception=>raise( |Error from RS_FUNCTION_POOL_CONTENTS for { lv_area }| ).
     ENDIF.
+
+* The result can also contain function which are lowercase.
+    LOOP AT rt_functab ASSIGNING <ls_functab>.
+      TRANSLATE <ls_functab> TO UPPER CASE.
+    ENDLOOP.
 
     SORT rt_functab BY funcname ASCENDING.
     DELETE ADJACENT DUPLICATES FROM rt_functab COMPARING funcname.
@@ -88856,5 +88862,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-18T05:50:01.152Z
+* abapmerge 0.14.1 - 2020-07-19T05:06:29.334Z
 ****************************************************
