@@ -12119,11 +12119,11 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
   PRIVATE SECTION.
     CONSTANTS:
       BEGIN OF c_actions,
-        show          TYPE string VALUE 'show' ##NO_TEXT,
-        overview      TYPE string VALUE 'overview',
-        select        TYPE string VALUE 'select',
-        apply_filter  TYPE string VALUE 'apply_filter',
-        abapgit_home  TYPE string VALUE 'abapgit_home',
+        show         TYPE string VALUE 'show' ##NO_TEXT,
+        overview     TYPE string VALUE 'overview',
+        select       TYPE string VALUE 'select',
+        apply_filter TYPE string VALUE 'apply_filter',
+        abapgit_home TYPE string VALUE 'abapgit_home',
       END OF c_actions.
 
     DATA: mo_repo_overview TYPE REF TO zcl_abapgit_gui_repo_over,
@@ -12131,6 +12131,11 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
 
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    METHODS get_patch_page
+      IMPORTING iv_getdata     TYPE clike
+      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
@@ -13083,9 +13088,13 @@ CLASS zcl_abapgit_gui_repo_over DEFINITION
       apply_order_by
         CHANGING ct_overview TYPE tty_overview,
 
-      _add_col
+      _add_column
         IMPORTING
-          iv_descriptor TYPE string.
+          iv_tech_name    TYPE string OPTIONAL
+          iv_display_name TYPE string OPTIONAL
+          iv_css_class    TYPE string OPTIONAL
+          iv_add_tz       TYPE abap_bool OPTIONAL
+          iv_title        TYPE string OPTIONAL.
 
     METHODS render_scripts
       RETURNING
@@ -27687,6 +27696,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo-overview { font-size: smaller; }' ).
     lo_buf->add( '.repo-overview tbody td { height: 2em; }' ).
     lo_buf->add( '.ro-detail { display: none; }' ).
+    lo_buf->add( '.ro-action { width: 190px; }' ).
+    lo_buf->add( '.ro-go { font-size: 150%; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Branch Overview Page */' ).
     lo_buf->add( '.gitGraph-scrollWrapper, .gitGraph-Wrapper{' ).
@@ -35467,7 +35478,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -35626,12 +35637,17 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_body.
 
+    CONSTANTS: lc_separator TYPE string VALUE `<span class="separator">|</span>`.
+
     DATA:
-      lv_type_icon         TYPE string,
-      lv_favorite_icon     TYPE string,
-      lv_favorite_class    TYPE string,
-      lv_package_jump_data TYPE string,
-      lv_package_obj_name  TYPE sobj_name.
+      lv_type_icon           TYPE string,
+      lv_favorite_icon       TYPE string,
+      lv_favorite_class      TYPE string,
+      lv_package_jump_data   TYPE string,
+      lv_package_obj_name    TYPE sobj_name,
+      lv_stage_link          TYPE string,
+      lv_patch_link          TYPE string,
+      lv_code_inspector_link TYPE string.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -35691,6 +35707,30 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-created_by }</td>| ).
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-created_at }</td>| ).
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-key }</td>| ).
+
+      ii_html->add( |<td class='ro-action'> | ).
+
+      lv_stage_link = ii_html->a(
+        iv_txt = |Stage|
+        iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?{ <ls_overview>-key } | ).
+
+      lv_patch_link = ii_html->a(
+        iv_txt = |Patch|
+        iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?{ <ls_overview>-key } | ).
+
+      lv_code_inspector_link = ii_html->a(
+        iv_txt = |Code inspector|
+        iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?{ <ls_overview>-key } | ).
+
+      ii_html->add( lv_code_inspector_link && lc_separator && lv_stage_link && lc_separator && lv_patch_link ).
+
+      ii_html->add( |</td>| ).
+
+      ii_html->add( |<td class='ro-go'><span>{
+                zcl_abapgit_html=>a(
+                  iv_txt = `&rsaquo;`
+                  iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</span></td>| ).
+
       ii_html->add( |</tr>| ).
 
     ENDLOOP.
@@ -35701,18 +35741,65 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   METHOD render_table_header.
 
     CLEAR mt_col_spec.
-    "          technical name  /display name    /css class /add timezone
-    _add_col( 'FAVORITE        /                /wmin      / ' ).
-    _add_col( 'TYPE            /                /wmin      / ' ).
-    _add_col( 'NAME            /Name            /          / ' ).
-    _add_col( 'URL             /Url             /          / ' ).
-    _add_col( 'PACKAGE         /Package         /          / ' ).
-    _add_col( 'BRANCH          /Branch          /          / ' ).
-    _add_col( 'DESERIALIZED_BY /Deserialized by /ro-detail / ' ).
-    _add_col( 'DESERIALIZED_AT /Deserialized at /ro-detail /X' ).
-    _add_col( 'CREATED_BY      /Created by      /ro-detail / ' ).
-    _add_col( 'CREATED_AT      /Created at      /ro-detail /X' ).
-    _add_col( 'KEY             /Key             /ro-detail / ' ).
+
+    _add_column(
+      iv_tech_name = 'FAVORITE'
+      iv_css_class = 'wmin' ).
+
+    _add_column(
+      iv_tech_name = 'TYPE'
+      iv_css_class = 'wmin' ).
+
+    _add_column(
+      iv_tech_name = 'NAME'
+      iv_display_name = 'Name' ).
+
+    _add_column(
+      iv_tech_name = 'URL'
+      iv_display_name = 'Url' ).
+
+    _add_column(
+      iv_tech_name = 'PACKAGE'
+      iv_display_name = 'Package' ).
+
+    _add_column(
+      iv_tech_name = 'BRANCH'
+      iv_display_name = 'Branch' ).
+
+    _add_column(
+      iv_tech_name = 'DESERIALIZED_BY'
+      iv_display_name = 'Deserialized by'
+      iv_css_class = 'ro-detail' ).
+
+    _add_column(
+      iv_tech_name = 'DESERIALIZED_AT'
+      iv_display_name = 'Deserialized at'
+      iv_css_class = 'ro-detail'
+      iv_add_tz = abap_true ).
+
+    _add_column(
+      iv_tech_name = 'CREATED_BY'
+      iv_display_name = 'Created by'
+      iv_css_class = 'ro-detail' ).
+    _add_column(
+      iv_tech_name = 'CREATED_TAT'
+      iv_display_name = 'Created at'
+      iv_css_class = 'ro-detail'
+      iv_add_tz = abap_true ).
+
+    _add_column(
+      iv_tech_name = 'KEY'
+      iv_display_name = 'Key'
+      iv_css_class = 'ro-detail' ).
+
+    _add_column(
+      iv_tech_name = 'ACTION'
+      iv_display_name = 'Action'
+      iv_css_class = 'ro-action' ).
+
+    _add_column(
+      iv_tech_name = 'GO'
+      iv_css_class = 'ro-go' ).
 
     ii_html->add( |<thead>| ).
     ii_html->add( |<tr>| ).
@@ -35780,21 +35867,17 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
     register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
-  METHOD _add_col.
+  METHOD _add_column.
 
     FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
     APPEND INITIAL LINE TO mt_col_spec ASSIGNING <ls_col>.
-    SPLIT iv_descriptor AT '/' INTO
-      <ls_col>-tech_name
-      <ls_col>-display_name
-      <ls_col>-css_class
-      <ls_col>-add_tz.
-    CONDENSE <ls_col>-tech_name.
-    CONDENSE <ls_col>-display_name.
-    CONDENSE <ls_col>-css_class.
-    CONDENSE <ls_col>-add_tz.
-
+    <ls_col>-display_name = iv_display_name.
+    <ls_col>-tech_name = iv_tech_name.
+    <ls_col>-title = iv_title.
+    <ls_col>-css_class = iv_css_class.
+    <ls_col>-add_tz = iv_add_tz.
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
@@ -40069,7 +40152,8 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
         mv_repo_key = lv_key.
         CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_view_repo
-          EXPORTING iv_key = lv_key.
+          EXPORTING
+            iv_key = lv_key.
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN zif_abapgit_definitions=>c_action-change_order_by.
@@ -40087,6 +40171,11 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
         mo_repo_overview->set_filter( it_postdata ).
         ev_state = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN zif_abapgit_definitions=>c_action-go_patch.
+
+        ei_page = get_patch_page( iv_getdata ).
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
+
       WHEN OTHERS.
 
         super->zif_abapgit_gui_event_handler~on_event(
@@ -40099,6 +40188,25 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
             ev_state     = ev_state ).
 
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD get_patch_page.
+
+    DATA lv_key TYPE zif_abapgit_persistence=>ty_value.
+
+    FIND FIRST OCCURRENCE OF '=' IN iv_getdata.
+    IF sy-subrc <> 0. " Not found ? -> just repo key in params
+      lv_key = iv_getdata.
+    ELSE.
+      zcl_abapgit_html_action_utils=>stage_decode(
+        EXPORTING iv_getdata = iv_getdata
+        IMPORTING ev_key     = lv_key ).
+    ENDIF.
+
+    CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_patch
+      EXPORTING
+        iv_key = lv_key.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
@@ -88870,5 +88978,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-21T04:41:10.796Z
+* abapmerge 0.14.1 - 2020-07-21T05:25:37.678Z
 ****************************************************
