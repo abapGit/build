@@ -37776,7 +37776,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     CREATE OBJECT ro_stage.
 
-    LOOP AT lt_fields ASSIGNING <ls_item>.
+    LOOP AT lt_fields ASSIGNING <ls_item>
+      "Ignore Files that we don't want to stage, so any errors don't stop the staging process
+      WHERE value <> zif_abapgit_definitions=>c_method-skip.
 
       zcl_abapgit_path=>split_file_location(
         EXPORTING
@@ -88978,5 +88980,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-23T12:57:43.499Z
+* abapmerge 0.14.1 - 2020-07-23T13:00:36.774Z
 ****************************************************
