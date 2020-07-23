@@ -646,6 +646,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
@@ -11496,29 +11497,26 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
   CREATE PRIVATE .
 
   PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
     CLASS-METHODS create
       " TODO importing prefilled form data
       RETURNING
-        VALUE(ro_page) TYPE REF TO zcl_abapgit_gui_page_addonline
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception.
-
-    METHODS zif_abapgit_gui_event_handler~on_event REDEFINITION .
 
     METHODS constructor
       RAISING
         zcx_abapgit_exception.
 
   PROTECTED SECTION.
-
-    METHODS render_content REDEFINITION.
-
   PRIVATE SECTION.
 
     CONSTANTS:
@@ -12101,6 +12099,28 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_hoc DEFINITION
+  FINAL
+  INHERITING FROM zcl_abapgit_gui_page
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      IMPORTING
+        ii_child_component TYPE REF TO zif_abapgit_gui_renderable
+        iv_page_title TYPE string
+        io_page_menu TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+      RETURNING
+        VALUE(ri_page_wrap) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+    METHODS render_content REDEFINITION.
+  PRIVATE SECTION.
+    DATA mi_child TYPE REF TO zif_abapgit_gui_renderable.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_main DEFINITION
   FINAL
@@ -40230,6 +40250,28 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
+  METHOD create.
+
+    DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
+
+    CREATE OBJECT lo_page.
+    lo_page->ms_control-page_title = iv_page_title.
+    lo_page->ms_control-page_menu  = io_page_menu.
+    lo_page->mi_child = ii_child_component.
+
+    ri_page_wrap = lo_page.
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    IF mi_child IS BOUND.
+      ri_html = mi_child->render( ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
@@ -42534,12 +42576,19 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'Clone online repository'. " TODO refactor
     CREATE OBJECT mo_validation_log.
     CREATE OBJECT mo_form_data.
   ENDMETHOD.
   METHOD create.
-    CREATE OBJECT ro_page.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_addonline.
+
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title = 'Clone online repository'
+      ii_child_component = lo_component ).
+
   ENDMETHOD.
   METHOD parse_form.
 
@@ -42566,72 +42615,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
           zcx_abapgit_exception=>raise( |Unexpected form field [{ ls_field-name }]| ).
       ENDCASE.
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
-
-    ri_html = zcl_abapgit_html=>create( ).
-
-    lo_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-online-form' ).
-    lo_form->text(
-      iv_name        = c_id-url
-      iv_required    = abap_true
-      iv_label       = 'Git repository URL'
-      iv_hint        = 'HTTPS address of the repository to clone'
-      iv_placeholder = 'https://github.com/...git' ).
-    lo_form->text(
-      iv_name        = c_id-package
-      iv_side_action = c_event-choose_package
-      iv_required    = abap_true
-      iv_label       = 'Package'
-      iv_hint        = 'SAP package for the code (should be a dedicated one)'
-      iv_placeholder = 'Z... / $...' ).
-    lo_form->text(
-      iv_name        = c_id-branch_name
-      iv_side_action = c_event-choose_branch
-      iv_label       = 'Branch'
-      iv_hint        = 'Switch to a specific branch on clone (default: master)'
-      iv_placeholder = 'master' ).
-    lo_form->radio(
-      iv_name        = c_id-folder_logic
-      iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-      iv_label       = 'Folder logic'
-      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)' ).
-    lo_form->option(
-      iv_label       = 'Prefix'
-      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix ).
-    lo_form->option(
-      iv_label       = 'Full'
-      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full ).
-    lo_form->text(
-      iv_name        = c_id-display_name
-      iv_label       = 'Display name'
-      iv_hint        = 'Name to show instead of original repo name (optional)' ).
-    lo_form->checkbox(
-      iv_name        = c_id-ignore_subpackages
-      iv_label       = 'Ignore subpackages'
-      iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)' ).
-    lo_form->checkbox(
-      iv_name        = c_id-master_lang_only
-      iv_label       = 'Serialize master language only'
-      iv_hint        = 'Ignore translations, serialize just master language' ).
-    lo_form->command(
-      iv_label       = 'Clone online repo'
-      iv_is_main     = abap_true
-      iv_action      = c_event-add_online_repo ).
-    lo_form->command(
-      iv_label       = 'Create package'
-      iv_action      = c_event-create_package ).
-    lo_form->command(
-      iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
-
-    ri_html->add( lo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
-      io_values         = mo_form_data
-      io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
   METHOD validate_form.
@@ -42719,6 +42702,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
 
         mo_validation_log = validate_form( mo_form_data ).
         IF mo_validation_log->has( c_id-url ) = abap_true.
+          mo_validation_log->set(
+            iv_key = c_id-branch_name
+            iv_val = 'Check URL issues' ).
           ev_state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
           RETURN.
         ENDIF.
@@ -42752,16 +42738,73 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
 
     ENDCASE.
 
-    IF ev_state IS INITIAL. " TODO !!! Refactor this disaster !!!
-      super->zif_abapgit_gui_event_handler~on_event(
-        EXPORTING
-          iv_action = iv_action
-          iv_getdata = iv_getdata
-          it_postdata = it_postdata
-        IMPORTING
-          ei_page = ei_page
-          ev_state = ev_state ).
-    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
+
+    gui_services( )->register_event_handler( me ).
+
+    ri_html = zcl_abapgit_html=>create( ).
+
+    lo_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-online-form' ).
+    lo_form->text(
+      iv_name        = c_id-url
+      iv_required    = abap_true
+      iv_label       = 'Git repository URL'
+      iv_hint        = 'HTTPS address of the repository to clone'
+      iv_placeholder = 'https://github.com/...git' ).
+    lo_form->text(
+      iv_name        = c_id-package
+      iv_side_action = c_event-choose_package
+      iv_required    = abap_true
+      iv_label       = 'Package'
+      iv_hint        = 'SAP package for the code (should be a dedicated one)'
+      iv_placeholder = 'Z... / $...' ).
+    lo_form->text(
+      iv_name        = c_id-branch_name
+      iv_side_action = c_event-choose_branch
+      iv_label       = 'Branch'
+      iv_hint        = 'Switch to a specific branch on clone (default: master)'
+      iv_placeholder = 'master' ).
+    lo_form->radio(
+      iv_name        = c_id-folder_logic
+      iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      iv_label       = 'Folder logic'
+      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)' ).
+    lo_form->option(
+      iv_label       = 'Prefix'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix ).
+    lo_form->option(
+      iv_label       = 'Full'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full ).
+    lo_form->text(
+      iv_name        = c_id-display_name
+      iv_label       = 'Display name'
+      iv_hint        = 'Name to show instead of original repo name (optional)' ).
+    lo_form->checkbox(
+      iv_name        = c_id-ignore_subpackages
+      iv_label       = 'Ignore subpackages'
+      iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)' ).
+    lo_form->checkbox(
+      iv_name        = c_id-master_lang_only
+      iv_label       = 'Serialize master language only'
+      iv_hint        = 'Ignore translations, serialize just master language' ).
+    lo_form->command(
+      iv_label       = 'Clone online repo'
+      iv_is_main     = abap_true
+      iv_action      = c_event-add_online_repo ).
+    lo_form->command(
+      iv_label       = 'Create package'
+      iv_action      = c_event-create_package ).
+    lo_form->command(
+      iv_label       = 'Back'
+      iv_action      = c_event-go_back ).
+
+    ri_html->add( lo_form->render(
+      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -88980,5 +89023,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-23T13:00:36.774Z
+* abapmerge 0.14.1 - 2020-07-23T13:11:55.072Z
 ****************************************************
