@@ -8364,6 +8364,26 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
            END OF ty_segment_definition.
     TYPES: ty_segment_definitions TYPE STANDARD TABLE OF ty_segment_definition WITH DEFAULT KEY.
 
+    TYPES: BEGIN OF ty_tabl_extras,
+             tddat TYPE tddat,
+           END OF ty_tabl_extras.
+
+    "! get additional data like table authorization group
+    "! @parameter iv_tabname | name of the table
+    "! @parameter is_tabl_extras | additional table data
+    METHODS read_extras IMPORTING iv_tabname            TYPE ddobjname
+                        RETURNING VALUE(rs_tabl_extras) TYPE ty_tabl_extras.
+
+    "! Update additional data
+    "! @parameter iv_tabname | name of the table
+    "! @parameter is_tabl_extras | additional table data
+    METHODS update_extras IMPORTING iv_tabname     TYPE ddobjname
+                                    is_tabl_extras TYPE ty_tabl_extras.
+
+    "! Delete additional data
+    "! @parameter iv_tabname | name of the table
+    METHODS delete_extras IMPORTING iv_tabname TYPE ddobjname.
+
     "! Serialize IDoc Segment type/definition if exits
     "! @parameter io_xml | XML writer
     "! @raising zcx_abapgit_exception | Exceptions
@@ -8392,9 +8412,9 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     CONSTANTS c_longtext_id_tabl TYPE dokil-id VALUE 'TB' ##NO_TEXT.
     CONSTANTS:
       BEGIN OF c_s_dataname,
-        segment_definition TYPE string VALUE 'SEGMENT_DEFINITION' ##NO_TEXT,
-      END OF c_s_dataname .
-
+        segment_definition TYPE string VALUE 'SEGMENT_DEFINITION',
+        tabl_extras        TYPE string VALUE 'TABL_EXTRAS',
+      END OF c_s_dataname.
     METHODS clear_dd03p_fields
       CHANGING
         !ct_dd03p TYPE ty_dd03p_tt .
@@ -58902,7 +58922,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E' ##NO_TEXT.
@@ -59262,6 +59282,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
       delete_longtexts( c_longtext_id_tabl ).
 
+      delete_extras( iv_tabname = lv_objname ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -59281,7 +59303,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
           lt_dd35v     TYPE TABLE OF dd35v,
           lt_dd36m     TYPE dd36mttyp,
           ls_dd12v     LIKE LINE OF lt_dd12v,
-          lv_refs      TYPE abap_bool.
+          lv_refs      TYPE abap_bool,
+          ls_extras    TYPE ty_tabl_extras.
 
     FIELD-SYMBOLS: <ls_dd03p> TYPE dd03p.
 
@@ -59399,6 +59422,11 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
       deserialize_longtexts( io_xml ).
 
+      io_xml->read( EXPORTING iv_name = c_s_dataname-tabl_extras
+                    CHANGING cg_data = ls_extras ).
+      update_extras( iv_tabname     = lv_name
+                     is_tabl_extras = ls_extras ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -59454,17 +59482,18 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lv_name  TYPE ddobjname,
-          ls_dd02v TYPE dd02v,
-          ls_dd09l TYPE dd09l,
-          lt_dd03p TYPE ty_dd03p_tt,
-          lt_dd05m TYPE TABLE OF dd05m,
-          lt_dd08v TYPE TABLE OF dd08v,
-          lt_dd12v TYPE dd12vtab,
-          lt_dd17v TYPE dd17vtab,
-          lt_dd35v TYPE TABLE OF dd35v,
-          lv_index LIKE sy-index,
-          lt_dd36m TYPE dd36mttyp.
+    DATA: lv_name   TYPE ddobjname,
+          ls_dd02v  TYPE dd02v,
+          ls_dd09l  TYPE dd09l,
+          lt_dd03p  TYPE ty_dd03p_tt,
+          lt_dd05m  TYPE TABLE OF dd05m,
+          lt_dd08v  TYPE TABLE OF dd08v,
+          lt_dd12v  TYPE dd12vtab,
+          lt_dd17v  TYPE dd17vtab,
+          lt_dd35v  TYPE TABLE OF dd35v,
+          lv_index  LIKE sy-index,
+          lt_dd36m  TYPE dd36mttyp,
+          ls_extras TYPE ty_tabl_extras.
 
     FIELD-SYMBOLS: <ls_dd12v>      LIKE LINE OF lt_dd12v,
                    <ls_dd05m>      LIKE LINE OF lt_dd05m,
@@ -59577,7 +59606,32 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     serialize_idoc_segment( io_xml ).
 
+    ls_extras = read_extras( iv_tabname = lv_name ).
+    io_xml->add( iv_name = c_s_dataname-tabl_extras
+                 ig_data = ls_extras ).
+
   ENDMETHOD.
+
+  METHOD delete_extras.
+
+    DELETE FROM tddat WHERE tabname = iv_tabname.
+
+  ENDMETHOD.
+  METHOD read_extras.
+
+    SELECT SINGLE * FROM tddat INTO rs_tabl_extras-tddat WHERE tabname = iv_tabname.
+
+  ENDMETHOD.
+  METHOD update_extras.
+
+    IF is_tabl_extras-tddat IS INITIAL.
+      delete_extras( iv_tabname = iv_tabname ).
+    ELSE.
+      MODIFY tddat FROM is_tabl_extras-tddat.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
@@ -89023,5 +89077,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-23T13:11:55.072Z
+* abapmerge 0.14.1 - 2020-07-25T15:37:23.397Z
 ****************************************************
