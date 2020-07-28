@@ -23075,6 +23075,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     APPEND '/.gitlab-ci.yml' TO ls_data-ignore.
     APPEND '/abaplint.json' TO ls_data-ignore.
     APPEND '/azure-pipelines.yml' TO ls_data-ignore.
+    APPEND '/.devcontainer.json' TO ls_data-ignore.
 
     CREATE OBJECT ro_dot_abapgit
       EXPORTING
@@ -89077,5 +89078,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-28T07:17:47.812Z
+* abapmerge 0.14.1 - 2020-07-28T07:21:08.388Z
 ****************************************************
