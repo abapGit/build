@@ -77194,8 +77194,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    io_xml->i18n_params( abap_false ).
-
     zcl_abapgit_factory=>get_longtexts( )->serialize(
       iv_object_name = mv_doc_object
       iv_longtext_id = c_id
@@ -89092,5 +89090,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-31T04:26:10.017Z
+* abapmerge 0.14.1 - 2020-07-31T04:28:29.141Z
 ****************************************************
