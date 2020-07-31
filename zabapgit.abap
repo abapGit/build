@@ -50083,6 +50083,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 
         IF sy-msgid = 'EU' AND sy-msgno = '510'.
           zcx_abapgit_exception=>raise( 'User is currently editing program' ).
+        ELSEIF sy-msgid = 'EU' AND sy-msgno = '522'.
+* for generated table maintenance function groups, the author is set to SAP* instead of the user which
+* generates the function group. This hits some standard checks, pulling new code again sets the author
+* to the current user which avoids the check
+          zcx_abapgit_exception=>raise( |Delete function group and pull again, { is_progdir-name } (EU522)| ).
         ELSE.
           zcx_abapgit_exception=>raise( |PROG { is_progdir-name }, updating error: { sy-msgid } { sy-msgno }| ).
         ENDIF.
@@ -50148,6 +50153,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
     ls_progdir_new-varcl   = is_progdir-varcl.
     ls_progdir_new-appl    = is_progdir-appl.
     ls_progdir_new-rstat   = is_progdir-rstat.
+    ls_progdir_new-sqlx    = is_progdir-sqlx.
+    ls_progdir_new-uccheck = is_progdir-uccheck.
 
     CALL FUNCTION 'UPDATE_PROGDIR'
       EXPORTING
@@ -89090,5 +89097,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-31T04:30:34.672Z
+* abapmerge 0.14.1 - 2020-07-31T04:39:32.616Z
 ****************************************************
