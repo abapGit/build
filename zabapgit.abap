@@ -2908,6 +2908,7 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
+
 INTERFACE zif_abapgit_services_git.
 
   TYPES:
@@ -89089,5 +89090,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-31T04:17:05.818Z
+* abapmerge 0.14.1 - 2020-07-31T04:23:01.300Z
 ****************************************************
