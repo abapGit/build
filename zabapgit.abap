@@ -2785,6 +2785,8 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception .
   METHODS create_branch_popup
+    IMPORTING
+      iv_source_branch_name TYPE string
     EXPORTING
       !ev_name   TYPE string
       !ev_cancel TYPE abap_bool
@@ -2906,7 +2908,6 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
-
 INTERFACE zif_abapgit_services_git.
 
   TYPES:
@@ -31770,22 +31771,28 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           lv_cancel TYPE abap_bool,
           lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           lv_msg    TYPE string,
-          li_popups TYPE REF TO zif_abapgit_popups.
+          li_popups TYPE REF TO zif_abapgit_popups,
+          lv_source_branch_name TYPE string.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lv_source_branch_name = lo_repo->get_branch_name( ).
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->create_branch_popup(
+      EXPORTING
+        iv_source_branch_name = lv_source_branch_name
       IMPORTING
         ev_name   = lv_name
         ev_cancel = lv_cancel ).
+
     IF lv_cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
     lo_repo->create_branch( lv_name ).
 
-    lv_msg = |Switched to new branch { zcl_abapgit_git_branch_list=>get_display_name( lv_name ) }|.
-    MESSAGE lv_msg TYPE 'S' ##NO_TEXT.
+    lv_msg = |Branch switched from { zcl_abapgit_git_branch_list=>get_display_name( lv_source_branch_name )
+      } to new branch { zcl_abapgit_git_branch_list=>get_display_name( lv_name ) }|.
+    MESSAGE lv_msg TYPE 'S'.
 
   ENDMETHOD.
   METHOD delete_branch.
@@ -32339,7 +32346,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -32723,6 +32730,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ENDIF.
       ASSERT <ls_branch> IS ASSIGNED.
       rs_branch = lo_branches->find_by_name( <ls_branch>-name ).
+      MESSAGE |Branch switched from { zcl_abapgit_git_branch_list=>get_display_name( iv_default_branch ) } to {
+        zcl_abapgit_git_branch_list=>get_display_name( rs_branch-name ) } | TYPE 'S'.
     ENDIF.
 
   ENDMETHOD.
@@ -32802,9 +32811,11 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     TRY.
 
-        _popup_3_get_values( EXPORTING iv_popup_title = 'Create branch' "#EC NOTEXT
-                             IMPORTING ev_value_1     = lv_name
-                             CHANGING  ct_fields      = lt_fields ).
+        _popup_3_get_values(
+          EXPORTING iv_popup_title = |Create branch from {
+            zcl_abapgit_git_branch_list=>get_display_name( iv_source_branch_name ) }|
+          IMPORTING ev_value_1     = lv_name
+          CHANGING  ct_fields      = lt_fields ).
 
         ev_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
               zcl_abapgit_git_branch_list=>normalize_branch_name( lv_name ) ).
@@ -89078,5 +89089,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-30T07:13:12.245Z
+* abapmerge 0.14.1 - 2020-07-31T04:17:05.818Z
 ****************************************************
