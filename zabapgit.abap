@@ -8372,7 +8372,6 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     "! get additional data like table authorization group
     "! @parameter iv_tabname | name of the table
-    "! @parameter is_tabl_extras | additional table data
     METHODS read_extras IMPORTING iv_tabname            TYPE ddobjname
                         RETURNING VALUE(rs_tabl_extras) TYPE ty_tabl_extras.
 
@@ -89103,5 +89102,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-01T10:07:50.575Z
+* abapmerge 0.14.1 - 2020-08-01T10:33:50.394Z
 ****************************************************
