@@ -64021,7 +64021,13 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
-    rv_user = c_user_unknown.
+    SELECT SINGLE chg_user
+      FROM shma_attributes
+      INTO rv_user
+      WHERE area_name = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -89097,5 +89103,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-07-31T04:39:32.616Z
+* abapmerge 0.14.1 - 2020-08-01T10:07:50.575Z
 ****************************************************
