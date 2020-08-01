@@ -28943,6 +28943,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListDetail = function (forceDisplay) {' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
+    lo_buf->add( '    this.toggleItemsDetail(forceDisplay);' ).
+    lo_buf->add( '    this.saveFilter();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function(forceDisplay){' ).
+    lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
     lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
     lo_buf->add( '    var icon = document.getElementById("icon-filter-detail");' ).
@@ -28961,6 +28968,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListFavorites = function (forceDisplay) {' ).
+    lo_buf->add( '  this.toggleItemsFavorites(forceDisplay);' ).
+    lo_buf->add( '  this.saveFilter();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsFavorites = function(forceDisplay){' ).
     lo_buf->add( '  this.isOnlyFavoritesDisplayed = forceDisplay || !this.isOnlyFavoritesDisplayed;' ).
     lo_buf->add( '  var repositories = document.getElementsByClassName("repo");' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-favorite");' ).
@@ -28975,34 +28987,31 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '      repo.style.display = "";' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function () {' ).
-    lo_buf->add( '  window.onbeforeunload = this.onPageUnload.bind(this);' ).
     lo_buf->add( '  window.onload = this.onPageLoad.bind(this);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.onPageUnload = function () {' ).
-    lo_buf->add( '  if (!window.sessionStorage) return;' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.saveFilter = function () {' ).
+    lo_buf->add( '  if (!window.localStorage) return;' ).
     lo_buf->add( '  var data = {' ).
     lo_buf->add( '    isDetailsDisplayed: this.isDetailsDisplayed,' ).
     lo_buf->add( '    isOnlyFavoritesDisplayed: this.isOnlyFavoritesDisplayed' ).
     lo_buf->add( '  };' ).
-    lo_buf->add( '  window.sessionStorage.setItem(this.pageId, JSON.stringify(data));' ).
+    lo_buf->add( '  window.localStorage.setItem(this.pageId, JSON.stringify(data));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function () {' ).
-    lo_buf->add( '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageId));' ).
+    lo_buf->add( '  var data = window.localStorage && JSON.parse(window.localStorage.getItem(this.pageId));' ).
     lo_buf->add( '  if (data) {' ).
     lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
-    lo_buf->add( '      this.toggleRepoListDetail(true);' ).
+    lo_buf->add( '      this.toggleItemsDetail(true);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (data.isOnlyFavoritesDisplayed) {' ).
-    lo_buf->add( '      this.toggleRepoListFavorites(true);' ).
+    lo_buf->add( '      this.toggleItemsFavorites(true);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  debugOutput("RepoOverViewHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -89102,5 +89111,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-01T10:33:50.394Z
+* abapmerge 0.14.1 - 2020-08-01T10:43:20.649Z
 ****************************************************
