@@ -6072,33 +6072,41 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_dd01_texts,
-             ddlanguage TYPE dd01v-ddlanguage,
-             ddtext     TYPE dd01v-ddtext,
-           END OF ty_dd01_texts,
-           BEGIN OF ty_dd07_texts,
-             valpos     TYPE dd07v-valpos,
-             ddlanguage TYPE dd07v-ddlanguage,
-             domvalue_l TYPE dd07v-domvalue_l,
-             domvalue_h TYPE dd07v-domvalue_h,
-             ddtext     TYPE dd07v-ddtext,
-             domval_ld  TYPE dd07v-domval_ld,
-             domval_hd  TYPE dd07v-domval_hd,
-           END OF ty_dd07_texts,
-           tt_dd01_texts TYPE STANDARD TABLE OF ty_dd01_texts,
-           tt_dd07_texts TYPE STANDARD TABLE OF ty_dd07_texts.
-    CONSTANTS: c_longtext_id_doma TYPE dokil-id VALUE 'DO'.
+    TYPES:
+      BEGIN OF ty_dd01_texts,
+        ddlanguage TYPE dd01v-ddlanguage,
+        ddtext     TYPE dd01v-ddtext,
+      END OF ty_dd01_texts .
+    TYPES:
+      BEGIN OF ty_dd07_texts,
+        valpos     TYPE dd07v-valpos,
+        ddlanguage TYPE dd07v-ddlanguage,
+        domvalue_l TYPE dd07v-domvalue_l,
+        domvalue_h TYPE dd07v-domvalue_h,
+        ddtext     TYPE dd07v-ddtext,
+        domval_ld  TYPE dd07v-domval_ld,
+        domval_hd  TYPE dd07v-domval_hd,
+      END OF ty_dd07_texts .
+    TYPES:
+      tt_dd01_texts TYPE STANDARD TABLE OF ty_dd01_texts .
+    TYPES:
+      tt_dd07_texts TYPE STANDARD TABLE OF ty_dd07_texts .
 
-    METHODS:
-      serialize_texts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
-        RAISING   zcx_abapgit_exception,
-      deserialize_texts
-        IMPORTING io_xml   TYPE REF TO zcl_abapgit_xml_input
-                  is_dd01v TYPE dd01v
-                  it_dd07v TYPE dd07v_tab
-        RAISING   zcx_abapgit_exception.
+    CONSTANTS c_longtext_id_doma TYPE dokil-id VALUE 'DO' ##NO_TEXT.
 
+    METHODS serialize_texts
+      IMPORTING
+        !io_xml   TYPE REF TO zcl_abapgit_xml_output
+        !it_dd07v TYPE dd07v_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_texts
+      IMPORTING
+        !io_xml   TYPE REF TO zcl_abapgit_xml_input
+        !is_dd01v TYPE dd01v
+        !it_dd07v TYPE dd07v_tab
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -77845,12 +77853,18 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       lt_dd07v_tmp = it_dd07v.
       LOOP AT lt_dd07v_tmp ASSIGNING <ls_dd07v>.
         lv_valpos = <ls_dd07v>-valpos.
+        " it_dd07v was potentially renumbered so lookup by value
         READ TABLE lt_dd07_texts ASSIGNING <ls_dd07_text>
-          WITH KEY ddlanguage = <lv_lang> valpos = <ls_dd07v>-valpos.
-        CHECK sy-subrc = 0. " ! no translation -> master translation remain (maybe not OK)
-        MOVE-CORRESPONDING <ls_dd07_text> TO <ls_dd07v>.
-        <ls_dd07v>-valpos = lv_valpos.
-        DELETE lt_dd07_texts INDEX sy-tabix. " Optimization
+          WITH KEY ddlanguage = <lv_lang> domvalue_l = <ls_dd07v>-domvalue_l domvalue_h = <ls_dd07v>-domvalue_h.
+        IF sy-subrc = 0.
+          MOVE-CORRESPONDING <ls_dd07_text> TO <ls_dd07v>.
+          <ls_dd07v>-valpos = lv_valpos.
+          DELETE lt_dd07_texts INDEX sy-tabix. " Optimization
+        ELSE.
+          " no translation -> keep entry but clear texts
+          <ls_dd07v>-ddlanguage = <lv_lang>.
+          CLEAR: <ls_dd07v>-ddtext, <ls_dd07v>-domval_ld, <ls_dd07v>-domval_hd.
+        ENDIF.
       ENDLOOP.
 
       CALL FUNCTION 'DDIF_DOMA_PUT'
@@ -77884,6 +77898,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd07v>     LIKE LINE OF lt_dd07v,
+                   <ls_dd07v_tmp> LIKE LINE OF lt_dd07v,
                    <ls_dd01_text> LIKE LINE OF lt_dd01_texts,
                    <ls_dd07_text> LIKE LINE OF lt_dd07_texts.
 
@@ -77921,9 +77936,18 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_dd01_texts ASSIGNING <ls_dd01_text>.
       MOVE-CORRESPONDING ls_dd01v TO <ls_dd01_text>.
 
-      LOOP AT lt_dd07v ASSIGNING <ls_dd07v> WHERE NOT ddlanguage IS INITIAL.
+      " Process master language entries and find corresponding translation
+      LOOP AT it_dd07v ASSIGNING <ls_dd07v> WHERE NOT ddlanguage IS INITIAL.
         APPEND INITIAL LINE TO lt_dd07_texts ASSIGNING <ls_dd07_text>.
-        MOVE-CORRESPONDING <ls_dd07v> TO <ls_dd07_text>.
+        READ TABLE lt_dd07v ASSIGNING <ls_dd07v_tmp>
+          WITH KEY ddlanguage = <lv_lang> domvalue_l = <ls_dd07v>-domvalue_l domvalue_h = <ls_dd07v>-domvalue_h.
+        IF sy-subrc = 0.
+          MOVE-CORRESPONDING <ls_dd07v_tmp> TO <ls_dd07_text>.
+        ELSE.
+          " no translation -> keep entry but clear texts
+          <ls_dd07_text>-ddlanguage = <lv_lang>.
+          CLEAR: <ls_dd07_text>-ddtext, <ls_dd07_text>-domval_ld, <ls_dd07_text>-domval_hd.
+        ENDIF.
       ENDLOOP.
 
     ENDLOOP.
@@ -78104,7 +78128,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     io_xml->add( iv_name = 'DD07V_TAB'
                  ig_data = lt_dd07v ).
 
-    serialize_texts( io_xml ).
+    serialize_texts( io_xml   = io_xml
+                     it_dd07v = lt_dd07v ).
 
     serialize_longtexts( io_xml         = io_xml
                          iv_longtext_id = c_longtext_id_doma ).
@@ -89297,5 +89322,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-06T11:38:49.697Z
+* abapmerge 0.14.1 - 2020-08-06T11:47:13.514Z
 ****************************************************
