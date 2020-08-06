@@ -20171,6 +20171,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       get_repo_from_package(
         EXPORTING
           iv_package = iv_package
+          iv_ign_subpkg = iv_ign_subpkg
         IMPORTING
           eo_repo    = lo_repo
           ev_reason  = lv_reason ).
@@ -31406,6 +31407,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     li_repo_srv->get_repo_from_package(
       EXPORTING
         iv_package = is_repo_params-package
+        iv_ign_subpkg = is_repo_params-ignore_subpackages
       IMPORTING
         eo_repo    = lo_repo
         ev_reason  = lv_reason ).
@@ -89297,5 +89299,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-05T05:53:05.463Z
+* abapmerge 0.14.1 - 2020-08-06T09:55:06.636Z
 ****************************************************
