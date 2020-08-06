@@ -32121,10 +32121,13 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
 
     DATA ls_package_data TYPE scompkdtln.
     DATA lv_create       TYPE abap_bool.
+    DATA li_popup        TYPE REF TO zif_abapgit_popups.
 
     ls_package_data-devclass = to_upper( iv_prefill_package ).
 
-    zcl_abapgit_ui_factory=>get_popups( )->popup_to_create_package(
+    li_popup = zcl_abapgit_ui_factory=>get_popups( ).
+
+    li_popup->popup_to_create_package(
       IMPORTING
         es_package_data = ls_package_data
         ev_create       = lv_create ).
@@ -89322,5 +89325,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-06T11:47:13.514Z
+* abapmerge 0.14.1 - 2020-08-06T11:51:53.395Z
 ****************************************************
