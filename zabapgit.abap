@@ -32319,7 +32319,9 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD is_installed.
 
     SELECT SINGLE devclass FROM tadir INTO rv_devclass
-      WHERE object = 'CLAS' AND obj_name = c_abapgit_class.
+      WHERE pgmid = 'R3TR'
+      AND object = 'CLAS'
+      AND obj_name = c_abapgit_class.
 
   ENDMETHOD.
   METHOD open_abapgit_changelog.
@@ -89389,5 +89391,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-07T05:19:04.034Z
+* abapmerge 0.14.1 - 2020-08-08T08:31:05.675Z
 ****************************************************
