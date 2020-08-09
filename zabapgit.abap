@@ -1631,6 +1631,8 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_sotr_tt TYPE STANDARD TABLE OF ty_sotr WITH DEFAULT KEY .
   TYPES:
+    ty_sotr_use_tt TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY .
+  TYPES:
     BEGIN OF ty_obj_attribute,
       cmpname   TYPE seocmpname,
       attkeyfld TYPE seokeyfld,
@@ -2144,8 +2146,9 @@ INTERFACE zif_abapgit_oo_object_fnc.
         zcx_abapgit_exception,
     create_sotr
       IMPORTING
-        iv_package TYPE devclass
-        it_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt
+        iv_object_name TYPE sobj_name
+        iv_package     TYPE devclass
+        io_xml         TYPE REF TO zcl_abapgit_xml_input
       RAISING
         zcx_abapgit_exception,
     create_documentation
@@ -2209,8 +2212,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     read_sotr
       IMPORTING
         iv_object_name TYPE sobj_name
-      RETURNING
-        VALUE(rt_sotr) TYPE zif_abapgit_definitions=>ty_sotr_tt
+        io_xml         TYPE REF TO zcl_abapgit_xml_output
       RAISING
         zcx_abapgit_exception,
     read_descriptions
@@ -9976,37 +9978,48 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: yt_sotr_use   TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY,
-           yt_seocompodf TYPE STANDARD TABLE OF seocompodf WITH DEFAULT KEY.
 
-    CLASS-METHODS read_sotr_wda
+    TYPES:
+      ty_sotr_use_tt TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY .
+    TYPES:
+      yt_seocompodf TYPE STANDARD TABLE OF seocompodf WITH DEFAULT KEY .
+
+    CLASS-METHODS read_sotr
       IMPORTING
-        iv_object_name TYPE sobj_name
-      RETURNING
-        VALUE(rt_sotr) TYPE zif_abapgit_definitions=>ty_sotr_tt
+        !iv_pgmid    TYPE pgmid
+        !iv_object   TYPE trobjtype
+        !iv_obj_name TYPE csequence
+        io_xml       TYPE REF TO zcl_abapgit_xml_output OPTIONAL
+      EXPORTING
+        et_sotr      TYPE zif_abapgit_definitions=>ty_sotr_tt
+        et_sotr_use  TYPE zif_abapgit_definitions=>ty_sotr_use_tt
       RAISING
-        zcx_abapgit_exception.
-    CLASS-METHODS read_sotr_seocomp
-      IMPORTING
-        iv_object_name TYPE sobj_name
-      RETURNING
-        VALUE(rt_sotr) TYPE zif_abapgit_definitions=>ty_sotr_tt
-      RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
+
     CLASS-METHODS create_sotr
       IMPORTING
-        iv_package TYPE devclass
-        it_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt
+        !iv_pgmid    TYPE pgmid
+        !iv_object   TYPE trobjtype
+        !iv_obj_name TYPE csequence
+        !iv_package  TYPE devclass
+        io_xml       TYPE REF TO zcl_abapgit_xml_input
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
   PROTECTED SECTION.
+    CLASS-METHODS get_sotr_usage
+      IMPORTING
+        !iv_pgmid          TYPE pgmid
+        !iv_object         TYPE trobjtype
+        !iv_obj_name       TYPE csequence
+      RETURNING
+        VALUE(rt_sotr_use) TYPE ty_sotr_use_tt.
+
     CLASS-METHODS get_sotr_4_concept
       IMPORTING
-        iv_concept     TYPE sotr_conc
+        !iv_concept    TYPE sotr_conc
       RETURNING
-        VALUE(rt_sotr) TYPE zif_abapgit_definitions=>ty_sotr_tt.
-
+        VALUE(rs_sotr) TYPE zif_abapgit_definitions=>ty_sotr .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_persist_background DEFINITION
   CREATE PUBLIC .
@@ -48055,14 +48068,22 @@ ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
   METHOD create_sotr.
-    DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          lt_objects TYPE sotr_objects,
-          ls_paket   TYPE sotr_pack,
-          lv_object  LIKE LINE OF lt_objects.
+
+    DATA:
+      lt_objects  TYPE sotr_objects,
+      ls_paket    TYPE sotr_pack,
+      lv_object   LIKE LINE OF lt_objects,
+      lt_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt,
+      lt_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt.
 
     FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
 
-    LOOP AT it_sotr ASSIGNING <ls_sotr>.
+    io_xml->read( EXPORTING iv_name = 'SOTR'
+                  CHANGING cg_data = lt_sotr ).
+    io_xml->read( EXPORTING iv_name = 'SOTR_USE'
+                  CHANGING cg_data = lt_sotr_use ).
+
+    LOOP AT lt_sotr ASSIGNING <ls_sotr>.
       CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
         EXPORTING
           object_vector    = <ls_sotr>-header-objid_vec
@@ -48113,14 +48134,18 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    CALL FUNCTION 'SOTR_USAGE_MODIFY'
+      EXPORTING
+        sotr_usage = lt_sotr_use.
+
   ENDMETHOD.
   METHOD get_sotr_4_concept.
+
     DATA: ls_header   TYPE sotr_head,
           lt_entries  TYPE sotr_text_tt,
           lv_obj_name TYPE trobj_name.
 
-    FIELD-SYMBOLS: <ls_sotr>  LIKE LINE OF rt_sotr,
-                   <ls_entry> LIKE LINE OF lt_entries.
+    FIELD-SYMBOLS: <ls_entry> LIKE LINE OF lt_entries.
 
     CALL FUNCTION 'SOTR_GET_CONCEPT'
       EXPORTING
@@ -48150,60 +48175,61 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
              <ls_entry>-chan_tstut.
     ENDLOOP.
 
-    APPEND INITIAL LINE TO rt_sotr ASSIGNING <ls_sotr>.
-    <ls_sotr>-header = ls_header.
-    <ls_sotr>-entries = lt_entries.
+    rs_sotr-header  = ls_header.
+    rs_sotr-entries = lt_entries.
 
   ENDMETHOD.
-  METHOD read_sotr_seocomp.
-    DATA: lv_concept    TYPE sotr_head-concept.
-    DATA: lt_seocompodf TYPE yt_seocompodf.
-    FIELD-SYMBOLS <ls_seocompodf> TYPE seocompodf.
+  METHOD get_sotr_usage.
 
-    SELECT * FROM seocompodf
-      INTO TABLE lt_seocompodf
-      WHERE clsname = iv_object_name
-      AND version = '1'
-      AND exposure = '2'
-      AND attdecltyp = '2'
-      AND type = 'SOTR_CONC'
-      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
+    DATA: lv_obj_name TYPE trobj_name.
 
-    IF sy-subrc = 0.
-      LOOP AT lt_seocompodf ASSIGNING <ls_seocompodf>.
-        lv_concept = translate( val = <ls_seocompodf>-attvalue
-                                from = ''''
-                                to = '' ).
-        rt_sotr = get_sotr_4_concept( lv_concept ).
-      ENDLOOP.
+    lv_obj_name = iv_obj_name.
+
+    " Objects with multiple components
+    IF iv_pgmid = 'LIMU' AND ( iv_object = 'WDYV' OR iv_object = 'WAPP' ).
+      lv_obj_name+30 = '%'.
     ENDIF.
 
-  ENDMETHOD.
-  METHOD read_sotr_wda.
-    DATA: lv_concept  TYPE sotr_head-concept.
-    DATA: lt_sotr_use TYPE yt_sotr_use.
-    DATA: lv_obj_name TYPE trobj_name.
-    FIELD-SYMBOLS <ls_sotr_use> TYPE sotr_use.
-
-    lv_obj_name = |{ iv_object_name }%|. "Existence check via WDR_REPOSITORY_INFO should have been done earlier
     CALL FUNCTION 'SOTR_USAGE_READ'
       EXPORTING
-        pgmid          = 'LIMU'                 " Program ID in requests and tasks
-        object         = 'WDYV'                 " Object Type
+        pgmid          = iv_pgmid
+        object         = iv_object
         obj_name       = lv_obj_name
       IMPORTING
-        sotr_usage     = lt_sotr_use
+        sotr_usage     = rt_sotr_use
       EXCEPTIONS
         no_entry_found = 1
         error_in_pgmid = 2
         OTHERS         = 3.
     IF sy-subrc = 0.
-      LOOP AT lt_sotr_use ASSIGNING <ls_sotr_use>.
-        lv_concept = translate( val = <ls_sotr_use>-concept
-                                from = ''''
-                                to = '' ).
-        rt_sotr = get_sotr_4_concept( lv_concept ).
-      ENDLOOP.
+      SORT rt_sotr_use.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD read_sotr.
+
+    DATA:
+      lv_concept TYPE sotr_head-concept.
+
+    FIELD-SYMBOLS <ls_sotr_use> TYPE sotr_use.
+
+    " Known SOTR usage...
+    " LIMU: CPUB, WAPP, WDYV
+    " R3TR: ENHC, ENHO, ENHS, ENSC, SCGR, SMIF, WDYA, WEBI, WEBS
+
+    et_sotr_use = get_sotr_usage( iv_pgmid    = iv_pgmid
+                                  iv_object   = iv_object
+                                  iv_obj_name = iv_obj_name ).
+
+    LOOP AT et_sotr_use ASSIGNING <ls_sotr_use> WHERE NOT concept IS INITIAL.
+      INSERT get_sotr_4_concept( <ls_sotr_use>-concept ) INTO TABLE et_sotr.
+    ENDLOOP.
+
+    IF io_xml IS BOUND.
+      io_xml->add( iv_name = 'SOTR'
+                   ig_data = et_sotr ).
+      io_xml->add( iv_name = 'SOTR_USE'
+                   ig_data = et_sotr_use ).
     ENDIF.
 
   ENDMETHOD.
@@ -48506,7 +48532,7 @@ CLASS zcl_abapgit_oo_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_oo_class IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -48821,64 +48847,12 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
-    DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          lt_objects TYPE sotr_objects,
-          ls_paket   TYPE sotr_pack,
-          lv_object  LIKE LINE OF lt_objects.
-
-    FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
-
-    LOOP AT it_sotr ASSIGNING <ls_sotr>.
-      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
-        EXPORTING
-          object_vector    = <ls_sotr>-header-objid_vec
-        IMPORTING
-          objects          = lt_objects
-        EXCEPTIONS
-          object_not_found = 1
-          OTHERS           = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from SOTR_OBJECT_GET_OBJECTS. Subrc = { sy-subrc }| ).
-      ENDIF.
-
-      READ TABLE lt_objects INDEX 1 INTO lv_object.
-      ASSERT sy-subrc = 0.
-
-      ls_paket-paket = iv_package.
-
-      CALL FUNCTION 'SOTR_CREATE_CONCEPT'
-        EXPORTING
-          paket                         = ls_paket
-          crea_lan                      = <ls_sotr>-header-crea_lan
-          alias_name                    = <ls_sotr>-header-alias_name
-          object                        = lv_object
-          entries                       = <ls_sotr>-entries
-          concept_default               = <ls_sotr>-header-concept
-        EXCEPTIONS
-          package_missing               = 1
-          crea_lan_missing              = 2
-          object_missing                = 3
-          paket_does_not_exist          = 4
-          alias_already_exist           = 5
-          object_type_not_found         = 6
-          langu_missing                 = 7
-          identical_context_not_allowed = 8
-          text_too_long                 = 9
-          error_in_update               = 10
-          no_master_langu               = 11
-          error_in_concept_id           = 12
-          alias_not_allowed             = 13
-          tadir_entry_creation_failed   = 14
-          internal_error                = 15
-          error_in_correction           = 16
-          user_cancelled                = 17
-          no_entry_found                = 18
-          OTHERS                        = 19.
-      IF sy-subrc <> 0 AND sy-subrc <> 5.
-        zcx_abapgit_exception=>raise( |Error from SOTR_CREATE_CONCEPT. Subrc = { sy-subrc }| ).
-      ENDIF.
-    ENDLOOP.
-
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'LIMU'
+      iv_object   = 'CPUB'
+      iv_obj_name = iv_object_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
@@ -49098,7 +49072,11 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
                                          iv_name = lv_cp ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_sotr.
-    rt_sotr = zcl_abapgit_sotr_handler=>read_sotr_seocomp( iv_object_name ).
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'LIMU'
+      iv_object   = 'CPUB'
+      iv_obj_name = iv_object_name
+      io_xml      = io_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_text_pool.
     DATA: lv_cp TYPE program.
@@ -53471,7 +53449,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_webi IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -53575,6 +53553,37 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
       ENDLOOP.
 
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD handle_single_parameter.
+    CONSTANTS:
+      BEGIN OF lc_parameter_type,
+        import TYPE vepparamtype VALUE 'I',
+        export TYPE vepparamtype VALUE 'O',
+      END OF lc_parameter_type.
+
+    CASE iv_parameter_type.
+      WHEN lc_parameter_type-import.
+        ri_parameter = ii_function->get_incoming_parameter( parameter_name  = iv_name
+                                                            version         = 'I' ).
+        IF ri_parameter IS BOUND.
+          ii_function->delete_incoming_parameter( ri_parameter ).
+        ENDIF.
+        ri_parameter = ii_function->create_incoming_parameter( iv_name ).
+
+      WHEN lc_parameter_type-export.
+
+        ri_parameter = ii_function->get_outgoing_parameter( parameter_name  = iv_name
+                                                            version         = 'I' ).
+        IF ri_parameter IS BOUND.
+          ii_function->delete_outgoing_parameter( parameter = ri_parameter ).
+        ENDIF.
+
+        ri_parameter = ii_function->create_outgoing_parameter( iv_name ).
+
+      WHEN OTHERS.
+        ASSERT 0 = 1.
+    ENDCASE.
 
   ENDMETHOD.
   METHOD handle_soap.
@@ -53699,6 +53708,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
           lv_exists   TYPE abap_bool,
           li_root     TYPE REF TO if_ws_md_vif_root,
           ls_endpoint LIKE LINE OF ls_webi-pvependpoint.
+
     io_xml->read( EXPORTING iv_name = 'WEBI'
                   CHANGING  cg_data = ls_webi ).
 
@@ -53749,6 +53759,13 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
+
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -53871,40 +53888,13 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
     io_xml->add( iv_name = 'WEBI'
                  ig_data = ls_webi ).
 
-  ENDMETHOD.
-
-  METHOD handle_single_parameter.
-    CONSTANTS:
-      BEGIN OF lc_parameter_type,
-        import TYPE vepparamtype VALUE 'I',
-        export TYPE vepparamtype VALUE 'O',
-      END OF lc_parameter_type.
-
-    CASE iv_parameter_type.
-      WHEN lc_parameter_type-import.
-        ri_parameter = ii_function->get_incoming_parameter( parameter_name  = iv_name
-                                                            version         = 'I' ).
-        IF ri_parameter IS BOUND.
-          ii_function->delete_incoming_parameter( ri_parameter ).
-        ENDIF.
-        ri_parameter = ii_function->create_incoming_parameter( iv_name ).
-
-      WHEN lc_parameter_type-export.
-
-        ri_parameter = ii_function->get_outgoing_parameter( parameter_name  = iv_name
-                                                            version         = 'I' ).
-        IF ri_parameter IS BOUND.
-          ii_function->delete_outgoing_parameter( parameter = ri_parameter ).
-        ENDIF.
-
-        ri_parameter = ii_function->create_outgoing_parameter( iv_name ).
-
-      WHEN OTHERS.
-        ASSERT 0 = 1.
-    ENDCASE.
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      io_xml      = io_xml ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
@@ -54532,11 +54522,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lt_sotr      TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          ls_component TYPE wdy_component_metadata.
+    DATA: ls_component   TYPE wdy_component_metadata,
+          ls_description TYPE wdy_ext_ctx_map.
 
     FIELD-SYMBOLS: <ls_view>       LIKE LINE OF ls_component-view_metadata,
                    <ls_controller> LIKE LINE OF ls_component-ctlr_metadata.
+
     io_xml->read( EXPORTING iv_name = 'COMPONENT'
                   CHANGING cg_data = ls_component ).
     io_xml->read( EXPORTING iv_name  = 'COMPONENTS'
@@ -54560,12 +54551,14 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
       recover_view( <ls_view> ).
     ENDLOOP.
 
-    io_xml->read( EXPORTING iv_name = 'SOTR'
-                  CHANGING cg_data = lt_sotr ).
-
-    IF lines( lt_sotr ) > 0.
-      zcl_abapgit_sotr_handler=>create_sotr( it_sotr    = lt_sotr
-                                             iv_package = iv_package ).
+    READ TABLE ls_component-comp_metadata-descriptions INTO ls_description INDEX 1.
+    IF sy-subrc = 0.
+      zcl_abapgit_sotr_handler=>create_sotr(
+        iv_pgmid    = 'LIMU'
+        iv_object   = 'WDYV'
+        iv_obj_name = ms_item-obj_name
+        iv_package  = iv_package
+        io_xml      = io_xml ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -54609,9 +54602,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_component   TYPE wdy_component_metadata,
-          lt_sotr        TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          ls_description TYPE wdy_ext_ctx_map,
-          lv_object_name TYPE sobj_name.
+          ls_description TYPE wdy_ext_ctx_map.
 
     ls_component = read( ).
 
@@ -54624,12 +54615,11 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     READ TABLE ls_component-comp_metadata-descriptions INTO ls_description INDEX 1.
     IF sy-subrc = 0.
-      lv_object_name = ls_description-component_name.
-      lt_sotr = zcl_abapgit_sotr_handler=>read_sotr_wda( lv_object_name ).
-      IF lines( lt_sotr ) > 0.
-        io_xml->add( iv_name = 'SOTR'
-                     ig_data = lt_sotr ).
-      ENDIF.
+      zcl_abapgit_sotr_handler=>read_sotr(
+        iv_pgmid    = 'LIMU'
+        iv_object   = 'WDYV'
+        iv_obj_name = ms_item-obj_name
+        io_xml      = io_xml ).
     ENDIF.
 
   ENDMETHOD.
@@ -54757,6 +54747,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
 
     DATA: ls_app        TYPE wdy_application,
           lt_properties TYPE wdy_app_property_table.
+
     io_xml->read( EXPORTING iv_name = 'APP'
                   CHANGING cg_data = ls_app ).
     io_xml->read( EXPORTING iv_name = 'PROPERTIES'
@@ -54765,6 +54756,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
     save( is_app        = ls_app
           it_properties = lt_properties
           iv_package    = iv_package ).
+
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -54813,6 +54811,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
 
     DATA: ls_app        TYPE wdy_application,
           lt_properties TYPE wdy_app_property_table.
+
     read( IMPORTING es_app        = ls_app
                     et_properties = lt_properties ).
 
@@ -54820,6 +54819,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
                  ig_data = ls_app ).
     io_xml->add( iv_name = 'PROPERTIES'
                  ig_data = lt_properties ).
+
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      io_xml      = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -55150,7 +55155,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
           lt_local_content  TYPE o2pageline_table,
           lt_local_pages    TYPE o2pagelist.
 
-    FIELD-SYMBOLS: <ls_remote_page>       LIKE LINE OF lt_pages_info.
+    FIELD-SYMBOLS: <ls_remote_page> LIKE LINE OF lt_pages_info.
+
     io_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
                   CHANGING cg_data = ls_attributes ).
     io_xml->read( EXPORTING iv_name = 'NAVGRAPH'
@@ -55265,6 +55271,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
     delete_superfluous_pages( it_local_pages  = lt_local_pages
                               it_remote_pages = lt_pages_info ).
 
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'LIMU'
+      iv_object   = 'WAPP'
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -55315,9 +55328,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
           lt_navgraph   TYPE o2applgrap_table,
           lt_pages      TYPE o2pagelist,
           lt_pages_info TYPE ty_pages_tt,
-          lo_bsp        TYPE REF TO cl_o2_api_application.
+          lo_bsp        TYPE REF TO cl_o2_api_application,
+          lt_sotr       TYPE zif_abapgit_definitions=>ty_sotr_tt,
+          lt_sotr_use   TYPE zif_abapgit_definitions=>ty_sotr_use_tt.
 
     FIELD-SYMBOLS: <ls_page> LIKE LINE OF lt_pages.
+
     lv_name = ms_item-obj_name.
 
     cl_o2_api_application=>load(
@@ -55370,6 +55386,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
 
     io_xml->add( iv_name = 'PAGES'
                  ig_data = lt_pages_info ).
+
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'LIMU'
+      iv_object   = 'WAPP'
+      iv_obj_name = ms_item-obj_name
+      io_xml      = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -74115,6 +74137,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
         lo_spot_ref->if_enh_object~activate( ).
         lo_spot_ref->if_enh_object~unlock( ).
 
+        zcl_abapgit_sotr_handler=>create_sotr(
+          iv_pgmid    = 'R3TR'
+          iv_object   = ms_item-obj_type
+          iv_obj_name = ms_item-obj_name
+          iv_package  = iv_package
+          io_xml      = io_xml ).
+
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while deserializing ENSC: `
           && lx_root->get_text( ) ##NO_TEXT.
@@ -74195,6 +74224,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
                      iv_name = 'ENH_SPOTS' ).         "Enhancement spots
         io_xml->add( ig_data = lt_comp_spots
                      iv_name = 'COMP_ENH_SPOTS' ).    "Composite enhancement spots
+
+        zcl_abapgit_sotr_handler=>read_sotr(
+          iv_pgmid    = 'R3TR'
+          iv_object   = ms_item-obj_type
+          iv_obj_name = ms_item-obj_name
+          io_xml      = io_xml ).
 
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while serializing ENSC: `
@@ -74637,6 +74672,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
                           iv_package       = iv_package
                           ii_enh_spot_tool = li_spot_ref ).
 
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -74704,6 +74746,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
     li_enhs->serialize( io_xml           = io_xml
                         ii_enh_spot_tool = li_spot_ref ).
+
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      io_xml      = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -75770,8 +75818,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lv_tool TYPE enhtooltype,
-          li_enho TYPE REF TO zif_abapgit_object_enho.
+    DATA: lv_tool     TYPE enhtooltype,
+          li_enho     TYPE REF TO zif_abapgit_object_enho.
+
     IF zif_abapgit_object~exists( ) = abap_true.
       zif_abapgit_object~delete( iv_package ).
     ENDIF.
@@ -75783,6 +75832,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     li_enho->deserialize( io_xml     = io_xml
                           iv_package = iv_package ).
+
+    zcl_abapgit_sotr_handler=>create_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      io_xml      = io_xml ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -75840,6 +75896,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
     DATA: lv_enh_id   TYPE enhname,
           li_enho     TYPE REF TO zif_abapgit_object_enho,
           li_enh_tool TYPE REF TO if_enh_tool.
+
     IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
@@ -75857,6 +75914,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     li_enho->serialize( io_xml      = io_xml
                         ii_enh_tool = li_enh_tool ).
+
+    zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'R3TR'
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      io_xml      = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -75943,6 +76006,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
         li_enh_composite->if_enh_object~activate( ).
         li_enh_composite->if_enh_object~unlock( ).
 
+        zcl_abapgit_sotr_handler=>create_sotr(
+          iv_pgmid    = 'R3TR'
+          iv_object   = ms_item-obj_type
+          iv_obj_name = ms_item-obj_name
+          iv_package  = iv_package
+          io_xml      = io_xml ).
+
       CATCH cx_enh_root INTO lx_error.
         zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
     ENDTRY.
@@ -76028,6 +76098,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
                      ig_data = lt_enh_childs ).
         io_xml->add( iv_name = 'LONGTEXT_ID'
                      ig_data = lv_longtext_id ).
+
+        zcl_abapgit_sotr_handler=>read_sotr(
+          iv_pgmid    = 'R3TR'
+          iv_object   = ms_item-obj_type
+          iv_obj_name = ms_item-obj_name
+          io_xml      = io_xml ).
 
       CATCH cx_enh_root INTO lx_error.
         zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
@@ -80677,7 +80753,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_clas IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -80784,18 +80860,10 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_sotr.
     "OTR stands for Online Text Repository
-    DATA: lt_sotr    TYPE zif_abapgit_definitions=>ty_sotr_tt.
-
-    io_xml->read( EXPORTING iv_name = 'SOTR'
-                  CHANGING cg_data = lt_sotr ).
-
-    IF lines( lt_sotr ) = 0.
-      RETURN.
-    ENDIF.
-
     mi_object_oriented_object_fct->create_sotr(
-      iv_package    = iv_package
-      it_sotr       = lt_sotr ).
+      iv_object_name = ms_item-obj_name
+      iv_package     = iv_package
+      io_xml         = io_xml ).
   ENDMETHOD.
   METHOD deserialize_tpool.
 
@@ -80844,76 +80912,28 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
                                                   iv_argument    = lv_argument ).
 
   ENDMETHOD.
-  METHOD serialize_xml.
+  METHOD repo_apack_replacement.
 
-    DATA: ls_vseoclass        TYPE vseoclass,
-          ls_clskey           TYPE seoclskey,
-          lt_langu_additional TYPE zif_abapgit_lang_definitions=>tt_langu.
+    FIELD-SYMBOLS: <lv_source> LIKE LINE OF ct_source.
 
-    ls_clskey-clsname = ms_item-obj_name.
+    LOOP AT ct_source ASSIGNING <lv_source>.
 
-    "If class was deserialized with a previous versions of abapGit and current language was different
-    "from master language at this time, this call would return SY-LANGU as master language. To fix
-    "these objects, set SY-LANGU to master language temporarily.
-    zcl_abapgit_language=>set_current_language( mv_language ).
+      FIND FIRST OCCURRENCE OF REGEX '^\s*INTERFACES(:| )\s*if_apack_manifest\s*.' IN <lv_source>.
+      IF sy-subrc = 0.
+        REPLACE FIRST OCCURRENCE OF 'if_apack_manifest' IN <lv_source> WITH 'zif_apack_manifest' IGNORING CASE.
 
-    TRY.
-        ls_vseoclass = mi_object_oriented_object_fct->get_class_properties( ls_clskey ).
+        REPLACE ALL OCCURRENCES OF 'if_apack_manifest~descriptor' IN TABLE ct_source
+                              WITH 'zif_apack_manifest~descriptor' IGNORING CASE.
 
-      CLEANUP.
-        zcl_abapgit_language=>restore_login_language( ).
+        EXIT.
+      ENDIF.
 
-    ENDTRY.
+      FIND FIRST OCCURRENCE OF REGEX '^\s*PROTECTED\s*SECTION\s*.' IN <lv_source>.
+      IF sy-subrc = 0.
+        EXIT.
+      ENDIF.
 
-    zcl_abapgit_language=>restore_login_language( ).
-
-    CLEAR: ls_vseoclass-uuid,
-           ls_vseoclass-author,
-           ls_vseoclass-createdon,
-           ls_vseoclass-changedby,
-           ls_vseoclass-changedon,
-           ls_vseoclass-r3release,
-           ls_vseoclass-chgdanyby,
-           ls_vseoclass-chgdanyon,
-           ls_vseoclass-clsfinal,
-           ls_vseoclass-clsabstrct,
-           ls_vseoclass-exposure,
-           ls_vseoclass-version.
-
-    IF mv_skip_testclass = abap_true.
-      CLEAR ls_vseoclass-with_unit_tests.
-    ENDIF.
-
-    " Table d010tinf stores info. on languages in which program is maintained
-    " Select all active translations of program texts
-    " Skip master language - it was already serialized
-    SELECT DISTINCT language
-      INTO TABLE lt_langu_additional
-      FROM d010tinf
-      WHERE r3state  = 'A'
-        AND prog     = mv_classpool_name
-        AND language <> mv_language.
-
-    io_xml->add( iv_name = 'VSEOCLASS'
-                 ig_data = ls_vseoclass ).
-
-    serialize_tpool( io_xml              = io_xml
-                     iv_clsname          = ls_clskey-clsname
-                     it_langu_additional = lt_langu_additional ).
-
-    IF ls_vseoclass-category = seoc_category_exception.
-      serialize_sotr( io_xml ).
-    ENDIF.
-
-    serialize_docu( io_xml              = io_xml
-                    iv_clsname          = ls_clskey-clsname
-                    it_langu_additional = lt_langu_additional ).
-
-    serialize_descr( io_xml     = io_xml
-                     iv_clsname = ls_clskey-clsname ).
-
-    serialize_attr( io_xml     = io_xml
-                    iv_clsname = ls_clskey-clsname ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD serialize_attr.
@@ -80988,6 +81008,11 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD serialize_sotr.
+    mi_object_oriented_object_fct->read_sotr(
+      iv_object_name = ms_item-obj_name
+      io_xml         = io_xml ).
+  ENDMETHOD.
   METHOD serialize_tpool.
 
     DATA: lt_tpool      TYPE textpool_table,
@@ -81024,17 +81049,76 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD serialize_sotr.
+  METHOD serialize_xml.
 
-    DATA: lt_sotr TYPE zif_abapgit_definitions=>ty_sotr_tt.
+    DATA: ls_vseoclass        TYPE vseoclass,
+          ls_clskey           TYPE seoclskey,
+          lt_langu_additional TYPE zif_abapgit_lang_definitions=>tt_langu.
 
-    lt_sotr = mi_object_oriented_object_fct->read_sotr( ms_item-obj_name ).
-    IF lines( lt_sotr ) = 0.
-      RETURN.
+    ls_clskey-clsname = ms_item-obj_name.
+
+    "If class was deserialized with a previous versions of abapGit and current language was different
+    "from master language at this time, this call would return SY-LANGU as master language. To fix
+    "these objects, set SY-LANGU to master language temporarily.
+    zcl_abapgit_language=>set_current_language( mv_language ).
+
+    TRY.
+        ls_vseoclass = mi_object_oriented_object_fct->get_class_properties( ls_clskey ).
+
+      CLEANUP.
+        zcl_abapgit_language=>restore_login_language( ).
+
+    ENDTRY.
+
+    zcl_abapgit_language=>restore_login_language( ).
+
+    CLEAR: ls_vseoclass-uuid,
+           ls_vseoclass-author,
+           ls_vseoclass-createdon,
+           ls_vseoclass-changedby,
+           ls_vseoclass-changedon,
+           ls_vseoclass-r3release,
+           ls_vseoclass-chgdanyby,
+           ls_vseoclass-chgdanyon,
+           ls_vseoclass-clsfinal,
+           ls_vseoclass-clsabstrct,
+           ls_vseoclass-exposure,
+           ls_vseoclass-version.
+
+    IF mv_skip_testclass = abap_true.
+      CLEAR ls_vseoclass-with_unit_tests.
     ENDIF.
 
-    io_xml->add( iv_name = 'SOTR'
-                 ig_data = lt_sotr ).
+    " Table d010tinf stores info. on languages in which program is maintained
+    " Select all active translations of program texts
+    " Skip master language - it was already serialized
+    SELECT DISTINCT language
+      INTO TABLE lt_langu_additional
+      FROM d010tinf
+      WHERE r3state  = 'A'
+        AND prog     = mv_classpool_name
+        AND language <> mv_language.
+
+    io_xml->add( iv_name = 'VSEOCLASS'
+                 ig_data = ls_vseoclass ).
+
+    serialize_tpool( io_xml              = io_xml
+                     iv_clsname          = ls_clskey-clsname
+                     it_langu_additional = lt_langu_additional ).
+
+    IF ls_vseoclass-category = seoc_category_exception.
+      serialize_sotr( io_xml ).
+    ENDIF.
+
+    serialize_docu( io_xml              = io_xml
+                    iv_clsname          = ls_clskey-clsname
+                    it_langu_additional = lt_langu_additional ).
+
+    serialize_descr( io_xml     = io_xml
+                     iv_clsname = ls_clskey-clsname ).
+
+    serialize_attr( io_xml     = io_xml
+                    iv_clsname = ls_clskey-clsname ).
 
   ENDMETHOD.
   METHOD source_apack_replacement.
@@ -81060,30 +81144,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
         REPLACE ALL OCCURRENCES OF 'zif_apack_manifest~descriptor' IN TABLE ct_source
                               WITH 'if_apack_manifest~descriptor' IGNORING CASE.
-
-        EXIT.
-      ENDIF.
-
-      FIND FIRST OCCURRENCE OF REGEX '^\s*PROTECTED\s*SECTION\s*.' IN <lv_source>.
-      IF sy-subrc = 0.
-        EXIT.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD repo_apack_replacement.
-
-    FIELD-SYMBOLS: <lv_source> LIKE LINE OF ct_source.
-
-    LOOP AT ct_source ASSIGNING <lv_source>.
-
-      FIND FIRST OCCURRENCE OF REGEX '^\s*INTERFACES(:| )\s*if_apack_manifest\s*.' IN <lv_source>.
-      IF sy-subrc = 0.
-        REPLACE FIRST OCCURRENCE OF 'if_apack_manifest' IN <lv_source> WITH 'zif_apack_manifest' IGNORING CASE.
-
-        REPLACE ALL OCCURRENCES OF 'if_apack_manifest~descriptor' IN TABLE ct_source
-                              WITH 'zif_apack_manifest~descriptor' IGNORING CASE.
 
         EXIT.
       ENDIF.
@@ -89396,5 +89456,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-09T06:39:53.336Z
+* abapmerge 0.14.1 - 2020-08-09T06:42:47.284Z
 ****************************************************
