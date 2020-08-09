@@ -13922,8 +13922,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
                c_dotabap_homepage TYPE string   VALUE 'https://dotabap.org'               ##NO_TEXT,
                c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
                c_abapgit_url      TYPE string   VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT,
-               c_abapgit_class    TYPE tcode    VALUE `ZCL_ABAPGIT_REPO`                      ##NO_TEXT,
-               c_abapgit_tcode    TYPE tcode    VALUE `ZABAPGIT`                              ##NO_TEXT.
+               c_abapgit_class    TYPE tcode    VALUE `ZCL_ABAPGIT_REPO`                      ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -18678,8 +18677,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     DATA:
       lt_objects     TYPE scts_tadir,
       lt_objects_all LIKE lt_objects,
-      lt_e071        TYPE tr_objects,
-      ls_e071        LIKE LINE OF lt_e071,
+      ls_e071        LIKE LINE OF rt_objects,
       lo_repo        TYPE REF TO zcl_abapgit_repo,
       lv_package     TYPE zif_abapgit_persistence=>ty_repo-package,
       lt_packages    TYPE zif_abapgit_sap_package=>ty_devclass_tt.
@@ -33245,7 +33243,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     DATA: lv_pfstatus     TYPE sypfkey,
           lo_events       TYPE REF TO cl_salv_events_table,
-          lo_functions    TYPE REF TO cl_salv_functions_list,
           lo_columns      TYPE REF TO cl_salv_columns_table,
           lt_columns      TYPE salv_t_column_ref,
           ls_column       TYPE salv_s_column_ref,
@@ -34977,9 +34974,8 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   METHOD render_scripts.
 
     DATA lv_json TYPE string.
-    DATA lt_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr.
 
-    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF lt_hotkeys.
+    FIELD-SYMBOLS: <ls_hotkey> LIKE LINE OF it_hotkeys.
 
     lv_json = `{`.
 
@@ -36287,9 +36283,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD build_main_menu.
-
-    DATA: lo_advsub  TYPE REF TO zcl_abapgit_html_toolbar,
-          lo_helpsub TYPE REF TO zcl_abapgit_html_toolbar.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
 
@@ -40291,11 +40284,6 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
-    DATA: lt_repos    TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
-          lx_error    TYPE REF TO zcx_abapgit_exception,
-          li_tutorial TYPE REF TO zif_abapgit_gui_renderable,
-          lo_repo     LIKE LINE OF lt_repos.
-
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
 
@@ -40310,9 +40298,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: lv_key           TYPE zif_abapgit_persistence=>ty_value,
-          li_repo_overview TYPE REF TO zif_abapgit_gui_renderable,
-          li_main_page     TYPE REF TO zcl_abapgit_gui_page_main.
+    DATA: lv_key TYPE zif_abapgit_persistence=>ty_value.
 
     CASE iv_action.
       WHEN c_actions-abapgit_home.
@@ -45607,10 +45593,9 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~cache_asset.
 
-    DATA: lv_xstr  TYPE xstring,
-          lt_xdata TYPE lvc_t_mime,
-          lv_size  TYPE i.
-    DATA lt_html TYPE w3htmltab.
+    DATA: lt_xdata TYPE lvc_t_mime,
+          lv_size  TYPE i,
+          lt_html  TYPE w3htmltab.
 
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
@@ -77458,8 +77443,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_master_lang.
 
-    DATA: lv_language TYPE spras.
-
     SELECT SINGLE langu FROM dokil INTO rv_language
       WHERE id = c_id
       AND object = mv_doc_object
@@ -89456,5 +89439,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-09T06:42:47.284Z
+* abapmerge 0.14.1 - 2020-08-09T06:46:03.966Z
 ****************************************************
