@@ -5673,9 +5673,6 @@ CLASS zcl_abapgit_object_avas DEFINITION
         !is_avas TYPE ty_avas
       RAISING
         zcx_abapgit_exception .
-    METHODS insert_links
-      IMPORTING
-        !is_avas TYPE ty_avas .
     METHODS instantiate
       RETURNING
         VALUE(ro_avas) TYPE REF TO cl_cls_attr_value_assignment
@@ -12451,7 +12448,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
           io_html      TYPE REF TO zcl_abapgit_html
           iv_filename  TYPE string
           is_diff_line TYPE zif_abapgit_definitions=>ty_diff
-          iv_fstate    TYPE char1
           iv_index     TYPE sy-tabix
         RAISING
           zcx_abapgit_exception,
@@ -12549,7 +12545,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       is_patch_line_possible
         IMPORTING
           is_diff_line                     TYPE zif_abapgit_definitions=>ty_diff
-          iv_fstate                        TYPE char1
         RETURNING
           VALUE(rv_is_patch_line_possible) TYPE abap_bool.
 
@@ -37081,8 +37076,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA: lv_devclass TYPE tadir-devclass.
-
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<div class="tutorial">' ).
@@ -39463,7 +39456,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     render_patch( io_html      = io_html
                   iv_filename  = iv_filename
                   is_diff_line = is_diff_line
-                  iv_fstate    = iv_fstate
                   iv_index     = iv_index ).
 
     super->render_line_split_row(
@@ -39490,9 +39482,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
     lv_patched = get_diff_object( iv_filename )->is_line_patched( iv_index ).
 
-    lv_is_patch_possible = is_patch_line_possible(
-                               is_diff_line = is_diff_line
-                               iv_fstate    = iv_fstate ).
+    lv_is_patch_possible = is_patch_line_possible( is_diff_line ).
 
     IF lv_is_patch_possible = abap_true.
 
@@ -41241,7 +41231,6 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
           lv_class    TYPE seoclsname,
           li_object   TYPE REF TO zif_abapgit_object,
           ls_item     TYPE zif_abapgit_definitions=>ty_item,
-          lv_language TYPE spras,
           ls_metadata TYPE zif_abapgit_definitions=>ty_metadata,
           lv_step     TYPE zif_abapgit_definitions=>ty_deserialization_step,
           lt_steps    TYPE zif_abapgit_definitions=>ty_deserialization_step_tt.
@@ -43698,11 +43687,10 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_order_by_header_cells.
 
     DATA:
-      lt_colspec   TYPE zif_abapgit_definitions=>tty_col_spec,
       lv_tmp       TYPE string,
       lv_disp_name TYPE string.
 
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_colspec.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
 
     CREATE OBJECT ro_html.
 
@@ -48156,8 +48144,7 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
   METHOD get_sotr_4_concept.
 
     DATA: ls_header   TYPE sotr_head,
-          lt_entries  TYPE sotr_text_tt,
-          lv_obj_name TYPE trobj_name.
+          lt_entries  TYPE sotr_text_tt.
 
     FIELD-SYMBOLS: <ls_entry> LIKE LINE OF lt_entries.
 
@@ -48221,9 +48208,6 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD read_sotr.
-
-    DATA:
-      lv_concept TYPE sotr_head-concept.
 
     FIELD-SYMBOLS <ls_sotr_use> TYPE sotr_use.
 
@@ -55695,9 +55679,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
           lt_navgraph   TYPE o2applgrap_table,
           lt_pages      TYPE o2pagelist,
           lt_pages_info TYPE ty_pages_tt,
-          lo_bsp        TYPE REF TO cl_o2_api_application,
-          lt_sotr       TYPE zif_abapgit_definitions=>ty_sotr_tt,
-          lt_sotr_use   TYPE zif_abapgit_definitions=>ty_sotr_use_tt.
+          lo_bsp        TYPE REF TO cl_o2_api_application.
 
     FIELD-SYMBOLS: <ls_page> LIKE LINE OF lt_pages.
 
@@ -62000,8 +61982,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
           li_iterator            TYPE REF TO if_ixml_node_iterator,
           lv_formname            TYPE tdsfname,
           li_ixml                TYPE REF TO if_ixml,
-          li_xml_doc             TYPE REF TO if_ixml_document,
-          lv_within_code_section TYPE abap_bool.
+          li_xml_doc             TYPE REF TO if_ixml_document.
 
     li_ixml = cl_ixml=>create( ).
     li_xml_doc = li_ixml->create_document( ).
@@ -82696,12 +82677,6 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD insert_links.
-
-* todo, how does links work?
-    RETURN.
-
-  ENDMETHOD.
   METHOD instantiate.
 
     DATA: lv_id  TYPE guid_32,
@@ -82770,7 +82745,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
     tadir_insert( iv_package ).
 
     insert_assignments( ls_avas ).
-    insert_links( ls_avas ).
+* todo, how does links work?
 
 * corr_insert?
 
@@ -89821,5 +89796,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-11T03:32:57.805Z
+* abapmerge 0.14.1 - 2020-08-11T16:12:42.521Z
 ****************************************************
