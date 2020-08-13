@@ -12024,6 +12024,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
         !is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
         !is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        !it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -12057,6 +12058,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         IMPORTING
           is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
           is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+          it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
         RAISING
           zcx_abapgit_exception,
       add_menu_begin
@@ -12174,6 +12176,11 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
         zcx_abapgit_exception.
+    METHODS filter_diff_by_files
+      IMPORTING
+        it_files      TYPE zif_abapgit_definitions=>ty_stage_tt
+      CHANGING
+        ct_diff_files TYPE tt_file_diff.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
@@ -12394,6 +12401,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
           iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
           is_file       TYPE zif_abapgit_definitions=>ty_file OPTIONAL
           is_object     TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+          it_files      TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
           iv_patch_mode TYPE abap_bool OPTIONAL
         RAISING
           zcx_abapgit_exception,
@@ -12811,7 +12819,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS get_page_patch
-      IMPORTING iv_getdata     TYPE clike
+      IMPORTING io_stage       TYPE REF TO zcl_abapgit_stage
       RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING   zcx_abapgit_exception.
     METHODS render_master_language_warning
@@ -29142,6 +29150,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( 'function StageHelper(params) {' ).
     lo_buf->add( '  this.pageSeed        = params.seed;' ).
     lo_buf->add( '  this.formAction      = params.formAction;' ).
+    lo_buf->add( '  this.patchAction     = params.patchAction;' ).
     lo_buf->add( '  this.user            = params.user;' ).
     lo_buf->add( '  this.selectedCount   = 0;' ).
     lo_buf->add( '  this.filteredCount   = 0;' ).
@@ -29153,6 +29162,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    commitAllBtn:      document.getElementById(params.ids.commitAllBtn),' ).
     lo_buf->add( '    commitSelectedBtn: document.getElementById(params.ids.commitSelectedBtn),' ).
     lo_buf->add( '    commitFilteredBtn: document.getElementById(params.ids.commitFilteredBtn),' ).
+    lo_buf->add( '    patchBtn:          document.getElementById(params.ids.patchBtn),' ).
     lo_buf->add( '    objectSearch:      document.getElementById(params.ids.objectSearch),' ).
     lo_buf->add( '    selectedCounter:   null,' ).
     lo_buf->add( '    filteredCounter:   null,' ).
@@ -29216,6 +29226,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  this.dom.stageTab.onclick          = this.onTableClick.bind(this);' ).
     lo_buf->add( '  this.dom.commitSelectedBtn.onclick = this.submit.bind(this);' ).
     lo_buf->add( '  this.dom.commitFilteredBtn.onclick = this.submitVisible.bind(this);' ).
+    lo_buf->add( '  this.dom.patchBtn.onclick          = this.submitPatch.bind(this);' ).
     lo_buf->add( '  this.dom.objectSearch.oninput      = this.onFilter.bind(this);' ).
     lo_buf->add( '  this.dom.objectSearch.onkeypress   = this.onFilter.bind(this);' ).
     lo_buf->add( '  window.onbeforeunload              = this.onPageUnload.bind(this);' ).
@@ -29434,6 +29445,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( 'StageHelper.prototype.submitVisible = function () {' ).
     lo_buf->add( '  this.markVisiblesAsAdded();' ).
     lo_buf->add( '  submitSapeventForm(this.collectData(), this.formAction);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'StageHelper.prototype.submitPatch = function(){' ).
+    lo_buf->add( '  submitSapeventForm(this.collectData(), this.patchAction);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Extract data from the table' ).
@@ -30111,9 +30126,18 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    // the hotkey execution' ).
     lo_buf->add( '    this.oKeyMap[sKey] = function(oEvent) {' ).
     lo_buf->add( '' ).
+    lo_buf->add( '      // gHelper is only valid for diff page' ).
+    lo_buf->add( '      var diffHelper = (window.gHelper || {});' ).
+    lo_buf->add( '' ).
     lo_buf->add( '      // We have either a js function on this' ).
     lo_buf->add( '      if (this[action]) {' ).
     lo_buf->add( '        this[action].call(this);' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // Or a method of the helper object for the diff page' ).
+    lo_buf->add( '      if (diffHelper[action]){' ).
+    lo_buf->add( '        diffHelper[action].call(diffHelper);' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
@@ -37511,12 +37535,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     CREATE OBJECT ro_menu.
 
-    IF lines( ms_files-local ) > 0.
+    IF lines( ms_files-local ) > 0
+    OR lines( ms_files-remote ) > 0.
       ro_menu->add( iv_txt = |Diff|
                     iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }| ).
 
       ro_menu->add( iv_txt = |Patch|
-                    iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?key={ mo_repo->get_key( ) }| ).
+                    iv_typ = zif_abapgit_html=>c_action_type-onclick
+                    iv_id  = |patchBtn| ).
     ENDIF.
 
   ENDMETHOD.
@@ -37618,18 +37644,20 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_page_patch.
 
-    DATA: lo_page TYPE REF TO zcl_abapgit_gui_page_patch,
-          lv_key  TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: lo_page  TYPE REF TO zcl_abapgit_gui_page_patch,
+          lv_key   TYPE zif_abapgit_persistence=>ty_repo-key,
+          lt_files TYPE zif_abapgit_definitions=>ty_stage_tt.
 
-    zcl_abapgit_html_action_utils=>file_obj_decode(
-      EXPORTING
-        iv_string = iv_getdata
-      IMPORTING
-        ev_key    = lv_key ).
+    lv_key = mo_repo->get_key( ).
+    lt_files = io_stage->get_all( ).
+
+    DELETE lt_files WHERE method <> zif_abapgit_definitions=>c_method-add
+                    AND   method <> zif_abapgit_definitions=>c_method-rm.
 
     CREATE OBJECT lo_page
       EXPORTING
-        iv_key = lv_key.
+        iv_key   = lv_key
+        it_files = lt_files.
 
     ri_page = lo_page.
 
@@ -37881,12 +37909,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
     ro_html->add( |  user:            "{ to_lower( sy-uname ) }",| ).
     ro_html->add( '  formAction:      "stage_commit",' ).
+    ro_html->add( |  patchAction:     "{ zif_abapgit_definitions=>c_action-go_patch }",| ).
 
     ro_html->add( '  ids: {' ).
     ro_html->add( '    stageTab:          "stageTab",' ).
     ro_html->add( '    commitAllBtn:      "commitAllButton",' ).
     ro_html->add( '    commitSelectedBtn: "commitSelectedButton",' ).
     ro_html->add( '    commitFilteredBtn: "commitFilteredButton",' ).
+    ro_html->add( '    patchBtn:          "patchBtn",' ).
     ro_html->add( '    objectSearch:      "objectSearch",' ).
     ro_html->add( '  }' ).
 
@@ -38050,7 +38080,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       WHEN zif_abapgit_definitions=>c_action-go_patch.                         " Go Patch page
 
-        ei_page  = get_page_patch( iv_getdata ).
+        lo_stage = stage_selected( it_postdata ).
+        ei_page  = get_page_patch( lo_stage ).
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
@@ -38071,7 +38102,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Stage'.
     ls_hotkey_action-description  = |Patch|.
-    ls_hotkey_action-action       = zif_abapgit_definitions=>c_action-go_patch.
+    ls_hotkey_action-action       = 'submitPatch'. " JS function in StageHelper
     ls_hotkey_action-hotkey       = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
@@ -39065,7 +39096,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   METHOD add_menu_begin.
 
     io_menu->add(
@@ -39255,7 +39286,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     super->constructor(
       iv_key    = iv_key
       is_file   = is_file
-      is_object = is_object ).
+      is_object = is_object
+      it_files  = it_files ).
 
     IF mo_repo->is_offline( ) = abap_true.
       zcx_abapgit_exception=>raise( |Can't patch offline repos| ).
@@ -39359,8 +39391,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   METHOD refresh.
 
     DATA:
-      lt_diff_files_old TYPE tt_file_diff.
+      lt_diff_files_old TYPE tt_file_diff,
+      lt_files          TYPE zif_abapgit_definitions=>ty_stage_tt,
+      ls_file           LIKE LINE OF lt_files.
 
+    FIELD-SYMBOLS: <ls_diff_file_old> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
     lt_diff_files_old = mt_diff_files.
 
     CASE iv_action.
@@ -39372,7 +39407,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
         refresh_local_object( iv_action ).
     ENDCASE.
 
-    calculate_diff( ).
+    " We need to supply files again in calculate_diff. Because
+    " we only want to refresh the visible files. Otherwise all
+    " diff files would appear.
+    " Which is not wanted when we previously only selected particular files.
+    LOOP AT lt_diff_files_old ASSIGNING <ls_diff_file_old>.
+      CLEAR: ls_file.
+      MOVE-CORRESPONDING <ls_diff_file_old> TO ls_file-file.
+      INSERT ls_file INTO TABLE lt_files.
+    ENDLOOP.
+
+    calculate_diff( it_files = lt_files ).
     restore_patch_flags( lt_diff_files_old ).
 
   ENDMETHOD.
@@ -40420,7 +40465,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -40640,6 +40685,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDLOOP.
 
     ELSE.                             " Diff for the whole repo
+
       SORT lt_status BY
         path ASCENDING
         filename ASCENDING.
@@ -40650,6 +40696,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDLOOP.
 
     ENDIF.
+
+    filter_diff_by_files(
+      EXPORTING
+        it_files      = it_files
+      CHANGING
+        ct_diff_files = mt_diff_files ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -40669,7 +40721,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     calculate_diff(
         is_file   = is_file
-        is_object = is_object ).
+        is_object = is_object
+        it_files  = it_files ).
 
     IF lines( mt_diff_files ) = 0.
       zcx_abapgit_exception=>raise( 'PAGE_DIFF ERROR: No diff files found' ).
@@ -41135,6 +41188,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD filter_diff_by_files.
+
+    FIELD-SYMBOLS: <ls_diff_file> TYPE ty_file_diff.
+
+    IF lines( it_files ) = 0.
+      RETURN.
+    ENDIF.
+
+    " Diff only for specified files
+    LOOP AT ct_diff_files ASSIGNING <ls_diff_file>.
+
+      READ TABLE it_files TRANSPORTING NO FIELDS
+                          WITH KEY file-filename = <ls_diff_file>-filename.
+      IF sy-subrc <> 0.
+        DELETE TABLE ct_diff_files FROM <ls_diff_file>.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
@@ -89796,5 +89871,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-11T16:12:42.521Z
+* abapmerge 0.14.1 - 2020-08-13T06:49:36.200Z
 ****************************************************
