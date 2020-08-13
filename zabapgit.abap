@@ -11230,11 +11230,11 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
     CLASS-METHODS class_constructor.
     CLASS-METHODS render_error
       IMPORTING
-        !ix_error      TYPE REF TO zcx_abapgit_exception OPTIONAL
-        !iv_error      TYPE string OPTIONAL
+        !ix_error       TYPE REF TO zcx_abapgit_exception OPTIONAL
+        !iv_error       TYPE string OPTIONAL
         !iv_extra_style TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ro_html)  TYPE REF TO zcl_abapgit_html .
     CLASS-METHODS render_repo_top
       IMPORTING
         !io_repo               TYPE REF TO zcl_abapgit_repo
@@ -11319,7 +11319,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
     CLASS-METHODS render_repo_palette
       IMPORTING
-        iv_action TYPE string
+        iv_action      TYPE string
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
@@ -11332,6 +11332,13 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
 
   PROTECTED SECTION.
+    CLASS-METHODS render_repo_top_commit_hash
+      IMPORTING
+        iv_html        TYPE REF TO zcl_abapgit_html
+        iv_repo_online TYPE REF TO zcl_abapgit_repo_online
+      RAISING
+        zcx_abapgit_exception.
+
   PRIVATE SECTION.
     CLASS-DATA gv_time_zone TYPE timezone.
 
@@ -16262,13 +16269,17 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
 
     METHODS get_files_remote
-        REDEFINITION .
+         REDEFINITION .
     METHODS get_name
-        REDEFINITION .
+         REDEFINITION .
     METHODS has_remote_source
-        REDEFINITION .
+         REDEFINITION .
     METHODS rebuild_local_checksums
-        REDEFINITION .
+         REDEFINITION .
+    METHODS get_commit_display_url
+      IMPORTING iv_hash       TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
+      RAISING   zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -20233,7 +20244,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -20446,6 +20457,32 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
+  METHOD get_commit_display_url.
+
+    DATA ls_result TYPE match_result.
+    FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
+
+    rv_url = me->get_url( ).
+
+    FIND REGEX '^https:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |provider not yet supported| ).
+    ENDIF.
+    READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
+    CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
+      WHEN 'github.com'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/commit/| && iv_hash.
+      WHEN 'bitbucket.org'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/commits/| && iv_hash.
+      WHEN 'gitlab.com'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/-/commit/| && iv_hash.
+    ENDCASE.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
@@ -43399,7 +43436,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
 
     CREATE OBJECT ro_menu.
@@ -43783,10 +43820,11 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_order_by_header_cells.
 
     DATA:
+      lt_colspec   TYPE zif_abapgit_definitions=>tty_col_spec,
       lv_tmp       TYPE string,
       lv_disp_name TYPE string.
 
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_colspec.
 
     CREATE OBJECT ro_html.
 
@@ -43906,6 +43944,9 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                               && |{ lo_repo_online->get_url( ) }|
                       iv_class = |url| ).
 
+      render_repo_top_commit_hash( iv_html        = ro_html
+                                   iv_repo_online = lo_repo_online ).
+
     ENDIF.
 
     " News
@@ -43990,6 +44031,33 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD render_repo_top_commit_hash.
+
+    DATA: lv_commit_hash       TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_commit_short_hash TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_repo_url          TYPE zif_abapgit_persistence=>ty_repo-url,
+          lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
+          lv_icon_commit       TYPE string.
+
+    lv_commit_hash = iv_repo_online->get_sha1_remote( ).
+    lv_commit_short_hash = lv_commit_hash(7).
+    lv_icon_commit = zcl_abapgit_html=>icon( iv_name  = 'code-commit'
+                                             iv_class = 'pad-sides'
+                                             iv_hint  = 'Commit' ).
+
+    TRY.
+        lv_display_url = iv_repo_online->get_commit_display_url( lv_commit_hash ).
+
+        iv_html->add_a( iv_txt   = |{ lv_icon_commit }{ lv_commit_short_hash }|
+                        iv_act   = |{ zif_abapgit_definitions=>c_action-url }?|
+                                && lv_display_url
+                        iv_class = |url| ).
+      CATCH zcx_abapgit_exception.
+        iv_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>|  ).
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
@@ -89926,5 +89994,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-13T07:06:18.033Z
+* abapmerge 0.14.1 - 2020-08-13T13:42:57.347Z
 ****************************************************
