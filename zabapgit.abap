@@ -1758,6 +1758,7 @@ INTERFACE zif_abapgit_definitions .
       icon_scaling           TYPE c LENGTH 1,
       ui_theme               TYPE string,
       hide_sapgui_hint       TYPE abap_bool,
+      activate_wo_popup      TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
     tty_dokil TYPE STANDARD TABLE OF dokil
@@ -16578,7 +16579,13 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
       set_ui_theme
         IMPORTING
-          iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme.
+          iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
+      get_activate_wo_popup
+        RETURNING
+          VALUE(rv_act_wo_popup) TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup,
+      set_activate_wo_popup
+        IMPORTING
+          iv_act_wo_popup TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -19160,6 +19167,9 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
+  METHOD get_activate_wo_popup.
+    rv_act_wo_popup = ms_user_settings-activate_wo_popup.
+  ENDMETHOD.
   METHOD get_adt_jump_enabled.
     rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
   ENDMETHOD.
@@ -19227,6 +19237,9 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
+  ENDMETHOD.
+  METHOD set_activate_wo_popup.
+    ms_user_settings-activate_wo_popup = iv_act_wo_popup.
   ENDMETHOD.
   METHOD set_adt_jump_enanbled.
     ms_user_settings-adt_jump_enabled = iv_adt_jump_enabled.
@@ -38254,17 +38267,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD post_development_internals.
 
-    IF is_post_field_checked( 'critical_tests' ) = abap_true.
-      mo_settings->set_run_critical_tests( abap_true ).
-    ELSE.
-      mo_settings->set_run_critical_tests( abap_false ).
-    ENDIF.
+    mo_settings->set_run_critical_tests( is_post_field_checked( 'critical_tests' ) ).
 
-    IF is_post_field_checked( 'experimental_features' ) = abap_true.
-      mo_settings->set_experimental_features( abap_true ).
-    ELSE.
-      mo_settings->set_experimental_features( abap_false ).
-    ENDIF.
+    mo_settings->set_experimental_features( is_post_field_checked( 'experimental_features' ) ).
+
+    mo_settings->set_activate_wo_popup( is_post_field_checked( 'activate_wo_popup' ) ).
 
   ENDMETHOD.
   METHOD post_hotkeys.
@@ -38404,7 +38411,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD render_development_internals.
 
     DATA: lv_critical_tests TYPE string,
-          lv_experimental   TYPE string.
+          lv_experimental   TYPE string,
+          lv_act_wo_popup   TYPE string.
 
     IF mo_settings->get_run_critical_tests( ) = abap_true.
       lv_critical_tests = 'checked'.
@@ -38414,6 +38422,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       lv_experimental = 'checked'.
     ENDIF.
 
+    IF mo_settings->get_activate_wo_popup( ) = abap_true.
+      lv_act_wo_popup = 'checked'.
+    ENDIF.
+
     CREATE OBJECT ro_html.
     ro_html->add( |<h2>abapGit Development Internals settings</h2>| ).
     ro_html->add( `<input type="checkbox" name="critical_tests" `
@@ -38421,6 +38433,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ro_html->add( |<br>| ).
     ro_html->add( `<input type="checkbox" name="experimental_features" `
                    && lv_experimental && ` > Enable experimental features` ).
+    ro_html->add( |<br>| ).
+    ro_html->add( `<input type="checkbox" name="activate_wo_popup" `
+                   && lv_act_wo_popup && ` > Activate objects without popup` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
 
@@ -51813,26 +51828,55 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_old.
 
-    DATA: lv_popup TYPE abap_bool.
+    DATA: lv_popup TYPE abap_bool,
+          lv_no_ui TYPE abap_bool.
 
     IF gt_objects IS NOT INITIAL.
 
-      lv_popup = zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ).
-
-      CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-        EXPORTING
-          activate_ddic_objects  = iv_ddic
-          with_popup             = lv_popup
-        TABLES
-          objects                = gt_objects
-        EXCEPTIONS
-          excecution_error       = 1
-          cancelled              = 2
-          insert_into_corr_error = 3
-          OTHERS                 = 4.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ).
+      IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
+        IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_activate_wo_popup( ) = abap_true.
+          lv_popup = abap_false.
+        ELSE.
+          lv_popup = abap_true.
+        ENDIF.
+      ELSE.
+        lv_popup = abap_false.
       ENDIF.
+
+      lv_no_ui = boolc( lv_popup = abap_false ).
+
+      TRY.
+          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+            EXPORTING
+              activate_ddic_objects  = iv_ddic
+              with_popup             = lv_popup
+              ui_decoupled           = lv_no_ui
+            TABLES
+              objects                = gt_objects
+            EXCEPTIONS
+              excecution_error       = 1
+              cancelled              = 2
+              insert_into_corr_error = 3
+              OTHERS                 = 4 ##SUBRC_OK.
+        CATCH cx_sy_dyn_call_param_not_found.
+          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+            EXPORTING
+              activate_ddic_objects  = iv_ddic
+              with_popup             = lv_popup
+            TABLES
+              objects                = gt_objects
+            EXCEPTIONS
+              excecution_error       = 1
+              cancelled              = 2
+              insert_into_corr_error = 3
+              OTHERS                 = 4 ##SUBRC_OK.
+      ENDTRY.
+      CASE sy-subrc.
+        WHEN 1 OR 3 OR 4.
+          zcx_abapgit_exception=>raise_t100( ).
+        WHEN 2.
+          zcx_abapgit_exception=>raise( 'Activation cancelled. Check the inactive objects.' ).
+      ENDCASE.
 
     ENDIF.
 
@@ -89877,5 +89921,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-13T06:53:52.083Z
+* abapmerge 0.14.1 - 2020-08-13T06:56:15.209Z
 ****************************************************
