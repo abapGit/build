@@ -27180,7 +27180,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  font-size: 8pt;' ).
     lo_buf->add( '  padding: 4px 2px 3px 2px;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.repo_attr span.branch {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.branch {' ).
     lo_buf->add( '  padding: 2px 4px;' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 4px;' ).
@@ -27914,7 +27915,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo-overview { font-size: smaller; }' ).
     lo_buf->add( '.repo-overview tbody td { height: 2em; }' ).
     lo_buf->add( '.ro-detail { display: none; }' ).
-    lo_buf->add( '.ro-action { width: 190px; }' ).
+    lo_buf->add( '.ro-action { width: 260px; }' ).
     lo_buf->add( '.ro-go { font-size: 150%; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Branch Overview Page */' ).
@@ -28246,15 +28247,18 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  background-color: #d8d8d8;' ).
     lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.repo_attr span.branch {' ).
-    lo_buf->add( '  border-color: #d9d9d9;' ).
-    lo_buf->add( '  background-color: #e2e2e2;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.repo_attr span.branch_head {' ).
     lo_buf->add( '  border-color: #d8dff3;' ).
     lo_buf->add( '  background-color: #eceff9;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.repo_attr span.branch_branch {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.branch {' ).
+    lo_buf->add( '  border-color: #d9d9d9;' ).
+    lo_buf->add( '  background-color: #e2e2e2;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.branch_branch {' ).
     lo_buf->add( '  border-color: #e7d9b1;' ).
     lo_buf->add( '  background-color: #f8f0d8;' ).
     lo_buf->add( '}' ).
@@ -28729,7 +28733,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.repo_name span.url  { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( '.repo_name a.url { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( '.repo_attr { color: var(--theme-primary-font-color); }' ).
-    lo_buf->add( '.repo_attr span.branch_branch {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.branch_branch {' ).
     lo_buf->add( '  border-color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '  background-color: #777777;' ).
     lo_buf->add( '}' ).
@@ -35902,7 +35907,9 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       lv_package_obj_name    TYPE sobj_name,
       lv_stage_link          TYPE string,
       lv_patch_link          TYPE string,
-      lv_code_inspector_link TYPE string.
+      lv_code_inspector_link TYPE string,
+      lv_repo_settings_link  TYPE string,
+      lv_branch_html         TYPE string.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -35953,8 +35960,13 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
           iv_txt = <ls_overview>-package
           iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_package_jump_data }| ) }</td>| ).
 
+      lv_branch_html = `<span class="branch branch_branch">`
+        && `<i title="Current branch" class="icon icon-code-branch grey70"></i>`
+        && <ls_overview>-branch
+        && `</span>`.
+
       ii_html->add( |<td>{ ii_html->a(
-        iv_txt = <ls_overview>-branch
+        iv_txt = lv_branch_html
         iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?{ <ls_overview>-key }| ) }</td>| ).
 
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-deserialized_by }</td>| ).
@@ -35977,7 +35989,15 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
         iv_txt = |Code inspector|
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?{ <ls_overview>-key } | ).
 
-      ii_html->add( lv_code_inspector_link && lc_separator && lv_stage_link && lc_separator && lv_patch_link ).
+      lv_repo_settings_link = ii_html->a(
+        iv_txt = |Settings|
+        iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?{ <ls_overview>-key } | ).
+
+      ii_html->add(
+        lv_code_inspector_link && lc_separator &&
+        lv_stage_link && lc_separator &&
+        lv_patch_link && lc_separator &&
+        lv_repo_settings_link ).
 
       ii_html->add( |</td>| ).
 
@@ -39036,6 +39056,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     mo_repo->refresh( ).
 
+    MESSAGE |{ mo_repo->get_name( ) }: settings saved successfully.| TYPE 'S'.
+
   ENDMETHOD.
   METHOD save_dot_abap.
 
@@ -40439,6 +40461,14 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_patch.
 
         ei_page = get_patch_page( iv_getdata ).
+        ev_state = zcl_abapgit_gui=>c_event_state-new_page.
+
+      WHEN zif_abapgit_definitions=>c_action-repo_settings.
+
+        lv_key = iv_getdata.
+        CREATE OBJECT ei_page TYPE zcl_abapgit_gui_page_repo_sett
+          EXPORTING
+            io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         ev_state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN OTHERS.
@@ -89942,5 +89972,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-15T07:33:08.482Z
+* abapmerge 0.14.1 - 2020-08-15T07:36:54.748Z
 ****************************************************
