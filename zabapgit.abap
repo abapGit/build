@@ -9995,20 +9995,16 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
         !iv_pgmid    TYPE pgmid
         !iv_object   TYPE trobjtype
         !iv_obj_name TYPE csequence
-        io_xml       TYPE REF TO zcl_abapgit_xml_output OPTIONAL
+        !io_xml      TYPE REF TO zcl_abapgit_xml_output OPTIONAL
       EXPORTING
-        et_sotr      TYPE zif_abapgit_definitions=>ty_sotr_tt
-        et_sotr_use  TYPE zif_abapgit_definitions=>ty_sotr_use_tt
+        !et_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt
+        !et_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt
       RAISING
         zcx_abapgit_exception .
-
     CLASS-METHODS create_sotr
       IMPORTING
-        !iv_pgmid    TYPE pgmid
-        !iv_object   TYPE trobjtype
-        !iv_obj_name TYPE csequence
-        !iv_package  TYPE devclass
-        io_xml       TYPE REF TO zcl_abapgit_xml_input
+        !iv_package TYPE devclass
+        !io_xml     TYPE REF TO zcl_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -43842,11 +43838,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_order_by_header_cells.
 
     DATA:
-      lt_colspec   TYPE zif_abapgit_definitions=>tty_col_spec,
       lv_tmp       TYPE string,
       lv_disp_name TYPE string.
 
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF lt_colspec.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
 
     CREATE OBJECT ro_html.
 
@@ -48329,8 +48324,8 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_sotr_4_concept.
 
-    DATA: ls_header   TYPE sotr_head,
-          lt_entries  TYPE sotr_text_tt.
+    DATA: ls_header  TYPE sotr_head,
+          lt_entries TYPE sotr_text_tt.
 
     FIELD-SYMBOLS: <ls_entry> LIKE LINE OF lt_entries.
 
@@ -49032,11 +49027,8 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'LIMU'
-      iv_object   = 'CPUB'
-      iv_obj_name = iv_object_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
@@ -53954,11 +53946,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'R3TR'
-      iv_object   = ms_item-obj_type
-      iv_obj_name = ms_item-obj_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -54747,11 +54736,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     READ TABLE ls_component-comp_metadata-descriptions INTO ls_description INDEX 1.
     IF sy-subrc = 0.
       zcl_abapgit_sotr_handler=>create_sotr(
-        iv_pgmid    = 'LIMU'
-        iv_object   = 'WDYV'
-        iv_obj_name = ms_item-obj_name
-        iv_package  = iv_package
-        io_xml      = io_xml ).
+        iv_package = iv_package
+        io_xml     = io_xml ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -54951,11 +54937,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
           iv_package    = iv_package ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'R3TR'
-      iv_object   = ms_item-obj_type
-      iv_obj_name = ms_item-obj_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -55818,11 +55801,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
                               it_remote_pages = lt_pages_info ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'LIMU'
-      iv_object   = 'WAPP'
-      iv_obj_name = ms_item-obj_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -74681,11 +74661,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
         lo_spot_ref->if_enh_object~unlock( ).
 
         zcl_abapgit_sotr_handler=>create_sotr(
-          iv_pgmid    = 'R3TR'
-          iv_object   = ms_item-obj_type
-          iv_obj_name = ms_item-obj_name
-          iv_package  = iv_package
-          io_xml      = io_xml ).
+          iv_package = iv_package
+          io_xml     = io_xml ).
 
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while deserializing ENSC: `
@@ -75216,11 +75193,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
                           ii_enh_spot_tool = li_spot_ref ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'R3TR'
-      iv_object   = ms_item-obj_type
-      iv_obj_name = ms_item-obj_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -76353,11 +76327,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
                           iv_package = iv_package ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
-      iv_pgmid    = 'R3TR'
-      iv_object   = ms_item-obj_type
-      iv_obj_name = ms_item-obj_name
-      iv_package  = iv_package
-      io_xml      = io_xml ).
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -76526,11 +76497,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
         li_enh_composite->if_enh_object~unlock( ).
 
         zcl_abapgit_sotr_handler=>create_sotr(
-          iv_pgmid    = 'R3TR'
-          iv_object   = ms_item-obj_type
-          iv_obj_name = ms_item-obj_name
-          iv_package  = iv_package
-          io_xml      = io_xml ).
+          iv_package = iv_package
+          io_xml     = io_xml ).
 
       CATCH cx_enh_root INTO lx_error.
         zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
@@ -89972,5 +89940,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-15T07:36:54.748Z
+* abapmerge 0.14.1 - 2020-08-16T06:23:08.417Z
 ****************************************************
