@@ -20027,7 +20027,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
       eo_repo = get_instance( )->get( <ls_repo>-key ).
       lv_name = eo_repo->get_name( ).
       lv_owner = <ls_repo>-created_by.
-      ev_reason =  |Package { iv_package } already versioned as { lv_name } by { lv_owner }|.
+      ev_reason = |Package { iv_package } already versioned as { lv_name } by { lv_owner }|.
     ELSE.
       " check if package is include as sub-package in a different repo
       validate_sub_super_packages(
@@ -22687,7 +22687,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       " local packages usually have no tadir entry
       lv_name = iv_obj_name.
       li_package = zcl_abapgit_factory=>get_sap_package( lv_name ).
-      IF li_package->exists(  ) = abap_true.
+      IF li_package->exists( ) = abap_true.
         rv_devclass = lv_name.
       ENDIF.
     ENDIF.
@@ -24992,7 +24992,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
   METHOD raise_exception_for.
     DATA lv_message TYPE string.
 
-    lv_message = |XML parser error: { ii_error->get_reason(  ) }, | &&
+    lv_message = |XML parser error: { ii_error->get_reason( ) }, | &&
                  |Line { ii_error->get_line( ) } | &&
                  |Col. { ii_error->get_column( ) }|. "#EC NOTEXT
 
@@ -34767,7 +34767,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
       get_field( EXPORTING iv_name = 'FILENAME'
                            it_field = lt_fields
                            iv_decode = abap_true
-                 CHANGING cg_field = eg_file  ).
+                 CHANGING cg_field = eg_file ).
     ENDIF.
 
     IF eg_object IS SUPPLIED.
@@ -35934,7 +35934,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
                                                        iv_class = 'pad-sides'
                                                        iv_hint  = 'Click to toggle favorite' ) ).
       ii_html->add( |</td>| ).
-      ii_html->add( |<td class="wmin">{ zcl_abapgit_html=>icon( lv_type_icon )  }</td>| ).
+      ii_html->add( |<td class="wmin">{ zcl_abapgit_html=>icon( lv_type_icon ) }</td>| ).
 
       ii_html->add( |<td>{ zcl_abapgit_html=>a( iv_txt = <ls_overview>-name
                                                 iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
@@ -36948,9 +36948,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     CLEAR mt_col_spec.
-    _add_col(  ''  ). " all empty
+    _add_col( '' ). " all empty
     IF mv_are_changes_recorded_in_tr = abap_true.
-      _add_col(  ''  ). " all empty
+      _add_col( '' ). " all empty
     ENDIF.
     "         technical name     /display name      /css class   /add timezone   /title
     _add_col( 'OBJ_TYPE          /Type' ).
@@ -44070,7 +44070,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                                 && lv_display_url
                         iv_class = |url| ).
       CATCH zcx_abapgit_exception.
-        iv_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>|  ).
+        iv_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -45138,7 +45138,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     add( icon( iv_name    = iv_name
                iv_class   = iv_class
                iv_hint    = iv_hint
-               iv_onclick = iv_onclick  ) ).
+               iv_onclick = iv_onclick ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_html~render.
@@ -83905,14 +83905,14 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
         SELECT * FROM dokil
                  INTO TABLE lt_dokil
                  WHERE id     = iv_longtext_id
-                 AND   object = iv_object_name
+                 AND object = iv_object_name
                  AND masterlang = abap_true
                  ORDER BY PRIMARY KEY.
       ELSE.
         SELECT * FROM dokil
                  INTO TABLE lt_dokil
                  WHERE id     = iv_longtext_id
-                 AND   object = iv_object_name
+                 AND object = iv_object_name
                  ORDER BY PRIMARY KEY.
       ENDIF.
     ELSE.
@@ -88268,7 +88268,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_all.
 
-    rt_branches =  mt_branches.
+    rt_branches = mt_branches.
 
   ENDMETHOD.
   METHOD get_branches_only.
@@ -89940,5 +89940,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-16T06:23:08.417Z
+* abapmerge 0.14.1 - 2020-08-16T06:25:23.663Z
 ****************************************************
