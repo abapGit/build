@@ -32935,8 +32935,9 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       ENDIF.
       ASSERT <ls_branch> IS ASSIGNED.
       rs_branch = lo_branches->find_by_name( <ls_branch>-name ).
-      MESSAGE |Branch switched from { zcl_abapgit_git_branch_list=>get_display_name( iv_default_branch ) } to {
-        zcl_abapgit_git_branch_list=>get_display_name( rs_branch-name ) } | TYPE 'S'.
+      lv_text = |Branch switched from { zcl_abapgit_git_branch_list=>get_display_name( iv_default_branch ) } to {
+        zcl_abapgit_git_branch_list=>get_display_name( rs_branch-name ) } |.
+      MESSAGE lv_text TYPE 'S'.
     ENDIF.
 
   ENDMETHOD.
@@ -39045,7 +39046,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
   ENDMETHOD.
   METHOD save.
 
-    DATA: lt_post_fields TYPE tihttpnvp.
+    DATA: lt_post_fields TYPE tihttpnvp,
+          lv_msg         TYPE string.
+
     lt_post_fields = parse_post( it_postdata ).
 
     save_dot_abap( lt_post_fields ).
@@ -39053,7 +39056,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     mo_repo->refresh( ).
 
-    MESSAGE |{ mo_repo->get_name( ) }: settings saved successfully.| TYPE 'S'.
+    lv_msg = |{ mo_repo->get_name( ) }: settings saved successfully.|.
+    MESSAGE lv_msg TYPE 'S'.
 
   ENDMETHOD.
   METHOD save_dot_abap.
@@ -89937,5 +89941,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-18T04:55:20.146Z
+* abapmerge 0.14.1 - 2020-08-18T05:06:53.439Z
 ****************************************************
