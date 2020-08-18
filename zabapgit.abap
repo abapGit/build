@@ -11009,9 +11009,6 @@ CLASS zcl_abapgit_html DEFINITION
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
-    CLASS-METHODS create
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -34325,13 +34322,13 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
       IF lv_has_icons = abap_true.
         IF <ls_item>-chk = abap_true.
-          lv_icon  = zcl_abapgit_html=>icon( 'check/blue' ).
+          lv_icon  = ri_html->icon( 'check/blue' ).
           lv_check = ' data-check="X"'.
         ELSEIF <ls_item>-chk = abap_false.
-          lv_icon = zcl_abapgit_html=>icon( 'check/grey' ).
+          lv_icon = ri_html->icon( 'check/grey' ).
           lv_check = ' data-check=""'.
         ELSE. " abap_undefined -> not a check box
-          lv_icon = zcl_abapgit_html=>icon( <ls_item>-ico ).
+          lv_icon = ri_html->icon( <ls_item>-ico ).
         ENDIF.
       ENDIF.
 
@@ -34458,7 +34455,7 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
       ls_form_id = | id="{ mv_form_id }"|.
     ENDIF.
 
-    ri_html = zcl_abapgit_html=>create( ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( |<div class="{ iv_form_class }">| ).
     ri_html->add( |<form method="post"{ ls_form_id }>| ).
@@ -43120,7 +43117,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
 
     gui_services( )->register_event_handler( me ).
 
-    ri_html = zcl_abapgit_html=>create( ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lo_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-online-form' ).
     lo_form->text(
@@ -43458,7 +43455,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
 
     CREATE OBJECT ro_menu.
@@ -43908,7 +43905,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     lt_repo_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
     lv_size = lines( lt_repo_list ).
 
-    ri_html = zcl_abapgit_html=>create( ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( 'var repoCatalog = [' ). " Maybe separate this into another method if needed in more places
     LOOP AT lt_repo_list ASSIGNING <ls_repo>.
@@ -44044,14 +44041,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ro_html->add( '</tr></table>' ).
 
   ENDMETHOD.
-  METHOD render_warning_banner.
-
-    CREATE OBJECT ro_html.
-    ro_html->add( '<div class="dummydiv warning">' ).
-    ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-triangle/yellow' ) }| && | { iv_text }| ).
-    ro_html->add( '</div>' ).
-
-  ENDMETHOD.
   METHOD render_repo_top_commit_hash.
 
     DATA: lv_commit_hash       TYPE zif_abapgit_definitions=>ty_sha1,
@@ -44078,7 +44067,14 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD render_warning_banner.
 
+    CREATE OBJECT ro_html.
+    ro_html->add( '<div class="dummydiv warning">' ).
+    ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-triangle/yellow' ) }| && | { iv_text }| ).
+    ro_html->add( '</div>' ).
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
@@ -44983,9 +44979,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       EXPORTING
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
-  ENDMETHOD.
-  METHOD create.
-    CREATE OBJECT ro_html.
   ENDMETHOD.
   METHOD icon.
 
@@ -89944,5 +89937,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-17T18:38:37.150Z
+* abapmerge 0.14.1 - 2020-08-18T04:55:20.146Z
 ****************************************************
