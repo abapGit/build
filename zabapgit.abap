@@ -29103,6 +29103,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  this.isDetailsDisplayed = false;' ).
     lo_buf->add( '  this.isOnlyFavoritesDisplayed = false;' ).
     lo_buf->add( '  this.detailCssClass = findStyleSheetByName(".ro-detail");' ).
+    lo_buf->add( '  this.actionCssClass = findStyleSheetByName(".ro-action");' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  icon = document.getElementById("icon-filter-favorite");' ).
@@ -29120,6 +29121,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
     lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
+    lo_buf->add( '    this.actionCssClass.style.display = this.isDetailsDisplayed ? "none" : "";' ).
     lo_buf->add( '    var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '    this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  }' ).
@@ -89915,5 +89917,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-19T04:50:59.126Z
+* abapmerge 0.14.1 - 2020-08-19T05:02:57.042Z
 ****************************************************
