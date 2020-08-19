@@ -9531,7 +9531,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
     TYPES:
       tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n .
 
-    DATA: mt_includes_cache TYPE ty_sobj_name_tt.
+    DATA mt_includes_cache TYPE ty_sobj_name_tt .
 
     METHODS check_rfc_parameters
       IMPORTING
@@ -9586,13 +9586,6 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         !io_xml     TYPE REF TO zcl_abapgit_xml_input
         !iv_package TYPE devclass
         !ii_log     TYPE REF TO zif_abapgit_log
-      RAISING
-        zcx_abapgit_exception .
-    METHODS are_exceptions_class_based
-      IMPORTING
-        !iv_function_name TYPE rs38l_fnam
-      RETURNING
-        VALUE(rv_return)  TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     METHODS is_function_group_locked
@@ -73001,34 +72994,6 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
-  METHOD are_exceptions_class_based.
-    DATA:
-      lt_dokumentation    TYPE TABLE OF funct,
-      lt_exception_list   TYPE TABLE OF rsexc,
-      lt_export_parameter TYPE TABLE OF rsexp,
-      lt_import_parameter TYPE TABLE OF rsimp,
-      lt_tables_parameter TYPE TABLE OF rstbl.
-
-    CALL FUNCTION 'FUNCTION_IMPORT_DOKU'
-      EXPORTING
-        funcname           = iv_function_name
-      IMPORTING
-        exception_class    = rv_return
-      TABLES
-        dokumentation      = lt_dokumentation
-        exception_list     = lt_exception_list
-        export_parameter   = lt_export_parameter
-        import_parameter   = lt_import_parameter
-        tables_parameter   = lt_tables_parameter
-      EXCEPTIONS
-        error_message      = 1
-        function_not_found = 2
-        invalid_name       = 3
-        OTHERS             = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from FUNCTION_IMPORT_DOKU' ).
-    ENDIF.
-  ENDMETHOD.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -73662,7 +73627,8 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
         CLEAR <ls_documentation>-index.
       ENDLOOP.
 
-      ls_function-exception_classes = are_exceptions_class_based( <ls_func>-funcname ).
+      SELECT SINGLE exten3 INTO ls_function-exception_classes FROM enlfdir
+        WHERE funcname = <ls_func>-funcname.              "#EC CI_SUBRC
 
       APPEND ls_function TO rt_functions.
 
@@ -89942,5 +89908,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-19T04:42:31.063Z
+* abapmerge 0.14.1 - 2020-08-19T04:45:32.753Z
 ****************************************************
