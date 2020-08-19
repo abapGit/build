@@ -37624,6 +37624,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     ms_control-page_menu  = build_menu( ).
 
+    IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
+      zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD count_default_files_to_commit.
 
@@ -89911,5 +89915,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-19T04:47:32.849Z
+* abapmerge 0.14.1 - 2020-08-19T04:50:59.126Z
 ****************************************************
