@@ -86654,7 +86654,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -86803,6 +86803,8 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'branch delete not allowed' ).
     ELSEIF lv_string CP '*cannot lock ref*reference already exists*'.
       zcx_abapgit_exception=>raise( 'branch already exists' ).
+    ELSEIF lv_string CP '*invalid committer*'.
+      zcx_abapgit_exception=>raise( 'invalid committer' ).
     ENDIF.
 
   ENDMETHOD.
@@ -89929,5 +89931,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-19T07:01:35.677Z
+* abapmerge 0.14.1 - 2020-08-20T15:57:55.923Z
 ****************************************************
