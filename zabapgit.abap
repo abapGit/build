@@ -12107,7 +12107,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_beacon
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
@@ -27137,6 +27139,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* REPOSITORY */' ).
     lo_buf->add( 'div.repo {' ).
     lo_buf->add( '  margin-top: 3px;' ).
+    lo_buf->add( '  margin-bottom: 3px;' ).
     lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
     lo_buf->add( '  position: relative;' ).
     lo_buf->add( '}' ).
@@ -27946,7 +27949,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '.floating-button {' ).
     lo_buf->add( '  position: fixed;' ).
-    lo_buf->add( '  top: 6em;' ).
+    lo_buf->add( '  top: 8em;' ).
     lo_buf->add( '  right: 2.8em;' ).
     lo_buf->add( '  padding: 1em 1.8em;' ).
     lo_buf->add( '  border-radius: 4px;' ).
@@ -37546,6 +37549,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   METHOD render_content.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( `</div>` ).
+
     ri_html->add( '<div class="toc">' ).
 
     IF lines( mt_result ) = 0.
@@ -38851,6 +38859,11 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   METHOD render_content.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( `</div>` ).
+
     ri_html->add( '<div class="settings_container">' ).
     ri_html->add( |<form id="settings_form" method="post" action="sapevent:{ c_action-save_settings }">| ).
 
@@ -40905,6 +40918,10 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     li_progress = zcl_abapgit_progress=>get_instance( lines( mt_diff_files ) ).
 
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( `</div>` ).
+
     ri_html->add( |<div id="diff-list" data-repo-key="{ mv_repo_key }">| ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_js_error_banner( ) ).
     LOOP AT mt_diff_files INTO ls_diff_file.
@@ -41217,9 +41234,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD render_table_head.
 
     CREATE OBJECT ro_html.
-
-    ro_html->add( '<thead class="header">' ).               "#EC NOTEXT
-    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ro_html->add( '<thead class="header">' ).
+    ro_html->add( '<tr>' ).
 
     IF mv_unified = abap_true.
 
@@ -41233,8 +41249,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     ENDIF.
 
-    ro_html->add( '</tr>' ).                                "#EC NOTEXT
-    ro_html->add( '</thead>' ).                             "#EC NOTEXT
+    ro_html->add( '</tr>' ).
+    ro_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_table_head_non_unified.
@@ -42224,6 +42240,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( `</div>` ).
+
     IF mv_check_variant IS INITIAL.
       ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( iv_error = 'No check variant supplied.' ) ).
       RETURN.
@@ -42233,10 +42253,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     ri_html->add( '<div class="ci-head">' ).
     ri_html->add( |Code inspector check variant: <span class="ci-variant">{ mv_check_variant }</span>| ).
-    ri_html->add( |<div class="float-right package-name">{
-      zcl_abapgit_html=>icon( 'box/grey70' ) }<span>{
-      mo_repo->get_package( ) }</span></div>| ).
-    ri_html->add( '</div>' ).
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
@@ -89934,5 +89950,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-22T07:51:23.195Z
+* abapmerge 0.14.1 - 2020-08-22T07:54:30.992Z
 ****************************************************
