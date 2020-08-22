@@ -35850,7 +35850,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     ii_html->add( |</form>| ).
 
     ii_html->add( zcl_abapgit_html=>a(
-      iv_txt = '<i id="icon-filter-favorite" class="icon icon-check"></i> Only favorites'
+      iv_txt = '<i id="icon-filter-favorite" class="icon icon-check"></i> Only Favorites'
       iv_act = |gHelper.toggleRepoListFavorites()|
       iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
 
@@ -36154,7 +36154,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -36215,19 +36215,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ro_advanced_dropdown.
 
     IF iv_rstate IS NOT INITIAL OR iv_lstate IS NOT INITIAL. " In case of asyncronicities
-      ro_advanced_dropdown->add( iv_txt = 'Reset local'
+      ro_advanced_dropdown->add( iv_txt = 'Reset Local (Force Pull)'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-git_reset }?{ mv_key }|
                                  iv_opt = iv_wp_opt ).
     ENDIF.
 
     IF mo_repo->is_offline( ) = abap_false. " Online ?
-      ro_advanced_dropdown->add( iv_txt = 'Background mode'
+      ro_advanced_dropdown->add( iv_txt = 'Background Mode'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-go_background }?{ mv_key }| ).
-      ro_advanced_dropdown->add( iv_txt = 'Change remote'
+      ro_advanced_dropdown->add( iv_txt = 'Change Remote'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_change }?{ mv_key }| ).
-      ro_advanced_dropdown->add( iv_txt = 'Make off-line'
+      ro_advanced_dropdown->add( iv_txt = 'Make Off-line'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_detach }?{ mv_key }| ).
-      ro_advanced_dropdown->add( iv_txt = 'Force stage'
+      ro_advanced_dropdown->add( iv_txt = 'Force Stage'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?{ mv_key }| ).
 
       CLEAR lv_crossout.
@@ -36239,7 +36239,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                                  iv_opt = lv_crossout ).
 
     ELSE.
-      ro_advanced_dropdown->add( iv_txt = 'Make on-line'
+      ro_advanced_dropdown->add( iv_txt = 'Make On-line'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_attach }?{ mv_key }| ).
     ENDIF.
 
@@ -36253,19 +36253,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_syntax_check }?{ mv_key }| ).
     ro_advanced_dropdown->add( iv_txt = 'Run Code Inspector'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?{ mv_key }| ).
-    ro_advanced_dropdown->add( iv_txt = 'Repo settings'
+    ro_advanced_dropdown->add( iv_txt = 'Repository Settings'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?{ mv_key }| ).
 
     CLEAR lv_crossout.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
-    ro_advanced_dropdown->add( iv_txt = 'Update local checksums'
+    ro_advanced_dropdown->add( iv_txt = 'Update Local Checksums'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh_checksums }?{ mv_key }|
                                iv_opt = lv_crossout ).
 
     IF mo_repo->get_dot_abapgit( )->get_master_language( ) <> sy-langu.
-      ro_advanced_dropdown->add( iv_txt = 'Open in master language'
+      ro_advanced_dropdown->add( iv_txt = 'Open in Master Language'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?{ mv_key }| ).
     ENDIF.
 
@@ -36319,24 +36319,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ro_toolbar.
 
     IF mo_repo->has_remote_source( ) = abap_true.
-      ro_toolbar->add(  " Show/Hide files
-        iv_txt = 'Show files'
+
+      ro_toolbar->add(
+        iv_txt = 'Show Files'
         iv_chk = boolc( NOT mv_hide_files = abap_true )
         iv_act = c_actions-toggle_hide_files ).
 
-      ro_toolbar->add(  " Show changes only
-        iv_txt = 'Show changes only'
+      ro_toolbar->add(
+        iv_txt = 'Show Changes Only'
         iv_chk = mv_changes_only
         iv_act = c_actions-toggle_changes ).
     ENDIF.
 
-    ro_toolbar->add(  " Show/Hide folders
-      iv_txt = 'Show folders'
+    ro_toolbar->add(
+      iv_txt = 'Show Folders'
       iv_chk = mv_show_folders
       iv_act = c_actions-toggle_folders ).
 
     ro_toolbar->add(
-      iv_txt = 'Show order by'
+      iv_txt = 'Show Order By'
       iv_chk = mv_show_order_by
       iv_act = c_actions-toggle_order_by ).
 
@@ -36505,7 +36506,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     mv_show_order_by = zcl_abapgit_persistence_user=>get_instance( )->get_show_order_by( ).
     mv_diff_first    = abap_true.
 
-    ms_control-page_title = 'REPOSITORY'.
+    ms_control-page_title = 'Repository'.
     ms_control-page_menu = build_main_menu( ).
 
     " Read global settings to get max # of objects to be listed
@@ -36977,7 +36978,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     lv_html = |<th class="cmd">| &&
       zcl_abapgit_html=>icon( lv_icon ) &&
       zcl_abapgit_html=>a(
-        iv_txt = |diffs first|
+        iv_txt = |Diffs First|
         iv_act = c_actions-toggle_diff_first ) && |</th>|.
     ro_html->add( lv_html ).
 
@@ -37228,7 +37229,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     mo_repo_online ?= io_repo.
 
-    ms_control-page_title = 'TAG'.
+    ms_control-page_title = 'Tag'.
     mv_selected_type = c_tag_type-lightweight.
 
   ENDMETHOD.
@@ -37538,7 +37539,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'SYNTAX CHECK'.
+    ms_control-page_title = 'Syntax Check'.
     mo_repo = io_repo.
     run_syntax_check( ).
   ENDMETHOD.
@@ -37597,7 +37598,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -37619,7 +37620,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     super->constructor( ).
 
-    ms_control-page_title = 'STAGE'.
+    ms_control-page_title = 'Stage'.
     mo_repo               = io_repo.
     ms_files              = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
     mv_seed               = iv_seed.
@@ -37741,7 +37742,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     CREATE OBJECT ro_html.
     lv_local_count = count_default_files_to_commit( ).
     IF lv_local_count > 0.
-      lv_add_all_txt = |Add all and commit ({ lv_local_count })|.
+      lv_add_all_txt = |Add All and Commit ({ lv_local_count })|.
       " Otherwise empty, but the element (id) is preserved for JS
     ENDIF.
 
@@ -37753,13 +37754,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                     iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_id    = 'commitSelectedButton'
                     iv_style = 'display: none'
-                    iv_txt   = 'Commit selected (<span class="counter"></span>)'
+                    iv_txt   = 'Commit Selected (<span class="counter"></span>)'
                     iv_opt   = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
     ro_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
                     iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_id    = 'commitFilteredButton'
                     iv_style = 'display: none'
-                    iv_txt   = 'Add <b>filtered</b> and commit (<span class="counter"></span>)' ) ##NO_TEXT.
+                    iv_txt   = 'Add <b>Filtered</b> and Commit (<span class="counter"></span>)' ) ##NO_TEXT.
     ro_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
                     iv_txt = lv_add_all_txt ) ##NO_TEXT.
@@ -37768,7 +37769,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     " Filter bar
     ro_html->add( '<td class="right">' ).
     ro_html->add( '<input class="stage-filter" id="objectSearch"' &&
-                  ' type="search" placeholder="Filter objects"' &&
+                  ' type="search" placeholder="Filter Objects"' &&
                   | value={ mv_filter_value }>| ).
     ro_html->add( '</td>' ).
 
@@ -37887,7 +37888,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ro_html->add( '<thead><tr class="local">' ).
         ro_html->add( '<th class="stage-status"></th>' ). " Diff state
         ro_html->add( '<th class="stage-objtype">Type</th>' ).
-        ro_html->add( '<th>Files to add (click to see diff)</th>' ).
+        ro_html->add( '<th title="Click filename to see diff">File</th>' ).
         ro_html->add( '<th>Changed by</th>' ).
         ro_html->add( '<th>Transport</th>' ).
         ro_html->add( '<th></th>' ). " Status
@@ -38188,7 +38189,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'SETTINGS'.
+    ms_control-page_title = 'Settings'.
   ENDMETHOD.
   METHOD is_post_field_checked.
     FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
@@ -38404,7 +38405,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     CREATE OBJECT ro_html.
     ro_html->add( |<h2>ABAP Development Tools (ADT)</h2>| ).
     ro_html->add( `<input type="checkbox" name="adt_jump_enabled" value="X" `
-                   && lv_checked && ` > Enable jump to ADT first` ).
+                   && lv_checked && ` > Enable Jump to ADT First` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
@@ -38412,17 +38413,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->add( |<h2>Commit Message</h2>| ).
-    ro_html->add( |<label for="comment_length">Max. length of comment (recommendation 50)</label>| ).
+    ro_html->add( |<label for="comment_length" title="(Recommendation 50)">Max. Length of Comment</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<input name="comment_length" type="number" step="10" size="3" maxlength="3" min="50"| &&
                   | value="{ mo_settings->get_commitmsg_comment_length( ) }">| ).
     ro_html->add( |<br>| ).
-    ro_html->add( |<label for="comment_default">Default for comment (possible variables: $OBJECT, $FILE)</label>| ).
+    ro_html->add( |<label for="comment_default"| &&
+                  |title="(Possible Variables: $OBJECT, $FILE)">Default for Comment</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<input name="comment_default" type="text" size="80" maxlength="255"| &&
                   | value="{ mo_settings->get_commitmsg_comment_default( ) }">| ).
     ro_html->add( |<br>| ).
-    ro_html->add( |<label for="body_size">Max. line size of body (recommendation 72)</label>| ).
+    ro_html->add( |<label for="body_size" title="(Recommendation 72)">Max. Line Size of Body</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<input name="body_size" type="number" size="3" maxlength="3" min="50"| &&
                   | value="{ mo_settings->get_commitmsg_body_size( ) }">| ).
@@ -38436,14 +38438,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     read_settings( ).
 
     ri_html->add( render_form_begin( ) ).
-    ri_html->add( render_section_begin( |Global settings| ) ).
+    ri_html->add( render_section_begin( |Global Settings| ) ).
     ri_html->add( render_proxy( ) ).
     ri_html->add( |<hr>| ).
     ri_html->add( render_commit_msg( ) ).
     ri_html->add( |<hr>| ).
     ri_html->add( render_development_internals( ) ).
     ri_html->add( render_section_end( ) ).
-    ri_html->add( render_section_begin( |User specific settings| ) ).
+    ri_html->add( render_section_begin( |User Specific Settings| ) ).
     ri_html->add( render_start_up( ) ).
     ri_html->add( render_max_lines( ) ).
     ri_html->add( render_icon_scaling( ) ).
@@ -38479,15 +38481,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
 
     CREATE OBJECT ro_html.
-    ro_html->add( |<h2>abapGit Development Internals settings</h2>| ).
+    ro_html->add( |<h2>abapGit Development Internals</h2>| ).
     ro_html->add( `<input type="checkbox" name="critical_tests" `
-                   && lv_critical_tests && ` > Enable critical unit tests (see LTCL_DANGEROUS)` ).
+                   && lv_critical_tests && ` > Enable Critical Unit Tests (See LTCL_DANGEROUS)` ).
     ro_html->add( |<br>| ).
     ro_html->add( `<input type="checkbox" name="experimental_features" `
-                   && lv_experimental && ` > Enable experimental features` ).
+                   && lv_experimental && ` > Enable Experimental Features` ).
     ro_html->add( |<br>| ).
     ro_html->add( `<input type="checkbox" name="activate_wo_popup" `
-                   && lv_act_wo_popup && ` > Activate objects without popup` ).
+                   && lv_act_wo_popup && ` > Activate Objects Without Popup` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
 
@@ -38557,8 +38559,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
-    ro_html->add( |<h2>UI Icon scaling</h2>| ).
-    ro_html->add( |<label for="icon_scaling">High DPI icon scaling</label>| ).
+    ro_html->add( |<h2>UI Icon Scaling</h2>| ).
+    ro_html->add( |<label for="icon_scaling">High DPI Icon Scaling</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<select name="icon_scaling" size="3">| ).
     ro_html->add( |<option value=""{ ls_sel-auto }>Auto</option>| ).
@@ -38582,13 +38584,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
 
     CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Vimium like link hints</h2>| ).
+    ro_html->add( |<h2>Vimium-like Link Hints</h2>| ).
     ro_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
-                   && lv_checked && ` > Enable Vimium like link hints` ).
+                   && lv_checked && ` > Enable Vimium-like Link Hints` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
-               && |> Single key to activate links| ).
+               && |> Key to Activate Links| ).
 
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
@@ -38598,7 +38600,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->add( |<h2>List size</h2>| ).
-    ro_html->add( |<label for="max_lines">Max. # of objects listed (0 = all)</label>| ).
+    ro_html->add( |<label for="max_lines">Max. # of Objects Listed (0 = All)</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
     ro_html->add( |<br>| ).
@@ -38613,9 +38615,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
 
     CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Parallel processing</h2>| ).
+    ro_html->add( |<h2>Parallel Processing</h2>| ).
     ro_html->add( `<input type="checkbox" name="parallel_proc_disabled" value="X" `
-                   && lv_checked && ` > Disable parallel processing` ).
+                   && lv_checked && ` > Disable Parallel Processing` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
@@ -38642,7 +38644,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
-    ro_html->add( |<label for="proxy_bypass">Bypass proxy settings for these Hosts & Domains</label>| ).
+    ro_html->add( |<label for="proxy_bypass">Bypass Proxy Settings for These Hosts & Domains</label>| ).
     ro_html->add( |<br>| ).
     ro_html->add( |<button type="button" name="proxy_bypass" class="grey-set"|
                 & |onclick="location.href='sapevent:{ c_action-change_proxy_bypass }';">Maintain</button>| ).
@@ -38675,9 +38677,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ENDIF.
 
     CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Start up</h2>| ).
+    ro_html->add( |<h2>Startup</h2>| ).
     ro_html->add( `<input type="checkbox" name="show_default_repo" value="X" `
-                   && lv_checked && ` > Show last repo` ).
+                   && lv_checked && ` > Show Last Opened Repository` ).
     ro_html->add( |<br>| ).
     ro_html->add( |<br>| ).
   ENDMETHOD.
@@ -38832,10 +38834,10 @@ CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'REPO SETTINGS'.
+    ms_control-page_title = 'Repository Settings'.
     mo_repo = io_repo.
   ENDMETHOD.
   METHOD parse_post.
@@ -38887,7 +38889,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ENDIF.
 
     ii_html->add( render_table_row(
-      iv_name  = 'Master language'
+      iv_name  = 'Master Language'
       iv_value = |{ ls_dot-master_language } ({ lv_language })|
     ) ).
 
@@ -38907,12 +38909,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     lv_select_html = lv_select_html && '</select>'.
 
     ii_html->add( render_table_row(
-      iv_name  = 'Folder logic'
+      iv_name  = 'Folder Logic'
       iv_value = lv_select_html
     ) ).
 
     ii_html->add( render_table_row(
-      iv_name  = 'Starting folder'
+      iv_name  = 'Starting Folder'
       iv_value = |<input name="starting_folder" type="text" size="10" value="{ ls_dot-starting_folder }">|
     ) ).
 
@@ -38921,7 +38923,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ENDLOOP.
 
     ii_html->add( render_table_row(
-      iv_name  = 'Ignore files'
+      iv_name  = 'Ignore Files'
       iv_value = |<textarea name="ignore_files" rows="{ lines( ls_dot-ignore )
                  }" cols="50">{ lv_ignore }</textarea>|
     ) ).
@@ -38950,7 +38952,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     ii_html->add( '<h3>Requirements</h3>' ).
     ii_html->add( '<table class="settings-package-requirements" id="requirement-tab">' ).
-    ii_html->add( '<tr><th>Software Component</th><th>Min Release</th><th>Min Patch</th></tr>' ).
+    ii_html->add( '<tr><th>Software Component</th><th>Min. Release</th><th>Min. Patch</th></tr>' ).
 
     LOOP AT lt_requirements ASSIGNING <ls_requirement>.
       lv_req_index = sy-tabix.
@@ -38975,11 +38977,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
 
     ls_settings = mo_repo->get_local_settings( ).
 
-    ii_html->add( '<h2>Local settings</h2>' ).
+    ii_html->add( '<h2>Local Settings</h2>' ).
     ii_html->add( '<table class="settings">' ).
 
     ii_html->add( render_table_row(
-      iv_name  = 'Display name'
+      iv_name  = 'Display Name'
       iv_value = |<input name="display_name" type="text" size="30" value="{ ls_settings-display_name }">|
     ) ).
 
@@ -38992,7 +38994,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       ENDIF.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Write protected'
+      iv_name  = 'Write Protected'
       iv_value = |<input name="write_protected" type="checkbox"{ lv_checked }>|
     ) ).
 
@@ -39001,7 +39003,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       lv_checked = | checked|.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Ignore subpackages'
+      iv_name  = 'Ignore Subpackages'
       iv_value = |<input name="ignore_subpackages" type="checkbox"{ lv_checked }>|
     ) ).
 
@@ -39010,12 +39012,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       lv_checked = | checked|.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Only local objects'
+      iv_name  = 'Only Local Objects'
       iv_value = |<input name="only_local_objects" type="checkbox"{ lv_checked }>|
     ) ).
 
     ii_html->add( render_table_row(
-      iv_name  = 'Code inspector check variant'
+      iv_name  = 'Code Inspector Check Variant'
       iv_value = |<input name="check_variant" type="text" size="30" value="{
         ls_settings-code_inspector_check_variant }">|
     ) ).
@@ -39025,7 +39027,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       lv_checked = | checked|.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Block commit if code inspection has errors'
+      iv_name  = 'Block Commit If Code Inspection Has Errors'
       iv_value = |<input name="block_commit" type="checkbox"{ lv_checked }>|
     ) ).
 
@@ -39034,7 +39036,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       lv_checked = | checked|.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Serialize master language only'
+      iv_name  = 'Serialize Master Language Only'
       iv_value = |<input name="serialize_master_lang_only" type="checkbox"{ lv_checked }>|
     ) ).
 
@@ -39178,7 +39180,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   METHOD add_menu_begin.
 
     io_menu->add(
-        iv_txt   = |Refresh local|
+        iv_txt   = |Refresh Local|
         iv_typ   = zif_abapgit_html=>c_action_type-dummy
         iv_act   = c_actions-refresh_local
         iv_id    = c_actions-refresh_local
@@ -39377,6 +39379,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     CLEAR: mv_unified.
     CREATE OBJECT mo_stage.
 
+    ms_control-page_title = 'Patch'.
     ms_control-page_menu = build_menu( ).
 
   ENDMETHOD.
@@ -40221,7 +40224,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
         iv_source_branch = iv_source.
     mo_merge->run( ).
 
-    ms_control-page_title = 'MERGE'.
+    ms_control-page_title = 'Merge'.
     ms_control-page_menu  = build_menu( mo_merge->has_conflicts( ) ).
 
   ENDMETHOD.
@@ -40409,7 +40412,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_menu  = build_main_menu( ).
-    ms_control-page_title = 'REPOSITORY LIST'.
+    ms_control-page_title = 'Repository List'.
   ENDMETHOD.
   METHOD render_content.
 
@@ -40795,7 +40798,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     DATA: lv_ts TYPE timestamp.
 
     super->constructor( ).
-    ms_control-page_title = 'DIFF'.
+    ms_control-page_title = 'Diff'.
     mv_unified            = zcl_abapgit_persistence_user=>get_instance( )->get_diff_unified( ).
     mv_repo_key           = iv_key.
     mo_repo              ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -40952,7 +40955,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
-    ro_html->add( '<div class="diff_head">' ).              "#EC NOTEXT
+    ro_html->add( '<div class="diff_head">' ).
 
     ro_html->add_icon(
       iv_name    = 'chevron-down'
@@ -40981,9 +40984,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ENDIF.
 
     IF lv_adt_link IS NOT INITIAL.
-      ro_html->add( |<span class="diff_name">{ lv_adt_link }</span>| ). "#EC NOTEXT
+      ro_html->add( |<span class="diff_name">{ lv_adt_link }</span>| ).
     ELSE.
-      ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ). "#EC NOTEXT
+      ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ).
     ENDIF.
 
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
@@ -40994,10 +40997,10 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         io_html = ro_html
         is_diff = is_diff ).
 
-    ro_html->add( |<span class="diff_changed_by">last change by: <span class="user">{
+    ro_html->add( |<span class="diff_changed_by">Last Changed by: <span class="user">{
       is_diff-changed_by }</span></span>| ).
 
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
+    ro_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_diff_head_after_state.
@@ -41301,7 +41304,7 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'DEBUG INFO'.
+    ms_control-page_title = 'Debug Info'.
   ENDMETHOD.
   METHOD get_jump_class.
 
@@ -41484,7 +41487,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     mo_repo   = io_repo.
     mo_stage  = io_stage.
 
-    ms_control-page_title = 'COMMIT'.
+    ms_control-page_title = 'Commit'.
   ENDMETHOD.
   METHOD get_comment_default.
 
@@ -41697,11 +41700,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
                && ' method="post" action="sapevent:commit_post">' ).
 
     ro_html->add( render_text_input( iv_name  = 'committer_name'
-                                     iv_label = 'committer name'
+                                     iv_label = 'Committer Name'
                                      iv_value = lv_user ) ).
 
     ro_html->add( render_text_input( iv_name  = 'committer_email'
-                                     iv_label = 'committer e-mail'
+                                     iv_label = 'Committer E-mail'
                                      iv_value = lv_email ) ).
 
     lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
@@ -41709,12 +41712,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     lv_s_param = lo_settings->get_commitmsg_comment_length( ).
 
     ro_html->add( render_text_input( iv_name       = 'comment'
-                                     iv_label      = 'comment'
+                                     iv_label      = 'Comment'
                                      iv_value      = lv_comment
                                      iv_max_length = lv_s_param ) ).
 
     ro_html->add( '<div class="row">' ).
-    ro_html->add( '<label for="c-body">body</label>' ).
+    ro_html->add( '<label for="c-body">Body</label>' ).
 
     lv_body_size = lo_settings->get_commitmsg_body_size( ).
     IF lv_body_size > lc_body_col_max.
@@ -41733,11 +41736,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( '</div>' ).
 
     ro_html->add( render_text_input( iv_name  = 'author_name'
-                                     iv_label = 'author name'
+                                     iv_label = 'Author Name'
                                      iv_value = lv_author_name ) ).
 
     ro_html->add( render_text_input( iv_name  = 'author_email'
-                                     iv_label = 'author e-mail'
+                                     iv_label = 'Author E-mail'
                                      iv_value = lv_author_email ) ).
 
     ro_html->add( '</form>' ).
@@ -41785,7 +41788,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ro_html->add( '<table class="stage_tab">' ).
     ro_html->add( '<thead>' ).
     ro_html->add( '<tr>' ).
-    ro_html->add( '<th colspan="3">Staged files</th>' ).
+    ro_html->add( '<th colspan="3">Staged Files</th>' ).
     ro_html->add( '</tr>' ).
     ro_html->add( '</thead>' ).
 
@@ -42493,7 +42496,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'BRANCH_OVERVIEW'.
+    ms_control-page_title = 'Branch Overview'.
     mo_repo = io_repo.
     refresh( ).
   ENDMETHOD.
@@ -42680,7 +42683,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_BKG_RUN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'BACKGROUND_RUN'.
+    ms_control-page_title = 'Backgorund Run'.
   ENDMETHOD.
   METHOD render_content.
 
@@ -42737,7 +42740,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     super->constructor( ).
 
     mv_key = iv_key.
-    ms_control-page_title = 'BACKGROUND'.
+    ms_control-page_title = 'Backround'.
     ms_control-page_menu  = build_menu( ).
 
   ENDMETHOD.
@@ -43470,22 +43473,22 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     CREATE OBJECT ro_menu.
 
     ro_menu->add(
-      iv_txt = 'Database util'
+      iv_txt = 'Database Utility'
       iv_act = zif_abapgit_definitions=>c_action-go_db
     )->add(
-      iv_txt = 'Package to zip'
+      iv_txt = 'Package to Zip'
       iv_act = zif_abapgit_definitions=>c_action-zip_package
     )->add(
-      iv_txt = 'Transport to zip'
+      iv_txt = 'Transport to Zip'
       iv_act = zif_abapgit_definitions=>c_action-zip_transport
     )->add(
-      iv_txt = 'Object to files'
+      iv_txt = 'Object to Files'
       iv_act = zif_abapgit_definitions=>c_action-zip_object
     )->add(
-      iv_txt = 'Test changed by'
+      iv_txt = 'Test Changed by'
       iv_act = zif_abapgit_definitions=>c_action-changed_by
     )->add(
-      iv_txt = 'Debug info'
+      iv_txt = 'Debug Info'
       iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
     )->add(
       iv_txt = 'Settings'
@@ -44105,7 +44108,7 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD repo_list.
-    rv_html_string = `<i class="icon icon-bars"></i> Repository list`.
+    rv_html_string = `<i class="icon icon-bars"></i> Repository List`.
   ENDMETHOD.
 
 ENDCLASS.
@@ -44520,7 +44523,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_key = is_key.
-    ms_control-page_title = 'CONFIG EDIT'.
+    ms_control-page_title = 'Config Edit'.
   ENDMETHOD.
   METHOD dbcontent_decode.
 
@@ -44621,7 +44624,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_key = is_key.
-    ms_control-page_title = 'CONFIG DISPLAY'.
+    ms_control-page_title = 'Config Display'.
   ENDMETHOD.
   METHOD render_content.
 
@@ -44675,7 +44678,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'DATABASE PERSISTENCY'.
+    ms_control-page_title = 'Database Utility'.
   ENDMETHOD.
   METHOD delete.
 
@@ -89931,5 +89934,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-20T15:57:55.923Z
+* abapmerge 0.14.1 - 2020-08-22T07:51:23.195Z
 ****************************************************
