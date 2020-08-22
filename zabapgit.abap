@@ -10725,6 +10725,7 @@ CLASS zcl_abapgit_gui DEFINITION
     CONSTANTS:
       BEGIN OF c_action,
         go_home TYPE string VALUE 'go_home',
+        go_db   TYPE string VALUE 'go_db',
       END OF c_action.
 
     INTERFACES zif_abapgit_gui_services.
@@ -45639,12 +45640,20 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD go_home.
 
-    DATA ls_stack LIKE LINE OF mt_stack.
+    DATA: ls_stack LIKE LINE OF mt_stack,
+          lv_mode  TYPE tabname.
 
     IF mi_router IS BOUND.
       CLEAR: mt_stack, mt_event_handlers.
       APPEND mi_router TO mt_event_handlers.
-      on_event( action = |{ c_action-go_home }| ). " doesn't accept strings directly
+      " on_event doesn't accept strings directly
+      GET PARAMETER ID 'DBT' FIELD lv_mode.
+      CASE lv_mode.
+        WHEN 'ZABAPGIT'.
+          on_event( action = |{ c_action-go_db }| ).
+        WHEN OTHERS.
+          on_event( action = |{ c_action-go_home }| ).
+      ENDCASE.
     ELSE.
       IF lines( mt_stack ) > 0.
         READ TABLE mt_stack INTO ls_stack INDEX 1.
@@ -89950,5 +89959,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-22T07:54:30.992Z
+* abapmerge 0.14.1 - 2020-08-22T07:56:34.774Z
 ****************************************************
