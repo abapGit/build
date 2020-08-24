@@ -1829,6 +1829,15 @@ INTERFACE zif_abapgit_definitions .
     END OF c_git_branch_type .
   CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
   CONSTANTS:
+    BEGIN OF c_git_branch,
+      master       TYPE string VALUE 'refs/heads/master',
+      prefix       TYPE string VALUE 'refs/',
+      heads_prefix TYPE string VALUE 'refs/heads/',
+      heads        TYPE string VALUE 'refs/heads/*',
+      tags_prefix  TYPE string VALUE 'refs/tags/',
+      tags         TYPE string VALUE 'refs/tags/*',
+    END OF c_git_branch.
+  CONSTANTS:
     BEGIN OF c_diff,
       insert TYPE c LENGTH 1 VALUE 'I',
       delete TYPE c LENGTH 1 VALUE 'D',
@@ -1926,7 +1935,6 @@ INTERFACE zif_abapgit_definitions .
       documentation                 TYPE string VALUE 'documentation',
       changelog                     TYPE string VALUE 'changelog',
     END OF c_action.
-  CONSTANTS c_tag_prefix TYPE string VALUE 'refs/tags/' ##NO_TEXT.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
   CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
@@ -2817,7 +2825,7 @@ INTERFACE zif_abapgit_popups .
     IMPORTING
       !iv_url            TYPE string
       !iv_package        TYPE devclass OPTIONAL
-      !iv_branch         TYPE string DEFAULT 'refs/heads/master'
+      !iv_branch         TYPE string DEFAULT zif_abapgit_definitions=>c_git_branch-master
       !iv_freeze_package TYPE abap_bool OPTIONAL
       !iv_freeze_url     TYPE abap_bool OPTIONAL
       !iv_title          TYPE clike DEFAULT 'New Online Project'
@@ -20168,12 +20176,13 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
 
     lv_branch_name = iv_branch_name.
     IF lv_branch_name IS INITIAL.
-      lv_branch_name = 'refs/heads/master'.
+      lv_branch_name = zif_abapgit_definitions=>c_git_branch-master.
     ENDIF.
     IF -1 = find(
         val = lv_branch_name
-        sub = 'refs/heads/' ).
-      lv_branch_name = 'refs/heads/' && lv_branch_name. " Assume short branch name was received
+        sub = zif_abapgit_definitions=>c_git_branch-heads_prefix ).
+      " Assume short branch name was received
+      lv_branch_name = zif_abapgit_definitions=>c_git_branch-heads_prefix && lv_branch_name.
     ENDIF.
 
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
@@ -20478,7 +20487,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     DATA: lv_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
 
-    ASSERT iv_name CP 'refs/heads/+*'.
+    ASSERT iv_name CP zif_abapgit_definitions=>c_git_branch-heads.
 
     IF iv_from IS INITIAL.
       lv_sha1 = get_sha1_remote( ).
@@ -20501,7 +20510,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     DATA: ls_push TYPE zcl_abapgit_git_porcelain=>ty_push_result,
           lv_text TYPE string.
-    IF ms_data-branch_name CP 'refs/tags*'.
+    IF ms_data-branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
       lv_text = |You're working on a tag. Currently it's not |
              && |possible to push on tags. Consider creating a branch instead|.
       zcx_abapgit_exception=>raise( lv_text ).
@@ -24473,7 +24482,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
                          WITH KEY sha1 = <ls_object>-sha1.
       ASSERT sy-subrc = 0.
 
-      <ls_tag>-name         = |refs/tags/{ ls_raw-tag }|.
+      <ls_tag>-name         = zif_abapgit_definitions=>c_git_branch-tags_prefix && ls_raw-tag.
       <ls_tag>-sha1         = <ls_object>-sha1.
       <ls_tag>-object       = ls_raw-object.
       <ls_tag>-type         = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
@@ -32339,7 +32348,7 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD check_sapgui.
 
     CONSTANTS:
@@ -32401,7 +32410,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
 
       lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
         iv_url         = iv_url
-        iv_branch_name = 'refs/heads/master'
+        iv_branch_name = zif_abapgit_definitions=>c_git_branch-master
         iv_package     = iv_package ) ##NO_TEXT.
 
       zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
@@ -32525,7 +32534,6 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD open_dotabap_homepage.
 
     cl_gui_frontend_services=>execute(
@@ -32625,7 +32633,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -32914,7 +32922,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       IF iv_hide_head IS NOT INITIAL.
         lv_text = 'master'.
       ENDIF.
-      IF iv_hide_branch IS NOT INITIAL AND iv_hide_branch <> 'refs/heads/master'.
+      IF iv_hide_branch IS NOT INITIAL AND iv_hide_branch <> zif_abapgit_definitions=>c_git_branch-master.
         IF lv_text IS INITIAL.
           lv_text = iv_hide_branch && ' is'.
         ELSE.
@@ -37337,7 +37345,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ENDIF.
 
     ls_tag-name = zcl_abapgit_git_tag=>add_tag_prefix( ls_tag-name ).
-    ASSERT ls_tag-name CP 'refs/tags/+*'.
+    ASSERT ls_tag-name CP zif_abapgit_definitions=>c_git_branch-tags.
 
     CASE mv_selected_type.
       WHEN c_tag_type-lightweight.
@@ -40314,7 +40322,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
     mo_repo = io_repo.
 
-    io_repo->set_branch_name( |refs/heads/{ iv_target }| ).
+    io_repo->set_branch_name( |{ zif_abapgit_definitions=>c_git_branch-heads_prefix }{ iv_target }| ).
 
     CREATE OBJECT mo_merge
       EXPORTING
@@ -43058,7 +43066,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -43205,7 +43213,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
             iv_key = c_id-branch_name
             iv_val = replace( " strip technical
               val = mo_form_data->get( c_id-branch_name )
-              sub = 'refs/heads/'
+              sub = zif_abapgit_definitions=>c_git_branch-heads_prefix
               with = '' ) ).
           ev_state = zcl_abapgit_gui=>c_event_state-re_render.
         ENDIF.
@@ -87312,14 +87320,14 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
 
-    rv_text = zif_abapgit_definitions=>c_tag_prefix && iv_text.
+    rv_text = zif_abapgit_definitions=>c_git_branch-tags_prefix && iv_text.
 
   ENDMETHOD.
   METHOD remove_tag_prefix.
 
     rv_text = iv_text.
 
-    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_tag_prefix
+    REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-tags_prefix
             IN rv_text
             WITH ''.
 
@@ -88634,10 +88642,10 @@ ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD complete_heads_branch_name.
-    IF iv_branch_name CP 'refs/heads/*'.
+    IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-heads.
       rv_name = iv_branch_name.
     ELSE.
-      rv_name = 'refs/heads/' && iv_branch_name.
+      rv_name = zif_abapgit_definitions=>c_git_branch-heads_prefix && iv_branch_name.
     ENDIF.
   ENDMETHOD.
   METHOD constructor.
@@ -88656,7 +88664,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Branch name empty' ) ##NO_TEXT.
     ENDIF.
 
-    IF iv_branch_name CP |refs/tags/*|.
+    IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
       rs_branch = find_tag_by_name( iv_branch_name ).
     ELSE.
 
@@ -88705,10 +88713,10 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD get_display_name.
     rv_display_name = iv_branch_name.
 
-    IF rv_display_name CP 'refs/heads/*'.
-      REPLACE FIRST OCCURRENCE OF 'refs/heads/' IN rv_display_name WITH ''.
-    ELSEIF rv_display_name CP 'refs/tags/*'.
-      REPLACE FIRST OCCURRENCE OF 'refs/' IN rv_display_name WITH ''.
+    IF rv_display_name CP zif_abapgit_definitions=>c_git_branch-heads.
+      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN rv_display_name WITH ''.
+    ELSEIF rv_display_name CP zif_abapgit_definitions=>c_git_branch-tags.
+      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-prefix IN rv_display_name WITH ''.
     ENDIF.
 
   ENDMETHOD.
@@ -88733,10 +88741,11 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
     rv_type = zif_abapgit_definitions=>c_git_branch_type-other.
 
-    IF iv_branch_name CP 'refs/heads/*' OR iv_branch_name = zif_abapgit_definitions=>c_head_name.
+    IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-heads OR
+       iv_branch_name = zif_abapgit_definitions=>c_head_name.
       rv_type = zif_abapgit_definitions=>c_git_branch_type-branch.
 
-    ELSEIF iv_branch_name CP 'refs/tags/*'.
+    ELSEIF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
 
       lv_annotated_tag_with_suffix = iv_branch_name && '^{}'.
 
@@ -90362,5 +90371,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-24T09:24:36.658Z
+* abapmerge 0.14.1 - 2020-08-24T09:26:51.678Z
 ****************************************************
