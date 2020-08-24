@@ -9049,8 +9049,7 @@ CLASS zcl_abapgit_object_wapa DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
 ENDCLASS.
 CLASS zcl_abapgit_object_wdcc DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super
-  PUBLIC.
+  INHERITING FROM zcl_abapgit_objects_super.
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
@@ -90359,5 +90358,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-24T09:56:04.763Z
+* abapmerge 0.14.1 - 2020-08-24T11:52:11.865Z
 ****************************************************
