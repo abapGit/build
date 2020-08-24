@@ -16063,6 +16063,14 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS reset_status .
+    METHODS validate
+        ABSTRACT
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset
+        ABSTRACT
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -16202,13 +16210,17 @@ CLASS zcl_abapgit_repo_offline DEFINITION
   PUBLIC SECTION.
 
     METHODS get_name
-      REDEFINITION .
+        REDEFINITION .
     METHODS has_remote_source
-      REDEFINITION .
+        REDEFINITION .
+    METHODS validate
+        REDEFINITION .
+    METHODS reset
+        REDEFINITION .
   PROTECTED SECTION.
 
     METHODS reset_remote
-      REDEFINITION .
+        REDEFINITION .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_repo_online DEFINITION
@@ -16251,19 +16263,26 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS get_commit_display_url
+      IMPORTING
+        !iv_hash      TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING
+        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
+      RAISING
+        zcx_abapgit_exception .
 
     METHODS get_files_remote
-         REDEFINITION .
+        REDEFINITION .
     METHODS get_name
-         REDEFINITION .
+        REDEFINITION .
     METHODS has_remote_source
-         REDEFINITION .
+        REDEFINITION .
     METHODS rebuild_local_checksums
-         REDEFINITION .
-    METHODS get_commit_display_url
-      IMPORTING iv_hash       TYPE zif_abapgit_definitions=>ty_sha1
-      RETURNING VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
-      RAISING   zcx_abapgit_exception.
+        REDEFINITION .
+    METHODS validate
+        REDEFINITION .
+    METHODS reset
+        REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -20228,7 +20247,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -20254,6 +20273,31 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_branch_name.
     rv_name = ms_data-branch_name.
+  ENDMETHOD.
+  METHOD get_commit_display_url.
+
+    DATA ls_result TYPE match_result.
+    FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
+
+    rv_url = me->get_url( ).
+
+    FIND REGEX '^https:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |provider not yet supported| ).
+    ENDIF.
+    READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
+    CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
+      WHEN 'github.com'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/commit/| && iv_hash.
+      WHEN 'bitbucket.org'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/commits/| && iv_hash.
+      WHEN 'gitlab.com'.
+        REPLACE REGEX '\.git$' IN rv_url WITH space.
+        rv_url = rv_url && |/-/commit/| && iv_hash.
+    ENDCASE.
+
   ENDMETHOD.
   METHOD get_files_remote.
     fetch_remote( ).
@@ -20367,6 +20411,14 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
+  METHOD reset.
+
+    " Reset repo to master branch
+    set_branch_name( 'refs/heads/master' ).
+
+    COMMIT WORK AND WAIT.
+
+  ENDMETHOD.
   METHOD set_branch_name.
 
     reset_remote( ).
@@ -20380,6 +20432,19 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     reset_remote( ).
     set( iv_url = iv_url ).
+
+  ENDMETHOD.
+  METHOD validate.
+
+    DATA:
+      lo_branches TYPE REF TO zcl_abapgit_git_branch_list,
+      ls_branch   TYPE zif_abapgit_definitions=>ty_git_branch.
+
+    " Check if branch still exists since it might have been deleted in remote repo
+    " This will raise exception if not
+    lo_branches = zcl_abapgit_git_transport=>branches( ms_data-url ).
+
+    ls_branch = lo_branches->find_by_name( ms_data-branch_name ).
 
   ENDMETHOD.
   METHOD zif_abapgit_git_operations~create_branch.
@@ -20441,32 +20506,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-  METHOD get_commit_display_url.
-
-    DATA ls_result TYPE match_result.
-    FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
-
-    rv_url = me->get_url( ).
-
-    FIND REGEX '^https:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |provider not yet supported| ).
-    ENDIF.
-    READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
-    CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
-      WHEN 'github.com'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/commit/| && iv_hash.
-      WHEN 'bitbucket.org'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/commits/| && iv_hash.
-      WHEN 'gitlab.com'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/-/commit/| && iv_hash.
-    ENDCASE.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
@@ -20479,6 +20518,9 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD has_remote_source.
     rv_yes = boolc( lines( mt_remote ) > 0 ).
+  ENDMETHOD.
+  METHOD reset.
+    " Nothing to do so far
   ENDMETHOD.
   METHOD reset_remote.
 
@@ -20495,6 +20537,9 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
     super->reset_remote( ).
     set_files_remote( lt_backup ).
 
+  ENDMETHOD.
+  METHOD validate.
+    " Nothing to do so far
   ENDMETHOD.
 ENDCLASS.
 
@@ -36159,7 +36204,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -36635,6 +36680,7 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
           lv_add_str           TYPE string,
           li_log               TYPE REF TO zif_abapgit_log,
           lv_render_transports TYPE abap_bool,
+          lv_msg               TYPE string,
           lo_news              TYPE REF TO zcl_abapgit_news.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
@@ -36646,6 +36692,16 @@ CLASS zcl_abapgit_gui_page_view_repo IMPLEMENTATION.
 
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
+
+    " Check if repo is still valid and reset if necessary to consistent state
+    TRY.
+        mo_repo->validate( ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        lv_msg = lx_error->get_text( ) && '. Fallback to master branch.'.
+        MESSAGE lv_msg TYPE 'S'.
+
+        mo_repo->reset( ).
+    ENDTRY.
 
     lo_news = zcl_abapgit_news=>create( mo_repo ).
 
@@ -88275,7 +88331,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP 'refs/heads/*'.
       rv_name = iv_branch_name.
@@ -88306,7 +88362,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       READ TABLE mt_branches INTO rs_branch
         WITH KEY name = iv_branch_name.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Branch not found: { iv_branch_name }| ).
+        zcx_abapgit_exception=>raise( |Branch not found: { get_display_name( iv_branch_name ) }| ).
       ENDIF.
 
     ENDIF.
@@ -90005,5 +90061,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-24T09:11:51.547Z
+* abapmerge 0.14.1 - 2020-08-24T09:17:02.039Z
 ****************************************************
