@@ -7318,7 +7318,7 @@ CLASS zcl_abapgit_object_otgr DEFINITION
         cls_type_group TYPE cls_type_group,
         texts          TYPE STANDARD TABLE OF cls_type_groupt WITH DEFAULT KEY,
         elements       TYPE STANDARD TABLE OF cls_tygr_element WITH DEFAULT KEY,
-        parents        TYPE STANDARD TABLE OF cls_tygr_parent WITH DEFAULT KEY,
+*        parents        TYPE STANDARD TABLE OF cls_tygr_parent WITH DEFAULT KEY,
       END OF ty_otgr .
 
     METHODS instantiate_and_lock_otgr
@@ -68754,8 +68754,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
   METHOD instantiate_and_lock_otgr.
     DATA: lv_new  TYPE abap_bool,
           lv_name TYPE cls_attribute_name.
@@ -68803,7 +68802,6 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
       rv_user = c_user_unknown.
     ENDIF.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~delete.
     DATA: lo_otgr       TYPE REF TO cl_cls_object_type_group,
           lx_pak_error  TYPE REF TO cx_root,
@@ -68823,7 +68821,6 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |OTGR { ms_item-obj_name }: delete: { lv_text }| ).
     ENDTRY.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~deserialize.
     DATA: ls_otgr        TYPE ty_otgr,
           lo_otgr        TYPE REF TO cl_cls_object_type_group,
@@ -68832,8 +68829,8 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
           lv_masterlang  TYPE sylangu.
 
     FIELD-SYMBOLS: <ls_groupt>  LIKE LINE OF ls_otgr-texts,
-                   <ls_element> LIKE LINE OF ls_otgr-elements,
-                   <ls_parent>  LIKE LINE OF ls_otgr-parents.
+                   <ls_element> LIKE LINE OF ls_otgr-elements.
+*                   <ls_parent>  LIKE LINE OF ls_otgr-parents.
 
     io_xml->read( EXPORTING iv_name = 'OTGR'
                   CHANGING cg_data = ls_otgr ).
@@ -68844,11 +68841,11 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
       <ls_groupt>-name = ms_item-obj_name.
     ENDLOOP.
 
-    LOOP AT ls_otgr-parents ASSIGNING <ls_parent>.
-      <ls_parent>-activation_state = cl_pak_wb_domains=>co_activation_state-inactive.
-      " Removed in the method serialize.
-      <ls_parent>-obj_type_group = ms_item-obj_name.
-    ENDLOOP.
+*    LOOP AT ls_otgr-parents ASSIGNING <ls_parent>.
+*      <ls_parent>-activation_state = cl_pak_wb_domains=>co_activation_state-inactive.
+*      " Removed in the method serialize.
+*      <ls_parent>-obj_type_group = ms_item-obj_name.
+*    ENDLOOP.
 
     LOOP AT ls_otgr-elements ASSIGNING <ls_element>.
       <ls_element>-activation_state = cl_pak_wb_domains=>co_activation_state-inactive.
@@ -68863,7 +68860,7 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
     TRY.
         lo_otgr->if_cls_object_type_group~set_proxy_filter( ls_otgr-cls_type_group-proxy_flag ).
         lo_otgr->if_cls_object_type_group~set_elements( ls_otgr-elements ).
-        lo_otgr->if_cls_object_type_group~set_parent_groups( ls_otgr-parents ).
+*        lo_otgr->if_cls_object_type_group~set_parent_groups( ls_otgr-parents ).
 
         lv_masterlang = lo_otgr->if_pak_wb_object~get_master_language( ).
         READ TABLE ls_otgr-texts WITH KEY langu = lv_masterlang ASSIGNING <ls_groupt>.
@@ -68889,32 +68886,25 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |OTGR { ms_item-obj_name }: deserialize: { lv_text }| ).
     ENDTRY.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~exists.
     rv_bool = cl_cls_object_type_group=>exists_object_type_group( ms_item-obj_name ).
   ENDMETHOD.
-
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
-
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
   ENDMETHOD.
-
   METHOD zif_abapgit_object~is_locked.
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ECLS_ATTRIBUTE'
                                             iv_argument    = |{ ms_item-obj_name }*| ).
   ENDMETHOD.
-
   METHOD zif_abapgit_object~jump.
     CALL FUNCTION 'RS_TOOL_ACCESS'
       EXPORTING
@@ -68930,7 +68920,6 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS, CHAR| ).
     ENDIF.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~serialize.
     DATA: lv_text      TYPE string,
           ls_otgr      TYPE ty_otgr,
@@ -68940,8 +68929,8 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
           lx_pak_error TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_groupt>  LIKE LINE OF ls_otgr-texts,
-                   <ls_element> LIKE LINE OF ls_otgr-elements,
-                   <ls_parent>  LIKE LINE OF ls_otgr-parents.
+                   <ls_element> LIKE LINE OF ls_otgr-elements.
+*                   <ls_parent>  LIKE LINE OF ls_otgr-parents.
 
     lo_otgr = instantiate_and_lock_otgr( ).
 
@@ -68962,11 +68951,11 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
         ls_otgr-cls_type_group-name = lo_otgr->if_cls_object_type_group~get_name( ).
         ls_otgr-cls_type_group-proxy_flag = lo_otgr->if_cls_object_type_group~get_proxy_filter( ).
         lo_otgr->get_elements( IMPORTING ex_elements = ls_otgr-elements ).
-        lo_otgr->if_cls_object_type_group~get_parent_groups(
-          EXPORTING
-            im_explicit_parents_only = abap_true
-          IMPORTING
-            ex_parent_groups = ls_otgr-parents ).
+*        lo_otgr->if_cls_object_type_group~get_parent_groups(
+*          EXPORTING
+*            im_explicit_parents_only = abap_true
+*          IMPORTING
+*            ex_parent_groups = ls_otgr-parents ).
 
         " Beware: the following method returns the Master Language description only if the object is Locked!
         <ls_groupt>-text = lo_otgr->if_cls_object_type_group~get_description( ).
@@ -69015,17 +69004,16 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
       CLEAR <ls_element>-obj_type_group.
     ENDLOOP.
 
-    LOOP AT ls_otgr-parents ASSIGNING <ls_parent>.
-      " Not necessary as we serialize only Active
-      CLEAR <ls_parent>-activation_state.
-      " Not necessary as we have it in the root XML node
-      CLEAR <ls_parent>-obj_type_group.
-    ENDLOOP.
+*    LOOP AT ls_otgr-parents ASSIGNING <ls_parent>.
+*      " Not necessary as we serialize only Active
+*      CLEAR <ls_parent>-activation_state.
+*      " Not necessary as we have it in the root XML node
+*      CLEAR <ls_parent>-obj_type_group.
+*    ENDLOOP.
 
     io_xml->add( iv_name = 'OTGR'
                  ig_data = ls_otgr ).
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_odso IMPLEMENTATION.
@@ -90371,5 +90359,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-24T09:26:51.678Z
+* abapmerge 0.14.1 - 2020-08-24T09:38:11.519Z
 ****************************************************
