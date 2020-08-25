@@ -11810,11 +11810,15 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
         sort_3 TYPE string VALUE 'sort_3'  ##NO_TEXT,
         stage  TYPE string VALUE 'stage' ##NO_TEXT,
         commit TYPE string VALUE 'commit' ##NO_TEXT,
-      END OF c_actions.
-
+      END OF c_actions .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA mt_result TYPE scit_alvlist .
 
+    METHODS render_variant
+      IMPORTING
+        !iv_variant    TYPE sci_chkv
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_result
       IMPORTING
         !ii_html   TYPE REF TO zif_abapgit_html
@@ -12881,6 +12885,7 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
         REDEFINITION.
 
   PROTECTED SECTION.
+    CONSTANTS: c_variant TYPE sci_chkv VALUE 'SYNTAX_CHECK'.
 
     METHODS:
       render_content REDEFINITION.
@@ -37648,16 +37653,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
     ri_html->add( '<div class="toc">' ).
 
+    ri_html->add( render_variant( c_variant ) ).
+
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
       ri_html->add( zcl_abapgit_html=>icon( 'check' ) ).
       ri_html->add( 'No syntax errors' ).
+      ri_html->add( '</div>' ).
     ELSE.
       render_result( ii_html   = ri_html
                      it_result = mt_result ).
     ENDIF.
-
-    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD run_syntax_check.
@@ -37665,7 +37671,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
 
     li_syntax_check = zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( ) ).
-    mt_result = li_syntax_check->run( 'SYNTAX_CHECK' ).
+    mt_result = li_syntax_check->run( c_variant ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -42177,6 +42183,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
     ii_html->add( '</li>' ).
 
   ENDMETHOD.
+  METHOD render_variant.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<div class="ci-head">' ).
+    ri_html->add( |Code inspector check variant: <span class="ci-variant">{ iv_variant }</span>| ).
+    ri_html->add( `</div>` ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
     DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
           ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
@@ -42343,8 +42358,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
 
-    ri_html->add( '<div class="ci-head">' ).
-    ri_html->add( |Code inspector check variant: <span class="ci-variant">{ mv_check_variant }</span>| ).
+    ri_html->add( render_variant( mv_check_variant ) ).
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
@@ -90358,5 +90372,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-24T11:52:11.865Z
+* abapmerge 0.14.1 - 2020-08-25T05:06:28.406Z
 ****************************************************
