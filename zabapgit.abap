@@ -28540,7 +28540,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.syntax-hl span.variables    { color:purple; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DEBUG INFO STYLES */' ).
-    lo_buf->add( 'div.debug_container { color: #444; }' ).
+    lo_buf->add( 'div.debug_container { ' ).
+    lo_buf->add( '  color: #444; ' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRIES */' ).
     lo_buf->add( 'div.db_list { background-color: #fff; }' ).
@@ -90324,5 +90327,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-25T05:16:07.549Z
+* abapmerge 0.14.1 - 2020-08-25T05:30:16.686Z
 ****************************************************
