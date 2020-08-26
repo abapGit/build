@@ -5357,7 +5357,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
     METHODS deserialize
       IMPORTING
         !iv_package TYPE devclass
-        !io_xml     TYPE REF TO zcl_abapgit_xml_input
+        !io_xml     TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS exists
@@ -5367,7 +5367,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         zcx_abapgit_exception .
     METHODS serialize
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -5396,7 +5396,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize_data
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS distribute_name_to_components
@@ -5427,7 +5427,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         zcx_abapgit_exception .
     METHODS serialize_data
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS split_value_to_keys
@@ -5439,7 +5439,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         !cv_non_value_pos TYPE numc3 .
     METHODS validate
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -8419,7 +8419,7 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     "! Serialize IDoc Segment type/definition if exits
     "! @parameter io_xml | XML writer
     "! @raising zcx_abapgit_exception | Exceptions
-    METHODS serialize_idoc_segment IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+    METHODS serialize_idoc_segment IMPORTING io_xml TYPE REF TO zif_abapgit_xml_output
                                    RAISING   zcx_abapgit_exception.
 
     "! Deserialize IDoc Segment type/definition if exits
@@ -8427,7 +8427,7 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     "! @parameter iv_package | Target package
     "! @parameter rv_deserialized | It's a segment and was desserialized
     "! @raising zcx_abapgit_exception | Exceptions
-    METHODS deserialize_idoc_segment IMPORTING io_xml                 TYPE REF TO zcl_abapgit_xml_input
+    METHODS deserialize_idoc_segment IMPORTING io_xml                 TYPE REF TO zif_abapgit_xml_input
                                                iv_package             TYPE devclass
                                      RETURNING VALUE(rv_deserialized) TYPE abap_bool
                                      RAISING   zcx_abapgit_exception.
@@ -8471,10 +8471,10 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     METHODS:
       serialize_texts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
+        IMPORTING io_xml TYPE REF TO zif_abapgit_xml_output
         RAISING   zcx_abapgit_exception,
       deserialize_texts
-        IMPORTING io_xml   TYPE REF TO zcl_abapgit_xml_input
+        IMPORTING io_xml   TYPE REF TO zif_abapgit_xml_input
                   is_dd02v TYPE dd02v
         RAISING   zcx_abapgit_exception.
 
@@ -8580,12 +8580,12 @@ CLASS zcl_abapgit_object_tran DEFINITION
         !cg_value TYPE any .
     METHODS serialize_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_oo_transaction
@@ -8717,32 +8717,32 @@ CLASS zcl_abapgit_object_udmo DEFINITION
     METHODS update_tree .
     METHODS serialize_short_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_short_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_long_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_long_texts
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_entities
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_entities
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS access_modify
@@ -8757,12 +8757,12 @@ CLASS zcl_abapgit_object_udmo DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize_model
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_input
+        !io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_model
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -8815,31 +8815,31 @@ CLASS zcl_abapgit_object_ueno DEFINITION
 
     METHODS deserialize_docu_uen
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_input
+        io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception.
 
     METHODS deserialize_docu_url
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_input
+        io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception.
 
     METHODS deserialize_docu_usp
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_input
+        io_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception.
 
     METHODS serialize_docu_uen
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_output
+        io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception.
 
     METHODS serialize_docu_url
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_output
+        io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception.
 
@@ -8849,7 +8849,7 @@ CLASS zcl_abapgit_object_ueno DEFINITION
 
     METHODS serialize_docu_usp
       IMPORTING
-        io_xml TYPE REF TO zcl_abapgit_xml_output
+        io_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception.
 
@@ -10015,7 +10015,7 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
         !iv_pgmid    TYPE pgmid
         !iv_object   TYPE trobjtype
         !iv_obj_name TYPE csequence
-        !io_xml      TYPE REF TO zcl_abapgit_xml_output OPTIONAL
+        !io_xml      TYPE REF TO zif_abapgit_xml_output OPTIONAL
       EXPORTING
         !et_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt
         !et_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt
@@ -10024,7 +10024,7 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
     CLASS-METHODS create_sotr
       IMPORTING
         !iv_package TYPE devclass
-        !io_xml     TYPE REF TO zcl_abapgit_xml_input
+        !io_xml     TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -57037,8 +57037,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
   METHOD build_text_name.
 
     TYPES BEGIN OF ty_text_name.
@@ -57064,7 +57063,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     me->mv_entity_id = is_item-obj_name.
 
   ENDMETHOD.
-
   METHOD delete_docu_uen.
 
     DATA lt_dm02l TYPE STANDARD TABLE OF dm02l WITH DEFAULT KEY.
@@ -57110,7 +57108,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
   METHOD delete_docu_url.
 
     DATA lt_dm42s TYPE STANDARD TABLE OF dm42s WITH DEFAULT KEY.
@@ -57158,7 +57155,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
 
     ENDLOOP.
   ENDMETHOD.
-
   METHOD delete_docu_usp.
 
     DATA lt_dm45l TYPE STANDARD TABLE OF dm45l WITH DEFAULT KEY.
@@ -57180,39 +57176,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           key3     = ls_dm45l-spezid
         EXCEPTIONS
           ret_code = 0.
-
-    ENDLOOP.
-  ENDMETHOD.
-  METHOD deserialize_docu_xxxx.
-
-    DATA ls_docu LIKE LINE OF it_docu.
-    DATA lv_objname TYPE lxeobjname.
-    DATA lv_change_flag TYPE char1.
-    DATA lv_error_status  TYPE lxestatprc.
-
-    LOOP AT it_docu INTO ls_docu.
-
-      ls_docu-header-tdfuser = sy-uname.
-      ls_docu-header-tdfdate = sy-datum.
-      ls_docu-header-tdftime = sy-uzeit.
-
-      ls_docu-header-tdluser = sy-uname.
-      ls_docu-header-tdldate = sy-datum.
-      ls_docu-header-tdltime = sy-uzeit.
-
-      lv_objname = ls_docu-header-tdname.
-
-      CALL FUNCTION 'LXE_OBJ_DOKU_PUT_XSTRING'
-        EXPORTING
-          slang       = me->mv_language
-          tlang       = ls_docu-language
-          objtype     = ls_docu-header-tdid
-          objname     = lv_objname
-          header      = ls_docu-header
-          content     = ls_docu-content
-        IMPORTING
-          change_flag = lv_change_flag
-          pstatus     = lv_error_status.
 
     ENDLOOP.
   ENDMETHOD.
@@ -57255,7 +57218,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     deserialize_docu_xxxx( lt_docu ).
 
   ENDMETHOD.
-
   METHOD deserialize_docu_usp.
 
     DATA lt_docu TYPE ty_docu_lines.
@@ -57266,7 +57228,39 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     deserialize_docu_xxxx( lt_docu ).
 
   ENDMETHOD.
+  METHOD deserialize_docu_xxxx.
 
+    DATA ls_docu LIKE LINE OF it_docu.
+    DATA lv_objname TYPE lxeobjname.
+    DATA lv_change_flag TYPE char1.
+    DATA lv_error_status  TYPE lxestatprc.
+
+    LOOP AT it_docu INTO ls_docu.
+
+      ls_docu-header-tdfuser = sy-uname.
+      ls_docu-header-tdfdate = sy-datum.
+      ls_docu-header-tdftime = sy-uzeit.
+
+      ls_docu-header-tdluser = sy-uname.
+      ls_docu-header-tdldate = sy-datum.
+      ls_docu-header-tdltime = sy-uzeit.
+
+      lv_objname = ls_docu-header-tdname.
+
+      CALL FUNCTION 'LXE_OBJ_DOKU_PUT_XSTRING'
+        EXPORTING
+          slang       = me->mv_language
+          tlang       = ls_docu-language
+          objtype     = ls_docu-header-tdid
+          objname     = lv_objname
+          header      = ls_docu-header
+          content     = ls_docu-content
+        IMPORTING
+          change_flag = lv_change_flag
+          pstatus     = lv_error_status.
+
+    ENDLOOP.
+  ENDMETHOD.
   METHOD is_name_permitted.
 
     " It is unlikely that a serialized entity will have a name that is not permitted. However
@@ -57285,7 +57279,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD serialize_docu_uen.
 
     DATA lt_docu            TYPE ty_docu_lines.
@@ -57304,7 +57297,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     io_xml->add( iv_name = 'DOCU_UENE'
                  ig_data = lt_docu ).
   ENDMETHOD.
-
   METHOD serialize_docu_url.
     DATA lt_docu            TYPE ty_docu_lines.
 
@@ -57320,7 +57312,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
                  ig_data = lt_docu ).
 
   ENDMETHOD.
-
   METHOD serialize_docu_usp.
 
     DATA lt_docu            TYPE ty_docu_lines.
@@ -57330,7 +57321,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     io_xml->add( iv_name = 'DOCU_USPD'
                  ig_data = lt_docu ).
   ENDMETHOD.
-
   METHOD serialize_docu_xxxx.
 
     DATA ls_docu            TYPE ty_docu.
@@ -57378,7 +57368,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
 
     ENDLOOP.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lstuser INTO rv_user
@@ -57520,7 +57509,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     serialize_docu_usp( io_xml ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
@@ -58638,7 +58626,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tran IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
   METHOD add_data.
 
     DATA: ls_bcdata LIKE LINE OF mt_bcdata.
@@ -90333,5 +90321,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-25T05:38:02.685Z
+* abapmerge 0.14.1 - 2020-08-26T04:51:44.532Z
 ****************************************************
