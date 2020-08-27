@@ -42841,7 +42841,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     super->constructor( ).
 
     mv_key = iv_key.
-    ms_control-page_title = 'Backround'.
+    ms_control-page_title = 'Background'.
     ms_control-page_menu  = build_menu( ).
 
   ENDMETHOD.
@@ -89192,7 +89192,14 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
   METHOD zif_abapgit_background~run.
 
     DATA: ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
-* todo, set defaults in ls_checks
+
+    FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ls_checks-overwrite.
+    ls_checks = io_repo->deserialize_checks( ).
+
+    LOOP AT ls_checks-overwrite ASSIGNING <ls_overwrite>.
+      <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+    ENDLOOP.
+
     io_repo->deserialize( is_checks = ls_checks
                           ii_log    = ii_log ).
 
@@ -90331,5 +90338,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-27T05:35:17.493Z
+* abapmerge 0.14.1 - 2020-08-27T05:39:33.036Z
 ****************************************************
