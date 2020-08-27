@@ -485,6 +485,90 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
 
 ENDCLASS.
 
+CLASS zcx_abapgit_ajson_error DEFINITION
+  inheriting from ZCX_ABAPGIT_EXCEPTION
+  final
+  create public .
+
+public section.
+
+  constants:
+    begin of ZCX_ABAPGIT_AJSON_ERROR,
+      msgid type symsgid value '00',
+      msgno type symsgno value '001',
+      attr1 type scx_attrname value 'MSGV1',
+      attr2 type scx_attrname value 'MSGV2',
+      attr3 type scx_attrname value 'MSGV3',
+      attr4 type scx_attrname value 'MSGV4',
+    end of ZCX_ABAPGIT_AJSON_ERROR .
+  data MESSAGE type STRING read-only .
+
+  methods CONSTRUCTOR
+    importing
+      !TEXTID like IF_T100_MESSAGE=>T100KEY optional
+      !PREVIOUS like PREVIOUS optional
+      !MSGV1 type SYMSGV optional
+      !MSGV2 type SYMSGV optional
+      !MSGV3 type SYMSGV optional
+      !MSGV4 type SYMSGV optional
+      !MESSAGE type STRING optional .
+  class-methods RAISE_JSON
+    importing
+      !IV_MSG type STRING
+      !IV_LOCATION type STRING optional
+    raising
+      ZCX_ABAPGIT_AJSON_ERROR .
+protected section.
+private section.
+ENDCLASS.
+CLASS ZCX_ABAPGIT_AJSON_ERROR IMPLEMENTATION.
+  method CONSTRUCTOR.
+CALL METHOD SUPER->CONSTRUCTOR
+EXPORTING
+PREVIOUS = PREVIOUS
+MSGV1 = MSGV1
+MSGV2 = MSGV2
+MSGV3 = MSGV3
+MSGV4 = MSGV4
+.
+me->MESSAGE = MESSAGE .
+clear me->textid.
+if textid is initial.
+  IF_T100_MESSAGE~T100KEY = ZCX_ABAPGIT_AJSON_ERROR .
+else.
+  IF_T100_MESSAGE~T100KEY = TEXTID.
+endif.
+  endmethod.
+  METHOD raise_json.
+
+    DATA lv_tmp TYPE string.
+    DATA:
+      BEGIN OF ls_msg,
+        a1 LIKE msgv1,
+        a2 LIKE msgv1,
+        a3 LIKE msgv1,
+        a4 LIKE msgv1,
+      END OF ls_msg.
+
+    IF iv_location IS INITIAL.
+      ls_msg = iv_msg.
+    ELSE.
+      lv_tmp = iv_msg && | @{ iv_location }|.
+      ls_msg = lv_tmp.
+    ENDIF.
+
+    RAISE EXCEPTION TYPE zcx_abapgit_ajson_error
+      EXPORTING
+        textid = zcx_abapgit_ajson_error
+        message = iv_msg
+        msgv1  = ls_msg-a1
+        msgv2  = ls_msg-a2
+        msgv3  = ls_msg-a3
+        msgv4  = ls_msg-a4.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcx_abapgit_cancel DEFINITION
   INHERITING FROM zcx_abapgit_exception
   FINAL
@@ -556,6 +640,10 @@ INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
+INTERFACE zif_abapgit_ajson_reader DEFERRED.
+INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
+INTERFACE zif_abapgit_http_response DEFERRED.
+INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_2fa_authenticator DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
@@ -846,10 +934,14 @@ CLASS zcl_abapgit_ecatt_data_upload DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ajson DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enumerator DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_agent DEFINITION DEFERRED.
 CLASS zcl_abapgit_http DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_github_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_2fa_auth_registry DEFINITION DEFERRED.
@@ -963,6 +1055,150 @@ INTERFACE zif_abapgit_2fa_authenticator.
   METHODS end
     RAISING
       zcx_abapgit_2fa_illegal_state .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_http_agent .
+
+  CONSTANTS:
+    BEGIN OF c_methods,
+      get    TYPE string VALUE 'GET',
+      post   TYPE string VALUE 'POST',
+      put    TYPE string VALUE 'PUT',
+      delete TYPE string VALUE 'DELETE',
+      patch  TYPE string VALUE 'PATCH',
+    END OF c_methods.
+
+  METHODS global_headers
+    RETURNING
+      VALUE(ro_global_headers) TYPE REF TO zcl_abapgit_string_map.
+
+  METHODS request
+    IMPORTING
+      !iv_url            TYPE string
+      !iv_method         TYPE string DEFAULT c_methods-get
+      !io_query          TYPE REF TO zcl_abapgit_string_map OPTIONAL
+      !io_headers        TYPE REF TO zcl_abapgit_string_map OPTIONAL
+      !iv_payload        TYPE any OPTIONAL " can be string, xstring
+    RETURNING
+      VALUE(ri_response) TYPE REF TO zif_abapgit_http_response
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_http_response .
+
+  METHODS data
+    RETURNING
+      VALUE(rv_data) TYPE xstring .
+  METHODS cdata
+    RETURNING
+      VALUE(rv_data) TYPE string .
+  METHODS json
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson_reader
+    RAISING
+      zcx_abapgit_ajson_error.
+  METHODS is_ok
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool .
+  METHODS code
+    RETURNING
+      VALUE(rv_code) TYPE i .
+  METHODS error
+    RETURNING
+      VALUE(rv_message) TYPE string .
+  METHODS headers
+    RETURNING
+      VALUE(ro_headers) TYPE REF TO zcl_abapgit_string_map .
+  METHODS close .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_pr_enum_provider .
+
+  TYPES:
+    BEGIN OF ty_pull_request,
+      base_url        TYPE string,
+      number          TYPE string,
+      title           TYPE string,
+      user            TYPE string,
+      head_url        TYPE string,
+      head_branch     TYPE string,
+      created_at      TYPE string, " TODO change to D after date parsing fixed
+      is_for_upstream TYPE abap_bool,
+    END OF ty_pull_request.
+  TYPES:
+    tty_pulls TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
+
+  METHODS list_pull_requests
+    RETURNING
+      VALUE(rt_pulls) TYPE tty_pulls
+    RAISING
+      zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_ajson_reader .
+
+  METHODS exists
+    IMPORTING
+      iv_path          TYPE string
+    RETURNING
+      VALUE(rv_exists) TYPE abap_bool.
+  METHODS members
+    IMPORTING
+      iv_path           TYPE string
+    RETURNING
+      VALUE(rt_members) TYPE string_table.
+  METHODS get
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE string.
+  METHODS get_boolean
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE abap_bool.
+  METHODS get_integer
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE i.
+  METHODS get_number
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE f.
+  METHODS get_date
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE d.
+  METHODS get_string
+    IMPORTING
+      iv_path         TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE string.
+  METHODS slice
+    IMPORTING
+      iv_path        TYPE string
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson_reader.
+  METHODS to_abap
+    EXPORTING
+      ev_container TYPE any
+    RAISING
+      zcx_abapgit_ajson_error.
+  METHODS array_to_string_table
+    IMPORTING
+      iv_path                TYPE string
+    RETURNING
+      VALUE(rt_string_table) TYPE string_table
+    RAISING
+      zcx_abapgit_ajson_error.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_ecatt .
@@ -2525,6 +2761,7 @@ INTERFACE zif_abapgit_persistence.
            deserialized_by TYPE xubname,
            deserialized_at TYPE timestampl,
            offline         TYPE abap_bool,
+           switched_origin TYPE string,
            local_checksums TYPE ty_local_checksum_tt,
            dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
            head_branch     TYPE string,   " HEAD symref of the repo, master branch
@@ -2541,6 +2778,7 @@ INTERFACE zif_abapgit_persistence.
       deserialized_by TYPE abap_bool,
       deserialized_at TYPE abap_bool,
       offline         TYPE abap_bool,
+      switched_origin TYPE abap_bool,
       local_checksums TYPE abap_bool,
       dot_abapgit     TYPE abap_bool,
       head_branch     TYPE abap_bool,
@@ -2909,6 +3147,13 @@ INTERFACE zif_abapgit_popups .
       !it_proxy_bypass       TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
     RETURNING
       VALUE(rt_proxy_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
+    RAISING
+      zcx_abapgit_exception.
+  METHODS choose_pr_popup
+    IMPORTING
+      it_pulls TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+    RETURNING
+      VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
@@ -4239,6 +4484,32 @@ CLASS zcl_abapgit_http DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_http_agent DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_http_agent .
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_instance) TYPE REF TO zif_abapgit_http_agent .
+
+    METHODS constructor.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mo_global_headers TYPE REF TO zcl_abapgit_string_map.
+
+    CLASS-METHODS attach_payload
+      IMPORTING
+        ii_request TYPE REF TO if_http_request
+        iv_payload TYPE any
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -4324,6 +4595,99 @@ CLASS zcl_abapgit_http_digest DEFINITION
           ii_client TYPE REF TO if_http_client.
 
 ENDCLASS.
+CLASS zcl_abapgit_pr_enum_github DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_pr_enum_provider .
+
+    METHODS constructor
+      IMPORTING
+        !iv_user_and_repo TYPE string
+        !ii_http_agent    TYPE REF TO zif_abapgit_http_agent
+      RAISING
+        zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_info,
+        repo_json TYPE REF TO zif_abapgit_ajson_reader,
+        pulls     TYPE zif_abapgit_pr_enum_provider=>tty_pulls,
+      END OF ty_info.
+
+    DATA mi_http_agent TYPE REF TO zif_abapgit_http_agent.
+    DATA mv_repo_url TYPE string.
+
+    METHODS fetch_repo_by_url
+      IMPORTING
+        iv_repo_url    TYPE string
+      RETURNING
+        VALUE(rs_info) TYPE ty_info
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS convert_list
+      IMPORTING
+        ii_json         TYPE REF TO zif_abapgit_ajson_reader
+      RETURNING
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>tty_pulls.
+
+    METHODS clean_url
+      IMPORTING
+        iv_url        TYPE string
+      RETURNING
+        VALUE(rv_url) TYPE string.
+
+ENDCLASS.
+CLASS zcl_abapgit_pr_enumerator DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS has_pulls
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS get_pulls
+      RETURNING
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS new
+      IMPORTING
+        io_repo TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_pr_enumerator
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mv_repo_url TYPE string.
+    DATA mi_enum_provider TYPE REF TO zif_abapgit_pr_enum_provider.
+
+    CLASS-METHODS create_provider
+      IMPORTING
+        iv_repo_url TYPE string
+      RETURNING
+        VALUE(ri_provider) TYPE REF TO zif_abapgit_pr_enum_provider
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_proxy_auth DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -4375,6 +4739,64 @@ CLASS zcl_abapgit_proxy_config DEFINITION FINAL CREATE PUBLIC.
           iv_repo_url            TYPE csequence OPTIONAL
         RETURNING
           VALUE(rv_bypass_proxy) TYPE abap_bool.
+
+ENDCLASS.
+CLASS zcl_abapgit_ajson DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CONSTANTS ported_from_url TYPE string VALUE 'https://github.com/sbcgua/ajson'.
+
+    INTERFACES zif_abapgit_ajson_reader .
+
+    TYPES:
+      BEGIN OF ty_node,
+        path     TYPE string,
+        name     TYPE string,
+        type     TYPE string,
+        value    TYPE string,
+        index    TYPE i,
+        children TYPE i,
+      END OF ty_node .
+    TYPES:
+      ty_nodes_tt TYPE STANDARD TABLE OF ty_node WITH KEY path name .
+    TYPES:
+      ty_nodes_ts TYPE SORTED TABLE OF ty_node
+        WITH UNIQUE KEY path name
+        WITH NON-UNIQUE SORTED KEY array_index COMPONENTS path index .
+    TYPES:
+      BEGIN OF ty_path_name,
+        path TYPE string,
+        name TYPE string,
+      END OF ty_path_name.
+
+    CLASS-METHODS parse
+      IMPORTING
+        !iv_json           TYPE string
+        !iv_freeze         TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson
+      RAISING
+        zcx_abapgit_ajson_error .
+
+    METHODS freeze.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      tty_node_stack TYPE STANDARD TABLE OF REF TO ty_node WITH DEFAULT KEY.
+
+    DATA mt_json_tree TYPE ty_nodes_ts.
+    DATA mv_read_only TYPE abap_bool.
+
+    METHODS get_item
+      IMPORTING
+        iv_path        TYPE string
+      RETURNING
+        VALUE(rv_item) TYPE REF TO ty_node.
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION
@@ -12613,6 +13035,11 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
         !ii_html TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    METHODS render_remotes
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS save
       IMPORTING
         !it_postdata TYPE cnht_post_data_tab
@@ -12624,6 +13051,11 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS save_local_settings
+      IMPORTING
+        !it_post_fields TYPE tihttpnvp
+      RAISING
+        zcx_abapgit_exception .
+    METHODS save_remotes
       IMPORTING
         !it_post_fields TYPE tihttpnvp
       RAISING
@@ -12996,6 +13428,8 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
         toggle_changes    TYPE string VALUE 'toggle_changes' ##NO_TEXT,
         toggle_diff_first TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
         display_more      TYPE string VALUE 'display_more' ##NO_TEXT,
+        repo_switch_origin_to_pr TYPE string VALUE 'repo_switch_origin_to_pr',
+        repo_reset_origin  TYPE string VALUE 'repo_reset_origin',
       END OF c_actions.
     INTERFACES: zif_abapgit_gui_hotkeys.
 
@@ -13100,10 +13534,23 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
                   io_tb_tag         TYPE REF TO zcl_abapgit_html_toolbar
                   io_tb_advanced    TYPE REF TO zcl_abapgit_html_toolbar
         RETURNING VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception.
+        RAISING   zcx_abapgit_exception,
+      switch_to_pr
+        IMPORTING
+          it_fields TYPE tihttpnvp OPTIONAL
+          iv_revert TYPE abap_bool OPTIONAL
+        RETURNING
+          VALUE(rv_switched) TYPE abap_bool
+        RAISING
+          zcx_abapgit_exception.
 
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+    METHODS render_scripts
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -14609,6 +15056,13 @@ CLASS zcl_abapgit_login_manager DEFINITION
         VALUE(rv_auth) TYPE string
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS get
+      IMPORTING
+        !iv_uri        TYPE string
+      RETURNING
+        VALUE(rv_auth) TYPE string
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -14811,9 +15265,10 @@ CLASS zcl_abapgit_string_map DEFINITION
         zcx_abapgit_exception.
     METHODS freeze.
 
+    DATA mt_entries TYPE tts_entries READ-ONLY.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA mt_entries TYPE tts_entries.
     DATA mv_read_only TYPE abap_bool.
 
 ENDCLASS.
@@ -15492,6 +15947,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_longtexts
       RETURNING
         VALUE(ri_longtexts) TYPE REF TO zif_abapgit_longtexts .
+    CLASS-METHODS get_http_agent
+      RETURNING
+        VALUE(ri_http_agent) TYPE REF TO zif_abapgit_http_agent .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -15527,6 +15985,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
     CLASS-DATA gi_environment TYPE REF TO zif_abapgit_environment .
     CLASS-DATA gi_longtext TYPE REF TO zif_abapgit_longtexts .
+    CLASS-DATA gi_http_agent TYPE REF TO zif_abapgit_http_agent .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -15668,6 +16127,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_longtexts
       IMPORTING
         !ii_longtexts TYPE REF TO zif_abapgit_longtexts .
+    CLASS-METHODS set_http_agent
+      IMPORTING
+        !ii_http_agent TYPE REF TO zif_abapgit_http_agent .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -16121,6 +16583,7 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings OPTIONAL
         !iv_deserialized_at TYPE zif_abapgit_persistence=>ty_repo-deserialized_at OPTIONAL
         !iv_deserialized_by TYPE zif_abapgit_persistence=>ty_repo-deserialized_by OPTIONAL
+        !iv_switched_origin TYPE zif_abapgit_persistence=>ty_repo-switched_origin OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS reset_remote .
@@ -16294,7 +16757,15 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
       RAISING
         zcx_abapgit_exception .
-
+    METHODS get_switched_origin
+      RETURNING
+        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-switched_origin .
+    METHODS switch_origin
+      IMPORTING
+        !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
+        !iv_overwrite TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
     METHODS get_files_remote
         REDEFINITION .
     METHODS get_name
@@ -20343,6 +20814,9 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     fetch_remote( ).
     rv_sha1 = mv_branch.
   ENDMETHOD.
+  METHOD get_switched_origin.
+    rv_url = ms_data-switched_origin.
+  ENDMETHOD.
   METHOD get_url.
     rv_url = ms_data-url.
   ENDMETHOD.
@@ -20470,6 +20944,42 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     lo_branches = zcl_abapgit_git_transport=>branches( ms_data-url ).
 
     ls_branch = lo_branches->find_by_name( ms_data-branch_name ).
+
+  ENDMETHOD.
+  METHOD switch_origin.
+
+    DATA lv_offs TYPE i.
+
+    IF iv_overwrite = abap_true. " For repo settings page
+      set( iv_switched_origin = iv_url ).
+      RETURN.
+    ENDIF.
+
+    IF iv_url IS INITIAL.
+      IF ms_data-switched_origin IS INITIAL.
+        RETURN.
+      ELSE.
+        lv_offs = find(
+          val = reverse( ms_data-switched_origin )
+          sub = '@' ).
+        IF lv_offs = -1.
+          zcx_abapgit_exception=>raise( 'Incorrect format of switched origin' ).
+        ENDIF.
+        lv_offs = strlen( ms_data-switched_origin ) - lv_offs - 1.
+        set_url( substring(
+          val = ms_data-switched_origin
+          len = lv_offs ) ).
+        set_branch_name( substring(
+          val = ms_data-switched_origin
+          off = lv_offs + 1 ) ).
+        set( iv_switched_origin = '' ).
+      ENDIF.
+    ELSEIF ms_data-switched_origin IS INITIAL.
+      set( iv_switched_origin = ms_data-url && '@' && ms_data-branch_name ).
+      set_url( iv_url ).
+    ELSE.
+      zcx_abapgit_exception=>raise( 'Cannot switch origin twice' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_git_operations~create_branch.
@@ -21230,7 +21740,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD set.
 
-* TODO: refactor
+* TODO: refactor, maybe use zcl_abapgit_string_map ?
 
     DATA: ls_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
     ASSERT it_checksums IS SUPPLIED
@@ -21241,7 +21751,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       OR is_dot_abapgit IS SUPPLIED
       OR is_local_settings IS SUPPLIED
       OR iv_deserialized_by IS SUPPLIED
-      OR iv_deserialized_at IS SUPPLIED.
+      OR iv_deserialized_at IS SUPPLIED
+      OR iv_switched_origin IS SUPPLIED.
     IF it_checksums IS SUPPLIED.
       ms_data-local_checksums = it_checksums.
       ls_mask-local_checksums = abap_true.
@@ -21282,6 +21793,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       ms_data-deserialized_by = iv_deserialized_by.
       ls_mask-deserialized_at = abap_true.
       ls_mask-deserialized_by = abap_true.
+    ENDIF.
+
+    IF iv_switched_origin IS SUPPLIED.
+      ms_data-switched_origin = iv_switched_origin.
+      ls_mask-switched_origin = abap_true.
     ENDIF.
 
     notify_listener( ls_mask ).
@@ -22333,6 +22849,9 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   METHOD set_environment.
     zcl_abapgit_factory=>gi_environment = ii_environment.
   ENDMETHOD.
+  METHOD set_http_agent.
+    zcl_abapgit_factory=>gi_http_agent = ii_http_agent.
+  ENDMETHOD.
   METHOD set_longtexts.
     zcl_abapgit_factory=>gi_longtext = ii_longtexts.
   ENDMETHOD.
@@ -22983,6 +23502,15 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
       CREATE OBJECT gi_environment TYPE zcl_abapgit_environment.
     ENDIF.
     ri_environment = gi_environment.
+  ENDMETHOD.
+  METHOD get_http_agent.
+
+    IF gi_http_agent IS BOUND.
+      ri_http_agent = gi_http_agent.
+    ELSE.
+      ri_http_agent = zcl_abapgit_http_agent=>create( ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD get_longtexts.
 
@@ -25839,6 +26367,16 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   METHOD clear.
 
     CLEAR gt_auth.
+
+  ENDMETHOD.
+  METHOD get.
+
+    DATA ls_auth LIKE LINE OF gt_auth.
+
+    READ TABLE gt_auth INTO ls_auth WITH KEY uri = zcl_abapgit_url=>host( iv_uri ).
+    IF sy-subrc = 0.
+      rv_auth = ls_auth-authorization.
+    ENDIF.
 
   ENDMETHOD.
   METHOD load.
@@ -33091,6 +33629,49 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~choose_pr_popup.
+
+    DATA lv_answer    TYPE c LENGTH 1.
+    DATA lt_selection TYPE TABLE OF spopli.
+    FIELD-SYMBOLS <ls_sel>  LIKE LINE OF lt_selection.
+    FIELD-SYMBOLS <ls_pull> LIKE LINE OF it_pulls.
+
+    IF lines( it_pulls ) = 0.
+      zcx_abapgit_exception=>raise( 'No pull requests to select from' ).
+    ENDIF.
+
+    LOOP AT it_pulls ASSIGNING <ls_pull>.
+      APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
+      <ls_sel>-varoption = |{ <ls_pull>-number } - { <ls_pull>-title } @{ <ls_pull>-user }|.
+    ENDLOOP.
+
+    CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
+      EXPORTING
+        textline1  = 'Select pull request'
+        titel      = 'Select pull request'
+        start_col  = 30
+        start_row  = 5
+      IMPORTING
+        answer     = lv_answer
+      TABLES
+        t_spopli   = lt_selection
+      EXCEPTIONS
+        OTHERS     = 1.                             "#EC NOTEXT
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
+    ENDIF.
+
+    IF lv_answer = c_answer_cancel.
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
+    ASSERT sy-subrc = 0.
+
+    READ TABLE it_pulls INTO rs_pull INDEX sy-tabix.
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
   METHOD zif_abapgit_popups~create_branch_popup.
 
     DATA: lt_fields TYPE TABLE OF sval.
@@ -36374,6 +36955,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_branch_dropdown.
 
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
     CREATE OBJECT ro_branch_dropdown.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -36389,6 +36972,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_create }?{ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Delete'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_delete }?{ mv_key }| ).
+
+    lo_repo_online ?= mo_repo. " TODO refactor this disaster
+    IF lo_repo_online->get_switched_origin( ) IS NOT INITIAL.
+      ro_branch_dropdown->add(
+        iv_txt = 'Switch Origin: Revert <sup>beta<sup>'
+        iv_act = |{ c_actions-repo_reset_origin }| ).
+    ELSE.
+      ro_branch_dropdown->add(
+        iv_txt = 'Switch Origin: to PR <sup>beta<sup>'
+        iv_act = |{ c_actions-repo_switch_origin_to_pr }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD build_dir_jump_link.
@@ -36613,7 +37207,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     lv_package = mo_repo->get_package( ).
 
     mv_are_changes_recorded_in_tr = zcl_abapgit_factory=>get_sap_package( lv_package
-                                                      )->are_changes_recorded_in_tr_req( ).
+      )->are_changes_recorded_in_tr_req( ).
 
   ENDMETHOD.
   METHOD get_item_class.
@@ -36733,8 +37327,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( me ).
     gui_services( )->register_event_handler( me ).
-    register_deferred_script(
-      zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
 
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
@@ -36862,6 +37454,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
           iv_extra_style = 'repo_banner'
           ix_error = lx_error ) ).
     ENDTRY.
+
+    register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
   METHOD render_head_line.
@@ -37097,9 +37691,55 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     ri_html->add( '</tr>' ).
 
   ENDMETHOD.
+  METHOD render_scripts.
+
+    DATA lv_json TYPE string.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
+
+  ENDMETHOD.
+  METHOD switch_to_pr.
+
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+    DATA ls_field LIKE LINE OF it_fields.
+    DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>tty_pulls.
+    DATA ls_pull LIKE LINE OF lt_pulls.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      zcx_abapgit_exception=>raise( 'Unexpected PR switch for offline repo' ).
+    ENDIF.
+    IF mo_repo->get_local_settings( )-write_protected = abap_true.
+      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
+    ENDIF.
+
+    lo_repo_online ?= mo_repo.
+
+    IF iv_revert = abap_true.
+      lo_repo_online->switch_origin( '' ).
+    ELSE.
+      lt_pulls = zcl_abapgit_pr_enumerator=>new( lo_repo_online )->get_pulls( ).
+      IF lines( lt_pulls ) = 0.
+        RETURN. " false
+      ENDIF.
+
+      ls_pull = zcl_abapgit_ui_factory=>get_popups( )->choose_pr_popup( lt_pulls ).
+      IF ls_pull IS INITIAL.
+        RETURN. " false
+      ENDIF.
+
+      lo_repo_online->switch_origin( ls_pull-head_url ).
+      lo_repo_online->set_branch_name( |refs/heads/{ ls_pull-head_branch }| ). " TODO refactor
+      rv_switched = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: lv_path TYPE string.
+    DATA lv_path TYPE string.
+    DATA lv_switched TYPE abap_bool.
 
     CASE iv_action.
       WHEN zif_abapgit_definitions=>c_action-go_repo. " Switch to another repo
@@ -37147,9 +37787,21 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
         open_in_master_language( ).
         ev_state        = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN c_actions-repo_switch_origin_to_pr.
+        lv_switched = switch_to_pr( ).
+        IF lv_switched = abap_true.
+          ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+
+      WHEN c_actions-repo_reset_origin.
+        switch_to_pr( iv_revert = abap_true ).
+        ev_state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN OTHERS.
 
-        super->zif_abapgit_gui_event_handler~on_event(
+        super->zif_abapgit_gui_event_handler~on_event( " TODO refactor, move to HOC components
           EXPORTING
             iv_action    = iv_action
             iv_getdata   = iv_getdata
@@ -38945,6 +39597,9 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
     ri_html->add( |<form id="settings_form" method="post" action="sapevent:{ c_action-save_settings }">| ).
 
     render_dot_abapgit( ri_html ).
+    IF mo_repo->is_offline( ) = abap_false.
+      render_remotes( ri_html ).
+    ENDIF.
     render_local_settings( ri_html ).
 
     ri_html->add( '<input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
@@ -39133,6 +39788,28 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
     ii_html->add( '</table>' ).
 
   ENDMETHOD.
+  METHOD render_remotes.
+
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    lo_repo_online ?= mo_repo.
+
+    ii_html->add( '<h2>Remotes</h2>' ).
+    ii_html->add( '<table class="settings">' ).
+
+    " TODO maybe make it editable ?
+    ii_html->add( render_table_row(
+      iv_name  = 'Current remote'
+      iv_value = |{ lo_repo_online->get_url( )
+      } <span class="grey">@{ lo_repo_online->get_branch_name( ) }</span>| ) ).
+    ii_html->add( render_table_row(
+      iv_name  = 'Switched origin'
+      iv_value = |<input name="switched_origin" type="text" size="60" value="{
+        lo_repo_online->get_switched_origin( ) }">| ) ).
+
+    ii_html->add( '</table>' ).
+
+  ENDMETHOD.
   METHOD render_table_row.
 
     rv_html = '<tr>'
@@ -39149,6 +39826,7 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
     lt_post_fields = parse_post( it_postdata ).
 
     save_dot_abap( lt_post_fields ).
+    save_remotes( lt_post_fields ).
     save_local_settings( lt_post_fields ).
 
     mo_repo->refresh( ).
@@ -39253,6 +39931,24 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
     ls_settings-serialize_master_lang_only = boolc( sy-subrc = 0 ).
 
     mo_repo->set_local_settings( ls_settings ).
+
+  ENDMETHOD.
+  METHOD save_remotes.
+
+    DATA ls_post_field LIKE LINE OF it_post_fields.
+    DATA lo_online_repo TYPE REF TO zcl_abapgit_repo_online.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lo_online_repo ?= mo_repo.
+
+    READ TABLE it_post_fields INTO ls_post_field WITH KEY name = 'switched_origin'.
+    ASSERT sy-subrc = 0.
+    lo_online_repo->switch_origin(
+      iv_url       = ls_post_field-value
+      iv_overwrite = abap_true ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -85981,6 +86677,608 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
+CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION DEFERRED.
+CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION DEFERRED.
+CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu DEFINITION DEFERRED.
+**********************************************************************
+* UTILS
+**********************************************************************
+
+* renamed: zcl_abapgit_ajson :: lcl_utils
+CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu DEFINITION FINAL.
+  PUBLIC SECTION.
+
+    CLASS-METHODS normalize_path
+      IMPORTING
+        iv_path        TYPE string
+      RETURNING
+        VALUE(rv_path) TYPE string.
+    CLASS-METHODS split_path
+      IMPORTING
+        iv_path             TYPE string
+      RETURNING
+        VALUE(rv_path_name) TYPE zcl_abapgit_ajson=>ty_path_name.
+
+ENDCLASS.
+
+CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu IMPLEMENTATION.
+
+  METHOD normalize_path.
+
+    rv_path = iv_path.
+    IF strlen( rv_path ) = 0.
+      rv_path = '/'.
+    ENDIF.
+    IF rv_path+0(1) <> '/'.
+      rv_path = '/' && rv_path.
+    ENDIF.
+    IF substring(
+      val = rv_path
+      off = strlen( rv_path ) - 1 ) <> '/'.
+      rv_path = rv_path && '/'.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD split_path.
+
+    DATA lv_offs TYPE i.
+    DATA lv_len TYPE i.
+    DATA lv_trim_slash TYPE i.
+
+    lv_len = strlen( iv_path ).
+    IF lv_len = 0 OR iv_path = '/'.
+      RETURN. " empty path is the alias for root item = '' + ''
+    ENDIF.
+
+    IF substring(
+      val = iv_path
+      off = lv_len - 1 ) = '/'.
+      lv_trim_slash = 1. " ignore last '/'
+    ENDIF.
+
+    lv_offs = find(
+      val = reverse( iv_path )
+      sub = '/'
+      off = lv_trim_slash ).
+    IF lv_offs = -1.
+      lv_offs  = lv_len. " treat whole string as the 'name' part
+    ENDIF.
+    lv_offs = lv_len - lv_offs.
+
+    rv_path_name-path = normalize_path( substring(
+      val = iv_path
+      len = lv_offs ) ).
+    rv_path_name-name = substring(
+      val = iv_path
+      off = lv_offs
+      len = lv_len - lv_offs - lv_trim_slash ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+**********************************************************************
+* PARSER
+**********************************************************************
+
+* renamed: zcl_abapgit_ajson :: lcl_json_parser
+CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION FINAL.
+  PUBLIC SECTION.
+
+    METHODS parse
+      IMPORTING
+        iv_json             TYPE string
+      RETURNING
+        VALUE(rt_json_tree) TYPE zcl_abapgit_ajson=>ty_nodes_tt
+      RAISING
+        zcx_abapgit_ajson_error.
+
+  PRIVATE SECTION.
+
+    TYPES:
+      ty_stack_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_ajson=>ty_node.
+
+    DATA mt_stack TYPE ty_stack_tt.
+
+    CLASS-METHODS join_path
+      IMPORTING
+        it_stack       TYPE ty_stack_tt
+      RETURNING
+        VALUE(rv_path) TYPE string.
+
+    METHODS raise
+      IMPORTING
+        iv_error TYPE string
+      RAISING
+        zcx_abapgit_ajson_error.
+
+ENDCLASS.
+
+CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
+
+  METHOD parse.
+
+    DATA lo_reader TYPE REF TO if_sxml_reader.
+    DATA lr_stack_top LIKE LINE OF mt_stack.
+    DATA lo_node TYPE REF TO if_sxml_node.
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF rt_json_tree.
+    DATA lt_attributes TYPE if_sxml_attribute=>attributes.
+    DATA lo_attr LIKE LINE OF lt_attributes.
+    DATA lo_open TYPE REF TO if_sxml_open_element.
+    DATA lo_close TYPE REF TO if_sxml_close_element.
+    DATA lo_value TYPE REF TO if_sxml_value_node.
+
+    CLEAR mt_stack.
+    lo_reader = cl_sxml_string_reader=>create( cl_abap_codepage=>convert_to( iv_json ) ).
+
+    " TODO: self protection, check non-empty, check starting from object ...
+
+    DO.
+      lo_node = lo_reader->read_next_node( ).
+      IF lo_node IS NOT BOUND.
+        EXIT.
+      ENDIF.
+      CASE lo_node->type.
+        WHEN if_sxml_node=>co_nt_element_open.
+          lo_open ?= lo_node.
+
+          APPEND INITIAL LINE TO rt_json_tree ASSIGNING <ls_item>.
+
+          <ls_item>-type = to_lower( lo_open->qname-name ).
+
+          READ TABLE mt_stack INDEX 1 INTO lr_stack_top.
+          IF sy-subrc = 0.
+            <ls_item>-path = join_path( mt_stack ).
+            lr_stack_top->children = lr_stack_top->children + 1.
+
+            IF lr_stack_top->type = 'array'.
+              <ls_item>-name = |{ lr_stack_top->children }|.
+              <ls_item>-index = lr_stack_top->children.
+            ELSE.
+              lt_attributes = lo_open->get_attributes( ).
+              LOOP AT lt_attributes INTO lo_attr.
+                IF lo_attr->qname-name = 'name' AND lo_attr->value_type = if_sxml_value=>co_vt_text.
+                  <ls_item>-name = lo_attr->get_value( ).
+                ENDIF.
+              ENDLOOP.
+            ENDIF.
+          ENDIF.
+
+          GET REFERENCE OF <ls_item> INTO lr_stack_top.
+          INSERT lr_stack_top INTO mt_stack INDEX 1.
+
+        WHEN if_sxml_node=>co_nt_element_close.
+          lo_close ?= lo_node.
+
+          READ TABLE mt_stack INDEX 1 INTO lr_stack_top.
+          DELETE mt_stack INDEX 1.
+          IF lo_close->qname-name <> lr_stack_top->type.
+            raise( 'Unexpected closing node type' ).
+          ENDIF.
+
+        WHEN if_sxml_node=>co_nt_value.
+          lo_value ?= lo_node.
+
+          <ls_item>-value = lo_value->get_value( ).
+
+        WHEN OTHERS.
+          raise( 'Unexpected node type' ).
+      ENDCASE.
+    ENDDO.
+
+    IF lines( mt_stack ) > 0.
+      raise( 'Unexpected end of data' ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD join_path.
+
+    FIELD-SYMBOLS <ls_ref> LIKE LINE OF it_stack.
+
+    LOOP AT it_stack ASSIGNING <ls_ref>.
+      rv_path = <ls_ref>->name && '/' && rv_path.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD raise.
+
+    zcx_abapgit_ajson_error=>raise_json(
+      iv_location = join_path( mt_stack )
+      iv_msg      = |JSON PARSER: { iv_error } @ { join_path( mt_stack ) }| ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+**********************************************************************
+* JSON_TO_ABAP
+**********************************************************************
+
+* renamed: zcl_abapgit_ajson :: lcl_json_to_abap
+CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
+  PUBLIC SECTION.
+
+    METHODS find_loc
+      IMPORTING
+        iv_path          TYPE string
+        iv_name          TYPE string OPTIONAL " not mandatory
+        iv_append_tables TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_ref)    TYPE REF TO data
+      RAISING
+        zcx_abapgit_ajson_error.
+
+    CLASS-METHODS bind
+      CHANGING
+        cv_obj       TYPE any
+        co_instance TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
+
+    METHODS to_abap
+      IMPORTING
+        it_nodes TYPE zcl_abapgit_ajson=>ty_nodes_ts
+      RAISING
+        zcx_abapgit_ajson_error.
+
+  PRIVATE SECTION.
+    DATA mr_obj TYPE REF TO data.
+ENDCLASS.
+
+CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
+
+  METHOD bind.
+    CREATE OBJECT co_instance.
+    GET REFERENCE OF cv_obj INTO co_instance->mr_obj.
+  ENDMETHOD.
+
+  METHOD to_abap.
+
+    DATA lv_ref TYPE REF TO data.
+    DATA lv_type TYPE c.
+    DATA lo_x TYPE REF TO cx_root.
+    DATA lv_y TYPE c LENGTH 4.
+    DATA lv_m TYPE c LENGTH 2.
+    DATA lv_d TYPE c LENGTH 2.
+
+    FIELD-SYMBOLS <ls_n> LIKE LINE OF it_nodes.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+
+    TRY.
+        LOOP AT it_nodes ASSIGNING <ls_n> USING KEY array_index.
+          lv_ref = find_loc(
+            iv_append_tables = abap_true
+            iv_path = <ls_n>-path
+            iv_name = <ls_n>-name ).
+          ASSIGN lv_ref->* TO <lv_value>.
+          ASSERT sy-subrc = 0.
+          DESCRIBE FIELD <lv_value> TYPE lv_type.
+
+          CASE <ls_n>-type.
+            WHEN 'null'.
+              " Do nothing
+            WHEN 'bool'.
+              <lv_value> = boolc( <ls_n>-value = 'true' ).
+            WHEN 'num'.
+              <lv_value> = <ls_n>-value.
+            WHEN 'str'.
+              IF lv_type = 'D' AND <ls_n>-value IS NOT INITIAL.
+                FIND FIRST OCCURRENCE OF REGEX '^(\d{4})-(\d{2})-(\d{2})(T|$)'
+                  IN <ls_n>-value
+                  SUBMATCHES lv_y lv_m lv_d.
+                IF sy-subrc <> 0.
+                  zcx_abapgit_ajson_error=>raise_json(
+                    iv_msg      = 'Unexpected date format'
+                    iv_location = <ls_n>-path && <ls_n>-name ).
+                ENDIF.
+                CONCATENATE lv_y lv_m lv_d INTO <lv_value>.
+              ELSE.
+                <lv_value> = <ls_n>-value.
+              ENDIF.
+            WHEN 'object'.
+              IF NOT lv_type CO 'uv'.
+                zcx_abapgit_ajson_error=>raise_json(
+                  iv_msg      = 'Expected structure'
+                  iv_location = <ls_n>-path && <ls_n>-name ).
+              ENDIF.
+            WHEN 'array'.
+              IF NOT lv_type CO 'h'.
+                zcx_abapgit_ajson_error=>raise_json(
+                  iv_msg      = 'Expected table'
+                  iv_location = <ls_n>-path && <ls_n>-name ).
+              ENDIF.
+            WHEN OTHERS.
+              zcx_abapgit_ajson_error=>raise_json(
+                iv_msg      = |Unexpected JSON type [{ <ls_n>-type }]|
+                iv_location = <ls_n>-path && <ls_n>-name ).
+          ENDCASE.
+
+        ENDLOOP.
+      CATCH cx_sy_conversion_no_number INTO lo_x.
+        zcx_abapgit_ajson_error=>raise_json(
+          iv_msg      = |Source is not a number|
+          iv_location = <ls_n>-path && <ls_n>-name ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD find_loc.
+
+    DATA lt_path TYPE string_table.
+    DATA lv_trace TYPE string.
+    DATA lv_type TYPE c.
+    DATA lv_size TYPE i.
+    DATA lv_index TYPE i.
+    FIELD-SYMBOLS <ls_struc> TYPE any.
+    FIELD-SYMBOLS <lt_table> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+    FIELD-SYMBOLS <lv_seg> LIKE LINE OF lt_path.
+
+    SPLIT iv_path AT '/' INTO TABLE lt_path.
+    DELETE lt_path WHERE table_line IS INITIAL.
+    IF iv_name IS NOT INITIAL.
+      APPEND iv_name TO lt_path.
+    ENDIF.
+
+    rv_ref = mr_obj.
+
+    LOOP AT lt_path ASSIGNING <lv_seg>.
+      lv_trace = lv_trace && '/' && <lv_seg>.
+      <lv_seg> = to_upper( <lv_seg> ).
+
+      ASSIGN rv_ref->* TO <ls_struc>.
+      ASSERT sy-subrc = 0.
+      DESCRIBE FIELD <ls_struc> TYPE lv_type.
+
+      IF lv_type CA 'lr'. " data/obj ref
+        " TODO maybe in future
+        zcx_abapgit_ajson_error=>raise_json(
+          iv_msg      = 'Cannot assign to ref'
+          iv_location = lv_trace ).
+
+      ELSEIF lv_type = 'h'. " table
+        IF NOT <lv_seg> CO '0123456789'.
+          zcx_abapgit_ajson_error=>raise_json(
+            iv_msg      = 'Need index to access tables'
+            iv_location = lv_trace ).
+        ENDIF.
+        lv_index = <lv_seg>.
+        ASSIGN rv_ref->* TO <lt_table>.
+        ASSERT sy-subrc = 0.
+
+        lv_size = lines( <lt_table> ).
+        IF iv_append_tables = abap_true AND lv_index = lv_size + 1.
+          APPEND INITIAL LINE TO <lt_table>.
+        ENDIF.
+
+        READ TABLE <lt_table> INDEX lv_index ASSIGNING <lv_value>.
+        IF sy-subrc <> 0.
+          zcx_abapgit_ajson_error=>raise_json(
+            iv_msg      = 'Index not found in table'
+            iv_location = lv_trace ).
+        ENDIF.
+
+      ELSEIF lv_type CA 'uv'. " structure
+        ASSIGN COMPONENT <lv_seg> OF STRUCTURE <ls_struc> TO <lv_value>.
+        IF sy-subrc <> 0.
+          zcx_abapgit_ajson_error=>raise_json(
+            iv_msg      =  'Path not found'
+            iv_location = lv_trace ).
+        ENDIF.
+      ELSE.
+        zcx_abapgit_ajson_error=>raise_json(
+          iv_msg = 'Target is not deep'
+          iv_location = lv_trace ).
+      ENDIF.
+      GET REFERENCE OF <lv_value> INTO rv_ref.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_AJSON IMPLEMENTATION.
+  METHOD freeze.
+    mv_read_only = abap_true.
+  ENDMETHOD.
+  METHOD get_item.
+
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF mt_json_tree.
+    DATA ls_path_name TYPE ty_path_name.
+    ls_path_name = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( iv_path ).
+
+    READ TABLE mt_json_tree
+      ASSIGNING <ls_item>
+      WITH KEY
+        path = ls_path_name-path
+        name = ls_path_name-name.
+    IF sy-subrc = 0.
+      GET REFERENCE OF <ls_item> INTO rv_item.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD parse.
+
+    DATA lo_parser TYPE REF TO kHGwlMWhQrsNKkKXALnpfipvepHQnc.
+
+    CREATE OBJECT ro_instance.
+    CREATE OBJECT lo_parser.
+    ro_instance->mt_json_tree = lo_parser->parse( iv_json ).
+
+    IF iv_freeze = abap_true.
+      ro_instance->freeze( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~array_to_string_table.
+
+    DATA lv_normalized_path TYPE string.
+    DATA lr_node TYPE REF TO ty_node.
+    DATA lv_tmp TYPE string.
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF mt_json_tree.
+
+    lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
+    lr_node = get_item( iv_path ).
+
+    IF lr_node IS INITIAL.
+      zcx_abapgit_ajson_error=>raise_json( |Path not found: { iv_path }| ).
+    ENDIF.
+    IF lr_node->type <> 'array'.
+      zcx_abapgit_ajson_error=>raise_json( |Array expected at: { iv_path }| ).
+    ENDIF.
+
+    LOOP AT mt_json_tree ASSIGNING <ls_item> WHERE path = lv_normalized_path.
+      CASE <ls_item>-type.
+        WHEN 'num' OR 'str'.
+          APPEND <ls_item>-value TO rt_string_table.
+        WHEN 'null'.
+          APPEND '' TO rt_string_table.
+        WHEN 'bool'.
+          IF <ls_item>-value = 'true'.
+            lv_tmp = abap_true.
+          ELSE.
+            CLEAR lv_tmp.
+          ENDIF.
+          APPEND lv_tmp TO rt_string_table.
+        WHEN OTHERS.
+          zcx_abapgit_ajson_error=>raise_json(
+            |Cannot convert [{ <ls_item>-type }] to string at [{ <ls_item>-path }{ <ls_item>-name }]| ).
+      ENDCASE.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~exists.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS NOT INITIAL.
+      rv_exists = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS NOT INITIAL.
+      rv_value = lv_item->value.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get_boolean.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS INITIAL OR lv_item->type = 'null'.
+      RETURN.
+    ELSEIF lv_item->type = 'bool'.
+      rv_value = boolc( lv_item->value = 'true' ).
+    ELSEIF lv_item->value IS NOT INITIAL.
+      rv_value = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get_date.
+
+    DATA lv_item TYPE REF TO ty_node.
+    DATA lv_y TYPE c LENGTH 4.
+    DATA lv_m TYPE c LENGTH 2.
+    DATA lv_d TYPE c LENGTH 2.
+
+    lv_item = get_item( iv_path ).
+
+    IF lv_item IS NOT INITIAL AND lv_item->type = 'str'.
+      FIND FIRST OCCURRENCE OF REGEX '^(\d{4})-(\d{2})-(\d{2})(T|$)'
+        IN lv_item->value
+        SUBMATCHES lv_y lv_m lv_d.
+      CONCATENATE lv_y lv_m lv_d INTO rv_value.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get_integer.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS NOT INITIAL AND lv_item->type = 'num'.
+      rv_value = lv_item->value.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get_number.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS NOT INITIAL AND lv_item->type = 'num'.
+      rv_value = lv_item->value.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~get_string.
+
+    DATA lv_item TYPE REF TO ty_node.
+    lv_item = get_item( iv_path ).
+    IF lv_item IS NOT INITIAL AND lv_item->type <> 'null'.
+      rv_value = lv_item->value.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~members.
+
+    DATA lv_normalized_path TYPE string.
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF mt_json_tree.
+
+    lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
+
+    LOOP AT mt_json_tree ASSIGNING <ls_item> WHERE path = lv_normalized_path.
+      APPEND <ls_item>-name TO rt_members.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~slice.
+
+    DATA lo_section         TYPE REF TO zcl_abapgit_ajson.
+    DATA ls_item            LIKE LINE OF mt_json_tree.
+    DATA lv_normalized_path TYPE string.
+    DATA ls_path_parts      TYPE ty_path_name.
+    DATA lv_path_len        TYPE i.
+
+    CREATE OBJECT lo_section.
+    lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
+    lv_path_len        = strlen( lv_normalized_path ).
+    ls_path_parts      = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( lv_normalized_path ).
+
+    LOOP AT mt_json_tree INTO ls_item.
+      " TODO potentially improve performance due to sorted tree (all path started from same prefix go in a row)
+      IF strlen( ls_item-path ) >= lv_path_len
+          AND substring(
+            val = ls_item-path
+            len = lv_path_len ) = lv_normalized_path.
+        ls_item-path = substring(
+          val = ls_item-path
+          off = lv_path_len - 1 ). " less closing '/'
+        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
+      ELSEIF ls_item-path = ls_path_parts-path AND ls_item-name = ls_path_parts-name.
+        CLEAR: ls_item-path, ls_item-name. " this becomes a new root
+        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
+      ENDIF.
+    ENDLOOP.
+
+    ri_json = lo_section.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_reader~to_abap.
+
+    DATA lo_to_abap TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
+
+    CLEAR ev_container.
+    kHGwlMWhQrsNKkKXALnpXxNdxsjJjI=>bind(
+      CHANGING
+        cv_obj = ev_container
+        co_instance = lo_to_abap ).
+    lo_to_abap->to_abap( mt_json_tree ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_proxy_config IMPLEMENTATION.
   METHOD constructor.
 
@@ -86070,6 +87368,156 @@ CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
       proxy_authentication = abap_true
       username             = gv_username
       password             = gv_password ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
+  METHOD constructor.
+
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    IF io_repo IS NOT BOUND OR io_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lo_repo_online ?= io_repo.
+    mv_repo_url     = to_lower( lo_repo_online->get_url( ) ).
+    TRY.
+        mi_enum_provider = create_provider( mv_repo_url ).
+      CATCH zcx_abapgit_exception.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD create_provider.
+
+    DATA li_agent TYPE REF TO zif_abapgit_http_agent.
+    DATA lv_user TYPE string.
+    DATA lv_repo TYPE string.
+
+    li_agent = zcl_abapgit_factory=>get_http_agent( ).
+
+    FIND ALL OCCURRENCES OF REGEX 'github\.com\/([^\/]+)\/([^\/]+)'
+      IN iv_repo_url
+      SUBMATCHES lv_user lv_repo.
+    IF sy-subrc = 0.
+      lv_repo = replace(
+        val = lv_repo
+        regex = '\.git$'
+        with = '' ).
+      CREATE OBJECT ri_provider TYPE zcl_abapgit_pr_enum_github
+        EXPORTING
+          iv_user_and_repo  = |{ lv_user }/{ lv_repo }|
+          ii_http_agent     = li_agent.
+    ELSE.
+      zcx_abapgit_exception=>raise( |PR enumeration is not supported for { iv_repo_url }| ).
+    ENDIF.
+
+    " TODO somewhen more providers
+
+  ENDMETHOD.
+  METHOD get_pulls.
+
+    IF mi_enum_provider IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    rt_pulls = mi_enum_provider->list_pull_requests( ).
+
+    " TODO caching ?
+
+  ENDMETHOD.
+  METHOD has_pulls.
+
+    IF mi_enum_provider IS NOT BOUND.
+      RETURN. " false
+    ENDIF.
+
+    IF get_pulls( ) IS NOT INITIAL.
+      rv_yes = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_instance EXPORTING io_repo = io_repo.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
+  METHOD clean_url.
+    rv_url = replace(
+      val = iv_url
+      regex = '\{.*\}$'
+      with = '' ).
+  ENDMETHOD.
+  METHOD constructor.
+
+    mv_repo_url   = |https://api.github.com/repos/{ iv_user_and_repo }|.
+    mi_http_agent = ii_http_agent.
+    mi_http_agent->global_headers( )->set(
+      iv_key = 'Accept'
+      iv_val = 'application/vnd.github.v3+json' ).
+
+    IF zcl_abapgit_login_manager=>get( mv_repo_url ) IS NOT INITIAL.
+      mi_http_agent->global_headers( )->set(
+        iv_key = 'Authorization'
+        iv_val = zcl_abapgit_login_manager=>get( mv_repo_url ) ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD convert_list.
+
+    DATA lt_items TYPE string_table.
+    DATA lv_i TYPE string.
+    FIELD-SYMBOLS <ls_p> LIKE LINE OF rt_pulls.
+
+    lt_items = ii_json->members( '/' ).
+
+    LOOP AT lt_items INTO lv_i.
+      APPEND INITIAL LINE TO rt_pulls ASSIGNING <ls_p>.
+      <ls_p>-base_url        = ii_json->get( |/{ lv_i }/base/repo/clone_url| ).
+      <ls_p>-number          = ii_json->get( |/{ lv_i }/number| ).
+      <ls_p>-title           = ii_json->get( |/{ lv_i }/title| ).
+      <ls_p>-user            = ii_json->get( |/{ lv_i }/user/login| ).
+      <ls_p>-head_url        = ii_json->get( |/{ lv_i }/head/repo/clone_url| ).
+      <ls_p>-head_branch     = ii_json->get( |/{ lv_i }/head/ref| ).
+      <ls_p>-created_at      = ii_json->get( |/{ lv_i }/created_at| ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD fetch_repo_by_url.
+
+    DATA li_pulls_json TYPE REF TO zif_abapgit_ajson_reader.
+    DATA lv_pull_url TYPE string.
+    DATA li_response TYPE REF TO zif_abapgit_http_response.
+
+    li_response        = mi_http_agent->request( iv_repo_url ).
+    rs_info-repo_json  = li_response->json( ).
+    li_response->headers( ). " for debug
+
+    lv_pull_url        = clean_url( rs_info-repo_json->get( '/pulls_url' ) ).
+    li_pulls_json      = mi_http_agent->request( lv_pull_url )->json( ).
+    rs_info-pulls      = convert_list( li_pulls_json ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_pr_enum_provider~list_pull_requests.
+
+    DATA lv_repo_url TYPE string.
+    DATA lv_upstream_url TYPE string.
+    DATA ls_repo_info TYPE ty_info.
+    FIELD-SYMBOLS <ls_p> LIKE LINE OF ls_repo_info-pulls.
+
+    ls_repo_info = fetch_repo_by_url( mv_repo_url ).
+    APPEND LINES OF ls_repo_info-pulls TO rt_pulls.
+
+    IF ls_repo_info-repo_json->get_boolean( '/fork' ) = abap_true.
+      lv_upstream_url = ls_repo_info-repo_json->get( '/source/url' ). " parent ?
+      ls_repo_info = fetch_repo_by_url( lv_upstream_url ).
+      LOOP AT ls_repo_info-pulls ASSIGNING <ls_p>.
+        <ls_p>-is_for_upstream = abap_true.
+        APPEND <ls_p> TO rt_pulls.
+      ENDLOOP.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -86306,6 +87754,201 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
     IF mo_digest IS BOUND.
       mo_digest->run( mi_client ).
     ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS kHGwlkOaymxFRlCWtlTOYvbNmJsakp DEFINITION DEFERRED.
+* renamed: zcl_abapgit_http_agent :: lcl_http_response
+CLASS kHGwlkOaymxFRlCWtlTOYvbNmJsakp DEFINITION FINAL.
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_http_response.
+
+    CLASS-METHODS create
+      IMPORTING
+        ii_client          TYPE REF TO if_http_client
+      RETURNING
+        VALUE(ri_response) TYPE REF TO zif_abapgit_http_response.
+
+  PRIVATE SECTION.
+    DATA mi_client TYPE REF TO if_http_client.
+    DATA mi_response TYPE REF TO if_http_response.
+ENDCLASS.
+
+CLASS kHGwlkOaymxFRlCWtlTOYvbNmJsakp IMPLEMENTATION.
+
+  METHOD create.
+    DATA lo_response TYPE REF TO kHGwlkOaymxFRlCWtlTOYvbNmJsakp.
+    CREATE OBJECT lo_response.
+    lo_response->mi_client   = ii_client.
+    lo_response->mi_response = ii_client->response.
+    ri_response ?= lo_response.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~close.
+    mi_client->close( ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~is_ok.
+    DATA lv_code TYPE i.
+    lv_code = zif_abapgit_http_response~code( ).
+    rv_yes = boolc( lv_code >= 200 AND lv_code < 300 ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~data.
+    rv_data = mi_response->get_data( ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~cdata.
+    rv_data = mi_response->get_cdata( ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~code.
+    DATA lv_msg TYPE string ##NEEDED.
+    mi_response->get_status(
+      IMPORTING
+        reason = lv_msg " for debug
+        code   = rv_code ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~json.
+
+    ri_json = zcl_abapgit_ajson=>parse( zif_abapgit_http_response~cdata( ) ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~error.
+    rv_message = mi_response->get_cdata( ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_http_response~headers.
+
+    DATA lt_headers TYPE tihttpnvp.
+    FIELD-SYMBOLS <ls_h> LIKE LINE OF lt_headers.
+
+    CREATE OBJECT ro_headers.
+
+    mi_response->get_header_fields( CHANGING fields = lt_headers ).
+    LOOP AT lt_headers ASSIGNING <ls_h>.
+      ro_headers->set(
+        iv_key = <ls_h>-name
+        iv_val = <ls_h>-value ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_HTTP_AGENT IMPLEMENTATION.
+  METHOD attach_payload.
+
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    lo_type = cl_abap_typedescr=>describe_by_data( iv_payload ).
+
+    IF lo_type->type_kind = cl_abap_typedescr=>typekind_xstring.
+      ii_request->set_data( iv_payload ).
+
+    ELSEIF lo_type->type_kind = cl_abap_typedescr=>typekind_string.
+      ii_request->set_cdata( iv_payload ).
+
+    ELSE.
+      zcx_abapgit_exception=>raise( |Unexpected payload type { lo_type->absolute_name }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    CREATE OBJECT mo_global_headers.
+
+  ENDMETHOD.
+  METHOD create.
+
+    CREATE OBJECT ri_instance TYPE zcl_abapgit_http_agent.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_http_agent~global_headers.
+
+    ro_global_headers = mo_global_headers.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_http_agent~request.
+
+    DATA li_client TYPE REF TO if_http_client.
+    DATA lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config.
+    DATA lv_code TYPE i.
+    DATA lv_message TYPE string.
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF io_query->mt_entries.
+
+    CREATE OBJECT lo_proxy_configuration.
+
+    cl_http_client=>create_by_url(
+      EXPORTING
+        url           = iv_url
+        ssl_id        = zcl_abapgit_exit=>get_instance( )->get_ssl_id( )
+        proxy_host    = lo_proxy_configuration->get_proxy_url( iv_url )
+        proxy_service = lo_proxy_configuration->get_proxy_port( iv_url )
+      IMPORTING
+        client = li_client ).
+
+    li_client->request->set_version( if_http_request=>co_protocol_version_1_1 ).
+    li_client->request->set_method( iv_method ).
+
+    IF io_query IS BOUND.
+      LOOP AT io_query->mt_entries ASSIGNING <ls_entry>.
+        li_client->request->set_form_field(
+          name  = <ls_entry>-k
+          value = <ls_entry>-v ).
+      ENDLOOP.
+    ENDIF.
+
+    LOOP AT mo_global_headers->mt_entries ASSIGNING <ls_entry>.
+      li_client->request->set_header_field(
+        name  = to_lower( <ls_entry>-k )
+        value = <ls_entry>-v ).
+    ENDLOOP.
+
+    IF io_headers IS BOUND.
+      LOOP AT io_headers->mt_entries ASSIGNING <ls_entry>.
+        li_client->request->set_header_field(
+          name  = to_lower( <ls_entry>-k )
+          value = <ls_entry>-v ).
+      ENDLOOP.
+    ENDIF.
+
+    IF iv_method = zif_abapgit_http_agent=>c_methods-post
+      OR iv_method = zif_abapgit_http_agent=>c_methods-put
+      OR iv_method = zif_abapgit_http_agent=>c_methods-patch.
+      attach_payload(
+        ii_request = li_client->request
+        iv_payload = iv_payload ).
+    ENDIF.
+
+    li_client->send(
+      EXCEPTIONS
+        http_communication_failure = 1
+        http_invalid_state         = 2
+        http_processing_failed     = 3
+        http_invalid_timeout       = 4
+        OTHERS                     = 5 ).
+    IF sy-subrc = 0.
+      li_client->receive(
+        EXCEPTIONS
+          http_communication_failure = 1
+          http_invalid_state         = 2
+          http_processing_failed     = 3
+          OTHERS                     = 4 ).
+    ENDIF.
+
+    IF sy-subrc <> 0.
+      li_client->get_last_error(
+        IMPORTING
+          code    = lv_code
+          message = lv_message ).
+      zcx_abapgit_exception=>raise( |HTTP error: [{ lv_code }] { lv_message }| ).
+    ENDIF.
+
+    ri_response = kHGwlkOaymxFRlCWtlTOYvbNmJsakp=>create( li_client ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -90338,5 +91981,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-27T05:39:33.036Z
+* abapmerge 0.14.1 - 2020-08-27T05:48:41.439Z
 ****************************************************
