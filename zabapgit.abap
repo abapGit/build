@@ -11434,8 +11434,6 @@ CLASS zcl_abapgit_html DEFINITION
 
     INTERFACES zif_abapgit_html .
 
-    ALIASES a
-      FOR zif_abapgit_html~a .
     ALIASES add
       FOR zif_abapgit_html~add .
     ALIASES add_a
@@ -11653,9 +11651,9 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       BEGIN OF ty_event_signature,
         method TYPE string,
         name   TYPE string,
-      END OF  ty_event_signature.
+      END OF  ty_event_signature .
 
-    CLASS-METHODS class_constructor.
+    CLASS-METHODS class_constructor .
     CLASS-METHODS render_error
       IMPORTING
         !ix_error       TYPE REF TO zcx_abapgit_exception OPTIONAL
@@ -11690,75 +11688,74 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         !io_news       TYPE REF TO zcl_abapgit_news
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS render_commit_popup
       IMPORTING
-        iv_content     TYPE csequence
-        iv_id          TYPE csequence
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS render_error_message_box
-      IMPORTING
-        ix_error       TYPE REF TO zcx_abapgit_exception
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-    CLASS-METHODS parse_change_order_by
-      IMPORTING
-        iv_query_str       TYPE clike
-      RETURNING
-        VALUE(rv_order_by) TYPE string.
-    CLASS-METHODS parse_direction
-      IMPORTING
-        iv_query_str               TYPE clike
-      RETURNING
-        VALUE(rv_order_descending) TYPE abap_bool.
-    CLASS-METHODS render_order_by_header_cells
-      IMPORTING
-        it_col_spec         TYPE zif_abapgit_definitions=>tty_col_spec
-        iv_order_by         TYPE string
-        iv_order_descending TYPE abap_bool
-      RETURNING
-        VALUE(ro_html)      TYPE REF TO zcl_abapgit_html.
-    CLASS-METHODS render_warning_banner
-      IMPORTING
-        iv_text        TYPE string
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-    CLASS-METHODS render_infopanel
-      IMPORTING
-        iv_div_id      TYPE string
-        iv_title       TYPE string
-        iv_hide        TYPE abap_bool DEFAULT abap_true
-        iv_hint        TYPE string OPTIONAL
-        iv_scrollable  TYPE abap_bool DEFAULT abap_true
-        io_content     TYPE REF TO zif_abapgit_html
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS render_event_as_form
-      IMPORTING
-        is_event       TYPE ty_event_signature
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
-    CLASS-METHODS render_repo_palette
-      IMPORTING
-        iv_action      TYPE string
+        !iv_content    TYPE csequence
+        !iv_id         TYPE csequence
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-
+    CLASS-METHODS render_error_message_box
+      IMPORTING
+        !ix_error      TYPE REF TO zcx_abapgit_exception
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    CLASS-METHODS parse_change_order_by
+      IMPORTING
+        !iv_query_str      TYPE clike
+      RETURNING
+        VALUE(rv_order_by) TYPE string .
+    CLASS-METHODS parse_direction
+      IMPORTING
+        !iv_query_str              TYPE clike
+      RETURNING
+        VALUE(rv_order_descending) TYPE abap_bool .
+    CLASS-METHODS render_order_by_header_cells
+      IMPORTING
+        !it_col_spec         TYPE zif_abapgit_definitions=>tty_col_spec
+        !iv_order_by         TYPE string
+        !iv_order_descending TYPE abap_bool
+      RETURNING
+        VALUE(ri_html)       TYPE REF TO zif_abapgit_html .
+    CLASS-METHODS render_warning_banner
+      IMPORTING
+        !iv_text       TYPE string
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    CLASS-METHODS render_infopanel
+      IMPORTING
+        !iv_div_id     TYPE string
+        !iv_title      TYPE string
+        !iv_hide       TYPE abap_bool DEFAULT abap_true
+        !iv_hint       TYPE string OPTIONAL
+        !iv_scrollable TYPE abap_bool DEFAULT abap_true
+        !io_content    TYPE REF TO zif_abapgit_html
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS render_event_as_form
+      IMPORTING
+        !is_event      TYPE ty_event_signature
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+    CLASS-METHODS render_repo_palette
+      IMPORTING
+        !iv_action     TYPE string
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS advanced_submenu
-      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
-
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     CLASS-METHODS help_submenu
-      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
-
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
   PROTECTED SECTION.
     CLASS-METHODS render_repo_top_commit_hash
       IMPORTING
@@ -12471,78 +12468,80 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION.
   PROTECTED SECTION.
-    DATA mv_unified TYPE abap_bool VALUE abap_true ##NO_TEXT.
-    DATA mo_repo TYPE REF TO zcl_abapgit_repo.
-    DATA mt_diff_files TYPE tt_file_diff .
-    METHODS:
-      get_normalized_fname_with_path
-        IMPORTING
-          is_diff            TYPE ty_file_diff
-        RETURNING
-          VALUE(rv_filename) TYPE string,
-      normalize_path
-        IMPORTING
-          iv_path              TYPE string
-        RETURNING
-          VALUE(rv_normalized) TYPE string,
-      normalize_filename
-        IMPORTING
-          iv_filename          TYPE string
-        RETURNING
-          VALUE(rv_normalized) TYPE string,
-      render_content REDEFINITION,
-      add_menu_end
-        IMPORTING
-          io_menu TYPE REF TO zcl_abapgit_html_toolbar ,
-      calculate_diff
-        IMPORTING
-          is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
-          is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
-          it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
-        RAISING
-          zcx_abapgit_exception,
-      add_menu_begin
-        IMPORTING
-          io_menu TYPE REF TO zcl_abapgit_html_toolbar,
-      render_table_head_non_unified
-        IMPORTING
-          io_html TYPE REF TO  zcl_abapgit_html
-          is_diff TYPE ty_file_diff,
-      render_beacon_begin_of_row
-        IMPORTING
-          io_html TYPE REF TO zcl_abapgit_html
-          is_diff TYPE ty_file_diff,
-      render_diff_head_after_state
-        IMPORTING
-          io_html TYPE REF TO zcl_abapgit_html
-          is_diff TYPE ty_file_diff,
-      insert_nav
-        RETURNING
-          VALUE(rv_insert_nav) TYPE abap_bool,
-      render_line_split_row
-        IMPORTING
-          io_html      TYPE REF TO zcl_abapgit_html
-          iv_filename  TYPE string
-          is_diff_line TYPE zif_abapgit_definitions=>ty_diff
-          iv_index     TYPE sy-tabix
-          iv_fstate    TYPE char1
-          iv_new       TYPE string
-          iv_old       TYPE string
-        RAISING
-          zcx_abapgit_exception,
-      build_menu
-        RETURNING
-          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
 
+    DATA mv_unified TYPE abap_bool VALUE abap_true ##NO_TEXT.
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo .
+    DATA mt_diff_files TYPE tt_file_diff .
+
+    METHODS get_normalized_fname_with_path
+      IMPORTING
+        !is_diff           TYPE ty_file_diff
+      RETURNING
+        VALUE(rv_filename) TYPE string .
+    METHODS normalize_path
+      IMPORTING
+        !iv_path             TYPE string
+      RETURNING
+        VALUE(rv_normalized) TYPE string .
+    METHODS normalize_filename
+      IMPORTING
+        !iv_filename         TYPE string
+      RETURNING
+        VALUE(rv_normalized) TYPE string .
+    METHODS add_menu_end
+      IMPORTING
+        !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
+    METHODS calculate_diff
+      IMPORTING
+        !is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
+        !is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        !it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_menu_begin
+      IMPORTING
+        !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
+    METHODS render_table_head_non_unified
+      IMPORTING
+        !io_html TYPE REF TO zcl_abapgit_html
+        !is_diff TYPE ty_file_diff .
+    METHODS render_beacon_begin_of_row
+      IMPORTING
+        !io_html TYPE REF TO zcl_abapgit_html
+        !is_diff TYPE ty_file_diff .
+    METHODS render_diff_head_after_state
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+        !is_diff TYPE ty_file_diff .
+    METHODS insert_nav
+      RETURNING
+        VALUE(rv_insert_nav) TYPE abap_bool .
+    METHODS render_line_split_row
+      IMPORTING
+        !io_html      TYPE REF TO zcl_abapgit_html
+        !iv_filename  TYPE string
+        !is_diff_line TYPE zif_abapgit_definitions=>ty_diff
+        !iv_index     TYPE sy-tabix
+        !iv_fstate    TYPE char1
+        !iv_new       TYPE string
+        !iv_old       TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_menu
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
+
+    METHODS render_content
+        REDEFINITION .
   PRIVATE SECTION.
+
     CONSTANTS:
       BEGIN OF c_actions,
         toggle_unified TYPE string VALUE 'toggle_unified',
       END OF c_actions .
-
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
-    DATA mv_seed TYPE string .            " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .              " Unique page id to bind JS sessionStorage
 
     METHODS render_diff
       IMPORTING
@@ -12555,7 +12554,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_table_head
       IMPORTING
         !is_diff       TYPE ty_file_diff
@@ -12602,28 +12601,27 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS add_filter_sub_menu
       IMPORTING
-        io_menu TYPE REF TO zcl_abapgit_html_toolbar .
+        !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS render_lines
       IMPORTING
-        is_diff        TYPE ty_file_diff
+        !is_diff       TYPE ty_file_diff
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS render_table_head_unified
       IMPORTING
-        io_html TYPE REF TO zcl_abapgit_html.
+        !io_html TYPE REF TO zcl_abapgit_html .
     METHODS render_scripts
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS filter_diff_by_files
       IMPORTING
-        it_files      TYPE zif_abapgit_definitions=>ty_stage_tt
+        !it_files      TYPE zif_abapgit_definitions=>ty_stage_tt
       CHANGING
-        ct_diff_files TYPE tt_file_diff.
-
+        !ct_diff_files TYPE tt_file_diff .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   FINAL
@@ -13216,18 +13214,19 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         name TYPE xubname,
       END OF ty_changed_by .
     TYPES:
-      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item.
+      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item .
     TYPES:
       BEGIN OF ty_transport,
         item      TYPE zif_abapgit_definitions=>ty_item,
         transport TYPE trkorr,
-      END OF ty_transport,
-      ty_transport_tt TYPE SORTED TABLE OF ty_transport WITH UNIQUE KEY item.
+      END OF ty_transport .
+    TYPES:
+      ty_transport_tt TYPE SORTED TABLE OF ty_transport WITH UNIQUE KEY item .
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
-    DATA mv_seed TYPE string .   " Unique page id to bind JS sessionStorage
-    DATA mv_filter_value TYPE string.
+    DATA mv_seed TYPE string .     " Unique page id to bind JS sessionStorage
+    DATA mv_filter_value TYPE string .
 
     METHODS find_changed_by
       IMPORTING
@@ -13236,9 +13235,9 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(rt_changed_by) TYPE ty_changed_by_tt .
     METHODS find_transports
       IMPORTING
-        it_local             TYPE zif_abapgit_definitions=>ty_files_item_tt
+        !it_local            TYPE zif_abapgit_definitions=>ty_files_item_tt
       RETURNING
-        VALUE(rt_transports) TYPE ty_transport_tt.
+        VALUE(rt_transports) TYPE ty_transport_tt .
     METHODS render_list
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -13251,7 +13250,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !iv_changed_by TYPE xubname OPTIONAL
         !iv_transport  TYPE trkorr OPTIONAL
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_actions
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
@@ -13271,23 +13270,26 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS get_page_patch
-      IMPORTING io_stage       TYPE REF TO zcl_abapgit_stage
-      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
-      RAISING   zcx_abapgit_exception.
+      IMPORTING
+        !io_stage      TYPE REF TO zcl_abapgit_stage
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_master_language_warning
-      RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS count_default_files_to_commit
       RETURNING
-        VALUE(rv_count) TYPE i.
+        VALUE(rv_count) TYPE i .
     METHODS render_deferred_hidden_events
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html.
+        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
     METHODS render_scripts
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
     INHERITING FROM zcl_abapgit_gui_page_codi_base.
@@ -36402,7 +36404,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -36522,14 +36524,14 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     ii_html->add( |<input type="submit" class="hidden-submit">| ).
     ii_html->add( |</form>| ).
 
-    ii_html->add( zcl_abapgit_html=>a(
+    ii_html->add( zcl_abapgit_html=>zif_abapgit_html~a(
       iv_txt = '<i id="icon-filter-favorite" class="icon icon-check"></i> Only Favorites'
       iv_act = |gHelper.toggleRepoListFavorites()|
       iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
 
     ii_html->add( `<span class="separator">|</span>` ).
 
-    ii_html->add( zcl_abapgit_html=>a(
+    ii_html->add( zcl_abapgit_html=>zif_abapgit_html~a(
       iv_txt = '<i id="icon-filter-detail" class="icon icon-check"></i> Detail'
       iv_act = |gHelper.toggleRepoListDetail()|
       iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
@@ -36604,8 +36606,8 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       ii_html->add( |</td>| ).
       ii_html->add( |<td class="wmin">{ zcl_abapgit_html=>icon( lv_type_icon ) }</td>| ).
 
-      ii_html->add( |<td>{ zcl_abapgit_html=>a( iv_txt = <ls_overview>-name
-                                                iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
+      ii_html->add( |<td>{ ii_html->a( iv_txt = <ls_overview>-name
+                                       iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
 
       IF <ls_overview>-type = abap_false.
         ii_html->add( |<td>{ ii_html->a( iv_txt = <ls_overview>-url
@@ -36674,7 +36676,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       ii_html->add( |</td>| ).
 
       ii_html->add( |<td class='ro-go'><span>{
-                zcl_abapgit_html=>a(
+                ii_html->a(
                   iv_txt = `&rsaquo;`
                   iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</span></td>| ).
 
@@ -36824,7 +36826,6 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
     <ls_col>-css_class = iv_css_class.
     <ls_col>-add_tz = iv_add_tz.
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
@@ -36994,8 +36995,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     REPLACE FIRST OCCURRENCE OF mv_cur_dir IN lv_path WITH ''.
     lv_encode = zcl_abapgit_html_action_utils=>dir_encode( lv_path ).
 
-    rv_html = zcl_abapgit_html=>a( iv_txt = lv_path
-                                   iv_act = |{ c_actions-change_dir }?{ lv_encode }| ).
+    rv_html = zcl_abapgit_html=>zif_abapgit_html~a(
+      iv_txt = lv_path
+      iv_act = |{ c_actions-change_dir }?{ lv_encode }| ).
 
   ENDMETHOD.
   METHOD build_head_menu.
@@ -37128,11 +37130,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
     DATA: lv_encode TYPE string.
 
-    lv_encode = zcl_abapgit_html_action_utils=>jump_encode( iv_obj_type = is_item-obj_type
-                                                    iv_obj_name = is_item-obj_name ).
+    lv_encode = zcl_abapgit_html_action_utils=>jump_encode(
+      iv_obj_type = is_item-obj_type
+      iv_obj_name = is_item-obj_name ).
 
-    rv_html = zcl_abapgit_html=>a( iv_txt = |{ is_item-obj_name }|
-                                   iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
+    rv_html = zcl_abapgit_html=>zif_abapgit_html~a(
+      iv_txt = |{ is_item-obj_name }|
+      iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
 
   ENDMETHOD.
   METHOD build_tag_dropdown.
@@ -37434,11 +37438,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
           ENDIF.
           lv_add_str = |+{ mv_max_setting }|.
           ri_html->add( |Only { lv_max_str } shown in list. Display {
-            zcl_abapgit_html=>a( iv_txt = lv_add_str
-                                 iv_act = c_actions-display_more )
+            ri_html->a( iv_txt = lv_add_str
+                        iv_act = c_actions-display_more )
             } more. (Set in Advanced > {
-            zcl_abapgit_html=>a( iv_txt = 'Settings'
-                                 iv_act = zif_abapgit_definitions=>c_action-go_settings )
+            ri_html->a( iv_txt = 'Settings'
+                        iv_act = zif_abapgit_definitions=>c_action-go_settings )
             } )| ).
           ri_html->add( '</div>' ).
         ENDIF.
@@ -37619,10 +37623,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                                                                     iv_object_name             = is_item-obj_name
                                                                     iv_resolve_task_to_request = abap_false ).
           lv_transport_string = lv_transport.
-          lv_icon_html = zcl_abapgit_html=>a( iv_txt = zcl_abapgit_html=>icon( iv_name = 'briefcase/darkgrey'
-                                                                               iv_hint = lv_transport_string )
-                                              iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?| &&
-                                                       lv_transport ).
+          lv_icon_html = zcl_abapgit_html=>zif_abapgit_html~a(
+            iv_txt = zcl_abapgit_html=>icon( iv_name = 'briefcase/darkgrey'
+                                             iv_hint = lv_transport_string )
+            iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?| && lv_transport ).
+
           rv_html = |<td class="icon">| &&
                     |{ lv_icon_html }| &&
                     |</td>|.
@@ -38335,7 +38340,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -38554,7 +38559,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           lv_transport_string TYPE string,
           lv_transport_html   TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lv_transport_string = iv_transport.
 
@@ -38562,12 +38567,12 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 * make sure whitespace is preserved in the DOM
     REPLACE ALL OCCURRENCES OF ` ` IN lv_filename WITH '&nbsp;'.
 
-    ro_html->add( |<tr class="{ iv_context }">| ).
-    ro_html->add( '<td>' ).
-    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+    ri_html->add( |<tr class="{ iv_context }">| ).
+    ri_html->add( '<td>' ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
       iv_lstate = is_status-lstate
       iv_rstate = is_status-rstate ) ).
-    ro_html->add( '</td>' ).
+    ri_html->add( '</td>' ).
 
     CASE iv_context.
       WHEN 'local'.
@@ -38575,30 +38580,30 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           iv_key  = mo_repo->get_key( )
           ig_file = is_file ).
 
-        lv_filename = zcl_abapgit_html=>a(
+        lv_filename = ri_html->a(
           iv_txt = lv_filename
           iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_param }| ).
 
         IF iv_transport IS NOT INITIAL.
-          lv_transport_html = zcl_abapgit_html=>a(
+          lv_transport_html = ri_html->a(
             iv_txt = lv_transport_string
             iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?{ iv_transport }| ).
         ENDIF.
-        ro_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
-        ro_html->add( |<td class="name">{ lv_filename }</td>| ).
-        ro_html->add( |<td class="user">{ iv_changed_by }</td>| ).
-        ro_html->add( |<td class="transport">{ lv_transport_html }</td>| ).
+        ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
+        ri_html->add( |<td class="name">{ lv_filename }</td>| ).
+        ri_html->add( |<td class="user">{ iv_changed_by }</td>| ).
+        ri_html->add( |<td class="transport">{ lv_transport_html }</td>| ).
       WHEN 'remote'.
-        ro_html->add( '<td class="type">-</td>' ).  " Dummy for object type
-        ro_html->add( |<td class="name">{ lv_filename }</td>| ).
-        ro_html->add( '<td></td>' ).                " Dummy for changed-by
-        ro_html->add( '<td></td>' ).                " Dummy for transport
+        ri_html->add( '<td class="type">-</td>' ).  " Dummy for object type
+        ri_html->add( |<td class="name">{ lv_filename }</td>| ).
+        ri_html->add( '<td></td>' ).                " Dummy for changed-by
+        ri_html->add( '<td></td>' ).                " Dummy for transport
     ENDCASE.
 
-    ro_html->add( |<td class="status">?</td>| ).
-    ro_html->add( '<td class="cmd"></td>' ). " Command added in JS
+    ri_html->add( |<td class="status">?</td>| ).
+    ri_html->add( '<td class="cmd"></td>' ). " Command added in JS
 
-    ro_html->add( '</tr>' ).
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_list.
@@ -39962,7 +39967,7 @@ CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   METHOD add_menu_begin.
 
     io_menu->add(
@@ -40349,7 +40354,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
 
       lv_act_id = |{ c_actions-refresh_local_object }_{ is_diff-obj_type }_{ is_diff-obj_name }|.
 
-      io_html->add_a(
+      ii_html->add_a(
           iv_txt   = |Refresh|
           iv_typ   = zif_abapgit_html=>c_action_type-dummy
           iv_act   = lv_act_id
@@ -40359,7 +40364,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     ENDIF.
 
     super->render_diff_head_after_state(
-        io_html = io_html
+        ii_html = ii_html
         is_diff = is_diff ).
 
   ENDMETHOD.
@@ -41340,7 +41345,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -41606,6 +41611,26 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ms_control-page_menu = build_menu( ).
 
   ENDMETHOD.
+  METHOD filter_diff_by_files.
+
+    FIELD-SYMBOLS: <ls_diff_file> TYPE ty_file_diff.
+
+    IF lines( it_files ) = 0.
+      RETURN.
+    ENDIF.
+
+    " Diff only for specified files
+    LOOP AT ct_diff_files ASSIGNING <ls_diff_file>.
+
+      READ TABLE it_files TRANSPORTING NO FIELDS
+                          WITH KEY file-filename = <ls_diff_file>-filename.
+      IF sy-subrc <> 0.
+        DELETE TABLE ct_diff_files FROM <ls_diff_file>.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD get_normalized_fname_with_path.
 
     rv_filename = normalize_path( is_diff-path )
@@ -41743,11 +41768,11 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     DATA: ls_stats    TYPE zif_abapgit_definitions=>ty_count,
           lv_adt_link TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<div class="diff_head">' ).
+    ri_html->add( '<div class="diff_head">' ).
 
-    ro_html->add_icon(
+    ri_html->add_icon(
       iv_name    = 'chevron-down'
       iv_hint    = 'Collapse/Expand'
       iv_class   = 'cursor-pointer'
@@ -41760,43 +41785,43 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         CLEAR: ls_stats-insert, ls_stats-delete.
       ENDIF.
 
-      ro_html->add( |<span class="diff_banner diff_ins">+ { ls_stats-insert }</span>| ).
-      ro_html->add( |<span class="diff_banner diff_del">- { ls_stats-delete }</span>| ).
-      ro_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_ins">+ { ls_stats-insert }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_del">- { ls_stats-delete }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
     ENDIF.
 
     " no links for nonexistent or deleted objects
     IF is_diff-lstate IS NOT INITIAL AND is_diff-lstate <> 'D'.
-      lv_adt_link = zcl_abapgit_html=>a(
+      lv_adt_link = ri_html->a(
         iv_txt = |{ is_diff-path }{ is_diff-filename }|
         iv_typ = zif_abapgit_html=>c_action_type-sapevent
         iv_act = |jump?TYPE={ is_diff-obj_type }&NAME={ is_diff-obj_name }| ).
     ENDIF.
 
     IF lv_adt_link IS NOT INITIAL.
-      ro_html->add( |<span class="diff_name">{ lv_adt_link }</span>| ).
+      ri_html->add( |<span class="diff_name">{ lv_adt_link }</span>| ).
     ELSE.
-      ro_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ).
+      ri_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ).
     ENDIF.
 
-    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
       iv_lstate = is_diff-lstate
       iv_rstate = is_diff-rstate ) ).
 
     render_diff_head_after_state(
-        io_html = ro_html
-        is_diff = is_diff ).
+      ii_html = ri_html
+      is_diff = is_diff ).
 
-    ro_html->add( |<span class="diff_changed_by">Last Changed by: <span class="user">{
+    ri_html->add( |<span class="diff_changed_by">Last Changed by: <span class="user">{
       is_diff-changed_by }</span></span>| ).
 
-    ro_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_diff_head_after_state.
 
     IF is_diff-fstate = c_fstate-both AND mv_unified = abap_true.
-      io_html->add( '<span class="attention pad-sides">Attention: Unified mode'
+      ii_html->add( '<span class="attention pad-sides">Attention: Unified mode'
                  && ' highlighting for MM assumes local file is newer ! </span>' ). "#EC NOTEXT
     ENDIF.
 
@@ -42066,28 +42091,6 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-
-  METHOD filter_diff_by_files.
-
-    FIELD-SYMBOLS: <ls_diff_file> TYPE ty_file_diff.
-
-    IF lines( it_files ) = 0.
-      RETURN.
-    ENDIF.
-
-    " Diff only for specified files
-    LOOP AT ct_diff_files ASSIGNING <ls_diff_file>.
-
-      READ TABLE it_files TRANSPORTING NO FIELDS
-                          WITH KEY file-filename = <ls_diff_file>-filename.
-      IF sy-subrc <> 0.
-        DELETE TABLE ct_diff_files FROM <ls_diff_file>.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
@@ -42102,8 +42105,9 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     lv_encode = zcl_abapgit_html_action_utils=>jump_encode( iv_obj_type = 'CLAS'
                                                             iv_obj_name = |{ iv_class }| ).
 
-    rv_html = zcl_abapgit_html=>a( iv_txt = |{ iv_class }|
-                                   iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
+    rv_html = zcl_abapgit_html=>zif_abapgit_html~a(
+      iv_txt = |{ iv_class }|
+      iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -44390,18 +44394,18 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_commit_popup.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<ul class="hotkeys">' ).
-    ro_html->add( |<li>| && |<span>{ iv_content }</span>| && |</li>| ).
-    ro_html->add( '</ul>' ).
+    ri_html->add( '<ul class="hotkeys">' ).
+    ri_html->add( |<li>| && |<span>{ iv_content }</span>| && |</li>| ).
+    ri_html->add( '</ul>' ).
 
-    ro_html = render_infopanel(
+    ri_html = render_infopanel(
       iv_div_id     = |{ iv_id }|
       iv_title      = 'Commit details'
       iv_hide       = abap_true
       iv_scrollable = abap_false
-      io_content    = ro_html ).
+      io_content    = ri_html ).
 
   ENDMETHOD.
   METHOD render_error.
@@ -44522,7 +44526,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     DATA lv_display TYPE string.
     DATA lv_class TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_hide = abap_true. " Initially hide
       lv_display = 'display:none'.
@@ -44533,11 +44537,11 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lv_class = lv_class && ' info-panel-fixed'.
     ENDIF.
 
-    ro_html->add( |<div id="{ iv_div_id }" class="{ lv_class }" style="{ lv_display }">| ).
+    ri_html->add( |<div id="{ iv_div_id }" class="{ lv_class }" style="{ lv_display }">| ).
 
-    ro_html->add( |<div class="info-title">{ iv_title }|
+    ri_html->add( |<div class="info-title">{ iv_title }|
                && '<div class="float-right">'
-               && zcl_abapgit_html=>a(
+               && ri_html->a(
                     iv_txt   = '&#x274c;'
                     iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_act   = |toggleDisplay('{ iv_div_id }')|
@@ -44545,17 +44549,17 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                && '</div></div>' ).
 
     IF iv_hint IS NOT INITIAL.
-      ro_html->add( '<div class="info-hint">'
-        && zcl_abapgit_html=>icon( iv_name = 'exclamation-triangle'
-                                   iv_class = 'pad-right' )
+      ri_html->add( '<div class="info-hint">'
+        && ri_html->icon( iv_name = 'exclamation-triangle'
+                          iv_class = 'pad-right' )
         && iv_hint
         && '</div>' ).
     ENDIF.
 
-    ro_html->add( |<div class="info-list">| ).
-    ro_html->add( io_content ).
-    ro_html->add( '</div>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( |<div class="info-list">| ).
+    ri_html->add( io_content ).
+    ri_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_item_state.
@@ -44612,7 +44616,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_log.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF io_news IS NOT BOUND OR io_news->has_news( ) = abap_false.
       RETURN.
@@ -44630,9 +44634,9 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         ELSE. " < 0
           lv_text = <ls_line>-text.
         ENDIF.
-        ro_html->add( |<h1>{ lv_text }</h1>| ).
+        ri_html->add( |<h1>{ lv_text }</h1>| ).
       ELSE.
-        ro_html->add( |<li>{ <ls_line>-text }</li>| ).
+        ri_html->add( |<li>{ <ls_line>-text }</li>| ).
       ENDIF.
     ENDLOOP.
 
@@ -44641,12 +44645,12 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lv_hint = 'Please note changes marked with "!"'.
     ENDIF.
 
-    ro_html = render_infopanel(
+    ri_html = render_infopanel(
       iv_div_id  = 'news'
       iv_title   = 'Announcement of the latest changes'
       iv_hint    = lv_hint
       iv_hide    = boolc( io_news->has_unseen( ) = abap_false )
-      io_content = ro_html ).
+      io_content = ri_html ).
 
   ENDMETHOD.
   METHOD render_order_by_header_cells.
@@ -44657,7 +44661,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     LOOP AT it_col_spec ASSIGNING <ls_col>.
       " e.g. <th class="ro-detail">Created at [{ gv_time_zone }]</th>
@@ -44674,18 +44678,18 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         ENDIF.
         IF <ls_col>-tech_name = iv_order_by.
           IF iv_order_descending = abap_true.
-            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+            lv_tmp = lv_tmp && ri_html->a(
               iv_txt   = lv_disp_name
               iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=ASCENDING|
               iv_title = <ls_col>-title ).
           ELSE.
-            lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+            lv_tmp = lv_tmp && ri_html->a(
               iv_txt   = lv_disp_name
               iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=DESCENDING|
               iv_title = <ls_col>-title ).
           ENDIF.
         ELSE.
-          lv_tmp = lv_tmp && zcl_abapgit_html=>a(
+          lv_tmp = lv_tmp && ri_html->a(
             iv_txt   = lv_disp_name
             iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }?orderBy={ <ls_col>-tech_name }|
             iv_title = <ls_col>-title ).
@@ -44701,7 +44705,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       ENDIF.
 
       lv_tmp = lv_tmp && '</th>'.
-      ro_html->add( lv_tmp ).
+      ri_html->add( lv_tmp ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -45679,63 +45683,6 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
-  METHOD a.
-
-    DATA: lv_class TYPE string,
-          lv_href  TYPE string,
-          lv_click TYPE string,
-          lv_id    TYPE string,
-          lv_style TYPE string,
-          lv_title TYPE string.
-
-    lv_class = iv_class.
-
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
-      lv_class = lv_class && ' emphasis' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
-      lv_class = lv_class && ' attention' ##NO_TEXT.
-    ENDIF.
-    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
-      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
-    ENDIF.
-    IF lv_class IS NOT INITIAL.
-      SHIFT lv_class LEFT DELETING LEADING space.
-      lv_class = | class="{ lv_class }"|.
-    ENDIF.
-
-    lv_href  = ' href="#"'. " Default, dummy
-    IF ( iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy )
-        AND iv_opt NA zif_abapgit_html=>c_html_opt-crossout.
-      CASE iv_typ.
-        WHEN zif_abapgit_html=>c_action_type-url.
-          lv_href  = | href="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-sapevent.
-          lv_href  = | href="sapevent:{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-onclick.
-          lv_href  = ' href="#"'.
-          lv_click = | onclick="{ iv_act }"|.
-        WHEN zif_abapgit_html=>c_action_type-dummy.
-          lv_href  = ' href="#"'.
-      ENDCASE.
-    ENDIF.
-
-    IF iv_id IS NOT INITIAL.
-      lv_id = | id="{ iv_id }"|.
-    ENDIF.
-
-    IF iv_style IS NOT INITIAL.
-      lv_style = | style="{ iv_style }"|.
-    ENDIF.
-
-    IF iv_title IS NOT INITIAL.
-      lv_title = | title="{ iv_title }"|.
-    ENDIF.
-
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
-          && |{ iv_txt }</a>|.
-
-  ENDMETHOD.
   METHOD add.
 
     DATA: lv_type TYPE c,
@@ -45766,14 +45713,15 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_a.
 
-    add( a( iv_txt   = iv_txt
-            iv_act   = iv_act
-            iv_typ   = iv_typ
-            iv_opt   = iv_opt
-            iv_class = iv_class
-            iv_id    = iv_id
-            iv_style = iv_style
-            iv_title = iv_title ) ).
+    add( zif_abapgit_html~a(
+      iv_txt   = iv_txt
+      iv_act   = iv_act
+      iv_typ   = iv_typ
+      iv_opt   = iv_opt
+      iv_class = iv_class
+      iv_id    = iv_id
+      iv_style = iv_style
+      iv_title = iv_title ) ).
 
   ENDMETHOD.
   METHOD checkbox.
@@ -45935,6 +45883,63 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
 
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~a.
+
+    DATA: lv_class TYPE string,
+          lv_href  TYPE string,
+          lv_click TYPE string,
+          lv_id    TYPE string,
+          lv_style TYPE string,
+          lv_title TYPE string.
+
+    lv_class = iv_class.
+
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
+      lv_class = lv_class && ' emphasis' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
+      lv_class = lv_class && ' attention' ##NO_TEXT.
+    ENDIF.
+    IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
+      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
+    ENDIF.
+    IF lv_class IS NOT INITIAL.
+      SHIFT lv_class LEFT DELETING LEADING space.
+      lv_class = | class="{ lv_class }"|.
+    ENDIF.
+
+    lv_href  = ' href="#"'. " Default, dummy
+    IF ( iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy )
+        AND iv_opt NA zif_abapgit_html=>c_html_opt-crossout.
+      CASE iv_typ.
+        WHEN zif_abapgit_html=>c_action_type-url.
+          lv_href  = | href="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-sapevent.
+          lv_href  = | href="sapevent:{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-onclick.
+          lv_href  = ' href="#"'.
+          lv_click = | onclick="{ iv_act }"|.
+        WHEN zif_abapgit_html=>c_action_type-dummy.
+          lv_href  = ' href="#"'.
+      ENDCASE.
+    ENDIF.
+
+    IF iv_id IS NOT INITIAL.
+      lv_id = | id="{ iv_id }"|.
+    ENDIF.
+
+    IF iv_style IS NOT INITIAL.
+      lv_style = | style="{ iv_style }"|.
+    ENDIF.
+
+    IF iv_title IS NOT INITIAL.
+      lv_title = | title="{ iv_title }"|.
+    ENDIF.
+
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
+          && |{ iv_txt }</a>|.
 
   ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
@@ -91981,5 +91986,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-27T05:48:41.439Z
+* abapmerge 0.14.1 - 2020-08-27T05:52:54.888Z
 ****************************************************
