@@ -42901,7 +42901,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     ls_per = read_persist( lo_repo ).
     CREATE OBJECT ro_html.
 
-    ro_html->add( '<div id="toc">' ).
+    ro_html->add( '<div id="toc" class="settings_container">' ).
 
     ro_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( lo_repo ) ).
     ro_html->add( '<br>' ).
@@ -90319,5 +90319,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-27T05:28:38.601Z
+* abapmerge 0.14.1 - 2020-08-27T05:31:38.651Z
 ****************************************************
