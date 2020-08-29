@@ -1087,7 +1087,6 @@ INTERFACE zif_abapgit_http_agent .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_http_response .
-
   METHODS data
     RETURNING
       VALUE(rv_data) TYPE xstring .
@@ -1098,7 +1097,7 @@ INTERFACE zif_abapgit_http_response .
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson_reader
     RAISING
-      zcx_abapgit_ajson_error.
+      zcx_abapgit_ajson_error .
   METHODS is_ok
     RETURNING
       VALUE(rv_yes) TYPE abap_bool .
@@ -1110,9 +1109,10 @@ INTERFACE zif_abapgit_http_response .
       VALUE(rv_message) TYPE string .
   METHODS headers
     RETURNING
-      VALUE(ro_headers) TYPE REF TO zcl_abapgit_string_map .
+      VALUE(ro_headers) TYPE REF TO zcl_abapgit_string_map
+    RAISING
+      zcx_abapgit_exception .
   METHODS close .
-
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_pr_enum_provider .
@@ -91986,5 +91986,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-28T04:54:28.805Z
+* abapmerge 0.14.1 - 2020-08-29T05:58:33.385Z
 ****************************************************
