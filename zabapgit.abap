@@ -11450,12 +11450,8 @@ CLASS zcl_abapgit_html DEFINITION
       FOR zif_abapgit_html~add .
     ALIASES add_checkbox
       FOR zif_abapgit_html~add_checkbox .
-    ALIASES add_icon
-      FOR zif_abapgit_html~add_icon .
     ALIASES icon
       FOR zif_abapgit_html~icon .
-    ALIASES is_empty
-      FOR zif_abapgit_html~is_empty .
 
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
@@ -11735,7 +11731,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         !iv_text       TYPE string
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_infopanel
       IMPORTING
         !iv_div_id     TYPE string
@@ -12517,7 +12513,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !is_diff TYPE ty_file_diff .
     METHODS render_beacon_begin_of_row
       IMPORTING
-        !io_html TYPE REF TO zcl_abapgit_html
+        !ii_html TYPE REF TO zif_abapgit_html
         !is_diff TYPE ty_file_diff .
     METHODS render_diff_head_after_state
       IMPORTING
@@ -12528,7 +12524,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         VALUE(rv_insert_nav) TYPE abap_bool .
     METHODS render_line_split_row
       IMPORTING
-        !io_html      TYPE REF TO zcl_abapgit_html
+        !ii_html      TYPE REF TO zif_abapgit_html
         !iv_filename  TYPE string
         !is_diff_line TYPE zif_abapgit_definitions=>ty_diff
         !iv_index     TYPE sy-tabix
@@ -12551,7 +12547,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       END OF c_actions .
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
-    DATA mv_seed TYPE string .              " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .                  " Unique page id to bind JS sessionStorage
 
     METHODS render_diff
       IMPORTING
@@ -12577,7 +12573,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_line_split
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
@@ -12585,7 +12581,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !iv_fstate     TYPE char1
         !iv_index      TYPE sy-tabix
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_line_unified
@@ -12879,8 +12875,8 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       insert_nav REDEFINITION,
       render_line_split_row REDEFINITION.
   PRIVATE SECTION.
-    TYPES:
-      ty_patch_action TYPE string .
+
+    TYPES ty_patch_action TYPE string .
 
     CONSTANTS:
       BEGIN OF c_actions,
@@ -12888,130 +12884,109 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         refresh              TYPE string VALUE 'patch_refresh',
         refresh_local        TYPE string VALUE 'patch_refresh_local',
         refresh_local_object TYPE string VALUE 'patch_refresh_local_object',
-      END OF c_actions,
+      END OF c_actions .
+    CONSTANTS:
       BEGIN OF c_patch_action,
         add    TYPE ty_patch_action VALUE 'add',
         remove TYPE ty_patch_action VALUE 'remove',
       END OF c_patch_action .
+    DATA mo_stage TYPE REF TO zcl_abapgit_stage .
+    DATA mv_section_count TYPE i .
+    DATA mv_pushed TYPE abap_bool .
+    DATA mo_repo_online TYPE REF TO zcl_abapgit_repo_online .
 
-    DATA:
-      mo_stage         TYPE REF TO zcl_abapgit_stage,
-      mv_section_count TYPE i,
-      mv_pushed        TYPE abap_bool,
-      mo_repo_online   TYPE REF TO zcl_abapgit_repo_online.
-
-    METHODS:
-      render_patch
-        IMPORTING
-          io_html      TYPE REF TO zcl_abapgit_html
-          iv_filename  TYPE string
-          is_diff_line TYPE zif_abapgit_definitions=>ty_diff
-          iv_index     TYPE sy-tabix
-        RAISING
-          zcx_abapgit_exception,
-
-      render_patch_head
-        IMPORTING
-          io_html TYPE REF TO zcl_abapgit_html
-          is_diff TYPE ty_file_diff,
-
-      start_staging
-        IMPORTING
-          it_postdata TYPE cnht_post_data_tab
-        RAISING
-          zcx_abapgit_exception,
-
-      apply_patch_from_form_fields
-        IMPORTING
-          it_postdata TYPE cnht_post_data_tab
-        RAISING
-          zcx_abapgit_exception,
-
-      restore_patch_flags
-        IMPORTING
-          it_diff_files_old TYPE tt_file_diff
-        RAISING
-          zcx_abapgit_exception,
-
-      add_to_stage
-        RAISING
-          zcx_abapgit_exception,
-
-      refresh
-        IMPORTING
-          iv_action TYPE clike
-        RAISING
-          zcx_abapgit_exception,
-
-      refresh_full
-        RAISING
-          zcx_abapgit_exception,
-
-      refresh_local
-        RAISING
-          zcx_abapgit_exception,
-
-      refresh_local_object
-        IMPORTING
-          iv_action TYPE clike
-        RAISING
-          zcx_abapgit_exception,
-
-      apply_patch_all
-        IMPORTING
-          iv_patch      TYPE string
-          iv_patch_flag TYPE abap_bool
-        RAISING
-          zcx_abapgit_exception,
-
-      are_all_lines_patched
-        IMPORTING
-          it_diff                         TYPE zif_abapgit_definitions=>ty_diffs_tt
-        RETURNING
-          VALUE(rv_are_all_lines_patched) TYPE abap_bool,
-
-      apply_patch_for
-        IMPORTING
-          iv_filename   TYPE string
-          iv_line_index TYPE string
-          iv_patch_flag TYPE abap_bool
-        RAISING
-          zcx_abapgit_exception,
-
-      get_diff_object
-        IMPORTING
-          iv_filename    TYPE string
-        RETURNING
-          VALUE(ro_diff) TYPE REF TO zcl_abapgit_diff
-        RAISING
-          zcx_abapgit_exception,
-
-      get_diff_line
-        IMPORTING
-          io_diff        TYPE REF TO zcl_abapgit_diff
-          iv_line_index  TYPE string
-        RETURNING
-          VALUE(rs_diff) TYPE zif_abapgit_definitions=>ty_diff
-        RAISING
-          zcx_abapgit_exception,
-
-      is_every_changed_line_patched
-        RETURNING
-          VALUE(rv_everything_patched) TYPE abap_bool.
-
-    CLASS-METHODS:
-      is_patch_line_possible
-        IMPORTING
-          is_diff_line                     TYPE zif_abapgit_definitions=>ty_diff
-        RETURNING
-          VALUE(rv_is_patch_line_possible) TYPE abap_bool.
-
+    METHODS render_patch
+      IMPORTING
+        !ii_html      TYPE REF TO zif_abapgit_html
+        !iv_filename  TYPE string
+        !is_diff_line TYPE zif_abapgit_definitions=>ty_diff
+        !iv_index     TYPE sy-tabix
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_patch_head
+      IMPORTING
+        !io_html TYPE REF TO zcl_abapgit_html
+        !is_diff TYPE ty_file_diff .
+    METHODS start_staging
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS apply_patch_from_form_fields
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS restore_patch_flags
+      IMPORTING
+        !it_diff_files_old TYPE tt_file_diff
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_to_stage
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh
+      IMPORTING
+        !iv_action TYPE clike
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_full
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local_object
+      IMPORTING
+        !iv_action TYPE clike
+      RAISING
+        zcx_abapgit_exception .
+    METHODS apply_patch_all
+      IMPORTING
+        !iv_patch      TYPE string
+        !iv_patch_flag TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS are_all_lines_patched
+      IMPORTING
+        !it_diff                        TYPE zif_abapgit_definitions=>ty_diffs_tt
+      RETURNING
+        VALUE(rv_are_all_lines_patched) TYPE abap_bool .
+    METHODS apply_patch_for
+      IMPORTING
+        !iv_filename   TYPE string
+        !iv_line_index TYPE string
+        !iv_patch_flag TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_diff_object
+      IMPORTING
+        !iv_filename   TYPE string
+      RETURNING
+        VALUE(ro_diff) TYPE REF TO zcl_abapgit_diff
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_diff_line
+      IMPORTING
+        !io_diff       TYPE REF TO zcl_abapgit_diff
+        !iv_line_index TYPE string
+      RETURNING
+        VALUE(rs_diff) TYPE zif_abapgit_definitions=>ty_diff
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_every_changed_line_patched
+      RETURNING
+        VALUE(rv_everything_patched) TYPE abap_bool .
+    CLASS-METHODS is_patch_line_possible
+      IMPORTING
+        !is_diff_line                    TYPE zif_abapgit_definitions=>ty_diff
+      RETURNING
+        VALUE(rv_is_patch_line_possible) TYPE abap_bool .
     METHODS render_scripts
       RETURNING
         VALUE(ro_html) TYPE REF TO zcl_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -13235,7 +13210,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
-    DATA mv_seed TYPE string .         " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .           " Unique page id to bind JS sessionStorage
     DATA mv_filter_value TYPE string .
 
     METHODS find_changed_by
@@ -13288,7 +13263,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         zcx_abapgit_exception .
     METHODS render_master_language_warning
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS count_default_files_to_commit
       RETURNING
         VALUE(rv_count) TYPE i .
@@ -36610,11 +36585,11 @@ CLASS ZCL_ABAPGIT_GUI_REPO_OVER IMPLEMENTATION.
       ii_html->add( |<tr class="repo { lv_favorite_class }">| ).
       ii_html->add( |<td class="wmin">| ).
       ii_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?{ <ls_overview>-key }|
-                      iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_favorite_icon
-                                                       iv_class = 'pad-sides'
-                                                       iv_hint  = 'Click to toggle favorite' ) ).
+                      iv_txt = ii_html->icon( iv_name  = lv_favorite_icon
+                                              iv_class = 'pad-sides'
+                                              iv_hint  = 'Click to toggle favorite' ) ).
       ii_html->add( |</td>| ).
-      ii_html->add( |<td class="wmin">{ zcl_abapgit_html=>icon( lv_type_icon ) }</td>| ).
+      ii_html->add( |<td class="wmin">{ ii_html->icon( lv_type_icon ) }</td>| ).
 
       ii_html->add( |<td>{ ii_html->a( iv_txt = <ls_overview>-name
                                        iv_act = |{ c_action-select }?{ <ls_overview>-key }| ) }</td>| ).
@@ -37698,7 +37673,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<tr class="folder">' ).
-    ri_html->add( |<td class="icon">{ zcl_abapgit_html=>icon( 'folder' ) }</td>| ).
+    ri_html->add( |<td class="icon">{ ri_html->icon( 'folder' ) }</td>| ).
     ri_html->add( |<td class="object" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
     IF mo_repo->has_remote_source( ) = abap_true.
       ri_html->add( |<td colspan="1"></td>| ). " Dummy for online
@@ -37952,7 +37927,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
     ri_html->add( '<h2>Repository list and favorites</h2>' ).
     ri_html->add( '<p><ul>' ).
     ri_html->add( |<li>To favorite a repository, use the {
-                  zcl_abapgit_html=>icon( 'star/darkgrey' ) } icon in the repository list.</li>| ).
+                  ri_html->icon( 'star/darkgrey' ) } icon in the repository list.</li>| ).
     ri_html->add( |<li>To go to a repository, click on the repository name.</li>| ).
     ri_html->add( |<li>To go back to your favorites, use the| ).
     ri_html->add_a(
@@ -38303,7 +38278,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
-      ri_html->add( zcl_abapgit_html=>icon( 'check' ) ).
+      ri_html->add( ri_html->icon( 'check' ) ).
       ri_html->add( 'No syntax errors' ).
       ri_html->add( '</div>' ).
     ELSE.
@@ -38712,12 +38687,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
     DATA: ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ls_dot_abapgit = mo_repo->get_dot_abapgit( )->get_data( ).
 
     IF ls_dot_abapgit-master_language <> sy-langu.
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
                         |Caution: Master language of the repo is '{ ls_dot_abapgit-master_language }', |
                      && |but you're logged on in '{ sy-langu }'| ) ).
     ENDIF.
@@ -40335,9 +40310,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
     mv_section_count = mv_section_count + 1.
 
-    io_html->add( |<th class="patch">| ).
-    io_html->add_checkbox( iv_id = |patch_section_{ get_normalized_fname_with_path( is_diff ) }_{ mv_section_count }| ).
-    io_html->add( '</th>' ).
+    ii_html->add( |<th class="patch">| ).
+    ii_html->add_checkbox( iv_id = |patch_section_{ get_normalized_fname_with_path( is_diff ) }_{ mv_section_count }| ).
+    ii_html->add( '</th>' ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -40380,13 +40355,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_line_split_row.
 
-    render_patch( io_html      = io_html
+    render_patch( ii_html      = ii_html
                   iv_filename  = iv_filename
                   is_diff_line = is_diff_line
                   iv_index     = iv_index ).
 
     super->render_line_split_row(
-        io_html      = io_html
+        ii_html      = ii_html
         iv_filename  = iv_filename
         is_diff_line = is_diff_line
         iv_index     = iv_index
@@ -40415,16 +40390,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
       lv_id = |{ iv_filename }_{ mv_section_count }_{ iv_index }|.
 
-      io_html->add( |<td class="{ lc_css_class-patch }">| ).
-      io_html->add_checkbox(
+      ii_html->add( |<td class="{ lc_css_class-patch }">| ).
+      ii_html->add_checkbox(
           iv_id      = |patch_line_{ lv_id }|
           iv_checked = lv_patched ).
-      io_html->add( |</td>| ).
+      ii_html->add( |</td>| ).
 
     ELSE.
 
-      io_html->add( |<td class="{ lc_css_class-patch }">| ).
-      io_html->add( |</td>| ).
+      ii_html->add( |<td class="{ lc_css_class-patch }">| ).
+      ii_html->add( |</td>| ).
 
     ENDIF.
 
@@ -41685,7 +41660,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     DATA: lv_beacon  TYPE string,
           lt_beacons TYPE zif_abapgit_definitions=>ty_string_tt.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF is_diff_line-beacon > 0.
       lt_beacons = is_diff-o_diff->get_beacons( ).
@@ -41694,28 +41669,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       lv_beacon = '---'.
     ENDIF.
 
-    ro_html->add( '<thead class="nav_line">' ).
-    ro_html->add( '<tr>' ).
+    ri_html->add( '<thead class="nav_line">' ).
+    ri_html->add( '<tr>' ).
 
     render_beacon_begin_of_row(
-        io_html = ro_html
-        is_diff = is_diff ).
+      ii_html = ri_html
+      is_diff = is_diff ).
 
     IF mv_unified = abap_true.
-      ro_html->add( '<th class="num"></th>' ).
-      ro_html->add( '<th class="mark"></th>' ).
-      ro_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
+      ri_html->add( '<th class="num"></th>' ).
+      ri_html->add( '<th class="mark"></th>' ).
+      ri_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ELSE.
-      ro_html->add( |<th colspan="6">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
+      ri_html->add( |<th colspan="6">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ENDIF.
 
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_beacon_begin_of_row.
 
-    io_html->add( '<th class="num"></th>' ).
+    ii_html->add( '<th class="num"></th>' ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -41903,7 +41878,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
           lv_mark TYPE string,
           lv_bg   TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     " New line
     lv_mark = ` `.
@@ -41937,10 +41912,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
           && |<td class="code{ lv_bg } diff_right">{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
-    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ri_html->add( '<tr>' ).                                 "#EC NOTEXT
 
     render_line_split_row(
-        io_html                = ro_html
+        ii_html                = ri_html
         iv_filename            = iv_filename
         is_diff_line           = is_diff_line
         iv_index               = iv_index
@@ -41948,17 +41923,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         iv_old                 = lv_old
         iv_new                 = lv_new ).
 
-    ro_html->add( '</tr>' ).                                "#EC NOTEXT
+    ri_html->add( '</tr>' ).                                "#EC NOTEXT
 
   ENDMETHOD.
   METHOD render_line_split_row.
 
     IF iv_fstate = c_fstate-remote. " Remote file leading changes
-      io_html->add( iv_old ). " local
-      io_html->add( iv_new ). " remote
+      ii_html->add( iv_old ). " local
+      ii_html->add( iv_new ). " remote
     ELSE.             " Local leading changes or both were modified
-      io_html->add( iv_new ). " local
-      io_html->add( iv_old ). " remote
+      ii_html->add( iv_new ). " local
+      ii_html->add( iv_old ). " remote
     ENDIF.
 
   ENDMETHOD.
@@ -42797,7 +42772,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
 
     IF lines( it_result ) > lc_limit.
       ii_html->add( '<div class="dummydiv warning">' ).
-      ii_html->add( zcl_abapgit_html=>icon( 'exclamation-triangle' ) ).
+      ii_html->add( ii_html->icon( 'exclamation-triangle' ) ).
       ii_html->add( |Only first { lc_limit } findings shown in list!| ).
       ii_html->add( '</div>' ).
     ENDIF.
@@ -43051,7 +43026,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
-      ri_html->add( zcl_abapgit_html=>icon( 'check' ) ).
+      ri_html->add( ri_html->icon( 'check' ) ).
       ri_html->add( 'No code inspector findings' ).
       ri_html->add( '</div>' ).
     ELSE.
@@ -44897,10 +44872,10 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_warning_banner.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( '<div class="dummydiv warning">' ).
-    ro_html->add( |{ zcl_abapgit_html=>icon( 'exclamation-triangle/yellow' ) }| && | { iv_text }| ).
-    ro_html->add( '</div>' ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<div class="dummydiv warning">' ).
+    ri_html->add( |{ ri_html->icon( 'exclamation-triangle/yellow' ) }| && | { iv_text }| ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -45739,41 +45714,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
   ENDMETHOD.
-  METHOD icon.
-
-    DATA: lv_hint       TYPE string,
-          lv_name       TYPE string,
-          lv_color      TYPE string,
-          lv_class      TYPE string,
-          lv_large_icon TYPE string,
-          lv_xpixel     TYPE i,
-          lv_onclick    TYPE string.
-
-    SPLIT iv_name AT '/' INTO lv_name lv_color.
-
-    IF iv_hint IS NOT INITIAL.
-      lv_hint  = | title="{ iv_hint }"|.
-    ENDIF.
-    IF iv_onclick IS NOT INITIAL.
-      lv_onclick = | onclick="{ iv_onclick }"|.
-    ENDIF.
-    IF iv_class IS NOT INITIAL.
-      lv_class = | { iv_class }|.
-    ENDIF.
-    IF lv_color IS NOT INITIAL.
-      lv_color = | { lv_color }|.
-    ENDIF.
-
-    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X'
-                                                       in = 1 ).
-    IF lv_xpixel >= 2.
-      lv_large_icon = ' large'.
-    ENDIF.
-
-    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }|.
-    rv_str = |{ rv_str }{ lv_class }"{ lv_onclick }{ lv_hint }></i>|.
-
-  ENDMETHOD.
   METHOD indent_line.
 
     DATA: ls_study TYPE ty_study_result,
@@ -45821,9 +45761,6 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
                                       occ = cs_context-indent * c_indent_size ).
     ENDIF.
 
-  ENDMETHOD.
-  METHOD is_empty.
-    rv_yes = boolc( lines( mt_buffer ) = 0 ).
   ENDMETHOD.
   METHOD study_line.
 
@@ -45966,6 +45903,44 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
                iv_hint    = iv_hint
                iv_onclick = iv_onclick ) ).
 
+  ENDMETHOD.
+  METHOD zif_abapgit_html~icon.
+
+    DATA: lv_hint       TYPE string,
+          lv_name       TYPE string,
+          lv_color      TYPE string,
+          lv_class      TYPE string,
+          lv_large_icon TYPE string,
+          lv_xpixel     TYPE i,
+          lv_onclick    TYPE string.
+
+    SPLIT iv_name AT '/' INTO lv_name lv_color.
+
+    IF iv_hint IS NOT INITIAL.
+      lv_hint  = | title="{ iv_hint }"|.
+    ENDIF.
+    IF iv_onclick IS NOT INITIAL.
+      lv_onclick = | onclick="{ iv_onclick }"|.
+    ENDIF.
+    IF iv_class IS NOT INITIAL.
+      lv_class = | { iv_class }|.
+    ENDIF.
+    IF lv_color IS NOT INITIAL.
+      lv_color = | { lv_color }|.
+    ENDIF.
+
+    lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X'
+                                                       in = 1 ).
+    IF lv_xpixel >= 2.
+      lv_large_icon = ' large'.
+    ENDIF.
+
+    rv_str = |<i class="icon{ lv_large_icon } icon-{ lv_name }{ lv_color }|.
+    rv_str = |{ rv_str }{ lv_class }"{ lv_onclick }{ lv_hint }></i>|.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html~is_empty.
+    rv_yes = boolc( lines( mt_buffer ) = 0 ).
   ENDMETHOD.
   METHOD zif_abapgit_html~render.
 
@@ -91994,5 +91969,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-31T07:36:19.141Z
+* abapmerge 0.14.1 - 2020-08-31T07:38:47.978Z
 ****************************************************
