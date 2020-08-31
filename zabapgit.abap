@@ -5200,21 +5200,26 @@ CLASS zcl_abapgit_object_enho_class DEFINITION.
     DATA: mo_files TYPE REF TO zcl_abapgit_objects_files.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_enho_clif DEFINITION.
+CLASS zcl_abapgit_object_enho_clif DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      deserialize
-        IMPORTING io_xml  TYPE REF TO zcl_abapgit_xml_input
-                  io_clif TYPE REF TO cl_enh_tool_clif
-        RAISING   zcx_abapgit_exception
-                  cx_enh_root,
-      serialize
-        IMPORTING io_xml   TYPE REF TO zcl_abapgit_xml_output
-                  io_files TYPE REF TO zcl_abapgit_objects_files
-                  io_clif  TYPE REF TO cl_enh_tool_clif
-        RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS deserialize
+      IMPORTING
+        !io_xml  TYPE REF TO zif_abapgit_xml_input
+        !io_clif TYPE REF TO cl_enh_tool_clif
+      RAISING
+        zcx_abapgit_exception
+        cx_enh_root .
+    CLASS-METHODS serialize
+      IMPORTING
+        !io_xml   TYPE REF TO zif_abapgit_xml_output
+        !io_files TYPE REF TO zcl_abapgit_objects_files
+        !io_clif  TYPE REF TO cl_enh_tool_clif
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
 ENDCLASS.
@@ -6678,26 +6683,31 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_dd04_texts,
-             ddlanguage TYPE dd04t-ddlanguage,
-             ddtext     TYPE dd04t-ddtext,
-             reptext    TYPE dd04t-reptext,
-             scrtext_s  TYPE dd04t-scrtext_s,
-             scrtext_m  TYPE dd04t-scrtext_m,
-             scrtext_l  TYPE dd04t-scrtext_l,
-           END OF ty_dd04_texts,
-           tt_dd04_texts TYPE STANDARD TABLE OF ty_dd04_texts.
-    CONSTANTS: c_longtext_id_dtel TYPE dokil-id VALUE 'DE'.
+    TYPES:
+      BEGIN OF ty_dd04_texts,
+        ddlanguage TYPE dd04t-ddlanguage,
+        ddtext     TYPE dd04t-ddtext,
+        reptext    TYPE dd04t-reptext,
+        scrtext_s  TYPE dd04t-scrtext_s,
+        scrtext_m  TYPE dd04t-scrtext_m,
+        scrtext_l  TYPE dd04t-scrtext_l,
+      END OF ty_dd04_texts .
+    TYPES:
+      tt_dd04_texts TYPE STANDARD TABLE OF ty_dd04_texts .
 
-    METHODS:
-      serialize_texts
-        IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
-        RAISING   zcx_abapgit_exception,
-      deserialize_texts
-        IMPORTING io_xml   TYPE REF TO zcl_abapgit_xml_input
-                  is_dd04v TYPE dd04v
-        RAISING   zcx_abapgit_exception.
+    CONSTANTS c_longtext_id_dtel TYPE dokil-id VALUE 'DE' ##NO_TEXT.
 
+    METHODS serialize_texts
+      IMPORTING
+        !ii_xml TYPE REF TO zif_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_texts
+      IMPORTING
+        !ii_xml   TYPE REF TO zif_abapgit_xml_input
+        !is_dd04v TYPE dd04v
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_ecatt_super DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -10066,13 +10076,13 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
     METHODS serialize_texts
       IMPORTING
         !iv_prog_name TYPE programm
-        !io_xml       TYPE REF TO zcl_abapgit_xml_output
+        !io_xml       TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
         !iv_prog_name TYPE programm
-        !io_xml       TYPE REF TO zcl_abapgit_xml_input
+        !io_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -10101,12 +10111,14 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
-    DATA mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc.
+
+    DATA mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc .
 
     METHODS serialize_xml
-      IMPORTING io_xml TYPE REF TO zcl_abapgit_xml_output
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_xml TYPE REF TO zif_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_program FINAL.
 
@@ -71950,7 +71962,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_intf IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
@@ -76843,86 +76855,7 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
-
-  METHOD serialize.
-
-    DATA: lt_tab_attributes TYPE enhclasstabattrib,
-          lt_tab_types      TYPE enhtype_tab,
-          lt_tab_methods    TYPE enhnewmeth_tab,
-          lt_tab_eventdata  TYPE enhevent_tab.
-
-    FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
-                   <ls_type>        LIKE LINE OF lt_tab_types,
-                   <ls_meth>        LIKE LINE OF lt_tab_methods,
-                   <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
-                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
-                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
-    io_clif->get_enhattributes( IMPORTING tab_attributes = lt_tab_attributes ).
-
-    io_clif->get_enhatypes( IMPORTING tab_types = lt_tab_types ).
-
-    io_clif->get_enh_new_methodes( IMPORTING tab_methodes = lt_tab_methods ).
-
-    io_clif->get_enhevents( IMPORTING tab_eventdata = lt_tab_eventdata ).
-
-    LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
-      CLEAR: <ls_attr>-author,
-             <ls_attr>-createdon,
-             <ls_attr>-changedby,
-             <ls_attr>-changedon,
-             <ls_attr>-descript_id.
-    ENDLOOP.
-
-    LOOP AT lt_tab_types ASSIGNING <ls_type>.
-      CLEAR: <ls_type>-author,
-             <ls_type>-createdon,
-             <ls_type>-changedby,
-             <ls_type>-changedon,
-             <ls_type>-descript_id.
-    ENDLOOP.
-
-    LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
-      CLEAR: <ls_meth>-meth_header-author,
-             <ls_meth>-meth_header-createdon,
-             <ls_meth>-meth_header-changedby,
-             <ls_meth>-meth_header-changedon,
-             <ls_meth>-meth_header-descript_id.
-      LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
-        CLEAR: <ls_param>-author,
-               <ls_param>-createdon,
-               <ls_param>-changedby,
-               <ls_param>-changedon,
-               <ls_param>-descript_id.
-      ENDLOOP.
-    ENDLOOP.
-
-    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
-      CLEAR: <ls_event>-event_header-author,
-             <ls_event>-event_header-createdon,
-             <ls_event>-event_header-changedby,
-             <ls_event>-event_header-changedon,
-             <ls_event>-event_header-descript_id.
-      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
-        CLEAR: <ls_event_param>-author,
-               <ls_event_param>-createdon,
-               <ls_event_param>-changedby,
-               <ls_event_param>-changedon,
-               <ls_event_param>-descript_id.
-      ENDLOOP.
-    ENDLOOP.
-
-    io_xml->add( iv_name = 'TAB_ATTRIBUTES'
-                 ig_data = lt_tab_attributes ).
-    io_xml->add( iv_name = 'TAB_TYPES'
-                 ig_data = lt_tab_types ).
-    io_xml->add( iv_name = 'TAB_METHODS'
-                 ig_data = lt_tab_methods ).
-    io_xml->add( iv_name = 'TAB_EVENTDATA'
-                 ig_data = lt_tab_eventdata ).
-
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
   METHOD deserialize.
 
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
@@ -77011,7 +76944,83 @@ CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD serialize.
 
+    DATA: lt_tab_attributes TYPE enhclasstabattrib,
+          lt_tab_types      TYPE enhtype_tab,
+          lt_tab_methods    TYPE enhnewmeth_tab,
+          lt_tab_eventdata  TYPE enhevent_tab.
+
+    FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
+                   <ls_type>        LIKE LINE OF lt_tab_types,
+                   <ls_meth>        LIKE LINE OF lt_tab_methods,
+                   <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
+                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
+                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
+    io_clif->get_enhattributes( IMPORTING tab_attributes = lt_tab_attributes ).
+
+    io_clif->get_enhatypes( IMPORTING tab_types = lt_tab_types ).
+
+    io_clif->get_enh_new_methodes( IMPORTING tab_methodes = lt_tab_methods ).
+
+    io_clif->get_enhevents( IMPORTING tab_eventdata = lt_tab_eventdata ).
+
+    LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
+      CLEAR: <ls_attr>-author,
+             <ls_attr>-createdon,
+             <ls_attr>-changedby,
+             <ls_attr>-changedon,
+             <ls_attr>-descript_id.
+    ENDLOOP.
+
+    LOOP AT lt_tab_types ASSIGNING <ls_type>.
+      CLEAR: <ls_type>-author,
+             <ls_type>-createdon,
+             <ls_type>-changedby,
+             <ls_type>-changedon,
+             <ls_type>-descript_id.
+    ENDLOOP.
+
+    LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
+      CLEAR: <ls_meth>-meth_header-author,
+             <ls_meth>-meth_header-createdon,
+             <ls_meth>-meth_header-changedby,
+             <ls_meth>-meth_header-changedon,
+             <ls_meth>-meth_header-descript_id.
+      LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
+        CLEAR: <ls_param>-author,
+               <ls_param>-createdon,
+               <ls_param>-changedby,
+               <ls_param>-changedon,
+               <ls_param>-descript_id.
+      ENDLOOP.
+    ENDLOOP.
+
+    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
+      CLEAR: <ls_event>-event_header-author,
+             <ls_event>-event_header-createdon,
+             <ls_event>-event_header-changedby,
+             <ls_event>-event_header-changedon,
+             <ls_event>-event_header-descript_id.
+      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
+        CLEAR: <ls_event_param>-author,
+               <ls_event_param>-createdon,
+               <ls_event_param>-changedby,
+               <ls_event_param>-changedon,
+               <ls_event_param>-descript_id.
+      ENDLOOP.
+    ENDLOOP.
+
+    io_xml->add( iv_name = 'TAB_ATTRIBUTES'
+                 ig_data = lt_tab_attributes ).
+    io_xml->add( iv_name = 'TAB_TYPES'
+                 ig_data = lt_tab_types ).
+    io_xml->add( iv_name = 'TAB_METHODS'
+                 ig_data = lt_tab_methods ).
+    io_xml->add( iv_name = 'TAB_EVENTDATA'
+                 ig_data = lt_tab_eventdata ).
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
@@ -78327,10 +78336,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
     lv_name = ms_item-obj_name.
 
-    io_xml->read( EXPORTING iv_name = 'I18N_LANGS'
+    ii_xml->read( EXPORTING iv_name = 'I18N_LANGS'
                   CHANGING  cg_data = lt_i18n_langs ).
 
-    io_xml->read( EXPORTING iv_name = 'DD04_TEXTS'
+    ii_xml->read( EXPORTING iv_name = 'DD04_TEXTS'
                   CHANGING  cg_data = lt_dd04_texts ).
 
     SORT lt_i18n_langs.
@@ -78373,7 +78382,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
 
-    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+    IF ii_xml->i18n_params( )-serialize_master_lang_only = abap_true.
       RETURN.
     ENDIF.
 
@@ -78383,7 +78392,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd04v
       WHERE rollname = lv_name
-      AND ddlanguage <> mv_language.                    "#EC CI_SUBRC
+      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -78410,10 +78419,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     SORT lt_dd04_texts BY ddlanguage ASCENDING.
 
     IF lines( lt_i18n_langs ) > 0.
-      io_xml->add( iv_name = 'I18N_LANGS'
+      ii_xml->add( iv_name = 'I18N_LANGS'
                    ig_data = lt_i18n_langs ).
 
-      io_xml->add( iv_name = 'DD04_TEXTS'
+      ii_xml->add( iv_name = 'DD04_TEXTS'
                    ig_data = lt_dd04_texts ).
     ENDIF.
 
@@ -78474,7 +78483,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from DDIF_DTEL_PUT, { sy-subrc }| ).
     ENDIF.
 
-    deserialize_texts( io_xml   = io_xml
+    deserialize_texts( ii_xml   = io_xml
                        is_dd04v = ls_dd04v ).
 
     deserialize_longtexts( io_xml ).
@@ -91985,5 +91994,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-08-31T05:08:19.171Z
+* abapmerge 0.14.1 - 2020-08-31T07:36:19.141Z
 ****************************************************
