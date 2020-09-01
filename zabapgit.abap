@@ -4199,7 +4199,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
   PUBLIC SECTION.
 
 * remote to local
-    CLASS-METHODS upload_pack
+    CLASS-METHODS upload_pack_by_branch
       IMPORTING
         !iv_url         TYPE string
         !iv_branch_name TYPE string
@@ -22644,7 +22644,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     APPEND ms_merge-source TO lt_upload.
     APPEND ms_merge-target TO lt_upload.
 
-    zcl_abapgit_git_transport=>upload_pack(
+    zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
         iv_url         = ms_merge-repo->get_url( )
         iv_branch_name = ms_merge-repo->get_branch_name( )
@@ -24958,7 +24958,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       INSERT ls_tag INTO TABLE mt_tags.
     ENDLOOP.
 
-    zcl_abapgit_git_transport=>upload_pack(
+    zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
         iv_url         = io_repo->get_url( )
         iv_branch_name = io_repo->get_branch_name( )
@@ -88890,7 +88890,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD upload_pack.
+  METHOD upload_pack_by_branch.
 
     DATA: lo_client   TYPE REF TO zcl_abapgit_http_client,
           lv_buffer   TYPE string,
@@ -89194,7 +89194,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     DATA: ls_object LIKE LINE OF rs_result-objects,
           ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-    zcl_abapgit_git_transport=>upload_pack(
+    zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
         iv_url         = iv_url
         iv_branch_name = iv_branch_name
@@ -92021,5 +92021,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-01T14:21:21.321Z
+* abapmerge 0.14.1 - 2020-09-01T14:24:54.637Z
 ****************************************************
