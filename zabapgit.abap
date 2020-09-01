@@ -52292,6 +52292,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF `.` IN lv_obj_name WITH '%2e'.
       REPLACE ALL OCCURRENCES OF `=` IN lv_obj_name WITH '%3d'.
       REPLACE ALL OCCURRENCES OF `?` IN lv_obj_name WITH '%3f'.
+      REPLACE ALL OCCURRENCES OF `<` IN lv_obj_name WITH '%3c'.
+      REPLACE ALL OCCURRENCES OF `>` IN lv_obj_name WITH '%3e'.
     ENDIF.
 
     IF iv_extra IS INITIAL.
@@ -92019,5 +92021,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-01T07:36:11.202Z
+* abapmerge 0.14.1 - 2020-09-01T07:40:22.784Z
 ****************************************************
