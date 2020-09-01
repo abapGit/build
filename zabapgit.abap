@@ -37598,7 +37598,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
     DATA:
       lv_icon     TYPE string,
-      lv_html     TYPE string,
       lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
       ls_col_spec TYPE zif_abapgit_definitions=>ty_col_spec.
 
@@ -37656,8 +37655,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_scripts.
 
-    DATA lv_json TYPE string.
-
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
@@ -37667,7 +37664,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   METHOD switch_to_pr.
 
     DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
-    DATA ls_field LIKE LINE OF it_fields.
     DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>tty_pulls.
     DATA ls_pull LIKE LINE OF lt_pulls.
 
@@ -44821,7 +44817,6 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     DATA: lv_commit_hash       TYPE zif_abapgit_definitions=>ty_sha1,
           lv_commit_short_hash TYPE zif_abapgit_definitions=>ty_sha1,
-          lv_repo_url          TYPE zif_abapgit_persistence=>ty_repo-url,
           lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
           lv_icon_commit       TYPE string.
 
@@ -55831,8 +55826,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_translator  TYPE REF TO object, "if_wdr_config_otr
-          lv_config_id   TYPE c LENGTH 32,
+    DATA: lv_config_id   TYPE c LENGTH 32,
           lv_config_type TYPE n LENGTH 2,
           lv_config_var  TYPE c LENGTH 6,
           lt_otr_texts   TYPE TABLE OF wdy_config_compt,
@@ -69581,8 +69575,6 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
     DATA: lv_text      TYPE string,
           ls_otgr      TYPE ty_otgr,
           lo_otgr      TYPE REF TO cl_cls_object_type_group,
-          lt_lang_sel  TYPE RANGE OF langu,
-          ls_lang_sel  LIKE LINE OF lt_lang_sel,
           lx_pak_error TYPE REF TO cx_root,
           lo_parents   TYPE REF TO data.
 
@@ -69646,6 +69638,9 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
            ls_otgr-cls_type_group-changed_on.
 
 *    Description part 2:
+*
+* lt_lang_sel  TYPE RANGE OF langu,
+* ls_lang_sel  LIKE LINE OF lt_lang_sel,
 *
 *    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
 *      ls_lang_sel-low = mv_language.
@@ -87516,7 +87511,6 @@ CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_pr_enum_provider~list_pull_requests.
 
-    DATA lv_repo_url TYPE string.
     DATA lv_upstream_url TYPE string.
     DATA ls_repo_info TYPE ty_info.
     FIELD-SYMBOLS <ls_p> LIKE LINE OF ls_repo_info-pulls.
@@ -91776,8 +91770,7 @@ INCLUDE zabapgit_gui_pages_userexit IF FOUND.
 *&---------------------------------------------------------------------*
 FORM run.
 
-  DATA: lx_exception TYPE REF TO zcx_abapgit_exception,
-        lv_ind       TYPE t000-ccnocliind.
+  DATA: lx_exception TYPE REF TO zcx_abapgit_exception.
 
   TRY.
       zcl_abapgit_migrations=>run( ).
@@ -91995,5 +91988,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-01T14:31:13.322Z
+* abapmerge 0.14.1 - 2020-09-01T14:33:52.033Z
 ****************************************************
