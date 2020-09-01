@@ -2001,9 +2001,6 @@ INTERFACE zif_abapgit_definitions .
     tty_dokil TYPE STANDARD TABLE OF dokil
                          WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
-    tty_lines TYPE STANDARD TABLE OF i
-                        WITH NON-UNIQUE DEFAULT KEY .
-  TYPES:
     BEGIN OF ty_col_spec,
       tech_name    TYPE string,
       display_name TYPE string,
@@ -4786,9 +4783,6 @@ CLASS zcl_abapgit_ajson DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES:
-      tty_node_stack TYPE STANDARD TABLE OF REF TO ty_node WITH DEFAULT KEY.
-
     DATA mt_json_tree TYPE ty_nodes_ts.
     DATA mv_read_only TYPE abap_bool.
 
@@ -6227,8 +6221,7 @@ CLASS zcl_abapgit_object_chdo DEFINITION
              reports_generated TYPE SORTED TABLE OF tcdrps WITH UNIQUE KEY object reportname,
              objects           TYPE SORTED TABLE OF tcdobs WITH UNIQUE KEY object tabname,
              objects_text      TYPE SORTED TABLE OF tcdobts WITH UNIQUE KEY spras object,
-           END OF ty_change_document,
-           tt_change_document TYPE STANDARD TABLE OF ty_change_document.
+           END OF ty_change_document.
 
     DATA: mv_object TYPE cdobjectcl.
 
@@ -6454,13 +6447,6 @@ CLASS zcl_abapgit_object_doct DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_data,
-        doctitle TYPE dsyst-doktitle,
-        head     TYPE thead,
-        lines    TYPE tline_tab,
-      END OF ty_data .
 
     CONSTANTS c_id TYPE dokhl-id VALUE 'TX' ##NO_TEXT.
     CONSTANTS c_name TYPE string VALUE 'DOC' ##NO_TEXT.
@@ -10441,8 +10427,6 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
 
     TYPES:
       ty_sotr_use_tt TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY .
-    TYPES:
-      yt_seocompodf TYPE STANDARD TABLE OF seocompodf WITH DEFAULT KEY .
 
     CLASS-METHODS read_sotr
       IMPORTING
@@ -15205,8 +15189,6 @@ CLASS zcl_abapgit_string_map DEFINITION
         v TYPE string,
       END OF ty_entry.
     TYPES:
-      tty_entries TYPE STANDARD TABLE OF ty_entry WITH KEY k.
-    TYPES:
       tts_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
 
     CLASS-METHODS create
@@ -15955,14 +15937,6 @@ CLASS zcl_abapgit_factory DEFINITION
     TYPES:
       tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
                                        WITH UNIQUE KEY package .
-    TYPES:
-      BEGIN OF ty_longtexts,
-        longtexts_name TYPE string,
-        instance       TYPE REF TO zcl_abapgit_longtexts,
-      END OF ty_longtexts .
-    TYPES:
-      tty_longtexts TYPE HASHED TABLE OF ty_longtexts
-                           WITH UNIQUE KEY longtexts_name .
 
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
     CLASS-DATA gt_sap_package TYPE tty_sap_package .
@@ -92021,5 +91995,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-01T14:28:28.661Z
+* abapmerge 0.14.1 - 2020-09-01T14:31:13.322Z
 ****************************************************
