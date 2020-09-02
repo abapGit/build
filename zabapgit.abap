@@ -1,4 +1,4 @@
-REPORT zabapgit_full LINE-SIZE 100.
+REPORT zabapgit_standalone LINE-SIZE 100.
 
 * See http://www.abapgit.org
 
@@ -91988,5 +91988,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-01T14:33:52.033Z
+* abapmerge 0.14.1 - 2020-09-02T13:03:41.219Z
 ****************************************************
