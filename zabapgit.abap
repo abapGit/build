@@ -60,7 +60,7 @@ me->MV_TEXT = MV_TEXT .
   endmethod.
   METHOD get_default_text.
 
-    rv_text = 'Error in two factor authentication.' ##NO_TEXT.
+    rv_text = 'Error in two factor authentication.' .
 
   ENDMETHOD.
   METHOD if_message~get_text.
@@ -104,7 +104,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Authentication failed using 2FA.' ##NO_TEXT.
+    rv_text = 'Authentication failed using 2FA.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -136,7 +136,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Communication error.' ##NO_TEXT.
+    rv_text = 'Communication error.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -168,7 +168,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Deleting previous access tokens failed.' ##NO_TEXT.
+    rv_text = 'Deleting previous access tokens failed.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -200,7 +200,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Two factor access token generation failed.' ##NO_TEXT.
+    rv_text = 'Two factor access token generation failed.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -232,7 +232,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'Illegal state.' ##NO_TEXT.
+    rv_text = 'Illegal state.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -264,7 +264,7 @@ MV_TEXT = MV_TEXT
 .
   endmethod.
   METHOD get_default_text.
-    rv_text = 'The service is not supported for two factor authentication.' ##NO_TEXT.
+    rv_text = 'The service is not supported for two factor authentication.' .
   ENDMETHOD.
 ENDCLASS.
 
@@ -12832,7 +12832,6 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_patch DEFINITION
   INHERITING FROM zcl_abapgit_gui_page_diff
   CREATE PUBLIC .
-
   PUBLIC SECTION.
     INTERFACES zif_abapgit_gui_hotkeys.
 
@@ -18726,7 +18725,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
     TYPES ty_filename TYPE string.
 
 * File extension
-    CONSTANTS gc_zip_ext TYPE string VALUE '.zip' ##NO_TEXT.
+    CONSTANTS gc_zip_ext TYPE string VALUE '.zip'.
 
     METHODS constructor  IMPORTING iv_folder TYPE ty_folder
                          RAISING   zcx_abapgit_exception.
@@ -19584,7 +19583,7 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_method-rm.
         rv_description = 'rm'.
       WHEN zif_abapgit_definitions=>c_method-ignore.
-        rv_description = 'ignore' ##NO_TEXT.
+        rv_description = 'ignore'.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'unknown staging method type' ).
     ENDCASE.
@@ -19852,7 +19851,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
       gv_max_threads = 1.
     ENDIF.
 
-    mv_group = 'parallel_generators' ##NO_TEXT.
+    mv_group = 'parallel_generators'.
     mv_serialize_master_lang_only = iv_serialize_master_lang_only.
 
   ENDMETHOD.
@@ -20026,7 +20025,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
 
       li_progress->show(
         iv_current = sy-tabix
-        iv_text    = |Serialize { <ls_tadir>-obj_name }, { lv_max } threads| ) ##NO_TEXT.
+        iv_text    = |Serialize { <ls_tadir>-obj_name }, { lv_max } threads| ).
 
       IF lv_max = 1.
         run_sequential(
@@ -20729,7 +20728,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     li_progress = zcl_abapgit_progress=>get_instance( 1 ).
 
     li_progress->show( iv_current = 1
-                       iv_text    = 'Fetch remote files' ) ##NO_TEXT.
+                       iv_text    = 'Fetch remote files' ).
 
     ls_pull = zcl_abapgit_git_porcelain=>pull(
       iv_url         = get_url( )
@@ -21359,7 +21358,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD check_for_restart.
 
     CONSTANTS:
-      lc_abapgit_prog TYPE progname VALUE `ZABAPGIT` ##NO_TEXT.
+      lc_abapgit_prog TYPE progname VALUE `ZABAPGIT`.
 
     " If abapGit was used to update itself, then restart to avoid LOAD_PROGRAM_&_MISMATCH dumps
     " because abapGit code was changed at runtime
@@ -22251,7 +22250,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD itf_to_string.
 
-    CONSTANTS: lc_format_section TYPE string VALUE 'U1' ##NO_TEXT.
+    CONSTANTS: lc_format_section TYPE string VALUE 'U1'.
 
     DATA:
       lt_stream      TYPE TABLE OF tdline,
@@ -22929,7 +22928,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
 * ZZZ_something. This will define the folder name in the zip file to be "something",
 * similarily with online projects. Alternatively change to FULL folder logic
               lv_message = 'PREFIX: Unexpected package naming (' && iv_package && ')'
-                           && 'you might switch to FULL folder logic' ##no_text.
+                           && 'you might switch to FULL folder logic'.
               zcx_abapgit_exception=>raise( lv_message ).
             ENDIF.
           WHEN OTHERS.
@@ -23330,7 +23329,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       IF sy-subrc <> 0.
         ii_log->add( iv_msg  = |Changed package assignment for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
                      iv_type = 'W'
-                     iv_rc   = '5' ) ##no_text.
+                     iv_rc   = '5' ).
         APPEND INITIAL LINE TO lt_move_idx ASSIGNING <ls_res2>.
         <ls_res2>-obj_type = <ls_res1>-obj_type.
         <ls_res2>-obj_name = <ls_res1>-obj_name.
@@ -23364,7 +23363,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         ii_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
                        <ls_res1>-obj_name } are not placed in the same folder|
                      iv_type = 'W'
-                     iv_rc   = '1' ) ##no_text.
+                     iv_rc   = '1' ).
       ENDIF.
     ENDLOOP.
 
@@ -23380,7 +23379,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         ii_log->add( iv_msg = |Package and path does not match for object, {
                        <ls_res1>-obj_type } { <ls_res1>-obj_name }|
                      iv_type = 'W'
-                     iv_rc   = '2' ) ##no_text.
+                     iv_rc   = '2' ).
       ENDIF.
     ENDLOOP.
 
@@ -23391,13 +23390,13 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
         ii_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
                      iv_type = 'W'
-                     iv_rc   = '3' ) ##no_text.
+                     iv_rc   = '3' ).
       ENDIF.
 
       IF <ls_res1>-filename IS INITIAL.
         ii_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
                      iv_type = 'W'
-                     iv_rc   = '4' ) ##no_text.
+                     iv_rc   = '4' ).
       ENDIF.
 
       MOVE-CORRESPONDING <ls_res1> TO ls_file.
@@ -23691,7 +23690,7 @@ CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
 
     IF mv_is_merged = abap_undefined.
       TRY.
-          CREATE DATA lr_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER')  ##no_text.
+          CREATE DATA lr_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER').
           "No exception --> marker found
           mv_is_merged = abap_true.
 
@@ -23808,7 +23807,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
-      RESULT data = rs_data ##NO_TEXT.
+      RESULT data = rs_data.
 
 * downward compatibility
     IF rs_data-folder_logic IS INITIAL.
@@ -24940,7 +24939,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     li_progress->show(
       iv_current = 1
-      iv_text    = |Get git objects { io_repo->get_name( ) }| ) ##NO_TEXT.
+      iv_text    = |Get git objects { io_repo->get_name( ) }| ).
 
 * get objects directly from git, mo_repo only contains a shallow clone of only
 * the selected branch
@@ -25410,7 +25409,7 @@ CLASS zcl_abapgit_xml_input IMPLEMENTATION.
         CALL TRANSFORMATION id
           OPTIONS value_handling = 'accept_data_loss'
           SOURCE XML mi_xml_doc
-          RESULT (lt_rtab) ##no_text.
+          RESULT (lt_rtab).
       CATCH cx_transformation_error INTO lx_error.
         IF mv_filename IS INITIAL.
           zcx_abapgit_exception=>raise( lx_error->if_message~get_text( ) ).
@@ -25433,23 +25432,23 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     DATA: lv_version TYPE string.
     DATA: lv_file    TYPE string.
 
-    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|. "#EC NOTEXT
+    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|.
     IF mv_filename IS NOT INITIAL.
-      lv_file = |File: { mv_filename }|.                    "#EC NOTEXT
+      lv_file = |File: { mv_filename }|.
     ENDIF.
 
     CALL FUNCTION 'POPUP_TO_INFORM'
       EXPORTING
-        titel = 'abapGit XML version mismatch'  "#EC NOTEXT
-        txt1  = 'abapGit XML version mismatch'  "#EC NOTEXT
-        txt2  = 'See http://larshp.github.io/abapGit/other-xml-mismatch.html' "#EC NOTEXT
+        titel = 'abapGit XML version mismatch'
+        txt1  = 'abapGit XML version mismatch'
+        txt2  = 'See http://larshp.github.io/abapGit/other-xml-mismatch.html'
         txt3  = lv_version
         txt4  = lv_file.
 
     IF mv_filename IS INITIAL.
-      zcx_abapgit_exception=>raise( 'abapGit XML version mismatch' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'abapGit XML version mismatch' ).
     ELSE.
-      zcx_abapgit_exception=>raise( |abapGit XML version mismatch in file { mv_filename }| ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( |abapGit XML version mismatch in file { mv_filename }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -25466,9 +25465,9 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     ENDIF.
 
     IF mv_filename IS INITIAL.
-      zcx_abapgit_exception=>raise( |Error while parsing XML| ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( |Error while parsing XML| ).
     ELSE.
-      zcx_abapgit_exception=>raise( |Error while parsing XML file { mv_filename }| ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( |Error while parsing XML file { mv_filename }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -25495,7 +25494,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     li_element = mi_xml_doc->find_from_name_ns( depth = 0
                                                 name = c_abapgit_tag ).
     li_version = li_element->if_ixml_node~get_attributes(
-      )->get_named_item_ns( c_attr_version ) ##no_text.
+      )->get_named_item_ns( c_attr_version ).
     IF li_version->get_value( ) <> zif_abapgit_version=>gc_xml_version.
       display_version_mismatch( ).
     ENDIF.
@@ -25555,20 +25554,20 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
       lv_reason = li_error->get_reason( ).
 
       IF mv_filename IS NOT INITIAL.
-        lv_txt1 = |File: { mv_filename }|.                  "#EC NOTEXT
-        lv_txt2 = |Column: { lv_column }|.                  "#EC NOTEXT
-        lv_txt3 = |Line: { lv_line }|.                      "#EC NOTEXT
+        lv_txt1 = |File: { mv_filename }|.
+        lv_txt2 = |Column: { lv_column }|.
+        lv_txt3 = |Line: { lv_line }|.
         lv_txt4 = lv_reason.
       ELSE.
-        lv_txt1 = |Column: { lv_column }|.                  "#EC NOTEXT
-        lv_txt2 = |Line: { lv_line }|.                      "#EC NOTEXT
+        lv_txt1 = |Column: { lv_column }|.
+        lv_txt2 = |Line: { lv_line }|.
         lv_txt3 = lv_reason.
         CLEAR lv_txt4.
       ENDIF.
 
       CALL FUNCTION 'POPUP_TO_INFORM'
         EXPORTING
-          titel = 'Error from XML parser'   "#EC NOTEXT
+          titel = 'Error from XML parser'
           txt1  = lv_txt1
           txt2  = lv_txt2
           txt3  = lv_txt3
@@ -25581,13 +25580,13 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
     lv_message = |XML parser error: { ii_error->get_reason( ) }, | &&
                  |Line { ii_error->get_line( ) } | &&
-                 |Col. { ii_error->get_column( ) }|. "#EC NOTEXT
+                 |Col. { ii_error->get_column( ) }|.
 
     IF mv_filename IS NOT INITIAL.
       lv_message = lv_message && | File { mv_filename }|.
     ENDIF.
 
-    zcx_abapgit_exception=>raise( lv_message ).             "#EC NOTEXT
+    zcx_abapgit_exception=>raise( lv_message ).
 
   ENDMETHOD.
 
@@ -25629,7 +25628,7 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
       SUBMATCHES
       ev_author
       ev_email
-      ev_time ##NO_TEXT.
+      ev_time.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error author regex value='{ iv_author }'| ).
@@ -26020,7 +26019,7 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
         no_release_found = 1
         OTHERS           = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ) ##no_text.
+      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ).
     ENDIF.
 
     LOOP AT it_requirements ASSIGNING <ls_requirement>.
@@ -26383,7 +26382,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
       IF NOT ii_client IS INITIAL.
         ii_client->request->set_header_field(
           name  = 'authorization'
-          value = ls_auth-authorization ).                  "#EC NOTEXT
+          value = ls_auth-authorization ).
         ii_client->propertytype_logon_popup = ii_client->co_disabled.
       ENDIF.
     ENDIF.
@@ -26393,7 +26392,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
     DATA: lv_auth TYPE string.
 
-    lv_auth = ii_client->request->get_header_field( 'authorization' ). "#EC NOTEXT
+    lv_auth = ii_client->request->get_header_field( 'authorization' ).
 
     IF NOT lv_auth IS INITIAL.
       append( iv_uri  = iv_uri
@@ -26416,7 +26415,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
     rv_auth = cl_http_utility=>if_http_utility~encode_base64( lv_concat ).
 
     CONCATENATE 'Basic' rv_auth INTO rv_auth
-      SEPARATED BY space ##NO_TEXT.
+      SEPARATED BY space.
 
     append( iv_uri  = iv_uri
             iv_auth = rv_auth ).
@@ -32261,7 +32260,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     IF lines( lt_tadir ) > 0.
 
       lv_question = |This will DELETE all objects in package { lv_package
-        } ({ lines( lt_tadir ) } objects) from the system|. "#EC NOTEXT
+        } ({ lines( lt_tadir ) } objects) from the system|.
 
       lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
         iv_titlebar              = 'Uninstall'
@@ -32271,7 +32270,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
         iv_text_button_2         = 'Cancel'
         iv_icon_button_2         = 'ICON_CANCEL'
         iv_default_button        = '2'
-        iv_display_cancel_button = abap_false ).            "#EC NOTEXT
+        iv_display_cancel_button = abap_false ).
 
       IF lv_answer = '2'.
         RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32329,7 +32328,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32411,7 +32410,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32444,7 +32443,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32657,7 +32656,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       iv_url = lo_repo->get_url( )
       is_tag = ls_tag ).
 
-    lv_text = |Tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } deleted| ##NO_TEXT.
+    lv_text = |Tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } deleted|.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -32741,7 +32740,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32890,7 +32889,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD check_sapgui.
 
     CONSTANTS:
-      lc_hide_sapgui_hint TYPE string VALUE '2' ##NO_TEXT.
+      lc_hide_sapgui_hint TYPE string VALUE '2'.
 
     DATA:
       lv_answer           TYPE char1,
@@ -32934,7 +32933,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       iv_text_button_1         = 'Continue'
       iv_text_button_2         = 'Cancel'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).              "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer <> '1'.
       RETURN.
@@ -32949,7 +32948,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       lo_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
         iv_url         = iv_url
         iv_branch_name = zif_abapgit_definitions=>c_git_branch-master
-        iv_package     = iv_package ) ##NO_TEXT.
+        iv_package     = iv_package ).
 
       zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
 
@@ -33530,7 +33529,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       TABLES
         t_spopli   = lt_selection
       EXCEPTIONS
-        OTHERS     = 1.                             "#EC NOTEXT
+        OTHERS     = 1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
     ENDIF.
@@ -33580,7 +33579,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
       READ TABLE ct_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
       IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
-        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.       "#EC NOTEXT
+        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.
         RETURN.
       ENDIF.
       lv_url = <ls_furl>-value.
@@ -33649,7 +33648,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       TABLES
         t_spopli   = lt_selection
       EXCEPTIONS
-        OTHERS     = 1.                             "#EC NOTEXT
+        OTHERS     = 1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
     ENDIF.
@@ -33738,7 +33737,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     TRY.
 
-        _popup_3_get_values( EXPORTING iv_popup_title    = 'Export package' "#EC NOTEXT
+        _popup_3_get_values( EXPORTING iv_popup_title    = 'Export package'
                                        iv_no_value_check = abap_true
                              IMPORTING ev_value_1        = lv_folder_logic
                              CHANGING  ct_fields         = lt_fields ).
@@ -33767,7 +33766,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                          iv_fieldtext = 'Name'
                CHANGING ct_fields     = lt_fields ).
 
-    _popup_3_get_values( EXPORTING iv_popup_title    = 'Object' "#EC NOTEXT
+    _popup_3_get_values( EXPORTING iv_popup_title    = 'Object'
                                    iv_no_value_check = abap_true
                          IMPORTING ev_value_1        = lv_object_type
                                    ev_value_2        = lv_object_name
@@ -33803,7 +33802,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     TRY.
 
-        _popup_3_get_values( EXPORTING iv_popup_title    = 'Export package' "#EC NOTEXT
+        _popup_3_get_values( EXPORTING iv_popup_title    = 'Export package'
                                        iv_no_value_check = abap_true
                              IMPORTING ev_value_1        = lv_package
                                        ev_value_2        = lv_folder_logic
@@ -33889,7 +33888,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
         answer                = rv_answer
       EXCEPTIONS
         text_not_found        = 1
-        OTHERS                = 2.                        "#EC NOTEXT
+        OTHERS                = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from POPUP_TO_CONFIRM' ).
     ENDIF.
@@ -33958,7 +33957,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
                          iv_value     = lv_desc_as_text
                CHANGING ct_fields     = lt_fields ).
 
-    _popup_3_get_values( EXPORTING iv_popup_title    = 'Transport to new Branch' "#EC NOTEXT
+    _popup_3_get_values( EXPORTING iv_popup_title    = 'Transport to new Branch'
                          IMPORTING ev_value_1        = lv_branch_name
                                    ev_value_2        = lv_commit_text
                          CHANGING  ct_fields         = lt_fields ).
@@ -34189,7 +34188,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     WHILE lv_finished = abap_false.
 
       lv_icon_ok  = icon_okay.
-      lv_button1 = 'Create package' ##NO_TEXT.
+      lv_button1 = 'Create package'.
       lv_icon1   = icon_folder.
 
       CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
@@ -34282,7 +34281,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
     IF iv_package IS INITIAL. " Empty package -> can be created
-      lv_button2 = 'Create package' ##NO_TEXT.
+      lv_button2 = 'Create package'.
       lv_icon2   = icon_folder.
     ENDIF.
 
@@ -34361,7 +34360,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           fields            = lt_fields
         EXCEPTIONS
           error_in_fields   = 1
-          OTHERS            = 2.                              "#EC NOTEXT
+          OTHERS            = 2.
 
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
@@ -34427,7 +34426,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       TABLES
         fields         = ct_fields
       EXCEPTIONS
-        OTHERS         = 1 ##NO_TEXT.
+        OTHERS         = 1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
     ENDIF.
@@ -34911,7 +34910,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    lv_class = 'nav-container' ##NO_TEXT.
+    lv_class = 'nav-container'.
     IF iv_right = abap_true.
       lv_class = lv_class && ' float-right'.
     ENDIF.
@@ -34927,7 +34926,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    lv_class = 'nav-container' ##NO_TEXT.
+    lv_class = 'nav-container'.
     IF iv_right = abap_true.
       lv_class = lv_class && ' float-right'.
     ENDIF.
@@ -37078,9 +37077,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                          iv_act = |{ zif_abapgit_definitions=>c_action-repo_log }?{ mv_key }| ).
       ENDIF.
       ro_toolbar->add( iv_txt = 'Branch'
-                       io_sub = io_tb_branch ) ##NO_TEXT.
+                       io_sub = io_tb_branch ).
       ro_toolbar->add( iv_txt = 'Tag'
-                       io_sub = io_tb_tag ) ##NO_TEXT.
+                       io_sub = io_tb_tag ).
     ELSE.
       IF mo_repo->has_remote_source( ) = abap_true AND iv_rstate IS NOT INITIAL.
         ro_toolbar->add( iv_txt = 'Pull <sup>zip</sup>'
@@ -37104,7 +37103,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     ENDIF.
 
     ro_toolbar->add( iv_txt = 'Advanced'
-                     io_sub = io_tb_advanced ) ##NO_TEXT.
+                     io_sub = io_tb_advanced ).
 
     ro_toolbar->add( iv_txt = 'View'
                      io_sub = build_view_menu( ) ).
@@ -37246,7 +37245,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
   METHOD open_in_master_language.
 
     CONSTANTS:
-      lc_abapgit_tcode TYPE tcode VALUE `ZABAPGIT` ##NO_TEXT.
+      lc_abapgit_tcode TYPE tcode VALUE `ZABAPGIT`.
 
     DATA:
       lv_master_language TYPE spras,
@@ -37998,9 +37997,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     ENDTRY.
 
     IF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
-      lv_text = |Lightweight tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+      lv_text = |Lightweight tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created|.
     ELSEIF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
-      lv_text = |Annotated tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created| ##NO_TEXT.
+      lv_text = |Annotated tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created|.
     ENDIF.
 
     MESSAGE lv_text TYPE 'S'.
@@ -38193,11 +38192,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Create'
                      iv_typ = zif_abapgit_html=>c_action_type-onclick
-                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -38484,15 +38483,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                     iv_id    = 'commitSelectedButton'
                     iv_style = 'display: none'
                     iv_txt   = 'Commit Selected (<span class="counter"></span>)'
-                    iv_opt   = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
+                    iv_opt   = zif_abapgit_html=>c_html_opt-strong ).
     ri_html->add_a( iv_act   = 'errorStub(event)' " Will be reinit by JS
                     iv_typ   = zif_abapgit_html=>c_action_type-onclick
                     iv_id    = 'commitFilteredButton'
                     iv_style = 'display: none'
-                    iv_txt   = 'Add <b>Filtered</b> and Commit (<span class="counter"></span>)' ) ##NO_TEXT.
+                    iv_txt   = 'Add <b>Filtered</b> and Commit (<span class="counter"></span>)' ).
     ri_html->add_a( iv_act = |{ c_action-stage_all }|
                     iv_id  = 'commitAllButton'
-                    iv_txt = lv_add_all_txt ) ##NO_TEXT.
+                    iv_txt = lv_add_all_txt ).
     ri_html->add( '</td>' ).
 
     " Filter bar
@@ -39977,8 +39976,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     io_menu->add( iv_txt = 'Stage'
                   iv_act = c_actions-stage
                   iv_id  = 'stage'
-                  iv_typ = zif_abapgit_html=>c_action_type-dummy
-                   ) ##NO_TEXT.
+                  iv_typ = zif_abapgit_html=>c_action_type-dummy ).
 
   ENDMETHOD.
   METHOD add_to_stage.
@@ -40376,7 +40374,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
     CONSTANTS:
       BEGIN OF lc_css_class,
-        patch TYPE string VALUE `patch` ##NO_TEXT,
+        patch TYPE string VALUE `patch`,
       END OF lc_css_class.
 
     DATA:
@@ -40571,9 +40569,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     CREATE OBJECT ro_menu.
     ro_menu->add( iv_txt = 'Toggle merge mode'
-                  iv_act = c_actions-toggle_mode ) ##NO_TEXT.
+                  iv_act = c_actions-toggle_mode ).
     ro_menu->add( iv_txt = 'Cancel'
-                  iv_act = c_actions-cancel ) ##NO_TEXT.
+                  iv_act = c_actions-cancel ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -40671,42 +40669,42 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     ri_html->add( |<div class="diff" data-type="{ is_diff-type
       }" data-changed-by="{ is_diff-changed_by
-      }" data-file="{ is_diff-path && is_diff-filename }">| ). "#EC NOTEXT
+      }" data-file="{ is_diff-path && is_diff-filename }">| ).
     ri_html->add( render_diff_head( is_diff ) ).
 
     " Content
     IF is_diff-type <> 'binary'.
 
       IF mv_merge_mode = c_merge_mode-selection.
-        ri_html->add( '<div class="diff_content">' ).       "#EC NOTEXT
-        ri_html->add( '<table class="diff_tab syntax-hl">' ). "#EC NOTEXT
+        ri_html->add( '<div class="diff_content">' ).
+        ri_html->add( '<table class="diff_tab syntax-hl">' ).
         ri_html->add( render_table_head( ) ).
         ri_html->add( render_lines( is_diff ) ).
-        ri_html->add( '</table>' ).                         "#EC NOTEXT
-        ri_html->add( '</div>' ).                           "#EC NOTEXT
+        ri_html->add( '</table>' ).
+        ri_html->add( '</div>' ).
       ELSE.
 
         "Table for Div-Table and textarea
-        ri_html->add( '<div class="diff_content">' ).       "#EC NOTEXT
-        ri_html->add( '<table class="w100">' ).             "#EC NOTEXT
-        ri_html->add( '<thead class="header">' ).           "#EC NOTEXT
-        ri_html->add( '<tr>' ).                             "#EC NOTEXT
-        ri_html->add( '<th>Code</th>' ).                    "#EC NOTEXT
-        ri_html->add( '<th>Merge - ' ).                     "#EC NOTEXT
-        ri_html->add_a( iv_act = 'submitFormById(''merge_form'');' "#EC NOTEXT
+        ri_html->add( '<div class="diff_content">' ).
+        ri_html->add( '<table class="w100">' ).
+        ri_html->add( '<thead class="header">' ).
+        ri_html->add( '<tr>' ).
+        ri_html->add( '<th>Code</th>' ).
+        ri_html->add( '<th>Merge - ' ).
+        ri_html->add_a( iv_act = 'submitFormById(''merge_form'');'
                         iv_txt = 'Apply'
                         iv_typ = zif_abapgit_html=>c_action_type-onclick
                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
-        ri_html->add( '</th> ' ).                           "#EC NOTEXT
-        ri_html->add( '</tr>' ).                            "#EC NOTEXT
-        ri_html->add( '</thead>' ).                         "#EC NOTEXT
+        ri_html->add( '</th> ' ).
+        ri_html->add( '</tr>' ).
+        ri_html->add( '</thead>' ).
         ri_html->add( '<td>' ).
 
         "Diff-Table of source and target file
-        ri_html->add( '<table class="diff_tab syntax-hl">' ). "#EC NOTEXT
+        ri_html->add( '<table class="diff_tab syntax-hl">' ).
         ri_html->add( render_table_head( ) ).
         ri_html->add( render_lines( is_diff ) ).
-        ri_html->add( '</table>' ).                         "#EC NOTEXT
+        ri_html->add( '</table>' ).
 
         READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
         IF sy-subrc = 0.
@@ -40715,28 +40713,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
                                       format = cl_abap_format=>e_html_text ).
         ENDIF.
 
-        ri_html->add( '</td>' ).                            "#EC NOTEXT
-        ri_html->add( '<td>' ).                             "#EC NOTEXT
+        ri_html->add( '</td>' ).
+        ri_html->add( '<td>' ).
         ri_html->add( '<div class="form-container">' ).
         ri_html->add( |<form id="merge_form" class="aligned-form w100" accept-charset="UTF-8"| ).
         ri_html->add( |method="post" action="sapevent:apply_merge">| ).
         ri_html->add( |<textarea id="merge_content" name="merge_content" class="w100" | ).
         ri_html->add( |rows="{ lines( is_diff-o_diff->get( ) ) }">{ lv_target_content }</textarea>| ).
         ri_html->add( '<input type="submit" class="hidden-submit">' ).
-        ri_html->add( '</form>' ).                          "#EC NOTEXT
-        ri_html->add( '</div>' ).                           "#EC NOTEXT
-        ri_html->add( '</td>' ).                            "#EC NOTEXT
-        ri_html->add( '</table>' ).                         "#EC NOTEXT
-        ri_html->add( '</div>' ).                           "#EC NOTEXT
+        ri_html->add( '</form>' ).
+        ri_html->add( '</div>' ).
+        ri_html->add( '</td>' ).
+        ri_html->add( '</table>' ).
+        ri_html->add( '</div>' ).
       ENDIF.
     ELSE.
-      ri_html->add( '<div class="diff_content paddings center grey">' ). "#EC NOTEXT
-      ri_html->add( 'The content seems to be binary.' ).    "#EC NOTEXT
-      ri_html->add( 'Cannot display as diff.' ).            "#EC NOTEXT
-      ri_html->add( '</div>' ).                             "#EC NOTEXT
+      ri_html->add( '<div class="diff_content paddings center grey">' ).
+      ri_html->add( 'The content seems to be binary.' ).
+      ri_html->add( 'Cannot display as diff.' ).
+      ri_html->add( '</div>' ).
     ENDIF.
 
-    ri_html->add( '</div>' ).                               "#EC NOTEXT
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_diff_head.
@@ -40745,7 +40743,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     CREATE OBJECT ro_html.
 
-    ro_html->add( '<div class="diff_head">' ).              "#EC NOTEXT
+    ro_html->add( '<div class="diff_head">' ).
 
     IF is_diff-type <> 'binary' AND is_diff-o_diff IS NOT INITIAL.
       ls_stats = is_diff-o_diff->stats( ).
@@ -40754,8 +40752,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ro_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
     ENDIF.
 
-    ro_html->add( |<span class="diff_name">{ is_diff-filename }</span>| ). "#EC NOTEXT
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
+    ro_html->add( |<span class="diff_name">{ is_diff-filename }</span>| ).
+    ro_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_lines.
@@ -40836,46 +40834,46 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
           && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
-    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ro_html->add( '<tr>' ).
     ro_html->add( lv_old ). " Target
     ro_html->add( lv_new ). " Source
-    ro_html->add( '</tr>' ).                                "#EC NOTEXT
+    ro_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_table_head.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( '<thead class="header">' ).               "#EC NOTEXT
-    ri_html->add( '<tr>' ).                                 "#EC NOTEXT
-    ri_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
+    ri_html->add( '<thead class="header">' ).
+    ri_html->add( '<tr>' ).
+    ri_html->add( '<th class="num"></th>' ).
 
     IF mv_merge_mode = c_merge_mode-selection.
-      ri_html->add( '<form id="target_form" method="post" action="sapevent:apply_target">' ). "#EC NOTEXT
-      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ). "#EC NOTEXT
-      ri_html->add_a( iv_act = 'submitFormById(''target_form'');' "#EC NOTEXT
+      ri_html->add( '<form id="target_form" method="post" action="sapevent:apply_target">' ).
+      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ).
+      ri_html->add_a( iv_act = 'submitFormById(''target_form'');'
                       iv_txt = 'Apply'
                       iv_typ = zif_abapgit_html=>c_action_type-onclick
                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
-      ri_html->add( '</th> ' ).                             "#EC NOTEXT
-      ri_html->add( '</form>' ).                            "#EC NOTEXT
-      ri_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
-      ri_html->add( '<form id="source_form" method="post" action="sapevent:apply_source">' ). "#EC NOTEXT
-      ri_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) && ' - ' ). "#EC NOTEXT
-      ri_html->add_a( iv_act = 'submitFormById(''source_form'');' "#EC NOTEXT
+      ri_html->add( '</th> ' ).
+      ri_html->add( '</form>' ).
+      ri_html->add( '<th class="num"></th>' ).
+      ri_html->add( '<form id="source_form" method="post" action="sapevent:apply_source">' ).
+      ri_html->add( '<th>Source  - ' && mo_merge->get_source_branch( ) && ' - ' ).
+      ri_html->add_a( iv_act = 'submitFormById(''source_form'');'
                       iv_txt = 'Apply'
                       iv_typ = zif_abapgit_html=>c_action_type-onclick
                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
-      ri_html->add( '</th> ' ).                             "#EC NOTEXT
-      ri_html->add( '</form>' ).                            "#EC NOTEXT
+      ri_html->add( '</th> ' ).
+      ri_html->add( '</form>' ).
     ELSE.
-      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && '</th> ' ). "#EC NOTEXT
-      ri_html->add( '<th class="num"></th>' ).              "#EC NOTEXT
-      ri_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) && '</th> ' ). "#EC NOTEXT
+      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && '</th> ' ).
+      ri_html->add( '<th class="num"></th>' ).
+      ri_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) && '</th> ' ).
     ENDIF.
 
-    ri_html->add( '</tr>' ).                                "#EC NOTEXT
-    ri_html->add( '</thead>' ).                             "#EC NOTEXT
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD resolve_diff.
@@ -40980,11 +40978,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
     ro_menu->add( iv_txt = 'Merge'
                   iv_act = c_actions-merge
-                  iv_cur = abap_false ) ##NO_TEXT.
+                  iv_cur = abap_false ).
 
     IF iv_with_conflict = abap_true.
       ro_menu->add( iv_txt = 'Resolve Conflicts'
-                    iv_act = c_actions-res_conflicts ) ##NO_TEXT.
+                    iv_act = c_actions-res_conflicts ).
     ENDIF.
 
   ENDMETHOD.
@@ -41382,7 +41380,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDIF.
 
       io_menu->add( iv_txt = 'Filter'
-                    io_sub = lo_sub_filter ) ##NO_TEXT.
+                    io_sub = lo_sub_filter ).
     ENDIF.
 
   ENDMETHOD.
@@ -41406,7 +41404,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDLOOP.
 
     io_menu->add( iv_txt = 'Jump'
-                  io_sub = lo_sub_jump ) ##NO_TEXT.
+                  io_sub = lo_sub_jump ).
 
   ENDMETHOD.
   METHOD add_menu_begin.
@@ -41415,7 +41413,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_menu_end.
 
     io_menu->add( iv_txt = 'Split/Unified view'
-                  iv_act = c_actions-toggle_unified ) ##NO_TEXT.
+                  iv_act = c_actions-toggle_unified ).
 
   ENDMETHOD.
   METHOD append_diff.
@@ -41730,24 +41728,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     ro_html->add( |<div class="diff" data-type="{ is_diff-type
       }" data-changed-by="{ is_diff-changed_by
-      }" data-file="{ is_diff-path && is_diff-filename }">| ). "#EC NOTEXT
+      }" data-file="{ is_diff-path && is_diff-filename }">| ).
     ro_html->add( render_diff_head( is_diff ) ).
 
     " Content
     IF is_diff-type <> 'binary'.
-      ro_html->add( '<div class="diff_content">' ).         "#EC NOTEXT
-      ro_html->add( |<table class="diff_tab syntax-hl" id={ is_diff-filename }>| ). "#EC NOTEXT
+      ro_html->add( '<div class="diff_content">' ).
+      ro_html->add( |<table class="diff_tab syntax-hl" id={ is_diff-filename }>| ).
       ro_html->add( render_table_head( is_diff ) ).
       ro_html->add( render_lines( is_diff ) ).
-      ro_html->add( '</table>' ).                           "#EC NOTEXT
+      ro_html->add( '</table>' ).
     ELSE.
-      ro_html->add( '<div class="diff_content paddings center grey">' ). "#EC NOTEXT
-      ro_html->add( 'The content seems to be binary.' ).    "#EC NOTEXT
-      ro_html->add( 'Cannot display as diff.' ).            "#EC NOTEXT
+      ro_html->add( '<div class="diff_content paddings center grey">' ).
+      ro_html->add( 'The content seems to be binary.' ).
+      ro_html->add( 'Cannot display as diff.' ).
     ENDIF.
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
+    ro_html->add( '</div>' ).
 
-    ro_html->add( '</div>' ).                               "#EC NOTEXT
+    ro_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_diff_head.
@@ -41809,7 +41807,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     IF is_diff-fstate = c_fstate-both AND mv_unified = abap_true.
       ii_html->add( '<span class="attention pad-sides">Attention: Unified mode'
-                 && ' highlighting for MM assumes local file is newer ! </span>' ). "#EC NOTEXT
+                 && ' highlighting for MM assumes local file is newer ! </span>' ).
     ENDIF.
 
   ENDMETHOD.
@@ -41914,7 +41912,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
           && |<td class="code{ lv_bg } diff_right">{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
-    ri_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ri_html->add( '<tr>' ).
 
     render_line_split_row(
         ii_html                = ri_html
@@ -41925,7 +41923,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         iv_old                 = lv_old
         iv_new                 = lv_new ).
 
-    ri_html->add( '</tr>' ).                                "#EC NOTEXT
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_line_split_row.
@@ -41948,25 +41946,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     " Release delayed subsequent update lines
     IF is_diff_line-result <> zif_abapgit_definitions=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
-        ro_html->add( '<tr>' ).                             "#EC NOTEXT
+        ro_html->add( '<tr>' ).
         ro_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
                    && |<td class="num diff_others" line-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
                    && |<td class="code diff_del diff_unified">{ <ls_diff_line>-old }</td>| ).
-        ro_html->add( '</tr>' ).                            "#EC NOTEXT
+        ro_html->add( '</tr>' ).
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
-        ro_html->add( '<tr>' ).                             "#EC NOTEXT
+        ro_html->add( '<tr>' ).
         ro_html->add( |<td class="num diff_others" line-num=""></td>|
                    && |<td class="num diff_others" line-num="{ <ls_diff_line>-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
                    && |<td class="code diff_ins diff_others">{ <ls_diff_line>-new }</td>| ).
-        ro_html->add( '</tr>' ).                            "#EC NOTEXT
+        ro_html->add( '</tr>' ).
       ENDLOOP.
       CLEAR mt_delayed_lines.
     ENDIF.
 
-    ro_html->add( '<tr>' ).                                 "#EC NOTEXT
+    ro_html->add( '<tr>' ).
     CASE is_diff_line-result.
       WHEN zif_abapgit_definitions=>c_diff-update.
         APPEND is_diff_line TO mt_delayed_lines. " Delay output of subsequent updates
@@ -41986,7 +41984,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
                    && |<td class="mark diff_others">&nbsp;</td>|
                    && |<td class="code diff_unified">{ is_diff_line-old }</td>| ).
     ENDCASE.
-    ro_html->add( '</tr>' ).                                "#EC NOTEXT
+    ro_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_scripts.
@@ -42040,20 +42038,20 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_head_non_unified.
 
-    io_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
-    io_html->add( '<th class="mark"></th>' ).               "#EC NOTEXT
-    io_html->add( '<th>LOCAL</th>' ).                       "#EC NOTEXT
-    io_html->add( '<th class="num"></th>' ).                "#EC NOTEXT
-    io_html->add( '<th class="mark"></th>' ).               "#EC NOTEXT
-    io_html->add( '<th>REMOTE</th>' ).                      "#EC NOTEXT
+    io_html->add( '<th class="num"></th>' ).
+    io_html->add( '<th class="mark"></th>' ).
+    io_html->add( '<th>LOCAL</th>' ).
+    io_html->add( '<th class="num"></th>' ).
+    io_html->add( '<th class="mark"></th>' ).
+    io_html->add( '<th>REMOTE</th>' ).
 
   ENDMETHOD.
   METHOD render_table_head_unified.
 
-    io_html->add( '<th class="num">old</th>' ).             "#EC NOTEXT
-    io_html->add( '<th class="num">new</th>' ).             "#EC NOTEXT
-    io_html->add( '<th class="mark"></th>' ).               "#EC NOTEXT
-    io_html->add( '<th>code</th>' ).                        "#EC NOTEXT
+    io_html->add( '<th class="num">old</th>' ).
+    io_html->add( '<th class="num">new</th>' ).
+    io_html->add( '<th class="mark"></th>' ).
+    io_html->add( '<th>code</th>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -42537,11 +42535,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
                      iv_txt = 'Commit'
                      iv_typ = zif_abapgit_html=>c_action_type-onclick
-                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     lo_toolbar->add( iv_act = c_action-commit_cancel
                      iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
 
     ro_html->add( '<div class="paddings">' ).
     ro_html->add( lo_toolbar->render( ) ).
@@ -42631,7 +42629,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
           io_repo   = mo_repo
           io_stage  = mo_stage ).
 
-        MESSAGE 'Commit was successful' TYPE 'S' ##NO_TEXT.
+        MESSAGE 'Commit was successful' TYPE 'S'.
 
         ev_state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
 
@@ -42673,11 +42671,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
     CREATE OBJECT ro_menu.
 
     ro_menu->add( iv_txt = 'Sort'
-                  io_sub = lo_sort_menu ) ##NO_TEXT.
+                  io_sub = lo_sort_menu ).
 
     ro_menu->add( iv_txt = 'Re-Run'
                   iv_act = c_actions-rerun
-                  iv_cur = abap_false ) ##NO_TEXT.
+                  iv_cur = abap_false ).
 
   ENDMETHOD.
   METHOD build_nav_link.
@@ -42967,14 +42965,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
       ro_menu->add( iv_txt = 'Commit'
                     iv_act = c_actions-commit
                     iv_cur = abap_false
-                    iv_opt = lv_opt ) ##NO_TEXT.
+                    iv_opt = lv_opt ).
 
     ELSE.
 
       ro_menu->add( iv_txt = 'Stage'
                     iv_act = c_actions-stage
                     iv_cur = abap_false
-                    iv_opt = lv_opt ) ##NO_TEXT.
+                    iv_opt = lv_opt ).
 
     ENDIF.
 
@@ -43172,12 +43170,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
 
     ro_html->add( '<script type="text/javascript" src="https://cdnjs.' &&
       'cloudflare.com/ajax/libs/gitgraph.js/1.14.0/gitgraph.min.js">' &&
-      '</script>' ) ##NO_TEXT.
+      '</script>' ).
 
     ro_html->add( '<script type="text/javascript">' ).
     ro_html->add( 'var myTemplateConfig = {' ).
     ro_html->add( 'colors: [ "#979797", "#008fb5", "#f1c109", "'
-      && '#095256", "#087F8C", "#5AAA95", "#86A873", "#BB9F06" ],' ) ##NO_TEXT.
+      && '#095256", "#087F8C", "#5AAA95", "#86A873", "#BB9F06" ],' ).
     ro_html->add( 'branch: {' ).
     ro_html->add( '  lineWidth: 8,' ).
     ro_html->add( '  spacingX: 50' ).
@@ -43271,15 +43269,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     IF mv_compress = abap_true.
       ro_menu->add(
         iv_txt = 'Uncompress Graph'
-        iv_act = c_actions-uncompress ) ##NO_TEXT.
+        iv_act = c_actions-uncompress ).
     ELSE.
       ro_menu->add(
         iv_txt = 'Compress Graph'
-        iv_act = c_actions-compress ) ##NO_TEXT.
+        iv_act = c_actions-compress ).
     ENDIF.
 
     ro_menu->add( iv_txt = 'Refresh'
-                  iv_act = c_actions-refresh ) ##NO_TEXT.
+                  iv_act = c_actions-refresh ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -43298,11 +43296,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
 
     lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
 
-    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'source' ##NO_TEXT.
+    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'source'.
     ASSERT sy-subrc = 0.
     rs_merge-source = <ls_field>-value.
 
-    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'target' ##NO_TEXT.
+    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'target'.
     ASSERT sy-subrc = 0.
     rs_merge-target = <ls_field>-value.
 
@@ -43421,10 +43419,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     CREATE OBJECT ro_html.
 
     ro_html->add( '<form id="commit_form" method="post" action="sapevent:merge">' ).
-    ro_html->add( 'Merge' ) ##NO_TEXT.
-    ro_html->add( form_select( 'source' ) ) ##NO_TEXT.
-    ro_html->add( 'into' ) ##NO_TEXT.
-    ro_html->add( form_select( 'target' ) ) ##NO_TEXT.
+    ro_html->add( 'Merge' ).
+    ro_html->add( form_select( 'source' ) ).
+    ro_html->add( 'into' ).
+    ro_html->add( form_select( 'target' ) ).
     ro_html->add( '<input type="submit" value="Submit">' ).
     ro_html->add( '</form>' ).
 
@@ -43520,7 +43518,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
     CREATE OBJECT ro_menu.
 
     ro_menu->add( iv_txt = 'Run background logic'
-                  iv_act = zif_abapgit_definitions=>c_action-go_background_run ) ##NO_TEXT.
+                  iv_act = zif_abapgit_definitions=>c_action-go_background_run ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -43607,8 +43605,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
     ro_html->add( render_methods( ls_per ) ).
 
-    ro_html->add( '<u>HTTP Authentication, optional</u><br>' ) ##NO_TEXT.
-    ro_html->add( '(password will be saved in clear text)<br>' ) ##NO_TEXT.
+    ro_html->add( '<u>HTTP Authentication, optional</u><br>' ).
+    ro_html->add( '(password will be saved in clear text)<br>' ).
     ro_html->add( '<table>' ).
     ro_html->add( '<tr>' ).
     ro_html->add( '<td>Username:</td>' ).
@@ -43649,25 +43647,25 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
 
     lt_methods = zcl_abapgit_background=>list_methods( ).
 
-    ro_html->add( '<u>Method</u><br>' ) ##NO_TEXT.
+    ro_html->add( '<u>Method</u><br>' ).
     ro_html->add( |<form method="get" action="sapevent:{ zif_abapgit_definitions=>c_action-bg_update }">| ).
 
     IF is_per-method IS INITIAL.
-      lv_checked = ' checked' ##NO_TEXT.
+      lv_checked = ' checked'.
     ENDIF.
 
-    ro_html->add( '<input type="radio" name="method" value=""' && lv_checked && '>Do nothing<br>' ) ##NO_TEXT.
+    ro_html->add( '<input type="radio" name="method" value=""' && lv_checked && '>Do nothing<br>' ).
 
     LOOP AT lt_methods INTO ls_method.
       CLEAR lv_checked.
       IF is_per-method = ls_method-class.
-        lv_checked = ' checked' ##NO_TEXT.
+        lv_checked = ' checked'.
       ENDIF.
 
       ro_html->add( '<input type="radio" name="method" value="' &&
         ls_method-class && '"' &&
         lv_checked && '>' &&
-        ls_method-description && '<br>' ) ##NO_TEXT.
+        ls_method-description && '<br>' ).
     ENDLOOP.
 
     ro_html->add( '<br>' ).
@@ -43720,7 +43718,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
       lo_persistence->modify( is_bg_task ).
     ENDIF.
 
-    MESSAGE 'Saved' TYPE 'S' ##NO_TEXT.
+    MESSAGE 'Saved' TYPE 'S'.
 
     COMMIT WORK.
 
@@ -44019,12 +44017,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( '<head>' ).                               "#EC NOTEXT
+    ri_html->add( '<head>' ).
 
-    ri_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ). "#EC NOTEXT
-    ri_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ). "#EC NOTEXT
+    ri_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ).
+    ri_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ).
 
-    ri_html->add( '<title>abapGit</title>' ).               "#EC NOTEXT
+    ri_html->add( '<title>abapGit</title>' ).
     ri_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
     ri_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
 
@@ -44037,7 +44035,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
         ri_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
     ENDCASE.
 
-    ri_html->add( '<script type="text/javascript" src="js/common.js"></script>' ). "#EC NOTEXT
+    ri_html->add( '<script type="text/javascript" src="js/common.js"></script>' ).
 
     CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
       WHEN mo_settings->c_icon_scaling-large.
@@ -44046,7 +44044,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
         ri_html->add( '<style>.icon.large { font-size: inherit }</style>' ).
     ENDCASE.
 
-    ri_html->add( '</head>' ).                              "#EC NOTEXT
+    ri_html->add( '</head>' ).
 
   ENDMETHOD.
   METHOD render_command_palettes.
@@ -44194,10 +44192,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     " Real page
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( '<!DOCTYPE html>' ).                      "#EC NOTEXT
-    ri_html->add( '<html>' ).                               "#EC NOTEXT
+    ri_html->add( '<!DOCTYPE html>' ).
+    ri_html->add( '<html>' ).
     ri_html->add( html_head( ) ).
-    ri_html->add( '<body>' ).                               "#EC NOTEXT
+    ri_html->add( '<body>' ).
     ri_html->add( title( ) ).
 
     ri_html->add( render_content( ) ). " TODO -> render child
@@ -44210,7 +44208,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       iv_part_category = c_html_parts-hidden_forms ).
 
     ri_html->add( footer( ) ).
-    ri_html->add( '</body>' ).                              "#EC NOTEXT
+    ri_html->add( '</body>' ).
 
     li_script = scripts( ).
 
@@ -44221,7 +44219,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       ri_html->add( '</script>' ).
     ENDIF.
 
-    ri_html->add( '</html>' ).                              "#EC NOTEXT
+    ri_html->add( '</html>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -44744,11 +44742,11 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     CREATE OBJECT lo_pback.
 
     IF io_repo->is_offline( ) = abap_true.
-      lv_icon = 'plug/darkgrey' ##NO_TEXT.
-      lv_hint = 'Offline repository' ##NO_TEXT.
+      lv_icon = 'plug/darkgrey'.
+      lv_hint = 'Offline repository'.
     ELSE.
-      lv_icon = 'cloud-upload-alt/blue' ##NO_TEXT.
-      lv_hint = 'On-line repository' ##NO_TEXT.
+      lv_icon = 'cloud-upload-alt/blue'.
+      lv_hint = 'On-line repository'.
     ENDIF.
 
     ri_html->add( '<table class="w100"><tr>' ).
@@ -44791,9 +44789,9 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     " Fav
     IF abap_true = zcl_abapgit_persistence_user=>get_instance( )->is_favorite_repo( io_repo->get_key( ) ).
-      lv_icon = 'star/blue' ##NO_TEXT.
+      lv_icon = 'star/blue'.
     ELSE.
-      lv_icon = 'star/grey' ##NO_TEXT.
+      lv_icon = 'star/grey'.
     ENDIF.
     ri_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?{ io_repo->get_key( ) }|
                     iv_txt = zcl_abapgit_html=>icon( iv_name  = lv_icon
@@ -44946,7 +44944,7 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
         error_no_gui              = 23
         OTHERS                    = 24 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_download' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'error from gui_download' ).
     ENDIF.
 
   ENDMETHOD.
@@ -45022,10 +45020,10 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
         not_supported_by_gui    = 4
         OTHERS                  = 5 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'error from file_open_dialog' ).
     ENDIF.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'cancelled' ).
     ENDIF.
 
     READ TABLE lt_file_table INDEX 1 INTO ls_file_table.
@@ -45062,10 +45060,10 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
         not_supported_by_gui = 3
         OTHERS               = 4 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ). "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'error from file_save_dialog' ).
     ENDIF.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
-      zcx_abapgit_exception=>raise( 'cancelled' ).          "#EC NOTEXT
+      zcx_abapgit_exception=>raise( 'cancelled' ).
     ENDIF.
 
   ENDMETHOD.
@@ -45365,7 +45363,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     lo_toolbar->add( iv_act = 'submitFormById(''db_form'');'
                      iv_txt = 'Save'
                      iv_typ = zif_abapgit_html=>c_action_type-onclick
-                     iv_opt = zif_abapgit_html=>c_html_opt-strong ) ##NO_TEXT.
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     ri_html->add( '<div class="db_entry">' ).
 
@@ -45445,7 +45443,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     CREATE OBJECT lo_toolbar.
     lo_toolbar->add( iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }|
-                     iv_txt = 'Edit' ) ##NO_TEXT.
+                     iv_txt = 'Edit' ).
 
     ri_html->add( '<div class="db_entry">' ).
     ri_html->add( '<table class="toolbar"><tr><td>' ).
@@ -45486,7 +45484,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
       iv_text_button_2         = 'Cancel'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).                 "#EC NOTEXT
+      iv_display_cancel_button = abap_false ).
 
     IF lv_answer = '2'.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -45577,7 +45575,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
     LOOP AT lt_data ASSIGNING <ls_data>.
       CLEAR lv_trclass.
       IF sy-tabix = 1.
-        lv_trclass = ' class="firstrow"' ##NO_TEXT.
+        lv_trclass = ' class="firstrow"'.
       ENDIF.
 
       lv_action  = zcl_abapgit_html_action_utils=>dbkey_encode( <ls_data> ).
@@ -45833,13 +45831,13 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     lv_class = iv_class.
 
     IF iv_opt CA zif_abapgit_html=>c_html_opt-strong.
-      lv_class = lv_class && ' emphasis' ##NO_TEXT.
+      lv_class = lv_class && ' emphasis'.
     ENDIF.
     IF iv_opt CA zif_abapgit_html=>c_html_opt-cancel.
-      lv_class = lv_class && ' attention' ##NO_TEXT.
+      lv_class = lv_class && ' attention'.
     ENDIF.
     IF iv_opt CA zif_abapgit_html=>c_html_opt-crossout.
-      lv_class = lv_class && ' crossout grey' ##NO_TEXT.
+      lv_class = lv_class && ' crossout grey'.
     ENDIF.
     IF lv_class IS NOT INITIAL.
       SHIFT lv_class LEFT DELETING LEADING space.
@@ -46625,7 +46623,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         CHANGING
           data_table   = lt_html
         EXCEPTIONS
-          OTHERS       = 1 ) ##NO_TEXT.
+          OTHERS       = 1 ).
     ELSE. " Raw input
       zcl_abapgit_convert=>xstring_to_bintab(
         EXPORTING
@@ -46645,7 +46643,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         CHANGING
           data_table   = lt_xdata
         EXCEPTIONS
-          OTHERS       = 1 ) ##NO_TEXT.
+          OTHERS       = 1 ).
     ENDIF.
 
     ASSERT sy-subrc = 0. " Image data error
@@ -47903,7 +47901,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
-      RESULT user = rs_user ##NO_TEXT.
+      RESULT user = rs_user.
   ENDMETHOD.
   METHOD get_instance.
 
@@ -48232,7 +48230,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
-      RESULT repo = rs_repo ##NO_TEXT.
+      RESULT repo = rs_repo.
 
 * automatic migration of old fields
     FIND FIRST OCCURRENCE OF '</HEAD_BRANCH><WRITE_PROTECT>X</WRITE_PROTECT>' IN lv_xml.
@@ -48991,7 +48989,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML iv_string
-      RESULT data = rs_xml ##NO_TEXT.
+      RESULT data = rs_xml.
   ENDMETHOD.
   METHOD list.
 
@@ -49741,8 +49739,8 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   METHOD update_source_index.
 
     CONSTANTS:
-      lc_version_active   TYPE r3state VALUE 'A',           "#EC NOTEXT
-      lc_version_inactive TYPE r3state VALUE 'I'.           "#EC NOTEXT
+      lc_version_active   TYPE r3state VALUE 'A',
+      lc_version_inactive TYPE r3state VALUE 'I'.
 
     "    dynamic invocation, IF_OO_SOURCE_POS_INDEX_HELPER doesn't exist in 702.
     DATA lo_index_helper TYPE REF TO object.
@@ -50466,7 +50464,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
     REPLACE FIRST OCCURRENCE OF 'ZCL_ABAPGIT' IN lv_class WITH 'LCL'.
 
     rs_metadata-class = lv_class.
-    rs_metadata-version = 'v1.0.0' ##no_text.
+    rs_metadata-version = 'v1.0.0'.
 
   ENDMETHOD.
   METHOD is_active.
@@ -51036,7 +51034,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_dynpros.
 
-    CONSTANTS lc_rpyty_force_off TYPE char01 VALUE '/' ##NO_TEXT.
+    CONSTANTS lc_rpyty_force_off TYPE char01 VALUE '/'.
 
     DATA: lv_name   TYPE dwinactiv-obj_name,
           ls_dynpro LIKE LINE OF it_dynpros.
@@ -51712,7 +51710,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
       WITH KEY
         objectname = ms_item-obj_type
         objecttype = 'L'
-        method     = 'BEFORE_EXP' ##no_text.
+        method     = 'BEFORE_EXP'.
     IF sy-subrc = 0.
       lv_client = sy-mandt.
 
@@ -52206,7 +52204,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     ls_file-path = '/'.
     ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = 'abap' ).       "#EC NOTEXT
+                                 iv_ext   = 'abap' ).
     ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_source ).
 
     APPEND ls_file TO mt_files.
@@ -52229,7 +52227,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
     ls_file-path = '/'.
     ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = iv_ext ).       "#EC NOTEXT
+                                 iv_ext   = iv_ext ).
     ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string ).
 
     APPEND ls_file TO mt_files.
@@ -52245,7 +52243,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     ls_file-path = '/'.
 
     ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = 'xml' ).        "#EC NOTEXT
+                                 iv_ext   = 'xml' ).
 
     REPLACE FIRST OCCURRENCE
       OF REGEX '<\?xml version="1\.0" encoding="[\w-]+"\?>'
@@ -52304,10 +52302,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     IF iv_extra IS INITIAL.
       CONCATENATE lv_obj_name '.' ms_item-obj_type
-        INTO rv_filename.                                   "#EC NOTEXT
+        INTO rv_filename.
     ELSE.
       CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_extra
-        INTO rv_filename.                                   "#EC NOTEXT
+        INTO rv_filename.
     ENDIF.
 
     IF iv_ext IS NOT INITIAL.
@@ -52332,7 +52330,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
           lv_data     TYPE xstring,
           lv_abap     TYPE string.
     lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = 'abap' ).            "#EC NOTEXT
+                            iv_ext   = 'abap' ).
 
     lv_data = read_file( iv_filename = lv_filename
                          iv_error    = iv_error ).
@@ -52392,7 +52390,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
           lv_data     TYPE xstring.
 
     lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = iv_ext ).            "#EC NOTEXT
+                            iv_ext   = iv_ext ).
 
     lv_data = read_file( lv_filename ).
 
@@ -52406,7 +52404,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
           lv_xml      TYPE string.
 
     lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = 'xml' ).             "#EC NOTEXT
+                            iv_ext   = 'xml' ).
 
     lv_data = read_file( lv_filename ).
 
@@ -52973,7 +52971,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD class_name.
 
-    CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name. "#EC NOTEXT
+    CONCATENATE 'ZCL_ABAPGIT_OBJECT_' is_item-obj_type INTO rv_class_name.
 
   ENDMETHOD.
   METHOD compare_remote_to_local.
@@ -53041,7 +53039,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
             answer                = lv_answer
           EXCEPTIONS
             text_not_found        = 1
-            OTHERS                = 2.                        "#EC NOTEXT
+            OTHERS                = 2.
         IF sy-subrc <> 0 OR lv_answer = 1.
           zcx_abapgit_exception=>raise( |Deserialization for object { is_result-obj_name } | &
                                         |(type { is_result-obj_type }) aborted by user| ).
@@ -53083,7 +53081,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
             is_item     = is_item
             iv_language = iv_language.
       CATCH cx_sy_create_object_error.
-        lv_message = |Object type { is_item-obj_type } not supported, serialize|. "#EC NOTEXT
+        lv_message = |Object type { is_item-obj_type } not supported, serialize|.
         IF iv_native_only = abap_false.
           TRY. " 2nd step, try looking for plugins
               CREATE OBJECT ri_obj TYPE zcl_abapgit_objects_bridge
@@ -53127,7 +53125,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
         LOOP AT lt_tadir ASSIGNING <ls_tadir>.
           li_progress->show( iv_current = sy-tabix
-                             iv_text    = |Delete { <ls_tadir>-obj_name }| ) ##NO_TEXT.
+                             iv_text    = |Delete { <ls_tadir>-obj_name }| ).
 
           CLEAR ls_item.
           ls_item-obj_type = <ls_tadir>-object.
@@ -53234,7 +53232,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
       li_progress->show( iv_current = sy-tabix
-                         iv_text    = |Deserialize { <ls_result>-obj_name }| ) ##NO_TEXT.
+                         iv_text    = |Deserialize { <ls_result>-obj_name }| ).
 
       CLEAR ls_item.
       ls_item-obj_type = <ls_result>-obj_type.
@@ -53356,7 +53354,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     LOOP AT is_step-objects ASSIGNING <ls_obj>.
       li_progress->show(
         iv_current = sy-tabix
-        iv_text    = |Deserialize { is_step-descr } - { <ls_obj>-item-obj_name }| ) ##NO_TEXT.
+        iv_text    = |Deserialize { is_step-descr } - { <ls_obj>-item-obj_name }| ).
 
       TRY.
           <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
@@ -54019,7 +54017,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
     ls_attributes-devclass = iv_package.
 
     lv_source = mo_files->read_string( iv_extra = 'source'
-                                       iv_ext   = 'xml' ) ##NO_TEXT.
+                                       iv_ext   = 'xml' ).
 
 * workaround: somewhere additional linefeeds are added
     lv_len = strlen( lv_source ) - 2.
@@ -54113,7 +54111,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
 
     mo_files->add_string( iv_extra  = 'source'
                           iv_ext    = 'xml'
-                          iv_string = lv_source ) ##NO_TEXT.
+                          iv_string = lv_source ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -60495,7 +60493,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
-    CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E' ##NO_TEXT.
+    CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
 
     DATA: lv_masklen TYPE c LENGTH 4.
 
@@ -62655,8 +62653,8 @@ ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
   METHOD code_item_section_handling.
-    CONSTANTS: lc_node_item TYPE string VALUE 'item' ##NO_TEXT.
-    CONSTANTS: lc_node_text TYPE string VALUE '#text' ##NO_TEXT.
+    CONSTANTS: lc_node_item TYPE string VALUE 'item'.
+    CONSTANTS: lc_node_text TYPE string VALUE '#text'.
 
     IF iv_name IN get_range_node_codes( ).
       cv_within_code_section = abap_true.
@@ -63035,10 +63033,10 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
     li_element->set_attribute(
       name      = 'sf'
       namespace = 'xmlns'
-      value     = 'urn:sap-com:SmartForms:2000:internal-structure' ). "#EC NOTEXT
+      value     = 'urn:sap-com:SmartForms:2000:internal-structure' ).
     li_element->set_attribute(
       name  = 'xmlns'
-      value = 'urn:sap-com:sdixml-ifr:2000' ).              "#EC NOTEXT
+      value = 'urn:sap-com:sdixml-ifr:2000' ).
 
     io_xml->set_raw( li_xml_doc->get_root_element( ) ).
 
@@ -67829,8 +67827,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   METHOD call_delete_fms.
 
     CONSTANTS:
-      lc_version_new      TYPE c VALUE 'N' ##NO_TEXT, "Include SCPRINTCONST version_new
-      lc_operation_delete TYPE c VALUE 'D' ##NO_TEXT.
+      lc_version_new      TYPE c VALUE 'N', "Include SCPRINTCONST version_new
+      lc_operation_delete TYPE c VALUE 'D'.
 
     DATA:
       lv_profile_type   TYPE scprattr-type,
@@ -72952,7 +72950,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'ATTR'
                   CHANGING cg_data = ls_attr ).
 
-    lv_source = mo_files->read_string( 'html' ) ##NO_TEXT.
+    lv_source = mo_files->read_string( 'html' ).
 
     ls_attr-devclass = iv_package.
     save( is_attr   = ls_attr
@@ -73007,7 +73005,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
                  ig_data = ls_attr ).
 
     mo_files->add_string( iv_ext    = 'html'
-                          iv_string = lv_source ) ##NO_TEXT.
+                          iv_string = lv_source ).
 
   ENDMETHOD.
   METHOD w3_api_load.
@@ -75382,7 +75380,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
       TABLES
         selections    = rt_text_header
       EXCEPTIONS
-        OTHERS        = 1 ##fm_subrc_ok ##NO_TEXT.  "#EC CI_SUBRC
+        OTHERS        = 1 ##fm_subrc_ok.  "#EC CI_SUBRC
 
   ENDMETHOD.
   METHOD get_last_changes.
@@ -75533,16 +75531,16 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_bdcdata> LIKE LINE OF lt_bdcdata.
 
     APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-    <ls_bdcdata>-program  = 'SAPMSSCF' ##NO_TEXT.
-    <ls_bdcdata>-dynpro   = '1102' ##NO_TEXT.
+    <ls_bdcdata>-program  = 'SAPMSSCF'.
+    <ls_bdcdata>-dynpro   = '1102'.
     <ls_bdcdata>-dynbegin = abap_true.
 
     APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-    <ls_bdcdata>-fnam = 'BDC_OKCODE' ##NO_TEXT.
-    <ls_bdcdata>-fval = '=SHOW' ##NO_TEXT.
+    <ls_bdcdata>-fnam = 'BDC_OKCODE'.
+    <ls_bdcdata>-fval = '=SHOW'.
 
     APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
-    <ls_bdcdata>-fnam = 'RSSCF-TDFORM' ##NO_TEXT.
+    <ls_bdcdata>-fnam = 'RSSCF-TDFORM'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
     CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
@@ -75729,7 +75727,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
         li_spot_ref->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while deleting ENSC: `
-          && lx_root->get_text( ) ##NO_TEXT.
+          && lx_root->get_text( ).
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
@@ -75793,7 +75791,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
 
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while deserializing ENSC: `
-          && lx_root->get_text( ) ##NO_TEXT.
+          && lx_root->get_text( ).
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
@@ -75880,7 +75878,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
 
       CATCH cx_enh_root INTO lx_root.
         lv_message = `Error occured while serializing ENSC: `
-          && lx_root->get_text( ) ##NO_TEXT.
+          && lx_root->get_text( ).
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
@@ -78570,7 +78568,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
       AND as4local = 'A'
       AND as4vers = '0000'.
     IF sy-subrc <> 0 OR ls_dd04v IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Not found in DD04L' ) ##NO_TEXT.
+      zcx_abapgit_exception=>raise( 'Not found in DD04L' ).
     ENDIF.
 
     SELECT SINGLE * FROM dd04t
@@ -81065,7 +81063,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         TRY.
             " If the file doesn't exist that's ok, because previously
             " the source code was stored in the xml. We are downward compatible.
-            <lg_source> = mo_files->read_string( 'asddlxs' ) ##no_text.
+            <lg_source> = mo_files->read_string( 'asddlxs' ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
@@ -81369,7 +81367,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
         ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_source>.
         ASSERT sy-subrc = 0.
-        <lg_source> = mo_files->read_string( 'asddls' ) ##no_text.
+        <lg_source> = mo_files->read_string( 'asddls' ).
 
         CALL METHOD ('CL_DD_DDL_HANDLER_FACTORY')=>('CREATE')
           RECEIVING
@@ -81537,7 +81535,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
               ASSIGN COMPONENT 'BASEINFO_STRING' OF STRUCTURE <lg_data_baseinfo> TO <lg_field>.
               ASSERT sy-subrc = 0.
               mo_files->add_string( iv_ext    = 'baseinfo'
-                                    iv_string = <lg_field> ) ##no_text.
+                                    iv_string = <lg_field> ).
               EXIT.
             ENDIF.
           ENDLOOP.
@@ -81573,7 +81571,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
     mo_files->add_string( iv_ext    = 'asddls'
-                          iv_string = <lg_field> ) ##no_text.
+                          iv_string = <lg_field> ).
 
     CLEAR <lg_field>.
 
@@ -81584,7 +81582,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
   METHOD read_baseinfo.
 
     TRY.
-        rv_baseinfo_string = mo_files->read_string( 'baseinfo' ) ##no_text.
+        rv_baseinfo_string = mo_files->read_string( 'baseinfo' ).
 
       CATCH zcx_abapgit_exception.
         " File not found. That's ok, as the object could have been created in a
@@ -82389,16 +82387,16 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     lt_source = mo_files->read_abap( ).
 
     lt_local_definitions = mo_files->read_abap( iv_extra = 'locals_def'
-                                                iv_error = abap_false ). "#EC NOTEXT
+                                                iv_error = abap_false ).
 
     lt_local_implementations = mo_files->read_abap( iv_extra = 'locals_imp'
-                                                    iv_error = abap_false ). "#EC NOTEXT
+                                                    iv_error = abap_false ).
 
     lt_local_macros = mo_files->read_abap( iv_extra = 'macros'
-                                           iv_error = abap_false ). "#EC NOTEXT
+                                           iv_error = abap_false ).
 
     lt_test_classes = mo_files->read_abap( iv_extra = 'testclasses'
-                                           iv_error = abap_false ). "#EC NOTEXT
+                                           iv_error = abap_false ).
 
     ls_class_key-clsname = ms_item-obj_name.
 
@@ -82882,7 +82880,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
       iv_type      = seop_ext_class_locals_def ).
     IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'locals_def'
-                          it_abap  = lt_source ).           "#EC NOTEXT
+                          it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
@@ -82890,7 +82888,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
       iv_type      = seop_ext_class_locals_imp ).
     IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'locals_imp'
-                          it_abap  = lt_source ).           "#EC NOTEXT
+                          it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
@@ -82900,7 +82898,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     mv_skip_testclass = mi_object_oriented_object_fct->get_skip_test_classes( ).
     IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
       mo_files->add_abap( iv_extra = 'testclasses'
-                          it_abap  = lt_source ).           "#EC NOTEXT
+                          it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
@@ -82908,7 +82906,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
       iv_type      = seop_ext_class_macros ).
     IF lines( lt_source ) > 0.
       mo_files->add_abap( iv_extra = 'macros'
-                          it_abap  = lt_source ).           "#EC NOTEXT
+                          it_abap  = lt_source ).
     ENDIF.
 
     serialize_xml( io_xml ).
@@ -86548,7 +86546,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
     lo_xml->get_attributes( IMPORTING ex_dom = ri_template_over_all ).
 
 * MD: Workaround, because nodes starting with "XML" are not allowed
-    li_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns( 'XMLREF_TYP' ). "#EC NOTEXT
+    li_nc_xmlref_typ ?= ri_template_over_all->get_elements_by_tag_name_ns( 'XMLREF_TYP' ).
     CALL METHOD li_nc_xmlref_typ->('GET_LENGTH')  " downport
       RECEIVING
         rval = lv_count.
@@ -87779,16 +87777,16 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
         value = lv_value ).
 
     lv_value = 'application/x-git-'
-                  && iv_service && '-pack-request'.         "#EC NOTEXT
+                  && iv_service && '-pack-request'.
     mi_client->request->set_header_field(
         name  = 'Content-Type'
-        value = lv_value ).                                 "#EC NOTEXT
+        value = lv_value ).
 
     lv_value = 'application/x-git-'
-                  && iv_service && '-pack-result'.          "#EC NOTEXT
+                  && iv_service && '-pack-result'.
     mi_client->request->set_header_field(
         name  = 'Accept'
-        value = lv_value ).                                 "#EC NOTEXT
+        value = lv_value ).
 
     IF mo_digest IS BOUND.
       mo_digest->run( mi_client ).
@@ -88092,7 +88090,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
             " a) SSL is setup properly in STRUST
             lv_text = 'HTTPS ARGUMENT_NOT_FOUND | STRUST/SSL Setup correct?'.
           WHEN OTHERS.
-            lv_text = 'While creating HTTP Client'.         "#EC NOTEXT
+            lv_text = 'While creating HTTP Client'.
 
         ENDCASE.
         zcx_abapgit_exception=>raise( lv_text ).
@@ -88118,7 +88116,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
         value = 'GET' ).
     li_client->request->set_header_field(
         name  = 'user-agent'
-        value = get_agent( ) ).                             "#EC NOTEXT
+        value = get_agent( ) ).
     lv_uri = zcl_abapgit_url=>path_name( iv_url ) &&
              '/info/refs?service=git-' &&
              iv_service &&
@@ -88354,7 +88352,7 @@ CLASS ZCL_ABAPGIT_2FA_GITHUB_AUTH IMPLEMENTATION.
     IF rv_access_token IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_2fa_gen_failed
         EXPORTING
-          mv_text = 'Token generation failed: parser error' ##NO_TEXT.
+          mv_text = 'Token generation failed: parser error'.
     ENDIF.
 
     " GitHub might need some time until the new token is ready to use, give it a second
@@ -88525,7 +88523,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_REGISTRY IMPLEMENTATION.
         fields          = lt_fields
       EXCEPTIONS
         error_in_fields = 1
-        OTHERS          = 2. "#EC NOTEXT
+        OTHERS          = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
     ENDIF.
@@ -88668,7 +88666,7 @@ CLASS ZCL_ABAPGIT_2FA_AUTH_BASE IMPLEMENTATION.
             INTO lv_error_msg.
     RAISE EXCEPTION TYPE zcx_abapgit_2fa_comm_error
       EXPORTING
-        mv_text = |Communication error: { lv_error_msg }| ##NO_TEXT.
+        mv_text = |Communication error: { lv_error_msg }|.
   ENDMETHOD.
   METHOD supports_url.
     rv_supported = mo_url_regex->create_matcher( text = iv_url )->match( ).
@@ -88843,7 +88841,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       iv_url     = iv_url
       iv_service = c_service-receive ).
 
-    lv_cap_list = 'report-status' ##NO_TEXT.
+    lv_cap_list = 'report-status'.
 
     lv_line = iv_old &&
               ` ` &&
@@ -88853,7 +88851,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
               zcl_abapgit_git_utils=>get_null( ) &&
               ` ` &&
               lv_cap_list &&
-              zif_abapgit_definitions=>c_newline.           "#EC NOTEXT
+              zif_abapgit_definitions=>c_newline.
     lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
 
     lv_buffer = lv_cmd_pkt && '0000'.
@@ -88926,19 +88924,19 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 
     LOOP AT lt_branches FROM 1 ASSIGNING <ls_branch>.
       IF sy-tabix = 1.
-        lv_capa = 'side-band-64k no-progress multi_ack' ##NO_TEXT.
+        lv_capa = 'side-band-64k no-progress multi_ack'.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && ` ` && lv_capa && zif_abapgit_definitions=>c_newline. "#EC NOTEXT
+          && ` ` && lv_capa && zif_abapgit_definitions=>c_newline.
       ELSE.
         lv_line = 'want' && ` ` && <ls_branch>-sha1
-          && zif_abapgit_definitions=>c_newline.            "#EC NOTEXT
+          && zif_abapgit_definitions=>c_newline.
       ENDIF.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
     ENDLOOP.
 
     IF iv_deepen = abap_true.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
-        && zif_abapgit_definitions=>c_newline ).            "#EC NOTEXT
+        && zif_abapgit_definitions=>c_newline ).
     ENDIF.
 
     lv_buffer = lv_buffer
@@ -89762,7 +89760,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     LOOP AT lt_deltas INTO ls_object.
       li_progress->show( iv_current = sy-tabix
-                         iv_text    = 'Decode deltas' ) ##NO_TEXT.
+                         iv_text    = 'Decode deltas' ).
 
       delta( EXPORTING is_object = ls_object
              CHANGING ct_objects = ct_objects ).
@@ -90052,7 +90050,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_string = ''.
 
-    CONCATENATE 'tree' lv_tree_lower INTO lv_tmp SEPARATED BY space. "#EC NOTEXT
+    CONCATENATE 'tree' lv_tree_lower INTO lv_tmp SEPARATED BY space.
     CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
     IF NOT is_commit-parent IS INITIAL.
@@ -90060,7 +90058,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       TRANSLATE lv_parent_lower TO LOWER CASE.
 
       CONCATENATE 'parent' lv_parent_lower
-        INTO lv_tmp SEPARATED BY space.                     "#EC NOTEXT
+        INTO lv_tmp SEPARATED BY space.
       CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
     ENDIF.
 
@@ -90069,16 +90067,16 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       TRANSLATE lv_parent_lower TO LOWER CASE.
 
       CONCATENATE 'parent' lv_parent_lower
-        INTO lv_tmp SEPARATED BY space.                     "#EC NOTEXT
+        INTO lv_tmp SEPARATED BY space.
       CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
     ENDIF.
 
     CONCATENATE 'author' is_commit-author
-      INTO lv_tmp SEPARATED BY space.                       "#EC NOTEXT
+      INTO lv_tmp SEPARATED BY space.
     CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
     CONCATENATE 'committer' is_commit-committer
-      INTO lv_tmp SEPARATED BY space.                       "#EC NOTEXT
+      INTO lv_tmp SEPARATED BY space.
     CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
 
     IF NOT is_commit-gpgsig IS INITIAL.
@@ -90303,7 +90301,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
   METHOD find_by_name.
 
     IF iv_branch_name IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Branch name empty' ) ##NO_TEXT.
+      zcx_abapgit_exception=>raise( 'Branch name empty' ).
     ENDIF.
 
     IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
@@ -90332,7 +90330,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       READ TABLE mt_branches INTO rs_branch
         WITH KEY name = iv_branch_name.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Branch not found' ) ##NO_TEXT.
+        zcx_abapgit_exception=>raise( 'Branch not found' ).
       ENDIF.
 
     ENDIF.
@@ -90439,7 +90437,7 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
         lv_hash = lv_data+4.
         lv_name = lv_data+45.
       ELSEIF sy-tabix = 1 AND strlen( lv_data ) = 8 AND lv_data(8) = '00000000'.
-        zcx_abapgit_exception=>raise( 'No branches, create branch manually by adding file' ) ##NO_TEXT.
+        zcx_abapgit_exception=>raise( 'No branches, create branch manually by adding file' ).
       ELSE.
         CONTINUE.
       ENDIF.
@@ -90575,7 +90573,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
     IF lines( lt_objects ) = 1.
       rv_comment = |BG: { lv_str }|.
     ELSE.
-      rv_comment = 'BG: Multiple objects' ##NO_TEXT.
+      rv_comment = 'BG: Multiple objects'.
       LOOP AT lt_objects INTO lv_str.
         CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
       ENDLOOP.
@@ -90622,7 +90620,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_background~get_description.
 
-    rv_description = 'Automatic push, fixed author' ##NO_TEXT.
+    rv_description = 'Automatic push, fixed author'.
 
   ENDMETHOD.
   METHOD zif_abapgit_background~get_settings.
@@ -90690,7 +90688,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
     IF lines( lt_objects ) = 1.
       rv_comment = |BG: { lv_str }|.
     ELSE.
-      rv_comment = 'BG: Multiple objects' ##NO_TEXT.
+      rv_comment = 'BG: Multiple objects'.
       LOOP AT lt_objects INTO lv_str.
         CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
       ENDLOOP.
@@ -90814,7 +90812,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     CREATE OBJECT lo_stage.
 
-    ls_comment-comment = 'BG: Deletion' ##NO_TEXT.
+    ls_comment-comment = 'BG: Deletion'.
 
     LOOP AT is_files-remote ASSIGNING <ls_remote>.
 
@@ -90828,7 +90826,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
 
     ENDLOOP.
 
-    ls_comment-committer-name  = 'Deletion' ##NO_TEXT.
+    ls_comment-committer-name  = 'Deletion'.
     ls_comment-committer-email = 'deletion@localhost'.
 
     io_repo->push( is_comment = ls_comment
@@ -90837,7 +90835,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_background~get_description.
 
-    rv_description = 'Automatic push, auto author' ##NO_TEXT.
+    rv_description = 'Automatic push, auto author'.
 
   ENDMETHOD.
   METHOD zif_abapgit_background~get_settings.
@@ -90853,7 +90851,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
     ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     IF lines( ls_files-local ) = 0 AND lines( ls_files-remote ) = 0.
-      ii_log->add_info( 'Nothing to stage' ) ##NO_TEXT.
+      ii_log->add_info( 'Nothing to stage' ).
       RETURN.
     ENDIF.
 
@@ -90865,7 +90863,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
   METHOD zif_abapgit_background~get_description.
 
-    rv_description = 'Automatic pull' ##NO_TEXT.
+    rv_description = 'Automatic pull'.
 
   ENDMETHOD.
   METHOD zif_abapgit_background~get_settings.
@@ -90949,14 +90947,14 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
         system_failure = 2
         OTHERS         = 3.
     IF sy-subrc <> 0.
-      WRITE: / 'Another intance of the program is already running' ##NO_TEXT.
+      WRITE: / 'Another intance of the program is already running'.
       RETURN.
     ENDIF.
 
     CREATE OBJECT lo_per.
     lt_list = lo_per->list( ).
 
-    WRITE: / 'Background mode' ##NO_TEXT.
+    WRITE: / 'Background mode'.
 
     LOOP AT lt_list ASSIGNING <ls_list>.
       lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( <ls_list>-key ).
@@ -90980,7 +90978,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
     ENDLOOP.
 
     IF lines( lt_list ) = 0.
-      WRITE: / 'Nothing configured' ##NO_TEXT.
+      WRITE: / 'Nothing configured'.
     ENDIF.
 
     CALL FUNCTION 'DEQUEUE_EZABAPGIT'
@@ -91060,7 +91058,7 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
     CALL TRANSFORMATION id
       OPTIONS value_handling = 'accept_data_loss'
       SOURCE XML lv_xml
-      RESULT data = rs_data ##NO_TEXT.
+      RESULT data = rs_data.
 
   ENDMETHOD.
   METHOD get_manifest_descriptor.
@@ -91195,7 +91193,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         TRY.
             CALL METHOD lo_source->('IF_OO_CLIF_SOURCE~LOCK').
           CATCH cx_oo_access_permission.
-            zcx_abapgit_exception=>raise( 'source_new, access permission exception' ) ##NO_TEXT.
+            zcx_abapgit_exception=>raise( 'source_new, access permission exception' ).
         ENDTRY.
 
         lt_source_code = get_interface_source( ).
@@ -91223,7 +91221,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         class_not_existing = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from CL_OO_SOURCE' ) ##NO_TEXT.
+      zcx_abapgit_exception=>raise( 'error from CL_OO_SOURCE' ).
     ENDIF.
 
     TRY.
@@ -91233,9 +91231,9 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         lo_source->save( ).
         lo_source->access_permission( seok_access_free ).
       CATCH cx_oo_access_permission.
-        zcx_abapgit_exception=>raise( 'permission error' ) ##NO_TEXT.
+        zcx_abapgit_exception=>raise( 'permission error' ).
       CATCH cx_oo_source_save_failure.
-        zcx_abapgit_exception=>raise( 'save failure' ) ##NO_TEXT.
+        zcx_abapgit_exception=>raise( 'save failure' ).
     ENDTRY.
   ENDMETHOD.
   METHOD create_interface.
@@ -91245,7 +91243,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
     ls_interface_properties-clsname  = c_interface_name.
     ls_interface_properties-version  = '1'.
     ls_interface_properties-langu    = 'E'.
-    ls_interface_properties-descript = 'APACK: Manifest interface' ##NO_TEXT.
+    ls_interface_properties-descript = 'APACK: Manifest interface'.
     ls_interface_properties-exposure = '2'.
     ls_interface_properties-state    = '1'.
     ls_interface_properties-unicode  = abap_true.
@@ -91264,7 +91262,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         other           = 6
         OTHERS          = 7.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from SEO_INTERFACE_CREATE_COMPLETE' ) ##NO_TEXT.
+      zcx_abapgit_exception=>raise( 'Error from SEO_INTERFACE_CREATE_COMPLETE' ).
     ENDIF.
 
     add_intf_source_and_activate( ).
@@ -91272,34 +91270,34 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_interface_source.
 
-    INSERT `INTERFACE zif_apack_manifest PUBLIC.` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `  TYPES: BEGIN OF ty_dependency,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           group_id       TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           artifact_id    TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           version        TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           git_url        TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           target_package TYPE devclass,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `         END OF ty_dependency,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `         ty_dependencies    TYPE STANDARD TABLE OF ty_dependency` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `                            WITH NON-UNIQUE DEFAULT KEY,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `         ty_repository_type TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `         BEGIN OF ty_descriptor,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           group_id        TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           artifact_id     TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           version         TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           repository_type TYPE ty_repository_type,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           git_url         TYPE string,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `           dependencies    TYPE ty_dependencies,` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `         END OF ty_descriptor.` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `  CONSTANTS: co_file_name         TYPE string VALUE '.apack-manifest.xml',` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `             co_abap_git          TYPE ty_repository_type VALUE 'abapGit',` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `             co_interface_version TYPE i VALUE 1.` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `  DATA: descriptor TYPE ty_descriptor READ-ONLY.` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `` INTO TABLE rt_source ##NO_TEXT.
-    INSERT `ENDINTERFACE.` INTO TABLE rt_source ##NO_TEXT.
+    INSERT `INTERFACE zif_apack_manifest PUBLIC.` INTO TABLE rt_source.
+    INSERT `` INTO TABLE rt_source.
+    INSERT `  TYPES: BEGIN OF ty_dependency,` INTO TABLE rt_source.
+    INSERT `           group_id       TYPE string,` INTO TABLE rt_source.
+    INSERT `           artifact_id    TYPE string,` INTO TABLE rt_source.
+    INSERT `           version        TYPE string,` INTO TABLE rt_source.
+    INSERT `           git_url        TYPE string,` INTO TABLE rt_source.
+    INSERT `           target_package TYPE devclass,` INTO TABLE rt_source.
+    INSERT `         END OF ty_dependency,` INTO TABLE rt_source.
+    INSERT `         ty_dependencies    TYPE STANDARD TABLE OF ty_dependency` INTO TABLE rt_source.
+    INSERT `                            WITH NON-UNIQUE DEFAULT KEY,` INTO TABLE rt_source.
+    INSERT `         ty_repository_type TYPE string,` INTO TABLE rt_source.
+    INSERT `         BEGIN OF ty_descriptor,` INTO TABLE rt_source.
+    INSERT `           group_id        TYPE string,` INTO TABLE rt_source.
+    INSERT `           artifact_id     TYPE string,` INTO TABLE rt_source.
+    INSERT `           version         TYPE string,` INTO TABLE rt_source.
+    INSERT `           repository_type TYPE ty_repository_type,` INTO TABLE rt_source.
+    INSERT `           git_url         TYPE string,` INTO TABLE rt_source.
+    INSERT `           dependencies    TYPE ty_dependencies,` INTO TABLE rt_source.
+    INSERT `         END OF ty_descriptor.` INTO TABLE rt_source.
+    INSERT `` INTO TABLE rt_source.
+    INSERT `  CONSTANTS: co_file_name         TYPE string VALUE '.apack-manifest.xml',` INTO TABLE rt_source.
+    INSERT `             co_abap_git          TYPE ty_repository_type VALUE 'abapGit',` INTO TABLE rt_source.
+    INSERT `             co_interface_version TYPE i VALUE 1.` INTO TABLE rt_source.
+    INSERT `` INTO TABLE rt_source.
+    INSERT `  DATA: descriptor TYPE ty_descriptor READ-ONLY.` INTO TABLE rt_source.
+    INSERT `` INTO TABLE rt_source.
+    INSERT `ENDINTERFACE.` INTO TABLE rt_source.
 
   ENDMETHOD.
   METHOD interface_exists.
@@ -91364,7 +91362,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         OTHERS                 = 4.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ) ##NO_TEXT.
+      zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ).
     ENDIF.
 
   ENDMETHOD.
@@ -91704,10 +91702,10 @@ CLASS lcl_password_dialog IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD on_screen_init.
-    s_title = 'Login'     ##NO_TEXT.
-    s_url   = 'Repo URL'  ##NO_TEXT.
-    s_user  = 'User'      ##NO_TEXT.
-    s_pass  = 'Password'  ##NO_TEXT.
+    s_title = 'Login'.
+    s_url   = 'Repo URL'.
+    s_user  = 'User'.
+    s_pass  = 'Password'.
   ENDMETHOD.
 
   METHOD on_screen_output.
@@ -92019,5 +92017,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-03T07:09:13.681Z
+* abapmerge 0.14.1 - 2020-09-03T07:15:17.913Z
 ****************************************************
