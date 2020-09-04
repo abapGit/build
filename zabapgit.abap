@@ -11762,7 +11762,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
     CLASS-METHODS render_repo_top_commit_hash
       IMPORTING
         !ii_html        TYPE REF TO zif_abapgit_html
-        !iv_repo_online TYPE REF TO zcl_abapgit_repo_online
+        !io_repo_online TYPE REF TO zcl_abapgit_repo_online
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -16520,14 +16520,6 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS reset_status .
-    METHODS validate
-        ABSTRACT
-      RAISING
-        zcx_abapgit_exception .
-    METHODS reset
-        ABSTRACT
-      RAISING
-        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -16672,10 +16664,6 @@ CLASS zcl_abapgit_repo_offline DEFINITION
         REDEFINITION .
     METHODS has_remote_source
         REDEFINITION .
-    METHODS validate
-        REDEFINITION .
-    METHODS reset
-        REDEFINITION .
   PROTECTED SECTION.
 
     METHODS reset_remote
@@ -16734,10 +16722,11 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-switched_origin .
     METHODS switch_origin
       IMPORTING
-        !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
+        !iv_url       TYPE zif_abapgit_persistence=>ty_repo-url
         !iv_overwrite TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
+
     METHODS get_files_remote
         REDEFINITION .
     METHODS get_name
@@ -16745,10 +16734,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS has_remote_source
         REDEFINITION .
     METHODS rebuild_local_checksums
-        REDEFINITION .
-    METHODS validate
-        REDEFINITION .
-    METHODS reset
         REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -20882,14 +20867,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-  METHOD reset.
-
-    " Reset repo to master branch
-    set_branch_name( 'refs/heads/master' ).
-
-    COMMIT WORK AND WAIT.
-
-  ENDMETHOD.
   METHOD set_branch_name.
 
     reset_remote( ).
@@ -20903,19 +20880,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
 
     reset_remote( ).
     set( iv_url = iv_url ).
-
-  ENDMETHOD.
-  METHOD validate.
-
-    DATA:
-      lo_branches TYPE REF TO zcl_abapgit_git_branch_list,
-      ls_branch   TYPE zif_abapgit_definitions=>ty_git_branch.
-
-    " Check if branch still exists since it might have been deleted in remote repo
-    " This will raise exception if not
-    lo_branches = zcl_abapgit_git_transport=>branches( ms_data-url ).
-
-    ls_branch = lo_branches->find_by_name( ms_data-branch_name ).
 
   ENDMETHOD.
   METHOD switch_origin.
@@ -21026,9 +20990,6 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
   METHOD has_remote_source.
     rv_yes = boolc( lines( mt_remote ) > 0 ).
   ENDMETHOD.
-  METHOD reset.
-    " Nothing to do so far
-  ENDMETHOD.
   METHOD reset_remote.
 
     DATA lt_backup LIKE mt_remote.
@@ -21044,9 +21005,6 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
     super->reset_remote( ).
     set_files_remote( lt_backup ).
 
-  ENDMETHOD.
-  METHOD validate.
-    " Nothing to do so far
   ENDMETHOD.
 ENDCLASS.
 
@@ -37112,7 +37070,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh }?{ mv_key }|
                      iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
-    ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'cog/grey70' )
+    ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'cog' )
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?{ mv_key }|
                      iv_title = `Repository Settings` ).
   ENDMETHOD.
@@ -37325,28 +37283,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
     " Reinit, for the case of type change
     mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
 
-    " Check if repo is still valid and reset if necessary to consistent state
-    TRY.
-        mo_repo->validate( ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        lv_msg = lx_error->get_text( ) && '. Fallback to master branch.'.
-        MESSAGE lv_msg TYPE 'S'.
-
-        mo_repo->reset( ).
-    ENDTRY.
-
     lo_news = zcl_abapgit_news=>create( mo_repo ).
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-      io_repo               = mo_repo
-      io_news               = lo_news
-      iv_interactive_branch = abap_true ) ).
-
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
-
     TRY.
+        CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+        ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
+          io_repo               = mo_repo
+          io_news               = lo_news
+          iv_interactive_branch = abap_true ) ).
+
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
+
         lv_render_transports = zcl_abapgit_factory=>get_cts_api(
           )->is_chrec_possible_for_package( mo_repo->get_package( ) ).
 
@@ -37440,6 +37388,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
         ri_html->add( '</div>' ).
         ri_html->add( '</div>' ).
       CATCH zcx_abapgit_exception INTO lx_error.
+        " Reset 'last shown repo' so next start will go to repo overview
+        " and allow troubleshooting of issue
+        zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
+
         ri_html->add(
           render_head_line(
             iv_lstate = lv_lstate
@@ -44734,6 +44686,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     DATA: lo_repo_online       TYPE REF TO zcl_abapgit_repo_online,
           lo_pback             TYPE REF TO zcl_abapgit_persist_background,
+          lx_error             TYPE REF TO zcx_abapgit_exception,
           lv_hint              TYPE string,
           lv_icon              TYPE string,
           lv_package_jump_data TYPE string.
@@ -44765,8 +44718,16 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                               && |{ lo_repo_online->get_url( ) }|
                       iv_class = |url| ).
 
-      render_repo_top_commit_hash( ii_html        = ri_html
-                                   iv_repo_online = lo_repo_online ).
+      TRY.
+          render_repo_top_commit_hash( ii_html        = ri_html
+                                       io_repo_online = lo_repo_online ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          " In case of missing or wrong credentials, show message in status bar
+          lv_hint = lx_error->get_text( ).
+          IF lv_hint CS 'credentials'.
+            MESSAGE lv_hint TYPE 'S' DISPLAY LIKE 'E'.
+          ENDIF.
+      ENDTRY.
 
     ENDIF.
 
@@ -44851,14 +44812,14 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
           lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
           lv_icon_commit       TYPE string.
 
-    lv_commit_hash = iv_repo_online->get_sha1_remote( ).
+    lv_commit_hash = io_repo_online->get_sha1_remote( ).
     lv_commit_short_hash = lv_commit_hash(7).
     lv_icon_commit = zcl_abapgit_html=>icon( iv_name  = 'code-commit'
                                              iv_class = 'pad-sides'
                                              iv_hint  = 'Commit' ).
 
     TRY.
-        lv_display_url = iv_repo_online->get_commit_display_url( lv_commit_hash ).
+        lv_display_url = io_repo_online->get_commit_display_url( lv_commit_hash ).
 
         ii_html->add_a( iv_txt   = |{ lv_icon_commit }{ lv_commit_short_hash }|
                         iv_act   = |{ zif_abapgit_definitions=>c_action-url }?|
@@ -88008,7 +87969,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
         cv_pass         = lv_pass ).
 
     IF lv_user IS INITIAL.
-      zcx_abapgit_exception=>raise( 'HTTP 401, unauthorized' ).
+      zcx_abapgit_exception=>raise( 'Unauthorized access. Check your credentials' ).
     ENDIF.
 
     IF lv_user <> lv_default_user.
@@ -90311,7 +90272,8 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       READ TABLE mt_branches INTO rs_branch
         WITH KEY name = iv_branch_name.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Branch not found: { get_display_name( iv_branch_name ) }| ).
+        zcx_abapgit_exception=>raise( |Branch { get_display_name( iv_branch_name )
+          } not found. Use 'Branch' > 'Switch' to select a different branch| ).
       ENDIF.
 
     ENDIF.
@@ -92017,5 +91979,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-03T07:32:08.970Z
+* abapmerge 0.14.1 - 2020-09-04T07:33:57.322Z
 ****************************************************
