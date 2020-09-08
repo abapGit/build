@@ -682,6 +682,7 @@ CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_message_helper DEFINITION DEFERRED.
@@ -762,6 +763,7 @@ CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
+CLASS zcl_abapgit_free_sel_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
@@ -2064,6 +2066,9 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
                                 WITH DEFAULT KEY .
+  TYPES:
+    ty_object_type_range TYPE RANGE OF trobjtype,
+    ty_object_name_range TYPE RANGE OF sobj_name.
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -2141,6 +2146,7 @@ INTERFACE zif_abapgit_definitions .
       zip_package                   TYPE string VALUE 'zip_package',
       zip_transport                 TYPE string VALUE 'zip_transport',
       zip_object                    TYPE string VALUE 'zip_object',
+      performance_test              TYPE string VALUE 'performance_test',
       git_pull                      TYPE string VALUE 'git_pull',
       git_reset                     TYPE string VALUE 'git_reset',
       git_branch_create             TYPE string VALUE 'git_branch_create',
@@ -3012,7 +3018,7 @@ INTERFACE zif_abapgit_popups .
 
   METHODS popup_search_help
     IMPORTING
-      !iv_tab_field TYPE string
+      !iv_tab_field   TYPE string
     RETURNING
       VALUE(rv_value) TYPE ddshretval-fieldval
     RAISING
@@ -3038,8 +3044,8 @@ INTERFACE zif_abapgit_popups .
     IMPORTING
       iv_source_branch_name TYPE string
     EXPORTING
-      !ev_name   TYPE string
-      !ev_cancel TYPE abap_bool
+      !ev_name              TYPE string
+      !ev_cancel            TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS repo_new_offline
@@ -3159,9 +3165,19 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception.
   METHODS choose_pr_popup
     IMPORTING
-      it_pulls TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+      it_pulls       TYPE zif_abapgit_pr_enum_provider=>tty_pulls
     RETURNING
       VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
+    RAISING
+      zcx_abapgit_exception.
+  METHODS popup_perf_test_parameters
+    EXPORTING
+      et_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range
+      et_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range
+    CHANGING
+      cv_package                    TYPE devclass
+      cv_include_sub_packages       TYPE abap_bool
+      cv_serialize_master_lang_only TYPE abap_bool
     RAISING
       zcx_abapgit_exception.
 ENDINTERFACE.
@@ -11554,6 +11570,58 @@ CLASS zcl_abapgit_exception_viewer DEFINITION
           zcx_abapgit_exception.
 
 ENDCLASS.
+"! Free Selections Dialog
+CLASS zcl_abapgit_free_sel_dialog DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    TYPES:
+      BEGIN OF ty_free_sel_field,
+        name             TYPE fieldname,
+        only_parameter   TYPE abap_bool,
+        param_obligatory TYPE abap_bool,
+        value            TYPE string,
+        value_range      TYPE rsds_selopt_t,
+        ddic_tabname     TYPE tabname,
+        ddic_fieldname   TYPE fieldname,
+        text             TYPE rsseltext,
+      END OF ty_free_sel_field,
+      ty_free_sel_field_tab TYPE STANDARD TABLE OF ty_free_sel_field WITH DEFAULT KEY.
+    METHODS:
+      constructor IMPORTING iv_title      TYPE syst_title OPTIONAL
+                            iv_frame_text TYPE syst_title OPTIONAL,
+      set_fields CHANGING ct_fields TYPE ty_free_sel_field_tab,
+      show RAISING zcx_abapgit_cancel
+                   zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      ty_field_text_tab TYPE STANDARD TABLE OF rsdstexts WITH DEFAULT KEY.
+    METHODS:
+      convert_input_fields EXPORTING et_default_values TYPE rsds_trange
+                                     es_restriction    TYPE sscr_restrict_ds
+                                     et_fields         TYPE rsdsfields_t
+                                     et_field_texts    TYPE ty_field_text_tab,
+      free_selections_init IMPORTING it_default_values TYPE rsds_trange
+                                     is_restriction    TYPE sscr_restrict_ds
+                           EXPORTING ev_selection_id   TYPE dynselid
+                           CHANGING  ct_fields         TYPE rsdsfields_t
+                                     ct_field_texts    TYPE ty_field_text_tab
+                           RAISING   zcx_abapgit_exception,
+      free_selections_dialog IMPORTING iv_selection_id  TYPE dynselid
+                             EXPORTING et_result_ranges TYPE rsds_trange
+                             CHANGING  ct_fields        TYPE rsdsfields_t
+                             RAISING   zcx_abapgit_cancel
+                                       zcx_abapgit_exception,
+      validate_results IMPORTING it_result_ranges TYPE rsds_trange
+                       RAISING   zcx_abapgit_exception,
+      transfer_results_to_input IMPORTING it_result_ranges TYPE rsds_trange.
+    DATA:
+      mr_fields     TYPE REF TO ty_free_sel_field_tab,
+      mv_title      TYPE syst_title,
+      mv_frame_text TYPE syst_title.
+ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   CREATE PRIVATE
   FRIENDS ZCL_ABAPGIT_ui_factory .
@@ -14293,16 +14361,16 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-      FOR EVENT link_click OF cl_salv_events_table
+        FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
     METHODS on_select_list_function_click
-      FOR EVENT added_function OF cl_salv_events_table
+        FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
         !e_salv_function .
     METHODS on_double_click
-      FOR EVENT double_click OF cl_salv_events_table
+        FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
@@ -14327,6 +14395,15 @@ CLASS zcl_abapgit_popups DEFINITION
                 ev_value_3        TYPE spo_value
       CHANGING  ct_fields         TYPE ty_lt_fields
       RAISING   zcx_abapgit_exception.
+    METHODS popup_get_from_free_selections
+      IMPORTING
+        iv_title      TYPE syst_title OPTIONAL
+        iv_frame_text TYPE syst_title OPTIONAL
+      CHANGING
+        ct_fields     TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field_tab
+      RAISING
+        zcx_abapgit_cancel
+        zcx_abapgit_exception.
     METHODS validate_folder_logic
       IMPORTING
         iv_folder_logic TYPE string
@@ -14400,10 +14477,13 @@ CLASS zcl_abapgit_services_basis DEFINITION
       IMPORTING
         iv_prefill_package TYPE devclass OPTIONAL
       RETURNING
-        VALUE(rv_package) TYPE devclass
+        VALUE(rv_package)  TYPE devclass
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS test_changed_by
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS run_performance_test
       RAISING
         zcx_abapgit_exception.
 
@@ -16342,6 +16422,62 @@ CLASS zcl_abapgit_news DEFINITION
         !iv_current_version TYPE string
       RETURNING
         VALUE(rt_log)       TYPE tt_log .
+ENDCLASS.
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION DEFERRED.
+*"* use this source file for any type of declarations (class
+*"* definitions, interfaces or type declarations) you need for
+*"* components in the private section
+
+* renamed: zcl_abapgit_performance_test :: lcl_dummy_progress
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_progress.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+"! Performance test run
+CLASS zcl_abapgit_performance_test DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    TYPES:
+      BEGIN OF gty_result,
+        pgmid    TYPE pgmid,
+        object   TYPE trobjtype,
+        obj_name TYPE sobj_name,
+        devclass TYPE devclass,
+        counter  TYPE i,
+        runtime  TYPE i,
+        seconds  TYPE p LENGTH 16 DECIMALS 6,
+      END OF gty_result,
+      gty_result_tab TYPE STANDARD TABLE OF gty_result WITH KEY pgmid object obj_name.
+    METHODS:
+      constructor IMPORTING iv_package                    TYPE devclass
+                            iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
+                            iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_true,
+      set_object_type_filter IMPORTING it_object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
+      set_object_name_filter IMPORTING it_object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
+      get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
+      get_object_name_filter RETURNING VALUE(rt_object_name_range) TYPE zif_abapgit_definitions=>ty_object_name_range,
+      run_measurement RAISING zcx_abapgit_exception,
+      get_result RETURNING VALUE(rt_result) TYPE gty_result_tab.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    METHODS:
+      select_tadir_entries RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+                           RAISING   zcx_abapgit_exception.
+    DATA:
+      mv_package                    TYPE devclass,
+      mv_include_sub_packages       TYPE abap_bool,
+      mv_serialize_master_lang_only TYPE abap_bool,
+      BEGIN OF ms_filter_parameters,
+        object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
+        object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
+      END OF ms_filter_parameters,
+      mt_result TYPE gty_result_tab.
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
@@ -21853,6 +21989,107 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     SORT lt_checksums BY item.
     set( it_checksums = lt_checksums ).
 
+  ENDMETHOD.
+ENDCLASS.
+
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
+  METHOD zif_abapgit_progress~set_total.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_progress~show.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_performance_test IMPLEMENTATION.
+  METHOD constructor.
+    mv_package = iv_package.
+    mv_include_sub_packages = iv_include_sub_packages.
+    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
+  ENDMETHOD.
+
+  METHOD get_object_name_filter.
+    rt_object_name_range = ms_filter_parameters-object_name_range.
+  ENDMETHOD.
+
+  METHOD get_object_type_filter.
+    rt_object_type_range = ms_filter_parameters-object_type_range.
+  ENDMETHOD.
+
+  METHOD set_object_name_filter.
+    ms_filter_parameters-object_name_range = it_object_name_range.
+  ENDMETHOD.
+
+  METHOD set_object_type_filter.
+    ms_filter_parameters-object_type_range = it_object_type_range.
+  ENDMETHOD.
+
+  METHOD run_measurement.
+    DATA: li_actual_progress TYPE REF TO zif_abapgit_progress,
+          lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tadir_single    TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lo_serializer      TYPE REF TO zcl_abapgit_serialize,
+          lv_start_runtime   TYPE i,
+          lv_end_runtime     TYPE i,
+          lx_exception       TYPE REF TO zcx_abapgit_exception,
+          lo_dummy_progress  TYPE REF TO kHGwlHkHxZmEuFZbkdsccOjvsqAbPX.
+    FIELD-SYMBOLS: <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir,
+                   <ls_result> TYPE gty_result.
+
+    CLEAR mt_result.
+
+    li_actual_progress = zcl_abapgit_progress=>get_instance( 1 ).
+    CREATE OBJECT lo_dummy_progress.
+    zcl_abapgit_progress=>set_instance( lo_dummy_progress ).
+
+    TRY.
+        lt_tadir = select_tadir_entries( ).
+
+        CREATE OBJECT lo_serializer
+          EXPORTING
+            iv_serialize_master_lang_only = mv_serialize_master_lang_only.
+
+        LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+          INSERT <ls_tadir> INTO TABLE lt_tadir_single.
+
+          GET RUN TIME FIELD lv_start_runtime.
+
+          lo_serializer->serialize(
+            it_tadir            = lt_tadir_single
+            iv_force_sequential = abap_true ).
+
+          GET RUN TIME FIELD lv_end_runtime.
+
+          APPEND INITIAL LINE TO mt_result ASSIGNING <ls_result>.
+          <ls_result>-pgmid = <ls_tadir>-pgmid.
+          <ls_result>-object = <ls_tadir>-object.
+          <ls_result>-obj_name = <ls_tadir>-obj_name.
+          <ls_result>-devclass = <ls_tadir>-devclass.
+          <ls_result>-runtime = lv_end_runtime - lv_start_runtime.
+          <ls_result>-seconds = <ls_result>-runtime / 1000000.
+
+          CLEAR lt_tadir_single.
+        ENDLOOP.
+
+      CATCH zcx_abapgit_exception INTO lx_exception.
+        zcl_abapgit_progress=>set_instance( li_actual_progress ).
+        RAISE EXCEPTION lx_exception.
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD select_tadir_entries.
+    rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = mv_package
+      iv_ignore_subpackages = boolc( mv_include_sub_packages = abap_false ) ).
+
+    DELETE rt_tadir WHERE object NOT IN ms_filter_parameters-object_type_range
+                       OR obj_name NOT IN ms_filter_parameters-object_name_range.
+  ENDMETHOD.
+
+  METHOD get_result.
+    rt_result = mt_result.
   ENDMETHOD.
 ENDCLASS.
 
@@ -32765,7 +33002,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
+CLASS zcl_abapgit_services_basis IMPLEMENTATION.
   METHOD create_package.
 
     DATA ls_package_data TYPE scompkdtln.
@@ -32806,6 +33043,78 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
 
     MESSAGE lv_user TYPE 'S'.
 
+  ENDMETHOD.
+
+  METHOD run_performance_test.
+    DATA: lo_performance                TYPE REF TO zcl_abapgit_performance_test,
+          lv_package                    TYPE devclass,
+          lv_include_sub_packages       TYPE abap_bool VALUE abap_true,
+          lv_serialize_master_lang_only TYPE abap_bool VALUE abap_true,
+          lt_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range,
+          lt_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range,
+          lt_result                     TYPE zcl_abapgit_performance_test=>gty_result_tab,
+          lo_alv                        TYPE REF TO cl_salv_table,
+          lx_salv_error                 TYPE REF TO cx_salv_error,
+          lv_current_repo               TYPE zif_abapgit_persistence=>ty_value,
+          lo_runtime_column             TYPE REF TO cl_salv_column,
+          lo_seconds_column             TYPE REF TO cl_salv_column.
+
+    TRY.
+        lv_current_repo = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
+        IF lv_current_repo IS NOT INITIAL.
+          lv_package = zcl_abapgit_repo_srv=>get_instance( )->get( lv_current_repo )->get_package( ).
+        ENDIF.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+    zcl_abapgit_ui_factory=>get_popups( )->popup_perf_test_parameters(
+      IMPORTING
+        et_object_type_filter         = lt_object_type_filter
+        et_object_name_filter         = lt_object_name_filter
+      CHANGING
+        cv_package                    = lv_package
+        cv_include_sub_packages       = lv_include_sub_packages
+        cv_serialize_master_lang_only = lv_serialize_master_lang_only ).
+
+    CREATE OBJECT lo_performance
+      EXPORTING
+        iv_package                    = lv_package
+        iv_include_sub_packages       = lv_include_sub_packages
+        iv_serialize_master_lang_only = lv_serialize_master_lang_only.
+    lo_performance->set_object_type_filter( lt_object_type_filter ).
+    lo_performance->set_object_name_filter( lt_object_name_filter ).
+
+    lo_performance->run_measurement( ).
+
+    lt_result = lo_performance->get_result( ).
+
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = lo_alv
+          CHANGING
+            t_table      = lt_result ).
+        lo_alv->get_functions( )->set_all( ).
+        lo_alv->get_display_settings( )->set_list_header( 'Serialization Performance Test Results' ).
+        lo_runtime_column = lo_alv->get_columns( )->get_column( 'RUNTIME' ).
+        lo_runtime_column->set_medium_text( 'Runtime' ).
+        lo_runtime_column->set_visible( abap_false ).
+        lo_seconds_column = lo_alv->get_columns( )->get_column( 'SECONDS' ).
+        lo_seconds_column->set_medium_text( 'Seconds' ).
+        lo_alv->get_columns( )->set_count_column( 'COUNTER' ).
+        lo_alv->get_aggregations( )->add_aggregation( lo_runtime_column->get_columnname( ) ).
+        lo_alv->get_aggregations( )->add_aggregation( lo_seconds_column->get_columnname( ) ).
+        lo_alv->set_screen_popup(
+          start_column = 1
+          end_column   = 180
+          start_line   = 1
+          end_line     = 25 ).
+        lo_alv->display( ).
+      CATCH cx_salv_error INTO lx_salv_error.
+        zcx_abapgit_exception=>raise(
+          iv_text     = lx_salv_error->get_text( )
+          ix_previous = lx_salv_error ).
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -33094,7 +33403,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -33563,16 +33872,16 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
       EXPORTING
-        textline1  = 'Select pull request'
-        titel      = 'Select pull request'
-        start_col  = 30
-        start_row  = 5
+        textline1 = 'Select pull request'
+        titel     = 'Select pull request'
+        start_col = 30
+        start_row = 5
       IMPORTING
-        answer     = lv_answer
+        answer    = lv_answer
       TABLES
-        t_spopli   = lt_selection
+        t_spopli  = lt_selection
       EXCEPTIONS
-        OTHERS     = 1.
+        OTHERS    = 1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
     ENDIF.
@@ -33778,12 +34087,12 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
       EXPORTING
-        tabname   = lv_tabname
-        fieldname = lv_fieldname
+        tabname    = lv_tabname
+        fieldname  = lv_fieldname
       TABLES
         return_tab = lt_ret
       EXCEPTIONS
-        OTHERS = 5.
+        OTHERS     = 5.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |F4IF_FIELD_VALUE_REQUEST error [{ iv_tab_field }]| ).
@@ -34377,6 +34686,86 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ev_value_3 = <ls_field>-value.
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD zif_abapgit_popups~popup_perf_test_parameters.
+    DATA: lt_fields TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field_tab.
+    FIELD-SYMBOLS: <ls_field> TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'PACKAGE'.
+    <ls_field>-only_parameter = abap_true.
+    <ls_field>-ddic_tabname = 'TADIR'.
+    <ls_field>-ddic_fieldname = 'DEVCLASS'.
+    <ls_field>-param_obligatory = abap_true.
+    <ls_field>-value = cv_package.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'PGMID'.
+    <ls_field>-only_parameter = abap_true.
+    <ls_field>-ddic_tabname = 'TADIR'.
+    <ls_field>-ddic_fieldname = 'PGMID'.
+    <ls_field>-value = 'R3TR'.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'OBJECT'.
+    <ls_field>-ddic_tabname = 'TADIR'.
+    <ls_field>-ddic_fieldname = 'OBJECT'.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'OBJ_NAME'.
+    <ls_field>-ddic_tabname = 'TADIR'.
+    <ls_field>-ddic_fieldname = 'OBJ_NAME'.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'INCLUDE_SUB_PACKAGES'.
+    <ls_field>-only_parameter = abap_true.
+    <ls_field>-ddic_tabname = 'TDEVC'.
+    <ls_field>-ddic_fieldname = 'IS_ENHANCEABLE'.
+    <ls_field>-text = 'Include subpackages'.
+    <ls_field>-value = cv_include_sub_packages.
+
+    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+    <ls_field>-name = 'MASTER_LANG_ONLY'.
+    <ls_field>-only_parameter = abap_true.
+    <ls_field>-ddic_tabname = 'TVDIR'.
+    <ls_field>-ddic_fieldname = 'FLAG'.
+    <ls_field>-text = 'Master lang only'.
+    <ls_field>-value = cv_serialize_master_lang_only.
+
+    popup_get_from_free_selections(
+      EXPORTING
+        iv_title       = 'Serialization Performance Test Parameters'
+        iv_frame_text  = 'Parameters'
+      CHANGING
+        ct_fields      = lt_fields ).
+
+    LOOP AT lt_fields ASSIGNING <ls_field>.
+      CASE <ls_field>-name.
+        WHEN 'PACKAGE'.
+          cv_package = <ls_field>-value.
+        WHEN 'OBJECT'.
+          et_object_type_filter = <ls_field>-value_range.
+        WHEN 'OBJ_NAME'.
+          et_object_name_filter = <ls_field>-value_range.
+        WHEN 'INCLUDE_SUB_PACKAGES'.
+          cv_include_sub_packages = boolc( <ls_field>-value IS NOT INITIAL ).
+        WHEN 'MASTER_LANG_ONLY'.
+          cv_serialize_master_lang_only = boolc( <ls_field>-value IS NOT INITIAL ).
+      ENDCASE.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD popup_get_from_free_selections.
+    DATA: lo_free_sel_dialog TYPE REF TO zcl_abapgit_free_sel_dialog.
+
+    CREATE OBJECT lo_free_sel_dialog
+      EXPORTING
+        iv_title      = iv_title
+        iv_frame_text = iv_frame_text.
+
+    lo_free_sel_dialog->set_fields( CHANGING ct_fields = ct_fields ).
+    lo_free_sel_dialog->show( ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -36086,8 +36475,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-changed_by.
         zcl_abapgit_services_basis=>test_changed_by( ).
         ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
-      WHEN OTHERS.
-        " To pass abaplint, keep the place for future commands
+      WHEN zif_abapgit_definitions=>c_action-performance_test.
+        zcl_abapgit_services_basis=>run_performance_test( ).
+        ev_state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
   ENDMETHOD.
@@ -44249,6 +44639,9 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       iv_txt = 'Debug Info'
       iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
     )->add(
+      iv_txt = 'Performance Test'
+      iv_act = zif_abapgit_definitions=>c_action-performance_test
+    )->add(
       iv_txt = 'Settings'
       iv_act = zif_abapgit_definitions=>c_action-go_settings ).
 
@@ -45043,6 +45436,307 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'cancelled' ).
     ENDIF.
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_free_sel_dialog IMPLEMENTATION.
+  METHOD constructor.
+    mv_title = iv_title.
+    mv_frame_text = iv_frame_text.
+  ENDMETHOD.
+
+  METHOD set_fields.
+    GET REFERENCE OF ct_fields INTO mr_fields.
+  ENDMETHOD.
+
+  METHOD show.
+    DATA: lt_default_values   TYPE rsds_trange,
+          ls_restriction      TYPE sscr_restrict_ds,
+          lt_fields           TYPE rsdsfields_t,
+          lt_field_texts      TYPE ty_field_text_tab,
+          lv_repeat_dialog    TYPE abap_bool VALUE abap_true,
+          lv_selection_id     TYPE dynselid,
+          lt_results          TYPE rsds_trange,
+          lx_validation_error TYPE REF TO zcx_abapgit_exception.
+
+    convert_input_fields(
+      IMPORTING
+        et_default_values = lt_default_values
+        es_restriction    = ls_restriction
+        et_fields         = lt_fields
+        et_field_texts    = lt_field_texts ).
+
+    WHILE lv_repeat_dialog = abap_true.
+      lv_repeat_dialog = abap_false.
+
+      free_selections_init(
+        EXPORTING
+          it_default_values = lt_default_values
+          is_restriction    = ls_restriction
+        IMPORTING
+          ev_selection_id   = lv_selection_id
+        CHANGING
+          ct_fields         = lt_fields
+          ct_field_texts    = lt_field_texts ).
+
+      free_selections_dialog(
+        EXPORTING
+          iv_selection_id  = lv_selection_id
+        IMPORTING
+          et_result_ranges = lt_results
+        CHANGING
+          ct_fields        = lt_fields ).
+
+      TRY.
+          validate_results( lt_results ).
+        CATCH zcx_abapgit_exception INTO lx_validation_error.
+          lv_repeat_dialog = abap_true.
+          lt_default_values = lt_results.
+          MESSAGE lx_validation_error TYPE 'I' DISPLAY LIKE 'E'.
+          CONTINUE.
+      ENDTRY.
+
+      transfer_results_to_input( lt_results ).
+    ENDWHILE.
+  ENDMETHOD.
+
+  METHOD convert_input_fields.
+    CONSTANTS: lc_only_eq_optlist_name TYPE sychar10 VALUE 'ONLYEQ'.
+    DATA: ls_parameter_opt_list TYPE sscr_opt_list.
+    FIELD-SYMBOLS: <ls_input_field>            TYPE ty_free_sel_field,
+                   <lt_input_fields>           TYPE ty_free_sel_field_tab,
+                   <ls_free_sel_field>         TYPE rsdsfields,
+                   <ls_restriction_ass>        TYPE sscr_ass_ds,
+                   <ls_text>                   TYPE rsdstexts,
+                   <ls_default_value>          TYPE rsds_range,
+                   <ls_default_value_range>    TYPE rsds_frange,
+                   <ls_default_val_range_line> TYPE rsdsselopt.
+
+    ASSERT mr_fields IS BOUND.
+    ASSIGN mr_fields->* TO <lt_input_fields>.
+
+    LOOP AT <lt_input_fields> ASSIGNING <ls_input_field>.
+      APPEND INITIAL LINE TO et_fields ASSIGNING <ls_free_sel_field>.
+      <ls_free_sel_field>-fieldname = <ls_input_field>-ddic_fieldname.
+      <ls_free_sel_field>-tablename = <ls_input_field>-ddic_tabname.
+
+      IF <ls_input_field>-only_parameter = abap_true.
+        IF es_restriction IS INITIAL.
+          ls_parameter_opt_list-name = lc_only_eq_optlist_name.
+          ls_parameter_opt_list-options-eq = abap_true.
+          APPEND ls_parameter_opt_list TO es_restriction-opt_list_tab.
+        ENDIF.
+
+        APPEND INITIAL LINE TO es_restriction-ass_tab ASSIGNING <ls_restriction_ass>.
+        <ls_restriction_ass>-kind = 'S'.
+        <ls_restriction_ass>-fieldname = <ls_input_field>-ddic_fieldname.
+        <ls_restriction_ass>-tablename = <ls_input_field>-ddic_tabname.
+        <ls_restriction_ass>-sg_main = 'I'.
+        <ls_restriction_ass>-sg_addy = 'N'.
+        <ls_restriction_ass>-op_main = lc_only_eq_optlist_name.
+      ENDIF.
+
+      IF <ls_input_field>-text IS NOT INITIAL.
+        APPEND INITIAL LINE TO et_field_texts ASSIGNING <ls_text>.
+        <ls_text>-fieldname = <ls_input_field>-ddic_fieldname.
+        <ls_text>-tablename = <ls_input_field>-ddic_tabname.
+        <ls_text>-text = <ls_input_field>-text.
+      ENDIF.
+
+      IF <ls_input_field>-value IS NOT INITIAL OR <ls_input_field>-value_range IS NOT INITIAL.
+        READ TABLE et_default_values WITH KEY tablename = <ls_input_field>-ddic_tabname
+                                     ASSIGNING <ls_default_value>.
+        IF sy-subrc <> 0.
+          APPEND INITIAL LINE TO et_default_values ASSIGNING <ls_default_value>.
+          <ls_default_value>-tablename = <ls_input_field>-ddic_tabname.
+        ENDIF.
+
+        APPEND INITIAL LINE TO <ls_default_value>-frange_t ASSIGNING <ls_default_value_range>.
+        <ls_default_value_range>-fieldname = <ls_input_field>-ddic_fieldname.
+
+        IF <ls_input_field>-value IS NOT INITIAL.
+          APPEND INITIAL LINE TO <ls_default_value_range>-selopt_t ASSIGNING <ls_default_val_range_line>.
+          <ls_default_val_range_line>-sign = 'I'.
+          <ls_default_val_range_line>-option = 'EQ'.
+          <ls_default_val_range_line>-low = <ls_input_field>-value.
+        ELSEIF <ls_input_field>-value_range IS NOT INITIAL.
+          <ls_default_value_range>-selopt_t = <ls_input_field>-value_range.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD free_selections_init.
+    CALL FUNCTION 'FREE_SELECTIONS_INIT'
+      EXPORTING
+        kind                     = 'F'
+        field_ranges_int         = it_default_values
+        restriction              = is_restriction
+      IMPORTING
+        selection_id             = ev_selection_id
+      TABLES
+        fields_tab               = ct_fields
+        field_texts              = ct_field_texts
+      EXCEPTIONS
+        fields_incomplete        = 1
+        fields_no_join           = 2
+        field_not_found          = 3
+        no_tables                = 4
+        table_not_found          = 5
+        expression_not_supported = 6
+        incorrect_expression     = 7
+        illegal_kind             = 8
+        area_not_found           = 9
+        inconsistent_area        = 10
+        kind_f_no_fields_left    = 11
+        kind_f_no_fields         = 12
+        too_many_fields          = 13
+        dup_field                = 14
+        field_no_type            = 15
+        field_ill_type           = 16
+        dup_event_field          = 17
+        node_not_in_ldb          = 18
+        area_no_field            = 19
+        OTHERS                   = 20.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from FREE_SELECTIONS_INIT: { sy-subrc }| ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD free_selections_dialog.
+    CALL FUNCTION 'FREE_SELECTIONS_DIALOG'
+      EXPORTING
+        selection_id    = iv_selection_id
+        title           = mv_title
+        frame_text      = mv_frame_text
+        status          = 1
+        as_window       = abap_true
+        no_intervals    = abap_true
+        tree_visible    = abap_false
+      IMPORTING
+        field_ranges    = et_result_ranges
+      TABLES
+        fields_tab      = ct_fields
+      EXCEPTIONS
+        internal_error  = 1
+        no_action       = 2
+        selid_not_found = 3
+        illegal_status  = 4
+        OTHERS          = 5.
+    CASE sy-subrc.
+      WHEN 0 ##NEEDED.
+      WHEN 2.
+        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |Error from FREE_SELECTIONS_DIALOG: { sy-subrc }| ).
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD validate_results.
+    DATA: ls_error_msg      TYPE symsg,
+          lv_ddut_fieldname TYPE fnam_____4,
+          lv_value          TYPE rsdsselop_.
+    FIELD-SYMBOLS: <ls_result_range_for_tab> TYPE rsds_range,
+                   <ls_result_range_line>    TYPE rsds_frange,
+                   <ls_input_field>          TYPE ty_free_sel_field,
+                   <lt_input_fields>         TYPE ty_free_sel_field_tab,
+                   <ls_selopt_line>          TYPE rsdsselopt.
+
+    ASSIGN mr_fields->* TO <lt_input_fields>.
+    ASSERT sy-subrc = 0.
+
+    LOOP AT it_result_ranges ASSIGNING <ls_result_range_for_tab>.
+      LOOP AT <ls_result_range_for_tab>-frange_t ASSIGNING <ls_result_range_line>.
+        READ TABLE <lt_input_fields> WITH KEY ddic_tabname = <ls_result_range_for_tab>-tablename
+                                              ddic_fieldname = <ls_result_range_line>-fieldname
+                                     ASSIGNING <ls_input_field>.
+        ASSERT sy-subrc = 0.
+        IF <ls_input_field>-only_parameter = abap_false.
+          CONTINUE.
+        ENDIF.
+
+        CASE lines( <ls_result_range_line>-selopt_t ).
+          WHEN 0.
+            CLEAR lv_value.
+          WHEN 1.
+            READ TABLE <ls_result_range_line>-selopt_t INDEX 1 ASSIGNING <ls_selopt_line>.
+            ASSERT sy-subrc = 0.
+            lv_value = <ls_selopt_line>-low.
+          WHEN OTHERS.
+            ASSERT 1 = 2.
+        ENDCASE.
+
+        CLEAR ls_error_msg.
+        lv_ddut_fieldname = <ls_input_field>-ddic_fieldname.
+
+        CALL FUNCTION 'DDUT_INPUT_CHECK'
+          EXPORTING
+            tabname            = <ls_input_field>-ddic_tabname
+            fieldname          = lv_ddut_fieldname
+            value              = lv_value
+            accept_all_initial = abap_true
+            value_list         = 'S'
+          IMPORTING
+            msgid              = ls_error_msg-msgid
+            msgty              = ls_error_msg-msgty
+            msgno              = ls_error_msg-msgno
+            msgv1              = ls_error_msg-msgv1
+            msgv2              = ls_error_msg-msgv2
+            msgv3              = ls_error_msg-msgv3
+            msgv4              = ls_error_msg-msgv4.
+        IF ls_error_msg IS NOT INITIAL.
+          zcx_abapgit_exception=>raise_t100(
+            iv_msgid = ls_error_msg-msgid
+            iv_msgno = ls_error_msg-msgno
+            iv_msgv1 = ls_error_msg-msgv1
+            iv_msgv2 = ls_error_msg-msgv2
+            iv_msgv3 = ls_error_msg-msgv3
+            iv_msgv4 = ls_error_msg-msgv4 ).
+        ELSEIF <ls_input_field>-param_obligatory = abap_true AND lv_value IS INITIAL.
+          zcx_abapgit_exception=>raise( |Field '{ <ls_input_field>-name }' is obligatory| ).
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD transfer_results_to_input.
+    FIELD-SYMBOLS: <ls_input_field>          TYPE ty_free_sel_field,
+                   <lt_input_fields>         TYPE ty_free_sel_field_tab,
+                   <ls_result_range_for_tab> TYPE rsds_range,
+                   <ls_result_range_line>    TYPE rsds_frange,
+                   <ls_selopt_line>          TYPE rsdsselopt.
+
+    ASSIGN mr_fields->* TO <lt_input_fields>.
+    ASSERT sy-subrc = 0.
+
+    LOOP AT <lt_input_fields> ASSIGNING <ls_input_field>.
+      READ TABLE it_result_ranges WITH KEY tablename = <ls_input_field>-ddic_tabname
+                                  ASSIGNING <ls_result_range_for_tab>.
+      IF sy-subrc = 0.
+        READ TABLE <ls_result_range_for_tab>-frange_t WITH KEY fieldname = <ls_input_field>-ddic_fieldname
+                                                      ASSIGNING <ls_result_range_line>.
+        IF sy-subrc = 0 AND <ls_result_range_line>-selopt_t IS NOT INITIAL.
+          IF <ls_input_field>-only_parameter = abap_true.
+            ASSERT lines( <ls_result_range_line>-selopt_t ) = 1.
+
+            READ TABLE <ls_result_range_line>-selopt_t INDEX 1 ASSIGNING <ls_selopt_line>.
+            ASSERT sy-subrc = 0.
+
+            ASSERT <ls_selopt_line>-sign = 'I' AND
+                   <ls_selopt_line>-option = 'EQ' AND
+                   <ls_selopt_line>-high IS INITIAL.
+
+            <ls_input_field>-value = <ls_selopt_line>-low.
+          ELSE.
+            <ls_input_field>-value_range = <ls_result_range_line>-selopt_t.
+          ENDIF.
+        ELSE.
+          CLEAR: <ls_input_field>-value, <ls_input_field>-value_range.
+        ENDIF.
+      ELSE.
+        CLEAR: <ls_input_field>-value, <ls_input_field>-value_range.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
 
@@ -91766,5 +92460,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-08T08:37:24.141Z
+* abapmerge 0.14.1 - 2020-09-08T08:40:36.275Z
 ****************************************************
