@@ -4221,18 +4221,17 @@ CLASS zcl_abapgit_git_transport DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
 * remote to local
     CLASS-METHODS upload_pack_by_branch
       IMPORTING
-        !iv_url         TYPE string
-        !iv_branch_name TYPE string
-        !iv_deepen      TYPE abap_bool DEFAULT abap_true
-        !it_branches    TYPE zif_abapgit_definitions=>ty_git_branch_list_tt OPTIONAL
+        !iv_url          TYPE string
+        !iv_branch_name  TYPE string
+        !iv_deepen_level TYPE i DEFAULT 1
+        !it_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt OPTIONAL
       EXPORTING
-        !et_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
-        !eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
+        !et_objects      TYPE zif_abapgit_definitions=>ty_objects_tt
+        !ev_branch       TYPE zif_abapgit_definitions=>ty_sha1
+        !eo_branch_list  TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
 * local to remote
@@ -22813,12 +22812,12 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
     zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
-        iv_url         = ms_merge-repo->get_url( )
-        iv_branch_name = ms_merge-repo->get_branch_name( )
-        iv_deepen      = abap_false
-        it_branches    = lt_upload
+        iv_url          = ms_merge-repo->get_url( )
+        iv_branch_name  = ms_merge-repo->get_branch_name( )
+        iv_deepen_level = 0
+        it_branches     = lt_upload
       IMPORTING
-        et_objects     = rt_objects ).
+        et_objects      = rt_objects ).
 
   ENDMETHOD.
   METHOD find_ancestors.
@@ -25127,12 +25126,12 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
-        iv_url         = io_repo->get_url( )
-        iv_branch_name = io_repo->get_branch_name( )
-        iv_deepen      = abap_false
-        it_branches    = lt_branches_and_tags
+        iv_url          = io_repo->get_url( )
+        iv_branch_name  = io_repo->get_branch_name( )
+        iv_deepen_level = 0
+        it_branches     = lt_branches_and_tags
       IMPORTING
-        et_objects     = rt_objects ).
+        et_objects      = rt_objects ).
 
     DELETE rt_objects WHERE type = zif_abapgit_definitions=>c_type-blob.
   ENDMETHOD.
@@ -89376,8 +89375,8 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
     ENDLOOP.
 
-    IF iv_deepen = abap_true.
-      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( 'deepen 1'
+    IF iv_deepen_level > 0.
+      lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( |deepen { iv_deepen_level }|
         && zif_abapgit_definitions=>c_newline ).
     ENDIF.
 
@@ -92458,5 +92457,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-09T06:40:31.207Z
+* abapmerge 0.14.1 - 2020-09-09T07:51:26.488Z
 ****************************************************
