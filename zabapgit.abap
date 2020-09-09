@@ -89544,11 +89544,9 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   ENDMETHOD.
   METHOD delete_branch.
 
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
+    DATA: lv_pack TYPE xstring.
 * "client MUST send an empty packfile"
 * https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
 
     zcl_abapgit_git_transport=>receive_pack(
       iv_url         = iv_url
@@ -92460,5 +92458,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-08T08:40:36.275Z
+* abapmerge 0.14.1 - 2020-09-09T06:40:31.207Z
 ****************************************************
