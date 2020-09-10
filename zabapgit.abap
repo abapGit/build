@@ -1679,7 +1679,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_file.
       INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
-    END OF ty_file .
+         END OF ty_file .
   TYPES:
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
@@ -1758,7 +1758,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
-    END OF ty_overwrite .
+         END OF ty_overwrite .
   TYPES:
     ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
                               WITH UNIQUE HASHED KEY object_type_and_name
@@ -2114,8 +2114,8 @@ INTERFACE zif_abapgit_definitions .
       executable TYPE ty_chmod VALUE '100755',
       dir        TYPE ty_chmod VALUE '40000 ',
     END OF c_chmod .
-  CONSTANTS c_crlf TYPE abap_cr_lf VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
-  CONSTANTS c_newline TYPE abap_char1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
+  CONSTANTS c_crlf TYPE c LENGTH 2 VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
+  CONSTANTS c_newline TYPE c LENGTH 1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
   CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
   CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
@@ -2675,7 +2675,7 @@ INTERFACE zif_abapgit_xml_output .
       !ii_xml  TYPE REF TO if_ixml_element .
   METHODS render
     IMPORTING
-      !iv_normalize TYPE sap_bool DEFAULT abap_true
+      !iv_normalize TYPE abap_bool DEFAULT abap_true
       !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
     RETURNING
       VALUE(rv_xml) TYPE string .
@@ -39656,7 +39656,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD render_link_hints.
 
     DATA: lv_checked       TYPE string,
-          lv_link_hint_key TYPE char01.
+          lv_link_hint_key TYPE c LENGTH 1.
 
     IF mo_settings->get_link_hints_enabled( ) = abap_true.
       lv_checked = 'checked'.
@@ -44460,7 +44460,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_link_hints.
 
-    DATA: lv_link_hint_key TYPE char01.
+    DATA: lv_link_hint_key TYPE c LENGTH 1.
 
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
 
@@ -45500,7 +45500,7 @@ CLASS zcl_abapgit_free_sel_dialog IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD convert_input_fields.
-    CONSTANTS: lc_only_eq_optlist_name TYPE sychar10 VALUE 'ONLYEQ'.
+    CONSTANTS: lc_only_eq_optlist_name TYPE c LENGTH 10 VALUE 'ONLYEQ'.
     DATA: ls_parameter_opt_list TYPE sscr_opt_list.
     FIELD-SYMBOLS: <ls_input_field>            TYPE ty_free_sel_field,
                    <lt_input_fields>           TYPE ty_free_sel_field_tab,
@@ -51713,7 +51713,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_dynpros.
 
-    CONSTANTS lc_rpyty_force_off TYPE char01 VALUE '/'.
+    CONSTANTS lc_rpyty_force_off TYPE c LENGTH 1 VALUE '/'.
 
     DATA: lv_name   TYPE dwinactiv-obj_name,
           ls_dynpro LIKE LINE OF it_dynpros.
@@ -61566,9 +61566,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     TYPES: BEGIN OF ty_data,
-             as4user TYPE as4user,
-             as4date TYPE as4date,
-             as4time TYPE as4time,
+             as4user TYPE dd02l-as4user,
+             as4date TYPE dd02l-as4date,
+             as4time TYPE dd02l-as4time,
            END OF ty_data.
 
     DATA: lt_data TYPE STANDARD TABLE OF ty_data WITH DEFAULT KEY,
@@ -70164,7 +70164,7 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
           lo_otgr       TYPE REF TO cl_cls_object_type_group,
           lx_pak_error  TYPE REF TO cx_root,
           lv_text       TYPE string,
-          lv_masterlang TYPE sylangu,
+          lv_masterlang TYPE sy-langu,
           lo_parents    TYPE REF TO data.
 
     FIELD-SYMBOLS: <ls_groupt>  LIKE LINE OF ls_otgr-texts,
@@ -92457,5 +92457,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-09T07:51:26.488Z
+* abapmerge 0.14.1 - 2020-09-10T13:31:51.813Z
 ****************************************************
