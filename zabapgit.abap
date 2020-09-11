@@ -14308,6 +14308,7 @@ CLASS zcl_abapgit_popups DEFINITION
   FRIENDS ZCL_ABAPGIT_ui_factory.
 
   PUBLIC SECTION.
+    CONSTANTS: c_default_column TYPE lvc_fname VALUE `DEFAULT_COLUMN` ##NO_TEXT.
 
     INTERFACES: zif_abapgit_popups.
     ALIASES:
@@ -33423,21 +33424,38 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     DATA: lr_struct        TYPE REF TO data,
           lt_components    TYPE cl_abap_structdescr=>component_table,
+          lo_data_descr    TYPE REF TO cl_abap_datadescr,
+          lo_elem_descr    TYPE REF TO cl_abap_elemdescr,
           lo_struct_descr  TYPE REF TO cl_abap_structdescr,
           lo_struct_descr2 TYPE REF TO cl_abap_structdescr.
 
     FIELD-SYMBOLS: <lt_table>     TYPE STANDARD TABLE,
                    <ls_component> TYPE abap_componentdescr,
                    <lg_line>      TYPE data,
-                   <lg_data>      TYPE any.
+                   <lg_data>      TYPE any,
+                   <lg_value>     TYPE any.
 
     mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( it_list ).
-    lo_struct_descr ?= mo_table_descr->get_table_line_type( ).
-    lt_components = lo_struct_descr->get_components( ).
+    lo_data_descr = mo_table_descr->get_table_line_type( ).
+
+    CASE lo_data_descr->kind.
+      WHEN cl_abap_elemdescr=>kind_elem.
+        lo_elem_descr ?= mo_table_descr->get_table_line_type( ).
+        INSERT INITIAL LINE INTO lt_components ASSIGNING <ls_component> INDEX 1.
+        <ls_component>-name = c_default_column.
+        <ls_component>-type = lo_elem_descr.
+
+      WHEN cl_abap_elemdescr=>kind_struct.
+        lo_struct_descr ?= mo_table_descr->get_table_line_type( ).
+        lt_components = lo_struct_descr->get_components( ).
+
+    ENDCASE.
+
+    IF lt_components IS INITIAL.
+      RETURN.
+    ENDIF.
 
     INSERT INITIAL LINE INTO lt_components ASSIGNING <ls_component> INDEX 1.
-    ASSERT sy-subrc = 0.
-
     <ls_component>-name = c_fieldname_selected.
     <ls_component>-type ?= cl_abap_datadescr=>describe_by_name( 'FLAG' ).
 
@@ -33454,7 +33472,16 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     LOOP AT it_list ASSIGNING <lg_data>.
       CLEAR <lg_line>.
-      MOVE-CORRESPONDING <lg_data> TO <lg_line>.
+      CASE lo_data_descr->kind.
+        WHEN cl_abap_elemdescr=>kind_elem.
+          ASSIGN COMPONENT c_default_column OF STRUCTURE <lg_data> TO <lg_value>.
+          ASSERT <lg_value> IS ASSIGNED.
+          <lg_line> = <lg_value>.
+
+        WHEN OTHERS.
+          MOVE-CORRESPONDING <lg_data> TO <lg_line>.
+
+      ENDCASE.
       INSERT <lg_line> INTO TABLE <lt_table>.
     ENDLOOP.
 
@@ -33510,10 +33537,12 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     FIELD-SYMBOLS: <lg_exporting>    TYPE any,
                    <lt_table>        TYPE STANDARD TABLE,
                    <lg_line>         TYPE any,
+                   <lg_value>        TYPE any,
                    <lv_selected>     TYPE abap_bool,
                    <lv_selected_row> TYPE LINE OF salv_t_row.
 
-    DATA: lo_selections    TYPE REF TO cl_salv_selections,
+    DATA: lo_data_descr    TYPE REF TO cl_abap_datadescr,
+          lo_selections    TYPE REF TO cl_salv_selections,
           lt_selected_rows TYPE salv_t_row.
 
     ASSIGN mr_table->* TO <lt_table>.
@@ -33530,7 +33559,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         READ TABLE <lt_table>
           ASSIGNING <lg_line>
           INDEX <lv_selected_row>.
-        CHECK <lv_selected_row> IS ASSIGNED.
+        CHECK <lg_line> IS ASSIGNED.
 
         ASSIGN COMPONENT c_fieldname_selected
            OF STRUCTURE <lg_line>
@@ -33548,9 +33577,22 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     CREATE DATA lr_exporting LIKE LINE OF et_list.
     ASSIGN lr_exporting->* TO <lg_exporting>.
 
+    mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( et_list ).
+    lo_data_descr = mo_table_descr->get_table_line_type( ).
+
     LOOP AT <lt_table> ASSIGNING <lg_line> WHERE (lv_condition).
       CLEAR <lg_exporting>.
-      MOVE-CORRESPONDING <lg_line> TO <lg_exporting>.
+
+      CASE lo_data_descr->kind.
+        WHEN cl_abap_elemdescr=>kind_elem.
+          ASSIGN COMPONENT c_default_column OF STRUCTURE <lg_line> TO <lg_value>.
+          ASSERT <lg_value> IS ASSIGNED.
+          <lg_exporting> = <lg_value>.
+
+        WHEN OTHERS.
+          MOVE-CORRESPONDING <lg_line> TO <lg_exporting>.
+
+      ENDCASE.
       APPEND <lg_exporting> TO et_list.
     ENDLOOP.
 
@@ -92457,5 +92499,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-10T13:31:51.813Z
+* abapmerge 0.14.1 - 2020-09-11T07:26:40.532Z
 ****************************************************
