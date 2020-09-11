@@ -51984,6 +51984,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
     ls_progdir_new-rstat   = is_progdir-rstat.
     ls_progdir_new-sqlx    = is_progdir-sqlx.
     ls_progdir_new-uccheck = is_progdir-uccheck.
+    ls_progdir_new-clas    = is_progdir-clas.
 
     CALL FUNCTION 'UPDATE_PROGDIR'
       EXPORTING
@@ -92506,5 +92507,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-11T09:24:56.790Z
+* abapmerge 0.14.1 - 2020-09-11T14:43:26.405Z
 ****************************************************
