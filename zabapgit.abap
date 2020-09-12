@@ -11397,9 +11397,6 @@ CLASS zcl_abapgit_html DEFINITION
 
     INTERFACES zif_abapgit_html .
 
-    ALIASES add
-      FOR zif_abapgit_html~add .
-
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
@@ -11910,7 +11907,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         zcx_abapgit_exception .
     METHODS scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -12381,15 +12378,15 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
 
     METHODS render_menu
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_stage
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_form
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_text_input
@@ -12399,7 +12396,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         !iv_value      TYPE string OPTIONAL
         !iv_max_length TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS get_comment_default
       RETURNING
         VALUE(rv_text) TYPE string .
@@ -12413,13 +12410,11 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         !it_stage      TYPE zif_abapgit_definitions=>ty_stage_tt
       RETURNING
         VALUE(rv_text) TYPE string .
-
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -12452,7 +12447,7 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
         VALUE(rv_html) TYPE string .
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -12534,7 +12529,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS render_table_head_non_unified
       IMPORTING
-        !io_html TYPE REF TO zcl_abapgit_html
+        !ii_html TYPE REF TO zif_abapgit_html
         !is_diff TYPE ty_file_diff .
     METHODS render_beacon_begin_of_row
       IMPORTING
@@ -12572,13 +12567,13 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       END OF c_actions .
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
-    DATA mv_seed TYPE string .                  " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .                    " Unique page id to bind JS sessionStorage
 
     METHODS render_diff
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_diff_head
@@ -12590,7 +12585,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_beacon
@@ -12613,7 +12608,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff OPTIONAL
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS append_diff
       IMPORTING
         !it_remote TYPE zif_abapgit_definitions=>ty_files_tt
@@ -12637,15 +12632,15 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_table_head_unified
       IMPORTING
-        !io_html TYPE REF TO zcl_abapgit_html .
+        !ii_html TYPE REF TO zif_abapgit_html .
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS filter_diff_by_files
@@ -12828,7 +12823,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_diff
       IMPORTING
         !is_diff       TYPE ty_file_diff
@@ -12840,17 +12835,17 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_lines
       IMPORTING
         !is_diff       TYPE ty_file_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_line_split
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_table_head
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
@@ -13120,31 +13115,31 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     METHODS post_hotkeys .
     METHODS render_proxy
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_development_internals
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_form_begin
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_form_end
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_max_lines
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_icon_scaling
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_ui_theme
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_adt_jump_enabled
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_commit_msg
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS post_proxy .
     METHODS post
       IMPORTING
@@ -13163,21 +13158,21 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
       IMPORTING
         !iv_header     TYPE csequence
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_section_end
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_start_up
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_link_hints
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS render_hotkeys
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS is_post_field_checked
@@ -13188,7 +13183,7 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
 
     METHODS render_parallel_proc
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
@@ -13234,7 +13229,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
-    DATA mv_seed TYPE string .           " Unique page id to bind JS sessionStorage
+    DATA mv_seed TYPE string .             " Unique page id to bind JS sessionStorage
     DATA mv_filter_value TYPE string .
 
     METHODS find_changed_by
@@ -13249,7 +13244,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(rt_transports) TYPE ty_transport_tt .
     METHODS render_list
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_file
       IMPORTING
         !iv_context    TYPE string
@@ -13296,7 +13291,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -13359,46 +13354,49 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
       render_content REDEFINITION.
 
   PRIVATE SECTION.
-    CONSTANTS: BEGIN OF c_tag_type,
-                 lightweight TYPE string VALUE 'lightweight',
-                 annotated   TYPE string VALUE 'annotated',
-               END OF c_tag_type.
 
-    DATA: mo_repo_online   TYPE REF TO zcl_abapgit_repo_online,
-          mv_selected_type TYPE string.
+    CONSTANTS:
+      BEGIN OF c_tag_type,
+        lightweight TYPE string VALUE 'lightweight',
+        annotated   TYPE string VALUE 'annotated',
+      END OF c_tag_type .
+    DATA mo_repo_online TYPE REF TO zcl_abapgit_repo_online .
+    DATA mv_selected_type TYPE string .
 
-    METHODS:
-      render_menu
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
-
-      render_form
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html
-        RAISING   zcx_abapgit_exception,
-
-      render_text_input
-        IMPORTING iv_name        TYPE string
-                  iv_label       TYPE string
-                  iv_value       TYPE string OPTIONAL
-                  iv_max_length  TYPE string OPTIONAL
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
-
-      create_tag
-        IMPORTING it_postdata TYPE cnht_post_data_tab
-        RAISING   zcx_abapgit_exception,
-
-      parse_tag_request
-        IMPORTING it_postdata TYPE cnht_post_data_tab
-        EXPORTING eg_fields   TYPE any,
-      parse_change_tag_type_request
-        IMPORTING
-          it_postdata TYPE cnht_post_data_tab.
-
+    METHODS render_menu
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS render_form
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_text_input
+      IMPORTING
+        !iv_name       TYPE string
+        !iv_label      TYPE string
+        !iv_value      TYPE string OPTIONAL
+        !iv_max_length TYPE string OPTIONAL
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS create_tag
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS parse_tag_request
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      EXPORTING
+        !eg_fields   TYPE any .
+    METHODS parse_change_tag_type_request
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab .
     METHODS render_scripts
       RETURNING
-        VALUE(ro_html) TYPE REF TO zcl_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tutorial DEFINITION
   FINAL
@@ -13432,15 +13430,15 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
 
     CONSTANTS:
       BEGIN OF c_actions,
-        repo_list         TYPE string VALUE 'abapgit_home' ##NO_TEXT,
-        change_dir        TYPE string VALUE 'change_dir' ##NO_TEXT,
-        toggle_hide_files TYPE string VALUE 'toggle_hide_files' ##NO_TEXT,
-        toggle_folders    TYPE string VALUE 'toggle_folders' ##NO_TEXT,
-        toggle_changes    TYPE string VALUE 'toggle_changes' ##NO_TEXT,
-        toggle_diff_first TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
-        display_more      TYPE string VALUE 'display_more' ##NO_TEXT,
+        repo_list                TYPE string VALUE 'abapgit_home' ##NO_TEXT,
+        change_dir               TYPE string VALUE 'change_dir' ##NO_TEXT,
+        toggle_hide_files        TYPE string VALUE 'toggle_hide_files' ##NO_TEXT,
+        toggle_folders           TYPE string VALUE 'toggle_folders' ##NO_TEXT,
+        toggle_changes           TYPE string VALUE 'toggle_changes' ##NO_TEXT,
+        toggle_diff_first        TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
+        display_more             TYPE string VALUE 'display_more' ##NO_TEXT,
         repo_switch_origin_to_pr TYPE string VALUE 'repo_switch_origin_to_pr',
-        repo_reset_origin  TYPE string VALUE 'repo_reset_origin',
+        repo_reset_origin        TYPE string VALUE 'repo_reset_origin',
       END OF c_actions.
     INTERFACES: zif_abapgit_gui_hotkeys.
 
@@ -13456,112 +13454,153 @@ CLASS zcl_abapgit_gui_page_view_repo DEFINITION
     METHODS render_content REDEFINITION.
   PRIVATE SECTION.
 
-    DATA: mo_repo                       TYPE REF TO zcl_abapgit_repo,
-          mv_cur_dir                    TYPE string,
-          mv_hide_files                 TYPE abap_bool,
-          mv_max_lines                  TYPE i,
-          mv_max_setting                TYPE i,
-          mv_show_folders               TYPE abap_bool,
-          mv_changes_only               TYPE abap_bool,
-          mv_order_by                   TYPE string,
-          mv_order_descending           TYPE abap_bool,
-          mv_diff_first                 TYPE abap_bool,
-          mv_key                        TYPE zif_abapgit_persistence=>ty_value,
-          mv_are_changes_recorded_in_tr TYPE abap_bool.
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo .
+    DATA mv_cur_dir TYPE string .
+    DATA mv_hide_files TYPE abap_bool .
+    DATA mv_max_lines TYPE i .
+    DATA mv_max_setting TYPE i .
+    DATA mv_show_folders TYPE abap_bool .
+    DATA mv_changes_only TYPE abap_bool .
+    DATA mv_order_by TYPE string .
+    DATA mv_order_descending TYPE abap_bool .
+    DATA mv_diff_first TYPE abap_bool .
+    DATA mv_key TYPE zif_abapgit_persistence=>ty_value .
+    DATA mv_are_changes_recorded_in_tr TYPE abap_bool .
 
-    METHODS:
-      render_head_line
-        IMPORTING iv_lstate      TYPE char1
-                  iv_rstate      TYPE char1
-        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html
-        RAISING   zcx_abapgit_exception,
-      build_head_menu
-        IMPORTING iv_lstate         TYPE char1
-                  iv_rstate         TYPE char1
-        RETURNING VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      build_view_menu
-        RETURNING VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      render_item
-        IMPORTING is_item              TYPE zif_abapgit_definitions=>ty_repo_item
-                  iv_render_transports TYPE abap_bool
-        RETURNING VALUE(ri_html)       TYPE REF TO zif_abapgit_html
-        RAISING   zcx_abapgit_exception,
-      render_item_files
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
-      render_item_command
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
-      get_item_class
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_html) TYPE string,
-      get_item_icon
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_html) TYPE string,
-      render_item_lock_column
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_html) TYPE string,
-      render_parent_dir
-        RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html
-        RAISING   zcx_abapgit_exception.
-
-    METHODS:
-      build_obj_jump_link
-        IMPORTING is_item        TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_html) TYPE string,
-      build_dir_jump_link
-        IMPORTING iv_path        TYPE string
-        RETURNING VALUE(rv_html) TYPE string,
-      build_inactive_object_code
-        IMPORTING is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
-        RETURNING VALUE(rv_inactive_html_code) TYPE string,
-      open_in_master_language
-        RAISING zcx_abapgit_exception,
-      render_order_by
-        RETURNING VALUE(ro_html) TYPE REF TO zcl_abapgit_html,
-      apply_order_by
-        CHANGING ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items,
-      build_branch_dropdown
-        IMPORTING iv_wp_opt                 LIKE zif_abapgit_html=>c_html_opt-crossout
-        RETURNING VALUE(ro_branch_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      build_tag_dropdown
-        IMPORTING iv_wp_opt              LIKE zif_abapgit_html=>c_html_opt-crossout
-        RETURNING VALUE(ro_tag_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      build_advanced_dropdown
-        IMPORTING iv_wp_opt                   LIKE zif_abapgit_html=>c_html_opt-crossout
-                  iv_lstate                   TYPE char1
-                  iv_rstate                   TYPE char1
-        RETURNING VALUE(ro_advanced_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      build_main_toolbar
-        IMPORTING iv_pull_opt       LIKE zif_abapgit_html=>c_html_opt-crossout
-                  iv_lstate         TYPE char1
-                  iv_rstate         TYPE char1
-                  io_tb_branch      TYPE REF TO zcl_abapgit_html_toolbar
-                  io_tb_tag         TYPE REF TO zcl_abapgit_html_toolbar
-                  io_tb_advanced    TYPE REF TO zcl_abapgit_html_toolbar
-        RETURNING VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING   zcx_abapgit_exception,
-      switch_to_pr
-        IMPORTING
-          it_fields TYPE tihttpnvp OPTIONAL
-          iv_revert TYPE abap_bool OPTIONAL
-        RETURNING
-          VALUE(rv_switched) TYPE abap_bool
-        RAISING
-          zcx_abapgit_exception.
-
+    METHODS render_head_line
+      IMPORTING
+        !iv_lstate     TYPE char1
+        !iv_rstate     TYPE char1
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_head_menu
+      IMPORTING
+        !iv_lstate        TYPE char1
+        !iv_rstate        TYPE char1
+      RETURNING
+        VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_view_menu
+      RETURNING
+        VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_item
+      IMPORTING
+        !is_item              TYPE zif_abapgit_definitions=>ty_repo_item
+        !iv_render_transports TYPE abap_bool
+      RETURNING
+        VALUE(ri_html)        TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_item_files
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS render_item_command
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS get_item_class
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html) TYPE string .
+    METHODS get_item_icon
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html) TYPE string .
+    METHODS render_item_lock_column
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html) TYPE string .
+    METHODS render_parent_dir
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_obj_jump_link
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html) TYPE string .
+    METHODS build_dir_jump_link
+      IMPORTING
+        !iv_path       TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string .
+    METHODS build_inactive_object_code
+      IMPORTING
+        !is_item                     TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_inactive_html_code) TYPE string .
+    METHODS open_in_master_language
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_order_by
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS apply_order_by
+      CHANGING
+        !ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items .
+    METHODS build_branch_dropdown
+      IMPORTING
+        !iv_wp_opt                LIKE zif_abapgit_html=>c_html_opt-crossout
+      RETURNING
+        VALUE(ro_branch_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_tag_dropdown
+      IMPORTING
+        !iv_wp_opt             LIKE zif_abapgit_html=>c_html_opt-crossout
+      RETURNING
+        VALUE(ro_tag_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_advanced_dropdown
+      IMPORTING
+        !iv_wp_opt                  LIKE zif_abapgit_html=>c_html_opt-crossout
+        !iv_lstate                  TYPE char1
+        !iv_rstate                  TYPE char1
+      RETURNING
+        VALUE(ro_advanced_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_main_toolbar
+      IMPORTING
+        !iv_pull_opt      LIKE zif_abapgit_html=>c_html_opt-crossout
+        !iv_lstate        TYPE char1
+        !iv_rstate        TYPE char1
+        !io_tb_branch     TYPE REF TO zcl_abapgit_html_toolbar
+        !io_tb_tag        TYPE REF TO zcl_abapgit_html_toolbar
+        !io_tb_advanced   TYPE REF TO zcl_abapgit_html_toolbar
+      RETURNING
+        VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
+      RAISING
+        zcx_abapgit_exception .
+    METHODS switch_to_pr
+      IMPORTING
+        !it_fields         TYPE tihttpnvp OPTIONAL
+        !iv_revert         TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(rv_switched) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS build_main_menu
-      RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS render_scripts
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -38028,7 +38067,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
       lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
       ls_col_spec TYPE zif_abapgit_definitions=>ty_col_spec.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     APPEND INITIAL LINE TO lt_col_spec.
     IF mv_are_changes_recorded_in_tr = abap_true.
@@ -38049,10 +38088,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
 
     APPEND INITIAL LINE TO lt_col_spec.
 
-    ro_html->add( |<thead>| ).
-    ro_html->add( |<tr>| ).
+    ri_html->add( |<thead>| ).
+    ri_html->add( |<tr>| ).
 
-    ro_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
       it_col_spec         = lt_col_spec
       iv_order_by         = mv_order_by
       iv_order_descending = mv_order_descending ) ).
@@ -38063,8 +38102,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
       lv_icon = 'check/grey'.
     ENDIF.
 
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_parent_dir.
@@ -38501,10 +38540,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       lv_email = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_email( ).
     ENDIF.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<div class="form-container">' ).
-    ro_html->add( '<form id="commit_form" class="aligned-form grey70"'
+    ri_html->add( '<div class="form-container">' ).
+    ri_html->add( '<form id="commit_form" class="aligned-form grey70"'
                && ' method="post" action="sapevent:commit_post">' ).
 
     INSERT c_tag_type-lightweight
@@ -38513,8 +38552,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     INSERT c_tag_type-annotated
            INTO TABLE lt_type.
 
-    ro_html->add( '<div class="row">' ).
-    ro_html->add( 'Tag type <select name="folder_logic" onchange="onTagTypeChange(this)">' ).
+    ri_html->add( '<div class="row">' ).
+    ri_html->add( 'Tag type <select name="folder_logic" onchange="onTagTypeChange(this)">' ).
 
     LOOP AT lt_type ASSIGNING <lv_type>.
 
@@ -38524,30 +38563,30 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
         CLEAR: lv_selected.
       ENDIF.
 
-      ro_html->add( |<option value="{ <lv_type> }" | && |{ lv_selected }>| && |{ <lv_type> }</option>| ).
+      ri_html->add( |<option value="{ <lv_type> }" | && |{ lv_selected }>| && |{ <lv_type> }</option>| ).
 
     ENDLOOP.
 
-    ro_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
-    ro_html->add( '</select>' ).
-    ro_html->add( '<br>' ).
-    ro_html->add( '<br>' ).
+    ri_html->add( '</select>' ).
+    ri_html->add( '<br>' ).
+    ri_html->add( '<br>' ).
 
-    ro_html->add( render_text_input( iv_name  = 'sha1'
+    ri_html->add( render_text_input( iv_name  = 'sha1'
                                      iv_label = 'SHA1'
                                      iv_value = mo_repo_online->get_sha1_remote( ) ) ).
 
-    ro_html->add( render_text_input( iv_name  = 'name'
+    ri_html->add( render_text_input( iv_name  = 'name'
                                      iv_label = 'tag name' ) ).
 
     IF mv_selected_type = c_tag_type-annotated.
 
-      ro_html->add( render_text_input( iv_name  = 'tagger_name'
+      ri_html->add( render_text_input( iv_name  = 'tagger_name'
                                        iv_label = 'tagger name'
                                        iv_value = lv_user ) ).
 
-      ro_html->add( render_text_input( iv_name  = 'tagger_email'
+      ri_html->add( render_text_input( iv_name  = 'tagger_email'
                                        iv_label = 'tagger e-mail'
                                        iv_value = lv_email ) ).
 
@@ -38555,33 +38594,33 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
       lv_s_param = lo_settings->get_commitmsg_comment_length( ).
 
-      ro_html->add( render_text_input( iv_name       = 'message'
+      ri_html->add( render_text_input( iv_name       = 'message'
                                        iv_label      = 'message'
                                        iv_max_length = lv_s_param ) ).
 
-      ro_html->add( '<div class="row">' ).
-      ro_html->add( '<label for="c-body">body</label>' ).
+      ri_html->add( '<div class="row">' ).
+      ri_html->add( '<label for="c-body">body</label>' ).
 
       lv_body_size = lo_settings->get_commitmsg_body_size( ).
       IF lv_body_size > lc_body_col_max.
         lv_body_size = lc_body_col_max.
       ENDIF.
-      ro_html->add( |<textarea id="c-body" name="body" rows="10" cols="| && |{ lv_body_size }"></textarea>| ).
+      ri_html->add( |<textarea id="c-body" name="body" rows="10" cols="| && |{ lv_body_size }"></textarea>| ).
 
     ENDIF.
 
-    ro_html->add( '<input type="submit" class="hidden-submit">' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<input type="submit" class="hidden-submit">' ).
+    ri_html->add( '</div>' ).
 
-    ro_html->add( '</form>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '</form>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_menu.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     CREATE OBJECT lo_toolbar.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
@@ -38593,24 +38632,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
                      iv_txt = 'Cancel'
                      iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
 
-    ro_html->add( '<div class="paddings">' ).
-    ro_html->add( lo_toolbar->render( ) ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="paddings">' ).
+    ri_html->add( lo_toolbar->render( ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'setInitialFocus("name");' ).
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( 'setInitialFocus("name");' ).
 
   ENDMETHOD.
   METHOD render_text_input.
 
     DATA lv_attrs TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_value IS NOT INITIAL.
       lv_attrs = | value="{ iv_value }"|.
@@ -38620,10 +38659,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       lv_attrs = | maxlength="{ iv_max_length }"|.
     ENDIF.
 
-    ro_html->add( '<div class="row">' ).
-    ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
-    ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="row">' ).
+    ri_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
+    ri_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -38998,9 +39037,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                    <ls_status> LIKE LINE OF ms_files-status,
                    <ls_local>  LIKE LINE OF ms_files-local.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<table id="stageTab" class="stage_tab w100">' ).
+    ri_html->add( '<table id="stageTab" class="stage_tab w100">' ).
 
     lt_changed_by = find_changed_by( ms_files-local ).
     lt_transports = find_transports( ms_files-local ).
@@ -39008,18 +39047,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     " Local changes
     LOOP AT ms_files-local ASSIGNING <ls_local>.
       AT FIRST.
-        ro_html->add( '<thead><tr class="local">' ).
-        ro_html->add( '<th class="stage-status"></th>' ). " Diff state
-        ro_html->add( '<th class="stage-objtype">Type</th>' ).
-        ro_html->add( '<th title="Click filename to see diff">File</th>' ).
-        ro_html->add( '<th>Changed by</th>' ).
-        ro_html->add( '<th>Transport</th>' ).
-        ro_html->add( '<th></th>' ). " Status
-        ro_html->add( '<th class="cmd">' ).
-        ro_html->add( '<a>add</a>&#x2193; <a>reset</a>&#x2193;' ).
-        ro_html->add( '</th>' ).
-        ro_html->add( '</tr></thead>' ).
-        ro_html->add( '<tbody>' ).
+        ri_html->add( '<thead><tr class="local">' ).
+        ri_html->add( '<th class="stage-status"></th>' ). " Diff state
+        ri_html->add( '<th class="stage-objtype">Type</th>' ).
+        ri_html->add( '<th title="Click filename to see diff">File</th>' ).
+        ri_html->add( '<th>Changed by</th>' ).
+        ri_html->add( '<th>Transport</th>' ).
+        ri_html->add( '<th></th>' ). " Status
+        ri_html->add( '<th class="cmd">' ).
+        ri_html->add( '<a>add</a>&#x2193; <a>reset</a>&#x2193;' ).
+        ri_html->add( '</th>' ).
+        ri_html->add( '</tr></thead>' ).
+        ri_html->add( '<tbody>' ).
       ENDAT.
 
       READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
@@ -39030,7 +39069,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           filename = <ls_local>-file-filename.
       ASSERT sy-subrc = 0.
 
-      ro_html->add( render_file(
+      ri_html->add( render_file(
         iv_context = 'local'
         is_file       = <ls_local>-file
         is_item       = <ls_local>-item
@@ -39041,23 +39080,23 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
       CLEAR ls_transport.
 
       AT LAST.
-        ro_html->add( '</tbody>' ).
+        ri_html->add( '</tbody>' ).
       ENDAT.
     ENDLOOP.
 
     " Remote changes
     LOOP AT ms_files-remote ASSIGNING <ls_remote>.
       AT FIRST.
-        ro_html->add( '<thead><tr class="remote">' ).
-        ro_html->add( '<th></th>' ). " Diff state
-        ro_html->add( '<th></th>' ). " Type
-        ro_html->add( '<th colspan="3">Files to remove or non-code</th>' ).
-        ro_html->add( '<th></th>' ). " Status
-        ro_html->add( '<th class="cmd">' ).
-        ro_html->add( '<a>ignore</a>&#x2193; <a>remove</a>&#x2193; <a>reset</a>&#x2193;' ).
-        ro_html->add( '</th>' ).
-        ro_html->add( '</tr></thead>' ).
-        ro_html->add( '<tbody>' ).
+        ri_html->add( '<thead><tr class="remote">' ).
+        ri_html->add( '<th></th>' ). " Diff state
+        ri_html->add( '<th></th>' ). " Type
+        ri_html->add( '<th colspan="3">Files to remove or non-code</th>' ).
+        ri_html->add( '<th></th>' ). " Status
+        ri_html->add( '<th class="cmd">' ).
+        ri_html->add( '<a>ignore</a>&#x2193; <a>remove</a>&#x2193; <a>reset</a>&#x2193;' ).
+        ri_html->add( '</th>' ).
+        ri_html->add( '</tr></thead>' ).
+        ri_html->add( '<tbody>' ).
       ENDAT.
 
       READ TABLE ms_files-status ASSIGNING <ls_status>
@@ -39066,17 +39105,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           filename = <ls_remote>-filename.
       ASSERT sy-subrc = 0.
 
-      ro_html->add( render_file(
+      ri_html->add( render_file(
         iv_context = 'remote'
         is_status  = <ls_status>
         is_file    = <ls_remote> ) ).
 
       AT LAST.
-        ro_html->add( '</tbody>' ).
+        ri_html->add( '</tbody>' ).
       ENDAT.
     ENDLOOP.
 
-    ro_html->add( '</table>' ).
+    ri_html->add( '</table>' ).
 
   ENDMETHOD.
   METHOD render_master_language_warning.
@@ -39096,27 +39135,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
 
-    ro_html->add( 'var gStageParams = {' ).
-    ro_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
-    ro_html->add( |  user:            "{ to_lower( sy-uname ) }",| ).
-    ro_html->add( '  formAction:      "stage_commit",' ).
-    ro_html->add( |  patchAction:     "{ zif_abapgit_definitions=>c_action-go_patch }",| ).
+    ri_html->add( 'var gStageParams = {' ).
+    ri_html->add( |  seed:            "{ mv_seed }",| ). " Unique page id
+    ri_html->add( |  user:            "{ to_lower( sy-uname ) }",| ).
+    ri_html->add( '  formAction:      "stage_commit",' ).
+    ri_html->add( |  patchAction:     "{ zif_abapgit_definitions=>c_action-go_patch }",| ).
 
-    ro_html->add( '  ids: {' ).
-    ro_html->add( '    stageTab:          "stageTab",' ).
-    ro_html->add( '    commitAllBtn:      "commitAllButton",' ).
-    ro_html->add( '    commitSelectedBtn: "commitSelectedButton",' ).
-    ro_html->add( '    commitFilteredBtn: "commitFilteredButton",' ).
-    ro_html->add( '    patchBtn:          "patchBtn",' ).
-    ro_html->add( '    objectSearch:      "objectSearch",' ).
-    ro_html->add( '  }' ).
+    ri_html->add( '  ids: {' ).
+    ri_html->add( '    stageTab:          "stageTab",' ).
+    ri_html->add( '    commitAllBtn:      "commitAllButton",' ).
+    ri_html->add( '    commitSelectedBtn: "commitSelectedButton",' ).
+    ri_html->add( '    commitFilteredBtn: "commitFilteredButton",' ).
+    ri_html->add( '    patchBtn:          "patchBtn",' ).
+    ri_html->add( '    objectSearch:      "objectSearch",' ).
+    ri_html->add( '  }' ).
 
-    ro_html->add( '}' ).
-    ro_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
+    ri_html->add( '}' ).
+    ri_html->add( 'var gHelper = new StageHelper(gStageParams);' ).
 
   ENDMETHOD.
   METHOD stage_all.
@@ -39454,11 +39493,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     DATA:
       lt_key_bindings TYPE zif_abapgit_definitions=>tty_hotkey,
-      ls_key_binding LIKE LINE OF lt_key_bindings.
+      ls_key_binding  LIKE LINE OF lt_key_bindings.
 
     FIELD-SYMBOLS:
       <ls_default_hotkey> LIKE LINE OF mt_default_hotkeys,
-      <ls_post_field>  TYPE ihttpnvp.
+      <ls_post_field>     TYPE ihttpnvp.
 
     LOOP AT mt_post_fields ASSIGNING <ls_post_field> WHERE name CP 'hk~*'.
 
@@ -39525,34 +39564,34 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       lv_checked = 'checked'.
     ENDIF.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>ABAP Development Tools (ADT)</h2>| ).
-    ro_html->add( `<input type="checkbox" name="adt_jump_enabled" value="X" `
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>ABAP Development Tools (ADT)</h2>| ).
+    ri_html->add( `<input type="checkbox" name="adt_jump_enabled" value="X" `
                    && lv_checked && ` > Enable Jump to ADT First` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
   ENDMETHOD.
   METHOD render_commit_msg.
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h2>Commit Message</h2>| ).
-    ro_html->add( |<label for="comment_length" title="(Recommendation 50)">Max. Length of Comment</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input name="comment_length" type="number" step="10" size="3" maxlength="3" min="50"| &&
+    ri_html->add( |<h2>Commit Message</h2>| ).
+    ri_html->add( |<label for="comment_length" title="(Recommendation 50)">Max. Length of Comment</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<input name="comment_length" type="number" step="10" size="3" maxlength="3" min="50"| &&
                   | value="{ mo_settings->get_commitmsg_comment_length( ) }">| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<label for="comment_default"| &&
+    ri_html->add( |<br>| ).
+    ri_html->add( |<label for="comment_default"| &&
                   |title="(Possible Variables: $OBJECT, $FILE)">Default for Comment</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input name="comment_default" type="text" size="80" maxlength="255"| &&
+    ri_html->add( |<br>| ).
+    ri_html->add( |<input name="comment_default" type="text" size="80" maxlength="255"| &&
                   | value="{ mo_settings->get_commitmsg_comment_default( ) }">| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<label for="body_size" title="(Recommendation 72)">Max. Line Size of Body</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input name="body_size" type="number" size="3" maxlength="3" min="50"| &&
+    ri_html->add( |<br>| ).
+    ri_html->add( |<label for="body_size" title="(Recommendation 72)">Max. Line Size of Body</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<input name="body_size" type="number" size="3" maxlength="3" min="50"| &&
                   | value="{ mo_settings->get_commitmsg_body_size( ) }">| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
   ENDMETHOD.
   METHOD render_content.
 
@@ -39603,33 +39642,33 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       lv_act_wo_popup = 'checked'.
     ENDIF.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>abapGit Development Internals</h2>| ).
-    ro_html->add( `<input type="checkbox" name="critical_tests" `
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>abapGit Development Internals</h2>| ).
+    ri_html->add( `<input type="checkbox" name="critical_tests" `
                    && lv_critical_tests && ` > Enable Critical Unit Tests (See LTCL_DANGEROUS)` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input type="checkbox" name="experimental_features" `
+    ri_html->add( |<br>| ).
+    ri_html->add( `<input type="checkbox" name="experimental_features" `
                    && lv_experimental && ` > Enable Experimental Features` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input type="checkbox" name="activate_wo_popup" `
+    ri_html->add( |<br>| ).
+    ri_html->add( `<input type="checkbox" name="activate_wo_popup" `
                    && lv_act_wo_popup && ` > Activate Objects Without Popup` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
   ENDMETHOD.
   METHOD render_form_begin.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( '<div class="settings_container">' ).
-    ro_html->add( `<form id="settings_form" method="post" action="sapevent:` && c_action-save_settings && `">` ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<div class="settings_container">' ).
+    ri_html->add( `<form id="settings_form" method="post" action="sapevent:` && c_action-save_settings && `">` ).
 
   ENDMETHOD.
   METHOD render_form_end.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( '<input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
-    ro_html->add( '</form>' ).
-    ro_html->add( '</div>' ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
+    ri_html->add( '</form>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_hotkeys.
@@ -39642,24 +39681,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     lt_hotkeys = mt_default_hotkeys.
     zcl_abapgit_hotkeys=>merge_hotkeys_with_settings( CHANGING ct_hotkey_actions = lt_hotkeys ).
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Hotkeys</h2>| ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>Hotkeys</h2>| ).
 
-    ro_html->add( '<table class="settings_tab">' ).
-    ro_html->add( '<thead><tr><th>Component</th><th>Action</th><th>Key</th></tr></thead>' ).
+    ri_html->add( '<table class="settings_tab">' ).
+    ri_html->add( '<thead><tr><th>Component</th><th>Action</th><th>Key</th></tr></thead>' ).
 
     LOOP AT lt_hotkeys ASSIGNING <ls_key>.
 
-      ro_html->add( '<tr>' ).
-      ro_html->add( |<td>{ <ls_key>-ui_component }</td>| ).
-      ro_html->add( |<td>{ <ls_key>-description }</td>| ).
+      ri_html->add( '<tr>' ).
+      ri_html->add( |<td>{ <ls_key>-ui_component }</td>| ).
+      ri_html->add( |<td>{ <ls_key>-description }</td>| ).
       lv_hk_id = |hk~{ <ls_key>-ui_component }~{ <ls_key>-action }|.
-      ro_html->add( |<td><input name="{ lv_hk_id }" maxlength=1 type="text" value="{ <ls_key>-hotkey }"></td>| ).
-      ro_html->add( '</tr>' ).
+      ri_html->add( |<td><input name="{ lv_hk_id }" maxlength=1 type="text" value="{ <ls_key>-hotkey }"></td>| ).
+      ri_html->add( '</tr>' ).
 
     ENDLOOP.
 
-    ro_html->add( '</table>' ).
+    ri_html->add( '</table>' ).
 
   ENDMETHOD.
   METHOD render_icon_scaling.
@@ -39680,19 +39719,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         ls_sel-auto = ' selected'.
     ENDCASE.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h2>UI Icon Scaling</h2>| ).
-    ro_html->add( |<label for="icon_scaling">High DPI Icon Scaling</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<select name="icon_scaling" size="3">| ).
-    ro_html->add( |<option value=""{ ls_sel-auto }>Auto</option>| ).
-    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-large }"{ ls_sel-large }>Large</option>| ).
-    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-small }"{ ls_sel-small }>Small</option>| ).
-    ro_html->add( |</select>| ).
+    ri_html->add( |<h2>UI Icon Scaling</h2>| ).
+    ri_html->add( |<label for="icon_scaling">High DPI Icon Scaling</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<select name="icon_scaling" size="3">| ).
+    ri_html->add( |<option value=""{ ls_sel-auto }>Auto</option>| ).
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-large }"{ ls_sel-large }>Large</option>| ).
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-small }"{ ls_sel-small }>Small</option>| ).
+    ri_html->add( |</select>| ).
 
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
   ENDMETHOD.
   METHOD render_link_hints.
@@ -39706,28 +39745,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     lv_link_hint_key = mo_settings->get_link_hint_key( ).
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Vimium-like Link Hints</h2>| ).
-    ro_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>Vimium-like Link Hints</h2>| ).
+    ri_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
                    && lv_checked && ` > Enable Vimium-like Link Hints` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
                && |> Key to Activate Links| ).
 
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
   ENDMETHOD.
   METHOD render_max_lines.
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h2>List size</h2>| ).
-    ro_html->add( |<label for="max_lines">Max. # of Objects Listed (0 = All)</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<h2>List size</h2>| ).
+    ri_html->add( |<label for="max_lines">Max. # of Objects Listed (0 = All)</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
   ENDMETHOD.
   METHOD render_parallel_proc.
 
@@ -39737,58 +39776,58 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       lv_checked = 'checked'.
     ENDIF.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Parallel Processing</h2>| ).
-    ro_html->add( `<input type="checkbox" name="parallel_proc_disabled" value="X" `
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>Parallel Processing</h2>| ).
+    ri_html->add( `<input type="checkbox" name="parallel_proc_disabled" value="X" `
                    && lv_checked && ` > Disable Parallel Processing` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
   ENDMETHOD.
   METHOD render_proxy.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h2>Proxy</h2>| ).
-    ro_html->add( |<label for="proxy_url">Proxy URL</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input name="proxy_url" type="text" size="50" value="` &&
+    ri_html->add( |<h2>Proxy</h2>| ).
+    ri_html->add( |<label for="proxy_url">Proxy URL</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( `<input name="proxy_url" type="text" size="50" value="` &&
       mo_settings->get_proxy_url( ) && `">` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<label for="proxy_port">Proxy Port</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( `<input name="proxy_port" type="text" size="5" value="` &&
+    ri_html->add( |<br>| ).
+    ri_html->add( |<label for="proxy_port">Proxy Port</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( `<input name="proxy_port" type="text" size="5" value="` &&
       mo_settings->get_proxy_port( ) && `">` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<label for="proxy_auth">Proxy Authentication</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<label for="proxy_auth">Proxy Authentication</label>| ).
     IF mo_settings->get_proxy_authentication( ) = abap_true.
-      ro_html->add( `<input name="proxy_auth" type="checkbox" checked>` ).
+      ri_html->add( `<input name="proxy_auth" type="checkbox" checked>` ).
     ELSE.
-      ro_html->add( `<input name="proxy_auth" type="checkbox">` ).
+      ri_html->add( `<input name="proxy_auth" type="checkbox">` ).
     ENDIF.
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<label for="proxy_bypass">Bypass Proxy Settings for These Hosts & Domains</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<button type="button" name="proxy_bypass" class="grey-set"|
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<label for="proxy_bypass">Bypass Proxy Settings for These Hosts & Domains</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<button type="button" name="proxy_bypass" class="grey-set"|
                 & |onclick="location.href='sapevent:{ c_action-change_proxy_bypass }';">Maintain</button>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
   ENDMETHOD.
   METHOD render_section_begin.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h1>{ iv_header }</h1>| ).
-    ro_html->add( |<div class="settings_section">| ).
+    ri_html->add( |<h1>{ iv_header }</h1>| ).
+    ri_html->add( |<div class="settings_section">| ).
 
   ENDMETHOD.
   METHOD render_section_end.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |</div>| ).
+    ri_html->add( |</div>| ).
 
   ENDMETHOD.
   METHOD render_start_up.
@@ -39799,12 +39838,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
       lv_checked = 'checked'.
     ENDIF.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( |<h2>Startup</h2>| ).
-    ro_html->add( `<input type="checkbox" name="show_default_repo" value="X" `
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<h2>Startup</h2>| ).
+    ri_html->add( `<input type="checkbox" name="show_default_repo" value="X" `
                    && lv_checked && ` > Show Last Opened Repository` ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
   ENDMETHOD.
   METHOD render_ui_theme.
 
@@ -39826,22 +39865,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         ls_sel-belize = ' selected'.
     ENDCASE.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<h2>UI Theme</h2>| ).
-    ro_html->add( |<label for="ui_theme">UI Theme</label>| ).
-    ro_html->add( |<br>| ).
-    ro_html->add( |<select name="ui_theme" size="3">| ).
-    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-default }"{
+    ri_html->add( |<h2>UI Theme</h2>| ).
+    ri_html->add( |<label for="ui_theme">UI Theme</label>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<select name="ui_theme" size="3">| ).
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-default }"{
       ls_sel-default }>{ zcl_abapgit_settings=>c_ui_theme-default }</option>| ).
-    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-dark }"{
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-dark }"{
       ls_sel-dark }>{ zcl_abapgit_settings=>c_ui_theme-dark }</option>| ).
-    ro_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-belize }"{
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-belize }"{
       ls_sel-belize }>{ zcl_abapgit_settings=>c_ui_theme-belize }</option>| ).
-    ro_html->add( |</select>| ).
+    ri_html->add( |</select>| ).
 
-    ro_html->add( |<br>| ).
-    ro_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
+    ri_html->add( |<br>| ).
 
   ENDMETHOD.
   METHOD validate_settings.
@@ -40817,11 +40856,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_head_non_unified.
 
-    render_patch_head( ii_html = io_html
+    render_patch_head( ii_html = ii_html
                        is_diff = is_diff ).
 
     super->render_table_head_non_unified(
-        io_html = io_html
+        ii_html = ii_html
         is_diff = is_diff ).
 
   ENDMETHOD.
@@ -41024,7 +41063,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     DATA: lv_beacon  TYPE string,
           lt_beacons TYPE zif_abapgit_definitions=>ty_string_tt.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF is_diff_line-beacon > 0.
       lt_beacons = is_diff-o_diff->get_beacons( ).
@@ -41032,14 +41071,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
-    ro_html->add( '<thead class="nav_line">' ).
-    ro_html->add( '<tr>' ).
+    ri_html->add( '<thead class="nav_line">' ).
+    ri_html->add( '<tr>' ).
 
-    ro_html->add( '<th class="num"></th>' ).
-    ro_html->add( |<th colspan="3">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
+    ri_html->add( '<th class="num"></th>' ).
+    ri_html->add( |<th colspan="3">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
 
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -41136,19 +41175,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<div class="diff_head">' ).
+    ri_html->add( '<div class="diff_head">' ).
 
     IF is_diff-type <> 'binary' AND is_diff-o_diff IS NOT INITIAL.
       ls_stats = is_diff-o_diff->stats( ).
-      ro_html->add( |<span class="diff_banner diff_ins">+ { ls_stats-insert }</span>| ).
-      ro_html->add( |<span class="diff_banner diff_del">- { ls_stats-delete }</span>| ).
-      ro_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_ins">+ { ls_stats-insert }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_del">- { ls_stats-delete }</span>| ).
+      ri_html->add( |<span class="diff_banner diff_upd">~ { ls_stats-update }</span>| ).
     ENDIF.
 
-    ro_html->add( |<span class="diff_name">{ is_diff-filename }</span>| ).
-    ro_html->add( '</div>' ).
+    ri_html->add( |<span class="diff_name">{ is_diff-filename }</span>| ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_lines.
@@ -41160,7 +41199,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     FIELD-SYMBOLS <ls_diff>  LIKE LINE OF lt_diffs.
 
     lo_highlighter = zcl_abapgit_syntax_highlighter=>create( is_diff-filename ).
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_diffs = is_diff-o_diff->get( ).
 
@@ -41171,7 +41210,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ENDIF.
 
       IF lv_insert_nav = abap_true. " Insert separator line with navigation
-        ro_html->add( render_beacon( is_diff_line = <ls_diff>
+        ri_html->add( render_beacon( is_diff_line = <ls_diff>
                                      is_diff = is_diff ) ).
         lv_insert_nav = abap_false.
       ENDIF.
@@ -41189,7 +41228,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       CONDENSE <ls_diff>-new_num. "get rid of leading spaces
       CONDENSE <ls_diff>-old_num.
 
-      ro_html->add( render_line_split( is_diff_line = <ls_diff> ) ).
+      ri_html->add( render_line_split( <ls_diff> ) ).
 
     ENDLOOP.
 
@@ -41201,7 +41240,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
           lv_mark TYPE string,
           lv_bg   TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     " New line
     lv_mark = ` `.
@@ -41229,10 +41268,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
           && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
-    ro_html->add( '<tr>' ).
-    ro_html->add( lv_old ). " Target
-    ro_html->add( lv_new ). " Source
-    ro_html->add( '</tr>' ).
+    ri_html->add( '<tr>' ).
+    ri_html->add( lv_old ). " Target
+    ri_html->add( lv_new ). " Source
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_table_head.
@@ -42119,28 +42158,28 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_diff.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( |<div class="diff" data-type="{ is_diff-type
+    ri_html->add( |<div class="diff" data-type="{ is_diff-type
       }" data-changed-by="{ is_diff-changed_by
       }" data-file="{ is_diff-path && is_diff-filename }">| ).
-    ro_html->add( render_diff_head( is_diff ) ).
+    ri_html->add( render_diff_head( is_diff ) ).
 
     " Content
     IF is_diff-type <> 'binary'.
-      ro_html->add( '<div class="diff_content">' ).
-      ro_html->add( |<table class="diff_tab syntax-hl" id={ is_diff-filename }>| ).
-      ro_html->add( render_table_head( is_diff ) ).
-      ro_html->add( render_lines( is_diff ) ).
-      ro_html->add( '</table>' ).
+      ri_html->add( '<div class="diff_content">' ).
+      ri_html->add( |<table class="diff_tab syntax-hl" id={ is_diff-filename }>| ).
+      ri_html->add( render_table_head( is_diff ) ).
+      ri_html->add( render_lines( is_diff ) ).
+      ri_html->add( '</table>' ).
     ELSE.
-      ro_html->add( '<div class="diff_content paddings center grey">' ).
-      ro_html->add( 'The content seems to be binary.' ).
-      ro_html->add( 'Cannot display as diff.' ).
+      ri_html->add( '<div class="diff_content paddings center grey">' ).
+      ri_html->add( 'The content seems to be binary.' ).
+      ri_html->add( 'Cannot display as diff.' ).
     ENDIF.
-    ro_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
-    ro_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_diff_head.
@@ -42213,10 +42252,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
           lv_insert_nav  TYPE abap_bool,
           lv_tabix       TYPE syst-tabix.
 
-    FIELD-SYMBOLS <ls_diff>  LIKE LINE OF lt_diffs.
+    FIELD-SYMBOLS <ls_diff> LIKE LINE OF lt_diffs.
 
     lo_highlighter = zcl_abapgit_syntax_highlighter=>create( is_diff-filename ).
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_diffs = is_diff-o_diff->get( ).
 
@@ -42232,7 +42271,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       ENDIF.
 
       IF lv_insert_nav = abap_true. " Insert separator line with navigation
-        ro_html->add( render_beacon( is_diff_line = <ls_diff>
+        ri_html->add( render_beacon( is_diff_line = <ls_diff>
                                      is_diff = is_diff ) ).
         lv_insert_nav = abap_false.
       ENDIF.
@@ -42251,9 +42290,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       CONDENSE <ls_diff>-old_num.
 
       IF mv_unified = abap_true.
-        ro_html->add( render_line_unified( is_diff_line = <ls_diff> ) ).
+        ri_html->add( render_line_unified( is_diff_line = <ls_diff> ) ).
       ELSE.
-        ro_html->add( render_line_split( is_diff_line = <ls_diff>
+        ri_html->add( render_line_split( is_diff_line = <ls_diff>
                                          iv_filename  = get_normalized_fname_with_path( is_diff )
                                          iv_fstate    = is_diff-fstate
                                          iv_index     = lv_tabix ) ).
@@ -42262,7 +42301,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDLOOP.
 
     IF mv_unified = abap_true.
-      ro_html->add( render_line_unified( ) ). " Release delayed lines
+      ri_html->add( render_line_unified( ) ). " Release delayed lines
     ENDIF.
 
   ENDMETHOD.
@@ -42336,117 +42375,117 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_diff_line> LIKE LINE OF mt_delayed_lines.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     " Release delayed subsequent update lines
     IF is_diff_line-result <> zif_abapgit_definitions=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
-        ro_html->add( '<tr>' ).
-        ro_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
+        ri_html->add( '<tr>' ).
+        ri_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
                    && |<td class="num diff_others" line-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
                    && |<td class="code diff_del diff_unified">{ <ls_diff_line>-old }</td>| ).
-        ro_html->add( '</tr>' ).
+        ri_html->add( '</tr>' ).
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
-        ro_html->add( '<tr>' ).
-        ro_html->add( |<td class="num diff_others" line-num=""></td>|
+        ri_html->add( '<tr>' ).
+        ri_html->add( |<td class="num diff_others" line-num=""></td>|
                    && |<td class="num diff_others" line-num="{ <ls_diff_line>-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
                    && |<td class="code diff_ins diff_others">{ <ls_diff_line>-new }</td>| ).
-        ro_html->add( '</tr>' ).
+        ri_html->add( '</tr>' ).
       ENDLOOP.
       CLEAR mt_delayed_lines.
     ENDIF.
 
-    ro_html->add( '<tr>' ).
+    ri_html->add( '<tr>' ).
     CASE is_diff_line-result.
       WHEN zif_abapgit_definitions=>c_diff-update.
         APPEND is_diff_line TO mt_delayed_lines. " Delay output of subsequent updates
       WHEN zif_abapgit_definitions=>c_diff-insert.
-        ro_html->add( |<td class="num diff_others" line-num=""></td>|
+        ri_html->add( |<td class="num diff_others" line-num=""></td>|
                    && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
                    && |<td class="code diff_ins diff_others">{ is_diff_line-new }</td>| ).
       WHEN zif_abapgit_definitions=>c_diff-delete.
-        ro_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+        ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
                    && |<td class="num diff_others" line-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
                    && |<td class="code diff_del diff_unified">{ is_diff_line-old }</td>| ).
       WHEN OTHERS. "none
-        ro_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+        ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
                    && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="mark diff_others">&nbsp;</td>|
                    && |<td class="code diff_unified">{ is_diff_line-old }</td>| ).
     ENDCASE.
-    ro_html->add( '</tr>' ).
+    ri_html->add( '</tr>' ).
 
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
 
-    ro_html->add( 'restoreScrollPosition();' ).
-    ro_html->add( 'var gHelper = new DiffHelper({' ).
-    ro_html->add( |  seed:        "{ mv_seed }",| ).
-    ro_html->add( '  ids: {' ).
-    ro_html->add( '    jump:        "jump",' ).
-    ro_html->add( '    diffList:    "diff-list",' ).
-    ro_html->add( '    filterMenu:  "diff-filter",' ).
-    ro_html->add( '  }' ).
-    ro_html->add( '});' ).
+    ri_html->add( 'restoreScrollPosition();' ).
+    ri_html->add( 'var gHelper = new DiffHelper({' ).
+    ri_html->add( |  seed:        "{ mv_seed }",| ).
+    ri_html->add( '  ids: {' ).
+    ri_html->add( '    jump:        "jump",' ).
+    ri_html->add( '    diffList:    "diff-list",' ).
+    ri_html->add( '    filterMenu:  "diff-filter",' ).
+    ri_html->add( '  }' ).
+    ri_html->add( '});' ).
 
-    ro_html->add( 'addMarginBottom();' ).
+    ri_html->add( 'addMarginBottom();' ).
 
-    ro_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
-    ro_html->add( '  toggleKey: "F2",' ).
-    ro_html->add( '  hotkeyDescription: "Jump to file ..."' ).
-    ro_html->add( '});' ).
+    ri_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
+    ri_html->add( '  toggleKey: "F2",' ).
+    ri_html->add( '  hotkeyDescription: "Jump to file ..."' ).
+    ri_html->add( '});' ).
 
     " Feature for selecting ABAP code by column and copy to clipboard
-    ro_html->add( 'var columnSelection = new DiffColumnSelection();' ).
+    ri_html->add( 'var columnSelection = new DiffColumnSelection();' ).
 
   ENDMETHOD.
   METHOD render_table_head.
 
-    CREATE OBJECT ro_html.
-    ro_html->add( '<thead class="header">' ).
-    ro_html->add( '<tr>' ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<thead class="header">' ).
+    ri_html->add( '<tr>' ).
 
     IF mv_unified = abap_true.
 
-      render_table_head_unified( ro_html ).
+      render_table_head_unified( ri_html ).
 
     ELSE.
 
       render_table_head_non_unified(
-          io_html = ro_html
+          ii_html = ri_html
           is_diff = is_diff ).
 
     ENDIF.
 
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_table_head_non_unified.
 
-    io_html->add( '<th class="num"></th>' ).
-    io_html->add( '<th class="mark"></th>' ).
-    io_html->add( '<th>LOCAL</th>' ).
-    io_html->add( '<th class="num"></th>' ).
-    io_html->add( '<th class="mark"></th>' ).
-    io_html->add( '<th>REMOTE</th>' ).
+    ii_html->add( '<th class="num"></th>' ).
+    ii_html->add( '<th class="mark"></th>' ).
+    ii_html->add( '<th>LOCAL</th>' ).
+    ii_html->add( '<th class="num"></th>' ).
+    ii_html->add( '<th class="mark"></th>' ).
+    ii_html->add( '<th>REMOTE</th>' ).
 
   ENDMETHOD.
   METHOD render_table_head_unified.
 
-    io_html->add( '<th class="num">old</th>' ).
-    io_html->add( '<th class="num">new</th>' ).
-    io_html->add( '<th class="mark"></th>' ).
-    io_html->add( '<th>code</th>' ).
+    ii_html->add( '<th class="num">old</th>' ).
+    ii_html->add( '<th class="num">new</th>' ).
+    ii_html->add( '<th class="mark"></th>' ).
+    ii_html->add( '<th>code</th>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -42555,10 +42594,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'debugOutput("<table><tr><td>Browser:</td><td>" + navigator.userAgent + ' &&
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( 'debugOutput("<table><tr><td>Browser:</td><td>" + navigator.userAgent + ' &&
       '"</td></tr><tr><td>Frontend time:</td><td>" + new Date() + "</td></tr></table>", "debug_info");' ).
 
   ENDMETHOD.
@@ -42869,17 +42908,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       lv_comment = get_comment_default( ).
     ENDIF.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->add( '<div class="form-container">' ).
-    ro_html->add( '<form id="commit_form" class="aligned-form"'
+    ri_html->add( '<div class="form-container">' ).
+    ri_html->add( '<form id="commit_form" class="aligned-form"'
                && ' method="post" action="sapevent:commit_post">' ).
 
-    ro_html->add( render_text_input( iv_name  = 'committer_name'
+    ri_html->add( render_text_input( iv_name  = 'committer_name'
                                      iv_label = 'Committer Name'
                                      iv_value = lv_user ) ).
 
-    ro_html->add( render_text_input( iv_name  = 'committer_email'
+    ri_html->add( render_text_input( iv_name  = 'committer_email'
                                      iv_label = 'Committer E-mail'
                                      iv_value = lv_email ) ).
 
@@ -42887,47 +42926,47 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     lv_s_param = lo_settings->get_commitmsg_comment_length( ).
 
-    ro_html->add( render_text_input( iv_name       = 'comment'
+    ri_html->add( render_text_input( iv_name       = 'comment'
                                      iv_label      = 'Comment'
                                      iv_value      = lv_comment
                                      iv_max_length = lv_s_param ) ).
 
-    ro_html->add( '<div class="row">' ).
-    ro_html->add( '<label for="c-body">Body</label>' ).
+    ri_html->add( '<div class="row">' ).
+    ri_html->add( '<label for="c-body">Body</label>' ).
 
     lv_body_size = lo_settings->get_commitmsg_body_size( ).
     IF lv_body_size > lc_body_col_max.
       lv_body_size = lc_body_col_max.
     ENDIF.
-    ro_html->add( |<textarea id="c-body" name="body" rows="10" cols="| &&
+    ri_html->add( |<textarea id="c-body" name="body" rows="10" cols="| &&
                   |{ lv_body_size }">{ lv_body }</textarea>| ).
 
-    ro_html->add( '<input type="submit" class="hidden-submit">' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<input type="submit" class="hidden-submit">' ).
+    ri_html->add( '</div>' ).
 
-    ro_html->add( '<div class="row">' ).
-    ro_html->add( '<span class="cell"></span>' ).
-    ro_html->add( '<span class="cell sub-title">Optionally,'
+    ri_html->add( '<div class="row">' ).
+    ri_html->add( '<span class="cell"></span>' ).
+    ri_html->add( '<span class="cell sub-title">Optionally,'
                && ' specify author (same as committer by default)</span>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '</div>' ).
 
-    ro_html->add( render_text_input( iv_name  = 'author_name'
+    ri_html->add( render_text_input( iv_name  = 'author_name'
                                      iv_label = 'Author Name'
                                      iv_value = lv_author_name ) ).
 
-    ro_html->add( render_text_input( iv_name  = 'author_email'
+    ri_html->add( render_text_input( iv_name  = 'author_email'
                                      iv_label = 'Author E-mail'
                                      iv_value = lv_author_email ) ).
 
-    ro_html->add( '</form>' ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '</form>' ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_menu.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     CREATE OBJECT lo_toolbar.
 
     lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
@@ -42939,17 +42978,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
                      iv_txt = 'Cancel'
                      iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
 
-    ro_html->add( '<div class="paddings">' ).
-    ro_html->add( lo_toolbar->render( ) ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="paddings">' ).
+    ri_html->add( lo_toolbar->render( ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ro_html->zif_abapgit_html~set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ro_html->add( 'setInitialFocus("comment");' ).
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( 'setInitialFocus("comment");' ).
 
   ENDMETHOD.
   METHOD render_stage.
@@ -42957,43 +42996,43 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     DATA: lt_stage TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     FIELD-SYMBOLS: <ls_stage> LIKE LINE OF lt_stage.
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_stage = mo_stage->get_all( ).
 
-    ro_html->add( '<table class="stage_tab">' ).
-    ro_html->add( '<thead>' ).
-    ro_html->add( '<tr>' ).
-    ro_html->add( '<th colspan="3">Staged Files</th>' ).
-    ro_html->add( '</tr>' ).
-    ro_html->add( '</thead>' ).
+    ri_html->add( '<table class="stage_tab">' ).
+    ri_html->add( '<thead>' ).
+    ri_html->add( '<tr>' ).
+    ri_html->add( '<th colspan="3">Staged Files</th>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
-    ro_html->add( '<tbody>' ).
+    ri_html->add( '<tbody>' ).
     LOOP AT lt_stage ASSIGNING <ls_stage>.
-      ro_html->add( '<tr>' ).
-      ro_html->add( '<td>' ).
-      ro_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
+      ri_html->add( '<tr>' ).
+      ri_html->add( '<td>' ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
         iv_lstate = <ls_stage>-status-lstate
         iv_rstate = <ls_stage>-status-rstate ) ).
-      ro_html->add( '</td>' ).
-      ro_html->add( '<td class="method">' ).
-      ro_html->add( |<b>{ zcl_abapgit_stage=>method_description( <ls_stage>-method ) }</b>| ).
-      ro_html->add( '</td>' ).
-      ro_html->add( '<td>' ).
-      ro_html->add( <ls_stage>-file-path && <ls_stage>-file-filename ).
-      ro_html->add( '</td>' ).
-      ro_html->add( '</tr>' ).
+      ri_html->add( '</td>' ).
+      ri_html->add( '<td class="method">' ).
+      ri_html->add( |<b>{ zcl_abapgit_stage=>method_description( <ls_stage>-method ) }</b>| ).
+      ri_html->add( '</td>' ).
+      ri_html->add( '<td>' ).
+      ri_html->add( <ls_stage>-file-path && <ls_stage>-file-filename ).
+      ri_html->add( '</td>' ).
+      ri_html->add( '</tr>' ).
     ENDLOOP.
-    ro_html->add( '</tbody>' ).
+    ri_html->add( '</tbody>' ).
 
-    ro_html->add( '</table>' ).
+    ri_html->add( '</table>' ).
 
   ENDMETHOD.
   METHOD render_text_input.
 
     DATA lv_attrs TYPE string.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF iv_value IS NOT INITIAL AND
        iv_max_length IS NOT INITIAL.
@@ -43005,10 +43044,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       lv_attrs = | maxlength="{ iv_max_length }"|.
     ENDIF.
 
-    ro_html->add( '<div class="row">' ).
-    ro_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
-    ro_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
-    ro_html->add( '</div>' ).
+    ri_html->add( '<div class="row">' ).
+    ri_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
+    ri_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -44524,14 +44563,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD scripts.
 
-    CREATE OBJECT ro_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     render_deferred_parts(
-      ii_html          = ro_html
+      ii_html          = ri_html
       iv_part_category = c_html_parts-scripts ).
 
-    render_link_hints( ro_html ).
-    render_command_palettes( ro_html ).
+    render_link_hints( ri_html ).
+    render_command_palettes( ri_html ).
 
   ENDMETHOD.
   METHOD title.
@@ -46387,34 +46426,6 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
-  METHOD add.
-
-    DATA: lv_type TYPE c,
-          lo_html TYPE REF TO zcl_abapgit_html.
-
-    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
-
-    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
-
-    CASE lv_type.
-      WHEN 'C' OR 'g'.  " Char or string
-        APPEND ig_chunk TO mt_buffer.
-      WHEN 'h'.         " Table
-        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
-        APPEND LINES OF <lt_tab> TO mt_buffer.
-      WHEN 'r'.         " Object ref
-        ASSERT ig_chunk IS BOUND. " Dev mistake
-        TRY.
-            lo_html ?= ig_chunk.
-          CATCH cx_sy_move_cast_error.
-            ASSERT 1 = 0. " Dev mistake
-        ENDTRY.
-        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
-      WHEN OTHERS.
-        ASSERT 1 = 0. " Dev mistake
-    ENDCASE.
-
-  ENDMETHOD.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -46630,9 +46641,37 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
           && |{ iv_txt }</a>|.
 
   ENDMETHOD.
+  METHOD zif_abapgit_html~add.
+
+    DATA: lv_type TYPE c,
+          lo_html TYPE REF TO zcl_abapgit_html.
+
+    FIELD-SYMBOLS: <lt_tab> TYPE string_table.
+
+    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
+
+    CASE lv_type.
+      WHEN 'C' OR 'g'.  " Char or string
+        APPEND ig_chunk TO mt_buffer.
+      WHEN 'h'.         " Table
+        ASSIGN ig_chunk TO <lt_tab>. " Assuming table of strings ! Will dump otherwise
+        APPEND LINES OF <lt_tab> TO mt_buffer.
+      WHEN 'r'.         " Object ref
+        ASSERT ig_chunk IS BOUND. " Dev mistake
+        TRY.
+            lo_html ?= ig_chunk.
+          CATCH cx_sy_move_cast_error.
+            ASSERT 1 = 0. " Dev mistake
+        ENDTRY.
+        APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
+      WHEN OTHERS.
+        ASSERT 1 = 0. " Dev mistake
+    ENDCASE.
+
+  ENDMETHOD.
   METHOD zif_abapgit_html~add_a.
 
-    add( zif_abapgit_html~a(
+    zif_abapgit_html~add( zif_abapgit_html~a(
       iv_txt   = iv_txt
       iv_act   = iv_act
       iv_typ   = iv_typ
@@ -46645,16 +46684,18 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
 
-    add( checkbox( iv_id      = iv_id
-                   iv_checked = iv_checked ) ).
+    zif_abapgit_html~add( checkbox(
+      iv_id      = iv_id
+      iv_checked = iv_checked ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_html~add_icon.
 
-    add( icon( iv_name    = iv_name
-               iv_class   = iv_class
-               iv_hint    = iv_hint
-               iv_onclick = iv_onclick ) ).
+    zif_abapgit_html~add( icon(
+      iv_name    = iv_name
+      iv_class   = iv_class
+      iv_hint    = iv_hint
+      iv_onclick = iv_onclick ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_html~icon.
@@ -92507,5 +92548,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-11T14:43:26.405Z
+* abapmerge 0.14.1 - 2020-09-12T03:17:21.847Z
 ****************************************************
