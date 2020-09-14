@@ -1285,11 +1285,11 @@ INTERFACE zif_abapgit_object_enho.
 
   METHODS:
     deserialize
-      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_input
+      IMPORTING ii_xml     TYPE REF TO zif_abapgit_xml_input
                 iv_package TYPE devclass
       RAISING   zcx_abapgit_exception,
     serialize
-      IMPORTING io_xml      TYPE REF TO zcl_abapgit_xml_output
+      IMPORTING ii_xml      TYPE REF TO zif_abapgit_xml_output
                 ii_enh_tool TYPE REF TO if_enh_tool
       RAISING   zcx_abapgit_exception.
 
@@ -5153,7 +5153,7 @@ CLASS zcl_abapgit_object_enho_class DEFINITION.
           zcx_abapgit_exception,
       deserialize_includes
         IMPORTING
-          io_xml   TYPE REF TO zcl_abapgit_xml_input
+          ii_xml   TYPE REF TO zif_abapgit_xml_input
           io_class TYPE REF TO cl_enh_tool_class
         RAISING
           zcx_abapgit_exception.
@@ -77193,13 +77193,13 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_controller_data> TYPE enhwdyc,
                    <ls_view_data>       TYPE enhwdyv.
-    io_xml->read(
+    ii_xml->read(
       EXPORTING
         iv_name = 'TOOL'
       CHANGING
         cg_data = lv_tool_type ).
 
-    io_xml->read(
+    ii_xml->read(
       EXPORTING
         iv_name = 'COMPONENT_DATA'
       CHANGING
@@ -77261,10 +77261,10 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
           IMPORTING
             p_enh_data       = ls_enh_data ).
 
-        io_xml->add( iv_name = 'TOOL'
+        ii_xml->add( iv_name = 'TOOL'
                      ig_data = ii_enh_tool->get_tool( ) ).
 
-        io_xml->add( iv_name = 'COMPONENT_DATA'
+        ii_xml->add( iv_name = 'COMPONENT_DATA'
                      ig_data = ls_enh_data ).
 
       CATCH cx_enh_not_found.
@@ -77287,7 +77287,7 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
           li_tool    TYPE REF TO if_enh_tool,
           ls_obj     TYPE wdy_config_key,
           lv_package TYPE devclass.
-    io_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
+    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
                   CHANGING cg_data  = ls_obj ).
 
     lv_enhname = ms_item-obj_name.
@@ -77329,9 +77329,9 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
     lo_wdyconf ?= ii_enh_tool.
 
     ls_obj = lo_wdyconf->get_original_object( ).
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = ii_enh_tool->get_tool( ) ).
-    io_xml->add( iv_name = 'ORIGINAL_OBJECT'
+    ii_xml->add( iv_name = 'ORIGINAL_OBJECT'
                  ig_data = ls_obj ).
 
 * only works on new ABAP versions, parameters differ between versions
@@ -77350,7 +77350,7 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
       CHANGING
         document      = li_document.
 
-    io_xml->add_xml( iv_name = 'ENHANCEMENT_DATA'
+    ii_xml->add_xml( iv_name = 'ENHANCEMENT_DATA'
                      ii_xml = li_element ).
 
   ENDMETHOD.
@@ -77374,15 +77374,15 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
     lv_shorttext = lo_enh_intf->if_enh_object_docu~get_shorttext( ).
     lo_enh_intf->get_class( IMPORTING class_name = lv_class ).
 
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = ii_enh_tool->get_tool( ) ).
-    io_xml->add( ig_data = lv_shorttext
+    ii_xml->add( ig_data = lv_shorttext
                  iv_name = 'SHORTTEXT' ).
-    io_xml->add( iv_name = 'CLASS'
+    ii_xml->add( iv_name = 'CLASS'
                  ig_data = lv_class ).
 
     zcl_abapgit_object_enho_clif=>serialize(
-      io_xml  = io_xml
+      io_xml  = ii_xml
       io_files = mo_files
       io_clif = lo_enh_intf ).
 
@@ -77396,9 +77396,9 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
           lv_class     TYPE seoclsname,
           lv_enhname   TYPE enhname,
           lv_package   TYPE devclass.
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING cg_data  = lv_shorttext ).
-    io_xml->read( EXPORTING iv_name = 'CLASS'
+    ii_xml->read( EXPORTING iv_name = 'CLASS'
                   CHANGING cg_data  = lv_class ).
 
     lv_enhname = ms_item-obj_name.
@@ -77419,7 +77419,7 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
         lo_enh_intf->set_class( lv_class ).
 
         zcl_abapgit_object_enho_clif=>deserialize(
-          io_xml  = io_xml
+          io_xml  = ii_xml
           io_clif = lo_enh_intf ).
 
         lo_enh_intf->if_enh_object~save( run_dark = abap_true ).
@@ -77467,15 +77467,15 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
              <ls_enhancement>-id.
     ENDLOOP.
 
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = ii_enh_tool->get_tool( ) ).
-    io_xml->add( ig_data = lv_shorttext
+    ii_xml->add( ig_data = lv_shorttext
                  iv_name = 'SHORTTEXT' ).
-    io_xml->add( ig_data = ls_original_object
+    ii_xml->add( ig_data = ls_original_object
                  iv_name = 'ORIGINAL_OBJECT' ).
-    io_xml->add( iv_name = 'ENHANCEMENTS'
+    ii_xml->add( iv_name = 'ENHANCEMENTS'
                  ig_data = lt_enhancements ).
-    io_xml->add( iv_name = 'SPACES'
+    ii_xml->add( iv_name = 'SPACES'
                  ig_data = lt_spaces ).
 
   ENDMETHOD.
@@ -77515,13 +77515,13 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
           lx_enh_root        TYPE REF TO cx_enh_root.
 
     FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING cg_data  = lv_shorttext ).
-    io_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
+    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
                   CHANGING cg_data  = ls_original_object ).
-    io_xml->read( EXPORTING iv_name = 'ENHANCEMENTS'
+    ii_xml->read( EXPORTING iv_name = 'ENHANCEMENTS'
                   CHANGING cg_data  = lt_enhancements ).
-    io_xml->read( EXPORTING iv_name = 'SPACES'
+    ii_xml->read( EXPORTING iv_name = 'SPACES'
                   CHANGING cg_data  = lt_spaces ).
 
     " todo: kept for compatibility, remove after grace period #3680
@@ -77587,13 +77587,13 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_fuba> TYPE enhfugrfuncdata.
 
-    io_xml->read(
+    ii_xml->read(
       EXPORTING
         iv_name = 'TOOL'
       CHANGING
         cg_data = lv_tool ).
 
-    io_xml->read(
+    ii_xml->read(
       EXPORTING
         iv_name = 'FUGRDATA'
       CHANGING
@@ -77658,10 +77658,10 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
     ENDTRY.
 
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = lo_fugrdata->if_enh_tool~get_tool( ) ).
 
-    io_xml->add( iv_name = 'FUGRDATA'
+    ii_xml->add( iv_name = 'FUGRDATA'
                  ig_data = ls_enha_data ).
 
   ENDMETHOD.
@@ -77835,7 +77835,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
+CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
     mo_files = io_files.
@@ -77850,7 +77850,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods.
 
-    io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
+    ii_xml->read( EXPORTING iv_name = 'TAB_METHODS'
                   CHANGING cg_data = lt_tab_methods ).
 
     LOOP AT lt_tab_methods ASSIGNING <ls_method>.
@@ -77917,15 +77917,15 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
           lv_class     TYPE seoclsname,
           lv_enhname   TYPE enhname,
           lv_package   TYPE devclass.
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING cg_data  = lv_shorttext ).
-    io_xml->read( EXPORTING iv_name = 'OWR_METHODS'
+    ii_xml->read( EXPORTING iv_name = 'OWR_METHODS'
                   CHANGING cg_data  = lt_owr ).
-    io_xml->read( EXPORTING iv_name = 'PRE_METHODS'
+    ii_xml->read( EXPORTING iv_name = 'PRE_METHODS'
                   CHANGING cg_data  = lt_pre ).
-    io_xml->read( EXPORTING iv_name = 'POST_METHODS'
+    ii_xml->read( EXPORTING iv_name = 'POST_METHODS'
                   CHANGING cg_data  = lt_post ).
-    io_xml->read( EXPORTING iv_name = 'CLASS'
+    ii_xml->read( EXPORTING iv_name = 'CLASS'
                   CHANGING cg_data  = lv_class ).
     lt_source = mo_files->read_abap( ).
 
@@ -77955,11 +77955,11 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
                                         eimp_source = lt_source ).
 
         zcl_abapgit_object_enho_clif=>deserialize(
-          io_xml  = io_xml
+          io_xml  = ii_xml
           io_clif = lo_enh_class ).
 
         deserialize_includes(
-          io_xml   = io_xml
+          ii_xml   = ii_xml
           io_class = lo_enh_class ).
 
         lo_enh_class->if_enh_object~save( run_dark = abap_true ).
@@ -77987,23 +77987,23 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLASS IMPLEMENTATION.
     lt_source = lo_enh_class->get_eimp_include( ).
     lo_enh_class->get_class( IMPORTING class_name = lv_class ).
 
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = ii_enh_tool->get_tool( ) ).
-    io_xml->add( ig_data = lv_shorttext
+    ii_xml->add( ig_data = lv_shorttext
                  iv_name = 'SHORTTEXT' ).
-    io_xml->add( iv_name = 'CLASS'
+    ii_xml->add( iv_name = 'CLASS'
                  ig_data = lv_class ).
-    io_xml->add( iv_name = 'OWR_METHODS'
+    ii_xml->add( iv_name = 'OWR_METHODS'
                  ig_data = lt_owr ).
-    io_xml->add( iv_name = 'PRE_METHODS'
+    ii_xml->add( iv_name = 'PRE_METHODS'
                  ig_data = lt_pre ).
-    io_xml->add( iv_name = 'POST_METHODS'
+    ii_xml->add( iv_name = 'POST_METHODS'
                  ig_data = lt_post ).
 
     mo_files->add_abap( lt_source ).
 
     zcl_abapgit_object_enho_clif=>serialize(
-      io_xml   = io_xml
+      io_xml   = ii_xml
       io_files = mo_files
       io_clif  = lo_enh_class ).
 
@@ -78048,13 +78048,13 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
-    io_xml->add( iv_name = 'TOOL'
+    ii_xml->add( iv_name = 'TOOL'
                  ig_data = ii_enh_tool->get_tool( ) ).
-    io_xml->add( ig_data = lv_shorttext
+    ii_xml->add( ig_data = lv_shorttext
                  iv_name = 'SHORTTEXT' ).
-    io_xml->add( iv_name = 'SPOT_NAME'
+    ii_xml->add( iv_name = 'SPOT_NAME'
                  ig_data = lv_spot_name ).
-    io_xml->add( iv_name = 'IMPL'
+    ii_xml->add( iv_name = 'IMPL'
                  ig_data = lt_impl ).
 
   ENDMETHOD.
@@ -78070,11 +78070,11 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
           lt_impl      TYPE enh_badi_impl_data_it.
 
     FIELD-SYMBOLS: <ls_impl> LIKE LINE OF lt_impl.
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING cg_data  = lv_shorttext ).
-    io_xml->read( EXPORTING iv_name = 'SPOT_NAME'
+    ii_xml->read( EXPORTING iv_name = 'SPOT_NAME'
                   CHANGING cg_data  = lv_spot_name ).
-    io_xml->read( EXPORTING iv_name = 'IMPL'
+    ii_xml->read( EXPORTING iv_name = 'IMPL'
                   CHANGING cg_data  = lt_impl ).
 
     lv_enhname = ms_item-obj_name.
@@ -78221,7 +78221,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     li_enho = factory( lv_tool ).
 
-    li_enho->deserialize( io_xml     = io_xml
+    li_enho->deserialize( ii_xml     = io_xml
                           iv_package = iv_package ).
 
     zcl_abapgit_sotr_handler=>create_sotr(
@@ -78300,7 +78300,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
 
     li_enho = factory( li_enh_tool->get_tool( ) ).
 
-    li_enho->serialize( io_xml      = io_xml
+    li_enho->serialize( ii_xml      = io_xml
                         ii_enh_tool = li_enh_tool ).
 
     zcl_abapgit_sotr_handler=>read_sotr(
@@ -92565,5 +92565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-14T10:49:12.160Z
+* abapmerge 0.14.1 - 2020-09-14T10:58:28.896Z
 ****************************************************
