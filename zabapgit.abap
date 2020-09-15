@@ -1299,13 +1299,13 @@ INTERFACE zif_abapgit_object_enhs.
 
   METHODS:
     deserialize
-      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_input
+      IMPORTING ii_xml           TYPE REF TO zif_abapgit_xml_input
                 iv_package       TYPE devclass
                 ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
       RAISING   zcx_abapgit_exception,
 
     serialize
-      IMPORTING io_xml           TYPE REF TO zcl_abapgit_xml_output
+      IMPORTING ii_xml           TYPE REF TO zif_abapgit_xml_output
                 ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
       RAISING   zcx_abapgit_exception.
 
@@ -2268,13 +2268,13 @@ INTERFACE zif_abapgit_longtexts .
       !iv_object_name   TYPE sobj_name
       !iv_longtext_id   TYPE dokil-id
       !it_dokil         TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
-      !io_xml           TYPE REF TO zcl_abapgit_xml_output
+      !ii_xml           TYPE REF TO zif_abapgit_xml_output
     RAISING
       zcx_abapgit_exception .
   METHODS deserialize
     IMPORTING
       !iv_longtext_name   TYPE string DEFAULT 'LONGTEXTS'
-      !io_xml             TYPE REF TO zcl_abapgit_xml_input
+      !ii_xml             TYPE REF TO zif_abapgit_xml_input
       !iv_master_language TYPE langu
     RAISING
       zcx_abapgit_exception .
@@ -51213,7 +51213,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD deserialize_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->deserialize(
-        io_xml             = io_xml
+        ii_xml             = io_xml
         iv_master_language = mv_language ).
 
   ENDMETHOD.
@@ -51334,7 +51334,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
         iv_object_name = ms_item-obj_name
         iv_longtext_id = iv_longtext_id
         it_dokil       = it_dokil
-        io_xml         = io_xml  ).
+        ii_xml         = io_xml  ).
 
   ENDMETHOD.
   METHOD set_default_package.
@@ -67230,9 +67230,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
 
     CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
-    IF zif_abapgit_object~exists( ) = abap_true.
-      RETURN.
-    ENDIF.
+    TRY.
+        me->zif_abapgit_object~exists( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
 
     has_authorization( iv_structure_id = mv_tree_id
                        iv_devclass     = ms_item-devclass
@@ -76857,10 +76859,10 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS_HOOK_D IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_hook_definition> TYPE enh_hook_def_ext.
 
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING  cg_data = lv_enh_shorttext ).
 
-    io_xml->read( EXPORTING iv_name = 'BADI_DATA'
+    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
                   CHANGING  cg_data = ls_hook_definition ).
 
     li_enh_object ?= ii_enh_spot_tool.
@@ -76916,13 +76918,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS_HOOK_D IMPLEMENTATION.
         main_name = ls_hook_definition-main_name
         program   = ls_hook_definition-program ).
 
-    io_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
+    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
                  iv_name = 'TOOL' ).
 
-    io_xml->add( ig_data = lv_enh_shorttext
+    ii_xml->add( ig_data = lv_enh_shorttext
                  iv_name = 'SHORTTEXT' ).
 
-    io_xml->add( ig_data = ls_hook_definition
+    ii_xml->add( ig_data = ls_hook_definition
                  iv_name = 'BADI_DATA' ).
 
   ENDMETHOD.
@@ -76942,13 +76944,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_enh_badi> LIKE LINE OF lt_enh_badi.
 
-    io_xml->read( EXPORTING iv_name = 'PARENT_COMP'
+    ii_xml->read( EXPORTING iv_name = 'PARENT_COMP'
                   CHANGING  cg_data = lv_parent ).
 
-    io_xml->read( EXPORTING iv_name = 'BADI_DATA'
+    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
                   CHANGING  cg_data = lt_enh_badi ).
 
-    io_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
                   CHANGING  cg_data = lv_enh_shorttext ).
 
     li_enh_object ?= ii_enh_spot_tool.
@@ -76992,16 +76994,16 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
     "get subsequent BADI definitions
     lt_enh_badi = lo_badidef_tool->get_badi_defs( ).
 
-    io_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
+    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
                  iv_name = 'TOOL' ).
 
-    io_xml->add( ig_data = lv_enh_shorttext
+    ii_xml->add( ig_data = lv_enh_shorttext
                  iv_name = 'SHORTTEXT' ).
 
-    io_xml->add( ig_data = lv_parent
+    ii_xml->add( ig_data = lv_parent
                  iv_name = 'PARENT_COMP' ).
 
-    io_xml->add( ig_data = lt_enh_badi
+    ii_xml->add( ig_data = lt_enh_badi
                  iv_name = 'BADI_DATA' ).
 
   ENDMETHOD.
@@ -77096,7 +77098,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
     li_enhs = factory( lv_tool ).
 
-    li_enhs->deserialize( io_xml           = io_xml
+    li_enhs->deserialize( ii_xml           = io_xml
                           iv_package       = iv_package
                           ii_enh_spot_tool = li_spot_ref ).
 
@@ -77167,7 +77169,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
     li_enhs = factory( li_spot_ref->get_tool( ) ).
 
-    li_enhs->serialize( io_xml           = io_xml
+    li_enhs->serialize( ii_xml           = io_xml
                         ii_enh_spot_tool = li_spot_ref ).
 
     zcl_abapgit_sotr_handler=>read_sotr(
@@ -79888,7 +79890,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
 
       WHEN 'v2.0.0'.
         zcl_abapgit_factory=>get_longtexts( )->deserialize(
-          io_xml             = io_xml
+          ii_xml             = io_xml
           iv_master_language = mv_language ).
 
       WHEN OTHERS.
@@ -79953,7 +79955,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
     zcl_abapgit_factory=>get_longtexts( )->serialize(
       iv_object_name = mv_doc_object
       iv_longtext_id = c_id
-      io_xml         = io_xml ).
+      ii_xml         = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -80830,7 +80832,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
 
     mi_longtexts->deserialize(
         iv_longtext_name   = c_name
-        io_xml             = io_xml
+        ii_xml             = io_xml
         iv_master_language = mv_language ).
 
     tadir_insert( iv_package ).
@@ -80916,7 +80918,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
         iv_longtext_name = c_name
         iv_object_name = ms_item-obj_name
         iv_longtext_id = c_id
-        io_xml         = io_xml ).
+        ii_xml         = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -85934,7 +85936,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
           lv_no_masterlang TYPE dokil-masterlang.
     FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
 
-    io_xml->read(
+    ii_xml->read(
       EXPORTING
         iv_name = iv_longtext_name
       CHANGING
@@ -85964,7 +85966,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
     DATA lv_master_lang_only TYPE abap_bool.
 
     lt_dokil = it_dokil.
-    lv_master_lang_only = io_xml->i18n_params( )-serialize_master_lang_only.
+    lv_master_lang_only = ii_xml->i18n_params( )-serialize_master_lang_only.
     IF lv_master_lang_only = abap_true.
       DELETE lt_dokil WHERE masterlang <> abap_true.
     ENDIF.
@@ -85974,7 +85976,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
                          it_dokil       = lt_dokil
                          iv_master_lang_only = lv_master_lang_only ).
 
-    io_xml->add( iv_name = iv_longtext_name
+    ii_xml->add( iv_name = iv_longtext_name
                  ig_data = lt_longtexts ).
 
   ENDMETHOD.
@@ -92565,5 +92567,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-15T06:16:01.160Z
+* abapmerge 0.14.1 - 2020-09-15T06:22:57.334Z
 ****************************************************
