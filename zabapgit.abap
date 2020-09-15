@@ -38624,7 +38624,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       IF lv_body_size > lc_body_col_max.
         lv_body_size = lc_body_col_max.
       ENDIF.
-      ri_html->add( |<textarea id="c-body" name="body" rows="10" cols="| && |{ lv_body_size }"></textarea>| ).
+      ri_html->add( |<textarea id="c-body" name="body" rows="10" cols="{ lv_body_size }"></textarea>| ).
 
     ENDIF.
 
@@ -45338,7 +45338,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         lv_display_url = io_repo_online->get_commit_display_url( lv_commit_hash ).
 
         ii_html->add_a( iv_txt   = |{ lv_icon_commit }{ lv_commit_short_hash }|
-                        iv_act   = |{ zif_abapgit_definitions=>c_action-url }?| && lv_display_url
+                        iv_act   = |{ zif_abapgit_definitions=>c_action-url }?{ lv_display_url }|
                         iv_class = |url| ).
       CATCH zcx_abapgit_exception.
         ii_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>| ).
@@ -45349,7 +45349,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="dummydiv warning">' ).
-    ri_html->add( |{ ri_html->icon( 'exclamation-triangle/yellow' ) }| && | { iv_text }| ).
+    ri_html->add( |{ ri_html->icon( 'exclamation-triangle/yellow' ) } { iv_text }| ).
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
@@ -46152,7 +46152,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     ri_html->add( '</td></tr></table>' ).
 
     " Form
-    ri_html->add( |<form id="db_form" method="post" action="sapevent:| && |{ c_action-update }">| ).
+    ri_html->add( |<form id="db_form" method="post" action="sapevent:{ c_action-update }">| ).
     ri_html->add( |<input type="hidden" name="type" value="{ ms_key-type }">| ).
     ri_html->add( |<input type="hidden" name="value" value="{ ms_key-value }">| ).
     ri_html->add( |<textarea rows="20" cols="100" name="xmldata">{ lv_data }</textarea>| ).
@@ -51449,7 +51449,7 @@ CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
         OTHERS         = 3 ).
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } | && lv_objname ).
+      zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } { lv_objname }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -92565,5 +92565,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-14T10:58:28.896Z
+* abapmerge 0.14.1 - 2020-09-15T06:16:01.160Z
 ****************************************************
