@@ -1275,7 +1275,7 @@ INTERFACE zif_abapgit_comparator .
 
   METHODS compare
     IMPORTING
-      !io_remote       TYPE REF TO zcl_abapgit_xml_input
+      !ii_remote       TYPE REF TO zif_abapgit_xml_input
       !ii_log          TYPE REF TO zif_abapgit_log
     RETURNING
       VALUE(rs_result) TYPE ty_result
@@ -2456,7 +2456,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
       IMPORTING
         iv_object_name TYPE sobj_name
         iv_package     TYPE devclass
-        io_xml         TYPE REF TO zcl_abapgit_xml_input
+        ii_xml         TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception,
     create_documentation
@@ -2520,7 +2520,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     read_sotr
       IMPORTING
         iv_object_name TYPE sobj_name
-        io_xml         TYPE REF TO zcl_abapgit_xml_output
+        ii_xml         TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception,
     read_descriptions
@@ -5348,7 +5348,7 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
 
     METHODS constructor
       IMPORTING
-        !io_local TYPE REF TO zcl_abapgit_xml_input .
+        !ii_local TYPE REF TO zif_abapgit_xml_input.
   PROTECTED SECTION.
 
     TYPES:
@@ -5358,7 +5358,7 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
       tty_seu_obj TYPE STANDARD TABLE OF seu_obj
                            WITH NON-UNIQUE DEFAULT KEY .
 
-    DATA mo_local TYPE REF TO zcl_abapgit_xml_input .
+    DATA mi_local TYPE REF TO zif_abapgit_xml_input.
 
     METHODS get_where_used_recursive
       IMPORTING
@@ -5379,8 +5379,8 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
         zcx_abapgit_exception .
     METHODS validate
       IMPORTING
-        !io_remote_version TYPE REF TO zcl_abapgit_xml_input
-        !io_local_version  TYPE REF TO zcl_abapgit_xml_input
+        !ii_remote_version TYPE REF TO zif_abapgit_xml_input
+        !ii_local_version  TYPE REF TO zif_abapgit_xml_input
         !ii_log            TYPE REF TO zif_abapgit_log
       RETURNING
         VALUE(rv_message)  TYPE string
@@ -19836,7 +19836,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_activate_wo_popup.
     rv_act_wo_popup = ms_user_settings-activate_wo_popup.
   ENDMETHOD.
@@ -20002,8 +20002,8 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_xml_settings.
 
-    DATA: lo_input TYPE REF TO zcl_abapgit_xml_input.
-    CREATE OBJECT lo_input EXPORTING iv_xml = iv_settings_xml.
+    DATA: lo_input TYPE REF TO zif_abapgit_xml_input.
+    CREATE OBJECT lo_input TYPE zcl_abapgit_xml_input EXPORTING iv_xml = iv_settings_xml.
 
     CLEAR ms_settings.
 
@@ -50755,7 +50755,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
     zcl_abapgit_sotr_handler=>create_sotr(
       iv_package = iv_package
-      io_xml     = io_xml ).
+      io_xml     = ii_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
@@ -50979,7 +50979,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
       iv_pgmid    = 'LIMU'
       iv_object   = 'CPUB'
       iv_obj_name = iv_object_name
-      io_xml      = io_xml ).
+      io_xml      = ii_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_text_pool.
     DATA: lv_cp TYPE program.
@@ -53804,7 +53804,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -53913,7 +53913,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 * only the main XML file is used for comparison
 
     DATA: ls_remote_file      TYPE zif_abapgit_definitions=>ty_file,
-          lo_remote_version   TYPE REF TO zcl_abapgit_xml_input,
+          li_remote_version   TYPE REF TO zif_abapgit_xml_input,
           lv_count            TYPE i,
           ls_result           TYPE zif_abapgit_comparator=>ty_result,
           lv_answer           TYPE string,
@@ -53938,12 +53938,13 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      CREATE OBJECT lo_remote_version
+      CREATE OBJECT li_remote_version
+        TYPE zcl_abapgit_xml_input
         EXPORTING
           iv_xml      = zcl_abapgit_convert=>xstring_to_string_utf8( ls_remote_file-data )
           iv_filename = ls_remote_file-filename.
 
-      ls_result = li_comparator->compare( io_remote = lo_remote_version
+      ls_result = li_comparator->compare( ii_remote = li_remote_version
                                           ii_log = ii_log ).
       IF ls_result-text IS INITIAL.
         RETURN.
@@ -61252,10 +61253,10 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl_compar IMPLEMENTATION.
   METHOD constructor.
 
-    mo_local = io_local.
+    mi_local = ii_local.
 
   ENDMETHOD.
   METHOD get_where_used_recursive.
@@ -61343,7 +61344,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
           ls_item                  TYPE zif_abapgit_definitions=>ty_item,
           lv_inconsistent          TYPE abap_bool.
 
-    io_remote_version->read(
+    ii_remote_version->read(
       EXPORTING
         iv_name = 'DD02V'
       CHANGING
@@ -61354,13 +61355,13 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    io_remote_version->read(
+    ii_remote_version->read(
       EXPORTING
         iv_name       = 'DD03P_TABLE'
       CHANGING
         cg_data       = lt_previous_table_fields ).
 
-    io_local_version->read(
+    ii_local_version->read(
       EXPORTING
         iv_name       = 'DD03P_TABLE'
       CHANGING
@@ -61416,14 +61417,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   METHOD zif_abapgit_comparator~compare.
 
     rs_result-text = validate(
-      io_remote_version = io_remote
-      io_local_version  = mo_local
+      ii_remote_version = ii_remote
+      ii_local_version  = mi_local
       ii_log            = ii_log ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -62072,18 +62073,23 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
 
-    DATA: lo_local_version_output TYPE REF TO zcl_abapgit_xml_output,
-          lo_local_version_input  TYPE REF TO zcl_abapgit_xml_input.
-    CREATE OBJECT lo_local_version_output.
+    DATA: li_local_version_output TYPE REF TO zif_abapgit_xml_output,
+          lo_local_version_output TYPE REF TO zcl_abapgit_xml_output,
+          li_local_version_input  TYPE REF TO zif_abapgit_xml_input.
+    CREATE OBJECT li_local_version_output TYPE zcl_abapgit_xml_output.
+
+    " TODO: remove cast after zif_abapgit_object uses interface instead of class
+    lo_local_version_output ?= li_local_version_output.
     me->zif_abapgit_object~serialize( lo_local_version_output ).
 
-    CREATE OBJECT lo_local_version_input
+    CREATE OBJECT li_local_version_input
+      TYPE zcl_abapgit_xml_input
       EXPORTING
-        iv_xml = lo_local_version_output->render( ).
+        iv_xml = li_local_version_output->render( ).
 
     CREATE OBJECT ri_comparator TYPE zcl_abapgit_object_tabl_compar
       EXPORTING
-        io_local = lo_local_version_input.
+        ii_local = li_local_version_input.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
@@ -83405,7 +83411,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     mi_object_oriented_object_fct->create_sotr(
       iv_object_name = ms_item-obj_name
       iv_package     = iv_package
-      io_xml         = io_xml ).
+      ii_xml         = io_xml ).
   ENDMETHOD.
   METHOD deserialize_tpool.
 
@@ -83553,7 +83559,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD serialize_sotr.
     mi_object_oriented_object_fct->read_sotr(
       iv_object_name = ms_item-obj_name
-      io_xml         = io_xml ).
+      ii_xml         = io_xml ).
   ENDMETHOD.
   METHOD serialize_tpool.
 
@@ -92711,5 +92717,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-16T10:40:29.313Z
+* abapmerge 0.14.1 - 2020-09-16T10:44:59.545Z
 ****************************************************
