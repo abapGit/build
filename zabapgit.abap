@@ -58557,8 +58557,6 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
                        iv_argument = lv_argument )       = abap_true
         OR check_lock( iv_tabname = 'VCLSTRUCT'
                        iv_argument = lv_argument_langu ) = abap_true
-        OR check_lock( iv_tabname = 'VCLSTRUC'
-                       iv_argument = lv_argument )       = abap_true
         OR check_lock( iv_tabname = 'VCLMF'
                        iv_argument = lv_argument )       = abap_true.
 
@@ -92717,5 +92715,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-16T13:24:14.644Z
+* abapmerge 0.14.1 - 2020-09-16T13:52:37.103Z
 ****************************************************
