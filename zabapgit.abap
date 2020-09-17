@@ -1726,7 +1726,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_file.
       INCLUDE TYPE ty_file_signature.
   TYPES: data TYPE xstring,
-         END OF ty_file .
+    END OF ty_file .
   TYPES:
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
@@ -1805,7 +1805,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES: decision TYPE ty_yes_no,
-         END OF ty_overwrite .
+    END OF ty_overwrite .
   TYPES:
     ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
                               WITH UNIQUE HASHED KEY object_type_and_name
@@ -2090,7 +2090,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_deserialization,
       obj     TYPE REF TO zif_abapgit_object,
-      xml     TYPE REF TO zcl_abapgit_xml_input,
+      xml     TYPE REF TO zif_abapgit_xml_input,
       package TYPE devclass,
       item    TYPE ty_item,
     END OF ty_deserialization .
@@ -2349,13 +2349,13 @@ INTERFACE zif_abapgit_object .
 
   METHODS serialize
     IMPORTING
-      !io_xml TYPE REF TO zcl_abapgit_xml_output
+      !io_xml TYPE REF TO zif_abapgit_xml_output
     RAISING
       zcx_abapgit_exception .
   METHODS deserialize
     IMPORTING
       !iv_package TYPE devclass
-      !io_xml     TYPE REF TO zcl_abapgit_xml_input
+      !io_xml     TYPE REF TO zif_abapgit_xml_input
       !iv_step    TYPE zif_abapgit_definitions=>ty_deserialization_step
       !ii_log     TYPE REF TO zif_abapgit_log
     RAISING
@@ -5397,15 +5397,6 @@ CLASS zcl_abapgit_objects DEFINITION
     TYPES:
       ty_types_tt TYPE SORTED TABLE OF tadir-object WITH UNIQUE KEY table_line.
     TYPES:
-      BEGIN OF ty_deserialization,
-        obj     TYPE REF TO zif_abapgit_object,
-        xml     TYPE REF TO zcl_abapgit_xml_input,
-        package TYPE devclass,
-        item    TYPE zif_abapgit_definitions=>ty_item,
-      END OF ty_deserialization .
-    TYPES:
-      ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY .
-    TYPES:
       BEGIN OF ty_serialization,
         files TYPE zif_abapgit_definitions=>ty_files_tt,
         item  TYPE zif_abapgit_definitions=>ty_item,
@@ -5695,7 +5686,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS add_xml
       IMPORTING
         !iv_extra     TYPE clike OPTIONAL
-        !io_xml       TYPE REF TO zcl_abapgit_xml_output
+        !ii_xml       TYPE REF TO zif_abapgit_xml_output
         !iv_normalize TYPE abap_bool DEFAULT abap_true
         !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
       RAISING
@@ -5704,7 +5695,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
       IMPORTING
         !iv_extra     TYPE clike OPTIONAL
       RETURNING
-        VALUE(ro_xml) TYPE REF TO zcl_abapgit_xml_input
+        VALUE(ri_xml) TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS read_abap
@@ -8453,7 +8444,7 @@ CLASS zcl_abapgit_object_sprx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         !ev_obj_name TYPE sproxhdr-obj_name .
     METHODS delta_handling
       IMPORTING
-        !io_xml          TYPE REF TO zcl_abapgit_xml_input
+        !ii_xml          TYPE REF TO zif_abapgit_xml_input
       EXPORTING
         !et_sproxhdr_new TYPE sprx_hdr_t
         !et_sproxdat_new TYPE sprx_dat_t
@@ -9746,7 +9737,7 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
            END OF ty_progdir.
 
     METHODS serialize_program
-      IMPORTING io_xml     TYPE REF TO zcl_abapgit_xml_output OPTIONAL
+      IMPORTING io_xml     TYPE REF TO zif_abapgit_xml_output OPTIONAL
                 is_item    TYPE zif_abapgit_definitions=>ty_item
                 io_files   TYPE REF TO zcl_abapgit_objects_files
                 iv_program TYPE programm OPTIONAL
@@ -10028,12 +10019,12 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS serialize_xml
       IMPORTING
-        !io_xml TYPE REF TO zcl_abapgit_xml_output
+        !ii_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_xml
       IMPORTING
-        !io_xml     TYPE REF TO zcl_abapgit_xml_input
+        !ii_xml     TYPE REF TO zif_abapgit_xml_input
         !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
@@ -10042,7 +10033,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS deserialize_includes
       IMPORTING
-        !io_xml     TYPE REF TO zcl_abapgit_xml_input
+        !ii_xml     TYPE REF TO zif_abapgit_xml_input
         !iv_package TYPE devclass
         !ii_log     TYPE REF TO zif_abapgit_log
       RAISING
@@ -10064,7 +10055,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS get_abap_version
       IMPORTING
-        !io_xml                TYPE REF TO zcl_abapgit_xml_input
+        !ii_xml                TYPE REF TO zif_abapgit_xml_input
       RETURNING
         VALUE(rv_abap_version) TYPE progdir-uccheck
       RAISING
@@ -10076,13 +10067,13 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
     METHODS serialize_texts
       IMPORTING
         !iv_prog_name TYPE programm
-        !io_xml       TYPE REF TO zif_abapgit_xml_output
+        !ii_xml       TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
         !iv_prog_name TYPE programm
-        !io_xml       TYPE REF TO zif_abapgit_xml_input
+        !ii_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -19891,13 +19882,13 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_settings_xml.
 
-    DATA: lo_output TYPE REF TO zcl_abapgit_xml_output.
-    CREATE OBJECT lo_output.
+    DATA: li_output TYPE REF TO zif_abapgit_xml_output.
+    CREATE OBJECT li_output TYPE zcl_abapgit_xml_output.
 
-    lo_output->add( iv_name = zcl_abapgit_persistence_db=>c_type_settings
+    li_output->add( iv_name = zcl_abapgit_persistence_db=>c_type_settings
                     ig_data = ms_settings ).
 
-    rv_settings_xml = lo_output->render( ).
+    rv_settings_xml = li_output->render( ).
 
   ENDMETHOD.
   METHOD get_show_default_repo.
@@ -51847,7 +51838,7 @@ CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
+CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -52407,10 +52398,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
                    <ls_field_int>   LIKE LINE OF lt_fieldlist_int.
 
     "#2746: relevant flag values (taken from include MSEUSBIT)
-    CONSTANTS:    lc_flg1ddf TYPE x VALUE '20',
-                  lc_flg3fku TYPE x VALUE '08',
-                  lc_flg3for TYPE x VALUE '04',
-                  lc_flg3fdu TYPE x VALUE '02'.
+    CONSTANTS: lc_flg1ddf TYPE x VALUE '20',
+               lc_flg3fku TYPE x VALUE '08',
+               lc_flg3for TYPE x VALUE '04',
+               lc_flg3fdu TYPE x VALUE '02'.
     CALL FUNCTION 'RS_SCREEN_LIST'
       EXPORTING
         dynnr     = ''
@@ -52511,7 +52502,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
           lt_source       TYPE TABLE OF abaptxt255,
           lt_tpool        TYPE textpool_table,
           ls_tpool        LIKE LINE OF lt_tpool,
-          lo_xml          TYPE REF TO zcl_abapgit_xml_output.
+          li_xml          TYPE REF TO zif_abapgit_xml_output.
 
     IF iv_program IS INITIAL.
       lv_program_name = is_item-obj_name.
@@ -52548,21 +52539,21 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
     ls_progdir = read_progdir( lv_program_name ).
 
     IF io_xml IS BOUND.
-      lo_xml = io_xml.
+      li_xml = io_xml.
     ELSE.
-      CREATE OBJECT lo_xml.
+      CREATE OBJECT li_xml TYPE zcl_abapgit_xml_output.
     ENDIF.
 
-    lo_xml->add( iv_name = 'PROGDIR'
+    li_xml->add( iv_name = 'PROGDIR'
                  ig_data = ls_progdir ).
     IF ls_progdir-subc = '1' OR ls_progdir-subc = 'M'.
       lt_dynpros = serialize_dynpros( lv_program_name ).
-      lo_xml->add( iv_name = 'DYNPROS'
+      li_xml->add( iv_name = 'DYNPROS'
                    ig_data = lt_dynpros ).
 
       ls_cua = serialize_cua( lv_program_name ).
       IF NOT ls_cua IS INITIAL.
-        lo_xml->add( iv_name = 'CUA'
+        li_xml->add( iv_name = 'CUA'
                      ig_data = ls_cua ).
       ENDIF.
     ENDIF.
@@ -52572,12 +52563,12 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       DELETE lt_tpool INDEX sy-tabix.
     ENDIF.
 
-    lo_xml->add( iv_name = 'TPOOL'
+    li_xml->add( iv_name = 'TPOOL'
                  ig_data = add_tpool( lt_tpool ) ).
 
     IF NOT io_xml IS BOUND.
       io_files->add_xml( iv_extra = iv_extra
-                         io_xml   = lo_xml ).
+                         ii_xml   = li_xml ).
     ENDIF.
 
     io_files->add_abap( iv_extra = iv_extra
@@ -53126,7 +53117,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
+CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   METHOD add.
     APPEND is_file TO mt_files.
   ENDMETHOD.
@@ -53174,7 +53165,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     DATA: lv_xml  TYPE string,
           ls_file TYPE zif_abapgit_definitions=>ty_file.
 
-    lv_xml = io_xml->render( iv_normalize = iv_normalize
+    lv_xml = ii_xml->render( iv_normalize = iv_normalize
                              is_metadata = is_metadata ).
     ls_file-path = '/'.
 
@@ -53346,7 +53337,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
     lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
-    CREATE OBJECT ro_xml
+    CREATE OBJECT ri_xml
+      TYPE zcl_abapgit_xml_input
       EXPORTING
         iv_xml      = lv_xml
         iv_filename = lv_filename.
@@ -54122,7 +54114,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
           lv_package  TYPE devclass,
           lo_files    TYPE REF TO zcl_abapgit_objects_files,
-          lo_xml      TYPE REF TO zcl_abapgit_xml_input,
+          lo_xml      TYPE REF TO zif_abapgit_xml_input,
           lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
           li_progress TYPE REF TO zif_abapgit_progress,
           lv_path     TYPE string,
@@ -54135,7 +54127,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
                    <lv_step_id> TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_step_tt,
                    <ls_step>    TYPE LINE OF zif_abapgit_definitions=>ty_step_data_tt,
-                   <ls_deser>   TYPE LINE OF ty_deserialization_tt.
+                   <ls_deser>   TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_tt.
 
     lt_steps = get_deserialize_steps( ).
 
@@ -54687,7 +54679,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDIF.
 
     li_obj->serialize( lo_xml ).
-    lo_files->add_xml( io_xml      = lo_xml
+    lo_files->add_xml( ii_xml      = lo_xml
                        is_metadata = li_obj->get_metadata( ) ).
 
     rs_files_and_item-files = lo_files->get_files( ).
@@ -64907,7 +64899,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
       CATCH cx_proxy_gen_error.
         "No delta for this object -> create
 
-        io_xml->read(
+        ii_xml->read(
           EXPORTING
             iv_name = c_proxy-header
           CHANGING
@@ -64917,7 +64909,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
           zcx_abapgit_exception=>raise( |SPRX - error deserialize: { ms_item-obj_name }| ).
         ENDIF.
 
-        io_xml->read(
+        ii_xml->read(
           EXPORTING
             iv_name = c_proxy-data
           CHANGING
@@ -65046,7 +65038,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
 
     delta_handling(
       EXPORTING
-        io_xml = io_xml
+        ii_xml = io_xml
       IMPORTING
         et_sproxhdr_new = lt_sproxhdr_new
         et_sproxdat_new = lt_sproxdat_new ).
@@ -75089,7 +75081,7 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -75250,7 +75242,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_includes.
 
-    DATA: lo_xml       TYPE REF TO zcl_abapgit_xml_input,
+    DATA: lo_xml       TYPE REF TO zif_abapgit_xml_input,
           ls_progdir   TYPE ty_progdir,
           lt_includes  TYPE ty_sobj_name_tt,
           lt_tpool     TYPE textpool_table,
@@ -75261,7 +75253,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_include> LIKE LINE OF lt_includes.
     tadir_insert( iv_package ).
 
-    io_xml->read( EXPORTING iv_name = 'INCLUDES'
+    ii_xml->read( EXPORTING iv_name = 'INCLUDES'
                   CHANGING cg_data = lt_includes ).
 
     LOOP AT lt_includes ASSIGNING <lv_include>.
@@ -75311,7 +75303,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           lt_tpool      TYPE textpool_table.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
-    io_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
+    ii_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
                   CHANGING  cg_data = lt_tpool_i18n ).
 
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -75331,7 +75323,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           lv_abap_version TYPE trdir-uccheck,
           lv_corrnum      TYPE e070use-ordernum.
 
-    lv_abap_version = get_abap_version( io_xml ).
+    lv_abap_version = get_abap_version( ii_xml ).
     lv_complete = ms_item-obj_name.
 
     CALL FUNCTION 'FUNCTION_INCLUDE_SPLIT'
@@ -75357,7 +75349,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from FUNCTION_INCLUDE_SPLIT' ).
     ENDIF.
 
-    io_xml->read( EXPORTING iv_name = 'AREAT'
+    ii_xml->read( EXPORTING iv_name = 'AREAT'
                   CHANGING cg_data = lv_areat ).
     lv_stext = lv_areat.
     lv_corrnum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
@@ -75428,11 +75420,11 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     DATA: lt_includes TYPE ty_sobj_name_tt,
           ls_progdir  TYPE ty_progdir,
-          lo_xml      TYPE REF TO zcl_abapgit_xml_input.
+          lo_xml      TYPE REF TO zif_abapgit_xml_input.
 
     FIELD-SYMBOLS: <lv_include> LIKE LINE OF lt_includes.
 
-    io_xml->read( EXPORTING iv_name = 'INCLUDES'
+    ii_xml->read( EXPORTING iv_name = 'INCLUDES'
                   CHANGING cg_data = lt_includes ).
 
     LOOP AT lt_includes ASSIGNING <lv_include>.
@@ -75763,7 +75755,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
 
-    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_true.
+    IF ii_xml->i18n_params( )-serialize_master_lang_only = abap_true.
       RETURN.
     ENDIF.
 
@@ -75786,7 +75778,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDLOOP.
 
     IF lines( lt_tpool_i18n ) > 0.
-      io_xml->add( iv_name = 'I18N_TPOOL'
+      ii_xml->add( iv_name = 'I18N_TPOOL'
                    ig_data = lt_tpool_i18n ).
     ENDIF.
   ENDMETHOD.
@@ -75801,9 +75793,9 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     lt_includes = includes( ).
 
-    io_xml->add( iv_name = 'AREAT'
+    ii_xml->add( iv_name = 'AREAT'
                  ig_data = lv_areat ).
-    io_xml->add( iv_name = 'INCLUDES'
+    ii_xml->add( iv_name = 'INCLUDES'
                  ig_data = lt_includes ).
 
   ENDMETHOD.
@@ -75944,7 +75936,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
           ls_cua          TYPE ty_cua.
 
     deserialize_xml(
-      io_xml     = io_xml
+      ii_xml     = io_xml
       iv_package = iv_package ).
 
     io_xml->read( EXPORTING iv_name = 'FUNCTIONS'
@@ -75954,14 +75946,14 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       ii_log       = ii_log ).
 
     deserialize_includes(
-      io_xml     = io_xml
+      ii_xml     = io_xml
       iv_package = iv_package
       ii_log     = ii_log ).
 
     lv_program_name = main_name( ).
 
     deserialize_texts( iv_prog_name = lv_program_name
-                       io_xml       = io_xml ).
+                       ii_xml       = io_xml ).
 
     io_xml->read( EXPORTING iv_name = 'DYNPROS'
                   CHANGING cg_data = lt_dynpros ).
@@ -76053,7 +76045,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ls_progdir = read_progdir( lv_program_name ).
 
     serialize_texts( iv_prog_name = lv_program_name
-                     io_xml       = io_xml ).
+                     ii_xml       = io_xml ).
 
     IF ls_progdir-subc = 'F'.
       lt_dynpros = serialize_dynpros( lv_program_name ).
@@ -92718,5 +92710,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-17T15:09:11.511Z
+* abapmerge 0.14.1 - 2020-09-17T15:25:56.587Z
 ****************************************************
