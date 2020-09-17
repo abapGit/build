@@ -14963,9 +14963,10 @@ CLASS zcl_abapgit_convert DEFINITION
         VALUE(rv_xstr) TYPE xstring .
     CLASS-METHODS string_to_tab
       IMPORTING
-        !iv_str       TYPE string
+        !iv_str  TYPE string
       EXPORTING
-        VALUE(et_tab) TYPE STANDARD TABLE .
+        !ev_size TYPE i
+        !et_tab  TYPE STANDARD TABLE .
     CLASS-METHODS base64_to_xstring
       IMPORTING
         !iv_base64     TYPE string
@@ -27429,14 +27430,15 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD string_to_tab.
 
-    CLEAR et_tab[].
     CALL FUNCTION 'SCMS_STRING_TO_FTEXT'
       EXPORTING
         text      = iv_str
-*     IMPORTING
-*       LENGTH    = LENGTH
+      IMPORTING
+        length    = ev_size
       TABLES
-        ftext_tab = et_tab.
+        ftext_tab = et_tab
+      EXCEPTIONS
+        OTHERS    = 1.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
@@ -47538,24 +47540,25 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
     IF iv_text IS SUPPLIED. " String input
-
-      zcl_abapgit_convert=>string_to_tab( " FM SCMS_STRING_TO_FTEXT
+      zcl_abapgit_convert=>string_to_tab(
          EXPORTING
-           iv_str = iv_text
+           iv_str  = iv_text
          IMPORTING
-           et_tab = lt_html ).
+           ev_size = lv_size
+           et_tab  = lt_html ).
 
       mi_html_viewer->load_data(
         EXPORTING
-          iv_type      = iv_type
-          iv_subtype   = iv_subtype
-          iv_url       = iv_url
+          iv_type         = iv_type
+          iv_subtype      = iv_subtype
+          iv_size         = lv_size
+          iv_url          = iv_url
         IMPORTING
           ev_assigned_url = rv_url
         CHANGING
           ct_data_table   = lt_html
         EXCEPTIONS
-          OTHERS       = 1 ).
+          OTHERS          = 1 ).
     ELSE. " Raw input
       zcl_abapgit_convert=>xstring_to_bintab(
         EXPORTING
@@ -47566,10 +47569,10 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
       mi_html_viewer->load_data(
         EXPORTING
-          iv_type      = iv_type
-          iv_subtype   = iv_subtype
-          iv_size      = lv_size
-          iv_url       = iv_url
+          iv_type         = iv_type
+          iv_subtype      = iv_subtype
+          iv_size         = lv_size
+          iv_url          = iv_url
         IMPORTING
           ev_assigned_url = rv_url
         CHANGING
@@ -92715,5 +92718,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-16T13:52:37.103Z
+* abapmerge 0.14.1 - 2020-09-17T15:09:11.511Z
 ****************************************************
