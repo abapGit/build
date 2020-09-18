@@ -15580,11 +15580,6 @@ CLASS zcl_abapgit_xml_input DEFINITION
 
     INTERFACES zif_abapgit_xml_input.
 
-    ALIASES:
-      read FOR zif_abapgit_xml_input~read,
-      get_raw FOR zif_abapgit_xml_input~get_raw,
-      get_metadata FOR zif_abapgit_xml_input~get_metadata.
-
     METHODS constructor
       IMPORTING
         !iv_xml      TYPE clike
@@ -15603,13 +15598,6 @@ CLASS zcl_abapgit_xml_output DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_xml_output.
-
-    ALIASES:
-      add FOR zif_abapgit_xml_output~add,
-      set_raw FOR zif_abapgit_xml_output~set_raw,
-      add_xml FOR zif_abapgit_xml_output~add_xml,
-      render FOR zif_abapgit_xml_output~render,
-      i18n_params FOR zif_abapgit_xml_output~i18n_params.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -25539,7 +25527,7 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_xml_output IMPLEMENTATION.
-  METHOD add.
+  METHOD zif_abapgit_xml_output~add.
 
     DATA: li_node TYPE REF TO if_ixml_node,
           li_doc  TYPE REF TO if_ixml_document,
@@ -25572,7 +25560,7 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD add_xml.
+  METHOD zif_abapgit_xml_output~add_xml.
 
     DATA: li_element TYPE REF TO if_ixml_element.
 
@@ -25600,7 +25588,7 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
     ri_element->set_attribute_node_ns( li_attr ).
 
   ENDMETHOD.
-  METHOD i18n_params.
+  METHOD zif_abapgit_xml_output~i18n_params.
 
     IF iv_serialize_master_lang_only IS SUPPLIED.
       ms_i18n_params-serialize_master_lang_only = iv_serialize_master_lang_only.
@@ -25609,7 +25597,7 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
     rs_params = ms_i18n_params.
 
   ENDMETHOD.
-  METHOD render.
+  METHOD zif_abapgit_xml_output~render.
 
     DATA: li_git  TYPE REF TO if_ixml_element,
           li_abap TYPE REF TO if_ixml_element.
@@ -25638,7 +25626,7 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
     rv_xml = to_xml( iv_normalize ).
 
   ENDMETHOD.
-  METHOD set_raw.
+  METHOD zif_abapgit_xml_output~set_raw.
     mi_raw = ii_raw.
   ENDMETHOD.
 ENDCLASS.
@@ -25663,13 +25651,13 @@ CLASS zcl_abapgit_xml_input IMPLEMENTATION.
     mi_xml_doc->get_root( )->append_child( li_abap ).
 
   ENDMETHOD.
-  METHOD get_metadata.
+  METHOD zif_abapgit_xml_input~get_metadata.
     rs_metadata = ms_metadata.
   ENDMETHOD.
-  METHOD get_raw.
+  METHOD zif_abapgit_xml_input~get_raw.
     ri_raw = mi_xml_doc.
   ENDMETHOD.
-  METHOD read.
+  METHOD zif_abapgit_xml_input~read.
 
     DATA: lx_error TYPE REF TO cx_transformation_error,
           lt_rtab  TYPE abap_trans_resbind_tab.
@@ -54646,7 +54634,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD serialize.
 
     DATA: li_obj   TYPE REF TO zif_abapgit_object,
-          lo_xml   TYPE REF TO zcl_abapgit_xml_output,
+          li_xml   TYPE REF TO zif_abapgit_xml_output,
           lo_files TYPE REF TO zcl_abapgit_objects_files.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF rs_files_and_item-files.
@@ -54666,14 +54654,14 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     li_obj = create_object( is_item     = rs_files_and_item-item
                             iv_language = iv_language ).
     li_obj->mo_files = lo_files.
-    CREATE OBJECT lo_xml.
+    CREATE OBJECT li_xml TYPE zcl_abapgit_xml_output.
 
     IF iv_serialize_master_lang_only = abap_true.
-      lo_xml->i18n_params( iv_serialize_master_lang_only = abap_true ).
+      li_xml->i18n_params( iv_serialize_master_lang_only = abap_true ).
     ENDIF.
 
-    li_obj->serialize( lo_xml ).
-    lo_files->add_xml( ii_xml      = lo_xml
+    li_obj->serialize( li_xml ).
+    lo_files->add_xml( ii_xml      = li_xml
                        is_metadata = li_obj->get_metadata( ) ).
 
     rs_files_and_item-files = lo_files->get_files( ).
@@ -62061,13 +62049,10 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
 
     DATA: li_local_version_output TYPE REF TO zif_abapgit_xml_output,
-          lo_local_version_output TYPE REF TO zcl_abapgit_xml_output,
           li_local_version_input  TYPE REF TO zif_abapgit_xml_input.
     CREATE OBJECT li_local_version_output TYPE zcl_abapgit_xml_output.
 
-    " TODO: remove cast after zif_abapgit_object uses interface instead of class
-    lo_local_version_output ?= li_local_version_output.
-    me->zif_abapgit_object~serialize( lo_local_version_output ).
+    me->zif_abapgit_object~serialize( li_local_version_output ).
 
     CREATE OBJECT li_local_version_input
       TYPE zcl_abapgit_xml_input
@@ -76246,12 +76231,12 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   METHOD compress_lines.
 
     DATA lv_string TYPE string.
-    DATA lo_xml TYPE REF TO zcl_abapgit_xml_output.
+    DATA li_xml TYPE REF TO zif_abapgit_xml_output.
 
-    CREATE OBJECT lo_xml.
-    lo_xml->add( iv_name = c_objectname_tdlines
+    CREATE OBJECT li_xml TYPE zcl_abapgit_xml_output.
+    li_xml->add( iv_name = c_objectname_tdlines
                  ig_data = it_lines ).
-    lv_string = lo_xml->render( ).
+    lv_string = li_xml->render( ).
     IF lv_string IS NOT INITIAL.
       mo_files->add_string( iv_extra  =
                     build_extra_from_header( is_form_data-form_header )
@@ -76271,7 +76256,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   METHOD extract_tdlines.
 
     DATA lv_string TYPE string.
-    DATA lo_xml TYPE REF TO zcl_abapgit_xml_input.
+    DATA li_xml TYPE REF TO zif_abapgit_xml_input.
 
     TRY.
         lv_string = mo_files->read_string( iv_extra =
@@ -76285,8 +76270,8 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
 
     ENDTRY.
 
-    CREATE OBJECT lo_xml EXPORTING iv_xml = lv_string.
-    lo_xml->read( EXPORTING iv_name = c_objectname_tdlines
+    CREATE OBJECT li_xml TYPE zcl_abapgit_xml_input EXPORTING iv_xml = lv_string.
+    li_xml->read( EXPORTING iv_name = c_objectname_tdlines
                   CHANGING  cg_data = rt_lines ).
 
   ENDMETHOD.
@@ -92704,5 +92689,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-17T15:41:53.283Z
+* abapmerge 0.14.1 - 2020-09-18T12:03:02.720Z
 ****************************************************
