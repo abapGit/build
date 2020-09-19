@@ -33182,7 +33182,8 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           lx_salv_error                 TYPE REF TO cx_salv_error,
           lv_current_repo               TYPE zif_abapgit_persistence=>ty_value,
           lo_runtime_column             TYPE REF TO cl_salv_column,
-          lo_seconds_column             TYPE REF TO cl_salv_column.
+          lo_seconds_column             TYPE REF TO cl_salv_column,
+          li_popups                     TYPE REF TO zif_abapgit_popups.
 
     TRY.
         lv_current_repo = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
@@ -33192,7 +33193,8 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
       CATCH zcx_abapgit_exception ##NO_HANDLER.
     ENDTRY.
 
-    zcl_abapgit_ui_factory=>get_popups( )->popup_perf_test_parameters(
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popups->popup_perf_test_parameters(
       IMPORTING
         et_object_type_filter         = lt_object_type_filter
         et_object_name_filter         = lt_object_name_filter
@@ -50494,9 +50496,10 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
   ENDMETHOD.
   METHOD init_scanner.
 
-    DATA: lx_exc     TYPE REF TO cx_root,
-          lx_detail  TYPE REF TO cx_oo_clif_scan_error_detail,
-          lv_message TYPE string.
+    DATA: lx_exc       TYPE REF TO cx_root,
+          lv_message   TYPE string,
+          lv_classname TYPE abap_abstypename.
+    FIELD-SYMBOLS: <lv_line> TYPE i.
 
     TRY.
         ro_scanner = cl_oo_source_scanner_class=>create_class_scanner(
@@ -50505,11 +50508,15 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         ro_scanner->scan( ).
       CATCH cx_clif_scan_error.
         zcx_abapgit_exception=>raise( 'error initializing CLAS scanner' ).
-      CATCH cx_oo_clif_scan_error_detail INTO lx_detail.
-        lv_message = |{ lx_detail->get_text( ) }, line { lx_detail->source_position-line }|.
-        zcx_abapgit_exception=>raise( lv_message ).
       CATCH cx_root INTO lx_exc.
-        lv_message = lx_exc->get_text( ).
+        lv_classname = cl_abap_classdescr=>get_class_name( lx_exc ).
+        IF lv_classname = '\CLASS=CX_OO_CLIF_SCAN_ERROR_DETAIL'.
+          ASSIGN lx_exc->('SOURCE_POSITION-LINE') TO <lv_line>.
+          ASSERT sy-subrc = 0.
+          lv_message = |{ lx_exc->get_text( ) }, line { <lv_line> }|.
+        ELSE.
+          lv_message = lx_exc->get_text( ).
+        ENDIF.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
@@ -92689,5 +92696,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-18T12:03:02.720Z
+* abapmerge 0.14.1 - 2020-09-19T05:55:39.546Z
 ****************************************************
