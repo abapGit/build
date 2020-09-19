@@ -13128,11 +13128,6 @@ CLASS zcl_abapgit_gui_page_repo_sett DEFINITION
         !it_post_fields TYPE tihttpnvp
       RAISING
         zcx_abapgit_exception .
-    METHODS parse_post
-      IMPORTING
-        !it_postdata          TYPE cnht_post_data_tab
-      RETURNING
-        VALUE(rt_post_fields) TYPE tihttpnvp .
     METHODS render_dot_abapgit_reqs
       IMPORTING
         ii_html         TYPE REF TO zif_abapgit_html
@@ -13211,11 +13206,6 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
       IMPORTING
         !it_post_fields TYPE tihttpnvp .
     METHODS validate_settings .
-    METHODS parse_post
-      IMPORTING
-        !it_postdata          TYPE cnht_post_data_tab
-      RETURNING
-        VALUE(rt_post_fields) TYPE tihttpnvp .
     METHODS persist_settings
       RAISING
         zcx_abapgit_exception .
@@ -13988,9 +13978,10 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS parse_post_data
+    CLASS-METHODS parse_post_form_data
       IMPORTING
         !it_post_data TYPE cnht_post_data_tab
+        !iv_upper_cased TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_fields) TYPE tihttpnvp .
     CLASS-METHODS parse_fields
@@ -14003,6 +13994,12 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         !iv_string       TYPE clike
       RETURNING
         VALUE(rt_fields) TYPE tihttpnvp .
+    CLASS-METHODS translate_postdata
+      IMPORTING
+        !it_postdata TYPE cnht_post_data_tab
+      RETURNING
+        VALUE(rv_string) TYPE string .
+
     CLASS-METHODS get_field
       IMPORTING
         !iv_name   TYPE string
@@ -15537,11 +15534,6 @@ CLASS zcl_abapgit_utils DEFINITION
         !ev_time    TYPE zif_abapgit_definitions=>ty_commit-time
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS translate_postdata
-      IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
-      RETURNING
-        VALUE(rv_string) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -25874,7 +25866,21 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_UTILS IMPLEMENTATION.
+  METHOD extract_author_data.
+
+    " unix time stamps are in same time zone, so ignore the zone
+    FIND REGEX zif_abapgit_definitions=>c_author_regex IN iv_author
+      SUBMATCHES
+      ev_author
+      ev_email
+      ev_time.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error author regex value='{ iv_author }'| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD is_binary.
 
     DATA: lv_len TYPE i,
@@ -25901,46 +25907,6 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
         EXIT.
       ENDIF.
     ENDDO.
-
-  ENDMETHOD.
-  METHOD extract_author_data.
-
-    " unix time stamps are in same time zone, so ignore the zone
-    FIND REGEX zif_abapgit_definitions=>c_author_regex IN iv_author
-      SUBMATCHES
-      ev_author
-      ev_email
-      ev_time.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error author regex value='{ iv_author }'| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD translate_postdata.
-
-    DATA: lt_post_data       TYPE cnht_post_data_tab,
-          ls_last_line       TYPE cnht_post_data_line,
-          lv_last_line_index TYPE i.
-
-    IF it_postdata IS INITIAL.
-      "Nothing to do
-      RETURN.
-    ENDIF.
-
-    lt_post_data = it_postdata.
-
-    "Save the last line for separate merge, because we don't need its trailing spaces
-    WHILE ls_last_line IS INITIAL.
-      lv_last_line_index = lines( lt_post_data ).
-      READ TABLE lt_post_data INTO ls_last_line INDEX lv_last_line_index.
-      DELETE lt_post_data INDEX lv_last_line_index.
-    ENDWHILE.
-
-    CONCATENATE LINES OF lt_post_data INTO rv_string
-      IN CHARACTER MODE RESPECTING BLANKS.
-    CONCATENATE rv_string ls_last_line INTO rv_string
-      IN CHARACTER MODE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -36067,25 +36033,33 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_fields.
 
-    DATA: lt_substrings TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-          ls_field      LIKE LINE OF rt_fields.
+    DATA:
+      lt_substrings TYPE string_table,
+      ls_field      LIKE LINE OF rt_fields.
 
-    FIELD-SYMBOLS: <lv_substring> LIKE LINE OF lt_substrings.
+    FIELD-SYMBOLS <lv_substring> LIKE LINE OF lt_substrings.
+
     SPLIT iv_string AT '&' INTO TABLE lt_substrings.
 
     LOOP AT lt_substrings ASSIGNING <lv_substring>.
 
-      CLEAR: ls_field.
+      CLEAR ls_field.
 
-      ls_field-name = substring_before( val = <lv_substring>
-                                     sub = '=' ).
+      ls_field-name = substring_before(
+        val = <lv_substring>
+        sub = '=' ).
       ls_field-name = unescape( ls_field-name ).
 
-      ls_field-value = substring_after( val = <lv_substring>
-                                     sub = '=' ).
+      ls_field-value = substring_after(
+        val = <lv_substring>
+        sub = '=' ).
       ls_field-value = unescape( ls_field-value ).
 
-      INSERT ls_field INTO TABLE rt_fields.
+      IF ls_field IS INITIAL. " Not a field with proper structure
+        CONTINUE.
+      ENDIF.
+
+      APPEND ls_field TO rt_fields.
 
     ENDLOOP.
 
@@ -36096,12 +36070,16 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     field_keys_to_upper( CHANGING ct_fields = rt_fields ).
 
   ENDMETHOD.
-  METHOD parse_post_data.
+  METHOD parse_post_form_data.
 
     DATA lv_serialized_post_data TYPE string.
 
-    CONCATENATE LINES OF it_post_data INTO lv_serialized_post_data.
-    rt_fields = parse_fields( lv_serialized_post_data ).
+    lv_serialized_post_data = translate_postdata( it_post_data ).
+    IF iv_upper_cased = abap_true.
+      rt_fields = parse_fields_upper_case_name( lv_serialized_post_data ).
+    ELSE.
+      rt_fields = parse_fields( lv_serialized_post_data ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD stage_decode.
@@ -36116,6 +36094,31 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
                          it_field = lt_fields CHANGING cg_field = ev_seed ).
 
     ASSERT NOT ev_key IS INITIAL.
+
+  ENDMETHOD.
+  METHOD translate_postdata.
+
+    DATA: lt_post_data       TYPE cnht_post_data_tab,
+          ls_last_line       TYPE cnht_post_data_line,
+          lv_last_line_index TYPE i.
+
+    IF it_postdata IS INITIAL.
+      RETURN. "Nothing to do
+    ENDIF.
+
+    lt_post_data = it_postdata.
+
+    "Save the last line for separate merge, because we don't need its trailing spaces
+    WHILE ls_last_line IS INITIAL.
+      lv_last_line_index = lines( lt_post_data ).
+      READ TABLE lt_post_data INTO ls_last_line INDEX lv_last_line_index.
+      DELETE lt_post_data INDEX lv_last_line_index.
+    ENDWHILE.
+
+    CONCATENATE LINES OF lt_post_data INTO rv_string
+      IN CHARACTER MODE RESPECTING BLANKS.
+    CONCATENATE rv_string ls_last_line INTO rv_string
+      IN CHARACTER MODE.
 
   ENDMETHOD.
   METHOD unescape.
@@ -38563,19 +38566,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_tag_request.
 
-    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
-
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE tihttpnvp.
 
     FIELD-SYMBOLS <lv_body> TYPE string.
 
     CLEAR eg_fields.
 
-    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
+      it_post_data = it_postdata
+      iv_upper_cased = abap_true ).
 
     zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'SHA1'
                                                         it_field = lt_fields
@@ -38598,7 +38597,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -39298,16 +39297,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD stage_selected.
 
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file.
+    DATA:
+      lt_fields TYPE tihttpnvp,
+      ls_file   TYPE zif_abapgit_definitions=>ty_file.
 
-    FIELD-SYMBOLS: <ls_file>   LIKE LINE OF ms_files-local,
-                   <ls_status> LIKE LINE OF ms_files-status,
-                   <ls_item>   LIKE LINE OF lt_fields.
+    FIELD-SYMBOLS:
+      <ls_file>   LIKE LINE OF ms_files-local,
+      <ls_status> LIKE LINE OF ms_files-status,
+      <ls_item>   LIKE LINE OF lt_fields.
 
-    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
 
     IF lines( lt_fields ) = 0.
       zcx_abapgit_exception=>raise( 'process_stage_list: empty list' ).
@@ -39396,7 +39395,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       WHEN c_action-stage_filter.
 
-        lt_fields = zcl_abapgit_html_action_utils=>parse_fields( concat_lines_of( table = ii_event->mt_postdata ) ).
+        lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ).
 
         zcl_abapgit_html_action_utils=>get_field(
           EXPORTING
@@ -39449,14 +39448,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         OR <ls_post_field>-value = 'on' ).     "HTML value when using Netweaver Java GUI
       rv_return = abap_true.
     ENDIF.
-  ENDMETHOD.
-  METHOD parse_post.
-
-    DATA lv_serialized_post_data TYPE string.
-
-    lv_serialized_post_data = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-    rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
-
   ENDMETHOD.
   METHOD persist_settings.
 
@@ -39987,7 +39978,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     CASE ii_event->mv_action.
       WHEN c_action-save_settings.
-        lt_post_fields = parse_post( ii_event->mt_postdata ).
+        lt_post_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ).
 
         post( lt_post_fields ).
         validate_settings( ).
@@ -40089,14 +40080,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_title = 'Repository Settings'.
     mo_repo = io_repo.
-  ENDMETHOD.
-  METHOD parse_post.
-
-    DATA lv_serialized_post_data TYPE string.
-
-    lv_serialized_post_data = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-    rt_post_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_serialized_post_data ).
-
   ENDMETHOD.
   METHOD render_content.
 
@@ -40336,7 +40319,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     DATA: lt_post_fields TYPE tihttpnvp,
           lv_msg         TYPE string.
 
-    lt_post_fields = parse_post( it_postdata ).
+    lt_post_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
 
     save_dot_abap( lt_post_fields ).
     save_remotes( lt_post_fields ).
@@ -40625,13 +40608,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   ENDMETHOD.
   METHOD apply_patch_from_form_fields.
 
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp,
-          lv_add    TYPE string,
-          lv_remove TYPE string.
+    DATA:
+      lt_fields TYPE tihttpnvp,
+      lv_add    TYPE string,
+      lv_remove TYPE string.
 
-    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
 
     zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = c_patch_action-add
                                                         it_field = lt_fields
@@ -41048,37 +41030,36 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD apply_merged_content.
 
-    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
+    DATA:
+      BEGIN OF ls_filedata,
+        merge_content TYPE string,
+      END OF ls_filedata,
+      lt_fields           TYPE tihttpnvp,
+      lv_new_file_content TYPE xstring.
 
-    DATA: BEGIN OF ls_filedata,
-            merge_content TYPE string,
-          END OF ls_filedata.
+    FIELD-SYMBOLS:
+      <ls_conflict>      TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
-    DATA: lv_string           TYPE string,
-          lt_fields           TYPE tihttpnvp,
-          lv_new_file_content TYPE xstring.
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
+      it_post_data = it_postdata
+      iv_upper_cased = abap_true ).
 
-    FIELD-SYMBOLS: <lv_postdata_line> LIKE LINE OF it_postdata,
-                   <ls_conflict>      TYPE zif_abapgit_definitions=>ty_merge_conflict.
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        iv_name = 'MERGE_CONTENT'
+        it_field = lt_fields
+      CHANGING
+        cg_field = ls_filedata ).
 
-    LOOP AT it_postdata ASSIGNING <lv_postdata_line>.
-      lv_string = |{ lv_string }{ <lv_postdata_line> }|.
-    ENDLOOP.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
-
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'MERGE_CONTENT'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = ls_filedata ).
-    ls_filedata-merge_content = cl_http_utility=>unescape_url( escaped = ls_filedata-merge_content ).
-    REPLACE ALL OCCURRENCES OF lc_replace IN ls_filedata-merge_content WITH zif_abapgit_definitions=>c_newline.
+    REPLACE ALL OCCURRENCES
+      OF zif_abapgit_definitions=>c_crlf IN ls_filedata-merge_content WITH zif_abapgit_definitions=>c_newline.
 
     lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( ls_filedata-merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
-    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                                        iv_data = lv_new_file_content ).
+    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1(
+      iv_type = zif_abapgit_definitions=>c_type-blob
+      iv_data = lv_new_file_content ).
     <ls_conflict>-result_data = lv_new_file_content.
     mo_merge->resolve_conflict( <ls_conflict> ).
 
@@ -42843,19 +42824,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_commit_request.
 
-    CONSTANTS: lc_replace TYPE string VALUE '<<new>>'.
-
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE tihttpnvp.
 
     FIELD-SYMBOLS <lv_body> TYPE string.
 
     CLEAR eg_fields.
 
-    CONCATENATE LINES OF it_postdata INTO lv_string.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf    IN lv_string WITH lc_replace.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_string WITH lc_replace.
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
+      it_post_data = it_postdata
+      iv_upper_cased = abap_true ).
 
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
@@ -42896,7 +42873,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
     ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF lc_replace IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
+    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -43773,13 +43750,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD decode_merge.
 
-    DATA: lv_string TYPE string,
-          lt_fields TYPE tihttpnvp.
-
+    DATA lt_fields TYPE tihttpnvp.
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
-
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
 
     READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'source'.
     ASSERT sy-subrc = 0.
@@ -44237,7 +44210,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
     DATA lt_form TYPE tihttpnvp.
     DATA ls_field LIKE LINE OF lt_form.
 
-    lt_form = zcl_abapgit_html_action_utils=>parse_post_data( it_post_data ).
+    lt_form = zcl_abapgit_html_action_utils=>parse_post_form_data( it_post_data ).
     CREATE OBJECT ro_form_data.
 
     LOOP AT lt_form INTO ls_field.
@@ -46093,16 +46066,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD dbcontent_decode.
 
-    DATA: lt_fields TYPE tihttpnvp,
-          lv_string TYPE string.
-    lv_string = zcl_abapgit_utils=>translate_postdata( it_postdata ).
+    DATA lt_fields TYPE tihttpnvp.
 
-    lv_string = cl_http_utility=>unescape_url( lv_string ).
+    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
+      it_post_data = it_postdata
+      iv_upper_cased = abap_true ).
 
-    rs_content = zcl_abapgit_html_action_utils=>dbkey_decode( lv_string ).
-
-    lt_fields = zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( lv_string ).
-
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        iv_name = 'TYPE'
+        it_field = lt_fields
+      CHANGING
+        cg_field = rs_content-type ).
+    zcl_abapgit_html_action_utils=>get_field(
+      EXPORTING
+        iv_name = 'VALUE'
+        it_field = lt_fields
+      CHANGING
+        cg_field = rs_content-value ).
     zcl_abapgit_html_action_utils=>get_field(
       EXPORTING
         iv_name = 'XMLDATA'
@@ -92587,5 +92568,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-19T06:00:23.885Z
+* abapmerge 0.14.1 - 2020-09-19T09:03:11.949Z
 ****************************************************
