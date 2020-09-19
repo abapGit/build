@@ -67286,7 +67286,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
                   CHANGING  cg_data = lt_texts ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      delete_tree_structure( mv_tree_id ).
     ENDIF.
 
     CALL FUNCTION 'STREE_HIERARCHY_SAVE'
@@ -92587,5 +92587,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-19T05:58:49.935Z
+* abapmerge 0.14.1 - 2020-09-19T06:00:23.885Z
 ****************************************************
