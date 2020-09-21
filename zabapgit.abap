@@ -1320,8 +1320,8 @@ INTERFACE zif_abapgit_gui_asset_manager .
   TYPES:
     BEGIN OF ty_web_asset,
       url          TYPE w3url,
-      type         TYPE char50,
-      subtype      TYPE char50,
+      type         TYPE c LENGTH 50,
+      subtype      TYPE c LENGTH 50,
       content      TYPE xstring,
       is_cacheable TYPE abap_bool,
     END OF ty_web_asset .
@@ -8348,9 +8348,10 @@ CLASS zcl_abapgit_object_smtg DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
-      mv_template_id TYPE char30,
+      mv_template_id TYPE c LENGTH 30,
       mo_structdescr TYPE REF TO cl_abap_structdescr.
 
     METHODS:
@@ -8374,7 +8375,6 @@ CLASS zcl_abapgit_object_smtg DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           ct_components     TYPE abap_component_tab
         RAISING
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -15510,14 +15510,14 @@ CLASS zcl_abapgit_user_master_record DEFINITION
     CLASS-METHODS:
       get_instance
         IMPORTING
-          !iv_user       TYPE uname
+          !iv_user       TYPE sy-uname
         RETURNING
           VALUE(ro_user) TYPE REF TO zcl_abapgit_user_master_record.
 
     METHODS:
       constructor
         IMPORTING
-          !iv_user TYPE uname,
+          !iv_user TYPE sy-uname,
 
       get_name
         RETURNING
@@ -15531,7 +15531,7 @@ CLASS zcl_abapgit_user_master_record DEFINITION
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_user,
-        user   TYPE uname,
+        user   TYPE sy-uname,
         o_user TYPE REF TO zcl_abapgit_user_master_record,
       END OF ty_user.
 
@@ -22506,6 +22506,8 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_t100_longtext.
+
+* method is called dynamically from ZCX_ABAPGIT_EXCEPTION
 
     rv_longtext = itf_to_string( get_t100_longtext_itf( ) ).
 
@@ -65471,8 +65473,44 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_SMTG IMPLEMENTATION.
+  METHOD add_component.
 
+    DATA:
+      ls_component LIKE LINE OF ct_components,
+      lo_typedescr TYPE REF TO cl_abap_typedescr.
+
+    cl_abap_structdescr=>describe_by_name(
+      EXPORTING
+        p_name         = iv_structure_name
+      RECEIVING
+        p_descr_ref    = lo_typedescr
+      EXCEPTIONS
+        type_not_found = 1
+        OTHERS         = 2 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |SMTG not supported| ).
+    ENDIF.
+
+    ls_component-name =  iv_fielname.
+    ls_component-type ?= lo_typedescr.
+    INSERT ls_component INTO TABLE ct_components.
+
+  ENDMETHOD.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lg_field> TYPE data.
+
+    ASSIGN
+      COMPONENT iv_fieldname
+      OF STRUCTURE cg_header
+      TO <lg_field>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lg_field>.
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -65481,6 +65519,34 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
 
     mv_template_id = ms_item-obj_name.
     mo_structdescr = get_structure( ).
+
+  ENDMETHOD.
+  METHOD get_structure.
+
+    DATA: lt_components TYPE abap_component_tab.
+
+    add_component(
+      EXPORTING
+        iv_fielname       = `HEADER`
+        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GS_TMPL_HDR`
+      CHANGING
+        ct_components     = lt_components ).
+
+    add_component(
+      EXPORTING
+        iv_fielname       = `HEADER_T`
+        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GT_TMPL_HDR_T`
+      CHANGING
+        ct_components     = lt_components ).
+
+    add_component(
+      EXPORTING
+        iv_fielname       = `CONTENT`
+        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GT_TMPL_CONT`
+      CHANGING
+        ct_components     = lt_components ).
+
+    ro_structdescr = cl_abap_structdescr=>create( lt_components ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -65722,72 +65788,6 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lg_field> TYPE data.
-
-    ASSIGN
-      COMPONENT iv_fieldname
-      OF STRUCTURE cg_header
-      TO <lg_field>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lg_field>.
-
-  ENDMETHOD.
-  METHOD get_structure.
-
-    DATA: lt_components TYPE abap_component_tab.
-
-    add_component(
-      EXPORTING
-        iv_fielname       = `HEADER`
-        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GS_TMPL_HDR`
-      CHANGING
-        ct_components     = lt_components ).
-
-    add_component(
-      EXPORTING
-        iv_fielname       = `HEADER_T`
-        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GT_TMPL_HDR_T`
-      CHANGING
-        ct_components     = lt_components ).
-
-    add_component(
-      EXPORTING
-        iv_fielname       = `CONTENT`
-        iv_structure_name = `IF_SMTG_EMAIL_TEMPLATE=>TY_GT_TMPL_CONT`
-      CHANGING
-        ct_components     = lt_components ).
-
-    ro_structdescr = cl_abap_structdescr=>create( lt_components ).
-
-  ENDMETHOD.
-  METHOD add_component.
-
-    DATA:
-      ls_component LIKE LINE OF ct_components,
-      lo_typedescr TYPE REF TO cl_abap_typedescr.
-
-    cl_abap_structdescr=>describe_by_name(
-      EXPORTING
-        p_name         = iv_structure_name
-      RECEIVING
-        p_descr_ref    = lo_typedescr
-      EXCEPTIONS
-        type_not_found = 1
-        OTHERS         = 2 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SMTG not supported| ).
-    ENDIF.
-
-    ls_component-name =  iv_fielname.
-    ls_component-type ?= lo_typedescr.
-    INSERT ls_component INTO TABLE ct_components.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_SMIM IMPLEMENTATION.
@@ -72438,7 +72438,19 @@ CLASS ZCL_ABAPGIT_OBJECT_IWMO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_IOBJ IMPLEMENTATION.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lg_field> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname
+           OF STRUCTURE cg_metadata
+           TO <lg_field>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lg_field>.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_objna TYPE c LENGTH 30,
@@ -72657,12 +72669,12 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lv_iobjnm TYPE char30.
+    DATA: lv_iobjnm TYPE c LENGTH 30.
 
     SELECT SINGLE iobjnm
-    FROM ('RSDIOBJ')
-    INTO lv_iobjnm
-    WHERE iobjnm = ms_item-obj_name.
+      FROM ('RSDIOBJ')
+      INTO lv_iobjnm
+      WHERE iobjnm = ms_item-obj_name.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -72838,19 +72850,6 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
                  ig_data = <lt_xxlattributes> ).
 
   ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lg_field> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname
-           OF STRUCTURE cg_metadata
-           TO <lg_field>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lg_field>.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
@@ -92638,5 +92637,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-21T05:07:47.235Z
+* abapmerge 0.14.1 - 2020-09-21T05:40:25.112Z
 ****************************************************
