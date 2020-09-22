@@ -11712,6 +11712,9 @@ CLASS zcl_abapgit_gui_buttons DEFINITION
     CLASS-METHODS repo_list
       RETURNING VALUE(rv_html_string) TYPE string.
 
+    CLASS-METHODS settings
+      RETURNING VALUE(rv_html_string) TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -37667,6 +37670,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_VIEW_REPO IMPLEMENTATION.
       iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
       iv_act = zif_abapgit_definitions=>c_action-abapgit_home
     )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>settings( )
+      iv_act = zif_abapgit_definitions=>c_action-go_settings
+    )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
     )->add(
@@ -38491,6 +38497,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
       iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>settings( )
+      iv_act = zif_abapgit_definitions=>c_action-go_settings
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
@@ -41748,10 +41757,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
       iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
       iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
     )->add(
-      iv_txt = '<i class="icon icon-tools-solid"></i>'
+      iv_txt = zcl_abapgit_gui_buttons=>settings( )
+      iv_act = zif_abapgit_definitions=>c_action-go_settings
+    )->add(
+      iv_txt = zcl_abapgit_gui_buttons=>advanced( )
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
     )->add(
-      iv_txt = '<i class="icon icon-question-circle-solid"></i>'
+      iv_txt = zcl_abapgit_gui_buttons=>help( )
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
@@ -44797,10 +44809,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
     )->add(
       iv_txt = 'Performance Test'
-      iv_act = zif_abapgit_definitions=>c_action-performance_test
-    )->add(
-      iv_txt = 'Settings'
-      iv_act = zif_abapgit_definitions=>c_action-go_settings ).
+      iv_act = zif_abapgit_definitions=>c_action-performance_test ).
 
   ENDMETHOD.
   METHOD class_constructor.
@@ -45426,6 +45435,10 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
 
   METHOD repo_list.
     rv_html_string = `<i class="icon icon-bars"></i> Repository List`.
+  ENDMETHOD.
+
+  METHOD settings.
+    rv_html_string = `<i class="icon icon-cog"></i> Settings`.
   ENDMETHOD.
 
 ENDCLASS.
@@ -92638,5 +92651,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-22T06:18:49.445Z
+* abapmerge 0.14.1 - 2020-09-22T06:55:52.534Z
 ****************************************************
