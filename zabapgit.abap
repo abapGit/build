@@ -67347,6 +67347,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
         structure_description    = space
         structure_masterlanguage = mv_language
         structure_responsible    = sy-uname
+        structure_buffermode     = ls_head-buffermode
         development_class        = iv_package
       IMPORTING
         message                  = ls_msg
@@ -92637,5 +92638,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-21T13:12:45.913Z
+* abapmerge 0.14.1 - 2020-09-22T06:18:49.445Z
 ****************************************************
