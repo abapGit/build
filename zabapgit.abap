@@ -37347,7 +37347,7 @@ CLASS zcl_abapgit_gui_repo_over IMPLEMENTATION.
       iv_display_name = 'Created by'
       iv_css_class = 'ro-detail' ).
     _add_column(
-      iv_tech_name = 'CREATED_TAT'
+      iv_tech_name = 'CREATED_AT'
       iv_display_name = 'Created at'
       iv_css_class = 'ro-detail'
       iv_add_tz = abap_true ).
@@ -92651,5 +92651,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-22T06:55:52.534Z
+* abapmerge 0.14.1 - 2020-09-22T06:58:02.831Z
 ****************************************************
