@@ -23039,11 +23039,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD has_conflicts.
 
-    IF lines( mt_conflicts ) > 0.
-      rv_conflicts_exists = abap_true.
-    ELSE.
-      rv_conflicts_exists = abap_false.
-    ENDIF.
+    rv_conflicts_exists = boolc( lines( mt_conflicts ) > 0 ).
 
   ENDMETHOD.
   METHOD resolve_conflict.
@@ -27694,11 +27690,7 @@ CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
           RECEIVING
             result     = lv_vit_wb_request.
 
-        IF lv_vit_wb_request = abap_true.
-          rv_is_adt_jump_possible = abap_false.
-        ELSE.
-          rv_is_adt_jump_possible = abap_true.
-        ENDIF.
+        rv_is_adt_jump_possible = boolc( NOT ( lv_vit_wb_request = abap_true ) ).
 
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
@@ -34406,11 +34398,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
         p_object_data    = es_package_data
       EXCEPTIONS
         action_cancelled = 1.
-    IF sy-subrc = 0.
-      ev_create = abap_true.
-    ELSE.
-      ev_create = abap_false.
-    ENDIF.
+    ev_create = boolc( sy-subrc = 0 ).
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_transp_branch.
     DATA: lt_fields             TYPE TABLE OF sval,
@@ -48069,11 +48057,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
     "/^\s+$/
     lv_whitespace = ` ` && cl_abap_char_utilities=>horizontal_tab && cl_abap_char_utilities=>cr_lf.
 
-    IF iv_string CO lv_whitespace.
-      rv_result = abap_true.
-    ELSE.
-      rv_result = abap_false.
-    ENDIF.
+    rv_result = boolc( iv_string CO lv_whitespace ).
 
   ENDMETHOD.
   METHOD parse_line.
@@ -52029,11 +52013,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     SELECT SINGLE progname FROM reposrc INTO lv_progname
       WHERE progname = is_progdir-name
       AND r3state = 'A'.
-    IF sy-subrc = 0.
-      lv_exists = abap_true.
-    ELSE.
-      lv_exists = abap_false.
-    ENDIF.
+    lv_exists = boolc( sy-subrc = 0 ).
 
     IF lv_exists = abap_true.
       zcl_abapgit_language=>set_current_language( mv_language ).
@@ -54933,11 +54913,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
     lv_name = ms_item-obj_name.
 
     rv_bool = cl_o2_api_xsltdesc=>exists( lv_name ).
-    IF rv_bool = '1'.
-      rv_bool = abap_true.
-    ELSE.
-      rv_bool = abap_false.
-    ENDIF.
+    rv_bool = boolc( rv_bool = '1' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -56949,11 +56925,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
     ENDIF.
 
     DESCRIBE TABLE lt_enq LINES lv_lines.
-    IF lv_lines > 0.
-      rv_is_locked = abap_true.
-    ELSE.
-      rv_is_locked = abap_false.
-    ENDIF.
+    rv_is_locked = boolc( lv_lines > 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -58472,12 +58444,8 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
     SELECT SINGLE changedate INTO lv_changedate FROM vcldir
       WHERE vclname = ms_item-obj_name.
 
-    IF lv_changedate IS NOT INITIAL.
 * see logic in function module VIEWCLUSTER_GET_DEFINITION
-      rv_active = abap_true.
-    ELSE.
-      rv_active = abap_false.
-    ENDIF.
+    rv_active = boolc( lv_changedate IS NOT INITIAL ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
@@ -65009,11 +64977,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
         status      = lv_status
         status_text = lv_status_text ).
 
-    IF lv_status = if_proxy=>c_state_active.
-      rv_bool = abap_true.
-    ELSE.
-      rv_bool = abap_false.
-    ENDIF.
+    rv_bool = boolc( lv_status = if_proxy=>c_state_active ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -71104,11 +71068,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
         number  = lv_lock_number
       TABLES
         enq     = lt_locks.    " Number of chosen lock entries
-    IF lv_lock_number > 0.
-      rv_is_locked = abap_true.
-    ELSE.
-      rv_is_locked = abap_false.
-    ENDIF.
+    rv_is_locked = boolc( lv_lock_number > 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -82309,11 +82269,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
             get_state = 'A'
           IMPORTING
             got_state = lv_state.
-        IF lv_state IS INITIAL.
-          rv_bool = abap_false.
-        ELSE.
-          rv_bool = abap_true.
-        ENDIF.
+        rv_bool = boolc( NOT ( lv_state IS INITIAL ) ).
       CATCH cx_root.
         rv_bool = abap_false.
     ENDTRY.
@@ -91965,11 +91921,8 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_interface_version> TYPE i.
 
     ASSIGN ('ZIF_APACK_MANIFEST')=>('CO_INTERFACE_VERSION') TO <lv_interface_version>.
-    IF <lv_interface_version> IS ASSIGNED AND <lv_interface_version> >= c_apack_interface_version.
-      rv_interface_valid = abap_true.
-    ELSE.
-      rv_interface_valid = abap_false.
-    ENDIF.
+    rv_interface_valid = boolc( <lv_interface_version> IS ASSIGNED
+      AND <lv_interface_version> >= c_apack_interface_version ).
 
   ENDMETHOD.
   METHOD add_intf_source_and_activate.
@@ -92651,5 +92604,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-23T08:14:59.231Z
+* abapmerge 0.14.1 - 2020-09-23T10:29:24.535Z
 ****************************************************
