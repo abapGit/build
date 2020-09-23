@@ -1566,6 +1566,10 @@ INTERFACE zif_abapgit_gui_functions.
 
     is_sapgui_for_java
       RETURNING
+        VALUE(rv_result) TYPE abap_bool,
+
+    is_sapgui_for_windows
+      RETURNING
         VALUE(rv_result) TYPE abap_bool.
 
 ENDINTERFACE.
@@ -2208,6 +2212,7 @@ INTERFACE zif_abapgit_definitions .
       zip_transport                 TYPE string VALUE 'zip_transport',
       zip_object                    TYPE string VALUE 'zip_object',
       performance_test              TYPE string VALUE 'performance_test',
+      ie_devtools                   TYPE string VALUE 'ie_devtools',
       git_pull                      TYPE string VALUE 'git_pull',
       git_reset                     TYPE string VALUE 'git_reset',
       git_branch_create             TYPE string VALUE 'git_branch_create',
@@ -14621,6 +14626,9 @@ CLASS zcl_abapgit_services_basis DEFINITION
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS run_performance_test
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS open_ie_devtools
       RAISING
         zcx_abapgit_exception.
 
@@ -33249,6 +33257,50 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           ix_previous = lx_salv_error ).
     ENDTRY.
   ENDMETHOD.
+
+  METHOD open_ie_devtools.
+    DATA: lv_system_directory TYPE string,
+          lv_exe_full_path    TYPE string.
+
+    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_windows( ) = abap_false.
+      zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
+    ENDIF.
+
+    cl_gui_frontend_services=>get_system_directory(
+      CHANGING
+        system_directory     = lv_system_directory
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from GET_SYSTEM_DIRECTORY sy-subrc: { sy-subrc }| ).
+    ENDIF.
+
+    cl_gui_cfw=>flush( ).
+
+    lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        application            = lv_exe_full_path
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+    IF sy-subrc <> 0.
+      " IEChooser is only available on Windows 10
+      zcx_abapgit_exception=>raise( |Error from EXECUTE sy-subrc: { sy-subrc }| ).
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
@@ -36790,6 +36842,9 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-performance_test.
         zcl_abapgit_services_basis=>run_performance_test( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-ie_devtools.
+        zcl_abapgit_services_basis=>open_ie_devtools( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
@@ -44756,6 +44811,35 @@ CLASS ZCL_ABAPGIT_GUI_FUNCTIONS IMPLEMENTATION.
         return = rv_result.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_gui_functions~is_sapgui_for_windows.
+    DATA: lv_platform TYPE i.
+
+    cl_gui_frontend_services=>get_platform(
+      RECEIVING
+        platform             = lv_platform
+      EXCEPTIONS
+        error_no_gui         = 1
+        cntl_error           = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      rv_result = abap_false.
+    ENDIF.
+
+    CASE lv_platform.
+      WHEN cl_gui_frontend_services=>platform_nt351 OR
+           cl_gui_frontend_services=>platform_nt40 OR
+           cl_gui_frontend_services=>platform_nt50 OR
+           cl_gui_frontend_services=>platform_windows95 OR
+           cl_gui_frontend_services=>platform_windows98 OR
+           cl_gui_frontend_services=>platform_windowsxp.
+        " Everything after Windows XP is reported as Windows XP
+        rv_result = abap_true.
+      WHEN OTHERS.
+        rv_result = abap_false.
+    ENDCASE.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
@@ -44774,6 +44858,11 @@ ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
+    DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
+          lv_supports_ie_devtools TYPE abap_bool.
+
+    li_gui_functions = zcl_abapgit_ui_factory=>get_gui_functions( ).
+    lv_supports_ie_devtools = li_gui_functions->is_sapgui_for_windows( ).
 
     CREATE OBJECT ro_menu.
 
@@ -44794,8 +44883,15 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-changed_by
     )->add(
       iv_txt = 'Debug Info'
-      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo
-    )->add(
+      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ).
+
+    IF lv_supports_ie_devtools = abap_true.
+      ro_menu->add(
+        iv_txt = 'Open IE DevTools'
+        iv_act = zif_abapgit_definitions=>c_action-ie_devtools ).
+    ENDIF.
+
+    ro_menu->add(
       iv_txt = 'Performance Test'
       iv_act = zif_abapgit_definitions=>c_action-performance_test ).
 
@@ -92604,5 +92700,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-23T10:29:24.535Z
+* abapmerge 0.14.1 - 2020-09-23T10:32:32.551Z
 ****************************************************
