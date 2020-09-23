@@ -17146,9 +17146,10 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
     CONSTANTS:
       BEGIN OF c_ui_theme,
-        default TYPE string VALUE 'default',
-        dark    TYPE string VALUE 'dark',
-        belize  TYPE string VALUE 'belize',
+        default         TYPE string VALUE 'default',
+        dark            TYPE string VALUE 'dark',
+        belize          TYPE string VALUE 'belize',
+        synced_with_gui TYPE string VALUE 'synced_with_gui',
       END OF c_ui_theme.
 
     METHODS:
@@ -17276,6 +17277,8 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
         IMPORTING
           iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
       get_ui_theme
+        IMPORTING
+          iv_resolve_synced  TYPE abap_bool DEFAULT abap_true
         RETURNING
           VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
       set_ui_theme
@@ -19934,7 +19937,34 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     rv_show_default_repo = ms_user_settings-show_default_repo.
   ENDMETHOD.
   METHOD get_ui_theme.
+    DATA: lv_frontend_theme TYPE string.
+
     rv_ui_theme = ms_user_settings-ui_theme.
+
+    IF rv_ui_theme = c_ui_theme-synced_with_gui AND iv_resolve_synced = abap_true.
+      TRY.
+          CALL METHOD ('CL_GUI_RESOURCES')=>get_themename
+            IMPORTING
+              themename              = lv_frontend_theme
+            EXCEPTIONS
+              get_std_resource_error = 1
+              OTHERS                 = 2.
+          IF sy-subrc <> 0.
+            rv_ui_theme = c_ui_theme-default.
+            RETURN.
+          ENDIF.
+        CATCH cx_sy_dyn_call_error.
+          rv_ui_theme = c_ui_theme-default.
+          RETURN.
+      ENDTRY.
+
+      CASE lv_frontend_theme.
+        WHEN 'Belize'.
+          rv_ui_theme = c_ui_theme-belize.
+        WHEN OTHERS.
+          rv_ui_theme = c_ui_theme-default.
+      ENDCASE.
+    ENDIF.
   ENDMETHOD.
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
@@ -20019,7 +20049,8 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     ms_user_settings-ui_theme = iv_ui_theme.
     IF ms_user_settings-ui_theme <> c_ui_theme-default
         AND ms_user_settings-ui_theme <> c_ui_theme-dark
-        AND ms_user_settings-ui_theme <> c_ui_theme-belize.
+        AND ms_user_settings-ui_theme <> c_ui_theme-belize
+        AND ms_user_settings-ui_theme <> c_ui_theme-synced_with_gui.
       ms_user_settings-ui_theme = c_ui_theme-default. " Reset to default
     ENDIF.
   ENDMETHOD.
@@ -40061,18 +40092,21 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
 
     DATA:
       BEGIN OF ls_sel,
-        default TYPE string,
-        dark    TYPE string,
-        belize  TYPE string,
+        default         TYPE string,
+        dark            TYPE string,
+        belize          TYPE string,
+        synced_with_gui TYPE string,
       END OF ls_sel.
 
-    CASE mo_settings->get_ui_theme( ).
+    CASE mo_settings->get_ui_theme( abap_false ).
       WHEN zcl_abapgit_settings=>c_ui_theme-default.
         ls_sel-default = ' selected'.
       WHEN zcl_abapgit_settings=>c_ui_theme-dark.
         ls_sel-dark = ' selected'.
       WHEN zcl_abapgit_settings=>c_ui_theme-belize.
         ls_sel-belize = ' selected'.
+      WHEN zcl_abapgit_settings=>c_ui_theme-synced_with_gui.
+        ls_sel-synced_with_gui = ' selected'.
     ENDCASE.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -40080,13 +40114,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
     ri_html->add( |<h2>UI Theme</h2>| ).
     ri_html->add( |<label for="ui_theme">UI Theme</label>| ).
     ri_html->add( |<br>| ).
-    ri_html->add( |<select name="ui_theme" size="3">| ).
+    ri_html->add( |<select name="ui_theme" size="4">| ).
     ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-default }"{
       ls_sel-default }>{ zcl_abapgit_settings=>c_ui_theme-default }</option>| ).
     ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-dark }"{
       ls_sel-dark }>{ zcl_abapgit_settings=>c_ui_theme-dark }</option>| ).
     ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-belize }"{
       ls_sel-belize }>{ zcl_abapgit_settings=>c_ui_theme-belize }</option>| ).
+    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-synced_with_gui }"{
+      ls_sel-synced_with_gui }>Synced with SAP GUI</option>| ).
     ri_html->add( |</select>| ).
 
     ri_html->add( |<br>| ).
@@ -92700,5 +92736,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-23T10:32:32.551Z
+* abapmerge 0.14.1 - 2020-09-23T10:35:18.977Z
 ****************************************************
