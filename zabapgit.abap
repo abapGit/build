@@ -92351,16 +92351,16 @@ TABLES sscrfields.
 
 SELECTION-SCREEN BEGIN OF SCREEN 1002 TITLE s_title.
 SELECTION-SCREEN BEGIN OF LINE.
-SELECTION-SCREEN COMMENT 1(10) s_url FOR FIELD p_url.
-PARAMETERS: p_url TYPE string LOWER CASE VISIBLE LENGTH 40 ##SEL_WRONG.
+SELECTION-SCREEN COMMENT 1(18) s_url FOR FIELD p_url.
+PARAMETERS: p_url TYPE string LOWER CASE VISIBLE LENGTH 60 ##SEL_WRONG.
 SELECTION-SCREEN END OF LINE.
 SELECTION-SCREEN BEGIN OF LINE.
-SELECTION-SCREEN COMMENT 1(10) s_user FOR FIELD p_user.
-PARAMETERS: p_user TYPE string LOWER CASE VISIBLE LENGTH 40 ##SEL_WRONG.
+SELECTION-SCREEN COMMENT 1(18) s_user FOR FIELD p_user.
+PARAMETERS: p_user TYPE string LOWER CASE VISIBLE LENGTH 60 ##SEL_WRONG.
 SELECTION-SCREEN END OF LINE.
 SELECTION-SCREEN BEGIN OF LINE.
-SELECTION-SCREEN COMMENT 1(10) s_pass FOR FIELD p_pass.
-PARAMETERS: p_pass TYPE string LOWER CASE VISIBLE LENGTH 40 ##SEL_WRONG.
+SELECTION-SCREEN COMMENT 1(18) s_pass FOR FIELD p_pass.
+PARAMETERS: p_pass TYPE string LOWER CASE VISIBLE LENGTH 60 ##SEL_WRONG.
 SELECTION-SCREEN END OF LINE.
 SELECTION-SCREEN END OF SCREEN 1002.
 
@@ -92407,7 +92407,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     gv_confirm = abap_false.
     enrich_title_by_hostname( iv_repo_url ).
 
-    CALL SELECTION-SCREEN c_dynnr STARTING AT 5 5 ENDING AT 60 8.
+    CALL SELECTION-SCREEN c_dynnr STARTING AT 5 5 ENDING AT 80 8.
 
     IF gv_confirm = abap_true.
       cv_user = p_user.
@@ -92424,7 +92424,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     s_title = 'Login'.
     s_url   = 'Repo URL'.
     s_user  = 'User'.
-    s_pass  = 'Password'.
+    s_pass  = 'Password or Token'.
   ENDMETHOD.
 
   METHOD on_screen_output.
@@ -92736,5 +92736,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-24T07:44:11.484Z
+* abapmerge 0.14.1 - 2020-09-24T07:45:51.628Z
 ****************************************************
