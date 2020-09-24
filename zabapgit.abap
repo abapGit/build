@@ -14558,12 +14558,12 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS: c_abapgit_repo     TYPE string   VALUE 'https://github.com/larshp/abapGit'     ##NO_TEXT,
+    CONSTANTS: c_abapgit_repo     TYPE string   VALUE 'https://github.com/abapGit/abapGit'     ##NO_TEXT,
                c_abapgit_homepage TYPE string   VALUE 'https://www.abapgit.org'                ##NO_TEXT,
                c_abapgit_wikipage TYPE string   VALUE 'https://docs.abapgit.org'               ##NO_TEXT,
                c_dotabap_homepage TYPE string   VALUE 'https://dotabap.org'               ##NO_TEXT,
                c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
-               c_abapgit_url      TYPE string   VALUE 'https://github.com/larshp/abapGit.git' ##NO_TEXT,
+               c_abapgit_url      TYPE string   VALUE 'https://github.com/abapGit/abapGit.git' ##NO_TEXT,
                c_abapgit_class    TYPE tcode    VALUE `ZCL_ABAPGIT_REPO`                      ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
@@ -18806,7 +18806,7 @@ CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
                 iv_data     = ls_local_file-file-data ).
             ENDIF.
           WHEN zif_abapgit_definitions=>c_state-deleted.
-* SUSC, see https://github.com/larshp/abapGit/issues/2772
+* SUSC, see https://github.com/abapGit/abapGit/issues/2772
             IF ls_transport_object-delflag = abap_false
                 AND ls_transport_object-object <> 'SUSC'
                 AND ls_transport_object-object <> 'IWOM'
@@ -19262,7 +19262,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
                    <ls_object>  LIKE LINE OF <ls_request>-objects.
     LOOP AT it_requests ASSIGNING <ls_request>.
       LOOP AT <ls_request>-objects ASSIGNING <ls_object>.
-        " VARX, see https://github.com/larshp/abapGit/issues/3107
+        " VARX, see https://github.com/abapGit/abapGit/issues/3107
         IF <ls_object>-pgmid = 'LIMU' AND <ls_object>-object <> 'VARX'.
           CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
             EXPORTING
@@ -25783,7 +25783,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
       EXPORTING
         titel = 'abapGit XML version mismatch'
         txt1  = 'abapGit XML version mismatch'
-        txt2  = 'See http://larshp.github.io/abapGit/other-xml-mismatch.html'
+        txt2  = 'See https://docs.abapgit.org/other-xml-mismatch.html'
         txt3  = lv_version
         txt4  = lv_file.
 
@@ -39492,7 +39492,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           path     = ls_file-path
           filename = ls_file-filename.
       IF sy-subrc <> 0.
-* see https://github.com/larshp/abapGit/issues/3073
+* see https://github.com/abapGit/abapGit/issues/3073
         zcx_abapgit_exception=>raise( iv_text =
           |Unable to stage { ls_file-filename }. If the filename contains spaces, this is a known issue.| &&
           | Consider ignoring or staging the file at a later time.| ).
@@ -40151,7 +40151,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
         validate_settings( ).
 
         IF mv_error = abap_true.
-          MESSAGE 'Error when saving settings. Open an issue at https://github.com/larshp/abapGit' TYPE 'E'.
+          MESSAGE 'Error when saving settings. Open an issue at https://github.com/abapGit/abapGit' TYPE 'E'.
         ELSE.
           persist_settings( ).
         ENDIF.
@@ -50664,7 +50664,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
             read_source_error             = 2
             OTHERS                        = 3 ##SUBRC_OK.
       CATCH cx_sy_dyn_call_param_not_found.
-* downport to 702, see https://github.com/larshp/abapGit/issues/933
+* downport to 702, see https://github.com/abapGit/abapGit/issues/933
 * this will READ REPORT instead of using it_source, which should be okay
         CREATE OBJECT lo_update TYPE cl_oo_class_section_source
           EXPORTING
@@ -52011,7 +52011,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         not_found = 1
         OTHERS    = 2.
     IF sy-subrc <> 0.
-* if moving code from SAPlink, see https://github.com/larshp/abapGit/issues/562
+* if moving code from SAPlink, see https://github.com/abapGit/abapGit/issues/562
       zcx_abapgit_exception=>raise( |Error from RS_CUA_INTERNAL_WRITE. Subrc = { sy-subrc }| ).
     ENDIF.
 
@@ -89136,7 +89136,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD get_agent.
 
 * bitbucket require agent prefix = "git/"
-* also see https://github.com/larshp/abapGit/issues/1432
+* also see https://github.com/abapGit/abapGit/issues/1432
     rv_agent = |git/2.0 (abapGit { zif_abapgit_version=>gc_abap_version })|.
 
   ENDMETHOD.
@@ -89193,13 +89193,13 @@ CLASS zcl_abapgit_2fa_auth_registry IMPLEMENTATION.
         " Current 2FA approach will be removed as GitHub is deprecating the used authentication mechanism and there
         " are no other 2FA implementations. Show a warning in case someone subclassed ZCL_ABAPGIT_2FA_AUTH_BASE and
         " is using a custom 2FA implementation.
-        " https://github.com/larshp/abapGit/issues/3150
-        " https://github.com/larshp/abapGit/pull/3839
+        " https://github.com/abapGit/abapGit/issues/3150
+        " https://github.com/abapGit/abapGit/pull/3839
 
         IF gt_registered_authenticators IS NOT INITIAL AND
            zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
           lv_warning_message = 'Custom 2FA implementation found. 2FA infrastructure is marked for deletion.' &&
-                               ' Please open an issue if you are using it: github.com/larshp/abapGit/issues/new'.
+                               ' Please open an issue if you are using it: github.com/abapGit/abapGit/issues/new'.
           MESSAGE lv_warning_message TYPE 'I' DISPLAY LIKE 'W'.
         ENDIF.
       CATCH cx_class_not_existent  ##NO_HANDLER.
@@ -92736,5 +92736,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-23T10:35:18.977Z
+* abapmerge 0.14.1 - 2020-09-24T07:44:11.484Z
 ****************************************************
