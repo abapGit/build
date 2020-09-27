@@ -378,7 +378,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD IF_MESSAGE~GET_LONGTEXT.
+  METHOD if_message~get_longtext.
 
     " You should remember that we have to call ZCL_ABAPGIT_MESSAGE_HELPER
     " dynamically, because the compiled abapGit report puts the definition
@@ -393,7 +393,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
 
       CREATE OBJECT lo_message_helper TYPE ('ZCL_ABAPGIT_MESSAGE_HELPER')
         EXPORTING
-          ii_t100_message = me.
+          io_exception = me.
 
       CALL METHOD lo_message_helper->('GET_T100_LONGTEXT')
         RECEIVING
@@ -16381,76 +16381,67 @@ CLASS zcl_abapgit_message_helper DEFINITION
         !iv_text TYPE string .
     METHODS constructor
       IMPORTING
-        !ii_t100_message TYPE REF TO if_t100_message .
+        !io_exception TYPE REF TO zcx_abapgit_exception .
     METHODS get_t100_longtext
       RETURNING
         VALUE(rv_longtext) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_msg,
         msgv1 TYPE symsgv,
         msgv2 TYPE symsgv,
         msgv3 TYPE symsgv,
         msgv4 TYPE symsgv,
-      END OF ty_msg.
-
-    CLASS-METHODS:
-      split_text
-        IMPORTING
-          iv_text       TYPE string
-        RETURNING
-          VALUE(rs_msg) TYPE ty_msg.
+      END OF ty_msg .
 
     DATA:
-      mi_t100_message TYPE REF TO if_t100_message.
+      mo_exception TYPE REF TO zcx_abapgit_exception,
+      ms_t100key   TYPE scx_t100key.
 
-    METHODS:
-      itf_to_string
-        IMPORTING
-          it_itf           TYPE tline_tab
-        RETURNING
-          VALUE(rv_result) TYPE string,
-
-      get_t100_longtext_itf
-        RETURNING
-          VALUE(rt_itf) TYPE tline_tab,
-
-      remove_empty_section
-        IMPORTING
-          iv_tabix_from TYPE i
-          iv_tabix_to   TYPE i
-        CHANGING
-          ct_itf        TYPE tline_tab,
-
-      replace_section_head_with_text
-        CHANGING
-          cs_itf TYPE tline,
-
-      set_single_msg_var
-        IMPORTING
-          iv_arg           TYPE clike
-        RETURNING
-          VALUE(rv_target) TYPE char01,
-
-      set_single_msg_var_clike
-        IMPORTING
-          iv_arg           TYPE clike
-        RETURNING
-          VALUE(rv_target) TYPE char01,
-
-      set_single_msg_var_numeric
-        IMPORTING
-          iv_arg           TYPE numeric
-        RETURNING
-          VALUE(rv_target) TYPE char01,
-
-      set_single_msg_var_xseq
-        IMPORTING
-          iv_arg           TYPE xsequence
-        RETURNING
-          VALUE(rv_target) TYPE char01.
-
+    CLASS-METHODS split_text
+      IMPORTING
+        !iv_text      TYPE string
+      RETURNING
+        VALUE(rs_msg) TYPE ty_msg .
+    METHODS itf_to_string
+      IMPORTING
+        !it_itf          TYPE tline_tab
+      RETURNING
+        VALUE(rv_result) TYPE string .
+    METHODS get_t100_longtext_itf
+      RETURNING
+        VALUE(rt_itf) TYPE tline_tab .
+    METHODS remove_empty_section
+      IMPORTING
+        !iv_tabix_from TYPE i
+        !iv_tabix_to   TYPE i
+      CHANGING
+        !ct_itf        TYPE tline_tab .
+    METHODS replace_section_head_with_text
+      CHANGING
+        !cs_itf TYPE tline .
+    METHODS set_single_msg_var
+      IMPORTING
+        !iv_arg          TYPE clike
+      RETURNING
+        VALUE(rv_target) TYPE symsgv .
+    METHODS set_single_msg_var_clike
+      IMPORTING
+        !iv_arg          TYPE clike
+      RETURNING
+        VALUE(rv_target) TYPE symsgv .
+    METHODS set_single_msg_var_numeric
+      IMPORTING
+        !iv_arg          TYPE numeric
+      RETURNING
+        VALUE(rv_target) TYPE symsgv .
+    METHODS set_single_msg_var_xseq
+      IMPORTING
+        !iv_arg          TYPE xsequence
+      RETURNING
+        VALUE(rv_target) TYPE symsgv .
 ENDCLASS.
 CLASS zcl_abapgit_migrations DEFINITION
   FINAL
@@ -22544,7 +22535,8 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
   METHOD constructor.
 
-    mi_t100_message = ii_t100_message.
+    mo_exception = io_exception.
+    ms_t100key = io_exception->if_t100_message~t100key.
 
   ENDMETHOD.
   METHOD get_t100_longtext.
@@ -22558,7 +22550,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
     DATA: lv_docu_key TYPE doku_obj.
 
-    lv_docu_key = mi_t100_message->t100key-msgid && mi_t100_message->t100key-msgno.
+    lv_docu_key = ms_t100key-msgid && ms_t100key-msgno.
 
     CALL FUNCTION 'DOCU_GET'
       EXPORTING
@@ -22572,25 +22564,21 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
         OTHERS = 1.
 
     IF sy-subrc = 0.
-      sy-msgv1 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr1 ).
+      sy-msgv1 = set_single_msg_var( iv_arg = ms_t100key-attr1 ).
 
-      REPLACE '&V1&' IN TABLE rt_itf
-                     WITH sy-msgv1.
+      REPLACE ALL OCCURRENCES OF '&V1&' IN TABLE rt_itf WITH sy-msgv1.
 
-      sy-msgv2 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr2 ).
+      sy-msgv2 = set_single_msg_var( iv_arg = ms_t100key-attr2 ).
 
-      REPLACE '&V2&' IN TABLE rt_itf
-                     WITH sy-msgv2.
+      REPLACE ALL OCCURRENCES OF '&V2&' IN TABLE rt_itf WITH sy-msgv2.
 
-      sy-msgv3 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr3 ).
+      sy-msgv3 = set_single_msg_var( iv_arg = ms_t100key-attr3 ).
 
-      REPLACE '&V3&' IN TABLE rt_itf
-                     WITH sy-msgv3.
+      REPLACE ALL OCCURRENCES OF '&V3&' IN TABLE rt_itf WITH sy-msgv3.
 
-      sy-msgv4 = set_single_msg_var( iv_arg = mi_t100_message->t100key-attr4 ).
+      sy-msgv4 = set_single_msg_var( iv_arg = ms_t100key-attr4 ).
 
-      REPLACE '&V4&' IN TABLE rt_itf
-                     WITH sy-msgv4.
+      REPLACE ALL OCCURRENCES OF '&V4&' IN TABLE rt_itf WITH sy-msgv4.
     ENDIF.
 
   ENDMETHOD.
@@ -22671,7 +22659,11 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD remove_empty_section.
-    DELETE ct_itf FROM iv_tabix_from TO iv_tabix_to.
+    IF iv_tabix_to BETWEEN iv_tabix_from AND lines( ct_itf ).
+      DELETE ct_itf FROM iv_tabix_from TO iv_tabix_to.
+    ELSE.
+      DELETE ct_itf FROM iv_tabix_from.
+    ENDIF.
   ENDMETHOD.
   METHOD replace_section_head_with_text.
 
@@ -22694,8 +22686,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
     ls_msg = split_text( iv_text ).
 
-    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4
-                     INTO lv_dummy.
+    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO lv_dummy.
 
   ENDMETHOD.
   METHOD set_single_msg_var.
@@ -22706,7 +22697,7 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    ASSIGN me->(iv_arg) TO <lg_arg>.
+    ASSIGN mo_exception->(iv_arg) TO <lg_arg>.
     IF sy-subrc <> 0.
       CONCATENATE '&' iv_arg '&' INTO rv_target.
       RETURN.
@@ -22714,25 +22705,19 @@ CLASS ZCL_ABAPGIT_MESSAGE_HELPER IMPLEMENTATION.
 
     TRY.
         rv_target = set_single_msg_var_clike( iv_arg = <lg_arg> ).
-
         RETURN.
-
       CATCH cx_sy_dyn_call_illegal_type ##no_handler.
     ENDTRY.
 
     TRY.
         rv_target = set_single_msg_var_numeric( iv_arg = <lg_arg> ).
-
         RETURN.
-
       CATCH cx_sy_dyn_call_illegal_type ##no_handler.
     ENDTRY.
 
     TRY.
         rv_target = set_single_msg_var_xseq( iv_arg = <lg_arg> ).
-
         RETURN.
-
       CATCH cx_sy_dyn_call_illegal_type ##no_handler.
     ENDTRY.
 
@@ -45058,7 +45043,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ENDIF.
 
     ri_html->add( |<div class="{ lv_class }">| ).
-    ri_html->add( |{ ri_html->icon( 'exclamation-circle/red' ) } Error: { lv_error }| ).
+    ri_html->add( |{ ri_html->icon( 'exclamation-circle/red' ) } { lv_error }| ).
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
@@ -45073,26 +45058,26 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lv_error_text = ix_error->get_text( ).
-    lv_longtext = ix_error->get_longtext( abap_true ).
+    lv_longtext = ix_error->if_message~get_longtext( abap_true ).
 
-    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-cause }<br>)|
-            IN lv_longtext
-            WITH |<h3>$1</h3>|.
+    REPLACE FIRST OCCURRENCE OF REGEX
+      |({ zcl_abapgit_message_helper=>gc_section_text-cause }{ cl_abap_char_utilities=>newline })|
+      IN lv_longtext WITH |<h3>$1</h3>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-system_response }<br>)|
-            IN lv_longtext
-            WITH |<h3>$1</h3>|.
+    REPLACE FIRST OCCURRENCE OF REGEX
+      |({ zcl_abapgit_message_helper=>gc_section_text-system_response }{ cl_abap_char_utilities=>newline })|
+      IN lv_longtext WITH |<h3>$1</h3>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-what_to_do }<br>)|
-            IN lv_longtext
-            WITH |<h3>$1</h3>|.
+    REPLACE FIRST OCCURRENCE OF REGEX
+      |({ zcl_abapgit_message_helper=>gc_section_text-what_to_do }{ cl_abap_char_utilities=>newline })|
+      IN lv_longtext WITH |<h3>$1</h3>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX |(<br>{ zcl_abapgit_message_helper=>gc_section_text-sys_admin }<br>)|
-            IN lv_longtext
-            WITH |<h3>$1</h3>|.
+    REPLACE FIRST OCCURRENCE OF REGEX
+      |({ zcl_abapgit_message_helper=>gc_section_text-sys_admin }{ cl_abap_char_utilities=>newline })|
+      IN lv_longtext WITH |<h3>$1</h3>|.
 
     ri_html->add( |<div id="message" class="message-panel">| ).
-    ri_html->add( |{ lv_error_text }| ).
+    ri_html->add( |{ ri_html->icon( 'exclamation-circle/red' ) } { lv_error_text }| ).
     ri_html->add( |<div class="float-right">| ).
 
     ri_html->add_a(
@@ -53857,7 +53842,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -54127,8 +54112,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
       CATCH zcx_abapgit_exception INTO lx_error.
         zcl_abapgit_default_transport=>get_instance( )->reset( ).
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        RAISE EXCEPTION lx_error.
     ENDTRY.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
@@ -92734,5 +92718,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-27T07:25:44.613Z
+* abapmerge 0.14.1 - 2020-09-27T08:57:21.042Z
 ****************************************************
