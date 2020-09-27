@@ -27729,7 +27729,7 @@ CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
           RECEIVING
             result     = lv_vit_wb_request.
 
-        rv_is_adt_jump_possible = boolc( NOT ( lv_vit_wb_request = abap_true ) ).
+        rv_is_adt_jump_possible = boolc( NOT lv_vit_wb_request = abap_true ).
 
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
@@ -51928,9 +51928,9 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       <ls_men> TYPE rsmpe_men.
 
     IF cs_adm IS NOT INITIAL
-        AND ( cs_adm-actcode CO lc_num_n_space
+        AND cs_adm-actcode CO lc_num_n_space
         AND cs_adm-mencode CO lc_num_n_space
-        AND cs_adm-pfkcode CO lc_num_n_space ). "Check performed in form check_adm of include LSMPIF03
+        AND cs_adm-pfkcode CO lc_num_n_space. "Check performed in form check_adm of include LSMPIF03
       RETURN.
     ENDIF.
 
@@ -57035,8 +57035,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
 
     DATA: lt_enq   TYPE STANDARD TABLE OF seqg3,
           lv_subrc TYPE sysubrc,
-          lv_garg  TYPE eqegraarg,
-          lv_lines TYPE i.
+          lv_garg  TYPE eqegraarg.
 
     lv_garg = ms_item-obj_name.
 
@@ -57056,8 +57055,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error check object lock WDCC: ' && ms_item-obj_name ).
     ENDIF.
 
-    DESCRIBE TABLE lt_enq LINES lv_lines.
-    rv_is_locked = boolc( lv_lines > 0 ).
+    rv_is_locked = boolc( lines( lt_enq ) > 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -79013,7 +79011,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_change_more_recent_than.
 
-    IF ( is_currently_changed-ldate > is_last_changed-ldate )
+    IF is_currently_changed-ldate > is_last_changed-ldate
       OR (     is_currently_changed-ldate = is_last_changed-ldate
            AND is_currently_changed-ltime > is_last_changed-ltime ).
 
@@ -82401,7 +82399,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
             get_state = 'A'
           IMPORTING
             got_state = lv_state.
-        rv_bool = boolc( NOT ( lv_state IS INITIAL ) ).
+        rv_bool = boolc( NOT lv_state IS INITIAL ).
       CATCH cx_root.
         rv_bool = abap_false.
     ENDTRY.
@@ -92736,5 +92734,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-26T06:29:02.771Z
+* abapmerge 0.14.1 - 2020-09-27T07:25:44.613Z
 ****************************************************
