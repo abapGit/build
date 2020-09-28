@@ -36485,10 +36485,12 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD db_actions.
 
     DATA ls_db_key TYPE zif_abapgit_persistence=>ty_content.
+    DATA lo_query TYPE REF TO zcl_abapgit_string_map.
 
+    lo_query = ii_event->query( ).
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-db_edit.
-        ii_event->query( )->to_abap( CHANGING cs_container = ls_db_key ).
+        lo_query->to_abap( CHANGING cs_container = ls_db_key ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db_edit
           EXPORTING
             is_key = ls_db_key.
@@ -36497,7 +36499,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
         ENDIF.
       WHEN zif_abapgit_definitions=>c_action-db_display.
-        ii_event->query( )->to_abap( CHANGING cs_container = ls_db_key ).
+        lo_query->to_abap( CHANGING cs_container = ls_db_key ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db_dis
           EXPORTING
             is_key = ls_db_key.
@@ -46421,11 +46423,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
+    DATA ls_db TYPE zif_abapgit_persistence=>ty_content.
+    DATA lo_query TYPE REF TO zcl_abapgit_string_map.
 
+    lo_query = ii_event->query( ).
     CASE ii_event->mv_action.
       WHEN c_action-delete.
-        ii_event->query( )->to_abap( CHANGING cs_container = ls_db ).
+        lo_query->to_abap( CHANGING cs_container = ls_db ).
         delete( ls_db ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN OTHERS.
@@ -92796,5 +92800,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-28T14:43:10.903Z
+* abapmerge 0.14.1 - 2020-09-28T17:59:41.910Z
 ****************************************************
