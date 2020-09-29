@@ -864,6 +864,7 @@ CLASS zcl_abapgit_object_prog DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_prag DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_pinf DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_pers DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_pdts DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_para DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_otgr DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_odso DEFINITION DEFERRED.
@@ -7794,6 +7795,76 @@ CLASS zcl_abapgit_object_para DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+ENDCLASS.
+INTERFACE iUFTsvrpxwdUTiJUSNzxoTkdegmNBa DEFERRED.
+* renamed: zcl_abapgit_object_pdts :: lif_task_definition
+INTERFACE iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
+
+  TYPES: BEGIN OF ty_task_data,
+           short_text                 TYPE hr_mcshort,
+           plvar                      TYPE plvar,
+           wi_text                    TYPE witext,
+           method                     TYPE hrs1201,
+           method_binding             TYPE hrsmtbind,
+           starting_events            TYPE hrsevtab,
+           starting_events_binding    TYPE hrsevbind,
+           terminating_events         TYPE hrsetmtab,
+           terminating_events_binding TYPE hrsevbind,
+           descriptions               TYPE wstexts,
+         END OF ty_task_data.
+
+  METHODS clear_origin_data.
+  METHODS get_definition RETURNING VALUE(rs_result) TYPE ty_task_data.
+  METHODS get_container RETURNING VALUE(ri_result) TYPE REF TO if_swf_cnt_container.
+  METHODS get_user_container RETURNING VALUE(ri_result) TYPE REF TO if_swf_cnt_container.
+  METHODS import_container IMPORTING iv_xml_string TYPE xstring
+                           RAISING   zcx_abapgit_exception.
+  METHODS create_task RAISING zcx_abapgit_exception.
+  METHODS save IMPORTING iv_package TYPE devclass OPTIONAL
+               RAISING   zcx_abapgit_exception.
+  METHODS change_wi_text RAISING zcx_abapgit_exception.
+  METHODS change_method RAISING zcx_abapgit_exception.
+  METHODS change_start_events RAISING zcx_abapgit_exception.
+  METHODS change_terminating_events RAISING zcx_abapgit_exception.
+  METHODS change_text RAISING zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+CLASS zcl_abapgit_object_pdts DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_object.
+    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+    METHODS constructor IMPORTING is_item     TYPE zif_abapgit_definitions=>ty_item
+                                  iv_language TYPE spras
+                        RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+
+    CONSTANTS: c_object_type_task       TYPE hr_sotype VALUE 'TS'.
+
+    DATA ms_objkey TYPE hrsobject.
+    DATA mv_objid TYPE hrobjid.
+
+    METHODS check_subrc_for IMPORTING iv_call TYPE clike OPTIONAL
+                            RAISING   zcx_abapgit_exception.
+
+    METHODS is_experimental RETURNING VALUE(rv_result) TYPE abap_bool.
+    METHODS get_container_xml
+      IMPORTING
+        ii_task                 TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa
+      RETURNING
+        VALUE(ri_first_element) TYPE REF TO if_ixml_element
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS extract_container IMPORTING io_xml           TYPE REF TO zif_abapgit_xml_input
+                              RETURNING VALUE(rv_result) TYPE xstring.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_pers DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -70389,6 +70460,609 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
 
 ENDCLASS.
 
+CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ DEFINITION DEFERRED.
+CLASS kHGwlvrpxwdUTiJUSNzxpMacLYgbxq DEFINITION DEFERRED.
+* renamed: zcl_abapgit_object_pdts :: lcl_attribute_setter
+CLASS kHGwlvrpxwdUTiJUSNzxpMacLYgbxq DEFINITION
+  INHERITING FROM cl_workflow_general_task_def
+  CREATE PUBLIC
+  FINAL.
+  PUBLIC SECTION.
+
+    CLASS-METHODS set_objid IMPORTING iv_objid TYPE hrobject-objid
+                                      io_task  TYPE REF TO cl_workflow_general_task_def.
+
+    CLASS-METHODS set_container_id IMPORTING iv_id   TYPE guid_32
+                                             io_task TYPE REF TO cl_workflow_general_task_def. "#EC NEEDED
+ENDCLASS.
+
+CLASS kHGwlvrpxwdUTiJUSNzxpMacLYgbxq IMPLEMENTATION.
+
+  METHOD set_container_id.
+
+    FIELD-SYMBOLS <lv_object> TYPE REF TO if_swf_cnt_container.
+
+    ASSIGN ('IO_TASK->CONTAINER') TO <lv_object>.
+    ASSERT sy-subrc = 0.
+
+    CALL METHOD <lv_object>->('SET_GUID')
+      EXPORTING
+        guid_32 = iv_id.
+
+  ENDMETHOD.
+  METHOD set_objid.
+    io_task->objid = iv_objid.
+  ENDMETHOD.
+
+ENDCLASS.
+* renamed: zcl_abapgit_object_pdts :: lcl_task_definition
+CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ DEFINITION
+  CREATE PUBLIC
+  FINAL.
+
+  PUBLIC SECTION.
+
+    INTERFACES iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
+
+    CLASS-METHODS load IMPORTING iv_objid         TYPE hrobject-objid
+                       RETURNING VALUE(ri_result) TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa
+                       RAISING   zcx_abapgit_exception.
+
+    CLASS-METHODS create IMPORTING iv_objid         TYPE hrobject-objid
+                                   is_task_data     TYPE iUFTsvrpxwdUTiJUSNzxoTkdegmNBa=>ty_task_data
+                         RETURNING VALUE(ri_result) TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa
+                         RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CONSTANTS c_subty_task_description TYPE hr_s_subty VALUE '0120'.
+
+    DATA mo_taskdef TYPE REF TO cl_workflow_task_ts.
+    DATA ms_task TYPE iUFTsvrpxwdUTiJUSNzxoTkdegmNBa=>ty_task_data.
+
+    DATA: mv_objid                      TYPE hrobjid.
+
+    METHODS supply_instance RAISING zcx_abapgit_exception.
+    METHODS check_subrc_for IMPORTING iv_call TYPE clike OPTIONAL
+                            RAISING   zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ IMPLEMENTATION.
+
+  METHOD load.
+
+    DATA lo_taskdef TYPE REF TO kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ.
+
+    CREATE OBJECT lo_taskdef.
+    lo_taskdef->mv_objid = iv_objid.
+    lo_taskdef->supply_instance( ).
+
+    ri_result = lo_taskdef.
+
+  ENDMETHOD.
+
+  METHOD check_subrc_for.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( iv_call && ' returned ' && sy-subrc ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD supply_instance.
+
+    cl_workflow_factory=>create_ts(
+      EXPORTING
+        objid                        = mv_objid
+      RECEIVING
+        ts_inst                      = mo_taskdef
+      EXCEPTIONS
+        standard_task_does_not_exist = 1
+        object_could_not_be_locked   = 2
+        objid_not_given              = 3
+        OTHERS                       = 4 )  ##SUBRC_OK.
+
+    check_subrc_for( 'CREATE_TS' ).
+
+    ms_task-wi_text                    = mo_taskdef->wi_text.
+    ms_task-short_text                 = mo_taskdef->short_text.
+    ms_task-plvar                      = mo_taskdef->plvar.
+    ms_task-method                     = mo_taskdef->method.
+    ms_task-method_binding             = mo_taskdef->method_binding.
+    ms_task-starting_events            = mo_taskdef->starting_events.
+    ms_task-starting_events_binding    = mo_taskdef->starting_events_binding.
+    ms_task-terminating_events         = mo_taskdef->terminating_events.
+    ms_task-terminating_events_binding = mo_taskdef->terminating_events_binding.
+    ms_task-descriptions               = mo_taskdef->descriptions.
+
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~clear_origin_data.
+
+    FIELD-SYMBOLS: <ls_description>             TYPE hrs1002,
+                   <ls_method_binding>          TYPE hrs1214,
+                   <ls_starting_events_binding> TYPE hrs1212,
+                   <ls_term_events_binding>     TYPE hrs1212.
+
+    CLEAR: ms_task-method-aedtm,
+           ms_task-method-uname.
+
+    LOOP AT ms_task-method_binding ASSIGNING <ls_method_binding>.
+      CLEAR: <ls_method_binding>-aedtm,
+             <ls_method_binding>-uname.
+    ENDLOOP.
+
+    LOOP AT ms_task-starting_events_binding ASSIGNING <ls_starting_events_binding>.
+      CLEAR: <ls_starting_events_binding>-aedtm,
+             <ls_starting_events_binding>-uname.
+    ENDLOOP.
+
+    LOOP AT ms_task-descriptions ASSIGNING <ls_description>.
+      CLEAR: <ls_description>-aedtm,
+             <ls_description>-uname.
+    ENDLOOP.
+
+    LOOP AT ms_task-terminating_events_binding ASSIGNING <ls_term_events_binding>.
+      CLEAR: <ls_term_events_binding>-aedtm,
+             <ls_term_events_binding>-uname.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~get_definition.
+    rs_result = me->ms_task.
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~get_container.
+    ri_result = mo_taskdef->container.
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~get_user_container.
+
+    DATA: li_container       TYPE REF TO if_swf_cnt_element_access_1,
+          lt_user_elements   TYPE swfdnamtab,
+          lt_system_elements TYPE swfdnamtab,
+          lv_element         TYPE swfdname.
+
+    li_container = mo_taskdef->container.
+    lt_user_elements = li_container->all_elements_list( ).
+    lt_system_elements = li_container->all_elements_list( list_system = abap_true ).
+
+    LOOP AT lt_system_elements INTO lv_element.
+      READ TABLE lt_user_elements WITH KEY table_line = lv_element TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        TRY.
+            li_container->element_remove( name = lv_element ).
+          CATCH cx_swf_cnt_container.
+            "Shouldn't happen, doesn't matter if it does
+        ENDTRY.
+      ENDIF.
+    ENDLOOP.
+
+    ri_result ?= li_container.
+
+  ENDMETHOD.
+
+  METHOD create.
+    DATA lo_task TYPE REF TO kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ.
+
+    CREATE OBJECT lo_task TYPE kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ.
+    lo_task->mv_objid = iv_objid.
+    lo_task->ms_task = is_task_data.
+    ri_result = lo_task.
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~import_container.
+
+    DATA lt_exception_list TYPE swf_cx_tab.
+    DATA: lo_exception TYPE REF TO cx_swf_ifs_exception.
+
+    mo_taskdef->container->import_from_xml(
+            EXPORTING xml_stream     = iv_xml_string
+            IMPORTING exception_list = lt_exception_list ).
+
+    IF lt_exception_list IS NOT INITIAL.
+      READ TABLE lt_exception_list INDEX 1 INTO lo_exception.
+      zcx_abapgit_exception=>raise( iv_text     = lo_exception->get_text( )
+                                    ix_previous = lo_exception ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~create_task.
+
+    cl_workflow_factory=>create_new_ts(
+      EXPORTING
+        short_text          = |{ ms_task-short_text }|
+        text                = |{ ms_task-wi_text }|
+      RECEIVING
+        task_object         = mo_taskdef
+      EXCEPTIONS
+        text_exists_already = 1
+        OTHERS              = 2 ).                        "#EC SUBRC_OK
+
+    check_subrc_for( `CREATE_NEW_TS` ).
+
+    kHGwlvrpxwdUTiJUSNzxpMacLYgbxq=>set_objid( iv_objid = mv_objid
+                                           io_task  = mo_taskdef ).
+
+    kHGwlvrpxwdUTiJUSNzxpMacLYgbxq=>set_container_id( iv_id    = |TS{ mv_objid }|
+                                            io_task  = mo_taskdef ).
+
+  ENDMETHOD.
+
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~change_start_events.
+
+    mo_taskdef->change_start_events_complete(
+      EXPORTING
+        starting_events    = ms_task-starting_events
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_START_EVENTS_COMPLETE` ).
+
+    mo_taskdef->change_start_evt_bind_complete(
+      EXPORTING
+        new_bindings       = ms_task-starting_events_binding
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_START_EVT_BIND_COMPLETE` ).
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~save.
+
+    DATA ls_hrsobject TYPE hrsobject.
+    ls_hrsobject-otype = 'TS'. "swfco_org_standard_task - todo: linter can't resolve this
+    ls_hrsobject-objid = mv_objid.
+    INSERT hrsobject FROM ls_hrsobject.
+
+    mo_taskdef->save_standard_task(
+      EXPORTING
+        development_class          = iv_package
+        iv_force_gen               = abap_true
+      EXCEPTIONS
+        no_changes_allowed         = 1
+        no_client_indep_maint      = 2
+        update_error               = 3
+        insert_error_new_ts        = 4
+        new_ts_could_not_be_locked = 5
+        save_abort_by_user         = 6
+        OTHERS                     = 7 ).                 "#EC SUBRC_OK
+
+    check_subrc_for( `SAVE_STANDARD_TASK` ).
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~change_wi_text.
+
+    mo_taskdef->change_wi_text(
+      EXPORTING
+        new_wi_text        = ms_task-wi_text
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_WI_TEXT` ).
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~change_method.
+
+    FIELD-SYMBOLS <ls_method_binding> TYPE hrs1214.
+
+    mo_taskdef->change_method(
+      EXPORTING
+        new_method                   = ms_task-method    " New Method or Settings
+      EXCEPTIONS
+        no_changes_allowed           = 1
+        problem_method_web_enabling  = 2
+        problem_method_phon_enabling = 3
+        OTHERS                       = 4 ).               "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_METHOD` ).
+
+    LOOP AT ms_task-method_binding ASSIGNING <ls_method_binding>.
+
+      mo_taskdef->change_method_binding(
+        EXPORTING
+          binding                       = <ls_method_binding>
+          delete                        = abap_false
+          insert                        = abap_true
+        EXCEPTIONS
+          no_changes_allowed            = 1
+          desired_action_not_clear      = 2
+          ts_cnt_element_does_not_exist = 3
+          binding_could_not_be_deleted  = 4
+          OTHERS                        = 5 ).            "#EC SUBRC_OK
+
+      check_subrc_for( `CHANGE_METHOD_BINDING` ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~change_terminating_events.
+
+    mo_taskdef->change_term_events_complete(
+      EXPORTING
+        terminating_events = ms_task-terminating_events
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_TEXT` ).
+
+    mo_taskdef->change_term_evt_bind_complete(
+      EXPORTING
+        new_bindings       = ms_task-terminating_events_binding
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_TERM_EVENTS_COMPLETE` ).
+
+  ENDMETHOD.
+  METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~change_text.
+
+    mo_taskdef->change_text(
+      EXPORTING
+        subty              = c_subty_task_description
+        new_text           = ms_task-descriptions
+      EXCEPTIONS
+        no_changes_allowed = 1
+        OTHERS             = 2 ).                         "#EC SUBRC_OK
+
+    check_subrc_for( `CHANGE_TEXT` ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
+
+  METHOD constructor.
+
+    super->constructor( is_item     = is_item
+                        iv_language = iv_language ).
+
+    IF is_experimental( ) = abap_false.
+      "Alpha version, known issues:
+      "- Container texts not de/serialized properly (functionally OK)
+      "- Container handling still a bad hack, needs refactoring with lots of debugging time
+      "- Probably has a few more bugs, more testing needed
+      zcx_abapgit_exception=>raise( 'PDTS not fully implemented, enable experimental features to test it' ).
+    ENDIF.
+
+    ms_objkey-otype = c_object_type_task.
+    ms_objkey-objid = ms_item-obj_name.
+
+    mv_objid = ms_item-obj_name.  "Todo: Obsolete
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA li_task TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
+
+    li_task = kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ=>load( mv_objid ).
+    li_task->clear_origin_data( ).
+    io_xml->add( iv_name = 'PDTS'
+                 ig_data = li_task->get_definition( ) ).
+
+    io_xml->add_xml( iv_name = 'CONTAINER'
+                     ii_xml  = get_container_xml( li_task ) ).
+
+  ENDMETHOD.
+  METHOD get_container_xml.
+
+    DATA li_xml_dom TYPE REF TO if_ixml_document.
+    DATA li_elements TYPE REF TO if_ixml_node_collection.
+    DATA li_iterator TYPE REF TO if_ixml_node_iterator.
+    DATA li_element TYPE REF TO if_ixml_node.
+    DATA li_children TYPE REF TO if_ixml_node_list.
+    DATA li_child_iterator TYPE REF TO if_ixml_node_iterator.
+    DATA li_attributes TYPE REF TO if_ixml_named_node_map.
+    DATA lv_name TYPE string.
+
+    "Todo: get_user_container strips out system elements, but to_xml adds them back in (hardcoded internally)
+    "      Dirty hack further down to remove them from XML until we get this to work properly
+    ii_task->get_user_container( )->to_xml(
+      EXPORTING
+        include_null_values        = abap_true
+        include_initial_values     = abap_true
+        include_typenames          = abap_true
+        include_change_data        = abap_true
+        include_texts              = abap_false  "Todo: Get texts to work properly
+        include_extension_elements = abap_true
+        save_delta_handling_info   = abap_true
+        use_xslt                   = abap_false
+      IMPORTING
+        xml_dom                    = li_xml_dom
+      EXCEPTIONS
+        conversion_error           = 1
+        OTHERS                     = 2 ).                 "#EC SUBRC_OK
+
+    check_subrc_for( `TO_XML` ).
+
+    ri_first_element ?= li_xml_dom->get_first_child( ).
+    li_elements = ri_first_element->get_elements_by_tag_name( name = 'ELEMENTS' ).
+    li_iterator = li_elements->create_iterator( ).
+
+    DO.
+      li_element = li_iterator->get_next( ).
+
+      IF li_element IS NOT BOUND.
+        EXIT.
+      ENDIF.
+
+      li_children = li_element->get_children( ).
+      li_child_iterator = li_children->create_iterator( ).
+
+      DO.
+
+        li_element = li_child_iterator->get_next( ).
+        IF li_element IS NOT BOUND.
+          EXIT.
+        ENDIF.
+
+        "Remove system container elements - causing too much trouble
+        "Todo: This is a bad hack, but obsolete if we can fix todo above
+        li_attributes = li_element->get_attributes( ).
+        lv_name = li_attributes->get_named_item( name  = 'NAME' )->get_value( ).
+        IF lv_name(1) = '_'.
+          li_element->remove_node( ).
+          li_child_iterator->reset( ).
+          CONTINUE.
+        ENDIF.
+
+        li_attributes->remove_named_item( name = 'CHGDTA' ).
+
+      ENDDO.
+
+    ENDDO.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: ls_task       TYPE iUFTsvrpxwdUTiJUSNzxoTkdegmNBa=>ty_task_data,
+          lv_xml_string TYPE xstring,
+          li_task       TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
+
+    io_xml->read( EXPORTING iv_name = 'PDTS'
+      CHANGING cg_data = ls_task ).
+
+    li_task = kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ=>create(
+                      iv_objid     = mv_objid
+                      is_task_data = ls_task ).
+
+    li_task->create_task( ).
+    li_task->change_wi_text( ).
+    li_task->change_method( ).
+
+    lv_xml_string = extract_container( io_xml ).
+    li_task->import_container( lv_xml_string ).
+
+    li_task->change_start_events( ).
+    li_task->change_terminating_events( ).
+    li_task->change_text( ).
+
+    li_task->save( iv_package ).
+
+    tadir_insert( iv_package ).
+
+  ENDMETHOD.
+  METHOD extract_container.
+
+    DATA li_stream TYPE REF TO if_ixml_ostream.
+    DATA li_container_element TYPE REF TO if_ixml_element.
+    DATA li_document TYPE REF TO if_ixml_document.
+
+    li_document = io_xml->get_raw( ).
+
+    li_container_element = li_document->find_from_name_ns( 'CONTAINER' ).
+
+    IF li_container_element IS BOUND.
+
+      li_document = cl_ixml=>create( )->create_document( ).
+
+      li_stream = cl_ixml=>create( )->create_stream_factory( )->create_ostream_xstring( rv_result ).
+
+      li_document->append_child( li_container_element ).
+
+      cl_ixml=>create( )->create_renderer(
+          document = li_document
+          ostream  = li_stream
+      )->render( ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    CALL FUNCTION 'RH_HRSOBJECT_DELETE'
+      EXPORTING
+        act_otype           = c_object_type_task
+        act_objid           = mv_objid
+        no_confirmation_msg = abap_true
+      EXCEPTIONS
+        enqueue_failed      = 1
+        object_not_deleted  = 2
+        object_not_found    = 3
+        OTHERS              = 4.       "#EC SUBRC_OK
+
+    check_subrc_for( `RH_HRSOBJECT_DELETE` ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    CALL FUNCTION 'RH_READ_OBJECT'
+      EXPORTING
+        plvar     = '01'
+        otype     = c_object_type_task
+        objid     = mv_objid
+        istat     = '1'
+        begda     = sy-datum
+        endda     = '99991231'
+        ointerval = 'X'
+        read_db   = 'X'
+      EXCEPTIONS
+        not_found = 1
+        OTHERS    = 2.
+
+    rv_bool = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'HRSOBJECT'
+                                            iv_argument = c_object_type_task && mv_objid ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+
+    SELECT SINGLE uname
+      INTO rv_user
+      FROM hrs1201
+      WHERE otype = c_object_type_task AND
+            objid = ms_item-obj_name.
+
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
+      STARTING NEW TASK 'GIT'
+      EXPORTING
+        operation   = 'SHOW'
+        object_name = ms_item-obj_name
+        object_type = ms_item-obj_type
+      EXCEPTIONS
+        OTHERS      = 0.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD check_subrc_for.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( iv_call && ' returned ' && sy-subrc ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD is_experimental.
+
+    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
+    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
+
+    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
+    lo_settings = lo_settings_persistence->read( ).
+    rv_result = lo_settings->get_experimental_features( ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
@@ -93115,5 +93789,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-09-29T05:36:52.006Z
+* abapmerge 0.14.1 - 2020-09-29T05:42:51.983Z
 ****************************************************
