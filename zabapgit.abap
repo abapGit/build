@@ -58602,10 +58602,9 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
     DATA: lv_viewname TYPE dd25l-viewname,
           lv_ddl_view TYPE abap_bool.
+
     SELECT SINGLE viewname FROM dd25l INTO lv_viewname
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
+      WHERE viewname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
     IF rv_bool = abap_true.
@@ -60321,6 +60320,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
         AND ddlanguage = mv_language.
 
     lv_typdname = ms_item-obj_name.
+
+    " Active version
     CALL FUNCTION 'TYPD_GET_OBJECT'
       EXPORTING
         typdname          = lv_typdname
@@ -60333,6 +60334,22 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
         version_not_found = 1
         reps_not_exist    = 2
         OTHERS            = 3.
+    IF sy-subrc <> 0.
+      " Inactive version
+      CALL FUNCTION 'TYPD_GET_OBJECT'
+        EXPORTING
+          typdname          = lv_typdname
+          r3state           = 'I'
+        TABLES
+          psmodisrc         = lt_psmodisrc
+          psmodilog         = lt_psmodilog
+          psource           = et_source
+          ptrdir            = lt_ptrdir
+        EXCEPTIONS
+          version_not_found = 1
+          reps_not_exist    = 2
+          OTHERS            = 3.
+    ENDIF.
     IF sy-subrc <> 0.
       RAISE EXCEPTION TYPE zcx_abapgit_not_found.
     ENDIF.
@@ -60513,9 +60530,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_typename TYPE dd40l-typename.
+
     SELECT SINGLE typename FROM dd40l INTO lv_typename
-      WHERE typename = ms_item-obj_name
-      AND as4local = 'A'.
+      WHERE typename = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -67279,9 +67296,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_shlpname TYPE dd30l-shlpname.
+
     SELECT SINGLE shlpname FROM dd30l INTO lv_shlpname
-      WHERE shlpname = ms_item-obj_name
-      AND as4local = 'A'.                               "#EC CI_GENBUFF
+      WHERE shlpname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -69606,8 +69623,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
     DATA: lv_progname TYPE reposrc-progname.
 
     SELECT SINGLE progname FROM reposrc INTO lv_progname
-      WHERE progname = ms_item-obj_name
-      AND r3state = 'A'.
+      WHERE progname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -77814,10 +77830,9 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_viewname TYPE dd25l-viewname.
+
     SELECT SINGLE viewname FROM dd25l INTO lv_viewname
-      WHERE viewname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
+      WHERE viewname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -80386,12 +80401,19 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     DATA: lv_rollname TYPE dd04l-rollname.
 
     lv_rollname = ms_item-obj_name.
+
+    " Check nametab because it's fast
     CALL FUNCTION 'DD_GET_NAMETAB_HEADER'
       EXPORTING
         tabname   = lv_rollname
       EXCEPTIONS
         not_found = 1
         OTHERS    = 2.
+    IF sy-subrc <> 0.
+      " Check for inactive or modified versions
+      SELECT SINGLE rollname FROM dd04l INTO lv_rollname
+        WHERE rollname = lv_rollname.
+    ENDIF.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -81668,10 +81690,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD zif_abapgit_object~exists.
 
     DATA: lv_domname TYPE dd01l-domname.
+
     SELECT SINGLE domname FROM dd01l INTO lv_domname
-      WHERE domname = ms_item-obj_name
-      AND as4local = 'A'
-      AND as4vers = '0000'.
+      WHERE domname = ms_item-obj_name.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -83153,6 +83174,18 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD read_baseinfo.
+
+    TRY.
+        rv_baseinfo_string = mo_files->read_string( 'baseinfo' ).
+
+      CATCH zcx_abapgit_exception.
+        " File not found. That's ok, as the object could have been created in a
+        " system where baseinfo wasn't supported.
+        RETURN.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lo_ddl   TYPE REF TO object,
@@ -83298,7 +83331,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
         CALL METHOD lo_ddl->('IF_DD_DDL_HANDLER~READ')
           EXPORTING
             name      = ms_item-obj_name
-            get_state = 'A'
           IMPORTING
             got_state = lv_state.
         rv_bool = boolc( NOT lv_state IS INITIAL ).
@@ -83440,19 +83472,6 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
                  ig_data = <lg_data> ).
 
   ENDMETHOD.
-  METHOD read_baseinfo.
-
-    TRY.
-        rv_baseinfo_string = mo_files->read_string( 'baseinfo' ).
-
-      CATCH zcx_abapgit_exception.
-        " File not found. That's ok, as the object could have been created in a
-        " system where baseinfo wasn't supported.
-        RETURN.
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
@@ -84154,7 +84173,14 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
             i_version    = 'A'
           RECEIVING
             r_flg_exists = rv_bool.
-
+        IF rv_bool = abap_false.
+          CALL METHOD ('CL_CMP_TEMPLATE')=>('S_TEMPLATE_EXISTS')
+            EXPORTING
+              i_name       = mv_name
+              i_version    = 'I'
+            RECEIVING
+              r_flg_exists = rv_bool.
+        ENDIF.
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'CMPT not supported' ).
     ENDTRY.
@@ -93980,5 +94006,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-01T09:09:15.489Z
+* abapmerge 0.14.1 - 2020-10-02T08:24:22.793Z
 ****************************************************
