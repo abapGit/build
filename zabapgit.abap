@@ -760,6 +760,7 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
@@ -3120,15 +3121,10 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS create_branch_popup
     IMPORTING
-      iv_source_branch_name TYPE string
+      !iv_source_branch_name TYPE string
     EXPORTING
-      !ev_name              TYPE string
-      !ev_cancel            TYPE abap_bool
-    RAISING
-      zcx_abapgit_exception .
-  METHODS repo_new_offline
-    RETURNING
-      VALUE(rs_popup) TYPE ty_popup
+      !ev_name               TYPE string
+      !ev_cancel             TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS branch_list_popup
@@ -3187,23 +3183,23 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS popup_to_select_transports
     RETURNING
       VALUE(rt_trkorr) TYPE trwbo_request_headers .
   METHODS popup_to_select_from_list
     IMPORTING
       !it_list               TYPE STANDARD TABLE
-      !iv_title              TYPE lvc_title        DEFAULT space
-      !iv_header_text        TYPE csequence        DEFAULT space
-      !iv_start_column       TYPE i                DEFAULT 2
-      !iv_end_column         TYPE i                DEFAULT 65
-      !iv_start_line         TYPE i                DEFAULT 8
-      !iv_end_line           TYPE i                DEFAULT 20
-      !iv_striped_pattern    TYPE abap_bool        DEFAULT abap_false
-      !iv_optimize_col_width TYPE abap_bool        DEFAULT abap_true
+      !iv_title              TYPE lvc_title DEFAULT space
+      !iv_header_text        TYPE csequence DEFAULT space
+      !iv_start_column       TYPE i DEFAULT 2
+      !iv_end_column         TYPE i DEFAULT 65
+      !iv_start_line         TYPE i DEFAULT 8
+      !iv_end_line           TYPE i DEFAULT 20
+      !iv_striped_pattern    TYPE abap_bool DEFAULT abap_false
+      !iv_optimize_col_width TYPE abap_bool DEFAULT abap_true
       !iv_selection_mode     TYPE salv_de_constant DEFAULT if_salv_c_selection_mode=>multiple
-      !iv_select_column_text TYPE csequence        DEFAULT space
+      !iv_select_column_text TYPE csequence DEFAULT space
       !it_columns_to_display TYPE zif_abapgit_definitions=>ty_alv_column_tt
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
@@ -3233,31 +3229,31 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rv_transport) TYPE trkorr
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS popup_proxy_bypass
     IMPORTING
       !it_proxy_bypass       TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
     RETURNING
       VALUE(rt_proxy_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS choose_pr_popup
     IMPORTING
-      it_pulls       TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+      !it_pulls      TYPE zif_abapgit_pr_enum_provider=>tty_pulls
     RETURNING
       VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS popup_perf_test_parameters
     EXPORTING
-      et_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range
-      et_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range
+      !et_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range
+      !et_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range
     CHANGING
-      cv_package                    TYPE devclass
-      cv_include_sub_packages       TYPE abap_bool
-      cv_serialize_master_lang_only TYPE abap_bool
+      !cv_package                    TYPE devclass
+      !cv_include_sub_packages       TYPE abap_bool
+      !cv_serialize_master_lang_only TYPE abap_bool
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_git.
@@ -12224,6 +12220,63 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_addofflin DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_event_handler .
+    INTERFACES zif_abapgit_gui_renderable .
+
+    CLASS-METHODS create
+        " TODO importing prefilled form data
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        url              TYPE string VALUE 'url',
+        package          TYPE string VALUE 'package',
+        folder_logic     TYPE string VALUE 'folder_logic',
+        master_lang_only TYPE string VALUE 'master_lang_only',
+      END OF c_id .
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back          TYPE string VALUE 'go-back',
+        choose_package   TYPE string VALUE 'choose-package',
+        create_package   TYPE string VALUE 'create-package',
+        add_offline_repo TYPE string VALUE 'add-repo-offline',
+      END OF c_event .
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
+
+    METHODS parse_form
+      IMPORTING
+        !it_form_fields     TYPE tihttpnvp
+      RETURNING
+        VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception .
+    METHODS validate_form
+      IMPORTING
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form .
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -13934,21 +13987,21 @@ CLASS zcl_abapgit_gui_router DEFINITION
 
     METHODS general_page_routing
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS abapgit_services_actions
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS db_actions
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
@@ -13961,63 +14014,63 @@ CLASS zcl_abapgit_gui_router DEFINITION
         zcx_abapgit_exception .
     METHODS git_services
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS remote_origin_manipulations
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS sap_gui_actions
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS other_utilities
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS zip_services
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS repository_services
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception.
     METHODS get_page_diff
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event      TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_branch_overview
       IMPORTING
-        !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_stage
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        !ii_event      TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -14216,79 +14269,77 @@ CLASS zcl_abapgit_html_form DEFINITION
 
     CLASS-METHODS create
       IMPORTING
-        iv_form_id     TYPE string OPTIONAL
+        !iv_form_id    TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form .
     METHODS render
       IMPORTING
-        iv_form_class     TYPE string
-        io_values         TYPE REF TO zcl_abapgit_string_map
-        io_validation_log TYPE REF TO zcl_abapgit_string_map OPTIONAL
+        !iv_form_class     TYPE string
+        !io_values         TYPE REF TO zcl_abapgit_string_map
+        !io_validation_log TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
-        VALUE(ri_html)    TYPE REF TO zif_abapgit_html.
-
+        VALUE(ri_html)     TYPE REF TO zif_abapgit_html .
     METHODS command
       IMPORTING
-        iv_label   TYPE string
-        iv_action  TYPE string
-        iv_is_main TYPE abap_bool DEFAULT abap_false
-        iv_as_a    TYPE abap_bool DEFAULT abap_false
+        !iv_label      TYPE string
+        !iv_action     TYPE string
+        !iv_is_main    TYPE abap_bool DEFAULT abap_false
+        !iv_as_a       TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
     METHODS text
       IMPORTING
-        iv_label       TYPE string
-        iv_name        TYPE string
-        iv_hint        TYPE string OPTIONAL
-        iv_required    TYPE abap_bool DEFAULT abap_false
-        iv_upper_case  TYPE abap_bool DEFAULT abap_false
-        iv_placeholder TYPE string OPTIONAL
-        iv_side_action TYPE string OPTIONAL
+        !iv_label       TYPE string
+        !iv_name        TYPE string
+        !iv_hint        TYPE string OPTIONAL
+        !iv_required    TYPE abap_bool DEFAULT abap_false
+        !iv_upper_case  TYPE abap_bool DEFAULT abap_false
+        !iv_placeholder TYPE string OPTIONAL
+        !iv_side_action TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self)  TYPE REF TO zcl_abapgit_html_form .
     METHODS checkbox
       IMPORTING
-        iv_label TYPE string
-        iv_name  TYPE string
-        iv_hint  TYPE string OPTIONAL
+        !iv_label      TYPE string
+        !iv_name       TYPE string
+        !iv_hint       TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
     METHODS radio
       IMPORTING
-        iv_label         TYPE string
-        iv_name          TYPE string
-        iv_default_value TYPE string OPTIONAL
-        iv_hint          TYPE string OPTIONAL
+        !iv_label         TYPE string
+        !iv_name          TYPE string
+        !iv_default_value TYPE string OPTIONAL
+        !iv_hint          TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self)    TYPE REF TO zcl_abapgit_html_form .
     METHODS option
       IMPORTING
-        iv_label TYPE string
-        iv_value TYPE string
+        !iv_label      TYPE string
+        !iv_value      TYPE string
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
     METHODS start_group
       IMPORTING
-        iv_label TYPE string
-        iv_name  TYPE string
-        iv_hint  TYPE string OPTIONAL
+        !iv_label      TYPE string
+        !iv_name       TYPE string
+        !iv_hint       TYPE string OPTIONAL
       RETURNING
-        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form.
-
+        VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
     METHODS validate_normalize_form_data
       IMPORTING
-        io_form_data TYPE REF TO zcl_abapgit_string_map
+        !io_form_data       TYPE REF TO zcl_abapgit_string_map
       RETURNING
         VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+    METHODS validate_required_fields
+      IMPORTING
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -14552,31 +14603,46 @@ ENDCLASS.
 CLASS zcl_abapgit_popups DEFINITION
   FINAL
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_ui_factory.
+  FRIENDS ZCL_ABAPGIT_ui_factory .
 
   PUBLIC SECTION.
-    CONSTANTS: c_default_column TYPE lvc_fname VALUE `DEFAULT_COLUMN` ##NO_TEXT.
 
-    INTERFACES: zif_abapgit_popups.
-    ALIASES:
-      popup_package_export          FOR zif_abapgit_popups~popup_package_export,
-      popup_folder_logic            FOR zif_abapgit_popups~popup_folder_logic,
-      popup_object                  FOR zif_abapgit_popups~popup_object,
-      create_branch_popup           FOR zif_abapgit_popups~create_branch_popup,
-      repo_new_offline              FOR zif_abapgit_popups~repo_new_offline,
-      branch_list_popup             FOR zif_abapgit_popups~branch_list_popup,
-      repo_popup                    FOR zif_abapgit_popups~repo_popup,
-      popup_to_confirm              FOR zif_abapgit_popups~popup_to_confirm,
-      popup_to_inform               FOR zif_abapgit_popups~popup_to_inform,
-      popup_to_create_package       FOR zif_abapgit_popups~popup_to_create_package,
-      popup_to_create_transp_branch FOR zif_abapgit_popups~popup_to_create_transp_branch,
-      popup_to_select_transports    FOR zif_abapgit_popups~popup_to_select_transports,
-      popup_to_select_from_list     FOR zif_abapgit_popups~popup_to_select_from_list,
-      branch_popup_callback         FOR zif_abapgit_popups~branch_popup_callback,
-      package_popup_callback        FOR zif_abapgit_popups~package_popup_callback,
-      popup_transport_request       FOR zif_abapgit_popups~popup_transport_request,
-      popup_proxy_bypass            FOR zif_abapgit_popups~popup_proxy_bypass.
+    INTERFACES zif_abapgit_popups .
 
+    ALIASES branch_list_popup
+      FOR zif_abapgit_popups~branch_list_popup .
+    ALIASES branch_popup_callback
+      FOR zif_abapgit_popups~branch_popup_callback .
+    ALIASES create_branch_popup
+      FOR zif_abapgit_popups~create_branch_popup .
+    ALIASES package_popup_callback
+      FOR zif_abapgit_popups~package_popup_callback .
+    ALIASES popup_folder_logic
+      FOR zif_abapgit_popups~popup_folder_logic .
+    ALIASES popup_object
+      FOR zif_abapgit_popups~popup_object .
+    ALIASES popup_package_export
+      FOR zif_abapgit_popups~popup_package_export .
+    ALIASES popup_proxy_bypass
+      FOR zif_abapgit_popups~popup_proxy_bypass .
+    ALIASES popup_to_confirm
+      FOR zif_abapgit_popups~popup_to_confirm .
+    ALIASES popup_to_create_package
+      FOR zif_abapgit_popups~popup_to_create_package .
+    ALIASES popup_to_create_transp_branch
+      FOR zif_abapgit_popups~popup_to_create_transp_branch .
+    ALIASES popup_to_inform
+      FOR zif_abapgit_popups~popup_to_inform .
+    ALIASES popup_to_select_from_list
+      FOR zif_abapgit_popups~popup_to_select_from_list .
+    ALIASES popup_to_select_transports
+      FOR zif_abapgit_popups~popup_to_select_transports .
+    ALIASES popup_transport_request
+      FOR zif_abapgit_popups~popup_transport_request .
+    ALIASES repo_popup
+      FOR zif_abapgit_popups~repo_popup .
+
+    CONSTANTS c_default_column TYPE lvc_fname VALUE `DEFAULT_COLUMN` ##NO_TEXT.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -14833,7 +14899,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
       RETURNING
         VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_online
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS refresh
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -14843,35 +14909,39 @@ CLASS zcl_abapgit_services_repo DEFINITION
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS purge
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS new_offline
+      IMPORTING
+        !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
+      RETURNING
+        VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_offline
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS remote_attach
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS remote_detach
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS remote_change
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS refresh_local_checksums
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS toggle_favorite
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -14881,7 +14951,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
       IMPORTING
         !iv_repository_key TYPE zif_abapgit_persistence=>ty_value
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS gui_deserialize
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo
@@ -14900,6 +14970,11 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
         zcx_abapgit_exception.
+    CLASS-METHODS check_package
+      IMPORTING
+        !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_tag_popups DEFINITION
   FINAL
@@ -20924,6 +20999,10 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDIF.
 
     validate_package( iv_package ).
+
+    IF iv_url IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Missing display name for repo' ).
+    ENDIF.
 
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
@@ -32466,7 +32545,30 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+  METHOD check_package.
+
+    DATA:
+      lo_repo     TYPE REF TO zcl_abapgit_repo,
+      li_repo_srv TYPE REF TO zif_abapgit_repo_srv,
+      lv_reason   TYPE string.
+
+    " make sure package is not already in use for a different repository
+    " 702: chaining calls with exp&imp parameters causes syntax error
+    li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
+    li_repo_srv->get_repo_from_package(
+      EXPORTING
+        iv_package    = is_repo_params-package
+        iv_ign_subpkg = is_repo_params-ignore_subpackages
+      IMPORTING
+        eo_repo    = lo_repo
+        ev_reason  = lv_reason ).
+
+    IF lo_repo IS BOUND.
+      zcx_abapgit_exception=>raise( lv_reason ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD gui_deserialize.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
@@ -32507,71 +32609,28 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD new_offline.
 
-    DATA: ls_popup        TYPE zif_abapgit_popups=>ty_popup,
-          lo_repo         TYPE REF TO zcl_abapgit_repo,
-          lo_repo_offline TYPE REF TO zcl_abapgit_repo_offline,
-          li_repo_srv     TYPE REF TO zif_abapgit_repo_srv,
-          lv_reason       TYPE string.
+    check_package( is_repo_params ).
 
-    ls_popup  = zcl_abapgit_ui_factory=>get_popups( )->repo_new_offline( ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
+    " create new repo and add to favorites
+    ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
+      iv_url              = is_repo_params-url
+      iv_package          = is_repo_params-package
+      iv_folder_logic     = is_repo_params-folder_logic
+      iv_master_lang_only = is_repo_params-master_lang_only ).
 
-    " make sure package is not already in use for a different repository
-    " 702: chaining calls with exp&imp parameters causes syntax error
-    li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
-    li_repo_srv->get_repo_from_package(
-      EXPORTING
-        iv_package = ls_popup-package
-      IMPORTING
-        eo_repo    = lo_repo
-        ev_reason  = lv_reason ).
+    " Make sure there're no leftovers from previous repos
+    ro_repo->rebuild_local_checksums( ).
 
-    IF lo_repo IS BOUND.
-      MESSAGE lv_reason TYPE 'S'.
-    ELSE.
-      " create new repo and add to favorites
-      lo_repo_offline = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-        iv_url          = ls_popup-url
-        iv_package      = ls_popup-package
-        iv_folder_logic = ls_popup-folder_logic
-        iv_master_lang_only = ls_popup-master_lang_only ).
-
-      lo_repo_offline->rebuild_local_checksums( ).
-
-      lo_repo ?= lo_repo_offline.
-
-      toggle_favorite( lo_repo->get_key( ) ).
-    ENDIF.
+    toggle_favorite( ro_repo->get_key( ) ).
 
     " Set default repo for user
-    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
+    zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( ro_repo->get_key( ) ).
 
     COMMIT WORK AND WAIT.
-
   ENDMETHOD.
   METHOD new_online.
 
-    DATA:
-      lo_repo     TYPE REF TO zcl_abapgit_repo,
-      li_repo_srv TYPE REF TO zif_abapgit_repo_srv,
-      lv_reason   TYPE string.
-
-    " make sure package is not already in use for a different repository
-    " 702: chaining calls with exp&imp parameters causes syntax error
-    li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
-    li_repo_srv->get_repo_from_package(
-      EXPORTING
-        iv_package = is_repo_params-package
-        iv_ign_subpkg = is_repo_params-ignore_subpackages
-      IMPORTING
-        eo_repo    = lo_repo
-        ev_reason  = lv_reason ).
-
-    IF lo_repo IS BOUND.
-      zcx_abapgit_exception=>raise( lv_reason ).
-    ENDIF.
+    check_package( is_repo_params ).
 
     ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
       iv_url              = is_repo_params-url
@@ -32582,12 +32641,15 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_ign_subpkg       = is_repo_params-ignore_subpackages
       iv_master_lang_only = is_repo_params-master_lang_only ).
 
+    " Make sure there're no leftovers from previous repos
+    ro_repo->rebuild_local_checksums( ).
+
     toggle_favorite( ro_repo->get_key( ) ).
 
     " Set default repo for user
     zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( ro_repo->get_key( ) ).
 
-    COMMIT WORK.
+    COMMIT WORK AND WAIT.
 
   ENDMETHOD.
   METHOD popup_overwrite.
@@ -34818,109 +34880,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~repo_new_offline.
-
-    DATA: lv_returncode TYPE c,
-          lt_fields     TYPE TABLE OF sval,
-          lv_icon_ok    TYPE icon-name,
-          lv_button1    TYPE svalbutton-buttontext,
-          lv_icon1      TYPE icon-name,
-          lv_finished   TYPE abap_bool,
-          lx_error      TYPE REF TO zcx_abapgit_exception.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    add_field( EXPORTING iv_tabname    = 'ABAPTXT255'
-                         iv_fieldname  = 'LINE'
-                         iv_fieldtext  = 'Name'
-                         iv_obligatory = abap_true
-               CHANGING  ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname    = 'TDEVC'
-                         iv_fieldname  = 'DEVCLASS'
-                         iv_fieldtext  = 'Package'
-                         iv_obligatory = abap_true
-               CHANGING  ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname    = 'ZABAPGIT'
-                         iv_fieldname  = 'VALUE'
-                         iv_fieldtext  = 'Folder logic'
-                         iv_obligatory = abap_true
-                         iv_value      = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-               CHANGING  ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname    = 'DOKIL'
-                         iv_fieldname  = 'MASTERLANG'
-                         iv_fieldtext  = 'Master language only'
-                         iv_value      = abap_true
-               CHANGING ct_fields      = lt_fields ).
-
-    WHILE lv_finished = abap_false.
-
-      lv_icon_ok  = icon_okay.
-      lv_button1 = 'Create package'.
-      lv_icon1   = icon_folder.
-
-      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
-        EXPORTING
-          popup_title       = 'New Offline Project'
-          programname       = sy-cprog
-          formname          = 'PACKAGE_POPUP'
-          ok_pushbuttontext = 'OK'
-          icon_ok_push      = lv_icon_ok
-          first_pushbutton  = lv_button1
-          icon_button_1     = lv_icon1
-          second_pushbutton = ''
-          icon_button_2     = ''
-        IMPORTING
-          returncode        = lv_returncode
-        TABLES
-          fields            = lt_fields
-        EXCEPTIONS
-          error_in_fields   = 1
-          OTHERS            = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_returncode = c_answer_cancel.
-        rs_popup-cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      READ TABLE lt_fields INDEX 1 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      rs_popup-url = <ls_field>-value.
-
-      READ TABLE lt_fields INDEX 2 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      TRANSLATE <ls_field>-value TO UPPER CASE.
-      rs_popup-package = <ls_field>-value.
-
-      READ TABLE lt_fields INDEX 3 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      TRANSLATE <ls_field>-value TO UPPER CASE.
-      rs_popup-folder_logic = <ls_field>-value.
-
-      READ TABLE lt_fields INDEX 4 ASSIGNING <ls_field>.
-      ASSERT sy-subrc = 0.
-      rs_popup-master_lang_only = <ls_field>-value.
-
-      lv_finished = abap_true.
-
-      TRY.
-          zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = rs_popup-package
-                                                                   iv_chk_exists = abap_false ).
-          validate_folder_logic( rs_popup-folder_logic ).
-
-        CATCH zcx_abapgit_exception INTO lx_error.
-          " in case of validation errors we display the popup again
-          MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-          CLEAR lv_finished.
-      ENDTRY.
-
-    ENDWHILE.
-
-  ENDMETHOD.
   METHOD zif_abapgit_popups~repo_popup.
 
     DATA: lv_returncode       TYPE c,
@@ -36098,6 +36057,27 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD validate_required_fields.
+
+    DATA ls_field LIKE LINE OF mt_fields.
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF io_form_data->mt_entries.
+
+    CREATE OBJECT ro_validation_log.
+
+    LOOP AT io_form_data->mt_entries ASSIGNING <ls_entry>.
+      READ TABLE mt_fields INTO ls_field WITH KEY by_name COMPONENTS name = <ls_entry>-k.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Unexpected form field [{ <ls_entry>-k }]| ).
+      ENDIF.
+
+      IF ls_field-required IS NOT INITIAL AND <ls_entry>-v IS INITIAL.
+        ro_validation_log->set(
+          iv_key = ls_field-name
+          iv_val = |{ ls_field-label } cannot be empty| ).
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
@@ -36928,8 +36908,8 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-repo_newoffline.                 " New offline repo
-        zcl_abapgit_services_repo=>new_offline( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        rs_handled-page  = zcl_abapgit_gui_page_addofflin=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req.
         zcl_abapgit_transport=>add_all_objects_to_trans_req( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -37035,11 +37015,11 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip_services.
 
-    DATA: lv_key               TYPE zif_abapgit_persistence=>ty_repo-key,
-          lo_repo              TYPE REF TO zcl_abapgit_repo,
-          lv_package           TYPE devclass,
-          lv_path              TYPE string,
-          lv_xstr              TYPE xstring.
+    DATA: lv_key     TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_repo    TYPE REF TO zcl_abapgit_repo,
+          lv_package TYPE devclass,
+          lv_path    TYPE string,
+          lv_xstr    TYPE xstring.
 
     " TODO refactor
     CONSTANTS:
@@ -44403,52 +44383,52 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_required    = abap_true
       iv_label       = 'Git repository URL'
       iv_hint        = 'HTTPS address of the repository to clone'
-      iv_placeholder = 'https://github.com/...git' ).
-    ro_form->text(
+      iv_placeholder = 'https://github.com/...git'
+    )->text(
       iv_name        = c_id-package
       iv_side_action = c_event-choose_package
       iv_required    = abap_true
       iv_upper_case  = abap_true
       iv_label       = 'Package'
       iv_hint        = 'SAP package for the code (should be a dedicated one)'
-      iv_placeholder = 'Z... / $...' ).
-    ro_form->text(
+      iv_placeholder = 'Z... / $...'
+    )->text(
       iv_name        = c_id-branch_name
       iv_side_action = c_event-choose_branch
       iv_label       = 'Branch'
       iv_hint        = 'Switch to a specific branch on clone (default: master)'
-      iv_placeholder = 'master' ).
-    ro_form->radio(
+      iv_placeholder = 'master'
+    )->radio(
       iv_name        = c_id-folder_logic
       iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
       iv_label       = 'Folder logic'
-      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)' ).
-    ro_form->option(
+      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)'
+    )->option(
       iv_label       = 'Prefix'
-      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix ).
-    ro_form->option(
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+    )->option(
       iv_label       = 'Full'
-      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full ).
-    ro_form->text(
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->text(
       iv_name        = c_id-display_name
       iv_label       = 'Display name'
-      iv_hint        = 'Name to show instead of original repo name (optional)' ).
-    ro_form->checkbox(
+      iv_hint        = 'Name to show instead of original repo name (optional)'
+    )->checkbox(
       iv_name        = c_id-ignore_subpackages
       iv_label       = 'Ignore subpackages'
-      iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)' ).
-    ro_form->checkbox(
+      iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)'
+    )->checkbox(
       iv_name        = c_id-master_lang_only
       iv_label       = 'Serialize master language only'
-      iv_hint        = 'Ignore translations, serialize just master language' ).
-    ro_form->command(
+      iv_hint        = 'Ignore translations, serialize just master language'
+    )->command(
       iv_label       = 'Clone online repo'
       iv_is_main     = abap_true
-      iv_action      = c_event-add_online_repo ).
-    ro_form->command(
+      iv_action      = c_event-add_online_repo
+    )->command(
       iv_label       = 'Create package'
-      iv_action      = c_event-create_package ).
-    ro_form->command(
+      iv_action      = c_event-create_package
+    )->command(
       iv_label       = 'Back'
       iv_action      = c_event-go_back ).
 
@@ -44473,13 +44453,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
 
     DATA lx_err TYPE REF TO zcx_abapgit_exception.
 
-    CREATE OBJECT ro_validation_log.
+    ro_validation_log = mo_form->validate_required_fields( io_form_data ).
 
-    IF io_form_data->get( c_id-url ) IS INITIAL.
-      ro_validation_log->set(
-        iv_key = c_id-url
-        iv_val = 'Url cannot be empty' ).
-    ELSE.
+    IF io_form_data->get( c_id-url ) IS NOT INITIAL.
       TRY.
           zcl_abapgit_url=>validate( io_form_data->get( c_id-url ) ).
         CATCH zcx_abapgit_exception INTO lx_err.
@@ -44489,11 +44465,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       ENDTRY.
     ENDIF.
 
-    IF io_form_data->get( c_id-package ) IS INITIAL.
-      ro_validation_log->set(
-        iv_key = c_id-package
-        iv_val = 'Package cannot be empty' ).
-    ELSE.
+    IF io_form_data->get( c_id-package ) IS NOT INITIAL.
       TRY.
           zcl_abapgit_repo_srv=>get_instance( )->validate_package(
             iv_package    = |{ io_form_data->get( c_id-package ) }|
@@ -44588,6 +44560,179 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_view_repo
             EXPORTING
               iv_key = lo_new_online_repo->get_key( ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
+        ENDIF.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    gui_services( )->register_event_handler( me ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( mo_form->render(
+      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+    mo_form = get_form_schema( ).
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_addofflin.
+
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title = 'Create offline repository'
+      ii_child_component = lo_component ).
+
+  ENDMETHOD.
+  METHOD get_form_schema.
+
+    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-offline-form' ).
+
+    ro_form->text(
+      iv_name        = c_id-url
+      iv_required    = abap_true
+      iv_label       = 'Repository name'
+      iv_hint        = 'Unique name for repository'
+    )->text(
+      iv_name        = c_id-package
+      iv_side_action = c_event-choose_package
+      iv_required    = abap_true
+      iv_label       = 'Package'
+      iv_hint        = 'SAP package for the code (should be a dedicated one)'
+      iv_placeholder = 'Z... / $...'
+    )->radio(
+      iv_name        = c_id-folder_logic
+      iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      iv_label       = 'Folder logic'
+      iv_hint        = 'Define how package folders are named in the repo (see https://docs.abapgit.org)'
+    )->option(
+      iv_label       = 'Prefix'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+    )->option(
+      iv_label       = 'Full'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->checkbox(
+      iv_name        = c_id-master_lang_only
+      iv_label       = 'Serialize master language only'
+      iv_hint        = 'Ignore translations, serialize just master language'
+    )->command(
+      iv_label       = 'Create offline repo'
+      iv_is_main     = abap_true
+      iv_action      = c_event-add_offline_repo
+    )->command(
+      iv_label       = 'Create package'
+      iv_action      = c_event-create_package
+    )->command(
+      iv_label       = 'Back'
+      iv_action      = c_event-go_back ).
+
+  ENDMETHOD.
+  METHOD parse_form.
+
+    DATA ls_field LIKE LINE OF it_form_fields.
+
+    CREATE OBJECT ro_form_data.
+
+    " temporary, TODO refactor later, after gui_event class is ready, move to on_event
+    LOOP AT it_form_fields INTO ls_field.
+      ro_form_data->set(
+        iv_key = ls_field-name
+        iv_val = ls_field-value ).
+    ENDLOOP.
+
+    ro_form_data = mo_form->validate_normalize_form_data( ro_form_data ).
+
+  ENDMETHOD.
+  METHOD validate_form.
+
+    DATA lx_err TYPE REF TO zcx_abapgit_exception.
+
+    ro_validation_log = mo_form->validate_required_fields( io_form_data ).
+
+    IF io_form_data->get( c_id-package ) IS NOT INITIAL.
+      TRY.
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package(
+            iv_package    = |{ io_form_data->get( c_id-package ) }| ).
+        CATCH zcx_abapgit_exception INTO lx_err.
+          ro_validation_log->set(
+            iv_key = c_id-package
+            iv_val = lx_err->get_text( ) ).
+      ENDTRY.
+    ENDIF.
+
+    IF io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+      ro_validation_log->set(
+        iv_key = c_id-folder_logic
+        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic )
+        }. Must be { zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+        } or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA: ls_repo_params      TYPE zif_abapgit_services_repo=>ty_repo_params,
+          lo_new_offline_repo TYPE REF TO zcl_abapgit_repo_offline.
+
+    " import data from html before re-render
+    mo_form_data = parse_form( zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ) ).
+
+    CASE ii_event->mv_action.
+      WHEN c_event-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-create_package.
+
+        mo_form_data->set(
+          iv_key = c_id-package
+          iv_val = zcl_abapgit_services_basis=>create_package(
+            iv_prefill_package = |{ mo_form_data->get( 'package' ) }| ) ).
+        IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
+          mo_validation_log = validate_form( mo_form_data ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+
+      WHEN c_event-choose_package.
+
+        mo_form_data->set(
+          iv_key = c_id-package
+          iv_val = zcl_abapgit_ui_factory=>get_popups( )->popup_search_help( 'TDEVC-DEVCLASS' ) ).
+        IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
+          mo_validation_log = validate_form( mo_form_data ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+
+      WHEN c_event-add_offline_repo.
+
+        mo_validation_log = validate_form( mo_form_data ).
+
+        IF mo_validation_log->is_empty( ) = abap_true.
+          mo_form_data->to_abap( CHANGING cs_container = ls_repo_params ).
+          lo_new_offline_repo = zcl_abapgit_services_repo=>new_offline( ls_repo_params ).
+          CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_view_repo
+            EXPORTING
+              iv_key = lo_new_offline_repo->get_key( ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
         ELSE.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
@@ -94027,5 +94172,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-03T07:18:23.833Z
+* abapmerge 0.14.1 - 2020-10-03T08:20:13.295Z
 ****************************************************
