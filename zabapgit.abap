@@ -24371,6 +24371,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
 
     " misuse field KORRNUM to fix deletion sequence
+    " higher value means later deletion
 
     LOOP AT ct_tadir ASSIGNING <ls_tadir>.
       CASE <ls_tadir>-object.
@@ -24384,18 +24385,9 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           <ls_tadir>-korrnum = '810000'.
         WHEN 'DTEL'.
           <ls_tadir>-korrnum = '800000'.
-        WHEN 'DCLS'.
-          " AUTH and SUSO after DCLS
-          <ls_tadir>-korrnum = '705000'.
-        WHEN 'SUSO'.
-          " SUSO after DCLS
-          <ls_tadir>-korrnum = '710000'.
-        WHEN 'AUTH'.
-          " AUTH after DCLS
-          <ls_tadir>-korrnum = '715000'.
-        WHEN 'DDLS'.
-          " DDLS after DCLS but before other DDIC
-          <ls_tadir>-korrnum = '720000'.
+        WHEN 'SHLP'.
+          " SHLP after TABL
+          <ls_tadir>-korrnum = '760000'.
         WHEN 'TTYP' OR 'TABL' OR 'VIEW'.
           SELECT SINGLE tabclass FROM dd02l
             INTO lv_tabclass
@@ -24408,6 +24400,18 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           ELSE.
             <ls_tadir>-korrnum = '750000'.
           ENDIF.
+        WHEN 'DDLS'.
+          " DDLS after DCLS but before other DDIC
+          <ls_tadir>-korrnum = '720000'.
+        WHEN 'AUTH'.
+          " AUTH after DCLS
+          <ls_tadir>-korrnum = '715000'.
+        WHEN 'SUSO'.
+          " SUSO after DCLS
+          <ls_tadir>-korrnum = '710000'.
+        WHEN 'DCLS'.
+          " AUTH and SUSO after DCLS
+          <ls_tadir>-korrnum = '705000'.
         WHEN 'IASP'.
           <ls_tadir>-korrnum = '552000'.
         WHEN 'IARP'.
@@ -24428,7 +24432,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           IF sy-subrc = 0.
             <ls_tadir>-korrnum = '200000'.
           ELSE.
-            <ls_tadir>-korrnum = '100000'.
+            <ls_tadir>-korrnum = '180000'.
           ENDIF.
         WHEN 'IDOC'.
           <ls_tadir>-korrnum = '200000'.
@@ -54118,6 +54122,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lt_tadir    LIKE it_tadir,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
+          lv_count    TYPE i,
           lv_text     TYPE string.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
@@ -54138,27 +54143,43 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         check_objects_locked( iv_language = zif_abapgit_definitions=>c_english
                               it_items    = lt_items ).
 
-        LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-          li_progress->show( iv_current = sy-tabix
-                             iv_text    = |Delete { <ls_tadir>-obj_name }| ).
-
-          CLEAR ls_item.
-          ls_item-obj_type = <ls_tadir>-object.
-          ls_item-obj_name = <ls_tadir>-obj_name.
-          delete_obj(
-            iv_package = <ls_tadir>-devclass
-            is_item    = ls_item ).
-
-* make sure to save object deletions
-          COMMIT WORK.
-        ENDLOOP.
-
       CATCH zcx_abapgit_exception INTO lx_error.
         zcl_abapgit_default_transport=>get_instance( )->reset( ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
+    lv_count = 1.
+    DO 3 TIMES.
+      LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+        li_progress->show( iv_current = lv_count
+                           iv_text    = |Delete { <ls_tadir>-obj_name }| ).
+
+        CLEAR ls_item.
+        ls_item-obj_type = <ls_tadir>-object.
+        ls_item-obj_name = <ls_tadir>-obj_name.
+
+        TRY.
+            delete_obj(
+              iv_package = <ls_tadir>-devclass
+              is_item    = ls_item ).
+
+            DELETE lt_tadir.
+            lv_count = lv_count + 1.
+
+            " make sure to save object deletions
+            COMMIT WORK.
+          CATCH zcx_abapgit_exception INTO lx_error ##NO_HANDLER.
+            " ignore errors inside the loops and raise it later
+        ENDTRY.
+
+      ENDLOOP.
+    ENDDO.
+
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
+
+    IF lx_error IS BOUND AND lines( lt_tadir ) > 0.
+      RAISE EXCEPTION lx_error.
+    ENDIF.
 
   ENDMETHOD.
   METHOD delete_obj.
@@ -94006,5 +94027,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-02T08:28:12.618Z
+* abapmerge 0.14.1 - 2020-10-03T07:18:23.833Z
 ****************************************************
