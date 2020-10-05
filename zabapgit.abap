@@ -1383,6 +1383,14 @@ INTERFACE zif_abapgit_gui_event .
     RAISING
       zcx_abapgit_exception.
 
+  METHODS form_data
+    IMPORTING
+      iv_upper_cased TYPE abap_bool DEFAULT abap_false
+    RETURNING
+      VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_event_handler .
@@ -11526,12 +11534,25 @@ CLASS zcl_abapgit_gui_event DEFINITION
   PRIVATE SECTION.
     DATA mo_query TYPE REF TO zcl_abapgit_string_map.
     DATA mo_query_upper_cased TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_data_upper_cased TYPE REF TO zcl_abapgit_string_map.
 
     METHODS fields_to_map
       IMPORTING
         it_fields            TYPE tihttpnvp
       RETURNING
         VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS fields_to_map_macro
+      IMPORTING
+        it_fields      TYPE tihttpnvp
+        iv_upper_cased TYPE abap_bool
+      CHANGING
+        co_string_map_lower TYPE REF TO zcl_abapgit_string_map
+        co_string_map_upper TYPE REF TO zcl_abapgit_string_map
+        co_string_map_return TYPE REF TO zcl_abapgit_string_map
       RAISING
         zcx_abapgit_exception.
 
@@ -12200,9 +12221,11 @@ CLASS zcl_abapgit_gui_page_db_edit DEFINITION
 
     CLASS-METHODS dbcontent_decode
       IMPORTING
-        !it_postdata      TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RETURNING
-        VALUE(rs_content) TYPE zif_abapgit_persistence=>ty_content .
+        VALUE(rs_content) TYPE zif_abapgit_persistence=>ty_content
+      RAISING
+        zcx_abapgit_exception .
 
     METHODS render_content
         REDEFINITION .
@@ -12477,13 +12500,6 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-    METHODS decode_merge
-      IMPORTING
-        !it_postdata    TYPE cnht_post_data_tab
-      RETURNING
-        VALUE(rs_merge) TYPE ty_merge
-      RAISING
-        zcx_abapgit_exception .
     METHODS build_menu
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
@@ -12640,9 +12656,11 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
 
     CLASS-METHODS parse_commit_request
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
-      EXPORTING
-        !eg_fields   TYPE any .
+        !ii_event TYPE REF TO zif_abapgit_gui_event
+      RETURNING
+        VALUE(rs_commit) TYPE zif_abapgit_services_git=>ty_commit_fields
+      RAISING
+        zcx_abapgit_exception .
 
     METHODS render_content REDEFINITION .
 
@@ -13077,7 +13095,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
 
     METHODS apply_merged_content
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RAISING
         zcx_abapgit_exception .
     METHODS build_menu
@@ -13199,12 +13217,12 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         !is_diff TYPE ty_file_diff .
     METHODS start_staging
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RAISING
         zcx_abapgit_exception .
     METHODS apply_patch_from_form_fields
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RAISING
         zcx_abapgit_exception .
     METHODS restore_patch_flags
@@ -13521,7 +13539,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS stage_selected
       IMPORTING
-        !it_postdata    TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(ro_stage) TYPE REF TO zcl_abapgit_stage
       RAISING
@@ -13642,14 +13660,16 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS create_tag
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
+        !ii_event TYPE REF TO zif_abapgit_gui_event
       RAISING
         zcx_abapgit_exception .
     METHODS parse_tag_request
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
-      EXPORTING
-        !eg_fields   TYPE any .
+        !ii_event TYPE REF TO zif_abapgit_gui_event
+      RETURNING
+        VALUE(rs_git_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+      RAISING
+        zcx_abapgit_exception .
     METHODS parse_change_tag_type_request
       IMPORTING
         !it_postdata TYPE cnht_post_data_tab .
@@ -14192,6 +14212,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
     CLASS-METHODS parse_fields
       IMPORTING
         !iv_string       TYPE clike
+        !iv_upper_cased  TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_fields) TYPE tihttpnvp .
     CLASS-METHODS parse_fields_upper_case_name
@@ -15575,6 +15596,7 @@ CLASS zcl_abapgit_string_map DEFINITION
     CLASS-METHODS create
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map.
+    METHODS constructor.
     METHODS get
       IMPORTING
         iv_key        TYPE string
@@ -15612,6 +15634,11 @@ CLASS zcl_abapgit_string_map DEFINITION
         !cs_container TYPE any
       RAISING
         zcx_abapgit_exception.
+    METHODS strict
+      IMPORTING
+        !iv_strict TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map .
     METHODS freeze.
 
     DATA mt_entries TYPE tts_entries READ-ONLY.
@@ -15619,6 +15646,7 @@ CLASS zcl_abapgit_string_map DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mv_read_only TYPE abap_bool.
+    DATA mv_is_strict TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
@@ -26402,6 +26430,9 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
     ENDIF.
     CLEAR mt_entries.
   ENDMETHOD.
+  METHOD constructor.
+    mv_is_strict = abap_true.
+  ENDMETHOD.
   METHOD create.
     CREATE OBJECT ro_instance.
   ENDMETHOD.
@@ -26461,6 +26492,10 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
     rv_size = lines( mt_entries ).
 
   ENDMETHOD.
+  METHOD strict.
+    mv_is_strict = iv_strict.
+    ro_instance = me.
+  ENDMETHOD.
   METHOD to_abap.
 
     DATA lo_type TYPE REF TO cl_abap_typedescr.
@@ -26482,6 +26517,8 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
       IF sy-subrc = 0.
         " TODO check target type ?
         <lv_val> = <ls_entry>-v.
+      ELSEIF mv_is_strict = abap_false.
+        CONTINUE.
       ELSE.
         zcx_abapgit_exception=>raise( |Component { lv_field } not found in target| ).
       ENDIF.
@@ -36230,11 +36267,16 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
 
     ENDLOOP.
 
+    IF iv_upper_cased = abap_true.
+      field_keys_to_upper( CHANGING ct_fields = rt_fields ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD parse_fields_upper_case_name.
 
-    rt_fields = parse_fields( iv_string ).
-    field_keys_to_upper( CHANGING ct_fields = rt_fields ).
+    rt_fields = parse_fields(
+      iv_string      = iv_string
+      iv_upper_cased = abap_true ).
 
   ENDMETHOD.
   METHOD parse_post_form_data.
@@ -38678,9 +38720,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       lx_error TYPE REF TO zcx_abapgit_exception,
       lv_text  TYPE string.
 
-    parse_tag_request(
-      EXPORTING it_postdata = it_postdata
-      IMPORTING eg_fields   = ls_tag ).
+    ls_tag = parse_tag_request( ii_event ).
 
     IF ls_tag-name IS INITIAL.
       zcx_abapgit_exception=>raise( |Please supply a tag name| ).
@@ -38738,38 +38778,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_tag_request.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
 
-    FIELD-SYMBOLS <lv_body> TYPE string.
-
-    CLEAR eg_fields.
-
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
-      it_post_data = it_postdata
-      iv_upper_cased = abap_true ).
-
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'SHA1'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'NAME'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'TAGGER_NAME'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'TAGGER_EMAIL'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'MESSAGE'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name = 'BODY'
-                                                        it_field = lt_fields
-                                              CHANGING cg_field = eg_fields ).
-
-    ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
-    ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
+    lo_map = ii_event->form_data( ).
+    lo_map->strict( abap_false ). " Hack, refactor !
+    lo_map->to_abap( CHANGING cs_container = rs_git_tag ).
+    REPLACE ALL OCCURRENCES
+      OF zif_abapgit_definitions=>c_crlf
+      IN rs_git_tag-body
+      WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -38948,7 +38965,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN c_action-commit_post.
 
-        create_tag( ii_event->mt_postdata ).
+        create_tag( ii_event ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_action-change_tag_type.
@@ -39469,30 +39486,29 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD stage_selected.
 
-    DATA:
-      lt_fields TYPE tihttpnvp,
-      ls_file   TYPE zif_abapgit_definitions=>ty_file.
+    DATA ls_file  TYPE zif_abapgit_definitions=>ty_file.
+    DATA lo_files TYPE REF TO zcl_abapgit_string_map.
 
     FIELD-SYMBOLS:
       <ls_file>   LIKE LINE OF ms_files-local,
       <ls_status> LIKE LINE OF ms_files-status,
-      <ls_item>   LIKE LINE OF lt_fields.
+      <ls_item>   LIKE LINE OF lo_files->mt_entries.
 
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
+    lo_files = ii_event->form_data( ).
 
-    IF lines( lt_fields ) = 0.
+    IF lo_files->size( ) = 0.
       zcx_abapgit_exception=>raise( 'process_stage_list: empty list' ).
     ENDIF.
 
     CREATE OBJECT ro_stage.
 
-    LOOP AT lt_fields ASSIGNING <ls_item>
+    LOOP AT lo_files->mt_entries ASSIGNING <ls_item>
       "Ignore Files that we don't want to stage, so any errors don't stop the staging process
-      WHERE value <> zif_abapgit_definitions=>c_method-skip.
+      WHERE v <> zif_abapgit_definitions=>c_method-skip.
 
       zcl_abapgit_path=>split_file_location(
         EXPORTING
-          iv_fullpath = <ls_item>-name
+          iv_fullpath = <ls_item>-k
         IMPORTING
           ev_path     = ls_file-path
           ev_filename = ls_file-filename ).
@@ -39508,7 +39524,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           | Consider ignoring or staging the file at a later time.| ).
       ENDIF.
 
-      CASE <ls_item>-value.
+      CASE <ls_item>-v.
         WHEN zif_abapgit_definitions=>c_method-add.
           READ TABLE ms_files-local ASSIGNING <ls_file>
             WITH KEY file-path     = ls_file-path
@@ -39532,15 +39548,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         WHEN zif_abapgit_definitions=>c_method-skip.
           " Do nothing
         WHEN OTHERS.
-          zcx_abapgit_exception=>raise( |process_stage_list: unknown method { <ls_item>-value }| ).
+          zcx_abapgit_exception=>raise( |process_stage_list: unknown method { <ls_item>-v }| ).
       ENDCASE.
     ENDLOOP.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: lo_stage  TYPE REF TO zcl_abapgit_stage,
-          lt_fields TYPE tihttpnvp.
+    DATA: lo_stage  TYPE REF TO zcl_abapgit_stage.
 
     CASE ii_event->mv_action.
       WHEN c_action-stage_all.
@@ -39556,7 +39571,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       WHEN c_action-stage_commit.
 
-        lo_stage = stage_selected( ii_event->mt_postdata ).
+        lo_stage = stage_selected( ii_event ).
 
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
@@ -39567,20 +39582,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       WHEN c_action-stage_filter.
 
-        lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ).
-
-        zcl_abapgit_html_action_utils=>get_field(
-          EXPORTING
-            iv_name  = 'filterValue'
-            it_field = lt_fields
-          CHANGING
-            cg_field = mv_filter_value ).
-
+        mv_filter_value = ii_event->form_data( )->get( 'filterValue' ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
       WHEN zif_abapgit_definitions=>c_action-go_patch.                         " Go Patch page
 
-        lo_stage = stage_selected( ii_event->mt_postdata ).
+        lo_stage = stage_selected( ii_event ).
         rs_handled-page  = get_page_patch( lo_stage ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
@@ -40786,19 +40793,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   METHOD apply_patch_from_form_fields.
 
     DATA:
-      lt_fields TYPE tihttpnvp,
       lv_add    TYPE string,
       lv_remove TYPE string.
 
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
-
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = c_patch_action-add
-                                                        it_field = lt_fields
-                                              CHANGING  cg_field = lv_add ).
-
-    zcl_abapgit_html_action_utils=>get_field( EXPORTING iv_name  = c_patch_action-remove
-                                                        it_field = lt_fields
-                                              CHANGING  cg_field = lv_remove ).
+    lv_add    = ii_event->form_data( )->get( c_patch_action-add ).
+    lv_remove = ii_event->form_data( )->get( c_patch_action-remove ).
 
     apply_patch_all( iv_patch      = lv_add
                      iv_patch_flag = abap_true ).
@@ -41150,7 +41149,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   ENDMETHOD.
   METHOD start_staging.
 
-    apply_patch_from_form_fields( it_postdata ).
+    apply_patch_from_form_fields( ii_event ).
     add_to_stage( ).
 
   ENDMETHOD.
@@ -41159,7 +41158,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN c_actions-stage.
 
-        start_staging( ii_event->mt_postdata ).
+        start_staging( ii_event ).
 
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
@@ -41172,7 +41171,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
         FIND FIRST OCCURRENCE OF REGEX |^{ c_actions-refresh }| IN ii_event->mv_action.
         IF sy-subrc = 0.
 
-          apply_patch_from_form_fields( ii_event->mt_postdata ).
+          apply_patch_from_form_fields( ii_event ).
           refresh( ii_event->mv_action ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
@@ -41208,30 +41207,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
   METHOD apply_merged_content.
 
     DATA:
-      BEGIN OF ls_filedata,
-        merge_content TYPE string,
-      END OF ls_filedata,
+      lv_merge_content    TYPE string,
       lt_fields           TYPE tihttpnvp,
       lv_new_file_content TYPE xstring.
 
     FIELD-SYMBOLS:
       <ls_conflict>      TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
-      it_post_data = it_postdata
-      iv_upper_cased = abap_true ).
-
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'MERGE_CONTENT'
-        it_field = lt_fields
-      CHANGING
-        cg_field = ls_filedata ).
+    lv_merge_content = ii_event->form_data( iv_upper_cased = abap_true )->get( 'MERGE_CONTENT' ).
 
     REPLACE ALL OCCURRENCES
-      OF zif_abapgit_definitions=>c_crlf IN ls_filedata-merge_content WITH zif_abapgit_definitions=>c_newline.
+      OF zif_abapgit_definitions=>c_crlf IN lv_merge_content WITH zif_abapgit_definitions=>c_newline.
 
-    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( ls_filedata-merge_content ).
+    lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( lv_merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
     <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1(
@@ -41610,7 +41598,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
         CASE ii_event->mv_action.
           WHEN c_actions-apply_merge.
-            apply_merged_content( ii_event->mt_postdata ).
+            apply_merged_content( ii_event ).
 
           WHEN c_actions-apply_source.
             READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
@@ -42990,56 +42978,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_commit_request.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
 
-    FIELD-SYMBOLS <lv_body> TYPE string.
-
-    CLEAR eg_fields.
-
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
-      it_post_data = it_postdata
-      iv_upper_cased = abap_true ).
-
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'COMMITTER_NAME'
-        it_field = lt_fields
-      CHANGING
-        cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'COMMITTER_EMAIL'
-        it_field = lt_fields
-      CHANGING
-        cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'AUTHOR_NAME'
-        it_field = lt_fields
-      CHANGING
-        cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'AUTHOR_EMAIL'
-        it_field = lt_fields
-      CHANGING
-      cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'COMMENT'
-        it_field = lt_fields
-      CHANGING
-      cg_field = eg_fields ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'BODY'
-        it_field = lt_fields
-      CHANGING
-        cg_field = eg_fields ).
-
-    ASSIGN COMPONENT 'BODY' OF STRUCTURE eg_fields TO <lv_body>.
-    ASSERT <lv_body> IS ASSIGNED.
-    REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN <lv_body> WITH zif_abapgit_definitions=>c_newline.
+    lo_map = ii_event->form_data( iv_upper_cased = abap_true ).
+    lo_map->to_abap( CHANGING cs_container = rs_commit ).
+    REPLACE ALL OCCURRENCES
+      OF zif_abapgit_definitions=>c_crlf
+      IN rs_commit-body
+      WITH zif_abapgit_definitions=>c_newline.
 
   ENDMETHOD.
   METHOD render_content.
@@ -43259,10 +43205,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN c_action-commit_post.
 
-        parse_commit_request(
-          EXPORTING it_postdata = ii_event->mt_postdata
-          IMPORTING eg_fields   = ms_commit ).
-
+        ms_commit = parse_commit_request( ii_event ).
         ms_commit-repo_key = mo_repo->get_key( ).
 
         zcl_abapgit_services_git=>commit(
@@ -43914,21 +43857,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
     mo_repo = io_repo.
     refresh( ).
   ENDMETHOD.
-  METHOD decode_merge.
-
-    DATA lt_fields TYPE tihttpnvp.
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF lt_fields.
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( it_postdata ).
-
-    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'source'.
-    ASSERT sy-subrc = 0.
-    rs_merge-source = <ls_field>-value.
-
-    READ TABLE lt_fields ASSIGNING <ls_field> WITH KEY name = 'target'.
-    ASSERT sy-subrc = 0.
-    rs_merge-target = <ls_field>-value.
-
-  ENDMETHOD.
   METHOD escape_branch.
 
     rv_string = iv_string.
@@ -44069,7 +43997,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
         refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-merge.
-        ls_merge = decode_merge( ii_event->mt_postdata ).
+        ls_merge-source = ii_event->form_data( )->get( 'source' ).
+        ls_merge-target = ii_event->form_data( )->get( 'target' ).
         CREATE OBJECT lo_merge
           EXPORTING
             io_repo   = mo_repo
@@ -46415,30 +46344,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD dbcontent_decode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
 
-    lt_fields = zcl_abapgit_html_action_utils=>parse_post_form_data(
-      it_post_data = it_postdata
-      iv_upper_cased = abap_true ).
-
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'TYPE'
-        it_field = lt_fields
-      CHANGING
-        cg_field = rs_content-type ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'VALUE'
-        it_field = lt_fields
-      CHANGING
-        cg_field = rs_content-value ).
-    zcl_abapgit_html_action_utils=>get_field(
-      EXPORTING
-        iv_name = 'XMLDATA'
-        it_field = lt_fields
-      CHANGING
-        cg_field = rs_content-data_str ).
+    lo_map = ii_event->form_data( iv_upper_cased = abap_true ).
+    rs_content-type     = lo_map->get( 'TYPE' ).
+    rs_content-value    = lo_map->get( 'VALUE' ).
+    rs_content-data_str = lo_map->get( 'XMLDATA' ).
 
     IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
       rs_content-data_str = rs_content-data_str+1.
@@ -46508,7 +46419,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     CASE ii_event->mv_action.
       WHEN c_action-update.
-        ls_db = dbcontent_decode( ii_event->mt_postdata ).
+        ls_db = dbcontent_decode( ii_event ).
         update( ls_db ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
       WHEN OTHERS.
@@ -47249,25 +47160,49 @@ CLASS ZCL_ABAPGIT_GUI_EVENT IMPLEMENTATION.
         iv_val = <ls_field>-value ).
     ENDLOOP.
   ENDMETHOD.
-  METHOD zif_abapgit_gui_event~query.
+  METHOD fields_to_map_macro.
 
-    DATA lt_fields TYPE tihttpnvp.
+    FIELD-SYMBOLS <lo_map> TYPE REF TO zcl_abapgit_string_map.
 
     IF iv_upper_cased = abap_true.
-      IF mo_query_upper_cased IS NOT BOUND.
-        mo_query_upper_cased = fields_to_map(
-          zcl_abapgit_html_action_utils=>parse_fields_upper_case_name( zif_abapgit_gui_event~mv_getdata ) ).
-        mo_query_upper_cased->freeze( ).
-      ENDIF.
-      ro_string_map = mo_query_upper_cased.
+      ASSIGN co_string_map_upper TO <lo_map>.
     ELSE.
-      IF mo_query IS NOT BOUND.
-        mo_query = fields_to_map(
-          zcl_abapgit_html_action_utils=>parse_fields( zif_abapgit_gui_event~mv_getdata ) ).
-        mo_query->freeze( ).
-      ENDIF.
-      ro_string_map = mo_query.
+      ASSIGN co_string_map_lower TO <lo_map>.
     ENDIF.
+
+    IF <lo_map> IS NOT BOUND.
+      <lo_map> = fields_to_map( it_fields ).
+      <lo_map>->freeze( ).
+    ENDIF.
+    co_string_map_return = <lo_map>.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event~form_data.
+
+    fields_to_map_macro(
+      EXPORTING
+        iv_upper_cased = iv_upper_cased
+        it_fields      = zcl_abapgit_html_action_utils=>parse_post_form_data(
+          it_post_data   = zif_abapgit_gui_event~mt_postdata
+          iv_upper_cased = iv_upper_cased )
+      CHANGING
+        co_string_map_upper  = mo_form_data_upper_cased
+        co_string_map_lower  = mo_form_data
+        co_string_map_return = ro_string_map ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event~query.
+
+    fields_to_map_macro(
+      EXPORTING
+        iv_upper_cased = iv_upper_cased
+        it_fields      = zcl_abapgit_html_action_utils=>parse_fields(
+          iv_string      = zif_abapgit_gui_event~mv_getdata
+          iv_upper_cased = iv_upper_cased )
+      CHANGING
+        co_string_map_upper  = mo_query_upper_cased
+        co_string_map_lower  = mo_query
+        co_string_map_return = ro_string_map ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -94172,5 +94107,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-05T07:31:51.480Z
+* abapmerge 0.14.1 - 2020-10-05T07:34:13.924Z
 ****************************************************
