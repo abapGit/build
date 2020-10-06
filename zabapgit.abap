@@ -27006,7 +27006,7 @@ CLASS ZCL_ABAPGIT_LANGUAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
+CLASS zcl_abapgit_hash IMPLEMENTATION.
   METHOD adler32.
 
     CONSTANTS: lc_adler TYPE i VALUE 65521,
@@ -27072,23 +27072,21 @@ CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
   ENDMETHOD.
   METHOD sha1_raw.
 
-    DATA: lv_hash TYPE hash160.
-    CALL FUNCTION 'CALCULATE_HASH_FOR_RAW'
+    DATA: lv_hash  TYPE string,
+          lv_key   TYPE xstring,
+          lx_error TYPE REF TO cx_abap_message_digest.
+    TRY.
+        cl_abap_hmac=>calculate_hmac_for_raw(
       EXPORTING
-        data           = iv_data
+        if_key        = lv_key
+        if_data       = iv_data
       IMPORTING
-        hash           = lv_hash
-      EXCEPTIONS
-        unknown_alg    = 1
-        param_error    = 2
-        internal_error = 3
-        OTHERS         = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error while calculating SHA1' ).
-    ENDIF.
+        ef_hmacstring = lv_hash ).
+      CATCH cx_abap_message_digest INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
 
     rv_sha1 = lv_hash.
-
     TRANSLATE rv_sha1 TO LOWER CASE.
 
   ENDMETHOD.
@@ -93975,5 +93973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-06T06:23:40.991Z
+* abapmerge 0.14.1 - 2020-10-06T06:41:56.663Z
 ****************************************************
