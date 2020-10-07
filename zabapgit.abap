@@ -17327,6 +17327,14 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     DATA mv_init TYPE abap_bool VALUE abap_false ##NO_TEXT.
     DATA mt_list TYPE zif_abapgit_definitions=>ty_repo_ref_tt .
 
+    METHODS determine_branch_name
+      IMPORTING
+        !iv_name       TYPE string
+        !iv_url        TYPE string
+      RETURNING
+        VALUE(rv_name) TYPE string
+      RAISING
+        zcx_abapgit_exception .
     METHODS refresh
       RAISING
         zcx_abapgit_exception .
@@ -20888,6 +20896,23 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     APPEND io_repo TO mt_list.
 
   ENDMETHOD.
+  METHOD determine_branch_name.
+
+    DATA lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list.
+
+    rv_name = iv_name.
+    IF rv_name IS INITIAL.
+      ASSERT NOT iv_url IS INITIAL.
+      lo_branch_list = zcl_abapgit_git_transport=>branches( iv_url ).
+      rv_name = lo_branch_list->get_head_symref( ).
+    ELSEIF -1 = find(
+        val = rv_name
+        sub = zif_abapgit_definitions=>c_git_branch-heads_prefix ).
+      " Assume short branch name was received
+      rv_name = zif_abapgit_definitions=>c_git_branch-heads_prefix && rv_name.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_instance.
     IF gi_ref IS INITIAL.
       CREATE OBJECT gi_ref TYPE zcl_abapgit_repo_srv.
@@ -21167,25 +21192,18 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_package IS INITIAL.
 
-    lv_branch_name = iv_branch_name.
-    IF lv_branch_name IS INITIAL.
-      lv_branch_name = zif_abapgit_definitions=>c_git_branch-master.
-    ENDIF.
-    IF -1 = find(
-        val = lv_branch_name
-        sub = zif_abapgit_definitions=>c_git_branch-heads_prefix ).
-      " Assume short branch name was received
-      lv_branch_name = zif_abapgit_definitions=>c_git_branch-heads_prefix && lv_branch_name.
-    ENDIF.
-
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    validate_package( iv_package = iv_package
+    validate_package( iv_package    = iv_package
                       iv_ign_subpkg = iv_ign_subpkg ).
 
-    zcl_abapgit_url=>validate( |{ iv_url }| ).
+    zcl_abapgit_url=>validate( iv_url ).
+
+    lv_branch_name = determine_branch_name(
+      iv_name = iv_branch_name
+      iv_url  = iv_url ).
 
     ls_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
     ls_dot_abapgit-folder_logic = iv_folder_logic.
@@ -44155,14 +44173,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_upper_case  = abap_true
       iv_label       = 'Package'
       iv_hint        = 'SAP package for the code (should be a dedicated one)'
-      iv_placeholder = 'Z... / $...'
-    )->text(
+      iv_placeholder = 'Z... / $...' ).
+
+    ro_form->text(
       iv_name        = c_id-branch_name
       iv_side_action = c_event-choose_branch
       iv_label       = 'Branch'
-      iv_hint        = 'Switch to a specific branch on clone (default: master)'
-      iv_placeholder = 'master'
-    )->radio(
+      iv_hint        = 'Switch to a specific branch on clone (default: autodetect)'
+      iv_placeholder = 'autodetect default branch' ).
+
+    ro_form->radio(
       iv_name        = c_id-folder_logic
       iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
       iv_label       = 'Folder logic'
@@ -93964,5 +93984,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-07T06:58:24.775Z
+* abapmerge 0.14.1 - 2020-10-07T07:00:31.957Z
 ****************************************************
