@@ -11063,10 +11063,6 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
     METHODS constructor .
   PROTECTED SECTION.
 
-    ALIASES list
-      FOR zif_abapgit_persist_repo~list .
-    ALIASES read
-      FOR zif_abapgit_persist_repo~read .
   PRIVATE SECTION.
 
     DATA mt_meta_fields TYPE STANDARD TABLE OF abap_compname.
@@ -14821,39 +14817,6 @@ CLASS zcl_abapgit_popups DEFINITION
 
     INTERFACES zif_abapgit_popups .
 
-    ALIASES branch_list_popup
-      FOR zif_abapgit_popups~branch_list_popup .
-    ALIASES branch_popup_callback
-      FOR zif_abapgit_popups~branch_popup_callback .
-    ALIASES create_branch_popup
-      FOR zif_abapgit_popups~create_branch_popup .
-    ALIASES package_popup_callback
-      FOR zif_abapgit_popups~package_popup_callback .
-    ALIASES popup_folder_logic
-      FOR zif_abapgit_popups~popup_folder_logic .
-    ALIASES popup_object
-      FOR zif_abapgit_popups~popup_object .
-    ALIASES popup_package_export
-      FOR zif_abapgit_popups~popup_package_export .
-    ALIASES popup_proxy_bypass
-      FOR zif_abapgit_popups~popup_proxy_bypass .
-    ALIASES popup_to_confirm
-      FOR zif_abapgit_popups~popup_to_confirm .
-    ALIASES popup_to_create_package
-      FOR zif_abapgit_popups~popup_to_create_package .
-    ALIASES popup_to_create_transp_branch
-      FOR zif_abapgit_popups~popup_to_create_transp_branch .
-    ALIASES popup_to_inform
-      FOR zif_abapgit_popups~popup_to_inform .
-    ALIASES popup_to_select_from_list
-      FOR zif_abapgit_popups~popup_to_select_from_list .
-    ALIASES popup_to_select_transports
-      FOR zif_abapgit_popups~popup_to_select_transports .
-    ALIASES popup_transport_request
-      FOR zif_abapgit_popups~popup_transport_request .
-    ALIASES repo_popup
-      FOR zif_abapgit_popups~repo_popup .
-
     CONSTANTS c_default_column TYPE lvc_fname VALUE `DEFAULT_COLUMN` ##NO_TEXT.
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -14886,19 +14849,19 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-        FOR EVENT link_click OF cl_salv_events_table
+          FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
-        !row
-        !column .
+          !row
+          !column .
     METHODS on_select_list_function_click
-        FOR EVENT added_function OF cl_salv_events_table
+          FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
-        !e_salv_function .
+          !e_salv_function .
     METHODS on_double_click
-        FOR EVENT double_click OF cl_salv_events_table
+          FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
-        !row
-        !column .
+          !row
+          !column .
     METHODS extract_field_values
       IMPORTING
         it_fields           TYPE ty_sval_tt
@@ -17380,12 +17343,9 @@ CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
 
     INTERFACES: zif_abapgit_sap_package.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mv_package TYPE devclass.
-
-    ALIASES:
-      create FOR zif_abapgit_sap_package~create,
-      create_local FOR zif_abapgit_sap_package~create_local.
 
 ENDCLASS.
 CLASS zcl_abapgit_serialize DEFINITION
@@ -20765,7 +20725,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
     ls_child-pdevclass = li_parent->transport_layer.
     ls_child-as4user   = sy-uname.
 
-    create( ls_child ).
+    zif_abapgit_sap_package~create( ls_child ).
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~create_local.
@@ -20777,7 +20737,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
     ls_package-dlvunit   = 'LOCAL'.
     ls_package-as4user   = sy-uname.
 
-    create( ls_package ).
+    zif_abapgit_sap_package~create( ls_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~exists.
@@ -20871,7 +20831,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   METHOD zif_abapgit_sap_package~read_parent.
 
     SELECT SINGLE parentcl FROM tdevc INTO rv_parentcl
-      WHERE devclass = mv_package.        "#EC CI_GENBUFF
+      WHERE devclass = mv_package.                      "#EC CI_GENBUFF
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Inconsistent package structure! Cannot find parent for { mv_package }| ).
     ENDIF.
@@ -34142,7 +34102,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ENDIF.
       lv_url = <ls_furl>-value.
 
-      ls_branch = branch_list_popup( lv_url ).
+      ls_branch = zif_abapgit_popups~branch_list_popup( lv_url ).
       IF ls_branch IS INITIAL.
         RETURN.
       ENDIF.
@@ -34164,7 +34124,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      popup_to_create_package(
+      zif_abapgit_popups~popup_to_create_package(
         IMPORTING
           es_package_data = ls_package_data
           ev_create       = lv_create ).
@@ -34267,8 +34227,10 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ASSERT sy-subrc = 0.
       ls_package_data-devclass = <ls_fpackage>-value.
 
-      popup_to_create_package( IMPORTING es_package_data = ls_package_data
-                                         ev_create       = lv_create ).
+      zif_abapgit_popups~popup_to_create_package(
+        IMPORTING
+          es_package_data = ls_package_data
+          ev_create       = lv_create ).
       IF lv_create = abap_false.
         RETURN.
       ENDIF.
@@ -49293,7 +49255,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 
     DATA lt_repo TYPE zif_abapgit_persistence=>ty_repos.
 
-    lt_repo = list( ).
+    lt_repo = zif_abapgit_persist_repo~list( ).
 
     READ TABLE lt_repo INTO rs_repo WITH KEY key = iv_key.
     IF sy-subrc <> 0.
@@ -49324,7 +49286,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ENDIF.
 
     TRY.
-        ls_persistent_meta = read( iv_key ).
+        ls_persistent_meta = zif_abapgit_persist_repo~read( iv_key ).
       CATCH zcx_abapgit_not_found.
         zcx_abapgit_exception=>raise( 'repo key not found' ).
     ENDTRY.
@@ -93984,5 +93946,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-07T07:04:02.858Z
+* abapmerge 0.14.1 - 2020-10-07T07:06:52.372Z
 ****************************************************
