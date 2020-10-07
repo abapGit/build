@@ -93837,7 +93837,7 @@ ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
   CASE sy-ucomm.
-    WHEN 'CBAC'.  "Back
+    WHEN 'CBAC' OR 'CCAN'.  "Back & Escape
       IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
         zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
       ELSE.
@@ -93946,5 +93946,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-07T07:06:52.372Z
+* abapmerge 0.14.1 - 2020-10-07T07:15:28.130Z
 ****************************************************
