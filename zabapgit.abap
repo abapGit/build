@@ -1341,11 +1341,11 @@ INTERFACE zif_abapgit_pr_enum_provider .
       is_for_upstream TYPE abap_bool,
     END OF ty_pull_request.
   TYPES:
-    tty_pulls TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
+    ty_pull_requests TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
 
   METHODS list_pull_requests
     RETURNING
-      VALUE(rt_pulls) TYPE tty_pulls
+      VALUE(rt_pulls) TYPE ty_pull_requests
     RAISING
       zcx_abapgit_exception.
 
@@ -1418,32 +1418,32 @@ INTERFACE zif_abapgit_ecatt .
   " downport missing types
 
   TYPES:
-    etvo_invert_validation TYPE c LENGTH 1,
-    etvo_error_prio        TYPE n LENGTH 1,
-    etvo_impl_name         TYPE c LENGTH 30,
-    etvo_impl_type         TYPE c LENGTH 1,
-    etvo_impl_subtype      TYPE c LENGTH 4,
-    etvo_package           TYPE c LENGTH 255,
-    BEGIN OF etvoimpl_det,
-      impl_name    TYPE etvo_impl_name,
-      impl_type    TYPE etvo_impl_type,
-      impl_subtype TYPE etvo_impl_subtype,
-      impl_package TYPE etvo_package,
-    END OF etvoimpl_det.
+    ty_invert_validation TYPE c LENGTH 1,
+    ty_error_prio        TYPE n LENGTH 1,
+    ty_impl_name         TYPE c LENGTH 30,
+    ty_impl_type         TYPE c LENGTH 1,
+    ty_impl_subtype      TYPE c LENGTH 4,
+    ty_package           TYPE c LENGTH 255,
+    BEGIN OF ty_impl_det,
+      impl_name    TYPE ty_impl_name,
+      impl_type    TYPE ty_impl_type,
+      impl_subtype TYPE ty_impl_subtype,
+      impl_package TYPE ty_package,
+    END OF ty_impl_det.
 
   TYPES:
-    BEGIN OF ecvo_bus_msg.
+    BEGIN OF ty_bus_msg.
       INCLUDE TYPE etobj_key.
   TYPES:
-    bus_msg_no   TYPE c LENGTH 1, " etvo_msg_no
-    arbgb        TYPE arbgb,
-    msgnr        TYPE msgnr,
-    bus_msg_text TYPE string, "etvo_bus_msg_text
-    otr_key      TYPE sotr_conc,
-    msg_type     TYPE c LENGTH 4, "etvo_msg_type
-    END OF ecvo_bus_msg,
+      bus_msg_no   TYPE c LENGTH 1, " ty_msg_no
+      arbgb        TYPE arbgb,
+      msgnr        TYPE msgnr,
+      bus_msg_text TYPE string, "ty_bus_msg_text
+      otr_key      TYPE sotr_conc,
+      msg_type     TYPE c LENGTH 4, "ty_msg_type
+    END OF ty_bus_msg,
 
-    etvo_bus_msg_tabtype TYPE STANDARD TABLE OF ecvo_bus_msg.
+    ty_bus_msgs TYPE STANDARD TABLE OF ty_bus_msg.
 
 ENDINTERFACE.
 
@@ -1521,11 +1521,11 @@ INTERFACE zif_abapgit_gui_asset_manager .
       is_cacheable TYPE abap_bool,
     END OF ty_web_asset .
   TYPES:
-    tt_web_assets TYPE STANDARD TABLE OF ty_web_asset WITH DEFAULT KEY .
+    ty_web_assets TYPE STANDARD TABLE OF ty_web_asset WITH DEFAULT KEY .
 
   METHODS get_all_assets
     RETURNING
-      VALUE(rt_assets) TYPE tt_web_assets
+      VALUE(rt_assets) TYPE ty_web_assets
     RAISING
       zcx_abapgit_exception.
 
@@ -1672,7 +1672,7 @@ INTERFACE zif_abapgit_html.
     END OF c_html_opt .
 
   TYPES:
-    tty_table_of TYPE STANDARD TABLE OF REF TO zif_abapgit_html WITH DEFAULT KEY.
+    ty_table_of TYPE STANDARD TABLE OF REF TO zif_abapgit_html WITH DEFAULT KEY.
 
   DATA mv_chunk_title TYPE string READ-ONLY. " Primarily for debug of posponed html parts
 
@@ -1994,7 +1994,7 @@ INTERFACE zif_abapgit_definitions .
       hotkey       TYPE string,
     END OF ty_hotkey .
   TYPES:
-    tty_hotkey TYPE STANDARD TABLE OF ty_hotkey
+    ty_hotkey_tt TYPE STANDARD TABLE OF ty_hotkey
                     WITH NON-UNIQUE DEFAULT KEY
                     WITH NON-UNIQUE SORTED KEY action
                          COMPONENTS ui_component action.
@@ -2088,7 +2088,7 @@ INTERFACE zif_abapgit_definitions .
       lstate     TYPE c LENGTH 1,
     END OF ty_repo_file .
   TYPES:
-    tt_repo_files TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
+    ty_repo_file_tt TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
   TYPES:
     ty_chmod TYPE c LENGTH 6 .
   TYPES:
@@ -2256,7 +2256,7 @@ INTERFACE zif_abapgit_definitions .
       result_data TYPE xstring,
     END OF ty_merge_conflict .
   TYPES:
-    tt_merge_conflict TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY .
+    ty_merge_conflict_tt TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_repo_item,
       obj_type TYPE tadir-object,
@@ -2268,10 +2268,10 @@ INTERFACE zif_abapgit_definitions .
       changes  TYPE i,
       lstate   TYPE c LENGTH 1,
       rstate   TYPE c LENGTH 1,
-      files    TYPE tt_repo_files,
+      files    TYPE ty_repo_file_tt,
     END OF ty_repo_item .
   TYPES:
-    tt_repo_items TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
+    ty_repo_item_tt TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_s_user_settings,
       max_lines              TYPE i,
@@ -2279,7 +2279,7 @@ INTERFACE zif_abapgit_definitions .
       show_default_repo      TYPE abap_bool,
       link_hints_enabled     TYPE abap_bool,
       link_hint_key          TYPE c LENGTH 1,
-      hotkeys                TYPE tty_hotkey,
+      hotkeys                TYPE ty_hotkey_tt,
       parallel_proc_disabled TYPE abap_bool,
       icon_scaling           TYPE c LENGTH 1,
       ui_theme               TYPE string,
@@ -2287,7 +2287,7 @@ INTERFACE zif_abapgit_definitions .
       activate_wo_popup      TYPE abap_bool,
     END OF ty_s_user_settings .
   TYPES:
-    tty_dokil TYPE STANDARD TABLE OF dokil
+    ty_dokil_tt TYPE STANDARD TABLE OF dokil
                          WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
     BEGIN OF ty_col_spec,
@@ -2297,7 +2297,7 @@ INTERFACE zif_abapgit_definitions .
       add_tz       TYPE abap_bool,
       title        TYPE string,
     END OF ty_col_spec,
-    tty_col_spec TYPE STANDARD TABLE OF ty_col_spec
+    ty_col_spec_tt TYPE STANDARD TABLE OF ty_col_spec
                       WITH NON-UNIQUE KEY tech_name.
   TYPES:
     ty_proxy_bypass_url       TYPE c LENGTH 255,
@@ -2502,7 +2502,7 @@ INTERFACE zif_abapgit_apack_definitions.
       target_package TYPE devclass,
     END OF ty_dependency,
 
-    tt_dependencies    TYPE STANDARD TABLE OF ty_dependency
+    ty_dependencies    TYPE STANDARD TABLE OF ty_dependency
                     WITH NON-UNIQUE DEFAULT KEY,
 
     ty_repository_type TYPE string,
@@ -2519,10 +2519,10 @@ INTERFACE zif_abapgit_apack_definitions.
     BEGIN OF ty_descriptor.
       INCLUDE TYPE ty_descriptor_wo_dependencies.
   TYPES:
-    dependencies TYPE tt_dependencies,
+    dependencies TYPE ty_dependencies,
     END OF ty_descriptor,
 
-    tt_descriptor TYPE STANDARD TABLE OF ty_descriptor WITH NON-UNIQUE DEFAULT KEY.
+    ty_descriptors TYPE STANDARD TABLE OF ty_descriptor WITH NON-UNIQUE DEFAULT KEY.
 
   CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
   CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
@@ -2534,7 +2534,7 @@ INTERFACE zif_abapgit_longtexts .
     IMPORTING
       !iv_object_name TYPE sobj_name
       !iv_longtext_id TYPE dokil-id
-      !it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+      !it_dokil       TYPE zif_abapgit_definitions=>ty_dokil_tt OPTIONAL
     RETURNING
       VALUE(rv_user)  TYPE xubname
     RAISING
@@ -2544,7 +2544,7 @@ INTERFACE zif_abapgit_longtexts .
       !iv_longtext_name TYPE string DEFAULT 'LONGTEXTS'
       !iv_object_name   TYPE sobj_name
       !iv_longtext_id   TYPE dokil-id
-      !it_dokil         TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+      !it_dokil         TYPE zif_abapgit_definitions=>ty_dokil_tt OPTIONAL
       !ii_xml           TYPE REF TO zif_abapgit_xml_output
     RAISING
       zcx_abapgit_exception .
@@ -2785,13 +2785,13 @@ INTERFACE zif_abapgit_gui_hotkeys .
     description TYPE string,
   END OF ty_hotkey_with_descr .
   TYPES:
-    tty_hotkey_with_descr TYPE STANDARD TABLE OF ty_hotkey_with_descr
+    ty_hotkeys_with_descr TYPE STANDARD TABLE OF ty_hotkey_with_descr
       WITH DEFAULT KEY
       WITH UNIQUE SORTED KEY action COMPONENTS ui_component action .
 
   CLASS-METHODS get_hotkey_actions " TODO: try to refactor class-method
     RETURNING
-      VALUE(rt_hotkey_actions) TYPE tty_hotkey_with_descr .
+      VALUE(rt_hotkey_actions) TYPE ty_hotkeys_with_descr .
 
 ENDINTERFACE.
 
@@ -2805,7 +2805,7 @@ INTERFACE zif_abapgit_gui_hotkey_ctl .
 
   METHODS get_registered_hotkeys
     RETURNING
-      VALUE(rt_registered_hotkeys) TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+      VALUE(rt_registered_hotkeys) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
     RAISING
       zcx_abapgit_exception.
 
@@ -2842,7 +2842,7 @@ INTERFACE zif_abapgit_log .
       exception TYPE REF TO cx_root,
     END OF ty_log_out .
   TYPES:
-    tty_log_out TYPE STANDARD TABLE OF ty_log_out
+    ty_log_outs TYPE STANDARD TABLE OF ty_log_out
                 WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
     BEGIN OF ty_msg,
@@ -2850,16 +2850,16 @@ INTERFACE zif_abapgit_log .
       type TYPE symsgty,
     END OF ty_msg .
   TYPES:
-    tty_msg TYPE STANDARD TABLE OF ty_msg
+    ty_msgs TYPE STANDARD TABLE OF ty_msg
                           WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
     BEGIN OF ty_item_status_out,
       item     TYPE zif_abapgit_definitions=>ty_item,
       status   TYPE symsgty,
-      messages TYPE tty_msg,
+      messages TYPE ty_msgs,
     END OF ty_item_status_out .
   TYPES:
-    tty_item_status_out TYPE SORTED TABLE OF ty_item_status_out
+    ty_item_status_outs TYPE SORTED TABLE OF ty_item_status_out
                         WITH UNIQUE KEY item-obj_type item-obj_name .
 
   METHODS add
@@ -2900,9 +2900,9 @@ INTERFACE zif_abapgit_log .
       VALUE(rv_yes) TYPE abap_bool .
   METHODS get_messages
     RETURNING
-      VALUE(rt_msg) TYPE tty_log_out .
+      VALUE(rt_msg) TYPE ty_log_outs .
   METHODS get_item_status
-    RETURNING VALUE(rt_item_status) TYPE tty_item_status_out .
+    RETURNING VALUE(rt_item_status) TYPE ty_item_status_outs .
   METHODS get_status
     RETURNING
       VALUE(rv_status) TYPE symsgty .
@@ -3023,7 +3023,7 @@ INTERFACE zif_abapgit_persistence.
       data_str TYPE string,
     END OF ty_content .
   TYPES:
-    tt_content TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
+    ty_contents TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
 
   TYPES: BEGIN OF ty_local_checksum,
            item  TYPE zif_abapgit_definitions=>ty_item,
@@ -3080,8 +3080,8 @@ INTERFACE zif_abapgit_persistence.
            key TYPE ty_value.
       INCLUDE TYPE ty_repo_xml.
   TYPES: END OF ty_repo.
-  TYPES: tt_repo TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY.
-  TYPES: tt_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
+  TYPES: ty_repos TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY.
+  TYPES: ty_repo_keys TYPE STANDARD TABLE OF ty_repo-key WITH DEFAULT KEY.
 
 ENDINTERFACE.
 
@@ -3106,7 +3106,7 @@ INTERFACE zif_abapgit_persist_repo .
       zcx_abapgit_exception .
   METHODS list
     RETURNING
-      VALUE(rt_repos) TYPE zif_abapgit_persistence=>tt_repo
+      VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
     RAISING
       zcx_abapgit_exception .
   METHODS lock
@@ -3134,7 +3134,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_persist_user .
 
-  TYPES tt_favorites TYPE zif_abapgit_persistence=>tt_repo_keys .
+  TYPES ty_favorites TYPE zif_abapgit_persistence=>ty_repo_keys .
 
   METHODS get_changes_only
     RETURNING
@@ -3158,7 +3158,7 @@ INTERFACE zif_abapgit_persist_user .
       zcx_abapgit_exception .
   METHODS get_favorites
     RETURNING
-      VALUE(rt_favorites) TYPE tt_favorites
+      VALUE(rt_favorites) TYPE ty_favorites
     RAISING
       zcx_abapgit_exception .
   METHODS get_hide_files
@@ -3437,7 +3437,7 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS choose_pr_popup
     IMPORTING
-      !it_pulls      TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+      !it_pulls      TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
     RETURNING
       VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
     RAISING
@@ -3569,15 +3569,15 @@ INTERFACE zif_abapgit_lang_definitions .
            language TYPE langu,
            textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
          END OF ty_i18n_tpool,
-         tt_i18n_tpool TYPE STANDARD TABLE OF ty_i18n_tpool.
+         ty_i18n_tpools TYPE STANDARD TABLE OF ty_i18n_tpool.
 
-  TYPES: BEGIN OF ty_i18n_lines,
+  TYPES: BEGIN OF ty_i18n_line,
            language TYPE langu,
            lines    TYPE tlinetab,
-         END OF ty_i18n_lines,
-         tt_i18n_lines TYPE STANDARD TABLE OF ty_i18n_lines.
+         END OF ty_i18n_line,
+         ty_i18n_lines TYPE STANDARD TABLE OF ty_i18n_line.
 
-  TYPES: tt_langu TYPE STANDARD TABLE OF langu.
+  TYPES: ty_langus TYPE STANDARD TABLE OF langu.
 
 ENDINTERFACE.
 
@@ -3755,7 +3755,7 @@ CLASS zcl_abapgit_apack_helper DEFINITION
   PUBLIC SECTION.
     CLASS-METHODS are_dependencies_met
       IMPORTING
-        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies
       RETURNING
         VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
       RAISING
@@ -3763,7 +3763,7 @@ CLASS zcl_abapgit_apack_helper DEFINITION
 
     CLASS-METHODS dependencies_popup
       IMPORTING
-        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies
       RAISING
         zcx_abapgit_exception.
 
@@ -3775,35 +3775,34 @@ CLASS zcl_abapgit_apack_helper DEFINITION
         clsname  TYPE seometarel-clsname,
         devclass TYPE devclass,
       END OF ty_manifest_declaration,
-      tt_manifest_declaration TYPE STANDARD TABLE OF ty_manifest_declaration WITH NON-UNIQUE DEFAULT KEY.
+      ty_manifest_declarations TYPE STANDARD TABLE OF ty_manifest_declaration WITH NON-UNIQUE DEFAULT KEY.
 
     TYPES:
       BEGIN OF ty_dependency_status,
         met TYPE zif_abapgit_definitions=>ty_yes_no_partial.
         INCLUDE TYPE zif_abapgit_apack_definitions=>ty_dependency.
     TYPES: END OF ty_dependency_status,
-      tt_dependency_status TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY.
+      ty_dependency_statuses TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY.
 
     CLASS-METHODS get_dependencies_met_status
       IMPORTING
-        !it_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies
+        !it_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies
       RETURNING
-        VALUE(rt_status) TYPE tt_dependency_status
+        VALUE(rt_status) TYPE ty_dependency_statuses
       RAISING
         zcx_abapgit_exception.
 
     CLASS-METHODS get_installed_packages
       RETURNING
-        VALUE(rt_packages) TYPE zif_abapgit_apack_definitions=>tt_descriptor
+        VALUE(rt_packages) TYPE zif_abapgit_apack_definitions=>ty_descriptors
       RAISING
         zcx_abapgit_exception.
 
     CLASS-METHODS show_dependencies_popup
       IMPORTING
-        !it_dependencies TYPE tt_dependency_status
+        !it_dependencies TYPE ty_dependency_statuses
       RAISING
         zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_apack_migration DEFINITION
   FINAL
@@ -3926,18 +3925,18 @@ CLASS zcl_abapgit_background DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES: BEGIN OF ty_methods,
+    TYPES: BEGIN OF ty_method,
              class       TYPE seoclsname,
              description TYPE string,
-           END OF ty_methods.
+           END OF ty_method.
 
-    TYPES: ty_methods_tt TYPE SORTED TABLE OF ty_methods WITH UNIQUE KEY class.
+    TYPES: ty_methods TYPE SORTED TABLE OF ty_method WITH UNIQUE KEY class.
 
     CLASS-METHODS run
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS list_methods
-      RETURNING VALUE(rt_methods) TYPE ty_methods_tt.
+      RETURNING VALUE(rt_methods) TYPE ty_methods.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -4852,7 +4851,7 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION
     TYPES:
       BEGIN OF ty_info,
         repo_json TYPE REF TO zif_abapgit_ajson_reader,
-        pulls     TYPE zif_abapgit_pr_enum_provider=>tty_pulls,
+        pulls     TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests,
       END OF ty_info.
 
     DATA mi_http_agent TYPE REF TO zif_abapgit_http_agent.
@@ -4870,7 +4869,7 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION
       IMPORTING
         ii_json         TYPE REF TO zif_abapgit_ajson_reader
       RETURNING
-        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>tty_pulls.
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
 
     METHODS clean_url
       IMPORTING
@@ -4899,7 +4898,7 @@ CLASS zcl_abapgit_pr_enumerator DEFINITION
 
     METHODS get_pulls
       RETURNING
-        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>tty_pulls
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
       RAISING
         zcx_abapgit_exception.
 
@@ -5375,17 +5374,17 @@ CLASS zcl_abapgit_longtexts DEFINITION
         lines TYPE tline_tab,
       END OF ty_longtext .
     TYPES:
-      tty_longtexts TYPE STANDARD TABLE OF ty_longtext
+      ty_longtexts TYPE STANDARD TABLE OF ty_longtext
                            WITH NON-UNIQUE DEFAULT KEY .
 
     METHODS read
       IMPORTING
         !iv_object_name      TYPE sobj_name
         !iv_longtext_id      TYPE dokil-id
-        !it_dokil            TYPE zif_abapgit_definitions=>tty_dokil
+        !it_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt
         !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_longtexts)  TYPE tty_longtexts
+        VALUE(rt_longtexts)  TYPE ty_longtexts
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -5577,10 +5576,10 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
   PROTECTED SECTION.
 
     TYPES:
-      tty_founds  TYPE STANDARD TABLE OF rsfindlst
+      ty_founds  TYPE STANDARD TABLE OF rsfindlst
                            WITH NON-UNIQUE DEFAULT KEY .
     TYPES:
-      tty_seu_obj TYPE STANDARD TABLE OF seu_obj
+      ty_seu_obj TYPE STANDARD TABLE OF seu_obj
                            WITH NON-UNIQUE DEFAULT KEY .
 
     DATA mi_local TYPE REF TO zif_abapgit_xml_input.
@@ -5590,9 +5589,9 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
         !iv_object_name      TYPE csequence
         !iv_depth            TYPE i
         !iv_object_type      TYPE euobj-id
-        !it_scope            TYPE tty_seu_obj
+        !it_scope            TYPE ty_seu_obj
       RETURNING
-        VALUE(rt_founds_all) TYPE tty_founds
+        VALUE(rt_founds_all) TYPE ty_founds
       RAISING
         zcx_abapgit_exception .
     METHODS is_structure_used_in_db_table
@@ -5699,15 +5698,15 @@ CLASS zcl_abapgit_objects DEFINITION
   PRIVATE SECTION.
 
     TYPES:
-      BEGIN OF ty_obj_serializer_map,
+      BEGIN OF ty_obj_serializer_item,
         item     TYPE zif_abapgit_definitions=>ty_item,
         metadata TYPE zif_abapgit_definitions=>ty_metadata,
-      END OF ty_obj_serializer_map .
+      END OF ty_obj_serializer_item .
     TYPES:
-      tty_obj_serializer_map
-            TYPE SORTED TABLE OF ty_obj_serializer_map WITH UNIQUE KEY item .
+      ty_obj_serializer_map
+            TYPE SORTED TABLE OF ty_obj_serializer_item WITH UNIQUE KEY item .
 
-    CLASS-DATA gt_obj_serializer_map TYPE tty_obj_serializer_map .
+    CLASS-DATA gt_obj_serializer_map TYPE ty_obj_serializer_map .
 
     CLASS-METHODS files_to_deserialize
       IMPORTING
@@ -6164,7 +6163,7 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
       IMPORTING
         !ii_xml         TYPE REF TO zif_abapgit_xml_output
         !iv_longtext_id TYPE dokil-id OPTIONAL
-        !it_dokil       TYPE zif_abapgit_definitions=>tty_dokil OPTIONAL
+        !it_dokil       TYPE zif_abapgit_definitions=>ty_dokil_tt OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_longtexts
@@ -6514,11 +6513,11 @@ CLASS zcl_abapgit_object_cus0 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tty_img_activity_texts TYPE STANDARD TABLE OF cus_imgact
+    TYPES: ty_img_activity_texts TYPE STANDARD TABLE OF cus_imgact
                                        WITH NON-UNIQUE DEFAULT KEY,
            BEGIN OF ty_img_activity,
              header TYPE cus_imgach,
-             texts  TYPE tty_img_activity_texts,
+             texts  TYPE ty_img_activity_texts,
            END OF ty_img_activity.
     DATA: mv_img_activity TYPE cus_img_ac.
 
@@ -6536,21 +6535,21 @@ CLASS zcl_abapgit_object_cus1 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tty_activity_titles TYPE STANDARD TABLE OF cus_actt
+    TYPES: ty_activity_titles TYPE STANDARD TABLE OF cus_actt
                                     WITH NON-UNIQUE DEFAULT KEY,
 
-           tty_objects         TYPE STANDARD TABLE OF cus_actobj
+           ty_objects         TYPE STANDARD TABLE OF cus_actobj
                             WITH NON-UNIQUE DEFAULT KEY,
 
-           tty_objects_title   TYPE STANDARD TABLE OF cus_actobt
+           ty_objects_title   TYPE STANDARD TABLE OF cus_actobt
                                   WITH NON-UNIQUE DEFAULT KEY,
 
            BEGIN OF ty_customzing_activity,
              activity_header        TYPE cus_acth,
              activity_customer_exit TYPE cus_actext,
-             activity_title         TYPE tty_activity_titles,
-             objects                TYPE tty_objects,
-             objects_title          TYPE tty_objects_title,
+             activity_title         TYPE ty_activity_titles,
+             objects                TYPE ty_objects,
+             objects_title          TYPE ty_objects_title,
            END OF ty_customzing_activity.
 
     DATA: mv_customizing_activity TYPE cus_img_ac.
@@ -6569,21 +6568,21 @@ CLASS zcl_abapgit_object_cus2 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tty_attribute_titles        TYPE STANDARD TABLE OF cus_atrt
+    TYPES: ty_attribute_titles        TYPE STANDARD TABLE OF cus_atrt
                                             WITH NON-UNIQUE DEFAULT KEY,
-           tty_attribute_countries     TYPE STANDARD TABLE OF cus_atrcou
+           ty_attribute_countries     TYPE STANDARD TABLE OF cus_atrcou
                                             WITH NON-UNIQUE DEFAULT KEY,
-           tty_attribute_components    TYPE STANDARD TABLE OF tfm18
+           ty_attribute_components    TYPE STANDARD TABLE OF tfm18
                                             WITH NON-UNIQUE DEFAULT KEY,
-           tty_attribute_comp_variants TYPE STANDARD TABLE OF cus_atrvco
+           ty_attribute_comp_variants TYPE STANDARD TABLE OF cus_atrvco
                                             WITH NON-UNIQUE DEFAULT KEY.
 
     TYPES: BEGIN OF ty_customizing_attribute,
              header              TYPE cus_atrh,
-             titles              TYPE tty_attribute_titles,
-             countries           TYPE tty_attribute_countries,
-             components          TYPE tty_attribute_components,
-             components_variants TYPE tty_attribute_comp_variants,
+             titles              TYPE ty_attribute_titles,
+             countries           TYPE ty_attribute_countries,
+             components          TYPE ty_attribute_components,
+             components_variants TYPE ty_attribute_comp_variants,
            END OF ty_customizing_attribute.
 
     DATA: mv_img_attribute TYPE cus_atr.
@@ -6742,12 +6741,12 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PRIVATE SECTION.
 
     TYPES:
-      BEGIN OF ty_dd01_texts,
+      BEGIN OF ty_dd01_text,
         ddlanguage TYPE dd01v-ddlanguage,
         ddtext     TYPE dd01v-ddtext,
-      END OF ty_dd01_texts .
+      END OF ty_dd01_text .
     TYPES:
-      BEGIN OF ty_dd07_texts,
+      BEGIN OF ty_dd07_text,
         valpos     TYPE dd07v-valpos,
         ddlanguage TYPE dd07v-ddlanguage,
         domvalue_l TYPE dd07v-domvalue_l,
@@ -6755,11 +6754,11 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         ddtext     TYPE dd07v-ddtext,
         domval_ld  TYPE dd07v-domval_ld,
         domval_hd  TYPE dd07v-domval_hd,
-      END OF ty_dd07_texts .
+      END OF ty_dd07_text .
     TYPES:
-      tt_dd01_texts TYPE STANDARD TABLE OF ty_dd01_texts .
+      ty_dd01_texts TYPE STANDARD TABLE OF ty_dd01_text .
     TYPES:
-      tt_dd07_texts TYPE STANDARD TABLE OF ty_dd07_texts .
+      ty_dd07_texts TYPE STANDARD TABLE OF ty_dd07_text .
 
     CONSTANTS c_longtext_id_doma TYPE dokil-id VALUE 'DO' ##NO_TEXT.
 
@@ -6928,16 +6927,16 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PRIVATE SECTION.
 
     TYPES:
-      BEGIN OF ty_dd04_texts,
+      BEGIN OF ty_dd04_text,
         ddlanguage TYPE dd04t-ddlanguage,
         ddtext     TYPE dd04t-ddtext,
         reptext    TYPE dd04t-reptext,
         scrtext_s  TYPE dd04t-scrtext_s,
         scrtext_m  TYPE dd04t-scrtext_m,
         scrtext_l  TYPE dd04t-scrtext_l,
-      END OF ty_dd04_texts .
+      END OF ty_dd04_text .
     TYPES:
-      tt_dd04_texts TYPE STANDARD TABLE OF ty_dd04_texts .
+      ty_dd04_texts TYPE STANDARD TABLE OF ty_dd04_text .
 
     CONSTANTS c_longtext_id_dtel TYPE dokil-id VALUE 'DE' ##NO_TEXT.
 
@@ -7276,8 +7275,8 @@ CLASS zcl_abapgit_object_enqu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tyt_dd27p TYPE STANDARD TABLE OF dd27p WITH DEFAULT KEY.
-    METHODS _clear_dd27p_fields CHANGING ct_dd27p TYPE tyt_dd27p.
+    TYPES: ty_dd27p TYPE STANDARD TABLE OF dd27p WITH DEFAULT KEY.
+    METHODS _clear_dd27p_fields CHANGING ct_dd27p TYPE ty_dd27p.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_ensc DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -7305,7 +7304,7 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     CONSTANTS: c_extension_xml      TYPE string         VALUE 'xml' ##NO_TEXT.
     DATA: mv_form_name  TYPE itcta-tdform.
 
-    TYPES: BEGIN OF tys_form_data,
+    TYPES: BEGIN OF ty_s_form_data,
              form_header   TYPE itcta,
              text_header   TYPE thead,
              orig_language TYPE sy-langu,
@@ -7315,54 +7314,54 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
              strings       TYPE STANDARD TABLE OF itcds WITH DEFAULT KEY,
              tabs          TYPE STANDARD TABLE OF itcdq WITH DEFAULT KEY,
              windows       TYPE STANDARD TABLE OF itctw WITH DEFAULT KEY,
-           END OF tys_form_data,
-           tyt_form_data   TYPE STANDARD TABLE OF tys_form_data WITH DEFAULT KEY,
-           tyt_form_header TYPE STANDARD TABLE OF itcta WITH DEFAULT KEY,
-           tys_form_header TYPE LINE OF tyt_form_header,
-           tyt_text_header TYPE STANDARD TABLE OF thead WITH DEFAULT KEY,
-           tys_text_header TYPE LINE OF tyt_text_header,
-           tyt_lines       TYPE tline_tab.
+           END OF ty_s_form_data,
+           ty_t_form_data   TYPE STANDARD TABLE OF ty_s_form_data WITH DEFAULT KEY,
+           ty_t_form_header TYPE STANDARD TABLE OF itcta WITH DEFAULT KEY,
+           ty_s_form_header TYPE LINE OF ty_t_form_header,
+           ty_t_text_header TYPE STANDARD TABLE OF thead WITH DEFAULT KEY,
+           ty_s_text_header TYPE LINE OF ty_t_text_header,
+           ty_t_lines       TYPE tline_tab.
 
     METHODS get_last_changes
       IMPORTING
         iv_form_name           TYPE zif_abapgit_definitions=>ty_item-obj_name
       RETURNING
-        VALUE(rs_last_changed) TYPE tys_form_header.
+        VALUE(rs_last_changed) TYPE ty_s_form_header.
 
     METHODS build_extra_from_header
       IMPORTING
-        is_header        TYPE tys_form_header
+        is_header        TYPE ty_s_form_header
       RETURNING
         VALUE(rv_result) TYPE string.
 
     METHODS build_extra_from_header_old
       IMPORTING
-        is_header        TYPE tys_form_header
+        is_header        TYPE ty_s_form_header
       RETURNING
         VALUE(rv_result) TYPE string.
 
     METHODS _save_form
       IMPORTING
-        it_lines     TYPE tyt_lines
+        it_lines     TYPE ty_t_lines
       CHANGING
-        cs_form_data TYPE tys_form_data.
+        cs_form_data TYPE ty_s_form_data.
 
     METHODS extract_tdlines
       IMPORTING
-        is_form_data    TYPE tys_form_data
+        is_form_data    TYPE ty_s_form_data
       RETURNING
-        VALUE(rt_lines) TYPE tyt_lines
+        VALUE(rt_lines) TYPE ty_t_lines
       RAISING
         zcx_abapgit_exception.
 
     METHODS _clear_changed_fields
       CHANGING
-        cs_form_data TYPE tys_form_data.
+        cs_form_data TYPE ty_s_form_data.
 
     METHODS compress_lines
       IMPORTING
-        is_form_data TYPE tys_form_data
-        it_lines     TYPE tyt_lines
+        is_form_data TYPE ty_s_form_data
+        it_lines     TYPE ty_t_lines
       RAISING
         zcx_abapgit_exception.
 
@@ -7370,20 +7369,20 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING
         iv_object_name        TYPE zif_abapgit_definitions=>ty_item-obj_name
       RETURNING
-        VALUE(rt_text_header) TYPE tyt_text_header.
+        VALUE(rt_text_header) TYPE ty_t_text_header.
 
     METHODS _read_form
       IMPORTING
-        is_text_header TYPE tys_text_header
+        is_text_header TYPE ty_s_text_header
       EXPORTING
         ev_form_found  TYPE abap_bool
-        es_form_data   TYPE tys_form_data
-        et_lines       TYPE tyt_lines.
+        es_form_data   TYPE ty_s_form_data
+        et_lines       TYPE ty_t_lines.
 
     METHODS _sort_tdlines_by_windows
       CHANGING
-        ct_form_windows TYPE tys_form_data-windows
-        ct_lines        TYPE tyt_lines.
+        ct_form_windows TYPE ty_s_form_data-windows
+        ct_lines        TYPE ty_t_lines.
 
     METHODS order_check_and_insert
       RAISING
@@ -7880,15 +7879,15 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PRIVATE SECTION.
 
     TYPES:
-      BEGIN OF ty_t100_texts,
+      BEGIN OF ty_t100_text,
         sprsl TYPE t100-sprsl,
         msgnr TYPE t100-msgnr,
         text  TYPE t100-text,
-      END OF ty_t100_texts .
+      END OF ty_t100_text .
     TYPES:
-      tt_t100_texts TYPE STANDARD TABLE OF ty_t100_texts .
+      ty_t100_texts TYPE STANDARD TABLE OF ty_t100_text .
     TYPES:
-      tty_t100      TYPE STANDARD TABLE OF t100
+      ty_t100s      TYPE STANDARD TABLE OF t100
                            WITH NON-UNIQUE DEFAULT KEY .
 
     METHODS serialize_texts
@@ -7903,7 +7902,7 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         zcx_abapgit_exception .
     METHODS serialize_longtexts_msag
       IMPORTING
-        !it_t100 TYPE tty_t100
+        !it_t100 TYPE ty_t100s
         !ii_xml  TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
@@ -8489,11 +8488,11 @@ CLASS zcl_abapgit_object_shi5 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         iv_language TYPE spras.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tty_ttree_extt TYPE STANDARD TABLE OF ttree_extt
+    TYPES: ty_ttree_extt TYPE STANDARD TABLE OF ttree_extt
                                WITH NON-UNIQUE DEFAULT KEY,
            BEGIN OF ty_extension,
              header    TYPE ttree_ext,
-             texts     TYPE tty_ttree_extt,
+             texts     TYPE ty_ttree_extt,
              sequences TYPE STANDARD TABLE OF ttrees WITH NON-UNIQUE DEFAULT KEY,
            END OF ty_extension.
 
@@ -8700,13 +8699,13 @@ CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         header  TYPE sotr_headu,
         entries TYPE sotr_textl_tt,
       END OF ty_sots,
-      tty_sots TYPE STANDARD TABLE OF ty_sots
+      ty_sots_tt TYPE STANDARD TABLE OF ty_sots
                     WITH NON-UNIQUE DEFAULT KEY.
 
     METHODS:
       read_sots
         RETURNING
-          VALUE(rt_sots) TYPE tty_sots,
+          VALUE(rt_sots) TYPE ty_sots_tt,
 
       create_sots
         IMPORTING
@@ -9188,11 +9187,11 @@ CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       ty_dd03p_tt TYPE STANDARD TABLE OF dd03p .
 
     TYPES:
-      BEGIN OF ty_dd02_texts,
+      BEGIN OF ty_dd02_text,
         ddlanguage TYPE dd02t-ddlanguage,
         ddtext     TYPE dd02t-ddtext,
-      END OF ty_dd02_texts,
-      tt_dd02_texts TYPE STANDARD TABLE OF ty_dd02_texts.
+      END OF ty_dd02_text,
+      ty_dd02_texts TYPE STANDARD TABLE OF ty_dd02_text.
 
     CONSTANTS c_longtext_id_tabl TYPE dokil-id VALUE 'TB' ##NO_TEXT.
     CONSTANTS:
@@ -9260,9 +9259,9 @@ CLASS zcl_abapgit_object_tran DEFINITION
 
   PRIVATE SECTION.
     TYPES:
-      tty_param_values TYPE STANDARD TABLE OF rsparam
+      ty_param_values TYPE STANDARD TABLE OF rsparam
                                      WITH NON-UNIQUE DEFAULT KEY ,
-      tty_tstca        TYPE STANDARD TABLE OF tstca
+      ty_tstca        TYPE STANDARD TABLE OF tstca
                                      WITH DEFAULT KEY.
 
     CONSTANTS:
@@ -9346,7 +9345,7 @@ CLASS zcl_abapgit_object_tran DEFINITION
     METHODS save_authorizations
       IMPORTING
         iv_transaction    TYPE tstc-tcode
-        it_authorizations TYPE tty_tstca
+        it_authorizations TYPE ty_tstca
       RAISING
         zcx_abapgit_exception.
     METHODS clear_functiongroup_globals.
@@ -9634,13 +9633,13 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: tty_dd26v TYPE STANDARD TABLE OF dd26v
+    TYPES: ty_dd26v TYPE STANDARD TABLE OF dd26v
                           WITH NON-UNIQUE DEFAULT KEY,
-           tty_dd27p TYPE STANDARD TABLE OF dd27p
+           ty_dd27p TYPE STANDARD TABLE OF dd27p
                           WITH NON-UNIQUE DEFAULT KEY,
-           tty_dd28j TYPE STANDARD TABLE OF dd28j
+           ty_dd28j TYPE STANDARD TABLE OF dd28j
                           WITH NON-UNIQUE DEFAULT KEY,
-           tty_dd28v TYPE STANDARD TABLE OF dd28v
+           ty_dd28v TYPE STANDARD TABLE OF dd28v
                           WITH NON-UNIQUE DEFAULT KEY.
     CONSTANTS: BEGIN OF co_viewclass,
                  help         TYPE viewclass VALUE 'H',
@@ -9660,10 +9659,10 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         EXPORTING
           es_dd25v TYPE dd25v
           es_dd09l TYPE dd09l
-          et_dd26v TYPE tty_dd26v
-          et_dd27p TYPE tty_dd27p
-          et_dd28j TYPE tty_dd28j
-          et_dd28v TYPE tty_dd28v
+          et_dd26v TYPE ty_dd26v
+          et_dd27p TYPE ty_dd27p
+          et_dd28j TYPE ty_dd28j
+          et_dd28v TYPE ty_dd28v
         RAISING
           zcx_abapgit_exception.
 
@@ -9689,14 +9688,14 @@ CLASS zcl_abapgit_object_w3super DEFINITION INHERITING FROM zcl_abapgit_objects_
         iv_language TYPE spras.
 
   PROTECTED SECTION.
-    TYPES tty_bdcdata TYPE STANDARD TABLE OF bdcdata
+    TYPES ty_bdcdata TYPE STANDARD TABLE OF bdcdata
                            WITH NON-UNIQUE DEFAULT KEY.
 
     METHODS get_metadata REDEFINITION.
 
     METHODS change_bdc_jump_data ABSTRACT
       CHANGING
-        ct_bdcdata TYPE tty_bdcdata.
+        ct_bdcdata TYPE ty_bdcdata.
 
   PRIVATE SECTION.
 
@@ -10266,14 +10265,14 @@ CLASS zcl_abapgit_object_clas DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       serialize_docu
         IMPORTING
           !ii_xml              TYPE REF TO zif_abapgit_xml_output
-          !it_langu_additional TYPE zif_abapgit_lang_definitions=>tt_langu OPTIONAL
+          !it_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus OPTIONAL
           !iv_clsname          TYPE seoclsname
         RAISING
           zcx_abapgit_exception,
       serialize_tpool
         IMPORTING
           !ii_xml              TYPE REF TO zif_abapgit_xml_output
-          !it_langu_additional TYPE zif_abapgit_lang_definitions=>tt_langu OPTIONAL
+          !it_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus OPTIONAL
           !iv_clsname          TYPE seoclsname
         RAISING
           zcx_abapgit_exception,
@@ -10336,7 +10335,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
       END OF ty_tpool_i18n .
     TYPES:
-      tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n .
+      ty_tpools_i18n TYPE STANDARD TABLE OF ty_tpool_i18n .
 
     DATA mt_includes_cache TYPE ty_sobj_name_tt .
 
@@ -10480,7 +10479,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
              language TYPE langu,
              textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
            END OF ty_tpool_i18n,
-           tt_tpool_i18n TYPE STANDARD TABLE OF ty_tpool_i18n.
+           ty_tpools_i18n TYPE STANDARD TABLE OF ty_tpool_i18n.
     CONSTANTS: c_longtext_id_prog TYPE dokil-id VALUE 'RE'.
 
     METHODS:
@@ -10840,12 +10839,12 @@ CLASS zcl_abapgit_persist_background DEFINITION
              key TYPE zif_abapgit_persistence=>ty_value.
         INCLUDE TYPE ty_xml.
     TYPES: END OF ty_background.
-    TYPES: tt_background TYPE STANDARD TABLE OF ty_background WITH DEFAULT KEY.
+    TYPES: ty_background_keys TYPE STANDARD TABLE OF ty_background WITH DEFAULT KEY.
 
     METHODS constructor.
 
     METHODS list
-      RETURNING VALUE(rt_list) TYPE tt_background
+      RETURNING VALUE(rt_list) TYPE ty_background_keys
       RAISING   zcx_abapgit_exception.
 
     METHODS modify
@@ -10860,9 +10859,10 @@ CLASS zcl_abapgit_persist_background DEFINITION
       IMPORTING iv_key        TYPE ty_background-key
       RETURNING VALUE(rv_yes) TYPE abap_bool
       RAISING   zcx_abapgit_exception.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mo_db   TYPE REF TO zcl_abapgit_persistence_db,
-          mt_jobs TYPE tt_background.
+          mt_jobs TYPE ty_background_keys.
 
     METHODS from_xml
       IMPORTING iv_string     TYPE string
@@ -10895,11 +10895,11 @@ CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_settings_to_migrate,
+    TYPES: BEGIN OF ty_setting_to_migrate,
              name  TYPE string,
              value TYPE string,
-           END OF ty_settings_to_migrate,
-           tty_settings_to_migrate TYPE STANDARD TABLE OF ty_settings_to_migrate
+           END OF ty_setting_to_migrate,
+           ty_settings_to_migrate TYPE STANDARD TABLE OF ty_setting_to_migrate
                                         WITH NON-UNIQUE DEFAULT KEY.
 
     CONSTANTS c_text TYPE string VALUE 'Generated by abapGit' ##NO_TEXT.
@@ -10923,11 +10923,11 @@ CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
       IMPORTING
         iv_name                TYPE string
       CHANGING
-        ct_settings_to_migrate TYPE tty_settings_to_migrate
+        ct_settings_to_migrate TYPE ty_settings_to_migrate
         ci_document            TYPE REF TO if_ixml_document.
     CLASS-METHODS distribute_settings_to_users
       IMPORTING
-        it_settings_to_migrate TYPE tty_settings_to_migrate
+        it_settings_to_migrate TYPE ty_settings_to_migrate
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS update_global_settings
@@ -11000,12 +11000,12 @@ CLASS zcl_abapgit_persistence_db DEFINITION
         zcx_abapgit_exception .
     METHODS list
       RETURNING
-        VALUE(rt_content) TYPE zif_abapgit_persistence=>tt_content .
+        VALUE(rt_content) TYPE zif_abapgit_persistence=>ty_contents .
     METHODS list_by_type
       IMPORTING
         !iv_type          TYPE zif_abapgit_persistence=>ty_type
       RETURNING
-        VALUE(rt_content) TYPE zif_abapgit_persistence=>tt_content .
+        VALUE(rt_content) TYPE zif_abapgit_persistence=>ty_contents .
     METHODS lock
       IMPORTING
         !iv_mode  TYPE enqmode DEFAULT 'E'
@@ -11097,7 +11097,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
 
     INTERFACES zif_abapgit_persist_user.
 
-    TYPES tt_favorites TYPE zif_abapgit_persistence=>tt_repo_keys .
+    TYPES ty_favorites TYPE zif_abapgit_persistence=>ty_repo_keys .
 
     CLASS-METHODS get_instance
       IMPORTING
@@ -11118,7 +11118,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         last_change_seen TYPE string,
       END OF ty_repo_config .
     TYPES:
-      ty_repo_config_tt TYPE STANDARD TABLE OF ty_repo_config WITH DEFAULT KEY .
+      ty_repo_configs TYPE STANDARD TABLE OF ty_repo_config WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_user,
         default_git_user TYPE zif_abapgit_definitions=>ty_git_user,
@@ -11126,8 +11126,8 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         hide_files       TYPE abap_bool,
         changes_only     TYPE abap_bool,
         diff_unified     TYPE abap_bool,
-        favorites        TYPE tt_favorites,
-        repo_config      TYPE ty_repo_config_tt,
+        favorites        TYPE ty_favorites,
+        repo_config      TYPE ty_repo_configs,
         settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
       END OF ty_user .
 
@@ -11630,7 +11630,7 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
         INCLUDE TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
     TYPES: mime_name TYPE wwwdatatab-objid,
            END OF ty_asset_entry ,
-           tt_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url.
+           ty_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url.
 
     METHODS register_asset
       IMPORTING
@@ -11644,7 +11644,7 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA mt_asset_register TYPE tt_asset_register.
+    DATA mt_asset_register TYPE ty_asset_register.
 
     METHODS get_mime_asset
       IMPORTING
@@ -11683,23 +11683,23 @@ CLASS zcl_abapgit_gui_css_processor DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
-      BEGIN OF gty_css_var,
+      BEGIN OF ty_css_var,
         name  TYPE string,
         value TYPE string,
-      END OF gty_css_var,
-      gty_css_var_tab TYPE SORTED TABLE OF gty_css_var WITH UNIQUE KEY name.
+      END OF ty_css_var,
+      ty_css_vars TYPE SORTED TABLE OF ty_css_var WITH UNIQUE KEY name.
 
     METHODS:
       get_css_vars_in_string
         IMPORTING
           iv_string           TYPE string
         RETURNING
-          VALUE(rt_variables) TYPE gty_css_var_tab,
+          VALUE(rt_variables) TYPE ty_css_vars,
       resolve_var_recursively
         IMPORTING
           iv_variable_name TYPE string
         CHANGING
-          ct_variables     TYPE gty_css_var_tab
+          ct_variables     TYPE ty_css_vars
         RAISING
           zcx_abapgit_exception.
     DATA:
@@ -11893,7 +11893,7 @@ CLASS zcl_abapgit_html_parts DEFINITION
       IMPORTING
         !iv_collection TYPE string
       RETURNING
-        VALUE(rt_parts) TYPE zif_abapgit_html=>tty_table_of .
+        VALUE(rt_parts) TYPE zif_abapgit_html=>ty_table_of .
     METHODS get_collection_names
       RETURNING
         VALUE(rt_list) TYPE string_table .
@@ -11908,12 +11908,12 @@ CLASS zcl_abapgit_html_parts DEFINITION
     TYPES:
       BEGIN OF ty_named_collection,
         name TYPE string,
-        pile TYPE zif_abapgit_html=>tty_table_of,
+        pile TYPE zif_abapgit_html=>ty_table_of,
       END OF ty_named_collection.
     TYPES:
-      tty_named_collection TYPE STANDARD TABLE OF ty_named_collection WITH KEY name.
+      ty_named_collections TYPE STANDARD TABLE OF ty_named_collection WITH KEY name.
 
-    DATA mt_part_collections TYPE tty_named_collection.
+    DATA mt_part_collections TYPE ty_named_collections.
 
     METHODS get_collection
       IMPORTING
@@ -12149,7 +12149,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_order_by_header_cells
       IMPORTING
-        !it_col_spec         TYPE zif_abapgit_definitions=>tty_col_spec
+        !it_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt
         !iv_order_by         TYPE string
         !iv_order_descending TYPE abap_bool
       RETURNING
@@ -12954,7 +12954,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         type       TYPE string,
       END OF ty_file_diff.
     TYPES:
-      tt_file_diff TYPE STANDARD TABLE OF ty_file_diff
+      ty_file_diffs TYPE STANDARD TABLE OF ty_file_diff
                         WITH NON-UNIQUE DEFAULT KEY
                         WITH NON-UNIQUE SORTED KEY secondary
                              COMPONENTS path filename.
@@ -12981,7 +12981,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
 
     DATA mv_unified TYPE abap_bool VALUE abap_true ##NO_TEXT.
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
-    DATA mt_diff_files TYPE tt_file_diff .
+    DATA mt_diff_files TYPE ty_file_diffs .
 
     METHODS get_normalized_fname_with_path
       IMPORTING
@@ -13131,7 +13131,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !it_files      TYPE zif_abapgit_definitions=>ty_stage_tt
       CHANGING
-        !ct_diff_files TYPE tt_file_diff .
+        !ct_diff_files TYPE ty_file_diffs .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   FINAL
@@ -13281,7 +13281,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
     DATA ms_diff_file TYPE ty_file_diff .
     DATA mv_current_conflict_index TYPE sy-tabix .
     DATA mv_merge_mode TYPE string .
-    DATA mt_conflicts TYPE zif_abapgit_definitions=>tt_merge_conflict .
+    DATA mt_conflicts TYPE zif_abapgit_definitions=>ty_merge_conflict_tt .
 
     METHODS apply_merged_content
       IMPORTING
@@ -13417,7 +13417,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         zcx_abapgit_exception .
     METHODS restore_patch_flags
       IMPORTING
-        !it_diff_files_old TYPE tt_file_diff
+        !it_diff_files_old TYPE ty_file_diffs
       RAISING
         zcx_abapgit_exception .
     METHODS add_to_stage
@@ -13529,7 +13529,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         deserialized_by TYPE string,
         deserialized_at TYPE string,
       END OF ty_overview,
-      tty_overview TYPE STANDARD TABLE OF ty_overview
+      ty_overviews TYPE STANDARD TABLE OF ty_overview
                    WITH NON-UNIQUE DEFAULT KEY.
     CONSTANTS:
       BEGIN OF c_action,
@@ -13540,8 +13540,8 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
     DATA: mv_order_descending TYPE abap_bool,
           mv_filter           TYPE string,
           mv_time_zone        TYPE timezone,
-          mt_col_spec         TYPE zif_abapgit_definitions=>tty_col_spec,
-          mt_overview         TYPE tty_overview.
+          mt_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt,
+          mt_overview         TYPE ty_overviews.
 
     METHODS: render_text_input
       IMPORTING iv_name        TYPE string
@@ -13552,13 +13552,13 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
       apply_filter
         CHANGING
-          ct_overview TYPE tty_overview,
+          ct_overview TYPE ty_overviews,
 
       map_repo_list_to_overview
         IMPORTING
-          it_repo_list       TYPE zif_abapgit_persistence=>tt_repo
+          it_repo_list       TYPE zif_abapgit_persistence=>ty_repos
         RETURNING
-          VALUE(rt_overview) TYPE tty_overview
+          VALUE(rt_overview) TYPE ty_overviews
         RAISING
           zcx_abapgit_exception,
 
@@ -13569,19 +13569,19 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       render_table
         IMPORTING
           ii_html     TYPE REF TO zif_abapgit_html
-          it_overview TYPE tty_overview,
+          it_overview TYPE ty_overviews,
 
       render_table_body
         IMPORTING
           ii_html     TYPE REF TO zif_abapgit_html
-          it_overview TYPE tty_overview,
+          it_overview TYPE ty_overviews,
 
       render_header_bar
         IMPORTING
           ii_html TYPE REF TO zif_abapgit_html,
 
       apply_order_by
-        CHANGING ct_overview TYPE tty_overview,
+        CHANGING ct_overview TYPE ty_overviews,
 
       _add_column
         IMPORTING
@@ -13797,7 +13797,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS apply_order_by
       CHANGING
-        !ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items .
+        !ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt .
     METHODS build_branch_dropdown
       IMPORTING
         !iv_wp_opt                LIKE zif_abapgit_html=>c_html_opt-crossout
@@ -13875,7 +13875,7 @@ CLASS zcl_abapgit_gui_page_settings DEFINITION
     DATA mv_error TYPE abap_bool .
     DATA mt_post_fields TYPE tihttpnvp .
     DATA mt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
-    DATA mt_default_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr.
+    DATA mt_default_hotkeys TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr.
 
     METHODS post_commit_msg .
     METHODS post_development_internals .
@@ -14325,13 +14325,13 @@ CLASS zcl_abapgit_hotkeys DEFINITION
     CLASS-METHODS:
       get_all_default_hotkeys
         RETURNING
-          VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+          VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
         RAISING
           zcx_abapgit_exception,
 
       merge_hotkeys_with_settings
         CHANGING
-          ct_hotkey_actions TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+          ct_hotkey_actions TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
         RAISING
           zcx_abapgit_exception.
 
@@ -14367,15 +14367,15 @@ CLASS zcl_abapgit_hotkeys DEFINITION
       IMPORTING
         !iv_class_name    TYPE seoclsname
       RETURNING
-        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr .
+        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr .
     CLASS-METHODS get_hotkeys_from_global_intf
       RETURNING
-        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS get_hotkeys_from_local_intf
       RETURNING
-        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+        VALUE(rt_hotkeys) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS get_local_intf_implementations
@@ -14385,7 +14385,7 @@ CLASS zcl_abapgit_hotkeys DEFINITION
         zcx_abapgit_exception .
     METHODS render_scripts
       IMPORTING
-        !it_hotkeys    TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr
+        !it_hotkeys    TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
 ENDCLASS.
@@ -14561,7 +14561,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         value TYPE string,
       END OF ty_subitem .
     TYPES:
-      tty_subitems TYPE STANDARD TABLE OF ty_subitem WITH DEFAULT KEY .
+      ty_subitems TYPE STANDARD TABLE OF ty_subitem WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_field,
         type          TYPE i,
@@ -14576,7 +14576,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         error         TYPE string,
         default_value TYPE string,
         side_action   TYPE string,
-        subitems      TYPE tty_subitems,
+        subitems      TYPE ty_subitems,
 *        onclick ???
       END OF ty_field .
     TYPES:
@@ -14672,9 +14672,9 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         title TYPE string,
       END OF ty_item .
     TYPES:
-      tt_items TYPE STANDARD TABLE OF ty_item .
+      ty_items TYPE STANDARD TABLE OF ty_item .
 
-    DATA mt_items TYPE tt_items .
+    DATA mt_items TYPE ty_items .
     DATA mv_id TYPE string .
 
     METHODS render_items
@@ -14741,7 +14741,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
         cell_type TYPE salv_t_int4_column,
       END OF ty_log_out.
     TYPES:
-      tty_log_out TYPE STANDARD TABLE OF ty_log_out
+      ty_log_outs TYPE STANDARD TABLE OF ty_log_out
                                 WITH NON-UNIQUE DEFAULT KEY.
 
     CLASS-METHODS:
@@ -14749,7 +14749,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
         IMPORTING
           ii_log            TYPE REF TO zif_abapgit_log
         RETURNING
-          VALUE(rt_log_out) TYPE tty_log_out,
+          VALUE(rt_log_out) TYPE ty_log_outs,
 
       show_longtext
         IMPORTING
@@ -14794,7 +14794,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
           VALUE(ro_exception_viewer) TYPE REF TO zcl_abapgit_exception_viewer.
 
     CLASS-DATA:
-      gt_log TYPE tty_log_out.
+      gt_log TYPE ty_log_outs.
 
 ENDCLASS.
 CLASS zcl_abapgit_password_dialog DEFINITION
@@ -15196,17 +15196,18 @@ CLASS zcl_abapgit_tag_popups DEFINITION
   PUBLIC SECTION.
     INTERFACES: zif_abapgit_tag_popups.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_tag_out.
         INCLUDE TYPE zif_abapgit_definitions=>ty_git_tag.
     TYPES: body_icon TYPE icon_d,
            END OF ty_tag_out,
-           tty_tag_out TYPE STANDARD TABLE OF ty_tag_out
+           ty_tag_outs TYPE STANDARD TABLE OF ty_tag_out
                        WITH NON-UNIQUE DEFAULT KEY.
 
     DATA:
-      mt_tags              TYPE tty_tag_out,
+      mt_tags              TYPE ty_tag_outs,
       mo_docking_container TYPE REF TO cl_gui_docking_container,
       mo_text_control      TYPE REF TO cl_gui_textedit.
 
@@ -15218,7 +15219,7 @@ CLASS zcl_abapgit_tag_popups DEFINITION
         IMPORTING
           it_tags            TYPE zif_abapgit_definitions=>ty_git_tag_list_tt
         RETURNING
-          VALUE(rt_tags_out) TYPE tty_tag_out,
+          VALUE(rt_tags_out) TYPE ty_tag_outs,
 
       clean_up,
 
@@ -15584,7 +15585,7 @@ CLASS zcl_abapgit_log DEFINITION
 
     METHODS get_messages_status
       IMPORTING
-        !it_msg          TYPE zif_abapgit_log=>tty_msg
+        !it_msg          TYPE zif_abapgit_log=>ty_msgs
       RETURNING
         VALUE(rv_status) TYPE symsgty .
   PRIVATE SECTION.
@@ -15782,7 +15783,7 @@ CLASS zcl_abapgit_string_map DEFINITION
         v TYPE string,
       END OF ty_entry.
     TYPES:
-      tts_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
+      ty_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
 
     CLASS-METHODS create
       RETURNING
@@ -15832,7 +15833,7 @@ CLASS zcl_abapgit_string_map DEFINITION
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map .
     METHODS freeze.
 
-    DATA mt_entries TYPE tts_entries READ-ONLY.
+    DATA mt_entries TYPE ty_entries READ-ONLY.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -16096,7 +16097,7 @@ CLASS zcl_abapgit_branch_overview DEFINITION
   PRIVATE SECTION.
 
     TYPES:
-      tyt_commit_sha1_range TYPE RANGE OF zif_abapgit_definitions=>ty_sha1 .
+      ty_commit_sha1_range TYPE RANGE OF zif_abapgit_definitions=>ty_sha1 .
 
     DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
     DATA mt_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
@@ -16144,9 +16145,9 @@ CLASS zcl_abapgit_branch_overview DEFINITION
         !ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
     METHODS _get_1st_child_commit
       IMPORTING
-        !it_commit_sha1s TYPE tyt_commit_sha1_range
+        !it_commit_sha1s TYPE ty_commit_sha1_range
       EXPORTING
-        !et_commit_sha1s TYPE tyt_commit_sha1_range
+        !et_commit_sha1s TYPE ty_commit_sha1_range
         !es_1st_commit   TYPE zif_abapgit_definitions=>ty_commit
       CHANGING
         !ct_commits      TYPE zif_abapgit_definitions=>ty_commit_tt .
@@ -16196,15 +16197,15 @@ CLASS zcl_abapgit_code_inspector DEFINITION
 
     DATA mv_success TYPE abap_bool .
 
-    TYPES: t_run_mode TYPE c LENGTH 1.
+    TYPES: ty_run_mode TYPE c LENGTH 1.
     CONSTANTS:
       BEGIN OF co_run_mode,
-        run_with_popup   TYPE t_run_mode VALUE 'P',
-        run_after_popup  TYPE t_run_mode VALUE 'A',
-        run_via_rfc      TYPE t_run_mode VALUE 'R',
-        run_in_batch     TYPE t_run_mode VALUE 'B',
-        run_loc_parallel TYPE t_run_mode VALUE 'L',
-        run_direct       TYPE t_run_mode VALUE 'L',
+        run_with_popup   TYPE ty_run_mode VALUE 'P',
+        run_after_popup  TYPE ty_run_mode VALUE 'A',
+        run_via_rfc      TYPE ty_run_mode VALUE 'R',
+        run_in_batch     TYPE ty_run_mode VALUE 'B',
+        run_loc_parallel TYPE ty_run_mode VALUE 'L',
+        run_direct       TYPE ty_run_mode VALUE 'L',
       END OF co_run_mode .
     DATA mo_inspection TYPE REF TO cl_ci_inspection .
     DATA mv_name TYPE sci_objs .
@@ -16230,7 +16231,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
 
     METHODS decide_run_mode
       RETURNING
-        VALUE(rv_run_mode) TYPE t_run_mode.
+        VALUE(rv_run_mode) TYPE ty_run_mode.
 ENDCLASS.
 "! Change transport system API
 CLASS zcl_abapgit_cts_api DEFINITION
@@ -16322,7 +16323,7 @@ CLASS zcl_abapgit_dependencies DEFINITION
         kind     TYPE c LENGTH 1,
       END OF ty_dependency .
     TYPES:
-      tty_dedenpency TYPE STANDARD TABLE OF ty_dependency
+      ty_dedenpencies TYPE STANDARD TABLE OF ty_dependency
                                  WITH NON-UNIQUE DEFAULT KEY .
     TYPES:
       BEGIN OF ty_item,
@@ -16340,7 +16341,7 @@ CLASS zcl_abapgit_dependencies DEFINITION
       IMPORTING
         iv_ddls_name         TYPE tadir-obj_name
       RETURNING
-        VALUE(rt_dependency) TYPE tty_dedenpency .
+        VALUE(rt_dependency) TYPE ty_dedenpencies.
     CLASS-METHODS resolve_packages
       CHANGING
         ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -16510,20 +16511,20 @@ CLASS zcl_abapgit_factory DEFINITION
         instance TYPE REF TO zif_abapgit_sap_package,
       END OF ty_sap_package .
     TYPES:
-      tty_sap_package TYPE HASHED TABLE OF ty_sap_package
+      ty_sap_packages TYPE HASHED TABLE OF ty_sap_package
                                     WITH UNIQUE KEY package .
     TYPES:
-      BEGIN OF ty_code_inspector,
+      BEGIN OF ty_code_inspector_pack,
         package  TYPE devclass,
         instance TYPE REF TO zif_abapgit_code_inspector,
-      END OF ty_code_inspector .
+      END OF ty_code_inspector_pack .
     TYPES:
-      tty_code_inspector TYPE HASHED TABLE OF ty_code_inspector
+      ty_code_inspector_packs TYPE HASHED TABLE OF ty_code_inspector_pack
                                        WITH UNIQUE KEY package .
 
     CLASS-DATA gi_tadir TYPE REF TO zif_abapgit_tadir .
-    CLASS-DATA gt_sap_package TYPE tty_sap_package .
-    CLASS-DATA gt_code_inspector TYPE tty_code_inspector .
+    CLASS-DATA gt_sap_package TYPE ty_sap_packages .
+    CLASS-DATA gt_code_inspector TYPE ty_code_inspector_packs .
     CLASS-DATA gi_stage_logic TYPE REF TO zif_abapgit_stage_logic .
     CLASS-DATA gi_cts_api TYPE REF TO zif_abapgit_cts_api .
     CLASS-DATA gi_environment TYPE REF TO zif_abapgit_environment .
@@ -16690,7 +16691,7 @@ CLASS zcl_abapgit_merge DEFINITION
         zcx_abapgit_exception .
     METHODS get_conflicts
       RETURNING
-        VALUE(rt_conflicts) TYPE zif_abapgit_definitions=>tt_merge_conflict .
+        VALUE(rt_conflicts) TYPE zif_abapgit_definitions=>ty_merge_conflict_tt .
     METHODS get_result
       RETURNING
         VALUE(rs_merge) TYPE zif_abapgit_definitions=>ty_merge .
@@ -16718,7 +16719,7 @@ CLASS zcl_abapgit_merge DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_merge TYPE zif_abapgit_definitions=>ty_merge .
-    DATA mt_conflicts TYPE zif_abapgit_definitions=>tt_merge_conflict .
+    DATA mt_conflicts TYPE zif_abapgit_definitions=>ty_merge_conflict_tt .
     DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
     DATA mv_source_branch TYPE string .
 
@@ -16784,7 +16785,7 @@ CLASS zcl_abapgit_news DEFINITION
         text         TYPE string,
       END OF ty_log .
     TYPES:
-      tt_log TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
+      ty_logs TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
 
     CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.     " Number of versions to display if no updates
 
@@ -16797,7 +16798,7 @@ CLASS zcl_abapgit_news DEFINITION
         zcx_abapgit_exception .
     METHODS get_log
       RETURNING
-        VALUE(rt_log) TYPE tt_log .
+        VALUE(rt_log) TYPE ty_logs .
     METHODS has_news
       RETURNING
         VALUE(rv_boolean) TYPE abap_bool .
@@ -16818,7 +16819,7 @@ CLASS zcl_abapgit_news DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA mt_log TYPE tt_log .
+    DATA mt_log TYPE ty_logs .
     DATA mv_current_version TYPE string .
     DATA mv_lastseen_version TYPE string .
     DATA mv_latest_version TYPE string .
@@ -16853,7 +16854,7 @@ CLASS zcl_abapgit_news DEFINITION
         !it_lines           TYPE string_table
         !iv_current_version TYPE string
       RETURNING
-        VALUE(rt_log)       TYPE tt_log .
+        VALUE(rt_log)       TYPE ty_logs .
 ENDCLASS.
 CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION DEFERRED.
 *"* use this source file for any type of declarations (class
@@ -16876,7 +16877,7 @@ CLASS zcl_abapgit_performance_test DEFINITION
 
   PUBLIC SECTION.
     TYPES:
-      BEGIN OF gty_result,
+      BEGIN OF ty_result,
         pgmid    TYPE pgmid,
         object   TYPE trobjtype,
         obj_name TYPE sobj_name,
@@ -16884,8 +16885,8 @@ CLASS zcl_abapgit_performance_test DEFINITION
         counter  TYPE i,
         runtime  TYPE i,
         seconds  TYPE p LENGTH 16 DECIMALS 6,
-      END OF gty_result,
-      gty_result_tab TYPE STANDARD TABLE OF gty_result WITH KEY pgmid object obj_name.
+      END OF ty_result,
+      ty_results TYPE STANDARD TABLE OF ty_result WITH KEY pgmid object obj_name.
     METHODS:
       constructor IMPORTING iv_package                    TYPE devclass
                             iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
@@ -16895,7 +16896,7 @@ CLASS zcl_abapgit_performance_test DEFINITION
       get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
       get_object_name_filter RETURNING VALUE(rt_object_name_range) TYPE zif_abapgit_definitions=>ty_object_name_range,
       run_measurement RAISING zcx_abapgit_exception,
-      get_result RETURNING VALUE(rt_result) TYPE gty_result_tab.
+      get_result RETURNING VALUE(rt_result) TYPE ty_results.
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -16909,7 +16910,7 @@ CLASS zcl_abapgit_performance_test DEFINITION
         object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
         object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
       END OF ms_filter_parameters,
-      mt_result TYPE gty_result_tab.
+      mt_result TYPE ty_results.
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
@@ -17130,7 +17131,7 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
       IMPORTING iv_path              TYPE string
                 iv_by_folders        TYPE abap_bool
                 iv_changes_only      TYPE abap_bool
-      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>tt_repo_items
+      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
     METHODS get_log
@@ -17150,20 +17151,20 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
           mi_log  TYPE REF TO zif_abapgit_log.
 
     METHODS build_repo_items_local_only
-      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>tt_repo_items
+      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
     METHODS build_repo_items_with_remote
-      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>tt_repo_items
+      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
     METHODS build_folders
       IMPORTING iv_cur_dir    TYPE string
-      CHANGING  ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items
+      CHANGING  ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
     METHODS filter_changes
-      CHANGING ct_repo_items TYPE zif_abapgit_definitions=>tt_repo_items.
+      CHANGING ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt.
 ENDCLASS.
 CLASS zcl_abapgit_repo_filter DEFINITION
   FINAL
@@ -17353,7 +17354,7 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     METHODS validate_sub_super_packages
       IMPORTING
         !iv_package    TYPE devclass
-        !it_repos      TYPE zif_abapgit_persistence=>tt_repo
+        !it_repos      TYPE zif_abapgit_persistence=>ty_repos
         !iv_ign_subpkg TYPE abap_bool DEFAULT abap_false
       EXPORTING
         VALUE(eo_repo) TYPE REF TO zcl_abapgit_repo
@@ -17563,10 +17564,10 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
           VALUE(rv_link_hint_key) TYPE string,
       set_hotkeys
         IMPORTING
-          it_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey,
+          it_hotkeys TYPE zif_abapgit_definitions=>ty_hotkey_tt,
       get_hotkeys
         RETURNING
-          VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>tty_hotkey
+          VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>ty_hotkey_tt
         RAISING
           zcx_abapgit_exception,
       set_parallel_proc_disabled
@@ -20175,7 +20176,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_settings IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   METHOD get_activate_wo_popup.
     rv_act_wo_popup = ms_user_settings-activate_wo_popup.
   ENDMETHOD.
@@ -20919,7 +20920,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD refresh.
 
-    DATA: lt_list TYPE zif_abapgit_persistence=>tt_repo.
+    DATA: lt_list TYPE zif_abapgit_persistence=>ty_repos.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
     CLEAR mt_list.
@@ -21051,7 +21052,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD zif_abapgit_repo_srv~get_repo_from_package.
 
     DATA:
-      lt_repos TYPE zif_abapgit_persistence=>tt_repo,
+      lt_repos TYPE zif_abapgit_persistence=>ty_repos,
       lv_name  TYPE zif_abapgit_persistence=>ty_local_settings-display_name,
       lv_owner TYPE zif_abapgit_persistence=>ty_local_settings-display_name.
 
@@ -21809,7 +21810,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_log.
     DATA li_repo_log TYPE REF TO zif_abapgit_log.
-    DATA lt_repo_msg TYPE zif_abapgit_log=>tty_log_out.
+    DATA lt_repo_msg TYPE zif_abapgit_log=>ty_log_outs.
     DATA lr_repo_msg TYPE REF TO zif_abapgit_log=>ty_log_out.
 
     ri_log = mi_log.
@@ -22006,7 +22007,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD deserialize_checks.
 
     DATA: lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
-          lt_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies.
+          lt_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies.
 
     find_remote_dot_abapgit( ).
     find_remote_dot_apack( ).
@@ -22495,29 +22496,21 @@ CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_performance_test IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
     mv_include_sub_packages = iv_include_sub_packages.
     mv_serialize_master_lang_only = iv_serialize_master_lang_only.
   ENDMETHOD.
-
   METHOD get_object_name_filter.
     rt_object_name_range = ms_filter_parameters-object_name_range.
   ENDMETHOD.
-
   METHOD get_object_type_filter.
     rt_object_type_range = ms_filter_parameters-object_type_range.
   ENDMETHOD.
-
-  METHOD set_object_name_filter.
-    ms_filter_parameters-object_name_range = it_object_name_range.
+  METHOD get_result.
+    rt_result = mt_result.
   ENDMETHOD.
-
-  METHOD set_object_type_filter.
-    ms_filter_parameters-object_type_range = it_object_type_range.
-  ENDMETHOD.
-
   METHOD run_measurement.
     DATA: li_actual_progress TYPE REF TO zif_abapgit_progress,
           lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
@@ -22528,7 +22521,7 @@ CLASS zcl_abapgit_performance_test IMPLEMENTATION.
           lx_exception       TYPE REF TO zcx_abapgit_exception,
           lo_dummy_progress  TYPE REF TO kHGwlHkHxZmEuFZbkdsccOjvsqAbPX.
     FIELD-SYMBOLS: <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir,
-                   <ls_result> TYPE gty_result.
+                   <ls_result> TYPE ty_result.
 
     CLEAR mt_result.
 
@@ -22570,7 +22563,6 @@ CLASS zcl_abapgit_performance_test IMPLEMENTATION.
         RAISE EXCEPTION lx_exception.
     ENDTRY.
   ENDMETHOD.
-
   METHOD select_tadir_entries.
     rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
       iv_package            = mv_package
@@ -22579,13 +22571,15 @@ CLASS zcl_abapgit_performance_test IMPLEMENTATION.
     DELETE rt_tadir WHERE object NOT IN ms_filter_parameters-object_type_range
                        OR obj_name NOT IN ms_filter_parameters-object_name_range.
   ENDMETHOD.
-
-  METHOD get_result.
-    rt_result = mt_result.
+  METHOD set_object_name_filter.
+    ms_filter_parameters-object_name_range = it_object_name_range.
+  ENDMETHOD.
+  METHOD set_object_type_filter.
+    ms_filter_parameters-object_type_range = it_object_type_range.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_news IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
   METHOD compare_versions.
 
     DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
@@ -23849,7 +23843,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF gt_code_inspector.
-    FIELD-SYMBOLS: <ls_code_inspector> TYPE ty_code_inspector.
+    FIELD-SYMBOLS: <ls_code_inspector> TYPE ty_code_inspector_pack.
 
     READ TABLE gt_code_inspector ASSIGNING <ls_code_inspector>
       WITH TABLE KEY package = iv_package.
@@ -24427,7 +24421,7 @@ CLASS ZCL_ABAPGIT_DEPENDENCIES IMPLEMENTATION.
           lv_before       TYPE i,
           lt_founds       TYPE TABLE OF rsfindlst,
           lt_scope        TYPE STANDARD TABLE OF seu_obj,
-          lt_dependency   TYPE tty_dedenpency.
+          lt_dependency   TYPE ty_dedenpencies.
 
     FIELD-SYMBOLS: <ls_tadir_ddls>      TYPE zif_abapgit_definitions=>ty_tadir,
                    <ls_dependency>      TYPE ty_dependency,
@@ -25563,7 +25557,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
 
     DATA: lt_sorted_commits TYPE zif_abapgit_definitions=>ty_commit_tt,
           ls_next_commit    TYPE zif_abapgit_definitions=>ty_commit,
-          lt_parents        TYPE tyt_commit_sha1_range,
+          lt_parents        TYPE ty_commit_sha1_range,
           ls_parent         LIKE LINE OF lt_parents.
 
     FIELD-SYMBOLS: <ls_initial_commit> TYPE zif_abapgit_definitions=>ty_commit.
@@ -26386,7 +26380,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   METHOD get_requirement_met_status.
 
     DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
@@ -26461,23 +26455,23 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
   ENDMETHOD.
   METHOD show_requirement_popup.
 
-    TYPES: BEGIN OF lty_color_line,
+    TYPES: BEGIN OF ty_color_line,
              color TYPE lvc_t_scol.
              INCLUDE TYPE ty_requirement_status.
-    TYPES: END OF lty_color_line.
+    TYPES: END OF ty_color_line.
 
-    TYPES: lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
+    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
 
     DATA: lo_alv            TYPE REF TO cl_salv_table,
           lo_column         TYPE REF TO cl_salv_column,
           lo_columns        TYPE REF TO cl_salv_columns_table,
-          lt_color_table    TYPE lty_color_tab,
+          lt_color_table    TYPE ty_color_tab,
           lt_color_negative TYPE lvc_t_scol,
           lt_color_positive TYPE lvc_t_scol,
           ls_color          TYPE lvc_s_scol,
           lx_ex             TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <ls_line>        TYPE lty_color_line,
+    FIELD-SYMBOLS: <ls_line>        TYPE ty_color_line,
                    <ls_requirement> LIKE LINE OF it_requirements.
     ls_color-color-col = col_negative.
     APPEND ls_color TO lt_color_negative.
@@ -26805,7 +26799,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_log IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD get_messages_status.
 
     DATA lr_msg TYPE REF TO zif_abapgit_log=>ty_msg.
@@ -32453,7 +32447,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
           lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
-          lt_dependencies TYPE zif_abapgit_apack_definitions=>tt_dependencies.
+          lt_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies.
 * find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
@@ -33219,7 +33213,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_basis IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   METHOD create_package.
 
     DATA ls_package_data TYPE scompkdtln.
@@ -33242,26 +33236,49 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD test_changed_by.
+  METHOD open_ie_devtools.
+    DATA: lv_system_directory TYPE string,
+          lv_exe_full_path    TYPE string.
 
-    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
-    DATA ls_item  TYPE zif_abapgit_definitions=>ty_item.
-    DATA lv_user  TYPE xubname.
-
-    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
-    IF ls_tadir IS INITIAL.
-      RETURN.
+    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_windows( ) = abap_false.
+      zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
     ENDIF.
 
-    ls_item-obj_type = ls_tadir-object.
-    ls_item-obj_name = ls_tadir-obj_name.
+    cl_gui_frontend_services=>get_system_directory(
+      CHANGING
+        system_directory     = lv_system_directory
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from GET_SYSTEM_DIRECTORY sy-subrc: { sy-subrc }| ).
+    ENDIF.
 
-    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
+    cl_gui_cfw=>flush( ).
 
-    MESSAGE lv_user TYPE 'S'.
+    lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
 
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        application            = lv_exe_full_path
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+    IF sy-subrc <> 0.
+      " IEChooser is only available on Windows 10
+      zcx_abapgit_exception=>raise( |Error from EXECUTE sy-subrc: { sy-subrc }| ).
+    ENDIF.
   ENDMETHOD.
-
   METHOD run_performance_test.
     DATA: lo_performance                TYPE REF TO zcl_abapgit_performance_test,
           lv_package                    TYPE devclass,
@@ -33269,7 +33286,7 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           lv_serialize_master_lang_only TYPE abap_bool VALUE abap_true,
           lt_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range,
           lt_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range,
-          lt_result                     TYPE zcl_abapgit_performance_test=>gty_result_tab,
+          lt_result                     TYPE zcl_abapgit_performance_test=>ty_results,
           lo_alv                        TYPE REF TO cl_salv_table,
           lx_salv_error                 TYPE REF TO cx_salv_error,
           lv_current_repo               TYPE zif_abapgit_persistence=>ty_value,
@@ -33335,49 +33352,24 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           ix_previous = lx_salv_error ).
     ENDTRY.
   ENDMETHOD.
+  METHOD test_changed_by.
 
-  METHOD open_ie_devtools.
-    DATA: lv_system_directory TYPE string,
-          lv_exe_full_path    TYPE string.
+    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
+    DATA ls_item  TYPE zif_abapgit_definitions=>ty_item.
+    DATA lv_user  TYPE xubname.
 
-    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_windows( ) = abap_false.
-      zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
+    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
+    IF ls_tadir IS INITIAL.
+      RETURN.
     ENDIF.
 
-    cl_gui_frontend_services=>get_system_directory(
-      CHANGING
-        system_directory     = lv_system_directory
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from GET_SYSTEM_DIRECTORY sy-subrc: { sy-subrc }| ).
-    ENDIF.
+    ls_item-obj_type = ls_tadir-object.
+    ls_item-obj_name = ls_tadir-obj_name.
 
-    cl_gui_cfw=>flush( ).
+    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
 
-    lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
+    MESSAGE lv_user TYPE 'S'.
 
-    cl_gui_frontend_services=>execute(
-      EXPORTING
-        application            = lv_exe_full_path
-      EXCEPTIONS
-        cntl_error             = 1
-        error_no_gui           = 2
-        bad_parameter          = 3
-        file_not_found         = 4
-        path_not_found         = 5
-        file_extension_unknown = 6
-        error_execute_failed   = 7
-        synchronous_failed     = 8
-        not_supported_by_gui   = 9
-        OTHERS                 = 10 ).
-    IF sy-subrc <> 0.
-      " IEChooser is only available on Windows 10
-      zcx_abapgit_exception=>raise( |Error from EXECUTE sy-subrc: { sy-subrc }| ).
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -35120,7 +35112,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
   METHOD prepare_log_for_display.
 
-    DATA: lt_message      TYPE zif_abapgit_log=>tty_log_out,
+    DATA: lt_message      TYPE zif_abapgit_log=>ty_log_outs,
           lr_message      TYPE REF TO zif_abapgit_log=>ty_log_out,
           ls_log          TYPE ty_log_out,
           li_t100_message TYPE REF TO if_t100_message,
@@ -35324,7 +35316,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
   METHOD to_html.
 
-    DATA: lt_message TYPE zif_abapgit_log=>tty_log_out,
+    DATA: lt_message TYPE zif_abapgit_log=>ty_log_outs,
           lr_message TYPE REF TO zif_abapgit_log=>ty_log_out,
           lv_class   TYPE string,
           lv_icon    TYPE string.
@@ -35359,7 +35351,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
   METHOD write_log.
 
-    DATA: lt_message TYPE zif_abapgit_log=>tty_log_out,
+    DATA: lt_message TYPE zif_abapgit_log=>ty_log_outs,
           lr_message TYPE REF TO zif_abapgit_log=>ty_log_out,
           lv_text    TYPE string.
 
@@ -36299,7 +36291,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
   ENDMETHOD.
   METHOD merge_hotkeys_with_settings.
 
-    DATA lt_user_defined_hotkeys TYPE zif_abapgit_definitions=>tty_hotkey.
+    DATA lt_user_defined_hotkeys TYPE zif_abapgit_definitions=>ty_hotkey_tt.
     FIELD-SYMBOLS <ls_hotkey> LIKE LINE OF ct_hotkey_actions.
     FIELD-SYMBOLS <ls_user_defined_hotkey> LIKE LINE OF lt_user_defined_hotkeys.
 
@@ -36392,7 +36384,7 @@ CLASS ZCL_ABAPGIT_HOTKEYS IMPLEMENTATION.
 
     DATA:
       lv_hint               TYPE string,
-      lt_registered_hotkeys TYPE zif_abapgit_gui_hotkeys=>tty_hotkey_with_descr,
+      lt_registered_hotkeys TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr,
       lv_hotkey             TYPE string.
 
     FIELD-SYMBOLS <ls_hotkey> LIKE LINE OF lt_registered_hotkeys.
@@ -38103,7 +38095,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   METHOD post_hotkeys.
 
     DATA:
-      lt_key_bindings TYPE zif_abapgit_definitions=>tty_hotkey,
+      lt_key_bindings TYPE zif_abapgit_definitions=>ty_hotkey_tt,
       ls_key_binding  LIKE LINE OF lt_key_bindings.
 
     FIELD-SYMBOLS:
@@ -39043,7 +39035,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
-    DATA: lt_repo_items        TYPE zif_abapgit_definitions=>tt_repo_items,
+    DATA: lt_repo_items        TYPE zif_abapgit_definitions=>ty_repo_item_tt,
           lo_browser           TYPE REF TO zcl_abapgit_repo_content_list,
           lx_error             TYPE REF TO zcx_abapgit_exception,
           lv_lstate            TYPE char1,
@@ -39367,7 +39359,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
     DATA:
       lv_icon     TYPE string,
-      lt_col_spec TYPE zif_abapgit_definitions=>tty_col_spec,
+      lt_col_spec TYPE zif_abapgit_definitions=>ty_col_spec_tt,
       ls_col_spec TYPE zif_abapgit_definitions=>ty_col_spec.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -39433,7 +39425,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD switch_to_pr.
 
     DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
-    DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>tty_pulls.
+    DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
     DATA ls_pull LIKE LINE OF lt_pulls.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -40774,7 +40766,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   METHOD refresh.
 
     DATA:
-      lt_diff_files_old TYPE tt_file_diff,
+      lt_diff_files_old TYPE ty_file_diffs,
       lt_files          TYPE zif_abapgit_definitions=>ty_stage_tt,
       ls_file           LIKE LINE OF lt_files.
 
@@ -43970,7 +43962,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   METHOD read_persist.
 
     DATA: lo_per TYPE REF TO zcl_abapgit_persist_background,
-          lt_per TYPE zcl_abapgit_persist_background=>tt_background.
+          lt_per TYPE zcl_abapgit_persist_background=>ty_background_keys.
     CREATE OBJECT lo_per.
     lt_per = lo_per->list( ).
 
@@ -44030,7 +44022,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_methods.
 
-    DATA: lt_methods TYPE zcl_abapgit_background=>ty_methods_tt,
+    DATA: lt_methods TYPE zcl_abapgit_background=>ty_methods,
           ls_method  LIKE LINE OF lt_methods,
           lv_checked TYPE string.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -44601,7 +44593,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_deferred_parts.
 
-    DATA lt_parts TYPE zif_abapgit_html=>tty_table_of.
+    DATA lt_parts TYPE zif_abapgit_html=>ty_table_of.
     DATA li_part LIKE LINE OF lt_parts.
 
     lt_parts = gui_services( )->get_html_parts( )->get_parts( iv_part_category ).
@@ -45161,7 +45153,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     DATA: lv_text TYPE string,
           lv_hint TYPE string,
-          lt_log  TYPE zcl_abapgit_news=>tt_log.
+          lt_log  TYPE zcl_abapgit_news=>ty_logs.
 
     FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_log.
 
@@ -45261,7 +45253,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_repo_palette.
 
     DATA li_repo_srv TYPE REF TO zif_abapgit_repo_srv.
-    DATA lt_repo_list TYPE zif_abapgit_persistence=>tt_repo.
+    DATA lt_repo_list TYPE zif_abapgit_persistence=>ty_repos.
     DATA lv_repo_json TYPE string.
     DATA lv_size TYPE i.
     DATA lo_repo TYPE REF TO zcl_abapgit_repo.
@@ -46409,7 +46401,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_content.
 
-    DATA: lt_data    TYPE zif_abapgit_persistence=>tt_content,
+    DATA: lt_data    TYPE zif_abapgit_persistence=>ty_contents,
           lv_action  TYPE string,
           lv_trclass TYPE string,
           lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
@@ -47087,8 +47079,8 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
     DATA:
           lt_contents         TYPE STANDARD TABLE OF string,
           lv_content          TYPE string,
-          lt_css_variables    TYPE gty_css_var_tab,
-          lt_css_vars_in_file TYPE gty_css_var_tab.
+          lt_css_variables    TYPE ty_css_vars,
+          lt_css_vars_in_file TYPE ty_css_vars.
     FIELD-SYMBOLS: <lv_url>          TYPE string,
                    <ls_css_variable> LIKE LINE OF lt_css_vars_in_file,
                    <lv_content>      LIKE LINE OF lt_contents.
@@ -47514,7 +47506,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     DATA: lt_events TYPE cntl_simple_events,
           ls_event  LIKE LINE OF lt_events,
-          lt_assets TYPE zif_abapgit_gui_asset_manager=>tt_web_assets.
+          lt_assets TYPE zif_abapgit_gui_asset_manager=>ty_web_assets.
 
     FIELD-SYMBOLS <ls_asset> LIKE LINE OF lt_assets.
     mi_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
@@ -48871,7 +48863,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD read_repo_config.
-    DATA: lt_repo_config TYPE ty_repo_config_tt,
+    DATA: lt_repo_config TYPE ty_repo_configs,
           lv_key         TYPE string.
 
     lv_key         = to_lower( iv_url ).
@@ -48994,7 +48986,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~is_favorite_repo.
 
-    DATA: lt_favorites TYPE tt_favorites.
+    DATA: lt_favorites TYPE ty_favorites.
 
     lt_favorites = zif_abapgit_persist_user~get_favorites( ).
 
@@ -49190,7 +49182,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
 * todo: Lock the complete persistence in order to prevent concurrent repo-creation
 * however the current approach will most likely work in almost all cases
 
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content.
+    DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents.
 
     FIELD-SYMBOLS: <ls_content> LIKE LINE OF lt_content.
     rv_next_repo_id = 1.
@@ -49254,7 +49246,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_persist_repo~list.
 
-    DATA: lt_content TYPE zif_abapgit_persistence=>tt_content,
+    DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents,
           ls_content LIKE LINE OF lt_content,
           ls_repo    LIKE LINE OF rt_repos.
     lt_content = mo_db->list_by_type( zcl_abapgit_persistence_db=>c_type_repo ).
@@ -49279,7 +49271,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_persist_repo~read.
 
-    DATA lt_repo TYPE zif_abapgit_persistence=>tt_repo.
+    DATA lt_repo TYPE zif_abapgit_persistence=>ty_repos.
 
     lt_repo = list( ).
 
@@ -49548,7 +49540,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
           li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
     FIELD-SYMBOLS: <lv_user>                      LIKE LINE OF lt_abapgit_users,
-                   <ls_setting_to_migrate>        TYPE ty_settings_to_migrate,
+                   <ls_setting_to_migrate>        TYPE ty_setting_to_migrate,
                    <lg_user_specific_setting_val> TYPE data.
 
     " distribute settings to all abapGit users
@@ -49701,7 +49693,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
   METHOD migrate_settings.
 
     DATA: li_global_settings_document TYPE REF TO if_ixml_document,
-          lt_settings_to_migrate      TYPE tty_settings_to_migrate,
+          lt_settings_to_migrate      TYPE ty_settings_to_migrate,
           lx_error                    TYPE REF TO zcx_abapgit_not_found.
 
     " migrate global settings to user specific settings
@@ -49931,7 +49923,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
   METHOD list.
 
-    DATA: lt_list TYPE zif_abapgit_persistence=>tt_content,
+    DATA: lt_list TYPE zif_abapgit_persistence=>ty_contents,
           ls_xml  TYPE ty_xml.
 
     FIELD-SYMBOLS: <ls_list>   LIKE LINE OF lt_list,
@@ -51250,7 +51242,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_super IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD check_timestamp.
 
     DATA: lv_ts TYPE timestamp.
@@ -58267,7 +58259,7 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
 
     DATA: ls_bdcdata TYPE bdcdata,
-          lt_bdcdata TYPE tty_bdcdata.
+          lt_bdcdata TYPE ty_bdcdata.
 
     ls_bdcdata-program  = 'SAPMWWW0'.
     ls_bdcdata-dynpro   = '0100'.
@@ -58619,10 +58611,10 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
     DATA: ls_dd25v TYPE dd25v,
           ls_dd09l TYPE dd09l,
-          lt_dd26v TYPE tty_dd26v,
-          lt_dd27p TYPE tty_dd27p,
-          lt_dd28j TYPE tty_dd28j,
-          lt_dd28v TYPE tty_dd28v.
+          lt_dd26v TYPE ty_dd26v,
+          lt_dd27p TYPE ty_dd27p,
+          lt_dd28j TYPE ty_dd28j,
+          lt_dd28v TYPE ty_dd28v.
 
     FIELD-SYMBOLS: <ls_dd27p> LIKE LINE OF lt_dd27p.
 
@@ -59723,9 +59715,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     " The model has a long description also in a master language, with other long descriptions
     " maintained as translations using SE63 Translation Editor. All of these long texts are held in DOK*
 
-    TYPES BEGIN OF ls_language_type.
+    TYPES BEGIN OF ty_language_type.
     TYPES language TYPE dm40t-sprache.
-    TYPES END OF ls_language_type.
+    TYPES END OF ty_language_type.
 
     DATA BEGIN OF ls_udmo_long_text.
     DATA language TYPE dm40t-sprache.
@@ -59734,7 +59726,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     DATA END OF ls_udmo_long_text.
 
     DATA lt_udmo_long_texts LIKE STANDARD TABLE OF ls_udmo_long_text.
-    DATA lt_udmo_languages TYPE STANDARD TABLE OF ls_language_type.
+    DATA lt_udmo_languages TYPE STANDARD TABLE OF ty_language_type.
     DATA ls_udmo_language  LIKE LINE OF lt_udmo_languages.
     DATA: lv_error_status  TYPE lxestatprc.
     " In which languages are the short texts are maintained.
@@ -61064,8 +61056,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
           ls_tstct        TYPE tstct,
           ls_tstcc        TYPE tstcc,
           ls_tstcp        TYPE tstcp,
-          lt_tstca        TYPE tty_tstca,
-          lt_param_values TYPE tty_param_values,
+          lt_tstca        TYPE ty_tstca,
+          lt_param_values TYPE ty_param_values,
           ls_rsstcd       TYPE rsstcd.
     IF zif_abapgit_object~exists( ) = abap_true.
       zif_abapgit_object~delete( iv_package ).
@@ -61233,7 +61225,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
           ls_tcode       TYPE tstc,
           ls_tstct       TYPE tstct,
           ls_tstcp       TYPE tstcp,
-          lt_tstca       TYPE tty_tstca,
+          lt_tstca       TYPE ty_tstca,
           ls_gui_attr    TYPE tstcc.
     lv_transaction = ms_item-obj_name.
 
@@ -61549,7 +61541,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tabl_compar IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   METHOD constructor.
 
     mi_local = ii_local.
@@ -61559,7 +61551,7 @@ CLASS zcl_abapgit_object_tabl_compar IMPLEMENTATION.
 
     DATA: lt_findstrings TYPE string_table,
           lt_founds      TYPE STANDARD TABLE OF rsfindlst,
-          lt_scope       TYPE tty_seu_obj,
+          lt_scope       TYPE ty_seu_obj,
           lv_findstring  LIKE LINE OF lt_findstrings.
 
     FIELD-SYMBOLS: <ls_found> TYPE rsfindlst.
@@ -61614,8 +61606,8 @@ CLASS zcl_abapgit_object_tabl_compar IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_structure_used_in_db_table.
 
-    DATA: lt_scope  TYPE tty_seu_obj,
-          lt_founds TYPE tty_founds.
+    DATA: lt_scope  TYPE ty_seu_obj,
+          lt_founds TYPE ty_founds.
 
     APPEND 'TABL' TO lt_scope.
     APPEND 'STRU' TO lt_scope.
@@ -61720,7 +61712,7 @@ CLASS zcl_abapgit_object_tabl_compar IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -61927,7 +61919,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     DATA: lv_name       TYPE ddobjname,
           ls_dd02v_tmp  TYPE dd02v,
           lt_i18n_langs TYPE TABLE OF langu,
-          lt_dd02_texts TYPE tt_dd02_texts.
+          lt_dd02_texts TYPE ty_dd02_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd02_text> LIKE LINE OF lt_dd02_texts.
@@ -62054,7 +62046,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     DATA: lv_name       TYPE ddobjname,
           lv_index      TYPE i,
           ls_dd02v      TYPE dd02v,
-          lt_dd02_texts TYPE tt_dd02_texts,
+          lt_dd02_texts TYPE ty_dd02_texts,
           lt_i18n_langs TYPE TABLE OF langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -63923,7 +63915,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
         old TYPE string,
         new TYPE string,
       END OF ty_id_mapping,
-      tty_id_mapping TYPE HASHED TABLE OF ty_id_mapping
+      ty_id_mappings TYPE HASHED TABLE OF ty_id_mapping
                           WITH UNIQUE KEY old.
 
     DATA: lv_name       TYPE string,
@@ -63931,7 +63923,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
           li_node       TYPE REF TO if_ixml_node,
           li_attr       TYPE REF TO if_ixml_named_node_map,
           li_iterator   TYPE REF TO if_ixml_node_iterator,
-          lt_id_mapping TYPE tty_id_mapping,
+          lt_id_mapping TYPE ty_id_mappings,
           ls_id_mapping LIKE LINE OF lt_id_mapping.
 
     li_iterator = ii_xml_doc->create_iterator( ).
@@ -65662,7 +65654,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lt_sots TYPE tty_sots.
+    DATA: lt_sots TYPE ty_sots_tt.
 
     FIELD-SYMBOLS: <ls_sots> TYPE ty_sots.
 
@@ -65692,7 +65684,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lt_sots    TYPE tty_sots,
+    DATA: lt_sots    TYPE ty_sots_tt,
           lt_objects TYPE sotr_objects,
           lv_object  LIKE LINE OF lt_objects.
 
@@ -65813,7 +65805,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lt_sots TYPE tty_sots.
+    DATA: lt_sots TYPE ty_sots_tt.
 
     FIELD-SYMBOLS: <ls_sots>  TYPE ty_sots,
                    <ls_entry> TYPE sotr_textl.
@@ -69452,7 +69444,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
-    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+    DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
           lt_tpool      TYPE textpool_table.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
@@ -69475,7 +69467,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+    DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
           lt_tpool      TYPE textpool_table.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
@@ -72408,7 +72400,7 @@ CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_msag IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
 
@@ -72465,10 +72457,10 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     DATA: lv_msg_id     TYPE rglif-message_id,
           ls_t100       TYPE t100,
           lt_t100t      TYPE TABLE OF t100t,
-          lt_t100_texts TYPE tt_t100_texts,
+          lt_t100_texts TYPE ty_t100_texts,
           lt_t100u      TYPE TABLE OF t100u.
 
-    FIELD-SYMBOLS: <ls_t100_text> TYPE ty_t100_texts.
+    FIELD-SYMBOLS: <ls_t100_text> TYPE ty_t100_text.
     lv_msg_id = ms_item-obj_name.
 
     SELECT * FROM t100u INTO TABLE lt_t100u
@@ -72509,7 +72501,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     DATA: lv_doku_object_name           TYPE dokhl-object,
           lt_doku_object_names          TYPE STANDARD TABLE OF dokhl-object
                           WITH NON-UNIQUE DEFAULT KEY,
-          lt_dokil            TYPE zif_abapgit_definitions=>tty_dokil,
+          lt_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt,
           ls_dokil            LIKE LINE OF lt_dokil,
           lv_master_lang_only TYPE abap_bool.
 
@@ -72556,7 +72548,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD serialize_texts.
 
     DATA: lv_msg_id     TYPE rglif-message_id,
-          lt_t100_texts TYPE tt_t100_texts,
+          lt_t100_texts TYPE ty_t100_texts,
           lt_t100t      TYPE TABLE OF t100t,
           lt_i18n_langs TYPE TABLE OF langu.
 
@@ -72787,7 +72779,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     DATA: lv_msg_id TYPE rglif-message_id,
           ls_inf    TYPE t100a,
-          lt_source TYPE tty_t100.
+          lt_source TYPE ty_t100s.
     lv_msg_id = ms_item-obj_name.
 
     SELECT SINGLE * FROM t100a INTO ls_inf
@@ -73473,11 +73465,11 @@ CLASS ZCL_ABAPGIT_OBJECT_IOBJ IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    TYPES: BEGIN OF t_iobj,
+    TYPES: BEGIN OF ty_iobj,
              objnm TYPE c LENGTH 30.
-    TYPES END OF t_iobj.
+    TYPES END OF ty_iobj.
 
-    DATA: lt_iobjname     TYPE STANDARD TABLE OF t_iobj,
+    DATA: lt_iobjname     TYPE STANDARD TABLE OF ty_iobj,
           lv_subrc        TYPE sy-subrc,
           lv_object       TYPE string,
           lv_object_class TYPE string,
@@ -75997,7 +75989,7 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -76215,7 +76207,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD deserialize_texts.
-    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+    DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
           lt_tpool      TYPE textpool_table.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
@@ -76666,7 +76658,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD serialize_texts.
-    DATA: lt_tpool_i18n TYPE tt_tpool_i18n,
+    DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
           lt_tpool      TYPE textpool_table.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
@@ -77284,7 +77276,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    DATA: ls_last_changed TYPE tys_form_header.
+    DATA: ls_last_changed TYPE ty_s_form_header.
 
     ls_last_changed = get_last_changes( ms_item-obj_name ).
 
@@ -77307,9 +77299,9 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lt_form_data            TYPE tyt_form_data.
-    DATA: lt_lines TYPE tyt_lines.
-    FIELD-SYMBOLS: <ls_form_data> TYPE LINE OF tyt_form_data.
+    DATA: lt_form_data            TYPE ty_t_form_data.
+    DATA: lt_lines TYPE ty_t_lines.
+    FIELD-SYMBOLS: <ls_form_data> TYPE LINE OF ty_t_form_data.
 
     io_xml->read( EXPORTING iv_name = c_objectname_form
                   CHANGING  cg_data = lt_form_data ).
@@ -77405,10 +77397,10 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lt_form_data              TYPE tyt_form_data.
-    DATA: ls_form_data              TYPE tys_form_data.
-    DATA: lt_text_header            TYPE tyt_text_header.
-    DATA: lt_lines                  TYPE tyt_lines.
+    DATA: lt_form_data              TYPE ty_t_form_data.
+    DATA: ls_form_data              TYPE ty_s_form_data.
+    DATA: lt_text_header            TYPE ty_t_text_header.
+    DATA: lt_lines                  TYPE ty_t_lines.
     DATA: lv_form_found             TYPE abap_bool.
     FIELD-SYMBOLS: <ls_text_header> LIKE LINE OF lt_text_header.
 
@@ -77520,7 +77512,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD _sort_tdlines_by_windows.
-    DATA lt_lines        TYPE tyt_lines.
+    DATA lt_lines        TYPE ty_t_lines.
     DATA ls_lines        LIKE LINE OF lt_lines.
     DATA ls_form_windows LIKE LINE OF ct_form_windows.
     DATA lv_elt_windows  TYPE tdformat VALUE '/W'.
@@ -77760,7 +77752,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
           lt_dd26e TYPE TABLE OF dd26e,
-          lt_dd27p TYPE tyt_dd27p.
+          lt_dd27p TYPE ty_dd27p.
     io_xml->read( EXPORTING iv_name = 'DD25V'
                   CHANGING cg_data = ls_dd25v ).
     io_xml->read( EXPORTING iv_name = 'DD26E_TABLE'
@@ -77832,7 +77824,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
     DATA: lv_name  TYPE ddobjname,
           ls_dd25v TYPE dd25v,
           lt_dd26e TYPE TABLE OF dd26e,
-          lt_dd27p TYPE tyt_dd27p.
+          lt_dd27p TYPE ty_dd27p.
 
     lv_name = ms_item-obj_name.
 
@@ -80202,7 +80194,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     DATA: lv_name       TYPE ddobjname,
           ls_dd04v_tmp  TYPE dd04v,
           lt_i18n_langs TYPE TABLE OF langu,
-          lt_dd04_texts TYPE tt_dd04_texts.
+          lt_dd04_texts TYPE ty_dd04_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
@@ -80248,7 +80240,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     DATA: lv_name       TYPE ddobjname,
           lv_index      TYPE i,
           ls_dd04v      TYPE dd04v,
-          lt_dd04_texts TYPE tt_dd04_texts,
+          lt_dd04_texts TYPE ty_dd04_texts,
           lt_i18n_langs TYPE TABLE OF langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -81425,8 +81417,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
           ls_dd01v_tmp  TYPE dd01v,
           lt_dd07v_tmp  TYPE TABLE OF dd07v,
           lt_i18n_langs TYPE TABLE OF langu,
-          lt_dd01_texts TYPE tt_dd01_texts,
-          lt_dd07_texts TYPE tt_dd07_texts.
+          lt_dd01_texts TYPE ty_dd01_texts,
+          lt_dd07_texts TYPE ty_dd07_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd07v>     LIKE LINE OF it_dd07v,
@@ -81501,8 +81493,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
           ls_dd01v      TYPE dd01v,
           lt_dd07v      TYPE TABLE OF dd07v,
           lt_i18n_langs TYPE TABLE OF langu,
-          lt_dd01_texts TYPE tt_dd01_texts,
-          lt_dd07_texts TYPE tt_dd07_texts.
+          lt_dd01_texts TYPE ty_dd01_texts,
+          lt_dd07_texts TYPE ty_dd07_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd07v>     LIKE LINE OF lt_dd07v,
@@ -84381,7 +84373,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_clas IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -84457,8 +84449,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: lt_lines      TYPE tlinetab,
           lv_object     TYPE dokhl-object,
-          lt_i18n_lines TYPE zif_abapgit_lang_definitions=>tt_i18n_lines,
-          ls_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_lines.
+          lt_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_lines,
+          ls_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_line.
 
     ii_xml->read( EXPORTING iv_name = 'LINES'
                   CHANGING cg_data = lt_lines ).
@@ -84498,7 +84490,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     DATA: lv_clsname    TYPE seoclsname,
           lt_tpool_ext  TYPE zif_abapgit_definitions=>ty_tpool_tt,
           lt_tpool      TYPE textpool_table,
-          lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>tt_i18n_tpool,
+          lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpools,
           ls_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpool.
     ii_xml->read( EXPORTING iv_name = 'TPOOL'
                   CHANGING cg_data = lt_tpool_ext ).
@@ -84602,8 +84594,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: lt_lines      TYPE tlinetab,
           lv_langu      TYPE langu,
-          lt_i18n_lines TYPE zif_abapgit_lang_definitions=>tt_i18n_lines,
-          ls_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_lines.
+          lt_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_lines,
+          ls_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_line.
 
     lt_lines = mi_object_oriented_object_fct->read_documentation(
       iv_class_name = iv_clsname
@@ -84645,7 +84637,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: lt_tpool      TYPE textpool_table,
           lv_langu      TYPE langu,
-          lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>tt_i18n_tpool,
+          lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpools,
           ls_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpool.
 
     lt_tpool = mi_object_oriented_object_fct->read_text_pool(
@@ -84681,7 +84673,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: ls_vseoclass        TYPE vseoclass,
           ls_clskey           TYPE seoclskey,
-          lt_langu_additional TYPE zif_abapgit_lang_definitions=>tt_langu.
+          lt_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus.
 
     ls_clskey-clsname = ms_item-obj_name.
 
@@ -87233,7 +87225,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD read.
 
     DATA: ls_longtext TYPE ty_longtext,
-          lt_dokil    TYPE zif_abapgit_definitions=>tty_dokil.
+          lt_dokil    TYPE zif_abapgit_definitions=>ty_dokil_tt.
 
     FIELD-SYMBOLS: <ls_dokil> LIKE LINE OF lt_dokil.
 
@@ -87297,7 +87289,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_longtexts~changed_by.
 
-    DATA: lt_longtexts TYPE tty_longtexts.
+    DATA: lt_longtexts TYPE ty_longtexts.
     FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
 
     lt_longtexts = read( iv_object_name = iv_object_name
@@ -87312,7 +87304,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_longtexts~delete.
 
-    DATA: lt_dokil TYPE zif_abapgit_definitions=>tty_dokil.
+    DATA: lt_dokil TYPE zif_abapgit_definitions=>ty_dokil_tt.
     FIELD-SYMBOLS: <ls_dokil> TYPE dokil.
 
     SELECT * FROM dokil
@@ -87341,7 +87333,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_longtexts~deserialize.
 
-    DATA: lt_longtexts     TYPE tty_longtexts,
+    DATA: lt_longtexts     TYPE ty_longtexts,
           lv_no_masterlang TYPE dokil-masterlang.
     FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
 
@@ -87370,7 +87362,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_longtexts~serialize.
 
-    DATA lt_longtexts TYPE tty_longtexts.
+    DATA lt_longtexts TYPE ty_longtexts.
     DATA lt_dokil LIKE it_dokil.
     DATA lv_master_lang_only TYPE abap_bool.
 
@@ -87391,19 +87383,19 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          lt_buss_msg_ref       TYPE zif_abapgit_ecatt=>etvo_bus_msg_tabtype,
+          lt_buss_msg_ref       TYPE zif_abapgit_ecatt=>ty_bus_msgs,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
     FIELD-SYMBOLS: <lg_ecatt_vo> TYPE any.
 
-    li_section = template_over_all->find_from_name_ns( 'ETVO_MSG' ).
+    li_section = template_over_all->find_from_name_ns( 'ty_MSG' ).
 
     IF NOT li_section IS INITIAL.
       CALL FUNCTION 'SDIXML_DOM_TO_DATA'
@@ -87442,7 +87434,7 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          ls_impl_details       TYPE zif_abapgit_ecatt=>etvoimpl_det,
+          ls_impl_details       TYPE zif_abapgit_ecatt=>ty_impl_det,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
@@ -87487,8 +87479,8 @@ CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
     " downport from CL_APL_ECATT_VO_UPLOAD
 
     DATA: li_section            TYPE REF TO if_ixml_element,
-          lv_error_prio         TYPE zif_abapgit_ecatt=>etvo_error_prio,
-          lv_invert_validation  TYPE zif_abapgit_ecatt=>etvo_invert_validation,
+          lv_error_prio         TYPE zif_abapgit_ecatt=>ty_error_prio,
+          lv_invert_validation  TYPE zif_abapgit_ecatt=>ty_invert_validation,
           lv_exception_occurred TYPE etonoff,
           lo_ecatt_vo           TYPE REF TO object.
 
@@ -87769,7 +87761,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD set_business_msgs.
 
     DATA:
-      lt_buss_msg_ref   TYPE zif_abapgit_ecatt=>etvo_bus_msg_tabtype,
+      lt_buss_msg_ref   TYPE zif_abapgit_ecatt=>ty_bus_msgs,
       li_element        TYPE REF TO if_ixml_element,
       li_insert_objects TYPE REF TO if_ixml_element,
       lo_ecatt_vo       TYPE REF TO object.
@@ -87791,7 +87783,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     CALL FUNCTION 'SDIXML_DATA_TO_DOM'
       EXPORTING
-        name         = 'ETVO_MSG'
+        name         = 'ty_MSG'
         dataobject   = lt_buss_msg_ref
       IMPORTING
         data_as_dom  = li_element
@@ -87813,8 +87805,8 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD set_ecatt_flags.
 
     DATA:
-      lv_invert_validation TYPE zif_abapgit_ecatt=>etvo_invert_validation,
-      lv_error_prio        TYPE zif_abapgit_ecatt=>etvo_error_prio,
+      lv_invert_validation TYPE zif_abapgit_ecatt=>ty_invert_validation,
+      lv_error_prio        TYPE zif_abapgit_ecatt=>ty_error_prio,
       li_element           TYPE REF TO if_ixml_element,
       li_insert_objects    TYPE REF TO if_ixml_element,
       lo_ecatt_vo          TYPE REF TO object.
@@ -87882,7 +87874,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   METHOD set_ecatt_impl_detail.
 
     DATA:
-      ls_impl_details   TYPE zif_abapgit_ecatt=>etvoimpl_det,
+      ls_impl_details   TYPE zif_abapgit_ecatt=>ty_impl_det,
       li_element        TYPE REF TO if_ixml_element,
       li_insert_objects TYPE REF TO if_ixml_element,
       lo_ecatt_vo       TYPE REF TO object.
@@ -87929,7 +87921,6 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
@@ -92890,7 +92881,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
 
     DATA: lo_per        TYPE REF TO zcl_abapgit_persist_background,
           lo_repo       TYPE REF TO zcl_abapgit_repo_online,
-          lt_list       TYPE zcl_abapgit_persist_background=>tt_background,
+          lt_list       TYPE zcl_abapgit_persist_background=>ty_background_keys,
           li_background TYPE REF TO zif_abapgit_background,
           li_log        TYPE REF TO zif_abapgit_log,
           lv_repo_name  TYPE string.
@@ -93325,10 +93316,10 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
   METHOD are_dependencies_met.
 
-    DATA: lt_dependencies_status TYPE tt_dependency_status.
+    DATA: lt_dependencies_status TYPE ty_dependency_statuses.
 
     IF it_dependencies IS INITIAL.
       rv_status = zif_abapgit_definitions=>gc_yes.
@@ -93350,7 +93341,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   ENDMETHOD.
   METHOD dependencies_popup.
 
-    DATA: lt_met_status TYPE tt_dependency_status.
+    DATA: lt_met_status TYPE ty_dependency_statuses.
 
     lt_met_status = get_dependencies_met_status( it_dependencies ).
 
@@ -93359,7 +93350,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_dependencies_met_status.
 
-    DATA: lt_installed_packages TYPE zif_abapgit_apack_definitions=>tt_descriptor,
+    DATA: lt_installed_packages TYPE zif_abapgit_apack_definitions=>ty_descriptors,
           ls_installed_package  TYPE zif_abapgit_apack_definitions=>ty_descriptor,
           ls_dependecy          TYPE zif_abapgit_apack_definitions=>ty_dependency,
           ls_dependecy_popup    TYPE ty_dependency_status.
@@ -93398,7 +93389,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   METHOD get_installed_packages.
 
     DATA: lo_apack_reader            TYPE REF TO zcl_abapgit_apack_reader,
-          lt_manifest_implementation TYPE tt_manifest_declaration,
+          lt_manifest_implementation TYPE ty_manifest_declarations,
           ls_manifest_implementation TYPE ty_manifest_declaration,
           lo_manifest_provider       TYPE REF TO object,
           ls_descriptor              TYPE zif_abapgit_apack_definitions=>ty_descriptor.
@@ -93438,14 +93429,14 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   METHOD show_dependencies_popup.
 
     TYPES:
-      BEGIN OF lty_color_line,
+      BEGIN OF ty_color_line,
         exception(1) TYPE c,
         color        TYPE lvc_t_scol.
         INCLUDE TYPE ty_dependency_status.
     TYPES: t_hyperlink  TYPE salv_t_int4_column,
-      END OF lty_color_line.
+      END OF ty_color_line.
 
-    TYPES: lty_color_tab TYPE STANDARD TABLE OF lty_color_line WITH DEFAULT KEY.
+    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
 
     DATA: lo_alv                 TYPE REF TO cl_salv_table,
           lo_functional_settings TYPE REF TO cl_salv_functional_settings,
@@ -93455,7 +93446,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
           lo_columns             TYPE REF TO cl_salv_columns_table,
           lt_columns             TYPE salv_t_column_ref,
           ls_column              LIKE LINE OF lt_columns,
-          lt_color_table         TYPE lty_color_tab,
+          lt_color_table         TYPE ty_color_tab,
           lt_color_negative      TYPE lvc_t_scol,
           lt_color_normal        TYPE lvc_t_scol,
           lt_color_positive      TYPE lvc_t_scol,
@@ -93465,7 +93456,7 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
           lv_hyperlink           TYPE service_rl,
           lx_ex                  TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <ls_line>       TYPE lty_color_line,
+    FIELD-SYMBOLS: <ls_line>       TYPE ty_color_line,
                    <ls_dependency> LIKE LINE OF it_dependencies.
 
     IF it_dependencies IS INITIAL.
@@ -93973,5 +93964,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-06T13:14:23.995Z
+* abapmerge 0.14.1 - 2020-10-07T06:55:31.927Z
 ****************************************************
