@@ -67058,7 +67058,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
             area_name           = lv_area_name
             attributes          = ls_area_attributes
             force_overwrite     = abap_true
-            no_class_generation = abap_true
+            no_class_generation = abap_false
             silent_mode         = abap_true.
 
       CATCH cx_root.
@@ -93964,5 +93964,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-09T11:12:38.834Z
+* abapmerge 0.14.1 - 2020-10-09T11:14:33.380Z
 ****************************************************
