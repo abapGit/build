@@ -5833,25 +5833,29 @@ CLASS zcl_abapgit_objects DEFINITION
       RETURNING
         VALUE(rt_steps) TYPE zif_abapgit_definitions=>ty_step_data_tt .
 ENDCLASS.
-CLASS zcl_abapgit_objects_activation DEFINITION CREATE PUBLIC.
+CLASS zcl_abapgit_objects_activation DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS add
-      IMPORTING iv_type   TYPE trobjtype
-                iv_name   TYPE clike
-                iv_delete TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_type   TYPE trobjtype
+        !iv_name   TYPE clike
+        !iv_delete TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS add_item
-      IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS activate
-      IMPORTING iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING   zcx_abapgit_exception.
-
-    CLASS-METHODS clear.
-
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS clear .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9854,12 +9858,17 @@ CLASS zcl_abapgit_object_wdya DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_wdyn DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
+CLASS zcl_abapgit_object_wdyn DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
+    INTERFACES zif_abapgit_object .
+
+    ALIASES mo_files
+      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9919,7 +9928,10 @@ CLASS zcl_abapgit_object_wdyn DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       add_fm_exception
         IMPORTING iv_name      TYPE string
                   iv_value     TYPE i
-        CHANGING  ct_exception TYPE abap_func_excpbind_tab.
+        CHANGING  ct_exception TYPE abap_func_excpbind_tab,
+      add_with_inactive_parts
+        RAISING
+          zcx_abapgit_exception .
 
 ENDCLASS.
 CLASS zcl_abapgit_object_webi DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -23674,8 +23686,9 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
                    <ls_res2> LIKE LINE OF it_results.
+
+    " This method just adds messages to the log. No log, nothing to do here
     IF ii_log IS INITIAL.
-* huh?
       RETURN.
     ENDIF.
 
@@ -53663,41 +53676,16 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 * function module RS_INSERT_INTO_WORKING_AREA
 * class CL_WB_ACTIVATION_WORK_AREA
 
-    DATA: lt_objects  TYPE dwinactiv_tab,
-          lv_obj_name TYPE dwinactiv-obj_name.
+    FIELD-SYMBOLS: <ls_object> TYPE dwinactiv.
 
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF lt_objects.
-    lv_obj_name = iv_name.
-
-    CASE iv_type.
-      WHEN 'CLAS'.
-        APPEND iv_name TO gt_classes.
-      WHEN 'WDYN'.
-* todo, move this to the object type include instead
-        CALL FUNCTION 'RS_INACTIVE_OBJECTS_IN_OBJECT'
-          EXPORTING
-            obj_name         = lv_obj_name
-            object           = iv_type
-          TABLES
-            inactive_objects = lt_objects
-          EXCEPTIONS
-            object_not_found = 1
-            OTHERS           = 2.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
-        ENDIF.
-
-        LOOP AT lt_objects ASSIGNING <ls_object>.
-          <ls_object>-delet_flag = iv_delete.
-        ENDLOOP.
-
-        APPEND LINES OF lt_objects TO gt_objects.
-      WHEN OTHERS.
-        APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
-        <ls_object>-object     = iv_type.
-        <ls_object>-obj_name   = lv_obj_name.
-        <ls_object>-delet_flag = iv_delete.
-    ENDCASE.
+    IF iv_type = 'CLAS'.
+      APPEND iv_name TO gt_classes.
+    ELSE.
+      APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
+      <ls_object>-object     = iv_type.
+      <ls_object>-obj_name   = iv_name.
+      <ls_object>-delet_flag = iv_delete.
+    ENDIF.
 
   ENDMETHOD.
   METHOD add_item.
@@ -55845,6 +55833,37 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     INSERT ls_param INTO TABLE ct_param.
 
   ENDMETHOD.
+  METHOD add_with_inactive_parts.
+
+    DATA:
+      lv_obj_name TYPE trobj_name,
+      lv_object   TYPE trobjtype,
+      lt_objects  TYPE dwinactiv_tab.
+
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF lt_objects.
+
+    lv_obj_name = ms_item-obj_name.
+    lv_object = ms_item-obj_type.
+
+    CALL FUNCTION 'RS_INACTIVE_OBJECTS_IN_OBJECT'
+      EXPORTING
+        obj_name         = lv_obj_name
+        object           = lv_object
+      TABLES
+        inactive_objects = lt_objects
+      EXCEPTIONS
+        object_not_found = 1
+        OTHERS           = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
+    ENDIF.
+
+    LOOP AT lt_objects ASSIGNING <ls_object>.
+      zcl_abapgit_objects_activation=>add( iv_type = <ls_object>-object
+                                           iv_name = <ls_object>-obj_name ).
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD delta_controller.
 
     DATA: li_controller TYPE REF TO if_wdy_md_controller,
@@ -56473,7 +56492,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
         io_xml     = io_xml ).
     ENDIF.
 
-    zcl_abapgit_objects_activation=>add_item( ms_item ).
+    add_with_inactive_parts( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -76369,8 +76388,6 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     CALL FUNCTION 'RS_GET_ALL_INCLUDES'
       EXPORTING
         program      = lv_program
-*       WITH_RESERVED_INCLUDES =
-*       WITH_CLASS_INCLUDES    = ' ' hmm, todo
       TABLES
         includetab   = rt_includes
       EXCEPTIONS
@@ -93947,5 +93964,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-09T10:59:47.751Z
+* abapmerge 0.14.1 - 2020-10-09T11:12:38.834Z
 ****************************************************
