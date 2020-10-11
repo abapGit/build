@@ -1566,16 +1566,12 @@ INTERFACE zif_abapgit_gui_event .
   DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services READ-ONLY.
 
   METHODS query
-    IMPORTING
-      iv_upper_cased TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
     RAISING
       zcx_abapgit_exception.
 
   METHODS form_data
-    IMPORTING
-      iv_upper_cased TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
     RAISING
@@ -11731,26 +11727,13 @@ CLASS zcl_abapgit_gui_event DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mo_query TYPE REF TO zcl_abapgit_string_map.
-    DATA mo_query_upper_cased TYPE REF TO zcl_abapgit_string_map.
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
-    DATA mo_form_data_upper_cased TYPE REF TO zcl_abapgit_string_map.
 
     METHODS fields_to_map
       IMPORTING
         it_fields            TYPE tihttpnvp
       RETURNING
         VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS fields_to_map_macro
-      IMPORTING
-        it_fields      TYPE tihttpnvp
-        iv_upper_cased TYPE abap_bool
-      CHANGING
-        co_string_map_lower TYPE REF TO zcl_abapgit_string_map
-        co_string_map_upper TYPE REF TO zcl_abapgit_string_map
-        co_string_map_return TYPE REF TO zcl_abapgit_string_map
       RAISING
         zcx_abapgit_exception.
 
@@ -15761,9 +15744,13 @@ CLASS zcl_abapgit_string_map DEFINITION
       ty_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
 
     CLASS-METHODS create
+      IMPORTING
+        iv_case_insensitive TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map.
-    METHODS constructor.
+    METHODS constructor
+      IMPORTING
+        iv_case_insensitive TYPE abap_bool DEFAULT abap_false.
     METHODS get
       IMPORTING
         iv_key        TYPE string
@@ -15814,6 +15801,7 @@ CLASS zcl_abapgit_string_map DEFINITION
   PRIVATE SECTION.
     DATA mv_read_only TYPE abap_bool.
     DATA mv_is_strict TYPE abap_bool.
+    DATA mv_case_insensitive TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_time DEFINITION
@@ -26301,9 +26289,12 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
     mv_is_strict = abap_true.
+    mv_case_insensitive = iv_case_insensitive.
   ENDMETHOD.
   METHOD create.
-    CREATE OBJECT ro_instance.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_case_insensitive = iv_case_insensitive.
   ENDMETHOD.
   METHOD delete.
 
@@ -26319,8 +26310,16 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
   METHOD get.
 
+    DATA lv_key LIKE iv_key.
     FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
-    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = iv_key.
+
+    IF mv_case_insensitive = abap_true.
+      lv_key = to_upper( iv_key ).
+    ELSE.
+      lv_key = iv_key.
+    ENDIF.
+
+    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = lv_key.
     IF sy-subrc IS INITIAL.
       rv_val = <ls_entry>-v.
     ENDIF.
@@ -26337,6 +26336,7 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
   METHOD set.
 
+    DATA lv_key LIKE iv_key.
     DATA ls_entry LIKE LINE OF mt_entries.
     FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
 
@@ -26344,11 +26344,17 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot set. This string map is immutable' ).
     ENDIF.
 
-    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = iv_key.
+    IF mv_case_insensitive = abap_true.
+      lv_key = to_upper( iv_key ).
+    ELSE.
+      lv_key = iv_key.
+    ENDIF.
+
+    READ TABLE mt_entries ASSIGNING <ls_entry> WITH KEY k = lv_key.
     IF sy-subrc IS INITIAL.
       <ls_entry>-v = iv_val.
     ELSE.
-      ls_entry-k = iv_key.
+      ls_entry-k = lv_key.
       ls_entry-v = iv_val.
       INSERT ls_entry INTO TABLE mt_entries.
     ENDIF.
@@ -37885,7 +37891,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
 
       zcl_abapgit_path=>split_file_location(
         EXPORTING
-          iv_fullpath = <ls_item>-k
+          iv_fullpath = to_lower( <ls_item>-k ) " filename is lower cased
         IMPORTING
           ev_path     = ls_file-path
           ev_filename = ls_file-filename ).
@@ -39497,7 +39503,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_repo. " Switch to another repo
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_view
           EXPORTING
-            iv_key = |{ ii_event->query( iv_upper_cased = abap_true )->get( 'KEY' ) }|.
+            iv_key = |{ ii_event->query( )->get( 'KEY' ) }|.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
 
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
@@ -41081,7 +41087,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     FIELD-SYMBOLS:
       <ls_conflict>      TYPE zif_abapgit_definitions=>ty_merge_conflict.
 
-    lv_merge_content = ii_event->form_data( iv_upper_cased = abap_true )->get( 'MERGE_CONTENT' ).
+    lv_merge_content = ii_event->form_data( )->get( 'MERGE_CONTENT' ).
 
     REPLACE ALL OCCURRENCES
       OF zif_abapgit_definitions=>c_crlf IN lv_merge_content WITH zif_abapgit_definitions=>c_newline.
@@ -41740,7 +41746,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_actions-select.
 
-        lv_key = ii_event->query( iv_upper_cased = abap_true )->get( 'KEY' ).
+        lv_key = ii_event->query( )->get( 'KEY' ).
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lv_key ).
 
         TRY.
@@ -41780,7 +41786,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
 
       WHEN zif_abapgit_definitions=>c_action-repo_settings.
 
-        lv_key = ii_event->query( iv_upper_cased = abap_true )->get( 'KEY' ).
+        lv_key = ii_event->query( )->get( 'KEY' ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_sett
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
@@ -42847,7 +42853,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     DATA lo_map TYPE REF TO zcl_abapgit_string_map.
 
-    lo_map = ii_event->form_data( iv_upper_cased = abap_true ).
+    lo_map = ii_event->form_data( ).
     lo_map->to_abap( CHANGING cs_container = rs_commit ).
     REPLACE ALL OCCURRENCES
       OF zif_abapgit_definitions=>c_crlf
@@ -46216,7 +46222,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
 
     DATA lo_map TYPE REF TO zcl_abapgit_string_map.
 
-    lo_map = ii_event->form_data( iv_upper_cased = abap_true ).
+    lo_map = ii_event->form_data( ).
     rs_content-type     = lo_map->get( 'TYPE' ).
     rs_content-value    = lo_map->get( 'VALUE' ).
     rs_content-data_str = lo_map->get( 'XMLDATA' ).
@@ -47023,56 +47029,31 @@ CLASS ZCL_ABAPGIT_GUI_EVENT IMPLEMENTATION.
   METHOD fields_to_map.
     FIELD-SYMBOLS <ls_field> LIKE LINE OF it_fields.
 
-    CREATE OBJECT ro_string_map.
+    CREATE OBJECT ro_string_map EXPORTING iv_case_insensitive = abap_true.
     LOOP AT it_fields ASSIGNING <ls_field>.
       ro_string_map->set(
         iv_key = <ls_field>-name
         iv_val = <ls_field>-value ).
     ENDLOOP.
   ENDMETHOD.
-  METHOD fields_to_map_macro.
-
-    FIELD-SYMBOLS <lo_map> TYPE REF TO zcl_abapgit_string_map.
-
-    IF iv_upper_cased = abap_true.
-      ASSIGN co_string_map_upper TO <lo_map>.
-    ELSE.
-      ASSIGN co_string_map_lower TO <lo_map>.
-    ENDIF.
-
-    IF <lo_map> IS NOT BOUND.
-      <lo_map> = fields_to_map( it_fields ).
-      <lo_map>->freeze( ).
-    ENDIF.
-    co_string_map_return = <lo_map>.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event~form_data.
 
-    fields_to_map_macro(
-      EXPORTING
-        iv_upper_cased = iv_upper_cased
-        it_fields      = zcl_abapgit_html_action_utils=>parse_post_form_data(
-          it_post_data   = zif_abapgit_gui_event~mt_postdata
-          iv_upper_cased = iv_upper_cased )
-      CHANGING
-        co_string_map_upper  = mo_form_data_upper_cased
-        co_string_map_lower  = mo_form_data
-        co_string_map_return = ro_string_map ).
+    IF mo_form_data IS NOT BOUND.
+      mo_form_data = fields_to_map(
+        zcl_abapgit_html_action_utils=>parse_post_form_data( zif_abapgit_gui_event~mt_postdata ) ).
+      mo_form_data->freeze( ).
+    ENDIF.
+    ro_string_map = mo_form_data.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event~query.
 
-    fields_to_map_macro(
-      EXPORTING
-        iv_upper_cased = iv_upper_cased
-        it_fields      = zcl_abapgit_html_action_utils=>parse_fields(
-          iv_string      = zif_abapgit_gui_event~mv_getdata
-          iv_upper_cased = iv_upper_cased )
-      CHANGING
-        co_string_map_upper  = mo_query_upper_cased
-        co_string_map_lower  = mo_query
-        co_string_map_return = ro_string_map ).
+    IF mo_query IS NOT BOUND.
+      mo_query = fields_to_map(
+        zcl_abapgit_html_action_utils=>parse_fields( zif_abapgit_gui_event~mv_getdata ) ).
+      mo_query->freeze( ).
+    ENDIF.
+    ro_string_map = mo_query.
 
   ENDMETHOD.
 ENDCLASS.
@@ -94003,5 +93984,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-11T08:41:36.016Z
+* abapmerge 0.14.1 - 2020-10-11T08:48:50.673Z
 ****************************************************
