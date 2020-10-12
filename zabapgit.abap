@@ -12463,13 +12463,6 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
 
-    METHODS parse_form
-      IMPORTING
-        !it_form_fields     TYPE tihttpnvp
-      RETURNING
-        VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
-      RAISING
-        zcx_abapgit_exception .
     METHODS validate_form
       IMPORTING
         !io_form_data            TYPE REF TO zcl_abapgit_string_map
@@ -12527,14 +12520,6 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
     DATA mo_form TYPE REF TO zcl_abapgit_html_form.
-
-    METHODS parse_form
-      IMPORTING
-        it_form_fields TYPE tihttpnvp
-      RETURNING
-        VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
-      RAISING
-        zcx_abapgit_exception.
 
     METHODS validate_form
       IMPORTING
@@ -14529,7 +14514,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         !iv_hint       TYPE string OPTIONAL
       RETURNING
         VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
-    METHODS validate_normalize_form_data
+    METHODS normalize_form_data
       IMPORTING
         !io_form_data       TYPE REF TO zcl_abapgit_string_map
       RETURNING
@@ -35680,6 +35665,34 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD normalize_form_data.
+
+    DATA lv_value TYPE string.
+    FIELD-SYMBOLS <ls_field> LIKE LINE OF mt_fields.
+
+    CREATE OBJECT ro_form_data.
+
+    LOOP AT mt_fields ASSIGNING <ls_field>.
+      CLEAR lv_value.
+      lv_value = io_form_data->get( <ls_field>-name ).
+
+      IF <ls_field>-type = c_field_type-checkbox.
+        ro_form_data->set(
+          iv_key = <ls_field>-name
+          iv_val = boolc( lv_value = 'on' ) ).
+      ELSEIF <ls_field>-type = c_field_type-text AND <ls_field>-upper_case = abap_true.
+        ro_form_data->set(
+          iv_key = <ls_field>-name
+          iv_val = to_upper( lv_value ) ).
+      ELSE.
+        ro_form_data->set(
+          iv_key = <ls_field>-name
+          iv_val = lv_value ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD option.
 
     FIELD-SYMBOLS <ls_last> LIKE LINE OF mt_fields.
@@ -35851,7 +35864,7 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
         IF lv_error IS NOT INITIAL.
           ii_html->add( |<small>{ lv_error }</small>| ).
         ENDIF.
-        IF lv_value IS NOT INITIAL.
+        IF lv_value = abap_true OR lv_value = 'on'. " boolc return ` ` which is not initial -> bug after 1st validation
           lv_checked = ' checked'.
         ENDIF.
         ii_html->add( |<input type="checkbox" name="{ is_field-name }" id="{ is_field-name }"{ lv_checked }>| ).
@@ -35938,52 +35951,19 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     ro_self = me.
 
   ENDMETHOD.
-  METHOD validate_normalize_form_data.
-
-    DATA ls_field LIKE LINE OF mt_fields.
-    FIELD-SYMBOLS <ls_entry> LIKE LINE OF io_form_data->mt_entries.
-
-    CREATE OBJECT ro_form_data.
-
-    LOOP AT io_form_data->mt_entries ASSIGNING <ls_entry>.
-      READ TABLE mt_fields INTO ls_field WITH KEY by_name COMPONENTS name = <ls_entry>-k.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Unexpected form field [{ <ls_entry>-k }]| ).
-      ENDIF.
-
-      IF ls_field-type = c_field_type-checkbox.
-        ro_form_data->set(
-          iv_key = <ls_entry>-k
-          iv_val = boolc( <ls_entry>-v = 'on' ) ).
-      ELSEIF ls_field-type = c_field_type-text AND ls_field-upper_case = abap_true.
-        ro_form_data->set(
-          iv_key = <ls_entry>-k
-          iv_val = to_upper( <ls_entry>-v ) ).
-      ELSE.
-        ro_form_data->set(
-          iv_key = <ls_entry>-k
-          iv_val = <ls_entry>-v ).
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD validate_required_fields.
 
-    DATA ls_field LIKE LINE OF mt_fields.
-    FIELD-SYMBOLS <ls_entry> LIKE LINE OF io_form_data->mt_entries.
+    DATA lv_value TYPE string.
+    FIELD-SYMBOLS <ls_field> LIKE LINE OF mt_fields.
 
     CREATE OBJECT ro_validation_log.
 
-    LOOP AT io_form_data->mt_entries ASSIGNING <ls_entry>.
-      READ TABLE mt_fields INTO ls_field WITH KEY by_name COMPONENTS name = <ls_entry>-k.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Unexpected form field [{ <ls_entry>-k }]| ).
-      ENDIF.
-
-      IF ls_field-required IS NOT INITIAL AND <ls_entry>-v IS INITIAL.
+    LOOP AT mt_fields ASSIGNING <ls_field>.
+      lv_value = io_form_data->get( <ls_field>-name ).
+      IF <ls_field>-required IS NOT INITIAL AND lv_value IS INITIAL.
         ro_validation_log->set(
-          iv_key = ls_field-name
-          iv_val = |{ ls_field-label } cannot be empty| ).
+          iv_key = <ls_field>-name
+          iv_val = |{ <ls_field>-label } cannot be empty| ).
       ENDIF.
     ENDLOOP.
 
@@ -44237,22 +44217,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_action      = c_event-go_back ).
 
   ENDMETHOD.
-  METHOD parse_form.
-
-    DATA ls_field LIKE LINE OF it_form_fields.
-
-    CREATE OBJECT ro_form_data.
-
-    " temporary, TODO refactor later, after gui_event class is ready, move to on_event
-    LOOP AT it_form_fields INTO ls_field.
-      ro_form_data->set(
-        iv_key = ls_field-name
-        iv_val = ls_field-value ).
-    ENDLOOP.
-
-    ro_form_data = mo_form->validate_normalize_form_data( ro_form_data ).
-
-  ENDMETHOD.
   METHOD validate_form.
 
     DATA lx_err TYPE REF TO zcx_abapgit_exception.
@@ -44297,7 +44261,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
           lo_new_online_repo TYPE REF TO zcl_abapgit_repo_online.
 
     " import data from html before re-render
-    mo_form_data = parse_form( zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ) ).
+    mo_form_data = mo_form->normalize_form_data( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
       WHEN c_event-go_back.
@@ -44308,7 +44272,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
         mo_form_data->set(
           iv_key = c_id-package
           iv_val = zcl_abapgit_services_basis=>create_package(
-            iv_prefill_package = |{ mo_form_data->get( 'package' ) }| ) ).
+            iv_prefill_package = |{ mo_form_data->get( c_id-package ) }| ) ).
         IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
           mo_validation_log = validate_form( mo_form_data ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -44448,22 +44412,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
       iv_action      = c_event-go_back ).
 
   ENDMETHOD.
-  METHOD parse_form.
-
-    DATA ls_field LIKE LINE OF it_form_fields.
-
-    CREATE OBJECT ro_form_data.
-
-    " temporary, TODO refactor later, after gui_event class is ready, move to on_event
-    LOOP AT it_form_fields INTO ls_field.
-      ro_form_data->set(
-        iv_key = ls_field-name
-        iv_val = ls_field-value ).
-    ENDLOOP.
-
-    ro_form_data = mo_form->validate_normalize_form_data( ro_form_data ).
-
-  ENDMETHOD.
   METHOD validate_form.
 
     DATA lx_err TYPE REF TO zcx_abapgit_exception.
@@ -44497,7 +44445,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
           lo_new_offline_repo TYPE REF TO zcl_abapgit_repo_offline.
 
     " import data from html before re-render
-    mo_form_data = parse_form( zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ) ).
+    mo_form_data = mo_form->normalize_form_data( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
       WHEN c_event-go_back.
@@ -44508,7 +44456,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
         mo_form_data->set(
           iv_key = c_id-package
           iv_val = zcl_abapgit_services_basis=>create_package(
-            iv_prefill_package = |{ mo_form_data->get( 'package' ) }| ) ).
+            iv_prefill_package = |{ mo_form_data->get( c_id-package ) }| ) ).
         IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
           mo_validation_log = validate_form( mo_form_data ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -93984,5 +93932,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-12T14:26:57.573Z
+* abapmerge 0.14.1 - 2020-10-12T14:41:31.196Z
 ****************************************************
