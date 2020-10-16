@@ -48832,7 +48832,9 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD read_repo_config.
-    READ TABLE ms_user-repo_config INTO rs_repo_config WITH KEY url = to_lower( iv_url ).
+    DATA lv_url TYPE string.
+    lv_url = to_lower( iv_url ).
+    READ TABLE ms_user-repo_config INTO rs_repo_config WITH KEY url = lv_url.
   ENDMETHOD.
   METHOD to_xml.
     CALL TRANSFORMATION id
@@ -93971,5 +93973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-16T10:31:53.789Z
+* abapmerge 0.14.1 - 2020-10-16T16:00:40.216Z
 ****************************************************
