@@ -70889,10 +70889,12 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     DATA li_child_iterator TYPE REF TO if_ixml_node_iterator.
     DATA li_attributes TYPE REF TO if_ixml_named_node_map.
     DATA lv_name TYPE string.
+    DATA li_container TYPE REF TO if_swf_cnt_container.
 
     "Todo: get_user_container strips out system elements, but to_xml adds them back in (hardcoded internally)
     "      Dirty hack further down to remove them from XML until we get this to work properly
-    ii_task->get_user_container( )->to_xml(
+    li_container = ii_task->get_user_container( ).
+    li_container->to_xml(
       EXPORTING
         include_null_values        = abap_true
         include_initial_values     = abap_true
@@ -94034,5 +94036,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-14T07:43:13.175Z
+* abapmerge 0.14.1 - 2020-10-16T06:37:35.962Z
 ****************************************************
