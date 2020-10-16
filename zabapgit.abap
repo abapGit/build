@@ -3409,15 +3409,6 @@ INTERFACE zif_abapgit_popups .
       !cv_show_popup TYPE char01
     RAISING
       zcx_abapgit_exception .
-  METHODS package_popup_callback
-    IMPORTING
-      !iv_code       TYPE clike
-    CHANGING
-      !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
-      !cs_error      TYPE svale
-      !cv_show_popup TYPE char01
-    RAISING
-      zcx_abapgit_exception .
   METHODS popup_transport_request
     IMPORTING
       !is_transport_type  TYPE zif_abapgit_definitions=>ty_transport_type
@@ -34278,37 +34269,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       CATCH zcx_abapgit_cancel.
         ev_cancel = abap_true.
     ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~package_popup_callback.
-
-    DATA: ls_package_data TYPE scompkdtln,
-          lv_create       TYPE abap_bool.
-
-    FIELD-SYMBOLS: <ls_fpackage> LIKE LINE OF ct_fields.
-
-    CLEAR cs_error.
-
-    IF iv_code = 'COD1'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-      ASSERT sy-subrc = 0.
-      ls_package_data-devclass = <ls_fpackage>-value.
-
-      zif_abapgit_popups~popup_to_create_package(
-        IMPORTING
-          es_package_data = ls_package_data
-          ev_create       = lv_create ).
-      IF lv_create = abap_false.
-        RETURN.
-      ENDIF.
-
-      zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->create( ls_package_data ).
-      COMMIT WORK.
-
-      <ls_fpackage>-value = ls_package_data-devclass.
-    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_folder_logic.
@@ -93883,32 +93843,6 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
 
 ENDFORM.                    "branch_popup
 
-FORM package_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
-                   USING    pv_code TYPE clike
-                   CHANGING cs_error TYPE svale
-                            cv_show_popup TYPE c
-                   RAISING  zcx_abapgit_exception ##called ##needed.
-* called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
-
-  DATA: lx_error  TYPE REF TO zcx_abapgit_exception,
-        li_popups TYPE REF TO zif_abapgit_popups.
-
-  TRY.
-      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-      li_popups->package_popup_callback(
-        EXPORTING
-          iv_code       = pv_code
-        CHANGING
-          ct_fields     = tt_fields[]
-          cs_error      = cs_error
-          cv_show_popup = cv_show_popup ).
-
-    CATCH zcx_abapgit_exception INTO lx_error.
-      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDTRY.
-
-ENDFORM.                    "package_popup
-
 FORM output.
   DATA: lt_ucomm TYPE TABLE OF sy-ucomm.
 
@@ -94036,5 +93970,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-16T06:37:35.962Z
+* abapmerge 0.14.1 - 2020-10-16T07:12:33.141Z
 ****************************************************
