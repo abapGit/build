@@ -3253,7 +3253,7 @@ INTERFACE zif_abapgit_lang_definitions .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_listener .
-  INTERFACE zif_abapgit_persistence LOAD .
+
   METHODS on_meta_change
     IMPORTING
       !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -93336,5 +93336,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-17T09:06:17.329Z
+* abapmerge 0.14.1 - 2020-10-17T09:08:39.841Z
 ****************************************************
