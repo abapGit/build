@@ -4057,7 +4057,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
     CLASS-METHODS full_tree
       IMPORTING
         !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_branch         TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_parent         TYPE zif_abapgit_definitions=>ty_sha1
       RETURNING
         VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
       RAISING
@@ -22781,13 +22781,13 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 
     ms_merge-stree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = mt_objects
-      iv_branch  = ms_merge-source-sha1 ).
+      iv_parent  = ms_merge-source-sha1 ).
     ms_merge-ttree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = mt_objects
-      iv_branch  = ms_merge-target-sha1 ).
+      iv_parent  = ms_merge-target-sha1 ).
     ms_merge-ctree = zcl_abapgit_git_porcelain=>full_tree(
       it_objects = mt_objects
-      iv_branch  = ms_merge-common-commit ).
+      iv_parent  = ms_merge-common-commit ).
 
     calculate_result( ).
 
@@ -90499,7 +90499,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
         type = zif_abapgit_definitions=>c_type-commit
-        sha1 = iv_branch.
+        sha1 = iv_parent.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'commit not found' ).
     ENDIF.
@@ -90574,7 +90574,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                    <ls_updated> LIKE LINE OF rs_result-updated_files,
                    <ls_exp>     LIKE LINE OF lt_expanded.
     lt_expanded = full_tree( it_objects = it_old_objects
-                             iv_branch  = iv_parent ).
+                             iv_parent  = iv_parent ).
 
     lt_stage = io_stage->get_all( ).
     LOOP AT lt_stage ASSIGNING <ls_stage>.
@@ -93336,5 +93336,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-18T06:59:24.575Z
+* abapmerge 0.14.1 - 2020-10-18T07:06:06.950Z
 ****************************************************
