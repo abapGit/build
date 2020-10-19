@@ -11731,6 +11731,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !io_repo               TYPE REF TO zcl_abapgit_repo
         !iv_show_package       TYPE abap_bool DEFAULT abap_true
         !iv_show_branch        TYPE abap_bool DEFAULT abap_true
+        !iv_show_commit        TYPE abap_bool DEFAULT abap_true
         !iv_interactive_branch TYPE abap_bool DEFAULT abap_false
         !iv_branch             TYPE string OPTIONAL
         !io_news               TYPE REF TO zcl_abapgit_news OPTIONAL
@@ -36960,7 +36961,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
     ri_html->add( `</div>` ).
 
     ri_html->add( '<div class="toc">' ).
@@ -39284,7 +39286,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
     ri_html->add( `</div>` ).
 
     ri_html->add( '<div class="settings_container">' ).
@@ -43045,7 +43048,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( mo_repo ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
     ri_html->add( `</div>` ).
 
     IF mv_check_variant IS INITIAL.
@@ -44408,7 +44412,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -44909,16 +44913,20 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                               && |{ lo_repo_online->get_url( ) }|
                       iv_class = |url| ).
 
-      TRY.
-          render_repo_top_commit_hash( ii_html        = ri_html
-                                       io_repo_online = lo_repo_online ).
-        CATCH zcx_abapgit_exception INTO lx_error.
-          " In case of missing or wrong credentials, show message in status bar
-          lv_hint = lx_error->get_text( ).
-          IF lv_hint CS 'credentials'.
-            MESSAGE lv_hint TYPE 'S' DISPLAY LIKE 'E'.
-          ENDIF.
-      ENDTRY.
+      IF iv_show_commit = abap_true.
+
+        TRY.
+            render_repo_top_commit_hash( ii_html        = ri_html
+                                         io_repo_online = lo_repo_online ).
+          CATCH zcx_abapgit_exception INTO lx_error.
+            " In case of missing or wrong credentials, show message in status bar
+            lv_hint = lx_error->get_text( ).
+            IF lv_hint CS 'credentials'.
+              MESSAGE lv_hint TYPE 'S' DISPLAY LIKE 'E'.
+            ENDIF.
+        ENDTRY.
+
+      ENDIF.
 
     ENDIF.
 
@@ -93250,7 +93258,7 @@ FORM exit RAISING zcx_abapgit_exception.
       IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
         zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
       ELSE.
-        LEAVE TO SCREEN 1001.
+        CALL SELECTION-SCREEN 1001.
       ENDIF.
   ENDCASE.
 ENDFORM.
@@ -93355,5 +93363,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-19T08:15:54.134Z
+* abapmerge 0.14.1 - 2020-10-19T09:20:29.876Z
 ****************************************************
