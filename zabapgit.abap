@@ -44724,9 +44724,9 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       IF <ls_col>-tech_name = iv_order_by
       AND iv_order_by IS NOT INITIAL.
         IF iv_order_descending = abap_true.
-          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
-        ELSE.
           lv_tmp = lv_tmp && | &#x25BE;|. " arrow down
+        ELSE.
+          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
         ENDIF.
       ENDIF.
 
@@ -93452,5 +93452,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-24T06:15:37.507Z
+* abapmerge 0.14.1 - 2020-10-26T07:07:57.456Z
 ****************************************************
