@@ -16864,9 +16864,19 @@ CLASS zcl_abapgit_repo_online DEFINITION
         !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
       RAISING
         zcx_abapgit_exception .
+    METHODS get_sha1
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
     METHODS get_sha1_remote
       RETURNING
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_sha1
+      IMPORTING
+        iv_sha1 TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     METHODS get_objects
@@ -20914,7 +20924,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -20981,9 +20991,15 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     fetch_remote( ).
     rt_objects = mt_objects.
   ENDMETHOD.
+  METHOD get_sha1.
+    rv_sha1 = mv_branch.
+  ENDMETHOD.
   METHOD get_sha1_remote.
     fetch_remote( ).
     rv_sha1 = mv_branch.
+  ENDMETHOD.
+  METHOD set_sha1.
+    mv_branch = iv_sha1.
   ENDMETHOD.
   METHOD get_switched_origin.
     rv_url = ms_data-switched_origin.
@@ -93456,5 +93472,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-27T07:05:59.456Z
+* abapmerge 0.14.1 - 2020-10-27T07:12:22.685Z
 ****************************************************
