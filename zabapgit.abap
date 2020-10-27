@@ -4056,6 +4056,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       IMPORTING
         !iv_url          TYPE string
         !iv_branch_name  TYPE string
+        !iv_deepen_level TYPE i DEFAULT 1
       RETURNING
         VALUE(rs_result) TYPE ty_pull_result
       RAISING
@@ -4064,6 +4065,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       IMPORTING
         !iv_url          TYPE string
         !iv_commit_hash  TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_deepen_level TYPE i DEFAULT 1
       RETURNING
         VALUE(rs_result) TYPE ty_pull_result
       RAISING
@@ -90438,6 +90440,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       EXPORTING
         iv_url          = iv_url
         iv_branch_name  = iv_branch_name
+        iv_deepen_level = iv_deepen_level
       IMPORTING
         et_objects      = rs_result-objects
         ev_branch       = rs_result-commit ).
@@ -90450,11 +90453,12 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     zcl_abapgit_git_transport=>upload_pack_by_commit(
       EXPORTING
-        iv_url     = iv_url
-        iv_hash    = iv_commit_hash
+        iv_url          = iv_url
+        iv_hash         = iv_commit_hash
+        iv_deepen_level = iv_deepen_level
       IMPORTING
-        et_objects = rs_result-objects
-        ev_commit  = rs_result-commit ).
+        et_objects      = rs_result-objects
+        ev_commit       = rs_result-commit ).
 
     rs_result-files = pull( iv_commit  = rs_result-commit
                             it_objects = rs_result-objects ).
@@ -93452,5 +93456,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-26T09:40:29.325Z
+* abapmerge 0.14.1 - 2020-10-27T07:05:59.456Z
 ****************************************************
