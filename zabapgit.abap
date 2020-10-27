@@ -3162,6 +3162,13 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_exit .
   TYPES:
     ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_ci_repo,
+      name      TYPE string,
+      clone_url TYPE string,
+    END OF ty_ci_repo .
+  TYPES:
+    ty_ci_repos TYPE TABLE OF ty_ci_repo .
 
   METHODS change_local_host
     CHANGING
@@ -3215,6 +3222,11 @@ INTERFACE zif_abapgit_exit .
     IMPORTING
       !is_step TYPE zif_abapgit_definitions=>ty_step_data
       !ii_log  TYPE REF TO zif_abapgit_log .
+  METHODS get_ci_tests
+    IMPORTING
+      !iv_object   TYPE tadir-object
+    CHANGING
+      !ct_ci_repos TYPE ty_ci_repos .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_git_operations .
@@ -8805,11 +8817,17 @@ CLASS zcl_abapgit_object_sxci DEFINITION INHERITING FROM zcl_abapgit_objects_sup
              filters             TYPE seex_filter_table,
            END OF ty_classic_badi_implementation.
 ENDCLASS.
-CLASS zcl_abapgit_object_tabl DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
+CLASS zcl_abapgit_object_tabl DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+    INTERFACES zif_abapgit_object .
+
+    ALIASES mo_files
+      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_segment_definition,
              segmentheader     TYPE edisegmhd,
@@ -23592,7 +23610,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_exit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -23689,6 +23707,18 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     TRY.
         gi_exit->deserialize_postprocess( is_step = is_step
                                           ii_log  = ii_log ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~get_ci_tests.
+
+    TRY.
+        gi_exit->get_ci_tests(
+          EXPORTING
+            iv_object   = iv_object
+          CHANGING
+            ct_ci_repos = ct_ci_repos ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
@@ -93472,5 +93502,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-27T07:12:22.685Z
+* abapmerge 0.14.1 - 2020-10-27T07:17:01.005Z
 ****************************************************
