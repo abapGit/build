@@ -3227,6 +3227,13 @@ INTERFACE zif_abapgit_exit .
       !iv_object   TYPE tadir-object
     CHANGING
       !ct_ci_repos TYPE ty_ci_repos .
+  METHODS adjust_display_commit_url
+    IMPORTING !iv_repo_url    TYPE zif_abapgit_persistence=>ty_repo-url
+              !iv_repo_name   TYPE string
+              !iv_repo_key    TYPE zif_abapgit_persistence=>ty_value
+              !iv_commit_hash TYPE zif_abapgit_definitions=>ty_sha1
+    CHANGING  !cv_display_url TYPE zif_abapgit_persistence=>ty_repo-url
+    RAISING   zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_git_operations .
@@ -16926,6 +16933,13 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
       RAISING
         zcx_abapgit_exception .
+    METHODS get_default_commit_display_url
+      IMPORTING
+        !iv_hash      TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING
+        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
+      RAISING
+        zcx_abapgit_exception .
     METHODS get_switched_origin
       RETURNING
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-switched_origin .
@@ -16937,13 +16951,13 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
 
     METHODS get_files_remote
-        REDEFINITION .
+         REDEFINITION .
     METHODS get_name
-        REDEFINITION .
+         REDEFINITION .
     METHODS has_remote_source
-        REDEFINITION .
+         REDEFINITION .
     METHODS rebuild_local_checksums
-        REDEFINITION .
+         REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -20988,27 +21002,44 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_commit_display_url.
 
+    rv_url = me->get_default_commit_display_url( iv_hash ).
+
+    zcl_abapgit_exit=>get_instance( )->adjust_display_commit_url(
+      EXPORTING
+        iv_repo_url           = me->get_url( )
+        iv_repo_name          = me->get_name( )
+        iv_repo_key           = me->get_key( )
+        iv_commit_hash        = iv_hash
+      CHANGING
+        cv_display_url        = rv_url ).
+
+    IF rv_url IS INITIAL.
+      zcx_abapgit_exception=>raise( |provider not yet supported| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_default_commit_display_url.
+
     DATA ls_result TYPE match_result.
     FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
 
     rv_url = me->get_url( ).
 
-    FIND REGEX '^https:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |provider not yet supported| ).
+    FIND REGEX '^http(?:s)?:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
+    IF sy-subrc = 0.
+      READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
+      CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
+        WHEN 'github.com'.
+          REPLACE REGEX '\.git$' IN rv_url WITH space.
+          rv_url = rv_url && |/commit/| && iv_hash.
+        WHEN 'bitbucket.org'.
+          REPLACE REGEX '\.git$' IN rv_url WITH space.
+          rv_url = rv_url && |/commits/| && iv_hash.
+        WHEN 'gitlab.com'.
+          REPLACE REGEX '\.git$' IN rv_url WITH space.
+          rv_url = rv_url && |/-/commit/| && iv_hash.
+      ENDCASE.
     ENDIF.
-    READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
-    CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
-      WHEN 'github.com'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/commit/| && iv_hash.
-      WHEN 'bitbucket.org'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/commits/| && iv_hash.
-      WHEN 'gitlab.com'.
-        REPLACE REGEX '\.git$' IN rv_url WITH space.
-        rv_url = rv_url && |/-/commit/| && iv_hash.
-    ENDCASE.
 
   ENDMETHOD.
   METHOD get_files_remote.
@@ -23646,7 +23677,7 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -23781,6 +23812,22 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~adjust_display_commit_url.
+
+    TRY.
+        gi_exit->adjust_display_commit_url(
+          EXPORTING
+            iv_repo_url           = iv_repo_url
+            iv_repo_name          = iv_repo_name
+            iv_repo_key           = iv_repo_key
+            iv_commit_hash        = iv_commit_hash
+          CHANGING
+            cv_display_url        = cv_display_url ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
@@ -93624,5 +93671,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T05:58:36.269Z
+* abapmerge 0.14.1 - 2020-10-28T06:01:58.261Z
 ****************************************************
