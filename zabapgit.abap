@@ -20994,9 +20994,13 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     li_progress->show( iv_current = 1
                        iv_text    = 'Fetch remote files' ).
 
-    ls_pull = zcl_abapgit_git_porcelain=>pull_by_branch(
-      iv_url         = get_url( )
-      iv_branch_name = get_selected_branch( ) ).
+    IF get_selected_commit( ) IS INITIAL.
+      ls_pull = zcl_abapgit_git_porcelain=>pull_by_branch( iv_url         = get_url( )
+                                                           iv_branch_name = get_selected_branch( ) ).
+    ELSE.
+      ls_pull = zcl_abapgit_git_porcelain=>pull_by_commit( iv_url         = get_url( )
+                                                           iv_commit_hash = get_selected_commit( ) ).
+    ENDIF.
 
     set_files_remote( ls_pull-files ).
     set_objects( ls_pull-objects ).
@@ -21246,8 +21250,9 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
 * assumption: PUSH is done on top of the currently selected branch
 
-    DATA: ls_push TYPE zcl_abapgit_git_porcelain=>ty_push_result,
-          lv_text TYPE string.
+    DATA: ls_push   TYPE zcl_abapgit_git_porcelain=>ty_push_result,
+          lv_text   TYPE string,
+          lv_parent TYPE zif_abapgit_definitions=>ty_sha1.
     IF ms_data-branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
       lv_text = |You're working on a tag. Currently it's not |
              && |possible to push on tags. Consider creating a branch instead|.
@@ -21262,12 +21267,18 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     handle_stage_ignore( io_stage ).
 
+    IF get_selected_commit( ) IS INITIAL.
+      lv_parent = get_current_remote( ).
+    ELSE.
+      lv_parent = get_selected_commit( ).
+    ENDIF.
+
     ls_push = zcl_abapgit_git_porcelain=>push(
       is_comment     = is_comment
       io_stage       = io_stage
       iv_branch_name = get_selected_branch( )
       iv_url         = get_url( )
-      iv_parent      = get_current_remote( )
+      iv_parent      = lv_parent
       it_old_objects = get_objects( ) ).
 
     set_objects( ls_push-new_objects ).
@@ -32943,8 +32954,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    lo_repo->select_commit( space ).
     lo_repo->select_branch( ls_branch-name ).
-
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
@@ -93711,5 +93722,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T10:09:52.968Z
+* abapmerge 0.14.1 - 2020-10-28T10:58:08.734Z
 ****************************************************
