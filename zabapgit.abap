@@ -31421,7 +31421,12 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '      if (item.nodeName !== "LI") continue; // unexpected node' ).
     lo_buf->add( '      if (item.children.length >=2 && item.children[1].nodeName === "UL") {' ).
     lo_buf->add( '        // submenu detected' ).
-    lo_buf->add( '        processUL(item.children[1], item.children[0].innerText);' ).
+    lo_buf->add( '        var menutext = item.children[0].innerText;' ).
+    lo_buf->add( '        // special treatment for menus without text' ).
+    lo_buf->add( '        if (!menutext) {' ).
+    lo_buf->add( '          menutext = item.children[0].getAttribute("title");' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '        processUL(item.children[1], menutext);' ).
     lo_buf->add( '      } else if (item.firstElementChild && item.firstElementChild.nodeName === "A") {' ).
     lo_buf->add( '        var anchor = item.firstElementChild;' ).
     lo_buf->add( '        if (anchor.href && anchor.href !== "#") items.push([anchor, prefix]);' ).
@@ -31441,7 +31446,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    var prefix = item[1];' ).
     lo_buf->add( '    return {' ).
     lo_buf->add( '      action:    anchor.href.replace("sapevent:", ""),' ).
-    lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText' ).
+    lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText.trim()' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
@@ -36594,9 +36599,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_settings
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
+      iv_title = 'Utilities'
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
+      iv_title = 'Help'
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
@@ -38382,9 +38389,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_settings
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
+      iv_title = 'Utilities'
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
+      iv_title = 'Help'
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
@@ -41306,9 +41315,11 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_settings
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
+      iv_title = 'Utilities'
       io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
+      iv_title = 'Help'
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
@@ -93594,5 +93605,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T05:46:09.734Z
+* abapmerge 0.14.1 - 2020-10-28T05:48:14.341Z
 ****************************************************
