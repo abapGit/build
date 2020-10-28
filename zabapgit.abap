@@ -2062,7 +2062,7 @@ INTERFACE zif_abapgit_definitions .
       unchanged TYPE c LENGTH 1 VALUE '',
       added     TYPE c LENGTH 1 VALUE 'A',
       modified  TYPE c LENGTH 1 VALUE 'M',
-      deleted   TYPE c LENGTH 1 VALUE 'D', "For future use
+      deleted   TYPE c LENGTH 1 VALUE 'D',
       mixed     TYPE c LENGTH 1 VALUE '*',
     END OF c_state .
   CONSTANTS:
@@ -21549,7 +21549,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -21834,12 +21834,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     FIELD-SYMBOLS <ls_object> LIKE LINE OF ms_data-local_checksums.
 
     LOOP AT ms_data-local_checksums ASSIGNING <ls_object>.
-      " Check if item exists
-      READ TABLE mt_local TRANSPORTING NO FIELDS
-        WITH KEY item = <ls_object>-item.
-      IF sy-subrc = 0.
-        APPEND LINES OF <ls_object>-files TO rt_checksums.
-      ENDIF.
+      APPEND LINES OF <ls_object>-files TO rt_checksums.
     ENDLOOP.
 
   ENDMETHOD.
@@ -23098,7 +23093,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -23230,6 +23225,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
                    <ls_result> LIKE LINE OF rt_results,
+                   <ls_state>  LIKE LINE OF it_cur_state,
                    <ls_local>  LIKE LINE OF it_local.
     lt_state_idx = it_cur_state. " Force sort it
     lt_remote    = it_remote.
@@ -23259,6 +23255,21 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
           WITH KEY filename = <ls_local>-file-filename.
         IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
           <ls_result>-packmove = abap_true.
+          CLEAR <ls_remote>-sha1. " Mark as processed
+        ELSEIF sy-subrc = 4.
+          " Check if file existed before and was deleted remotely
+          READ TABLE lt_state_idx ASSIGNING <ls_state>
+            WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+            BINARY SEARCH.
+          IF sy-subrc = 0.
+            IF <ls_local>-file-sha1 = <ls_state>-sha1.
+              <ls_result>-lstate = zif_abapgit_definitions=>c_state-unchanged.
+            ELSE.
+              <ls_result>-lstate = zif_abapgit_definitions=>c_state-modified.
+            ENDIF.
+            <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted.
+            CLEAR <ls_remote>-sha1. " Mark as processed
+          ENDIF.
         ENDIF.
       ENDIF.
       <ls_result>-inactive = <ls_local>-item-inactive.
@@ -23285,7 +23296,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
           lv_sub_fetched = abap_true.
           SORT lt_sub_packages BY table_line. "Optimize Read Access
         ENDIF.
-* make sure the package is under the repo main package
+        " Make sure the package is under the repo main package
         READ TABLE lt_sub_packages TRANSPORTING NO FIELDS
           WITH KEY table_line = ls_item-devclass
           BINARY SEARCH.
@@ -23314,6 +23325,14 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         WITH KEY file-filename = <ls_remote>-filename.
       IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
         <ls_result>-packmove = abap_true.
+      ELSEIF sy-subrc = 4.
+        " Check if file existed before and was deleted locally
+        READ TABLE lt_state_idx ASSIGNING <ls_state>
+          WITH KEY path = <ls_remote>-path filename = <ls_remote>-filename
+          BINARY SEARCH.
+        IF sy-subrc = 0.
+          <ls_result>-lstate = zif_abapgit_definitions=>c_state-deleted.
+        ENDIF.
       ENDIF.
     ENDLOOP.
 
@@ -93605,5 +93624,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T05:48:14.341Z
+* abapmerge 0.14.1 - 2020-10-28T05:58:36.269Z
 ****************************************************
