@@ -16893,7 +16893,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS get_url
       RETURNING
         VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url .
-    METHODS get_branch_name
+    METHODS get_selected_branch
       RETURNING
         VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-branch_name .
     METHODS set_url
@@ -16901,22 +16901,22 @@ CLASS zcl_abapgit_repo_online DEFINITION
         !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
       RAISING
         zcx_abapgit_exception .
-    METHODS set_branch_name
+    METHODS select_branch
       IMPORTING
         !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
       RAISING
         zcx_abapgit_exception .
-    METHODS get_sha1
+    METHODS get_selected_commit
       RETURNING
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
-    METHODS get_sha1_remote
+    METHODS get_current_remote
       RETURNING
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
-    METHODS set_sha1
+    METHODS select_commit
       IMPORTING
         iv_sha1 TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
@@ -16962,7 +16962,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
   PRIVATE SECTION.
 
     DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
-    DATA mv_branch TYPE zif_abapgit_definitions=>ty_sha1 .
+    DATA mv_current_commit TYPE zif_abapgit_definitions=>ty_sha1 .
 
     METHODS handle_stage_ignore
       IMPORTING
@@ -20990,14 +20990,14 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     ls_pull = zcl_abapgit_git_porcelain=>pull_by_branch(
       iv_url         = get_url( )
-      iv_branch_name = get_branch_name( ) ).
+      iv_branch_name = get_selected_branch( ) ).
 
     set_files_remote( ls_pull-files ).
     set_objects( ls_pull-objects ).
-    mv_branch = ls_pull-commit.
+    mv_current_commit = ls_pull-commit.
 
   ENDMETHOD.
-  METHOD get_branch_name.
+  METHOD get_selected_branch.
     rv_name = ms_data-branch_name.
   ENDMETHOD.
   METHOD get_commit_display_url.
@@ -21057,15 +21057,15 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     fetch_remote( ).
     rt_objects = mt_objects.
   ENDMETHOD.
-  METHOD get_sha1.
-    rv_sha1 = mv_branch.
+  METHOD get_selected_commit.
+    rv_sha1 = mv_current_commit.
   ENDMETHOD.
-  METHOD get_sha1_remote.
+  METHOD get_current_remote.
     fetch_remote( ).
-    rv_sha1 = mv_branch.
+    rv_sha1 = mv_current_commit.
   ENDMETHOD.
-  METHOD set_sha1.
-    mv_branch = iv_sha1.
+  METHOD select_commit.
+    mv_current_commit = iv_sha1.
   ENDMETHOD.
   METHOD get_switched_origin.
     rv_url = ms_data-switched_origin.
@@ -21163,7 +21163,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-  METHOD set_branch_name.
+  METHOD select_branch.
 
     reset_remote( ).
     set( iv_branch_name = iv_branch_name ).
@@ -21201,7 +21201,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
         set_url( substring(
           val = ms_data-switched_origin
           len = lv_offs ) ).
-        set_branch_name( substring(
+        select_branch( substring(
           val = ms_data-switched_origin
           off = lv_offs + 1 ) ).
         set( iv_switched_origin = '' ).
@@ -21221,7 +21221,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     ASSERT iv_name CP zif_abapgit_definitions=>c_git_branch-heads.
 
     IF iv_from IS INITIAL.
-      lv_sha1 = get_sha1_remote( ).
+      lv_sha1 = get_current_remote( ).
     ELSE.
       lv_sha1 = iv_from.
     ENDIF.
@@ -21232,7 +21232,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
       iv_from = lv_sha1 ).
 
     " automatically switch to new branch
-    set_branch_name( iv_name ).
+    select_branch( iv_name ).
 
   ENDMETHOD.
   METHOD zif_abapgit_git_operations~push.
@@ -21258,15 +21258,15 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     ls_push = zcl_abapgit_git_porcelain=>push(
       is_comment     = is_comment
       io_stage       = io_stage
-      iv_branch_name = get_branch_name( )
+      iv_branch_name = get_selected_branch( )
       iv_url         = get_url( )
-      iv_parent      = get_sha1_remote( )
+      iv_parent      = get_current_remote( )
       it_old_objects = get_objects( ) ).
 
     set_objects( ls_push-new_objects ).
     set_files_remote( ls_push-new_files ).
 
-    mv_branch = ls_push-branch.
+    mv_current_commit = ls_push-branch.
 
     update_local_checksums( ls_push-updated_files ).
 
@@ -22726,7 +22726,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    IF iv_source_branch = io_repo->get_branch_name( ).
+    IF iv_source_branch = io_repo->get_selected_branch( ).
       zcx_abapgit_exception=>raise( 'source = target' ).
     ENDIF.
 
@@ -22745,7 +22745,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
       zcl_abapgit_git_branch_list=>complete_heads_branch_name( mv_source_branch ) ).
 
     ms_merge-target = lo_branch_list->find_by_name(
-      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mo_repo->get_branch_name( ) ) ).
+      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mo_repo->get_selected_branch( ) ) ).
 
     APPEND ms_merge-source TO lt_upload.
     APPEND ms_merge-target TO lt_upload.
@@ -22753,7 +22753,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
         iv_url          = ms_merge-repo->get_url( )
-        iv_branch_name  = ms_merge-repo->get_branch_name( )
+        iv_branch_name  = ms_merge-repo->get_selected_branch( )
         iv_deepen_level = 0
         it_branches     = lt_upload
       IMPORTING
@@ -25128,7 +25128,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     zcl_abapgit_git_transport=>upload_pack_by_branch(
       EXPORTING
         iv_url          = io_repo->get_url( )
-        iv_branch_name  = io_repo->get_branch_name( )
+        iv_branch_name  = io_repo->get_selected_branch( )
         iv_deepen_level = 0
         it_branches     = lt_branches_and_tags
       IMPORTING
@@ -32413,7 +32413,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->switch_repo_type( iv_offline = abap_false ).
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_url( ls_popup-url ).
-    lo_repo->set_branch_name( ls_popup-branch_name ).
+    lo_repo->select_branch( ls_popup-branch_name ).
 
     ls_loc = lo_repo->get_local_settings( ). " Just in case ... if switch affects LS state
     ls_loc-display_name = ls_popup-display_name.
@@ -32443,7 +32443,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     lo_repo->set_url( ls_popup-url ).
-    lo_repo->set_branch_name( ls_popup-branch_name ).
+    lo_repo->select_branch( ls_popup-branch_name ).
 
     ls_loc-display_name = ls_popup-display_name.
     lo_repo->set_local_settings( ls_loc ).
@@ -32692,7 +32692,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           li_popups TYPE REF TO zif_abapgit_popups,
           lv_source_branch_name TYPE string.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lv_source_branch_name = lo_repo->get_branch_name( ).
+    lv_source_branch_name = lo_repo->get_selected_branch( ).
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->create_branch_popup(
@@ -32723,7 +32723,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     ls_branch = li_popups->branch_list_popup( iv_url         = lo_repo->get_url( )
-                                              iv_hide_branch = lo_repo->get_branch_name( )
+                                              iv_hide_branch = lo_repo->get_selected_branch( )
                                               iv_hide_head   = abap_true ).
     IF ls_branch IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32895,7 +32895,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
     ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
       iv_url             = lo_repo->get_url( )
-      iv_default_branch  = lo_repo->get_branch_name( )
+      iv_default_branch  = lo_repo->get_selected_branch( )
       iv_show_new_option = abap_true ).
     IF ls_branch IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -32906,7 +32906,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lo_repo->set_branch_name( ls_branch-name ).
+    lo_repo->select_branch( ls_branch-name ).
 
     COMMIT WORK AND WAIT.
 
@@ -32923,7 +32923,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo->set_branch_name( ls_tag-name ).
+    lo_repo->select_branch( ls_tag-name ).
 
     COMMIT WORK AND WAIT.
 
@@ -36909,7 +36909,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
 
     ri_html->add( render_text_input( iv_name  = 'sha1'
                                      iv_label = 'SHA1'
-                                     iv_value = mo_repo_online->get_sha1_remote( ) ) ).
+                                     iv_value = mo_repo_online->get_current_remote( ) ) ).
 
     ri_html->add( render_text_input( iv_name  = 'name'
                                      iv_label = 'tag name' ) ).
@@ -39148,7 +39148,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       ENDIF.
 
       lo_repo_online->switch_origin( ls_pull-head_url ).
-      lo_repo_online->set_branch_name( |refs/heads/{ ls_pull-head_branch }| ). " TODO refactor
+      lo_repo_online->select_branch( |refs/heads/{ ls_pull-head_branch }| ). " TODO refactor
       rv_switched = abap_true.
     ENDIF.
 
@@ -39586,7 +39586,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ii_html->add( render_table_row(
       iv_name  = 'Current remote'
       iv_value = |{ lo_repo_online->get_url( )
-      } <span class="grey">@{ lo_repo_online->get_branch_name( ) }</span>| ) ).
+      } <span class="grey">@{ lo_repo_online->get_selected_branch( ) }</span>| ) ).
     ii_html->add( render_table_row(
       iv_name  = 'Switched origin'
       iv_value = |<input name="switched_origin" type="text" size="60" value="{
@@ -41057,7 +41057,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     IF mv_merge_mode = c_merge_mode-selection.
       ri_html->add( '<form id="target_form" method="post" action="sapevent:apply_target">' ).
-      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && ' - ' ).
+      ri_html->add( '<th>Target - ' && mo_repo->get_selected_branch( ) && ' - ' ).
       ri_html->add_a( iv_act = 'submitFormById(''target_form'');'
                       iv_txt = 'Apply'
                       iv_typ = zif_abapgit_html=>c_action_type-onclick
@@ -41074,7 +41074,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
       ri_html->add( '</th> ' ).
       ri_html->add( '</form>' ).
     ELSE.
-      ri_html->add( '<th>Target - ' && mo_repo->get_branch_name( ) && '</th> ' ).
+      ri_html->add( '<th>Target - ' && mo_repo->get_selected_branch( ) && '</th> ' ).
       ri_html->add( '<th class="num"></th>' ).
       ri_html->add( '<th>Source - ' && mo_merge->get_source_branch( ) && '</th> ' ).
     ENDIF.
@@ -41199,7 +41199,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE IMPLEMENTATION.
 
     mo_repo = io_repo.
 
-    io_repo->set_branch_name( |{ zif_abapgit_definitions=>c_git_branch-heads_prefix }{ iv_target }| ).
+    io_repo->select_branch( |{ zif_abapgit_definitions=>c_git_branch-heads_prefix }{ iv_target }| ).
 
     CREATE OBJECT mo_merge
       EXPORTING
@@ -42546,7 +42546,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
       io_repo         = mo_repo
       iv_show_package = abap_false
-      iv_branch       = mo_repo->get_branch_name( ) ) ).
+      iv_branch       = mo_repo->get_selected_branch( ) ) ).
 
     ri_html->add( render_menu( ) ).
     ri_html->add( render_form( ) ).
@@ -45069,7 +45069,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       lo_repo_online ?= io_repo.
       IF iv_show_branch = abap_true.
         IF iv_branch IS INITIAL.
-          ri_html->add( render_branch_span( iv_branch      = lo_repo_online->get_branch_name( )
+          ri_html->add( render_branch_span( iv_branch      = lo_repo_online->get_selected_branch( )
                                             io_repo        = lo_repo_online
                                             iv_interactive = iv_interactive_branch ) ).
         ELSE.
@@ -45106,7 +45106,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
           lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
           lv_icon_commit       TYPE string.
 
-    lv_commit_hash = io_repo_online->get_sha1_remote( ).
+    lv_commit_hash = io_repo_online->get_current_remote( ).
     lv_commit_short_hash = lv_commit_hash(7).
 
     lv_icon_commit = ii_html->icon( iv_name  = 'code-commit'
@@ -93671,5 +93671,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T06:01:58.261Z
+* abapmerge 0.14.1 - 2020-10-28T09:42:36.048Z
 ****************************************************
