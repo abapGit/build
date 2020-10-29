@@ -49793,7 +49793,8 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
            ls_header-crea_name,
            ls_header-crea_tstut,
            ls_header-chan_name,
-           ls_header-chan_tstut.
+           ls_header-chan_tstut,
+           ls_header-system_id.
 
     LOOP AT lt_entries ASSIGNING <ls_entry>.
       CLEAR: <ls_entry>-version,
@@ -93754,5 +93755,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-29T05:49:43.040Z
+* abapmerge 0.14.1 - 2020-10-29T17:59:57.353Z
 ****************************************************
