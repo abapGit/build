@@ -2729,6 +2729,7 @@ INTERFACE zif_abapgit_persistence.
   TYPES: BEGIN OF ty_repo_xml,
            url             TYPE string,
            branch_name     TYPE string,
+           selected_commit TYPE zif_abapgit_definitions=>ty_sha1,
            package         TYPE devclass,
            created_by      TYPE xubname,
            created_at      TYPE timestampl,
@@ -2746,6 +2747,7 @@ INTERFACE zif_abapgit_persistence.
     BEGIN OF ty_repo_meta_mask,
       url             TYPE abap_bool,
       branch_name     TYPE abap_bool,
+      selected_commit TYPE abap_bool,
       package         TYPE abap_bool,
       created_by      TYPE abap_bool,
       created_at      TYPE abap_bool,
@@ -16747,6 +16749,7 @@ CLASS zcl_abapgit_repo DEFINITION
         !it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
         !iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
         !iv_branch_name     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
+        !iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit OPTIONAL
         !iv_head_branch     TYPE zif_abapgit_persistence=>ty_repo-head_branch OPTIONAL
         !iv_offline         TYPE zif_abapgit_persistence=>ty_repo-offline OPTIONAL
         !is_dot_abapgit     TYPE zif_abapgit_persistence=>ty_repo-dot_abapgit OPTIONAL
@@ -16916,7 +16919,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
     METHODS get_selected_commit
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_selected_commit) TYPE zif_abapgit_persistence=>ty_repo-selected_commit
       RAISING
         zcx_abapgit_exception .
     METHODS get_current_remote
@@ -16926,7 +16929,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
     METHODS select_commit
       IMPORTING
-        iv_sha1 TYPE zif_abapgit_definitions=>ty_sha1
+        iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
       RAISING
         zcx_abapgit_exception .
     METHODS get_objects
@@ -16959,13 +16962,13 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
 
     METHODS get_files_remote
-         REDEFINITION .
+        REDEFINITION .
     METHODS get_name
-         REDEFINITION .
+        REDEFINITION .
     METHODS has_remote_source
-         REDEFINITION .
+        REDEFINITION .
     METHODS rebuild_local_checksums
-         REDEFINITION .
+        REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -20981,7 +20984,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -21074,7 +21077,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     rv_name = ms_data-branch_name.
   ENDMETHOD.
   METHOD get_selected_commit.
-* todo, rv_sha1 = mv_current_commit.
+    rv_selected_commit = ms_data-selected_commit.
   ENDMETHOD.
   METHOD get_switched_origin.
     rv_url = ms_data-switched_origin.
@@ -21175,12 +21178,15 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD select_branch.
 
     reset_remote( ).
-    set( iv_branch_name = iv_branch_name ).
+    set( iv_branch_name     = iv_branch_name
+         iv_selected_commit = space  ).
 
   ENDMETHOD.
   METHOD select_commit.
+
     reset_remote( ).
-    mv_current_commit = iv_sha1.
+    set( iv_selected_commit = iv_selected_commit ).
+
   ENDMETHOD.
   METHOD set_objects.
     mt_objects = it_objects.
@@ -22026,6 +22032,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ASSERT it_checksums IS SUPPLIED
       OR iv_url IS SUPPLIED
       OR iv_branch_name IS SUPPLIED
+      OR iv_selected_commit IS SUPPLIED
       OR iv_head_branch IS SUPPLIED
       OR iv_offline IS SUPPLIED
       OR is_dot_abapgit IS SUPPLIED
@@ -22046,6 +22053,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     IF iv_branch_name IS SUPPLIED.
       ms_data-branch_name = iv_branch_name.
       ls_mask-branch_name = abap_true.
+    ENDIF.
+
+    IF iv_selected_commit IS SUPPLIED.
+      ms_data-selected_commit = iv_selected_commit.
+      ls_mask-selected_commit = abap_true.
     ENDIF.
 
     IF iv_head_branch IS SUPPLIED.
@@ -22119,11 +22131,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDIF.
 
     IF iv_offline = abap_true. " On-line -> OFFline
-      set(
-        iv_url         = zcl_abapgit_url=>name( ms_data-url )
-        iv_branch_name = ''
-        iv_head_branch = ''
-        iv_offline     = abap_true ).
+      set( iv_url             = zcl_abapgit_url=>name( ms_data-url )
+           iv_branch_name     = ''
+           iv_selected_commit = ''
+           iv_head_branch     = ''
+           iv_offline         = abap_true ).
     ELSE. " OFFline -> On-line
       set( iv_offline = abap_false ).
     ENDIF.
@@ -93742,5 +93754,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-28T12:56:00.400Z
+* abapmerge 0.14.1 - 2020-10-29T05:49:43.040Z
 ****************************************************
