@@ -62123,12 +62123,19 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     DATA: lv_tabname TYPE dd02l-tabname.
 
     lv_tabname = ms_item-obj_name.
+
+    " Check nametab because it's fast
     CALL FUNCTION 'DD_GET_NAMETAB_HEADER'
       EXPORTING
         tabname   = lv_tabname
       EXCEPTIONS
         not_found = 1
         OTHERS    = 2.
+    IF sy-subrc <> 0.
+      " Check for new, inactive, or modified versions that might not be in nametab
+      SELECT SINGLE tabname FROM dd02l INTO lv_tabname
+        WHERE tabname = lv_tabname.
+    ENDIF.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -93755,5 +93762,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-29T17:59:57.353Z
+* abapmerge 0.14.1 - 2020-10-30T08:55:20.834Z
 ****************************************************
