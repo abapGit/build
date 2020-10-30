@@ -42041,7 +42041,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
 
     " no links for nonexistent or deleted objects
-    IF is_diff-lstate IS NOT INITIAL AND is_diff-lstate <> 'D'.
+    IF NOT ( is_diff-lstate = zif_abapgit_definitions=>c_state-unchanged AND
+             is_diff-rstate = zif_abapgit_definitions=>c_state-added ) AND
+         NOT is_diff-lstate = zif_abapgit_definitions=>c_state-deleted.
       lv_adt_link = ri_html->a(
         iv_txt = |{ is_diff-path }{ is_diff-filename }|
         iv_typ = zif_abapgit_html=>c_action_type-sapevent
@@ -93762,5 +93764,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-10-30T08:59:49.401Z
+* abapmerge 0.14.1 - 2020-10-30T09:03:04.720Z
 ****************************************************
