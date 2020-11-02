@@ -19018,9 +19018,9 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
   METHOD constructor.
 
-    CONCATENATE sy-datlo sy-timlo INTO me->mv_timestamp SEPARATED BY '_'.
+    CONCATENATE sy-datlo sy-timlo INTO mv_timestamp SEPARATED BY '_'.
 
-    me->mv_full_folder = get_full_folder( iv_folder = iv_folder ).
+    mv_full_folder = get_full_folder( iv_folder = iv_folder ).
 
     cl_gui_frontend_services=>get_file_separator(
       CHANGING
@@ -21047,13 +21047,16 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_commit_display_url.
 
-    rv_url = me->get_default_commit_display_url( iv_hash ).
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
 
-    zcl_abapgit_exit=>get_instance( )->adjust_display_commit_url(
+    rv_url = get_default_commit_display_url( iv_hash ).
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->adjust_display_commit_url(
       EXPORTING
-        iv_repo_url           = me->get_url( )
-        iv_repo_name          = me->get_name( )
-        iv_repo_key           = me->get_key( )
+        iv_repo_url           = get_url( )
+        iv_repo_name          = get_name( )
+        iv_repo_key           = get_key( )
         iv_commit_hash        = iv_hash
       CHANGING
         cv_display_url        = rv_url ).
@@ -21072,7 +21075,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     DATA ls_result TYPE match_result.
     FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
 
-    rv_url = me->get_url( ).
+    rv_url = get_url( ).
 
     FIND REGEX '^http(?:s)?:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
     IF sy-subrc = 0.
@@ -22359,7 +22362,7 @@ CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
+CLASS zcl_abapgit_news IMPLEMENTATION.
   METHOD compare_versions.
 
     DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
@@ -22477,7 +22480,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_log.
-    rt_log = me->mt_log.
+    rt_log = mt_log.
   ENDMETHOD.
   METHOD has_important.
     READ TABLE mt_log WITH KEY is_important = abap_true TRANSPORTING NO FIELDS.
@@ -22497,7 +22500,7 @@ CLASS ZCL_ABAPGIT_NEWS IMPLEMENTATION.
       iv_b = mv_current_version ) > 0 ).
   ENDMETHOD.
   METHOD latest_version.
-    rv_version = me->mv_latest_version.
+    rv_version = mv_latest_version.
   ENDMETHOD.
   METHOD normalize_version.
 
@@ -35195,7 +35198,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -35211,7 +35214,7 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
     APPEND ls_event TO lt_events.
 
     mo_html_viewer->set_registered_events( lt_events ).
-    SET HANDLER me->on_event FOR mo_html_viewer.
+    SET HANDLER on_event FOR mo_html_viewer.
 
   ENDMETHOD.
   METHOD on_event.
@@ -47081,7 +47084,7 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -47180,7 +47183,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD zif_abapgit_gui_asset_manager~get_text_asset.
 
     DATA ls_asset TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
-    ls_asset = me->zif_abapgit_gui_asset_manager~get_asset( iv_url ).
+    ls_asset = zif_abapgit_gui_asset_manager~get_asset( iv_url ).
 
     IF ls_asset-type <> 'text'.
       zcx_abapgit_exception=>raise( |Not a text asset: { iv_url }| ).
@@ -47195,7 +47198,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -47272,7 +47275,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD free.
 
-    SET HANDLER me->on_event FOR mi_html_viewer ACTIVATION space.
+    SET HANDLER on_event FOR mi_html_viewer ACTIVATION space.
     mi_html_viewer->close_document( ).
     mi_html_viewer->free( ).
     FREE mi_html_viewer.
@@ -47458,7 +47461,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     APPEND ls_event TO lt_events.
 
     mi_html_viewer->set_registered_events( lt_events ).
-    SET HANDLER me->on_event FOR mi_html_viewer.
+    SET HANDLER on_event FOR mi_html_viewer.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~cache_asset.
@@ -47953,7 +47956,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_JS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
   METHOD add_rule.
 
     DATA ls_rule LIKE LINE OF mt_rules.
@@ -48053,8 +48056,8 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       CLEAR ls_rule. " Failed read equals no style
       READ TABLE mt_rules INTO ls_rule WITH KEY token = <ls_match>-token.
 
-      lv_chunk = me->apply_style( iv_line  = lv_chunk
-                                  iv_class = ls_rule-style ).
+      lv_chunk = apply_style( iv_line  = lv_chunk
+                              iv_class = ls_rule-style ).
 
       rv_line = rv_line && lv_chunk.
     ENDLOOP.
@@ -48119,16 +48122,16 @@ CLASS ZCL_ABAPGIT_SYNTAX_HIGHLIGHTER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lt_matches = me->parse_line( iv_line ).
+    lt_matches = parse_line( iv_line ).
 
-    me->order_matches( EXPORTING iv_line    = iv_line
-                       CHANGING  ct_matches = lt_matches ).
+    order_matches( EXPORTING iv_line    = iv_line
+                   CHANGING  ct_matches = lt_matches ).
 
-    me->extend_matches( EXPORTING iv_line    = iv_line
-                        CHANGING  ct_matches = lt_matches ).
+    extend_matches( EXPORTING iv_line    = iv_line
+                    CHANGING  ct_matches = lt_matches ).
 
-    rv_line = me->format_line( iv_line    = iv_line
-                               it_matches = lt_matches ).
+    rv_line = format_line( iv_line    = iv_line
+                           it_matches = lt_matches ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -55302,7 +55305,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
+CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -55375,9 +55378,9 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
       LOOP AT is_webi-pvepparameter ASSIGNING <ls_parameter>
           WHERE function = <ls_function>-function.
 
-        li_parameter = me->handle_single_parameter( iv_name        = <ls_parameter>-vepparam
-                                                    ii_function    = li_function
-                                                    iv_parameter_type = <ls_parameter>-vepparamtype ).
+        li_parameter = handle_single_parameter( iv_name           = <ls_parameter>-vepparam
+                                                ii_function       = li_function
+                                                iv_parameter_type = <ls_parameter>-vepparamtype ).
 
         li_parameter->set_name_mapped_to( <ls_parameter>-mappedname ).
         li_parameter->set_is_exposed( <ls_parameter>-is_exposed ).
@@ -58628,7 +58631,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
   METHOD check_lock.
 
     DATA:
@@ -58766,8 +58769,8 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
       lv_argument       TYPE seqg3-garg,
       lv_argument_langu TYPE seqg3-garg.
 
-    lv_argument       = me->ms_item-obj_name.
-    lv_argument_langu = |@{ me->ms_item-obj_name }|.
+    lv_argument       = ms_item-obj_name.
+    lv_argument_langu = |@{ ms_item-obj_name }|.
 
     "Check all relevant maintein tabeles for view clusters
     IF check_lock( iv_tabname = 'VCLDIR'
@@ -58888,7 +58891,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
+CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   METHOD build_text_name.
 
     TYPES BEGIN OF ty_text_name.
@@ -58900,7 +58903,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     DATA ls_text_name TYPE ty_text_name.
 
     ls_text_name-id = iv_id.
-    ls_text_name-entity = me->mv_entity_id.
+    ls_text_name-entity = mv_entity_id.
     ls_text_name-modifier = 'A%'.
 
     rv_result = ls_text_name.
@@ -58911,7 +58914,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     super->constructor( is_item  =  is_item
                         iv_language = iv_language ).
 
-    me->mv_entity_id = is_item-obj_name.
+    mv_entity_id = is_item-obj_name.
 
   ENDMETHOD.
   METHOD delete_docu_uen.
@@ -58922,7 +58925,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     SELECT *
       FROM dm02l
       INTO TABLE lt_dm02l
-      WHERE entid = me->mv_entity_id.
+      WHERE entid = mv_entity_id.
 
     LOOP AT lt_dm02l INTO ls_dm02l.
 
@@ -58931,7 +58934,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
           key1     = ls_dm02l-entid
           key2     = ls_dm02l-as4local
           key3     = '00'
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'UENC' "Entity Comments
         EXCEPTIONS
           ret_code = 0.
@@ -58941,7 +58944,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
           key1     = ls_dm02l-entid
           key2     = ls_dm02l-as4local
           key3     = '00'
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'UEND' "Entity Definition
         EXCEPTIONS
           ret_code = 0.
@@ -58951,7 +58954,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
           key1     = ls_dm02l-entid
           key2     = ls_dm02l-as4local
           key3     = '00'
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'UENE' "Entity Example
         EXCEPTIONS
           ret_code = 0.
@@ -58967,13 +58970,13 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     SELECT *
       FROM dm42s
       INTO TABLE lt_dm42s
-      WHERE entidto = me->mv_entity_id.
+      WHERE entidto = mv_entity_id.
 
     LOOP AT lt_dm42s INTO ls_dm42s.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'URL1'
           key1     = ls_dm42s-entidto
           key2     = ls_dm42s-as4local
@@ -58984,7 +58987,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'URL2'
           key1     = ls_dm42s-entidto
           key2     = ls_dm42s-as4local
@@ -58995,7 +58998,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'URLC'
           key1     = ls_dm42s-entidto
           key2     = ls_dm42s-as4local
@@ -59014,13 +59017,13 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     SELECT *
       FROM dm45l
       INTO TABLE lt_dm45l
-      WHERE entid = me->ms_item-obj_name.
+      WHERE entid = ms_item-obj_name.
 
     LOOP AT lt_dm45l INTO ls_dm45l.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
-          langu    = me->mv_language
+          langu    = mv_language
           obj_id   = 'USPD'
           key1     = ls_dm45l-entid
           key2     = ls_dm45l-as4local
@@ -59100,7 +59103,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
 
       CALL FUNCTION 'LXE_OBJ_DOKU_PUT_XSTRING'
         EXPORTING
-          slang       = me->mv_language
+          slang       = mv_language
           tlang       = ls_docu-language
           objtype     = ls_docu-header-tdid
           objname     = lv_objname
@@ -59120,8 +59123,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
 
     CALL FUNCTION 'SDU_SAA_CHECK'
       EXPORTING
-        obj_name   = me->ms_item-obj_name
-        obj_type   = me->ms_item-obj_type
+        obj_name   = ms_item-obj_name
+        obj_type   = ms_item-obj_type
       EXCEPTIONS
         wrong_type = 01.
 
@@ -59179,7 +59182,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
     DATA lt_dokvl           TYPE STANDARD TABLE OF dokvl.
     DATA lv_error_status    TYPE lxestatprc.
     DATA lv_objname         TYPE lxeobjname.
-    ls_dokvl-object = me->build_text_name( iv_id = iv_id ).
+    ls_dokvl-object = build_text_name( iv_id = iv_id ).
 
     SELECT id object langu
       FROM dokvl
@@ -59223,7 +59226,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
 
     SELECT SINGLE lstuser INTO rv_user
       FROM dm02l
-      WHERE entid = me->mv_entity_id
+      WHERE entid = mv_entity_id
       AND as4local = c_active_state.
 
     IF sy-subrc <> 0.
@@ -59362,7 +59365,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UENO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
+CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   METHOD access_free.
 
     " Release the lock on the object.
@@ -59370,8 +59373,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     CALL FUNCTION 'RS_ACCESS_PERMISSION'
       EXPORTING
         mode                     = 'FREE'
-        object                   = me->ms_object_type
-        object_class             = me->c_transport_object_class
+        object                   = ms_object_type
+        object_class             = c_transport_object_class
       EXCEPTIONS
         canceled_in_corr         = 1
         enqueued_by_user         = 2
@@ -59406,8 +59409,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         authority_check          = abap_true
         global_lock              = abap_true
         mode                     = 'MODIFY'
-        object                   = me->ms_object_type
-        object_class             = me->c_transport_object_class
+        object                   = ms_object_type
+        object_class             = c_transport_object_class
       EXCEPTIONS
         canceled_in_corr         = 1
         enqueued_by_user         = 2
@@ -59432,9 +59435,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     super->constructor( is_item  =  is_item
                         iv_language = iv_language ).
     " Conversion to Data model
-    me->mv_data_model = is_item-obj_name.
+    mv_data_model = is_item-obj_name.
     " Default activation state is active
-    me->mv_activation_state = c_active_state.
+    mv_activation_state = c_active_state.
     " Derive the data model's text object
     mv_text_object = 'UDMD' && is_item-obj_name.
     " And set the text object to active
@@ -59442,8 +59445,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     mv_lxe_text_name = mv_text_object.
 
     " Correction and Transport System object
-    me->ms_object_type-objtype = c_correction_object_type.
-    me->ms_object_type-objname = is_item-obj_name.
+    ms_object_type-objtype = c_correction_object_type.
+    ms_object_type-objname = is_item-obj_name.
   ENDMETHOD.
   METHOD corr_insert.
 
@@ -59454,8 +59457,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     CALL FUNCTION 'RS_CORR_INSERT'
       EXPORTING
-        object              = me->ms_object_type
-        object_class        = me->c_transport_object_class
+        object              = ms_object_type
+        object_class        = c_transport_object_class
         devclass            = iv_package
         master_language     = mv_language
         mode                = 'INSERT'
@@ -59519,8 +59522,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       SELECT MAX( dokversion )
       INTO ls_header-tdversion
       FROM dokhl
-      WHERE id = me->c_lxe_text_type
-      AND   object = me->mv_text_object
+      WHERE id = c_lxe_text_type
+      AND   object = mv_text_object
       AND   langu = ls_udmo_long_text-language.
 
       " Increment the version
@@ -59530,10 +59533,10 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       " This function module takes care of the variation in text processing between various objects.
       CALL FUNCTION 'LXE_OBJ_DOKU_PUT_XSTRING'
         EXPORTING
-          slang   = me->mv_language
+          slang   = mv_language
           tlang   = ls_udmo_long_text-language
-          objtype = me->c_lxe_text_type
-          objname = me->mv_lxe_text_name
+          objtype = c_lxe_text_type
+          objname = mv_lxe_text_name
           header  = ls_udmo_long_text-header
           content = ls_udmo_long_text-content.
     ENDLOOP.
@@ -59580,7 +59583,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
         INTO ls_dm40t
         WHERE sprache  = ls_udmo_text-sprache
         AND   dmoid    = ls_udmo_text-dmoid
-        AND   as4local = me->mv_activation_state.
+        AND   as4local = mv_activation_state.
 
       IF sy-subrc = 0.
         " There is already an active description for this language
@@ -59619,8 +59622,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     " So to be safe, we check. Tx SD11 does this check.
     CALL FUNCTION 'SDU_SAA_CHECK'
       EXPORTING
-        obj_name   = me->ms_object_type-objname
-        obj_type   = me->ms_object_type-objtype
+        obj_name   = ms_object_type-objname
+        obj_type   = ms_object_type-objtype
       EXCEPTIONS
         wrong_type = 01.
 
@@ -59636,8 +59639,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     SELECT * FROM dm41s
       INTO TABLE lt_udmo_entities
-      WHERE dmoid = me->mv_data_model
-      AND as4local = me->mv_activation_state.
+      WHERE dmoid = mv_data_model
+      AND as4local = mv_activation_state.
     LOOP AT lt_udmo_entities ASSIGNING <ls_udmo_entity>.
 
       " You are reminded that administrative information, such as last changed by user, date, time is not serialised.
@@ -59682,8 +59685,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT sprache AS language
       FROM dm40t
       INTO TABLE lt_udmo_languages
-      WHERE dmoid    = me->mv_data_model
-      AND   as4local = me->mv_activation_state
+      WHERE dmoid    = mv_data_model
+      AND   as4local = mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " For every language for which a short text is maintained,
@@ -59698,8 +59701,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
       CALL FUNCTION 'LXE_OBJ_DOKU_GET_XSTRING'
         EXPORTING
           lang    = ls_udmo_language-language
-          objtype = me->c_lxe_text_type
-          objname = me->mv_lxe_text_name
+          objtype = c_lxe_text_type
+          objname = mv_lxe_text_name
         IMPORTING
           header  = ls_udmo_long_text-header
           content = ls_udmo_long_text-content
@@ -59734,8 +59737,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT SINGLE *
     FROM dm40l
     INTO ls_dm40l
-    WHERE dmoid    = me->mv_data_model
-    AND   as4local = me->mv_activation_state.
+    WHERE dmoid    = mv_data_model
+    AND   as4local = mv_activation_state.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from UDMO - model serialisation' ).
     ENDIF.
@@ -59762,8 +59765,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     SELECT sprache dmoid as4local langbez
       FROM dm40t
       INTO CORRESPONDING FIELDS OF TABLE lt_udmo_texts
-      WHERE dmoid    = me->mv_data_model
-      AND   as4local = me->mv_activation_state
+      WHERE dmoid    = mv_data_model
+      AND   as4local = mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " You are reminded that descriptions in other languages do not have to be in existence.
@@ -59776,17 +59779,17 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
       EXPORTING
-        object    = me->mv_data_model
+        object    = mv_data_model
         operation = 'INSERT'
-        type      = me->c_correction_object_type.
+        type      = c_correction_object_type.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE lstuser INTO rv_user
       FROM dm40l
-      WHERE dmoid = me->mv_data_model
-      AND as4local = me->mv_activation_state.
+      WHERE dmoid = mv_data_model
+      AND as4local = mv_activation_state.
 
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
@@ -59805,7 +59808,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
     CALL FUNCTION 'RPY_DATAMODEL_DELETE'
       EXPORTING
-        model_name       = me->mv_data_model
+        model_name       = mv_data_model
       EXCEPTIONS
         cancelled        = 1
         permission_error = 2
@@ -59846,7 +59849,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
 
       CATCH zcx_abapgit_exception.
 
-        me->access_free( ).
+        access_free( ).
 
         zcx_abapgit_exception=>raise( 'Error in deserialisation of UDMO' ).
     ENDTRY.
@@ -59858,8 +59861,8 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     "  See Function Module SDU_MODEL_EXISTS
 
     SELECT COUNT( * ) FROM  dm40l
-           WHERE  dmoid     = me->mv_data_model
-           AND    as4local  = me->mv_activation_state.
+           WHERE  dmoid     = mv_data_model
+           AND    as4local  = mv_activation_state.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -59932,9 +59935,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     ENDIF.
 
     serialize_model( io_xml ).
-    me->serialize_entities( io_xml ).
-    me->serialize_short_texts( io_xml ).
-    me->serialize_long_texts( io_xml ).
+    serialize_entities( io_xml ).
+    serialize_short_texts( io_xml ).
+    serialize_long_texts( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -60495,7 +60498,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
+CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD add_data.
 
     DATA: ls_bcdata LIKE LINE OF mt_bcdata.
@@ -61059,7 +61062,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        me->clear_functiongroup_globals( ).
+        clear_functiongroup_globals( ).
 
         CALL FUNCTION 'RPY_TRANSACTION_INSERT'
           EXPORTING
@@ -61661,7 +61664,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -61908,6 +61911,14 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |error from DDIF_TABL_PUT @TEXTS, { sy-subrc }| ).
       ENDIF.
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_db_table_category.
+
+    " values from domain TABCLASS
+    rv_is_db_table_type = boolc( iv_tabclass = 'TRANSP'
+                              OR iv_tabclass = 'CLUSTER'
+                              OR iv_tabclass = 'POOL' ).
 
   ENDMETHOD.
   METHOD is_idoc_segment.
@@ -62327,7 +62338,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
           li_local_version_input  TYPE REF TO zif_abapgit_xml_input.
     CREATE OBJECT li_local_version_output TYPE zcl_abapgit_xml_output.
 
-    me->zif_abapgit_object~serialize( li_local_version_output ).
+    zif_abapgit_object~serialize( li_local_version_output ).
 
     CREATE OBJECT li_local_version_input
       TYPE zcl_abapgit_xml_input
@@ -62495,15 +62506,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
                  ig_data = ls_extras ).
 
   ENDMETHOD.
-  METHOD is_db_table_category.
-
-    " values from domain TABCLASS
-    rv_is_db_table_type = boolc( iv_tabclass = 'TRANSP'
-                              OR iv_tabclass = 'CLUSTER'
-                              OR iv_tabclass = 'POOL' ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
@@ -63031,7 +63033,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
+CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   METHOD delete_class.
 
     DELETE FROM tobc  WHERE oclss = iv_auth_object_class.
@@ -63121,7 +63123,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSC IMPLEMENTATION.
     lv_auth_object_class = ms_item-obj_name.
 
     TRY.
-        me->zif_abapgit_object~exists( ).
+        IF zif_abapgit_object~exists( ) = abap_false.
+          RETURN.
+        ENDIF.
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
@@ -63846,7 +63850,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
+CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   METHOD code_item_section_handling.
     CONSTANTS: lc_node_item TYPE string VALUE 'item'.
     CONSTANTS: lc_node_text TYPE string VALUE '#text'.
@@ -63947,20 +63951,20 @@ CLASS ZCL_ABAPGIT_OBJECT_SSFO IMPLEMENTATION.
 
     DATA: ls_range_node_code TYPE LINE OF ty_string_range.
 
-    IF me->gt_range_node_codes IS INITIAL.
+    IF gt_range_node_codes IS INITIAL.
       ls_range_node_code-sign   = 'I'.
       ls_range_node_code-option = 'EQ'.
       ls_range_node_code-low    = 'CODE'.
-      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
+      INSERT ls_range_node_code INTO TABLE gt_range_node_codes.
       ls_range_node_code-low    = 'GTYPES'.
-      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
+      INSERT ls_range_node_code INTO TABLE gt_range_node_codes.
       ls_range_node_code-low    = 'GCODING'.
-      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
+      INSERT ls_range_node_code INTO TABLE gt_range_node_codes.
       ls_range_node_code-low    = 'FCODING'.
-      INSERT ls_range_node_code INTO TABLE me->gt_range_node_codes.
+      INSERT ls_range_node_code INTO TABLE gt_range_node_codes.
     ENDIF.
 
-    rt_range_node_codes = me->gt_range_node_codes.
+    rt_range_node_codes = gt_range_node_codes.
 
   ENDMETHOD.
   METHOD handle_attrib_leading_spaces.
@@ -67519,7 +67523,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI5 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
+CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   METHOD clear_fields.
 
     FIELD-SYMBOLS <ls_node> LIKE LINE OF ct_nodes.
@@ -67631,7 +67635,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     CONSTANTS lc_activity_delete_06 TYPE activ_auth VALUE '06'.
 
     TRY.
-        me->zif_abapgit_object~exists( ).
+        IF zif_abapgit_object~exists( ) = abap_false.
+          RETURN.
+        ENDIF.
       CATCH zcx_abapgit_exception.
         RETURN.
     ENDTRY.
@@ -74088,7 +74094,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
+CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -74137,7 +74143,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IEXT IMPLEMENTATION.
     ls_attributes-presp = cl_abap_syst=>get_user_name( ).
     ls_attributes-pwork = ls_attributes-presp.
 
-    IF me->zif_abapgit_object~exists( ) = abap_true.
+    IF zif_abapgit_object~exists( ) = abap_true.
       CALL FUNCTION 'EXTTYPE_UPDATE'
         EXPORTING
           pi_cimtyp     = mv_extension
@@ -82120,7 +82126,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
+CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -82131,7 +82137,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DEVC IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
   METHOD get_package.
-    IF me->zif_abapgit_object~exists( ) = abap_true.
+    IF zif_abapgit_object~exists( ) = abap_true.
       ri_package = load_package( mv_local_devclass ).
     ENDIF.
   ENDMETHOD.
@@ -83037,7 +83043,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   METHOD is_baseinfo_supported.
 
     DATA:
@@ -83308,7 +83314,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DDLS IMPLEMENTATION.
 
     CASE lv_ddtypekind.
       WHEN 'STOB'.
-        me->open_adt_stob( ms_item-obj_name ).
+        open_adt_stob( ms_item-obj_name ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
     ENDCASE.
@@ -88095,7 +88101,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
         lv_exc_occ = 'X'.
     ENDTRY.
 
-    ASSIGN me->ecatt_object TO <lg_ecatt_sp>.
+    ASSIGN ecatt_object TO <lg_ecatt_sp>.
     ASSERT sy-subrc = 0.
 
     lo_ecatt_sp = <lg_ecatt_sp>.
@@ -88265,7 +88271,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -88400,7 +88406,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
         ex_errmsg       = lv_errmsg ).
 
     IF li_artmp_node IS INITIAL OR lv_rc_args_tmpl > 0.
-      me->raise_download_exception(
+      raise_download_exception(
           textid        = cx_ecatt_apl_util=>download_processing
           previous      = ex_ecatt
           called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_ARTMP_TO_TEMPLATE'
@@ -88409,7 +88415,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     lv_rc = li_artmp_node->set_value( value = lv_text ).
     IF lv_rc <> 0.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_ARTMP_TO_TEMPLATE' ).
@@ -88429,7 +88435,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
                   parent = root_node ).
 
     IF li_blob_node IS INITIAL.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_BLOB_TO_TEMPLATE' ).
@@ -88443,7 +88449,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     lv_rc = li_blob_node->set_value( value = lv_text ).
     IF lv_rc <> 0.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_BLOB_TO_TEMPLATE' ).
@@ -88564,7 +88570,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
           OTHERS       = 2.
 
       IF sy-subrc <> 0.
-        me->raise_download_exception(
+        raise_download_exception(
               textid   = cx_ecatt_apl_util=>download_processing
               previous = ex_ecatt ).
       ENDIF.
@@ -88573,7 +88579,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
       lv_rc = li_deep_tcd->append_child( new_child = li_element ).
 
       IF lv_rc <> 0.
-        me->raise_download_exception(
+        raise_download_exception(
               textid   = cx_ecatt_apl_util=>download_processing
               previous = ex_ecatt ).
       ENDIF.
@@ -88610,7 +88616,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
                         parent = root_node ).
 
     IF mi_script_node IS INITIAL.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_SCRIPT_TO_TEMPLATE' ).
@@ -88628,7 +88634,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
         illegal_name = 1
         OTHERS       = 2.
     IF sy-subrc <> 0.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_SCRIPT_TO_TEMPLATE' ).
@@ -88637,7 +88643,7 @@ CLASS ZCL_ABAPGIT_ECATT_SCRIPT_DOWNL IMPLEMENTATION.
 
     lv_rc = mi_script_node->append_child( li_element ).
     IF lv_rc <> 0.
-      me->raise_download_exception(
+      raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
             previous      = ex_ecatt
             called_method = 'CL_APL_ECATT_SCRIPT_DOWNLOAD->SET_SCRIPT_TO_TEMPLATE' ).
@@ -92227,7 +92233,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-heads.
       rv_name = iv_branch_name.
@@ -92241,8 +92247,8 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
       EXPORTING
         iv_data        = iv_data
       IMPORTING
-        et_list        = me->mt_branches
-        ev_head_symref = me->mv_head_symref ).
+        et_list        = mt_branches
+        ev_head_symref = mv_head_symref ).
 
   ENDMETHOD.
   METHOD find_by_name.
@@ -92938,7 +92944,7 @@ ENDCLASS.
 
 CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
   METHOD constructor.
-    me->ms_manifest_descriptor = is_apack_manifest_descriptor.
+    ms_manifest_descriptor = is_apack_manifest_descriptor.
   ENDMETHOD.
   METHOD create_instance.
     CREATE OBJECT ro_manifest_writer EXPORTING is_apack_manifest_descriptor = is_apack_manifest_descriptor.
@@ -92977,97 +92983,6 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
   METHOD constructor.
     mv_package_name = iv_package_name.
   ENDMETHOD.
-  METHOD create_instance.
-    CREATE OBJECT ro_manifest_reader
-      EXPORTING
-        iv_package_name = iv_package_name.
-  ENDMETHOD.
-  METHOD deserialize.
-
-    DATA: lv_xml  TYPE string,
-          ls_data TYPE zif_abapgit_apack_definitions=>ty_descriptor.
-
-    lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( iv_xstr ).
-
-    ls_data = from_xml( lv_xml ).
-
-    ro_manifest_reader = create_instance( iv_package_name ).
-
-    ro_manifest_reader = create_instance( iv_package_name ).
-    ro_manifest_reader->set_manifest_descriptor( ls_data ).
-
-  ENDMETHOD.
-  METHOD from_xml.
-
-    DATA: lv_xml TYPE string.
-
-    lv_xml = iv_xml.
-
-    CALL TRANSFORMATION id
-      OPTIONS value_handling = 'accept_data_loss'
-      SOURCE XML lv_xml
-      RESULT data = rs_data.
-
-  ENDMETHOD.
-  METHOD get_manifest_descriptor.
-
-    DATA: lo_manifest_provider       TYPE REF TO object,
-          ls_manifest_implementation TYPE ty_s_manifest_declaration.
-
-    IF mv_is_cached IS INITIAL AND mv_package_name IS NOT INITIAL.
-      SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
-         INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
-         INTO ls_manifest_implementation
-         WHERE tadir~pgmid = 'R3TR' AND
-               tadir~object = 'CLAS' AND
-               seometarel~version = '1' AND
-               seometarel~refclsname = 'ZIF_APACK_MANIFEST' AND
-               tadir~devclass = me->mv_package_name.
-      IF ls_manifest_implementation IS INITIAL.
-        SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
-           INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
-           INTO ls_manifest_implementation
-           WHERE tadir~pgmid = 'R3TR' AND
-                 tadir~object = 'CLAS' AND
-                 seometarel~version = '1' AND
-                 seometarel~refclsname = 'IF_APACK_MANIFEST' AND
-                 tadir~devclass = me->mv_package_name.
-      ENDIF.
-      IF ls_manifest_implementation IS NOT INITIAL.
-        TRY.
-            CREATE OBJECT lo_manifest_provider TYPE (ls_manifest_implementation-clsname).
-          CATCH cx_sy_create_object_error.
-            CLEAR: rs_manifest_descriptor.
-        ENDTRY.
-        IF lo_manifest_provider IS BOUND.
-          me->copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
-        ENDIF.
-      ENDIF.
-
-      mv_is_cached = abap_true.
-
-    ENDIF.
-
-    rs_manifest_descriptor = me->ms_cached_descriptor.
-  ENDMETHOD.
-  METHOD has_manifest.
-
-    DATA: ls_returned_manifest TYPE zif_abapgit_apack_definitions=>ty_descriptor.
-
-    ls_returned_manifest = get_manifest_descriptor( ).
-
-    rv_has_manifest = abap_false.
-    IF ls_returned_manifest IS NOT INITIAL.
-      rv_has_manifest = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD set_manifest_descriptor.
-    mv_is_cached = abap_true.
-    ms_cached_descriptor = is_manifest_descriptor.
-    format_version( ).
-  ENDMETHOD.
-
   METHOD copy_manifest_descriptor.
 
     DATA: ls_my_manifest_wo_deps TYPE zif_abapgit_apack_definitions=>ty_descriptor_wo_dependencies,
@@ -93099,6 +93014,26 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
     set_manifest_descriptor( ls_descriptor ).
 
   ENDMETHOD.
+  METHOD create_instance.
+    CREATE OBJECT ro_manifest_reader
+      EXPORTING
+        iv_package_name = iv_package_name.
+  ENDMETHOD.
+  METHOD deserialize.
+
+    DATA: lv_xml  TYPE string,
+          ls_data TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( iv_xstr ).
+
+    ls_data = from_xml( lv_xml ).
+
+    ro_manifest_reader = create_instance( iv_package_name ).
+
+    ro_manifest_reader = create_instance( iv_package_name ).
+    ro_manifest_reader->set_manifest_descriptor( ls_data ).
+
+  ENDMETHOD.
   METHOD format_version.
 
     FIELD-SYMBOLS: <ls_dependency> TYPE zif_abapgit_apack_definitions=>ty_dependency.
@@ -93110,6 +93045,76 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
       <ls_dependency>-sem_version = zcl_abapgit_version=>conv_str_to_version( <ls_dependency>-version ).
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD from_xml.
+
+    DATA: lv_xml TYPE string.
+
+    lv_xml = iv_xml.
+
+    CALL TRANSFORMATION id
+      OPTIONS value_handling = 'accept_data_loss'
+      SOURCE XML lv_xml
+      RESULT data = rs_data.
+
+  ENDMETHOD.
+  METHOD get_manifest_descriptor.
+
+    DATA: lo_manifest_provider       TYPE REF TO object,
+          ls_manifest_implementation TYPE ty_s_manifest_declaration.
+
+    IF mv_is_cached IS INITIAL AND mv_package_name IS NOT INITIAL.
+      SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
+         INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
+         INTO ls_manifest_implementation
+         WHERE tadir~pgmid = 'R3TR' AND
+               tadir~object = 'CLAS' AND
+               seometarel~version = '1' AND
+               seometarel~refclsname = 'ZIF_APACK_MANIFEST' AND
+               tadir~devclass = mv_package_name.
+      IF ls_manifest_implementation IS INITIAL.
+        SELECT SINGLE seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
+           INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
+           INTO ls_manifest_implementation
+           WHERE tadir~pgmid = 'R3TR' AND
+                 tadir~object = 'CLAS' AND
+                 seometarel~version = '1' AND
+                 seometarel~refclsname = 'IF_APACK_MANIFEST' AND
+                 tadir~devclass = mv_package_name.
+      ENDIF.
+      IF ls_manifest_implementation IS NOT INITIAL.
+        TRY.
+            CREATE OBJECT lo_manifest_provider TYPE (ls_manifest_implementation-clsname).
+          CATCH cx_sy_create_object_error.
+            CLEAR: rs_manifest_descriptor.
+        ENDTRY.
+        IF lo_manifest_provider IS BOUND.
+          copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
+        ENDIF.
+      ENDIF.
+
+      mv_is_cached = abap_true.
+
+    ENDIF.
+
+    rs_manifest_descriptor = ms_cached_descriptor.
+  ENDMETHOD.
+  METHOD has_manifest.
+
+    DATA: ls_returned_manifest TYPE zif_abapgit_apack_definitions=>ty_descriptor.
+
+    ls_returned_manifest = get_manifest_descriptor( ).
+
+    rv_has_manifest = abap_false.
+    IF ls_returned_manifest IS NOT INITIAL.
+      rv_has_manifest = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD set_manifest_descriptor.
+    mv_is_cached = abap_true.
+    ms_cached_descriptor = is_manifest_descriptor.
+    format_version( ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -93944,5 +93949,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-02T08:18:04.055Z
+* abapmerge 0.14.1 - 2020-11-02T08:26:37.653Z
 ****************************************************
