@@ -24775,7 +24775,7 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
       FOR ALL ENTRIES IN lt_packages
       WHERE devclass = lt_packages-table_line
       AND delflag = abap_false
-      AND pgmid = 'R3TR'.                               "#EC CI_GENBUFF
+      AND pgmid = 'R3TR' ##TOO_MANY_ITAB_FIELDS.        "#EC CI_GENBUFF
 
     LOOP AT lt_objs INTO ls_obj.
 
@@ -37209,7 +37209,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
     DATA: li_syntax_check TYPE REF TO zif_abapgit_code_inspector.
 
     li_syntax_check = zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( ) ).
-    mt_result = li_syntax_check->run( c_variant ).
+
+    TRY.
+        mt_result = li_syntax_check->run( c_variant ).
+      CATCH zcx_abapgit_exception.
+        " Variant SYNTAX_CHECK does not exist in 702
+        mt_result = li_syntax_check->run( 'VERI_' && c_variant ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -93949,5 +93955,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-02T08:26:37.653Z
+* abapmerge 0.14.1 - 2020-11-02T08:30:16.608Z
 ****************************************************
