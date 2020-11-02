@@ -7789,6 +7789,7 @@ CLASS zcl_abapgit_object_pers DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_personalization_object,
@@ -51686,19 +51687,7 @@ CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
-
-    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
-
-    ls_meta = zif_abapgit_object~get_metadata( ).
-
-    IF ls_meta-late_deser = abap_true.
-      APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
-    ELSEIF ls_meta-ddic = abap_true.
-      APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
-    ELSE.
-      APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
-    ENDIF.
-
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -61226,7 +61215,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
+CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
   METHOD delete_extra.
 
     DELETE FROM tddat WHERE tabname = iv_tabname.
@@ -61408,7 +61397,6 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-late_deser = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -70265,12 +70253,30 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_pers IMPLEMENTATION.
-
   METHOD constructor.
 
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
     mv_pers_key = ms_item-obj_name.
+
+  ENDMETHOD.
+  METHOD get_personalization_object.
+
+    CREATE OBJECT ro_personalization_object
+      EXPORTING
+        p_create                = iv_create
+        p_pers_key              = mv_pers_key
+        p_view_only             = iv_view_only
+      EXCEPTIONS
+        pers_key_already_exists = 1
+        pers_key_does_not_exist = 2
+        transport_view_only     = 3
+        transport_canceled      = 4
+        OTHERS                  = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -70349,9 +70355,7 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
     rs_metadata-delete_tadir = abap_true.
-    rs_metadata-late_deser   = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -70421,26 +70425,6 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
                  ig_data = ls_personalization_object ).
 
   ENDMETHOD.
-  METHOD get_personalization_object.
-
-    CREATE OBJECT ro_personalization_object
-      EXPORTING
-        p_create                = iv_create
-        p_pers_key              = mv_pers_key
-        p_view_only             = iv_view_only
-      EXCEPTIONS
-        pers_key_already_exists = 1
-        pers_key_does_not_exist = 2
-        transport_view_only     = 3
-        transport_canceled      = 4
-        OTHERS                  = 5.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ DEFINITION DEFERRED.
@@ -72135,7 +72119,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
+CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   METHOD delete_intervals.
 
     DATA: lv_error    TYPE c LENGTH 1,
@@ -72310,7 +72294,6 @@ CLASS ZCL_ABAPGIT_OBJECT_NROB IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-late_deser = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -83419,7 +83402,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown.
   ENDMETHOD.
@@ -83517,9 +83500,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DCLS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
     rs_metadata-delete_tadir = abap_true.
-    rs_metadata-late_deser   = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -93955,5 +93936,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-02T08:30:16.608Z
+* abapmerge 0.14.1 - 2020-11-02T08:32:04.598Z
 ****************************************************
