@@ -53730,8 +53730,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       rv_user = zcl_abapgit_objects_super=>c_user_unknown.
     ENDIF.
 
-* todo, fallback to looking at transports if rv_user = 'UNKNOWN'?
-
   ENDMETHOD.
   METHOD checks_adjust.
 
@@ -93936,5 +93934,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-02T08:32:04.598Z
+* abapmerge 0.14.1 - 2020-11-02T08:34:36.727Z
 ****************************************************
