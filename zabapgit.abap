@@ -5832,13 +5832,6 @@ CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
     DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
     DATA mv_language TYPE spras .
 
-    METHODS check_timestamp
-      IMPORTING
-        !iv_timestamp     TYPE timestamp
-        !iv_date          TYPE d
-        !iv_time          TYPE t
-      RETURNING
-        VALUE(rv_changed) TYPE abap_bool .
     METHODS get_metadata
       RETURNING
         VALUE(rs_metadata) TYPE zif_abapgit_definitions=>ty_metadata .
@@ -13203,9 +13196,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         VALUE(rs_diff) TYPE zif_abapgit_definitions=>ty_diff
       RAISING
         zcx_abapgit_exception .
-    METHODS is_every_changed_line_patched
-      RETURNING
-        VALUE(rv_everything_patched) TYPE abap_bool .
     CLASS-METHODS is_patch_line_possible
       IMPORTING
         !is_diff_line                    TYPE zif_abapgit_definitions=>ty_diff
@@ -16886,10 +16876,6 @@ CLASS zcl_abapgit_repo_filter DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    METHODS constructor
-      IMPORTING
-        !iv_package TYPE devclass.
-
     METHODS apply
       IMPORTING
         it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt
@@ -16897,16 +16883,10 @@ CLASS zcl_abapgit_repo_filter DEFINITION
         ct_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt .
 
   PROTECTED SECTION.
-    METHODS get_package
-      RETURNING
-        VALUE(rv_package) TYPE devclass.
 
     METHODS filter_generated_tadir
       CHANGING
-        ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-  PRIVATE SECTION.
-    DATA mv_package TYPE devclass.
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt .
 
 ENDCLASS.
 CLASS zcl_abapgit_repo_offline DEFINITION
@@ -21372,10 +21352,7 @@ CLASS ZCL_ABAPGIT_REPO_OFFLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
-  METHOD constructor.
-    mv_package = iv_package.
-  ENDMETHOD.
+CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
   METHOD apply.
 
     DATA: lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
@@ -21450,10 +21427,6 @@ CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD get_package.
-    rv_package = mv_package.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
@@ -21648,7 +21621,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -21892,9 +21865,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       io_dot                = get_dot_abapgit( )
       ii_log                = ii_log ).
 
-    CREATE OBJECT lo_filter
-      EXPORTING
-        iv_package = get_package( ).
+    CREATE OBJECT lo_filter.
 
     lo_filter->apply( EXPORTING it_filter = it_filter
                       CHANGING  ct_tadir  = lt_tadir ).
@@ -40599,33 +40570,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     rv_insert_nav = abap_true.
 
   ENDMETHOD.
-  METHOD is_every_changed_line_patched.
-
-    DATA: lt_diff TYPE zif_abapgit_definitions=>ty_diffs_tt.
-
-    FIELD-SYMBOLS:
-      <ls_diff_file> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff,
-      <ls_diff>      TYPE zif_abapgit_definitions=>ty_diff.
-
-    rv_everything_patched = abap_true.
-
-    LOOP AT mt_diff_files ASSIGNING <ls_diff_file>.
-
-      lt_diff = <ls_diff_file>-o_diff->get( ).
-
-      LOOP AT lt_diff ASSIGNING <ls_diff>
-                      WHERE result IS NOT INITIAL
-                      AND   patch_flag = abap_false.
-        rv_everything_patched = abap_false.
-        EXIT.
-      ENDLOOP.
-      IF sy-subrc = 0.
-        EXIT.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD is_patch_line_possible.
 
     IF is_diff_line-result = zif_abapgit_definitions=>c_diff-update
@@ -51180,25 +51124,6 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
-  METHOD check_timestamp.
-
-    DATA: lv_ts TYPE timestamp.
-
-    IF sy-subrc = 0 AND iv_date IS NOT INITIAL AND iv_time IS NOT INITIAL.
-      cl_abap_tstmp=>systemtstmp_syst2utc(
-        EXPORTING syst_date = iv_date
-                  syst_time = iv_time
-        IMPORTING utc_tstmp = lv_ts ).
-      IF lv_ts < iv_timestamp.
-        rv_changed = abap_false. " Unchanged
-      ELSE.
-        rv_changed = abap_true.
-      ENDIF.
-    ELSE. " Not found? => changed
-      rv_changed = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD constructor.
     ms_item = is_item.
     ASSERT NOT ms_item IS INITIAL.
@@ -93967,5 +93892,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-03T07:44:10.815Z
+* abapmerge 0.14.1 - 2020-11-03T07:46:37.976Z
 ****************************************************
