@@ -37417,7 +37417,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
     ri_html->add( '<td class="right">' ).
     ri_html->add( '<input class="stage-filter" id="objectSearch"' &&
                   ' type="search" placeholder="Filter Objects"' &&
-                  | value={ mv_filter_value }>| ).
+                  | value="{ mv_filter_value }">| ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '</tr>' ).
@@ -44605,7 +44605,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       iv_part_category = c_html_parts-hidden_forms ).
 
     ri_html->add( footer( ) ).
-    ri_html->add( '</body>' ).
 
     li_script = scripts( ).
 
@@ -44616,6 +44615,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       ri_html->add( '</script>' ).
     ENDIF.
 
+    ri_html->add( '</body>' ).
     ri_html->add( '</html>' ).
 
   ENDMETHOD.
@@ -45057,6 +45057,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
         ENDIF.
         ri_html->add( |<h1>{ lv_text }</h1>| ).
       ELSE.
+        <ls_line>-text = escape( val    = <ls_line>-text
+                                 format = cl_abap_format=>e_html_text ).
         ri_html->add( |<li>{ <ls_line>-text }</li>| ).
       ENDIF.
     ENDLOOP.
@@ -93982,5 +93984,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-02T14:04:23.084Z
+* abapmerge 0.14.1 - 2020-11-03T07:39:08.718Z
 ****************************************************
