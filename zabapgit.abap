@@ -4263,6 +4263,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
 * remote to local
     CLASS-METHODS upload_pack_by_branch
       IMPORTING
@@ -4273,7 +4274,6 @@ CLASS zcl_abapgit_git_transport DEFINITION
       EXPORTING
         !et_objects      TYPE zif_abapgit_definitions=>ty_objects_tt
         !ev_branch       TYPE zif_abapgit_definitions=>ty_sha1
-        !eo_branch_list  TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS upload_pack_by_commit
@@ -4361,20 +4361,29 @@ CLASS zcl_abapgit_git_utils DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES ty_null TYPE C LENGTH 1.
+
+    TYPES:
+      ty_null TYPE c LENGTH 1 .
+
     CLASS-METHODS get_null
-      RETURNING VALUE(rv_c) TYPE ty_null.
-
+      RETURNING
+        VALUE(rv_c) TYPE ty_null .
     CLASS-METHODS pkt_string
-      IMPORTING iv_string     TYPE string
-      RETURNING VALUE(rv_pkt) TYPE string
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_string    TYPE string
+      RETURNING
+        VALUE(rv_pkt) TYPE string
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS length_utf8_hex
-      IMPORTING iv_data       TYPE xstring
-      RETURNING VALUE(rv_len) TYPE i
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_data      TYPE xstring
+      RETURNING
+        VALUE(rv_len) TYPE i
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_http DEFINITION
   CREATE PUBLIC .
@@ -90345,9 +90354,6 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
           lv_x       TYPE x LENGTH 2,
           lo_obj     TYPE REF TO cl_abap_conv_in_ce,
           lv_len     TYPE i.
-
-* hmm, can this be done easier?
-
     lv_xstring = iv_data(4).
 
     lo_obj = cl_abap_conv_in_ce=>create(
@@ -90385,7 +90391,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -90539,60 +90545,6 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD upload_pack_by_branch.
-
-    DATA: lo_client  TYPE REF TO zcl_abapgit_http_client,
-          lt_hashes  TYPE zif_abapgit_definitions=>ty_sha1_tt.
-
-    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF it_branches.
-    CLEAR: et_objects,
-           ev_branch,
-           eo_branch_list.
-
-    find_branch(
-      EXPORTING
-        iv_url         = iv_url
-        iv_service     = c_service-upload
-        iv_branch_name = iv_branch_name
-      IMPORTING
-        eo_client      = lo_client
-        eo_branch_list = eo_branch_list
-        ev_branch      = ev_branch ).
-
-    IF it_branches IS INITIAL.
-      APPEND ev_branch TO lt_hashes.
-    ELSE.
-      LOOP AT it_branches ASSIGNING <ls_branch>.
-        APPEND <ls_branch>-sha1 TO lt_hashes.
-      ENDLOOP.
-    ENDIF.
-
-    et_objects = upload_pack( io_client       = lo_client
-                              iv_url          = iv_url
-                              iv_deepen_level = iv_deepen_level
-                              it_hashes       = lt_hashes ).
-
-  ENDMETHOD.
-  METHOD upload_pack_by_commit.
-
-    DATA: lo_client TYPE REF TO zcl_abapgit_http_client,
-          lt_hashes TYPE zif_abapgit_definitions=>ty_sha1_tt.
-    CLEAR: et_objects,
-           ev_commit.
-
-    APPEND iv_hash TO lt_hashes.
-    ev_commit = iv_hash.
-
-    lo_client = zcl_abapgit_http=>create_by_url(
-      iv_url     = iv_url
-      iv_service = c_service-upload ).
-
-    et_objects = upload_pack( io_client       = lo_client
-                              iv_url          = iv_url
-                              iv_deepen_level = iv_deepen_level
-                              it_hashes       = lt_hashes ).
-
-  ENDMETHOD.
   METHOD upload_pack.
 
     DATA: lv_capa    TYPE string,
@@ -90638,7 +90590,58 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
     rt_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
 
   ENDMETHOD.
+  METHOD upload_pack_by_branch.
 
+    DATA: lo_client  TYPE REF TO zcl_abapgit_http_client,
+          lt_hashes  TYPE zif_abapgit_definitions=>ty_sha1_tt.
+
+    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF it_branches.
+    CLEAR: et_objects,
+           ev_branch.
+
+    find_branch(
+      EXPORTING
+        iv_url         = iv_url
+        iv_service     = c_service-upload
+        iv_branch_name = iv_branch_name
+      IMPORTING
+        eo_client      = lo_client
+        ev_branch      = ev_branch ).
+
+    IF it_branches IS INITIAL.
+      APPEND ev_branch TO lt_hashes.
+    ELSE.
+      LOOP AT it_branches ASSIGNING <ls_branch>.
+        APPEND <ls_branch>-sha1 TO lt_hashes.
+      ENDLOOP.
+    ENDIF.
+
+    et_objects = upload_pack( io_client       = lo_client
+                              iv_url          = iv_url
+                              iv_deepen_level = iv_deepen_level
+                              it_hashes       = lt_hashes ).
+
+  ENDMETHOD.
+  METHOD upload_pack_by_commit.
+
+    DATA: lo_client TYPE REF TO zcl_abapgit_http_client,
+          lt_hashes TYPE zif_abapgit_definitions=>ty_sha1_tt.
+    CLEAR: et_objects,
+           ev_commit.
+
+    APPEND iv_hash TO lt_hashes.
+    ev_commit = iv_hash.
+
+    lo_client = zcl_abapgit_http=>create_by_url(
+      iv_url     = iv_url
+      iv_service = c_service-upload ).
+
+    et_objects = upload_pack( io_client       = lo_client
+                              iv_url          = iv_url
+                              iv_deepen_level = iv_deepen_level
+                              it_hashes       = lt_hashes ).
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
@@ -93892,5 +93895,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-03T07:46:37.976Z
+* abapmerge 0.14.1 - 2020-11-03T07:48:18.181Z
 ****************************************************
