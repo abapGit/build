@@ -33522,7 +33522,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -34040,6 +34040,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
       <ls_sel>-varoption = |{ <ls_pull>-number } - { <ls_pull>-title } @{ <ls_pull>-user }|.
     ENDLOOP.
+    SORT lt_selection BY varoption DESCENDING.
 
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
       EXPORTING
@@ -38537,11 +38538,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     lo_repo_online ?= mo_repo. " TODO refactor this disaster
     IF lo_repo_online->get_switched_origin( ) IS NOT INITIAL.
       ro_branch_dropdown->add(
-        iv_txt = 'Switch Origin: Revert <sup>beta<sup>'
+        iv_txt = 'Revert to Previous Branch'
         iv_act = |{ c_actions-repo_reset_origin }| ).
     ELSE.
       ro_branch_dropdown->add(
-        iv_txt = 'Switch Origin: to PR <sup>beta<sup>'
+        iv_txt = 'Switch to PR Branch'
         iv_act = |{ c_actions-repo_switch_origin_to_pr }| ).
     ENDIF.
 
@@ -93984,5 +93985,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-03T07:39:08.718Z
+* abapmerge 0.14.1 - 2020-11-03T07:42:09.667Z
 ****************************************************
