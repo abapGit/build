@@ -24056,7 +24056,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     DATA: lv_name     TYPE string,
           lv_starting TYPE string,
           lv_dot      TYPE string,
-          lv_count    TYPE i,
           lv_ignore   TYPE string.
     lv_name = iv_path && iv_filename.
 
@@ -25764,7 +25763,6 @@ CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
       ls_address     TYPE bapiaddr3,
       lt_smtp        TYPE TABLE OF bapiadsmtp,
       ls_smtp        TYPE bapiadsmtp,
-      lt_dev_clients TYPE SORTED TABLE OF sy-mandt WITH UNIQUE KEY table_line,
       ls_user        TYPE ty_user,
       lo_exception   TYPE REF TO zcx_abapgit_exception.
 
@@ -25806,8 +25804,6 @@ CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_instance.
-
-    DATA: ls_user TYPE ty_user.
 
     FIELD-SYMBOLS: <ls_user> TYPE ty_user.
 
@@ -32666,8 +32662,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
           lt_value_tab       TYPE ty_commit_value_tab_tt,
           lt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
           ls_selected_commit TYPE zif_abapgit_definitions=>ty_commit.
-
-    FIELD-SYMBOLS: <ls_field_desc> TYPE rsvbfidesc.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
@@ -40079,15 +40073,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_type_icon         TYPE string,
       lv_favorite_icon     TYPE string,
       lv_favorite_class    TYPE string,
-      lv_package_jump_data TYPE string,
-      lv_package_obj_name  TYPE sobj_name,
       lv_stage_link        TYPE string,
       lv_patch_link        TYPE string,
       lv_zip_import_link   TYPE string,
       lv_zip_export_link   TYPE string,
       lv_check_link        TYPE string,
-      lv_settings_link     TYPE string,
-      lv_branch_html       TYPE string.
+      lv_settings_link     TYPE string.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -40924,7 +40915,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     DATA:
       lv_merge_content    TYPE string,
-      lt_fields           TYPE tihttpnvp,
       lv_new_file_content TYPE xstring.
 
     FIELD-SYMBOLS:
@@ -45178,7 +45168,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     DATA lt_repo_list TYPE zif_abapgit_persistence=>ty_repos.
     DATA lv_repo_json TYPE string.
     DATA lv_size TYPE i.
-    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
     FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_list.
 
     li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
@@ -45218,8 +45207,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
           lo_pback             TYPE REF TO zcl_abapgit_persist_background,
           lx_error             TYPE REF TO zcx_abapgit_exception,
           lv_hint              TYPE string,
-          lv_icon              TYPE string,
-          lv_package_jump_data TYPE string.
+          lv_icon              TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     CREATE OBJECT lo_pback.
@@ -53985,8 +53973,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lt_tadir    LIKE it_tadir,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
-          lv_count    TYPE i,
-          lv_text     TYPE string.
+          lv_count    TYPE i.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
 
@@ -90630,12 +90617,7 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD upload_pack_by_branch.
 
     DATA: lo_client  TYPE REF TO zcl_abapgit_http_client,
-          lv_buffer  TYPE string,
-          lv_xstring TYPE xstring,
-          lv_line    TYPE string,
-          lv_pack    TYPE xstring,
-          lt_hashes  TYPE zif_abapgit_definitions=>ty_sha1_tt,
-          lv_capa    TYPE string.
+          lt_hashes  TYPE zif_abapgit_definitions=>ty_sha1_tt.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF it_branches.
     CLEAR: et_objects,
@@ -93985,5 +93967,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-03T07:42:09.667Z
+* abapmerge 0.14.1 - 2020-11-03T07:44:10.815Z
 ****************************************************
