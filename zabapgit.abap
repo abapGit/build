@@ -7764,8 +7764,6 @@ CLASS zcl_abapgit_object_pdts DEFINITION
 
   PRIVATE SECTION.
 
-    CONSTANTS: c_object_type_task       TYPE hr_sotype VALUE 'TS'.
-
     DATA ms_objkey TYPE hrsobject.
     DATA mv_objid TYPE hrobjid.
 
@@ -70765,7 +70763,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'PDTS not fully implemented, enable experimental features to test it' ).
     ENDIF.
 
-    ms_objkey-otype = c_object_type_task.
+    ms_objkey-otype = 'TS'.
     ms_objkey-objid = ms_item-obj_name.
 
     mv_objid = ms_item-obj_name.  "Todo: Obsolete
@@ -70914,7 +70912,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
 
     CALL FUNCTION 'RH_HRSOBJECT_DELETE'
       EXPORTING
-        act_otype           = c_object_type_task
+        act_otype           = 'TS'
         act_objid           = mv_objid
         no_confirmation_msg = abap_true
       EXCEPTIONS
@@ -70931,7 +70929,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     CALL FUNCTION 'RH_READ_OBJECT'
       EXPORTING
         plvar     = '01'
-        otype     = c_object_type_task
+        otype     = 'TS'
         objid     = mv_objid
         istat     = '1'
         begda     = sy-datum
@@ -70947,7 +70945,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'HRSOBJECT'
-                                            iv_argument = c_object_type_task && mv_objid ).
+                                            iv_argument = 'TS' && mv_objid ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true.
@@ -70957,7 +70955,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     SELECT SINGLE uname
       INTO rv_user
       FROM hrs1201
-      WHERE otype = c_object_type_task AND
+      WHERE otype = 'TS' AND
             objid = ms_item-obj_name.
 
     IF sy-subrc <> 0.
@@ -93895,5 +93893,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-03T07:48:18.181Z
+* abapmerge 0.14.1 - 2020-11-03T07:50:28.787Z
 ****************************************************
