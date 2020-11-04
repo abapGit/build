@@ -11922,6 +11922,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         !iv_username    TYPE xubname
         !iv_interactive TYPE abap_bool DEFAULT abap_true
+        !iv_icon_only   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_html)  TYPE REF TO zif_abapgit_html
       RAISING
@@ -11930,6 +11931,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         !iv_transport   TYPE trkorr
         !iv_interactive TYPE abap_bool DEFAULT abap_true
+        !iv_icon_only   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_html)  TYPE REF TO zif_abapgit_html
       RAISING
@@ -13493,7 +13495,9 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
       RETURNING
-        VALUE(rv_html) TYPE string .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_parent_dir
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -13721,32 +13725,34 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     METHODS find_changed_by
       IMPORTING
-        it_files             TYPE zif_abapgit_definitions=>ty_stage_files
-        it_transports        TYPE ty_transport_tt
+        !it_files            TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_transports       TYPE ty_transport_tt
       RETURNING
         VALUE(rt_changed_by) TYPE ty_changed_by_tt .
     METHODS find_transports_remote
       IMPORTING
-        it_files      TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_files      TYPE zif_abapgit_definitions=>ty_files_tt
       CHANGING
-        ct_transports TYPE ty_transport_tt
+        !ct_transports TYPE ty_transport_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS find_transports_local
       IMPORTING
-        it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
+        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
       CHANGING
-        ct_transports TYPE ty_transport_tt
+        !ct_transports TYPE ty_transport_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS find_transports
       IMPORTING
-        it_files             TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_files            TYPE zif_abapgit_definitions=>ty_stage_files
       RETURNING
         VALUE(rt_transports) TYPE ty_transport_tt .
     METHODS render_list
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_file
       IMPORTING
         !iv_context    TYPE string
@@ -13756,7 +13762,9 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !iv_changed_by TYPE xubname OPTIONAL
         !iv_transport  TYPE trkorr OPTIONAL
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_actions
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
@@ -13796,13 +13804,6 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-    METHODS get_transport_html
-      IMPORTING
-        iv_html             TYPE REF TO zif_abapgit_html
-        iv_transport_string TYPE string
-        iv_transport        TYPE trkorr
-      RETURNING
-        VALUE(rv_result)    TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
     INHERITING FROM zcl_abapgit_gui_page_codi_base.
@@ -27822,9 +27823,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
     lo_buf->add( 'span.branch,' ).
-    lo_buf->add( 'span.user,' ).
-    lo_buf->add( 'span.package,' ).
-    lo_buf->add( 'span.transport {' ).
+    lo_buf->add( 'span.user-box,' ).
+    lo_buf->add( 'span.package-box,' ).
+    lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  padding: 2px 4px;' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 4px;' ).
@@ -28848,15 +28849,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
-    lo_buf->add( 'span.user {' ).
+    lo_buf->add( 'span.user-box {' ).
     lo_buf->add( '  border-color: #c2d4ea;' ).
     lo_buf->add( '  background-color: #d9e4f2;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'span.package {' ).
+    lo_buf->add( 'span.package-box {' ).
     lo_buf->add( '  border-color: #d3ccd2;' ).
     lo_buf->add( '  background-color: #ebe3ea;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'span.transport {' ).
+    lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  border-color: #a7e3cf;' ).
     lo_buf->add( '  background-color: #dbf3eb;' ).
     lo_buf->add( '}' ).
@@ -29371,15 +29372,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
-    lo_buf->add( 'span.user {' ).
+    lo_buf->add( 'span.user-box {' ).
     lo_buf->add( '  background-color: #4c6782;' ).
     lo_buf->add( '  border-color: #7491b2;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'span.package {' ).
+    lo_buf->add( 'span.package-box {' ).
     lo_buf->add( '  background-color: #705a6d;' ).
     lo_buf->add( '  border-color: #987095;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'span.transport {' ).
+    lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  background-color: #456d5d;' ).
     lo_buf->add( '  border-color: #60a087;' ).
     lo_buf->add( '}' ).
@@ -29989,7 +29990,6 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  if (this.dom.objectSearch.value) {' ).
     lo_buf->add( '    this.applyFilterValue(this.dom.objectSearch.value);' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  debugOutput("StageHelper.onPageLoad: " + ((data) ? "from Storage" : "initial state"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Table event handler, change status' ).
@@ -30062,6 +30062,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  // Collect data cells' ).
     lo_buf->add( '  var targets = this.filterTargets.map(function(attr) {' ).
     lo_buf->add( '    var elem = row.cells[this.colIndex[attr]];' ).
+    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "SPAN") elem = elem.firstChild;' ).
+    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "I") elem = elem.nextChild;' ).
     lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;' ).
     lo_buf->add( '    return {' ).
     lo_buf->add( '      elem:      elem,' ).
@@ -31620,6 +31622,8 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '        title:  title' ).
     lo_buf->add( '      };});' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Save Scroll Position for Diff/Patch Page */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function saveScrollPosition(){' ).
     lo_buf->add( '  if (!window.sessionStorage) { return }' ).
@@ -37310,14 +37314,13 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     LOOP AT it_files-remote INTO ls_remote WHERE filename IS NOT INITIAL.
       TRY.
-
           zcl_abapgit_file_status=>identify_object(
             EXPORTING
               iv_filename = ls_remote-filename
-              iv_path = ls_remote-path
-              io_dot = mo_repo->get_dot_abapgit( )
+              iv_path     = ls_remote-path
+              io_dot      = mo_repo->get_dot_abapgit( )
             IMPORTING
-              es_item = ls_item ).
+              es_item     = ls_item ).
           ls_changed_by-item = ls_item.
           INSERT ls_changed_by INTO TABLE lt_changed_by_remote.
         CATCH zcx_abapgit_exception.
@@ -37326,14 +37329,13 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     LOOP AT rt_changed_by ASSIGNING <ls_changed_by>.
       TRY.
-          <ls_changed_by>-name = to_lower( zcl_abapgit_objects=>changed_by( <ls_changed_by>-item ) ).
+          <ls_changed_by>-name = zcl_abapgit_objects=>changed_by( <ls_changed_by>-item ).
         CATCH zcx_abapgit_exception.
       ENDTRY.
     ENDLOOP.
 
     LOOP AT lt_changed_by_remote ASSIGNING <ls_changed_by>.
       TRY.
-
           " deleted files might still be in a transport
           CLEAR lv_transport.
           READ TABLE it_transports WITH KEY item = <ls_changed_by>-item
@@ -37343,9 +37345,9 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
             SELECT SINGLE as4user FROM e070 INTO lv_user
             WHERE trkorr = lv_transport-transport.
 
-            <ls_changed_by>-name = to_lower( lv_user ).
+            <ls_changed_by>-name = lv_user.
           ELSE.
-            <ls_changed_by>-name = to_lower( zcl_abapgit_objects_super=>c_user_unknown ).
+            <ls_changed_by>-name = zcl_abapgit_objects_super=>c_user_unknown.
           ENDIF.
         CATCH zcx_abapgit_exception.
       ENDTRY.
@@ -37375,6 +37377,80 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
       CATCH zcx_abapgit_exception.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD find_transports_local.
+
+    DATA ls_new  LIKE LINE OF ct_transports.
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF it_files.
+
+    DATA li_cts_api TYPE REF TO zif_abapgit_cts_api.
+    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+    LOOP AT it_files ASSIGNING <ls_local> WHERE item IS NOT INITIAL.
+      IF <ls_local>-item-obj_type IS NOT INITIAL AND
+         <ls_local>-item-obj_name IS NOT INITIAL AND
+         <ls_local>-item-devclass IS NOT INITIAL.
+
+        IF li_cts_api->is_chrec_possible_for_package( <ls_local>-item-devclass ) = abap_false.
+          EXIT. " Assume all other objects are also in packages without change recording
+
+        ELSEIF li_cts_api->is_object_type_lockable( <ls_local>-item-obj_type ) = abap_true AND
+               li_cts_api->is_object_locked_in_transport( iv_object_type = <ls_local>-item-obj_type
+                                                          iv_object_name = <ls_local>-item-obj_name ) = abap_true.
+
+          ls_new-item = <ls_local>-item.
+
+          ls_new-transport = li_cts_api->get_current_transport_for_obj(
+            iv_object_type             = <ls_local>-item-obj_type
+            iv_object_name             = <ls_local>-item-obj_name
+            iv_resolve_task_to_request = abap_false ).
+
+          INSERT ls_new INTO TABLE ct_transports.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD find_transports_remote.
+
+    DATA:
+      ls_item        TYPE zif_abapgit_definitions=>ty_item,
+      lv_is_xml_file TYPE abap_bool,
+      ls_new         LIKE LINE OF ct_transports,
+      li_cts_api     TYPE REF TO zif_abapgit_cts_api.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_files.
+
+    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+    LOOP AT it_files ASSIGNING <ls_remote> WHERE filename IS NOT INITIAL.
+
+      CLEAR ls_item.
+      CLEAR ls_new.
+
+      zcl_abapgit_file_status=>identify_object(
+        EXPORTING
+          iv_filename = <ls_remote>-filename
+          iv_path = <ls_remote>-path
+          io_dot = mo_repo->get_dot_abapgit( )
+        IMPORTING
+          es_item = ls_item
+          ev_is_xml = lv_is_xml_file ).
+
+      IF ls_item IS INITIAL.
+        CONTINUE.
+      ELSEIF li_cts_api->is_object_type_lockable( ls_item-obj_type ) = abap_true
+        AND li_cts_api->is_object_locked_in_transport( iv_object_type = ls_item-obj_type
+                                                       iv_object_name = ls_item-obj_name ) = abap_true.
+        ls_new-item = ls_item.
+        ls_new-transport = li_cts_api->get_current_transport_for_obj(
+          iv_object_type             = ls_item-obj_type
+          iv_object_name             = ls_item-obj_name
+          iv_resolve_task_to_request = abap_false ).
+        INSERT ls_new INTO TABLE ct_transports.
+      ENDIF.
+
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD get_page_patch.
@@ -37475,17 +37551,13 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_file.
 
-    DATA: lv_param            TYPE string,
-          lv_filename         TYPE string,
-          lv_transport_string TYPE string,
-          lv_transport_html   TYPE string.
+    DATA: lv_param    TYPE string,
+          lv_filename TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    lv_transport_string = iv_transport.
-
     lv_filename = is_file-path && is_file-filename.
-* make sure whitespace is preserved in the DOM
+    " make sure whitespace is preserved in the DOM
     REPLACE ALL OCCURRENCES OF ` ` IN lv_filename WITH '&nbsp;'.
 
     ri_html->add( |<tr class="{ iv_context }">| ).
@@ -37505,48 +37577,26 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           iv_txt = lv_filename
           iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_param }| ).
 
-        lv_transport_html = get_transport_html(
-          iv_html = ri_html
-          iv_transport_string = lv_transport_string
-          iv_transport = iv_transport ).
-
         ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ri_html->add( |<td class="name">{ lv_filename }</td>| ).
-
       WHEN 'remote'.
-
-        lv_transport_html = get_transport_html(
-            iv_html = ri_html
-            iv_transport_string = lv_transport_string
-            iv_transport = iv_transport ).
-
         ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ri_html->add( |<td class="name">{ lv_filename }</td>| ).
     ENDCASE.
 
-    ri_html->add( |<td class="user">{ iv_changed_by }</td>| ).
-    ri_html->add( |<td class="transport">{ lv_transport_html }</td>| ).
+    ri_html->add( '<td class="user">' ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( iv_changed_by  ) ).
+    ri_html->add( '</td>' ).
 
-    lv_transport_html = get_transport_html(
-      iv_html = ri_html
-      iv_transport_string = lv_transport_string
-      iv_transport = iv_transport ).
-    ri_html->add( |<td class="status">?</td>| ).
+    ri_html->add( '<td class="transport">' ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport( iv_transport ) ).
+    ri_html->add( '</td>' ).
+
+    ri_html->add( '<td class="status">?</td>' ).
     ri_html->add( '<td class="cmd"></td>' ). " Command added in JS
 
     ri_html->add( '</tr>' ).
 
-  ENDMETHOD.
-
-  METHOD get_transport_html.
-
-    IF iv_transport_string IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    rv_result = iv_html->a(
-            iv_txt = iv_transport_string
-            iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ iv_transport }| ).
   ENDMETHOD.
   METHOD render_list.
 
@@ -37595,7 +37645,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       ASSERT sy-subrc = 0.
 
       ri_html->add( render_file(
-        iv_context = 'local'
+        iv_context    = 'local'
         is_file       = <ls_local>-file
         is_item       = <ls_local>-item
         is_status     = <ls_status>
@@ -37632,12 +37682,12 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
       TRY.
           zcl_abapgit_file_status=>identify_object(
-             EXPORTING
-               iv_filename = <ls_remote>-filename
-               iv_path = <ls_remote>-path
-               io_dot = mo_repo->get_dot_abapgit( )
-             IMPORTING
-               es_item = ls_item_remote ).
+            EXPORTING
+              iv_filename = <ls_remote>-filename
+              iv_path     = <ls_remote>-path
+              io_dot      = mo_repo->get_dot_abapgit( )
+            IMPORTING
+              es_item     = ls_item_remote ).
           READ TABLE lt_transports INTO ls_transport WITH KEY item = ls_item_remote.
           READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = ls_item_remote.
         CATCH zcx_abapgit_exception.
@@ -37645,12 +37695,12 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       ENDTRY.
 
       ri_html->add( render_file(
-        iv_context = 'remote'
-        is_status = <ls_status>
-        is_file = <ls_remote>
-        is_item = ls_item_remote
+        iv_context    = 'remote'
+        is_status     = <ls_status>
+        is_file       = <ls_remote>
+        is_item       = ls_item_remote
         iv_changed_by = ls_changed_by-name
-        iv_transport = ls_transport-transport ) ).
+        iv_transport  = ls_transport-transport ) ).
 
       AT LAST.
         ri_html->add( '</tbody>' ).
@@ -37869,82 +37919,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-
-  METHOD find_transports_local.
-
-    DATA ls_new  LIKE LINE OF ct_transports.
-    FIELD-SYMBOLS: <ls_local> LIKE LINE OF it_files.
-
-    DATA li_cts_api TYPE REF TO zif_abapgit_cts_api.
-    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
-
-    LOOP AT it_files ASSIGNING <ls_local> WHERE item IS NOT INITIAL.
-      IF <ls_local>-item-obj_type IS NOT INITIAL AND
-         <ls_local>-item-obj_name IS NOT INITIAL AND
-         <ls_local>-item-devclass IS NOT INITIAL.
-
-        IF li_cts_api->is_chrec_possible_for_package( <ls_local>-item-devclass ) = abap_false.
-          EXIT. " Assume all other objects are also in packages without change recording
-
-        ELSEIF li_cts_api->is_object_type_lockable( <ls_local>-item-obj_type ) = abap_true AND
-               li_cts_api->is_object_locked_in_transport( iv_object_type = <ls_local>-item-obj_type
-                                                          iv_object_name = <ls_local>-item-obj_name ) = abap_true.
-
-          ls_new-item = <ls_local>-item.
-
-          ls_new-transport = li_cts_api->get_current_transport_for_obj(
-            iv_object_type             = <ls_local>-item-obj_type
-            iv_object_name             = <ls_local>-item-obj_name
-            iv_resolve_task_to_request = abap_false ).
-
-          INSERT ls_new INTO TABLE ct_transports.
-        ENDIF.
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-  METHOD find_transports_remote.
-
-    DATA:
-      ls_item        TYPE zif_abapgit_definitions=>ty_item,
-      lv_is_xml_file TYPE abap_bool,
-      ls_new         LIKE LINE OF ct_transports,
-      li_cts_api     TYPE REF TO zif_abapgit_cts_api.
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_files.
-
-    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
-
-    LOOP AT it_files ASSIGNING <ls_remote> WHERE filename IS NOT INITIAL.
-
-      CLEAR ls_item.
-      CLEAR ls_new.
-
-      zcl_abapgit_file_status=>identify_object(
-        EXPORTING
-          iv_filename = <ls_remote>-filename
-          iv_path = <ls_remote>-path
-          io_dot = mo_repo->get_dot_abapgit( )
-        IMPORTING
-          es_item = ls_item
-          ev_is_xml = lv_is_xml_file ).
-
-      IF ls_item IS INITIAL.
-        CONTINUE.
-      ELSEIF li_cts_api->is_object_type_lockable( ls_item-obj_type ) = abap_true
-        AND li_cts_api->is_object_locked_in_transport( iv_object_type = ls_item-obj_type
-                                                       iv_object_name = ls_item-obj_name ) = abap_true.
-        ls_new-item = ls_item.
-        ls_new-transport = li_cts_api->get_current_transport_for_obj(
-          iv_object_type             = ls_item-obj_type
-          iv_object_name             = ls_item-obj_name
-          iv_resolve_task_to_request = abap_false ).
-        INSERT ls_new INTO TABLE ct_transports.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
@@ -38950,11 +38924,14 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     CASE is_item-obj_type.
       WHEN 'PROG' OR 'CLAS' OR 'FUGR' OR 'INTF' OR 'TYPE'.
-        rv_html = zcl_abapgit_html=>icon( 'file-code/darkgrey' ).
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-code/darkgrey'
+                                          iv_hint = 'Code' ).
       WHEN 'W3MI' OR 'W3HT' OR 'SFPF'.
-        rv_html = zcl_abapgit_html=>icon( 'file-image/darkgrey' ).
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-image/darkgrey'
+                                          iv_hint = 'Binary' ).
       WHEN 'DEVC'.
-        rv_html = zcl_abapgit_html=>icon( 'box/darkgrey' ).
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'box/darkgrey'
+                                          iv_hint = 'Package' ).
       WHEN ''.
         rv_html = space. " no icon
       WHEN OTHERS.
@@ -38962,7 +38939,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDCASE.
 
     IF is_item-is_dir = abap_true.
-      rv_html = zcl_abapgit_html=>icon( 'folder/darkgrey' ).
+      rv_html = zcl_abapgit_html=>icon( iv_name = 'folder/darkgrey'
+                                        iv_hint = 'Folder' ).
     ENDIF.
 
   ENDMETHOD.
@@ -39254,9 +39232,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
       ri_html->add( '<div>' ).
       ri_html->add( |<span class="grey">{ is_item-changes } changes</span>| ).
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state(
-        iv_lstate = is_item-lstate
-        iv_rstate = is_item-rstate ) ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
+                                                                  iv_rstate = is_item-rstate ) ).
       ri_html->add( '</div>' ).
 
     ELSEIF is_item-changes > 0.
@@ -39271,7 +39248,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         ri_html->add_a( iv_txt = |diff ({ is_item-changes })|
                         iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_item-lstate
-                                                            iv_rstate = is_item-rstate ) ).
+                                                                    iv_rstate = is_item-rstate ) ).
         ri_html->add( '</div>' ).
 
       ELSE.
@@ -39285,7 +39262,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
             ri_html->add_a( iv_txt = 'diff'
                             iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?{ lv_difflink }| ).
             ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = ls_file-lstate
-                                                                iv_rstate = ls_file-rstate ) ).
+                                                                        iv_rstate = ls_file-rstate ) ).
           ELSE.
             ri_html->add( '&nbsp;' ).
           ENDIF.
@@ -39314,39 +39291,31 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_item_lock_column.
 
-    DATA li_cts_api          TYPE REF TO zif_abapgit_cts_api.
-    DATA lv_transport        TYPE trkorr.
-    DATA lv_transport_string TYPE string.
-    DATA lv_icon_html        TYPE string.
-    DATA li_html             TYPE REF TO zif_abapgit_html.
+    DATA:
+      li_cts_api   TYPE REF TO zif_abapgit_cts_api,
+      lv_transport TYPE trkorr.
 
-    CREATE OBJECT li_html TYPE zcl_abapgit_html.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
 
-    TRY.
-        IF is_item-obj_type IS INITIAL OR is_item-obj_name IS INITIAL OR
-           li_cts_api->is_object_type_lockable( is_item-obj_type ) = abap_false OR
-           li_cts_api->is_object_locked_in_transport( iv_object_type = is_item-obj_type
-                                                      iv_object_name = is_item-obj_name ) = abap_false.
-          rv_html = |<td class="icon"></td>|.
-        ELSE.
-          lv_transport = li_cts_api->get_current_transport_for_obj( iv_object_type             = is_item-obj_type
-                                                                    iv_object_name             = is_item-obj_name
-                                                                    iv_resolve_task_to_request = abap_false ).
-          lv_transport_string = lv_transport.
-          lv_icon_html = li_html->a(
-            iv_txt = li_html->icon( iv_name = 'briefcase/darkgrey'
-                                    iv_hint = lv_transport_string )
-            iv_act = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ lv_transport }| ).
+    ri_html->add( '<td class="icon">' ).
 
-          rv_html = |<td class="icon">| &&
-                    |{ lv_icon_html }| &&
-                    |</td>|.
-        ENDIF.
-      CATCH zcx_abapgit_exception.
-        ASSERT 1 = 2.
-    ENDTRY.
+    IF is_item-obj_type IS NOT INITIAL AND is_item-obj_name IS NOT INITIAL AND
+       li_cts_api->is_object_type_lockable( is_item-obj_type ) = abap_true AND
+       li_cts_api->is_object_locked_in_transport( iv_object_type = is_item-obj_type
+                                                  iv_object_name = is_item-obj_name ) = abap_true.
+
+      lv_transport = li_cts_api->get_current_transport_for_obj( iv_object_type             = is_item-obj_type
+                                                                iv_object_name             = is_item-obj_name
+                                                                iv_resolve_task_to_request = abap_false ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport( iv_transport = lv_transport
+                                                                 iv_icon_only = abap_true ) ).
+
+    ENDIF.
+
+    ri_html->add( '</td>' ).
+
   ENDMETHOD.
   METHOD render_order_by.
 
@@ -45260,7 +45229,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                 iv_obj_type = 'DEVC'
                 iv_obj_name = lv_obj_name ).
 
-    ri_html->add( |<span class="package">| ).
+    ri_html->add( |<span class="package-box">| ).
     ri_html->add_icon( iv_name = 'box/grey70'
                        iv_hint = 'SAP package' ).
     IF iv_interactive = abap_true.
@@ -45314,11 +45283,11 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_repo_top.
 
-    DATA: lo_repo_online       TYPE REF TO zcl_abapgit_repo_online,
-          lo_pback             TYPE REF TO zcl_abapgit_persist_background,
-          lx_error             TYPE REF TO zcx_abapgit_exception,
-          lv_hint              TYPE string,
-          lv_icon              TYPE string.
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
+          lo_pback       TYPE REF TO zcl_abapgit_persist_background,
+          lx_error       TYPE REF TO zcx_abapgit_exception,
+          lv_hint        TYPE string,
+          lv_icon        TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     CREATE OBJECT lo_pback.
@@ -45448,7 +45417,9 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_transport.
 
-    DATA lv_title TYPE string.
+    DATA:
+      lv_title TYPE string,
+      lv_jump  TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45459,24 +45430,35 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     SELECT SINGLE as4text FROM e07t INTO lv_title
       WHERE trkorr = iv_transport AND langu = sy-langu ##SUBRC_OK.
 
-    ri_html->add( |<span class="transport">| ).
-    ri_html->add_icon( iv_name = 'briefcase/grey70'
-                       iv_hint = 'Transport' ).
-    IF iv_interactive = abap_true.
-      ri_html->add_a( iv_act   = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ iv_transport }|
-                      iv_title = lv_title
-                      iv_txt   = to_lower( iv_transport ) ).
+    lv_jump = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ iv_transport }|.
+
+    IF iv_icon_only = abap_true.
+      ri_html->add_a( iv_act   = lv_jump
+                      iv_title = |Transport { iv_transport }|
+                      iv_txt   = zcl_abapgit_html=>icon( 'truck-solid/darkgrey' ) ).
     ELSE.
-      ri_html->add( to_lower( iv_transport ) ).
+      ri_html->add( |<span class="transport-box">| ).
+
+      ri_html->add_icon( iv_name = 'truck-solid/grey70'
+                         iv_hint = 'Transport' ).
+      IF iv_interactive = abap_true.
+        ri_html->add_a( iv_act   = lv_jump
+                        iv_title = lv_title
+                        iv_txt   = to_lower( iv_transport ) ).
+      ELSE.
+        ri_html->add( to_lower( iv_transport ) ).
+      ENDIF.
+
+      ri_html->add( '</span>' ).
     ENDIF.
-    ri_html->add( '</span>' ).
 
   ENDMETHOD.
   METHOD render_user_name.
 
     DATA:
       ls_user_address TYPE addr3_val,
-      lv_title        TYPE string.
+      lv_title        TYPE string,
+      lv_jump         TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45498,17 +45480,27 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    ri_html->add( |<span class="user">| ).
-    " todo, add icon ri_html->add_icon( iv_name = 'user/grey70'
-    "                                   iv_hint = 'User name' )
-    IF iv_interactive = abap_true AND iv_username <> zcl_abapgit_objects_super=>c_user_unknown.
-      ri_html->add_a( iv_act   = |{ zif_abapgit_definitions=>c_action-jump_user }?user={ iv_username }|
+    lv_jump = |{ zif_abapgit_definitions=>c_action-jump_user }?user={ iv_username }|.
+
+    IF iv_icon_only = abap_true.
+      ri_html->add_a( iv_act   = lv_jump
                       iv_title = lv_title
-                      iv_txt   = to_lower( iv_username ) ).
+                      iv_txt   = zcl_abapgit_html=>icon( 'user-solid/darkgrey' ) ).
     ELSE.
-      ri_html->add( to_lower( iv_username ) ).
+      ri_html->add( |<span class="user-box">| ).
+
+      ri_html->add_icon( iv_name = 'user-solid/grey70'
+                         iv_hint = 'User name' ).
+      IF iv_interactive = abap_true AND iv_username <> zcl_abapgit_objects_super=>c_user_unknown.
+        ri_html->add_a( iv_act   = lv_jump
+                        iv_title = lv_title
+                        iv_txt   = to_lower( iv_username ) ).
+      ELSE.
+        ri_html->add( to_lower( iv_username ) ).
+      ENDIF.
+
+      ri_html->add( '</span>' ).
     ENDIF.
-    ri_html->add( '</span>' ).
 
   ENDMETHOD.
   METHOD render_warning_banner.
@@ -94045,5 +94037,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-04T13:26:09.914Z
+* abapmerge 0.14.1 - 2020-11-04T13:52:47.659Z
 ****************************************************
