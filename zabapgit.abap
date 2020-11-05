@@ -35560,6 +35560,14 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
 
     ri_html->add( |<div class="{ iv_form_class }">| ).
     ri_html->add( |<form method="post"{ ls_form_id }>| ).
+
+    " Add hidden button that triggers main command when pressing enter
+    LOOP AT mt_commands ASSIGNING <ls_cmd> WHERE is_main = abap_true.
+      ri_html->add( |<button type="submit" formaction="sapevent:{ <ls_cmd>-action
+                    }" class="hidden-submit" aria-hidden="true" tabindex="-1"></button>| ).
+      EXIT.
+    ENDLOOP.
+
     ri_html->add( |<ul>| ).
 
     LOOP AT mt_fields ASSIGNING <ls_field>.
@@ -94209,5 +94217,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-05T08:30:03.486Z
+* abapmerge 0.14.1 - 2020-11-05T08:47:33.367Z
 ****************************************************
