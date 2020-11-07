@@ -69795,8 +69795,10 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
         permission_failure         = 3
         reject_deletion            = 4
         OTHERS                     = 5.
-
-    IF sy-subrc <> 0.
+    IF sy-subrc = 2.
+      " Drop also any inactive code that is left in REPOSRC
+      DELETE REPORT lv_program ##SUBRC_OK.
+    ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error from RS_DELETE_PROGRAM: { sy-subrc }| ).
     ENDIF.
 
@@ -94217,5 +94219,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-05T09:53:52.532Z
+* abapmerge 0.14.1 - 2020-11-07T08:25:41.745Z
 ****************************************************
