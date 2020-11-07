@@ -728,6 +728,7 @@ CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_js DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
@@ -10921,6 +10922,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
     CLASS-METHODS create
       IMPORTING
         !iv_filename       TYPE string
+        !iv_hidden_chars   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_syntax_highlighter .
     METHODS process_line
@@ -10950,6 +10952,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
     CONSTANTS c_token_none TYPE c VALUE '.' ##NO_TEXT.
     DATA:
       mt_rules TYPE STANDARD TABLE OF ty_rule .
+    DATA mv_hidden_chars TYPE abap_bool .
 
     METHODS add_rule
       IMPORTING
@@ -10963,7 +10966,6 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
       RETURNING
         VALUE(rt_matches) TYPE ty_match_tt .
     METHODS order_matches
-          ABSTRACT
       IMPORTING
         !iv_line    TYPE string
       CHANGING
@@ -10990,6 +10992,14 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
         !iv_string       TYPE string
       RETURNING
         VALUE(rv_result) TYPE abap_bool .
+    METHODS set_hidden_chars
+      IMPORTING
+        !iv_hidden_chars TYPE abap_bool .
+    METHODS show_hidden_chars
+      IMPORTING
+        !iv_line       TYPE string
+      RETURNING
+        VALUE(rv_line) TYPE string .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_abap DEFINITION
@@ -11213,6 +11223,19 @@ CLASS zcl_abapgit_syntax_json DEFINITION
 
     METHODS order_matches REDEFINITION.
 
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_syntax_txt DEFINITION
+  INHERITING FROM zcl_abapgit_syntax_highlighter
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor .
+
+    METHODS process_line
+        REDEFINITION .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_xml DEFINITION
@@ -12799,11 +12822,13 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
 
     CONSTANTS:
       BEGIN OF c_actions,
-        toggle_unified TYPE string VALUE 'toggle_unified',
+        toggle_unified      TYPE string VALUE 'toggle_unified',
+        toggle_hidden_chars TYPE string VALUE 'toggle_hidden_chars',
       END OF c_actions .
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
     DATA mv_seed TYPE string .                    " Unique page id to bind JS sessionStorage
+    DATA mv_hidden_chars TYPE abap_bool .
 
     METHODS render_diff
       IMPORTING
@@ -41879,8 +41904,12 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_menu_end.
 
-    io_menu->add( iv_txt = 'Split/Unified view'
+    io_menu->add( iv_txt = 'Split/Unified'
                   iv_act = c_actions-toggle_unified ).
+
+    io_menu->add( iv_txt   = '&para;'
+                  iv_title = 'Toggle Hidden Characters'
+                  iv_act   = c_actions-toggle_hidden_chars ).
 
   ENDMETHOD.
   METHOD append_diff.
@@ -42201,7 +42230,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     " Content
     IF is_diff-type <> 'binary'.
       ri_html->add( '<div class="diff_content">' ).
-      ri_html->add( |<table class="diff_tab syntax-hl" id={ is_diff-filename }>| ).
+      ri_html->add( |<table class="diff_tab syntax-hl" id="{ is_diff-filename }">| ).
       ri_html->add( render_table_head( is_diff ) ).
       ri_html->add( render_lines( is_diff ) ).
       ri_html->add( '</table>' ).
@@ -42290,7 +42319,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_diff> LIKE LINE OF lt_diffs.
 
-    lo_highlighter = zcl_abapgit_syntax_highlighter=>create( is_diff-filename ).
+    lo_highlighter = zcl_abapgit_syntax_highlighter=>create( iv_filename     = is_diff-filename
+                                                             iv_hidden_chars = mv_hidden_chars ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_diffs = is_diff-o_diff->get( ).
@@ -42530,7 +42560,12 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
       WHEN c_actions-toggle_unified. " Toggle file diplay
 
         mv_unified = zcl_abapgit_persistence_user=>get_instance( )->toggle_diff_unified( ).
-        rs_handled-state   = zcl_abapgit_gui=>c_event_state-re_render.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
+      WHEN c_actions-toggle_hidden_chars. " Toggle display of hidden characters
+
+        mv_hidden_chars = boolc( mv_hidden_chars = abap_false ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN OTHERS.
 
@@ -47979,6 +48014,21 @@ CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_syntax_txt IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    " No rules for plain text files
+
+  ENDMETHOD.
+  METHOD process_line.
+
+    rv_line = show_hidden_chars( iv_line ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_JSON IMPLEMENTATION.
   METHOD constructor.
 
@@ -48287,8 +48337,11 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
 
     DATA lv_escaped TYPE string.
 
-    lv_escaped = escape( val = iv_line
-                         format = cl_abap_format=>e_html_attr ).
+    lv_escaped = escape( val    = iv_line
+                         format = cl_abap_format=>e_html_text ).
+
+    lv_escaped = show_hidden_chars( lv_escaped ).
+
     IF iv_class IS NOT INITIAL.
       rv_line = |<span class="{ iv_class }">{ lv_escaped }</span>|.
     ELSE.
@@ -48309,10 +48362,15 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
       CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_js.
     ELSEIF iv_filename CP '*.json'.
       CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_json.
+    ELSEIF iv_filename CP '*.txt' OR iv_filename CP '*.ini'  OR iv_filename CP '*.text'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_txt.
     ELSE.
       CLEAR ro_instance.
     ENDIF.
 
+    IF ro_instance IS BOUND.
+      ro_instance->set_hidden_chars( iv_hidden_chars ).
+    ENDIF.
   ENDMETHOD.
   METHOD extend_matches.
 
@@ -48382,6 +48440,8 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
     rv_result = boolc( iv_string CO lv_whitespace ).
 
   ENDMETHOD.
+  METHOD order_matches.
+  ENDMETHOD.
   METHOD parse_line.
 
     DATA:
@@ -48427,7 +48487,7 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
     DATA: lt_matches TYPE ty_match_tt.
 
     IF iv_line IS INITIAL OR is_whitespace( iv_line ) = abap_true.
-      rv_line = iv_line.
+      rv_line = show_hidden_chars( iv_line ).
       RETURN.
     ENDIF.
 
@@ -48441,6 +48501,35 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
 
     rv_line = format_line( iv_line    = iv_line
                            it_matches = lt_matches ).
+
+  ENDMETHOD.
+  METHOD set_hidden_chars.
+    mv_hidden_chars = iv_hidden_chars.
+  ENDMETHOD.
+  METHOD show_hidden_chars.
+
+    DATA lv_bom TYPE x LENGTH 3.
+
+    rv_line = iv_line.
+
+    IF mv_hidden_chars = abap_true.
+      REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>horizontal_tab IN rv_line WITH '&nbsp;&rarr;&nbsp;'.
+      REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf(1)       IN rv_line WITH '&para;'.
+      REPLACE ALL OCCURRENCES OF ` `                                    IN rv_line WITH '&middot;'.
+
+      IF strlen( rv_line ) BETWEEN 1 AND 2.
+        lv_bom = zcl_abapgit_convert=>string_to_xstring( rv_line ).
+        IF lv_bom(2) = cl_abap_char_utilities=>byte_order_mark_big.
+          rv_line = '<span class="red">&squf;</span>'. " UTF-16 big-endian (FE FF)
+        ENDIF.
+        IF lv_bom(2) = cl_abap_char_utilities=>byte_order_mark_little.
+          rv_line = '<span class="red">&compfn;</span>'. " UTF-16 little-endian (FF FE)
+        ENDIF.
+        IF lv_bom(3) = cl_abap_char_utilities=>byte_order_mark_utf8.
+          rv_line = '<span class="red">&curren;</span>'. " UTF-8 (EF BB BF)
+        ENDIF.
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -94241,5 +94330,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-07T08:53:12.601Z
+* abapmerge 0.14.1 - 2020-11-07T08:56:03.312Z
 ****************************************************
