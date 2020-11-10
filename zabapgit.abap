@@ -604,9 +604,9 @@ INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_ajson_reader DEFERRED.
-INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
+INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
 CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
@@ -908,12 +908,12 @@ CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
-CLASS zcl_abapgit_pr_enumerator DEFINITION DEFERRED.
-CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_agent DEFINITION DEFERRED.
 CLASS zcl_abapgit_http DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enumerator DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
@@ -953,6 +953,30 @@ INTERFACE zif_abapgit_background .
       !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_pr_enum_provider .
+
+  TYPES:
+    BEGIN OF ty_pull_request,
+      base_url        TYPE string,
+      number          TYPE string,
+      title           TYPE string,
+      user            TYPE string,
+      head_url        TYPE string,
+      head_branch     TYPE string,
+      created_at      TYPE string, " TODO change to D after date parsing fixed
+      is_for_upstream TYPE abap_bool,
+    END OF ty_pull_request.
+  TYPES:
+    ty_pull_requests TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
+
+  METHODS list_pull_requests
+    RETURNING
+      VALUE(rt_pulls) TYPE ty_pull_requests
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_http_agent .
@@ -1011,30 +1035,6 @@ INTERFACE zif_abapgit_http_response .
     RAISING
       zcx_abapgit_exception .
   METHODS close .
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_pr_enum_provider .
-
-  TYPES:
-    BEGIN OF ty_pull_request,
-      base_url        TYPE string,
-      number          TYPE string,
-      title           TYPE string,
-      user            TYPE string,
-      head_url        TYPE string,
-      head_branch     TYPE string,
-      created_at      TYPE string, " TODO change to D after date parsing fixed
-      is_for_upstream TYPE abap_bool,
-    END OF ty_pull_request.
-  TYPES:
-    ty_pull_requests TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
-
-  METHODS list_pull_requests
-    RETURNING
-      VALUE(rt_pulls) TYPE ty_pull_requests
-    RAISING
-      zcx_abapgit_exception.
-
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson_reader .
@@ -4412,6 +4412,99 @@ CLASS zcl_abapgit_git_url DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_pr_enum_github DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_pr_enum_provider .
+
+    METHODS constructor
+      IMPORTING
+        !iv_user_and_repo TYPE string
+        !ii_http_agent    TYPE REF TO zif_abapgit_http_agent
+      RAISING
+        zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_info,
+        repo_json TYPE REF TO zif_abapgit_ajson_reader,
+        pulls     TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests,
+      END OF ty_info.
+
+    DATA mi_http_agent TYPE REF TO zif_abapgit_http_agent.
+    DATA mv_repo_url TYPE string.
+
+    METHODS fetch_repo_by_url
+      IMPORTING
+        iv_repo_url    TYPE string
+      RETURNING
+        VALUE(rs_info) TYPE ty_info
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS convert_list
+      IMPORTING
+        ii_json         TYPE REF TO zif_abapgit_ajson_reader
+      RETURNING
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
+
+    METHODS clean_url
+      IMPORTING
+        iv_url        TYPE string
+      RETURNING
+        VALUE(rv_url) TYPE string.
+
+ENDCLASS.
+CLASS zcl_abapgit_pr_enumerator DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        io_repo TYPE REF TO zcl_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS has_pulls
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS get_pulls
+      RETURNING
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS new
+      IMPORTING
+        io_repo TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_pr_enumerator
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mv_repo_url TYPE string.
+    DATA mi_enum_provider TYPE REF TO zif_abapgit_pr_enum_provider.
+
+    CLASS-METHODS create_provider
+      IMPORTING
+        iv_repo_url TYPE string
+      RETURNING
+        VALUE(ri_provider) TYPE REF TO zif_abapgit_pr_enum_provider
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_http DEFINITION
   CREATE PUBLIC .
 
@@ -4567,99 +4660,6 @@ CLASS zcl_abapgit_http_digest DEFINITION
       parse
         IMPORTING
           ii_client TYPE REF TO if_http_client.
-
-ENDCLASS.
-CLASS zcl_abapgit_pr_enum_github DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_pr_enum_provider .
-
-    METHODS constructor
-      IMPORTING
-        !iv_user_and_repo TYPE string
-        !ii_http_agent    TYPE REF TO zif_abapgit_http_agent
-      RAISING
-        zcx_abapgit_exception.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_info,
-        repo_json TYPE REF TO zif_abapgit_ajson_reader,
-        pulls     TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests,
-      END OF ty_info.
-
-    DATA mi_http_agent TYPE REF TO zif_abapgit_http_agent.
-    DATA mv_repo_url TYPE string.
-
-    METHODS fetch_repo_by_url
-      IMPORTING
-        iv_repo_url    TYPE string
-      RETURNING
-        VALUE(rs_info) TYPE ty_info
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS convert_list
-      IMPORTING
-        ii_json         TYPE REF TO zif_abapgit_ajson_reader
-      RETURNING
-        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
-
-    METHODS clean_url
-      IMPORTING
-        iv_url        TYPE string
-      RETURNING
-        VALUE(rv_url) TYPE string.
-
-ENDCLASS.
-CLASS zcl_abapgit_pr_enumerator DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS constructor
-      IMPORTING
-        io_repo TYPE REF TO zcl_abapgit_repo
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS has_pulls
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS get_pulls
-      RETURNING
-        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
-      RAISING
-        zcx_abapgit_exception.
-
-    CLASS-METHODS new
-      IMPORTING
-        io_repo TYPE REF TO zcl_abapgit_repo
-      RETURNING
-        VALUE(ro_instance) TYPE REF TO zcl_abapgit_pr_enumerator
-      RAISING
-        zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    DATA mv_repo_url TYPE string.
-    DATA mi_enum_provider TYPE REF TO zif_abapgit_pr_enum_provider.
-
-    CLASS-METHODS create_provider
-      IMPORTING
-        iv_repo_url TYPE string
-      RETURNING
-        VALUE(ri_provider) TYPE REF TO zif_abapgit_pr_enum_provider
-      RAISING
-        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_proxy_auth DEFINITION
@@ -89972,155 +89972,6 @@ CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
-  METHOD constructor.
-
-    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
-
-    IF io_repo IS NOT BOUND OR io_repo->is_offline( ) = abap_true.
-      RETURN.
-    ENDIF.
-
-    lo_repo_online ?= io_repo.
-    mv_repo_url     = to_lower( lo_repo_online->get_url( ) ).
-    TRY.
-        mi_enum_provider = create_provider( mv_repo_url ).
-      CATCH zcx_abapgit_exception.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD create_provider.
-
-    DATA li_agent TYPE REF TO zif_abapgit_http_agent.
-    DATA lv_user TYPE string.
-    DATA lv_repo TYPE string.
-
-    li_agent = zcl_abapgit_factory=>get_http_agent( ).
-
-    FIND ALL OCCURRENCES OF REGEX 'github\.com\/([^\/]+)\/([^\/]+)'
-      IN iv_repo_url
-      SUBMATCHES lv_user lv_repo.
-    IF sy-subrc = 0.
-      lv_repo = replace(
-        val = lv_repo
-        regex = '\.git$'
-        with = '' ).
-      CREATE OBJECT ri_provider TYPE zcl_abapgit_pr_enum_github
-        EXPORTING
-          iv_user_and_repo  = |{ lv_user }/{ lv_repo }|
-          ii_http_agent     = li_agent.
-    ELSE.
-      zcx_abapgit_exception=>raise( |PR enumeration is not supported for { iv_repo_url }| ).
-    ENDIF.
-
-    " TODO somewhen more providers
-
-  ENDMETHOD.
-  METHOD get_pulls.
-
-    IF mi_enum_provider IS NOT BOUND.
-      RETURN.
-    ENDIF.
-
-    rt_pulls = mi_enum_provider->list_pull_requests( ).
-
-    " TODO caching ?
-
-  ENDMETHOD.
-  METHOD has_pulls.
-
-    IF mi_enum_provider IS NOT BOUND.
-      RETURN. " false
-    ENDIF.
-
-    IF get_pulls( ) IS NOT INITIAL.
-      rv_yes = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD new.
-    CREATE OBJECT ro_instance EXPORTING io_repo = io_repo.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
-  METHOD clean_url.
-    rv_url = replace(
-      val = iv_url
-      regex = '\{.*\}$'
-      with = '' ).
-  ENDMETHOD.
-  METHOD constructor.
-
-    mv_repo_url   = |https://api.github.com/repos/{ iv_user_and_repo }|.
-    mi_http_agent = ii_http_agent.
-    mi_http_agent->global_headers( )->set(
-      iv_key = 'Accept'
-      iv_val = 'application/vnd.github.v3+json' ).
-
-    IF zcl_abapgit_login_manager=>get( mv_repo_url ) IS NOT INITIAL.
-      mi_http_agent->global_headers( )->set(
-        iv_key = 'Authorization'
-        iv_val = zcl_abapgit_login_manager=>get( mv_repo_url ) ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD convert_list.
-
-    DATA lt_items TYPE string_table.
-    DATA lv_i TYPE string.
-    FIELD-SYMBOLS <ls_p> LIKE LINE OF rt_pulls.
-
-    lt_items = ii_json->members( '/' ).
-
-    LOOP AT lt_items INTO lv_i.
-      APPEND INITIAL LINE TO rt_pulls ASSIGNING <ls_p>.
-      <ls_p>-base_url        = ii_json->get( |/{ lv_i }/base/repo/clone_url| ).
-      <ls_p>-number          = ii_json->get( |/{ lv_i }/number| ).
-      <ls_p>-title           = ii_json->get( |/{ lv_i }/title| ).
-      <ls_p>-user            = ii_json->get( |/{ lv_i }/user/login| ).
-      <ls_p>-head_url        = ii_json->get( |/{ lv_i }/head/repo/clone_url| ).
-      <ls_p>-head_branch     = ii_json->get( |/{ lv_i }/head/ref| ).
-      <ls_p>-created_at      = ii_json->get( |/{ lv_i }/created_at| ).
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD fetch_repo_by_url.
-
-    DATA li_pulls_json TYPE REF TO zif_abapgit_ajson_reader.
-    DATA lv_pull_url TYPE string.
-    DATA li_response TYPE REF TO zif_abapgit_http_response.
-
-    li_response        = mi_http_agent->request( iv_repo_url ).
-    rs_info-repo_json  = li_response->json( ).
-    li_response->headers( ). " for debug
-
-    lv_pull_url        = clean_url( rs_info-repo_json->get( '/pulls_url' ) ).
-    li_pulls_json      = mi_http_agent->request( lv_pull_url )->json( ).
-    rs_info-pulls      = convert_list( li_pulls_json ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_pr_enum_provider~list_pull_requests.
-
-    DATA lv_upstream_url TYPE string.
-    DATA ls_repo_info TYPE ty_info.
-    FIELD-SYMBOLS <ls_p> LIKE LINE OF ls_repo_info-pulls.
-
-    ls_repo_info = fetch_repo_by_url( mv_repo_url ).
-    APPEND LINES OF ls_repo_info-pulls TO rt_pulls.
-
-    IF ls_repo_info-repo_json->get_boolean( '/fork' ) = abap_true.
-      lv_upstream_url = ls_repo_info-repo_json->get( '/source/url' ). " parent ?
-      ls_repo_info = fetch_repo_by_url( lv_upstream_url ).
-      LOOP AT ls_repo_info-pulls ASSIGNING <ls_p>.
-        <ls_p>-is_for_upstream = abap_true.
-        APPEND <ls_p> TO rt_pulls.
-      ENDLOOP.
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
   METHOD constructor.
 
@@ -90741,6 +90592,155 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
 
     READ TABLE lt_list WITH KEY hostname = lv_host TRANSPORTING NO FIELDS.
     rv_bool = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
+  METHOD constructor.
+
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    IF io_repo IS NOT BOUND OR io_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lo_repo_online ?= io_repo.
+    mv_repo_url     = to_lower( lo_repo_online->get_url( ) ).
+    TRY.
+        mi_enum_provider = create_provider( mv_repo_url ).
+      CATCH zcx_abapgit_exception.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD create_provider.
+
+    DATA li_agent TYPE REF TO zif_abapgit_http_agent.
+    DATA lv_user TYPE string.
+    DATA lv_repo TYPE string.
+
+    li_agent = zcl_abapgit_factory=>get_http_agent( ).
+
+    FIND ALL OCCURRENCES OF REGEX 'github\.com\/([^\/]+)\/([^\/]+)'
+      IN iv_repo_url
+      SUBMATCHES lv_user lv_repo.
+    IF sy-subrc = 0.
+      lv_repo = replace(
+        val = lv_repo
+        regex = '\.git$'
+        with = '' ).
+      CREATE OBJECT ri_provider TYPE zcl_abapgit_pr_enum_github
+        EXPORTING
+          iv_user_and_repo  = |{ lv_user }/{ lv_repo }|
+          ii_http_agent     = li_agent.
+    ELSE.
+      zcx_abapgit_exception=>raise( |PR enumeration is not supported for { iv_repo_url }| ).
+    ENDIF.
+
+    " TODO somewhen more providers
+
+  ENDMETHOD.
+  METHOD get_pulls.
+
+    IF mi_enum_provider IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    rt_pulls = mi_enum_provider->list_pull_requests( ).
+
+    " TODO caching ?
+
+  ENDMETHOD.
+  METHOD has_pulls.
+
+    IF mi_enum_provider IS NOT BOUND.
+      RETURN. " false
+    ENDIF.
+
+    IF get_pulls( ) IS NOT INITIAL.
+      rv_yes = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_instance EXPORTING io_repo = io_repo.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
+  METHOD clean_url.
+    rv_url = replace(
+      val = iv_url
+      regex = '\{.*\}$'
+      with = '' ).
+  ENDMETHOD.
+  METHOD constructor.
+
+    mv_repo_url   = |https://api.github.com/repos/{ iv_user_and_repo }|.
+    mi_http_agent = ii_http_agent.
+    mi_http_agent->global_headers( )->set(
+      iv_key = 'Accept'
+      iv_val = 'application/vnd.github.v3+json' ).
+
+    IF zcl_abapgit_login_manager=>get( mv_repo_url ) IS NOT INITIAL.
+      mi_http_agent->global_headers( )->set(
+        iv_key = 'Authorization'
+        iv_val = zcl_abapgit_login_manager=>get( mv_repo_url ) ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD convert_list.
+
+    DATA lt_items TYPE string_table.
+    DATA lv_i TYPE string.
+    FIELD-SYMBOLS <ls_p> LIKE LINE OF rt_pulls.
+
+    lt_items = ii_json->members( '/' ).
+
+    LOOP AT lt_items INTO lv_i.
+      APPEND INITIAL LINE TO rt_pulls ASSIGNING <ls_p>.
+      <ls_p>-base_url        = ii_json->get( |/{ lv_i }/base/repo/clone_url| ).
+      <ls_p>-number          = ii_json->get( |/{ lv_i }/number| ).
+      <ls_p>-title           = ii_json->get( |/{ lv_i }/title| ).
+      <ls_p>-user            = ii_json->get( |/{ lv_i }/user/login| ).
+      <ls_p>-head_url        = ii_json->get( |/{ lv_i }/head/repo/clone_url| ).
+      <ls_p>-head_branch     = ii_json->get( |/{ lv_i }/head/ref| ).
+      <ls_p>-created_at      = ii_json->get( |/{ lv_i }/created_at| ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD fetch_repo_by_url.
+
+    DATA li_pulls_json TYPE REF TO zif_abapgit_ajson_reader.
+    DATA lv_pull_url TYPE string.
+    DATA li_response TYPE REF TO zif_abapgit_http_response.
+
+    li_response        = mi_http_agent->request( iv_repo_url ).
+    rs_info-repo_json  = li_response->json( ).
+    li_response->headers( ). " for debug
+
+    lv_pull_url        = clean_url( rs_info-repo_json->get( '/pulls_url' ) ).
+    li_pulls_json      = mi_http_agent->request( lv_pull_url )->json( ).
+    rs_info-pulls      = convert_list( li_pulls_json ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_pr_enum_provider~list_pull_requests.
+
+    DATA lv_upstream_url TYPE string.
+    DATA ls_repo_info TYPE ty_info.
+    FIELD-SYMBOLS <ls_p> LIKE LINE OF ls_repo_info-pulls.
+
+    ls_repo_info = fetch_repo_by_url( mv_repo_url ).
+    APPEND LINES OF ls_repo_info-pulls TO rt_pulls.
+
+    IF ls_repo_info-repo_json->get_boolean( '/fork' ) = abap_true.
+      lv_upstream_url = ls_repo_info-repo_json->get( '/source/url' ). " parent ?
+      ls_repo_info = fetch_repo_by_url( lv_upstream_url ).
+      LOOP AT ls_repo_info-pulls ASSIGNING <ls_p>.
+        <ls_p>-is_for_upstream = abap_true.
+        APPEND <ls_p> TO rt_pulls.
+      ENDLOOP.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -94358,5 +94358,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-10T13:16:11.124Z
+* abapmerge 0.14.1 - 2020-11-10T13:20:57.013Z
 ****************************************************
