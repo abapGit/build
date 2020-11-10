@@ -914,6 +914,7 @@ CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
 CLASS zcl_abapgit_http_agent DEFINITION DEFERRED.
 CLASS zcl_abapgit_http DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
@@ -4384,6 +4385,31 @@ CLASS zcl_abapgit_git_utils DEFINITION
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_git_url DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS get_commit_display_url
+      IMPORTING
+        !io_repo      TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rv_url) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+
+    METHODS get_default_commit_display_url
+      IMPORTING
+        !iv_repo_url         TYPE string
+        !iv_hash             TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING
+        VALUE(rv_commit_url) TYPE string
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_http DEFINITION
@@ -17023,26 +17049,12 @@ CLASS zcl_abapgit_repo_online DEFINITION
         zcx_abapgit_exception .
     METHODS select_commit
       IMPORTING
-        iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
+        !iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
       RAISING
         zcx_abapgit_exception .
     METHODS get_objects
       RETURNING
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_commit_display_url
-      IMPORTING
-        !iv_hash      TYPE zif_abapgit_definitions=>ty_sha1
-      RETURNING
-        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_default_commit_display_url
-      IMPORTING
-        !iv_hash      TYPE zif_abapgit_definitions=>ty_sha1
-      RETURNING
-        VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-url
       RAISING
         zcx_abapgit_exception .
     METHODS get_switched_origin
@@ -21078,7 +21090,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -21106,54 +21118,9 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     mv_current_commit = ls_pull-commit.
 
   ENDMETHOD.
-  METHOD get_commit_display_url.
-
-    DATA li_exit TYPE REF TO zif_abapgit_exit.
-
-    rv_url = get_default_commit_display_url( iv_hash ).
-
-    li_exit = zcl_abapgit_exit=>get_instance( ).
-    li_exit->adjust_display_commit_url(
-      EXPORTING
-        iv_repo_url           = get_url( )
-        iv_repo_name          = get_name( )
-        iv_repo_key           = get_key( )
-        iv_commit_hash        = iv_hash
-      CHANGING
-        cv_display_url        = rv_url ).
-
-    IF rv_url IS INITIAL.
-      zcx_abapgit_exception=>raise( |provider not yet supported| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_current_remote.
     fetch_remote( ).
     rv_sha1 = mv_current_commit.
-  ENDMETHOD.
-  METHOD get_default_commit_display_url.
-
-    DATA ls_result TYPE match_result.
-    FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
-
-    rv_url = get_url( ).
-
-    FIND REGEX '^http(?:s)?:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/' IN rv_url RESULTS ls_result.
-    IF sy-subrc = 0.
-      READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
-      CASE rv_url+<ls_provider_match>-offset(<ls_provider_match>-length).
-        WHEN 'github.com'.
-          REPLACE REGEX '\.git$' IN rv_url WITH space.
-          rv_url = rv_url && |/commit/| && iv_hash.
-        WHEN 'bitbucket.org'.
-          REPLACE REGEX '\.git$' IN rv_url WITH space.
-          rv_url = rv_url && |/commits/| && iv_hash.
-        WHEN 'gitlab.com'.
-          REPLACE REGEX '\.git$' IN rv_url WITH space.
-          rv_url = rv_url && |/-/commit/| && iv_hash.
-      ENDCASE.
-    ENDIF.
-
   ENDMETHOD.
   METHOD get_files_remote.
     fetch_remote( ).
@@ -44824,7 +44791,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -45467,6 +45434,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     DATA: lv_commit_hash       TYPE zif_abapgit_definitions=>ty_sha1,
           lv_commit_short_hash TYPE zif_abapgit_definitions=>ty_sha1,
           lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
+          lo_url               TYPE REF TO zcl_abapgit_git_url,
           lv_icon_commit       TYPE string.
 
     lv_commit_hash = io_repo_online->get_current_remote( ).
@@ -45476,8 +45444,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                                     iv_class = 'pad-sides'
                                     iv_hint  = 'Commit' ).
 
+    CREATE OBJECT lo_url.
+
     TRY.
-        lv_display_url = io_repo_online->get_commit_display_url( lv_commit_hash ).
+        lv_display_url = lo_url->get_commit_display_url( io_repo_online ).
 
         ii_html->add_a( iv_txt   = |{ lv_icon_commit }{ lv_commit_short_hash }|
                         iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ lv_display_url }|
@@ -90769,6 +90739,58 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_GIT_URL IMPLEMENTATION.
+  METHOD get_commit_display_url.
+
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
+
+    rv_url = get_default_commit_display_url(
+      iv_repo_url = io_repo->get_url( )
+      iv_hash     = io_repo->get_current_remote( ) ).
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->adjust_display_commit_url(
+      EXPORTING
+        iv_repo_url    = io_repo->get_url( )
+        iv_repo_name   = io_repo->get_name( )
+        iv_repo_key    = io_repo->get_key( )
+        iv_commit_hash = io_repo->get_current_remote( )
+      CHANGING
+        cv_display_url = rv_url ).
+
+    IF rv_url IS INITIAL.
+      zcx_abapgit_exception=>raise( |provider not yet supported| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_default_commit_display_url.
+
+    DATA ls_result TYPE match_result.
+    FIELD-SYMBOLS <ls_provider_match> TYPE submatch_result.
+
+    rv_commit_url = iv_repo_url.
+
+    FIND REGEX '^http(?:s)?:\/\/(?:www\.)?(github\.com|bitbucket\.org|gitlab\.com)\/'
+      IN rv_commit_url
+      RESULTS ls_result.
+    IF sy-subrc = 0.
+      READ TABLE ls_result-submatches INDEX 1 ASSIGNING <ls_provider_match>.
+      CASE rv_commit_url+<ls_provider_match>-offset(<ls_provider_match>-length).
+        WHEN 'github.com'.
+          REPLACE REGEX '\.git$' IN rv_commit_url WITH space.
+          rv_commit_url = rv_commit_url && |/commit/| && iv_hash.
+        WHEN 'bitbucket.org'.
+          REPLACE REGEX '\.git$' IN rv_commit_url WITH space.
+          rv_commit_url = rv_commit_url && |/commits/| && iv_hash.
+        WHEN 'gitlab.com'.
+          REPLACE REGEX '\.git$' IN rv_commit_url WITH space.
+          rv_commit_url = rv_commit_url && |/-/commit/| && iv_hash.
+      ENDCASE.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
@@ -94330,5 +94352,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-09T08:27:41.877Z
+* abapmerge 0.14.1 - 2020-11-10T05:35:38.287Z
 ****************************************************
