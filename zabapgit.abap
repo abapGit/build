@@ -1823,8 +1823,6 @@ INTERFACE zif_abapgit_definitions .
       status TYPE ty_results_ts_path,
     END OF ty_stage_files .
   TYPES:
-    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
-  TYPES:
     ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_tpool.
@@ -2967,6 +2965,10 @@ INTERFACE zif_abapgit_persist_user .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
+
+  TYPES:
+    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
+
   TYPES:
     BEGIN OF ty_popup, " TODO remove, use zif_abapgit_services_repo=>ty_repo_params instead
       url              TYPE string,
@@ -3095,7 +3097,7 @@ INTERFACE zif_abapgit_popups .
     IMPORTING
       !iv_code       TYPE clike
     CHANGING
-      !ct_fields     TYPE zif_abapgit_definitions=>ty_sval_tt
+      !ct_fields     TYPE ty_sval_tt
       !cs_error      TYPE svale
       !cv_show_popup TYPE char01
     RAISING
@@ -14656,9 +14658,6 @@ CLASS zcl_abapgit_popups DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    TYPES:
-      ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
-
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
     CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
 
@@ -14676,7 +14675,7 @@ CLASS zcl_abapgit_popups DEFINITION
         !iv_field_attr TYPE sval-field_attr DEFAULT ''
         !iv_obligatory TYPE spo_obl OPTIONAL
       CHANGING
-        !ct_fields     TYPE ty_sval_tt .
+        !ct_fields     TYPE zif_abapgit_popups=>ty_sval_tt .
     METHODS create_new_table
       IMPORTING
         !it_list TYPE STANDARD TABLE .
@@ -14699,7 +14698,7 @@ CLASS zcl_abapgit_popups DEFINITION
           !column .
     METHODS extract_field_values
       IMPORTING
-        it_fields           TYPE ty_sval_tt
+        it_fields           TYPE zif_abapgit_popups=>ty_sval_tt
       EXPORTING
         ev_url              TYPE abaptxt255-line
         ev_package          TYPE tdevc-devclass
@@ -33538,7 +33537,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -94197,7 +94196,7 @@ ENDFORM.
 *      -->##CALLED       text
 *      -->##NEEDED       text
 *----------------------------------------------------------------------*
-FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_definitions=>ty_sval_tt
+FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_popups=>ty_sval_tt
                   USING    pv_code TYPE clike
                   CHANGING cs_error TYPE svale
                            cv_show_popup TYPE c
@@ -94358,5 +94357,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-10T13:20:57.013Z
+* abapmerge 0.14.1 - 2020-11-10T13:22:59.131Z
 ****************************************************
