@@ -654,7 +654,7 @@ CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_user_master_record DEFINITION DEFERRED.
+CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
@@ -15726,35 +15726,35 @@ CLASS zcl_abapgit_url DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_user_master_record DEFINITION
+CLASS zcl_abapgit_user_record DEFINITION
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    CONSTANTS gc_cc_category TYPE string VALUE 'C' ##NO_TEXT.
+    CONSTANTS gc_cc_category TYPE string VALUE 'C'.
 
     CLASS-METHODS reset.
     CLASS-METHODS get_instance
       IMPORTING
         !iv_user       TYPE sy-uname
       RETURNING
-        VALUE(ro_user) TYPE REF TO zcl_abapgit_user_master_record .
+        VALUE(ro_user) TYPE REF TO zcl_abapgit_user_record.
     METHODS constructor
       IMPORTING
-        !iv_user TYPE sy-uname .
+        !iv_user TYPE sy-uname.
     METHODS get_name
       RETURNING
-        VALUE(rv_name) TYPE zif_abapgit_definitions=>ty_git_user-name .
+        VALUE(rv_name) TYPE zif_abapgit_definitions=>ty_git_user-name.
     METHODS get_email
       RETURNING
-        VALUE(rv_email) TYPE zif_abapgit_definitions=>ty_git_user-email .
+        VALUE(rv_email) TYPE zif_abapgit_definitions=>ty_git_user-email.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_user,
         user   TYPE sy-uname,
-        o_user TYPE REF TO zcl_abapgit_user_master_record,
+        o_user TYPE REF TO zcl_abapgit_user_record,
       END OF ty_user.
 
     TYPES:
@@ -25757,7 +25757,7 @@ CLASS ZCL_ABAPGIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
+CLASS zcl_abapgit_user_record IMPLEMENTATION.
   METHOD check_user_exists.
 
     DATA lt_return TYPE STANDARD TABLE OF bapiret2 WITH DEFAULT KEY.
@@ -25778,11 +25778,11 @@ CLASS ZCL_ABAPGIT_USER_MASTER_RECORD IMPLEMENTATION.
   METHOD constructor.
 
     DATA:
-      ls_address     TYPE bapiaddr3,
-      lt_smtp        TYPE TABLE OF bapiadsmtp,
-      ls_smtp        TYPE bapiadsmtp,
-      ls_user        TYPE ty_user,
-      lo_exception   TYPE REF TO zcx_abapgit_exception.
+      ls_address   TYPE bapiaddr3,
+      lt_smtp      TYPE TABLE OF bapiadsmtp,
+      ls_smtp      TYPE bapiadsmtp,
+      ls_user      TYPE ty_user,
+      lo_exception TYPE REF TO zcx_abapgit_exception.
 
     "Get user details
     TRY.
@@ -36920,7 +36920,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -37039,8 +37039,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       lv_user = li_user->get_default_git_user_name( ).
     ENDIF.
     IF lv_user IS INITIAL.
-      " get default from user master record
-      lv_user = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_name( ).
+      " get default from user record
+      lv_user = zcl_abapgit_user_record=>get_instance( sy-uname )->get_name( ).
     ENDIF.
 
     lv_email = li_user->get_repo_git_user_email( mo_repo_online->get_url( ) ).
@@ -37048,8 +37048,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
       lv_email = li_user->get_default_git_user_email( ).
     ENDIF.
     IF lv_email IS INITIAL.
-      " get default from user master record
-      lv_email = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_email( ).
+      " get default from user record
+      lv_email = zcl_abapgit_user_record=>get_instance( sy-uname )->get_email( ).
     ENDIF.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -42871,8 +42871,8 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       lv_user  = li_user->get_default_git_user_name( ).
     ENDIF.
     IF lv_user IS INITIAL.
-      " get default from user master record
-      lv_user = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_name( ).
+      " get default from user record
+      lv_user = zcl_abapgit_user_record=>get_instance( sy-uname )->get_name( ).
     ENDIF.
 
     lv_email = li_user->get_repo_git_user_email( mo_repo->get_url( ) ).
@@ -42880,8 +42880,8 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       lv_email = li_user->get_default_git_user_email( ).
     ENDIF.
     IF lv_email IS INITIAL.
-      " get default from user master record
-      lv_email = zcl_abapgit_user_master_record=>get_instance( sy-uname )->get_email( ).
+      " get default from user record
+      lv_email = zcl_abapgit_user_record=>get_instance( sy-uname )->get_email( ).
     ENDIF.
 
     IF ms_commit IS NOT INITIAL.
@@ -93032,7 +93032,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
+CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
   METHOD build_comment.
 
     DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -93059,10 +93059,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_AU IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_user_details.
 
-    DATA: lo_user_master_record TYPE REF TO zcl_abapgit_user_master_record.
-    lo_user_master_record = zcl_abapgit_user_master_record=>get_instance( iv_changed_by ).
-    rs_user-name = lo_user_master_record->get_name( ).
-    rs_user-email = lo_user_master_record->get_email( ).
+    DATA: lo_user_record TYPE REF TO zcl_abapgit_user_record.
+    lo_user_record = zcl_abapgit_user_record=>get_instance( iv_changed_by ).
+    rs_user-name = lo_user_record->get_name( ).
+    rs_user-email = lo_user_record->get_email( ).
 
 *   If no email, fall back to localhost/default email
     IF rs_user-email IS INITIAL.
@@ -94357,5 +94357,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-10T13:25:19.156Z
+* abapmerge 0.14.1 - 2020-11-10T14:17:59.846Z
 ****************************************************
