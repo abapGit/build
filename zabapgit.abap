@@ -21662,7 +21662,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -21722,9 +21722,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     IF lv_master_language <> sy-langu.
       zcx_abapgit_exception=>raise( |Current login language |
                                  && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ) }'|
-                                 && | does not match master language |
+                                 && | does not match main language |
                                  && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_master_language ) }'.|
-                                 && | Run 'Advanced' > 'Open in master language'| ).
+                                 && | Run 'Advanced' > 'Open in main language'| ).
     ENDIF.
 
   ENDMETHOD.
@@ -33537,7 +33537,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -34188,7 +34188,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     add_field( EXPORTING iv_tabname   = 'TVDIR'
                          iv_fieldname = 'FLAG'
-                         iv_fieldtext = 'Master lang only'
+                         iv_fieldtext = 'Main language only'
                CHANGING  ct_fields    = lt_fields ).
 
     TRY.
@@ -34250,7 +34250,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     <ls_field>-only_parameter = abap_true.
     <ls_field>-ddic_tabname = 'TVDIR'.
     <ls_field>-ddic_fieldname = 'FLAG'.
-    <ls_field>-text = 'Master lang only'.
+    <ls_field>-text = 'Main language only'.
     <ls_field>-value = cv_serialize_master_lang_only.
 
     popup_get_from_free_selections(
@@ -34687,7 +34687,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
       add_field( EXPORTING iv_tabname    = 'DOKIL'
                            iv_fieldname  = 'MASTERLANG'
-                           iv_fieldtext  = 'Master language only'
+                           iv_fieldtext  = 'Main language only'
                            iv_value      = abap_true
                   CHANGING ct_fields     = lt_fields ).
 
@@ -37754,7 +37754,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     IF ls_dot_abapgit-master_language <> sy-langu.
       ri_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                        |Caution: Master language of the repo is '{ ls_dot_abapgit-master_language }', |
+                        |Caution: Main language of the repo is '{ ls_dot_abapgit-master_language }', |
                      && |but you're logged on in '{ sy-langu }'| ) ).
     ENDIF.
 
@@ -38638,7 +38638,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     IF mo_repo->get_dot_abapgit( )->get_master_language( ) <> sy-langu.
       ro_advanced_dropdown->add(
-        iv_txt = 'Open in Master Language'
+        iv_txt = 'Open in Main Language'
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?key={ mv_key }| ).
     ENDIF.
 
@@ -38996,7 +38996,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     lv_master_language = mo_repo->get_dot_abapgit( )->get_master_language( ).
 
     IF lv_master_language = sy-langu.
-      zcx_abapgit_exception=>raise( |Repo already opened in master language| ).
+      zcx_abapgit_exception=>raise( |Repo already opened in main language| ).
     ENDIF.
 
     ls_item-obj_name = lc_abapgit_tcode.
@@ -39662,7 +39662,7 @@ CLASS kHGwlqtIBLLmUTOYRsTwbzKpTIehBK IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_sett IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'Repository Settings'.
@@ -39718,7 +39718,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
     ENDIF.
 
     ii_html->add( render_table_row(
-      iv_name  = 'Master Language'
+      iv_name  = 'Main Language'
       iv_value = |{ ls_dot-master_language } ({ lv_language })|
     ) ).
 
@@ -39865,7 +39865,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_SETT IMPLEMENTATION.
       lv_checked = | checked|.
     ENDIF.
     ii_html->add( render_table_row(
-      iv_name  = 'Serialize Master Language Only'
+      iv_name  = 'Serialize Main Language Only'
       iv_value = |<input name="serialize_master_lang_only" type="checkbox"{ lv_checked }>|
     ) ).
 
@@ -44126,7 +44126,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -44190,8 +44190,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_hint        = 'Syncronize root package only (see https://docs.abapgit.org)'
     )->checkbox(
       iv_name        = c_id-master_lang_only
-      iv_label       = 'Serialize master language only'
-      iv_hint        = 'Ignore translations, serialize just master language'
+      iv_label       = 'Serialize main language only'
+      iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
       iv_label       = 'Clone online repo'
       iv_is_main     = abap_true
@@ -44337,7 +44337,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -44385,8 +44385,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
     )->checkbox(
       iv_name        = c_id-master_lang_only
-      iv_label       = 'Serialize master language only'
-      iv_hint        = 'Ignore translations, serialize just master language'
+      iv_label       = 'Serialize main language only'
+      iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
       iv_label       = 'Create offline repo'
       iv_is_main     = abap_true
@@ -51479,7 +51479,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
                AND descript <> ''
              ORDER BY PRIMARY KEY.                        "#EC CI_SUBRC
     ELSE.
-      " load master language
+      " load main language
       SELECT * FROM seocompotx INTO TABLE rt_descriptions
               WHERE clsname   = iv_obejct_name
                 AND langu = iv_language
@@ -52504,7 +52504,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDIF.
 
     IF lv_language = mv_language.
-      lv_state = 'I'. "Textpool in master language needs to be activated
+      lv_state = 'I'. "Textpool in main language needs to be activated
     ELSE.
       lv_state = 'A'. "Translations are always active
     ENDIF.
@@ -52518,7 +52518,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         lv_delete = abap_true.
       ELSE.
         INSERT TEXTPOOL iv_program "In case of includes: Deletion of textpool in
-          FROM it_tpool            "master language cannot be activated because
+          FROM it_tpool            "main language cannot be activated because
           LANGUAGE lv_language     "this woul activate the deletion of the textpool
           STATE lv_state.          "of the mail program -> insert empty textpool
       ENDIF.
@@ -52526,7 +52526,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       IF lines( it_tpool ) = 1 AND lv_language = mv_language.
         READ TABLE it_tpool WITH KEY id = 'R' TRANSPORTING NO FIELDS.
         IF sy-subrc = 0.
-          RETURN. "No action because description in master language is already there
+          RETURN. "No action because description in main language is already there
         ENDIF.
       ENDIF.
 
@@ -52539,7 +52539,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    IF lv_state = 'I'. "Textpool in master language needs to be activated
+    IF lv_state = 'I'. "Textpool in main language needs to be activated
       zcl_abapgit_objects_activation=>add(
         iv_type   = 'REPT'
         iv_name   = iv_program
@@ -59834,7 +59834,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     " You are reminded that SUDM - Data Model has no part objects e.g. no LIMU
     " Therefore global lock is always appropriate
 
-    " You are reminded that the master language (in TADIR) is taken from MV_LANGUAGE.
+    " You are reminded that the main language (in TADIR) is taken from MV_LANGUAGE.
 
     CALL FUNCTION 'RS_CORR_INSERT'
       EXPORTING
@@ -60045,7 +60045,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
 
     " The model has short texts in multiple languages. These are held in DM40T.
 
-    " The model has a long description also in a master language, with other long descriptions
+    " The model has a long description also in a main language, with other long descriptions
     " maintained as translations using SE63 Translation Editor. All of these long texts are held in DOK*
 
     TYPES BEGIN OF ty_language_type.
@@ -61150,7 +61150,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " Skip master language - it was already serialized
+    " Skip main language - it was already serialized
     " Don't serialize t-code itself
     SELECT sprsl ttext
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
@@ -62398,7 +62398,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     lv_name = ms_item-obj_name.
 
-    " Collect additional languages, skip master lang - it was serialized already
+    " Collect additional languages, skip main lang - it was serialized already
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd02v
       WHERE tabname = lv_name
@@ -69797,7 +69797,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SAMC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -69834,7 +69834,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
     " Table d010tinf stores info. on languages in which program is maintained
     " Select all active translations of program texts
-    " Skip master language - it was already serialized
+    " Skip main language - it was already serialized
     SELECT DISTINCT language
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
@@ -71615,7 +71615,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
   METHOD instantiate_and_lock_otgr.
     DATA: lv_new  TYPE abap_bool,
           lv_name TYPE cls_attribute_name.
@@ -71753,9 +71753,9 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
         IF sy-subrc = 0.
           lo_otgr->set_description( <ls_groupt>-text ).
           " ELSE.
-          "   Do we want to clear the master language description if not present in the XML conent?
-          "   Master Language is non-deterministic - it depends on sy-langu, so rather don't touch
-          "   description if the master language is not present
+          "   Do we want to clear the main language description if not present in the XML conent?
+          "   Main language is non-deterministic - it depends on sy-langu, so rather don't touch
+          "   description if the main language is not present
           "   Perhaps, we can display some sort of a message but how?
         ENDIF.
 
@@ -71824,10 +71824,10 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
 
 *   Description part 1:
 *   Dealing with Description of OTGR objects is problematic.
-*   The API supports setting of Master Language only and
+*   The API supports setting of main language only and
 *   if we want to save also translations we would have to implement
 *   our own logic for merging and activation. To keep it simple stupid
-*   the current version focuses on the Master language only.
+*   the current version focuses on the main language only.
 *   If anybody ever runs into the need to version also translation,
 *   ask the maintainers of CL_CLS_OBJECT_TYPE_GROUP to add a method for it.
 *
@@ -71855,7 +71855,7 @@ CLASS ZCL_ABAPGIT_OBJECT_OTGR IMPLEMENTATION.
               ex_parent_groups         = <lt_parents>.
         ENDIF.
 
-        " Beware: the following method returns the Master Language description only if the object is Locked!
+        " Beware: the following method returns the main language description only if the object is locked!
         <ls_groupt>-text = lo_otgr->if_cls_object_type_group~get_description( ).
         <ls_groupt>-langu = lo_otgr->if_pak_wb_object~get_master_language( ).
 
@@ -72755,7 +72755,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
+CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
 
@@ -72914,7 +72914,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     ENDIF.
 
     " Collect additional languages
-    " Skip master lang - it has been already serialized
+    " Skip main lang - it has been already serialized
     SELECT DISTINCT sprsl AS langu INTO TABLE lt_i18n_langs
       FROM t100t
       WHERE arbgb = lv_msg_id
@@ -76344,7 +76344,7 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -77022,7 +77022,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     " Table d010tinf stores info. on languages in which program is maintained
     " Select all active translations of program texts
-    " Skip master language - it was already serialized
+    " Skip main language - it was already serialized
     SELECT DISTINCT language
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
@@ -80541,7 +80541,7 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -80605,7 +80605,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
 
     lv_name = ms_item-obj_name.
 
-    " Collect additional languages, skip master lang - it was serialized already
+    " Collect additional languages, skip main lang - it was serialized already
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd04v
       WHERE rollname = lv_name
@@ -81762,7 +81762,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -81861,7 +81861,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
     lv_name = ms_item-obj_name.
 
-    " Collect additional languages, skip master lang - it was serialized already
+    " Collect additional languages, skip main lang - it was serialized already
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd01v
       WHERE domname = lv_name
@@ -81889,7 +81889,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_dd01_texts ASSIGNING <ls_dd01_text>.
       MOVE-CORRESPONDING ls_dd01v TO <ls_dd01_text>.
 
-      " Process master language entries and find corresponding translation
+      " Process main language entries and find corresponding translation
       LOOP AT it_dd07v ASSIGNING <ls_dd07v> WHERE NOT ddlanguage IS INITIAL.
         APPEND INITIAL LINE TO lt_dd07_texts ASSIGNING <ls_dd07_text>.
         READ TABLE lt_dd07v ASSIGNING <ls_dd07v_tmp>
@@ -84728,7 +84728,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -85049,8 +85049,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     ls_clskey-clsname = ms_item-obj_name.
 
     "If class was deserialized with a previous versions of abapGit and current language was different
-    "from master language at this time, this call would return SY-LANGU as master language. To fix
-    "these objects, set SY-LANGU to master language temporarily.
+    "from main language at this time, this call would return SY-LANGU as main language. To fix
+    "these objects, set SY-LANGU to main language temporarily.
     zcl_abapgit_language=>set_current_language( mv_language ).
 
     TRY.
@@ -85082,7 +85082,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
     " Table d010tinf stores info. on languages in which program is maintained
     " Select all active translations of program texts
-    " Skip master language - it was already serialized
+    " Skip main language - it was already serialized
     SELECT DISTINCT language
       INTO TABLE lt_langu_additional
       FROM d010tinf
@@ -94357,5 +94357,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-11T09:28:06.922Z
+* abapmerge 0.14.1 - 2020-11-11T09:38:01.634Z
 ****************************************************
