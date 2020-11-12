@@ -15272,12 +15272,6 @@ CLASS zcl_abapgit_convert DEFINITION
         !iv_base64     TYPE string
       RETURNING
         VALUE(rv_xstr) TYPE xstring .
-    CLASS-METHODS bintab_to_xstring
-      IMPORTING
-        !it_bintab     TYPE STANDARD TABLE
-        !iv_size       TYPE i
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring .
     CLASS-METHODS xstring_to_bintab
       IMPORTING
         !iv_xstr   TYPE xstring
@@ -27223,39 +27217,14 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   METHOD alpha_output.
 
-    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
-      EXPORTING
-        input  = iv_val
-      IMPORTING
-        output = rv_str.
+    rv_str = |{ iv_val ALPHA = OUT }|.
 
     CONDENSE rv_str.
 
   ENDMETHOD.
   METHOD base64_to_xstring.
 
-    CALL FUNCTION 'SSFC_BASE64_DECODE'
-      EXPORTING
-        b64data = iv_base64
-      IMPORTING
-        bindata = rv_xstr
-      EXCEPTIONS
-        OTHERS  = 1.
-    ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-  METHOD bintab_to_xstring.
-
-    CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = iv_size
-      IMPORTING
-        buffer       = rv_xstr
-      TABLES
-        binary_tab   = it_bintab
-      EXCEPTIONS
-        failed       = 1 ##FM_SUBRC_OK.
-    ASSERT sy-subrc = 0.
+    rv_xstr = cl_http_utility=>decode_x_base64( iv_base64 ).
 
   ENDMETHOD.
   METHOD bitbyte_to_int.
@@ -27288,17 +27257,20 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD conversion_exit_isola_output.
 
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
+    cl_gdt_conversion=>language_code_outbound(
       EXPORTING
-        input  = iv_spras
+        im_value = iv_spras
       IMPORTING
-        output = rv_spras.
+        ex_value = rv_spras ).
+
+    TRANSLATE rv_spras TO UPPER CASE.
 
   ENDMETHOD.
   METHOD int_to_xstring4.
 * returns xstring of length 4 containing the integer value iv_i
 
-    DATA: lv_x TYPE x LENGTH 4.
+    DATA lv_x TYPE x LENGTH 4.
+
     lv_x = iv_i.
     rv_xstring = lv_x.
 
@@ -27317,28 +27289,29 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD string_to_tab.
 
-    CALL FUNCTION 'SCMS_STRING_TO_FTEXT'
-      EXPORTING
-        text      = iv_str
-      IMPORTING
-        length    = ev_size
-      TABLES
-        ftext_tab = et_tab
-      EXCEPTIONS
-        OTHERS    = 1.
-    ASSERT sy-subrc = 0.
+    DATA lv_length TYPE i.
+    DATA lv_iterations TYPE i.
+    DATA lv_offset TYPE i.
+
+    FIELD-SYMBOLS <lg_line> TYPE any.
+    CLEAR et_tab.
+    ev_size = strlen( iv_str ).
+
+    APPEND INITIAL LINE TO et_tab ASSIGNING <lg_line>.
+    <lg_line> = iv_str.
+    DESCRIBE FIELD <lg_line> LENGTH lv_length IN CHARACTER MODE.
+    lv_iterations = ev_size DIV lv_length.
+
+    DO lv_iterations TIMES.
+      lv_offset = sy-index * lv_length.
+      APPEND INITIAL LINE TO et_tab ASSIGNING <lg_line>.
+      <lg_line> = iv_str+lv_offset.
+    ENDDO.
 
   ENDMETHOD.
   METHOD string_to_xstring.
 
-    CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
-      EXPORTING
-        text   = iv_str
-      IMPORTING
-        buffer = rv_xstr
-      EXCEPTIONS
-        OTHERS = 1.
-    ASSERT sy-subrc = 0.
+    rv_xstr = string_to_xstring_utf8( iv_str ).
 
   ENDMETHOD.
   METHOD string_to_xstring_utf8.
@@ -27381,13 +27354,24 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD xstring_to_bintab.
 
-    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-      EXPORTING
-        buffer        = iv_xstr
-      IMPORTING
-        output_length = ev_size
-      TABLES
-        binary_tab    = et_bintab.
+    DATA lv_length TYPE i.
+    DATA lv_iterations TYPE i.
+    DATA lv_offset TYPE i.
+
+    FIELD-SYMBOLS <lg_line> TYPE any.
+    CLEAR et_bintab.
+    ev_size = xstrlen( iv_xstr ).
+
+    APPEND INITIAL LINE TO et_bintab ASSIGNING <lg_line>.
+    <lg_line> = iv_xstr.
+    DESCRIBE FIELD <lg_line> LENGTH lv_length IN BYTE MODE.
+    lv_iterations = ev_size DIV lv_length.
+
+    DO lv_iterations TIMES.
+      lv_offset = sy-index * lv_length.
+      APPEND INITIAL LINE TO et_bintab ASSIGNING <lg_line>.
+      <lg_line> = iv_xstr+lv_offset.
+    ENDDO.
 
   ENDMETHOD.
   METHOD xstring_to_int.
@@ -47435,13 +47419,14 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
           lv_size_c TYPE wwwparams-value,
           lv_size   TYPE i,
-          lt_w3mime TYPE STANDARD TABLE OF w3mime.
+          lt_w3mime TYPE STANDARD TABLE OF w3mime,
+          ls_w3mime LIKE LINE OF lt_w3mime.
 
     ls_key-relid = 'MI'.
     ls_key-objid = iv_mime_name.
@@ -47477,9 +47462,10 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    rv_xdata = zcl_abapgit_convert=>bintab_to_xstring(
-      iv_size   = lv_size
-      it_bintab = lt_w3mime ).
+    LOOP AT lt_w3mime INTO ls_w3mime.
+      CONCATENATE rv_xdata ls_w3mime-line INTO rv_xdata IN BYTE MODE.
+    ENDLOOP.
+    rv_xdata = rv_xdata(lv_size).
 
   ENDMETHOD.
   METHOD load_asset.
@@ -47549,7 +47535,7 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -47817,7 +47803,9 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~cache_asset.
 
-    DATA: lt_xdata TYPE lvc_t_mime,
+    TYPES: ty_hex TYPE x LENGTH 200.
+
+    DATA: lt_xdata TYPE STANDARD TABLE OF ty_hex WITH DEFAULT KEY,
           lv_size  TYPE i,
           lt_html  TYPE w3htmltab.
 
@@ -94462,5 +94450,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-12T07:59:22.123Z
+* abapmerge 0.14.1 - 2020-11-12T08:01:46.416Z
 ****************************************************
