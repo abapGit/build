@@ -23237,7 +23237,7 @@ CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -23411,7 +23411,6 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
               <ls_result>-lstate = zif_abapgit_definitions=>c_state-modified.
             ENDIF.
             <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted.
-            CLEAR <ls_remote>-sha1. " Mark as processed
           ENDIF.
         ENDIF.
       ENDIF.
@@ -94451,5 +94450,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-12T13:31:03.399Z
+* abapmerge 0.14.1 - 2020-11-13T13:58:36.020Z
 ****************************************************
