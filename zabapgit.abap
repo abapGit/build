@@ -15291,11 +15291,6 @@ CLASS zcl_abapgit_convert DEFINITION
         !iv_spras       TYPE spras
       RETURNING
         VALUE(rv_spras) TYPE laiso .
-    CLASS-METHODS alpha_output
-      IMPORTING
-        !iv_val       TYPE clike
-      RETURNING
-        VALUE(rv_str) TYPE string .
     CLASS-METHODS string_to_xstring
       IMPORTING
         !iv_str        TYPE string
@@ -27254,13 +27249,6 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
-  METHOD alpha_output.
-
-    rv_str = |{ iv_val ALPHA = OUT }|.
-
-    CONDENSE rv_str.
-
-  ENDMETHOD.
   METHOD base64_to_xstring.
 
     rv_xstr = cl_http_utility=>decode_x_base64( iv_base64 ).
@@ -27415,14 +27403,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD xstring_to_int.
 
-    DATA: lv_xstring TYPE xstring,
-          lv_x       TYPE x.
-    lv_xstring = iv_xstring.
-    WHILE xstrlen( lv_xstring ) > 0.
-      lv_x = lv_xstring(1).
-      rv_i = rv_i * 256 + lv_x.
-      lv_xstring = lv_xstring+1.
-    ENDWHILE.
+* use the built-in type conversion
+    rv_i = iv_xstring.
 
   ENDMETHOD.
   METHOD xstring_to_string_utf8.
@@ -43396,6 +43378,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
     DATA: lv_class   TYPE string,
           lv_obj_txt TYPE string,
           lv_msg     TYPE string,
+          lv_line    TYPE i,
           ls_mtdkey  TYPE seocpdkey.
 
     CASE is_result-kind.
@@ -43456,7 +43439,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
     IF lv_obj_txt IS INITIAL.
       lv_obj_txt = |{ is_result-objtype } { is_result-objname } &gt; { is_result-sobjtype } { is_result-sobjname }|.
     ENDIF.
-    lv_obj_txt = |{ lv_obj_txt } [ @{ zcl_abapgit_convert=>alpha_output( is_result-line ) } ]|.
+    lv_line = is_result-line. " convert from numc to integer
+    lv_obj_txt = |{ lv_obj_txt } [ @{ lv_line } ]|.
 
     ii_html->add( |<li class="{ lv_class }">| ).
     ii_html->add_a(
@@ -94628,5 +94612,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-14T10:29:34.993Z
+* abapmerge 0.14.1 - 2020-11-14T15:04:44.661Z
 ****************************************************
