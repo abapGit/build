@@ -596,6 +596,7 @@ INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
 INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
+INTERFACE zif_abapgit_objects DEFERRED.
 INTERFACE zif_abapgit_object_enhs DEFERRED.
 INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
@@ -1644,8 +1645,6 @@ INTERFACE zif_abapgit_definitions .
     ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
   TYPES:
     ty_string_tt TYPE STANDARD TABLE OF string WITH DEFAULT KEY .
-  TYPES:
-    ty_repo_ref_tt TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY .
   TYPES ty_git_branch_type TYPE c LENGTH 2 .
   TYPES:
     BEGIN OF ty_git_branch,
@@ -1972,31 +1971,10 @@ INTERFACE zif_abapgit_definitions .
          END OF ty_alv_column,
          ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
   TYPES:
-    BEGIN OF ty_deserialization,
-      obj     TYPE REF TO zif_abapgit_object,
-      xml     TYPE REF TO zif_abapgit_xml_input,
-      package TYPE devclass,
-      item    TYPE ty_item,
-    END OF ty_deserialization .
-  TYPES:
-    ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY .
-  TYPES:
     ty_deserialization_step TYPE string.
   TYPES:
     ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
                                           WITH DEFAULT KEY .
-  TYPES:
-    BEGIN OF ty_step_data,
-      step_id      TYPE ty_deserialization_step,
-      order        TYPE i,
-      descr        TYPE string,
-      is_ddic      TYPE abap_bool,
-      syntax_check TYPE abap_bool,
-      objects      TYPE ty_deserialization_tt,
-    END OF ty_step_data .
-  TYPES:
-    ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
-                                WITH DEFAULT KEY .
   TYPES:
     ty_object_type_range TYPE RANGE OF trobjtype,
     ty_object_name_range TYPE RANGE OF sobj_name.
@@ -2286,6 +2264,32 @@ INTERFACE zif_abapgit_object .
   METHODS get_deserialize_steps
     RETURNING
       VALUE(rt_steps) TYPE zif_abapgit_definitions=>ty_deserialization_step_tt .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_objects.
+
+  TYPES:
+    BEGIN OF ty_deserialization,
+      obj     TYPE REF TO zif_abapgit_object,
+      xml     TYPE REF TO zif_abapgit_xml_input,
+      package TYPE devclass,
+      item    TYPE zif_abapgit_definitions=>ty_item,
+    END OF ty_deserialization .
+  TYPES:
+    ty_deserialization_tt TYPE STANDARD TABLE OF ty_deserialization WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_step_data,
+      step_id      TYPE zif_abapgit_definitions=>ty_deserialization_step,
+      order        TYPE i,
+      descr        TYPE string,
+      is_ddic      TYPE abap_bool,
+      syntax_check TYPE abap_bool,
+      objects      TYPE ty_deserialization_tt,
+    END OF ty_step_data .
+  TYPES:
+    ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
+                                WITH DEFAULT KEY .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_oo_object_fnc.
@@ -3205,7 +3209,7 @@ INTERFACE zif_abapgit_exit .
       zcx_abapgit_exception .
   METHODS deserialize_postprocess
     IMPORTING
-      !is_step TYPE zif_abapgit_definitions=>ty_step_data
+      !is_step TYPE zif_abapgit_objects=>ty_step_data
       !ii_log  TYPE REF TO zif_abapgit_log .
   METHODS get_ci_tests
     IMPORTING
@@ -3320,7 +3324,10 @@ INTERFACE zif_abapgit_repo_listener .
       zcx_abapgit_exception .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_repo_srv .
+INTERFACE zif_abapgit_repo_srv.
+
+  TYPES:
+    ty_repo_list TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY.
 
   METHODS delete
     IMPORTING
@@ -3344,7 +3351,7 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS list
     RETURNING
-      VALUE(rt_list) TYPE zif_abapgit_definitions=>ty_repo_ref_tt
+      VALUE(rt_list) TYPE ty_repo_list
     RAISING
       zcx_abapgit_exception .
   METHODS new_offline
@@ -5554,7 +5561,7 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
       IMPORTING
-        !is_step  TYPE zif_abapgit_definitions=>ty_step_data
+        !is_step  TYPE zif_abapgit_objects=>ty_step_data
         !ii_log   TYPE REF TO zif_abapgit_log
       CHANGING
         !ct_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
@@ -5599,7 +5606,7 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt .
     CLASS-METHODS get_deserialize_steps
       RETURNING
-        VALUE(rt_steps) TYPE zif_abapgit_definitions=>ty_step_data_tt .
+        VALUE(rt_steps) TYPE zif_abapgit_objects=>ty_step_data_tt .
 ENDCLASS.
 CLASS zcl_abapgit_objects_activation DEFINITION
   CREATE PUBLIC .
@@ -17184,7 +17191,7 @@ CLASS zcl_abapgit_repo_srv DEFINITION
 
     CLASS-DATA gi_ref TYPE REF TO zif_abapgit_repo_srv .
     DATA mv_init TYPE abap_bool VALUE abap_false ##NO_TEXT.
-    DATA mt_list TYPE zif_abapgit_definitions=>ty_repo_ref_tt .
+    DATA mt_list TYPE zif_abapgit_repo_srv=>ty_repo_list .
 
     METHODS determine_branch_name
       IMPORTING
@@ -20735,7 +20742,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
+CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -20963,7 +20970,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~is_repo_installed.
 
-    DATA: lt_repo        TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
+    DATA: lt_repo        TYPE zif_abapgit_repo_srv=>ty_repo_list,
           lo_repo        TYPE REF TO zcl_abapgit_repo,
           lv_url         TYPE string,
           lv_package     TYPE devclass,
@@ -22670,10 +22677,10 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
+CLASS zcl_abapgit_migrations IMPLEMENTATION.
   METHOD local_dot_abapgit.
 
-    DATA: lt_repos       TYPE zif_abapgit_definitions=>ty_repo_ref_tt,
+    DATA: lt_repos       TYPE zif_abapgit_repo_srv=>ty_repo_list,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
 
     FIELD-SYMBOLS: <lo_repo> LIKE LINE OF lt_repos.
@@ -33310,7 +33317,7 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD check_sapgui.
 
     CONSTANTS:
@@ -33553,9 +33560,9 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
           ls_r_package     LIKE LINE OF lt_r_package,
           lt_superpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
           li_package       TYPE REF TO zif_abapgit_sap_package,
-          lt_repo_list     TYPE zif_abapgit_definitions=>ty_repo_ref_tt.
+          lt_repo_list     TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
-    FIELD-SYMBOLS: <lo_repo>         TYPE LINE OF zif_abapgit_definitions=>ty_repo_ref_tt,
+    FIELD-SYMBOLS: <lo_repo>         TYPE LINE OF zif_abapgit_repo_srv=>ty_repo_list,
                    <lv_superpackage> LIKE LINE OF lt_superpackages.
 
     li_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
@@ -36471,7 +36478,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA: li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
     CASE ii_event->mv_action.
@@ -36560,13 +36567,13 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
           lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key,
-          lt_repo_list     TYPE zif_abapgit_definitions=>ty_repo_ref_tt.
+          lt_repo_list     TYPE zif_abapgit_persistence=>ty_repos.
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
       WHEN zcl_abapgit_gui=>c_action-go_home.
         lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
-        lt_repo_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+        lt_repo_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
 
         IF lv_last_repo_key IS NOT INITIAL.
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_view
@@ -54274,7 +54281,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -54608,14 +54615,14 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lv_path     TYPE string,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
           lt_steps_id TYPE zif_abapgit_definitions=>ty_deserialization_step_tt,
-          lt_steps    TYPE zif_abapgit_definitions=>ty_step_data_tt,
+          lt_steps    TYPE zif_abapgit_objects=>ty_step_data_tt,
           lx_exc      TYPE REF TO zcx_abapgit_exception.
     DATA: lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
                    <lv_step_id> TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_step_tt,
-                   <ls_step>    TYPE LINE OF zif_abapgit_definitions=>ty_step_data_tt,
-                   <ls_deser>   TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_tt.
+                   <ls_step>    TYPE LINE OF zif_abapgit_objects=>ty_step_data_tt,
+                   <ls_deser>   TYPE LINE OF zif_abapgit_objects=>ty_deserialization_tt.
 
     lt_steps = get_deserialize_steps( ).
 
@@ -54918,7 +54925,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_deserialize_steps.
-    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF zif_abapgit_definitions=>ty_step_data_tt.
+    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF zif_abapgit_objects=>ty_step_data_tt.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
@@ -94612,5 +94619,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-15T11:10:58.212Z
+* abapmerge 0.14.1 - 2020-11-16T07:35:56.336Z
 ****************************************************
