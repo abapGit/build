@@ -32996,7 +32996,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
 
     LOOP AT lt_status ASSIGNING <ls_status>
-                      WHERE lstate = zif_abapgit_definitions=>c_state-added.
+                      WHERE lstate = zif_abapgit_definitions=>c_state-added
+                         OR rstate = zif_abapgit_definitions=>c_state-deleted.
 
       READ TABLE lt_tadir ASSIGNING <ls_tadir>
                           WITH KEY pgmid    = 'R3TR'
@@ -94619,5 +94620,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-17T12:57:32.824Z
+* abapmerge 0.14.1 - 2020-11-17T17:00:07.393Z
 ****************************************************
