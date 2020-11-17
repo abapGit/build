@@ -39432,11 +39432,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ri_html->add( '</td>' ).
 
     " Command
+    ri_html->add( '<td class="cmd">' ).
     IF mo_repo->has_remote_source( ) = abap_true.
-      ri_html->add( '<td class="cmd">' ).
       ri_html->add( render_item_command( is_item ) ).
-      ri_html->add( '</td>' ).
     ENDIF.
+    ri_html->add( '</td>' ).
 
     ri_html->add( '</tr>' ).
 
@@ -94619,5 +94619,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-17T06:36:09.234Z
+* abapmerge 0.14.1 - 2020-11-17T09:49:41.993Z
 ****************************************************
