@@ -1512,6 +1512,10 @@ INTERFACE zif_abapgit_html_viewer .
       dp_error_general .
   METHODS free .
   METHODS close_document .
+  METHODS get_url
+    RETURNING
+      VALUE(rv_url) TYPE w3url.
+  METHODS back .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_repo .
@@ -35286,7 +35290,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -35316,6 +35320,11 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
         query_table = query_table.
 
   ENDMETHOD.
+  METHOD zif_abapgit_html_viewer~back.
+
+    mo_html_viewer->go_back( ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_html_viewer~close_document.
 
     mo_html_viewer->close_document( ).
@@ -35324,6 +35333,12 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   METHOD zif_abapgit_html_viewer~free.
 
     mo_html_viewer->free( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html_viewer~get_url.
+
+    mo_html_viewer->get_current_url( IMPORTING url = rv_url ).
+    cl_gui_cfw=>flush( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~load_data.
@@ -35653,6 +35668,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     DATA lv_hint TYPE string.
     DATA ls_form_id TYPE string.
     DATA lv_cur_group TYPE string.
+    DATA lv_url TYPE string.
 
     IF mv_form_id IS NOT INITIAL.
       ls_form_id = | id="{ mv_form_id }"|.
@@ -35712,10 +35728,11 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ri_html->add( |<li class="dialog-commands">| ).
 
     IF mv_help_page IS NOT INITIAL.
+      lv_url = escape( val    = mv_help_page
+                       format = cl_abap_format=>e_url ).
       ri_html->add_a(
         iv_txt   = zcl_abapgit_gui_buttons=>help( )
-        iv_typ   = zif_abapgit_html=>c_action_type-url
-        iv_act   = mv_help_page
+        iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ lv_url }|
         iv_class = 'dialog-help'
         iv_title = 'Help' ).
     ENDIF.
@@ -44315,7 +44332,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -44335,7 +44352,9 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_form_schema.
 
-    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-online-form' ).
+    ro_form = zcl_abapgit_html_form=>create(
+                iv_form_id   = 'add-repo-online-form'
+                iv_help_page = 'https://docs.abapgit.org/guide-online-install.html' ).
 
     ro_form->text(
       iv_name        = c_id-url
@@ -44524,7 +44543,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -44544,7 +44563,9 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_form_schema.
 
-    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'add-repo-offline-form' ).
+    ro_form = zcl_abapgit_html_form=>create(
+                iv_form_id   = 'add-repo-offline-form'
+                iv_help_page = 'https://docs.abapgit.org/guide-offline-install.html' ).
 
     ro_form->text(
       iv_name        = c_id-url
@@ -47710,6 +47731,12 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     DATA: lv_index TYPE i,
           ls_stack LIKE LINE OF mt_stack.
+
+    " If viewer is showing Internet page, then use browser navigation
+    IF mi_html_viewer->get_url( ) CP 'http*'.
+      mi_html_viewer->back( ).
+      RETURN.
+    ENDIF.
 
     lv_index = lines( mt_stack ).
 
@@ -94620,5 +94647,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-18T06:30:27.304Z
+* abapmerge 0.14.1 - 2020-11-18T06:34:13.768Z
 ****************************************************
