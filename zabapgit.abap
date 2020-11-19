@@ -3385,6 +3385,7 @@ INTERFACE zif_abapgit_repo_srv.
     IMPORTING
       !io_repo   TYPE REF TO zcl_abapgit_repo
       !is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
+      !ii_log    TYPE REF TO zif_abapgit_log OPTIONAL
     RAISING
       zcx_abapgit_exception .
   METHODS validate_package
@@ -5434,14 +5435,15 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !it_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt
         !is_checks TYPE zif_abapgit_definitions=>ty_delete_checks OPTIONAL
+        !ii_log    TYPE REF TO zif_abapgit_log OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS jump
       IMPORTING
-        !is_item        TYPE zif_abapgit_definitions=>ty_item
-        !iv_line_number TYPE i OPTIONAL
-        iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-        iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
+        !iv_line_number  TYPE i OPTIONAL
+        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+        !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS changed_by
@@ -21114,7 +21116,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( io_repo->get_package( ) ).
 
     zcl_abapgit_objects=>delete( it_tadir  = lt_tadir
-                                 is_checks = is_checks ).
+                                 is_checks = is_checks
+                                 ii_log    = ii_log ).
 
     delete( io_repo ).
 
@@ -32297,7 +32300,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -32496,6 +32499,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     DATA: lt_tadir     TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_answer    TYPE c LENGTH 1,
           lo_repo      TYPE REF TO zcl_abapgit_repo,
+          li_log       TYPE REF TO zif_abapgit_log,
           lv_package   TYPE devclass,
           lv_question  TYPE c LENGTH 100,
           ls_checks    TYPE zif_abapgit_definitions=>ty_delete_checks,
@@ -32535,9 +32539,17 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     ENDIF.
 
     zcl_abapgit_repo_srv=>get_instance( )->purge( io_repo   = lo_repo
-                                                  is_checks = ls_checks ).
+                                                  is_checks = ls_checks
+                                                  ii_log    = lo_repo->create_new_log( 'Uninstall Log' ) ).
 
     COMMIT WORK.
+
+    li_log = lo_repo->get_log( ).
+    IF li_log IS BOUND AND li_log->count( ) > 0.
+      zcl_abapgit_log_viewer=>show_log( ii_log = li_log
+                                        iv_header_text = li_log->get_title( ) ).
+      RETURN.
+    ENDIF.
 
     lv_message = |Repository { lv_repo_name } successfully uninstalled from Package { lv_package }. |.
     MESSAGE lv_message TYPE 'S'.
@@ -32745,7 +32757,6 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_services_git IMPLEMENTATION.
-
   METHOD checkout_commit.
 
     DATA: lo_repo            TYPE REF TO zcl_abapgit_repo_online,
@@ -54538,6 +54549,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
           li_progress TYPE REF TO zif_abapgit_progress,
           lt_tadir    LIKE it_tadir,
+          lt_deleted  LIKE it_tadir,
           lt_items    TYPE zif_abapgit_definitions=>ty_items_tt,
           lx_error    TYPE REF TO zcx_abapgit_exception,
           lv_count    TYPE i.
@@ -54566,7 +54578,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDTRY.
 
     lv_count = 1.
-    DO 3 TIMES.
+    DO.
+      CLEAR lt_deleted.
       LOOP AT lt_tadir ASSIGNING <ls_tadir>.
         li_progress->show( iv_current = lv_count
                            iv_text    = |Delete { <ls_tadir>-obj_name }| ).
@@ -54580,22 +54593,33 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
               iv_package = <ls_tadir>-devclass
               is_item    = ls_item ).
 
+            INSERT <ls_tadir> INTO TABLE lt_deleted.
             DELETE lt_tadir.
             lv_count = lv_count + 1.
 
             " make sure to save object deletions
             COMMIT WORK.
-          CATCH zcx_abapgit_exception INTO lx_error ##NO_HANDLER.
-            " ignore errors inside the loops and raise it later
+          CATCH zcx_abapgit_exception INTO lx_error.
+            IF ii_log IS BOUND.
+              ii_log->add_exception( ix_exc  = lx_error
+                                     is_item = ls_item ).
+              ii_log->add_error( iv_msg = |Deletion of object { ls_item-obj_name } failed|
+                                 is_item = ls_item ).
+            ENDIF.
         ENDTRY.
 
       ENDLOOP.
+
+      " Exit if done or nothing else was deleted
+      IF lines( lt_tadir ) = 0 OR lines( lt_deleted ) = 0.
+        EXIT.
+      ENDIF.
     ENDDO.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
     IF lx_error IS BOUND AND lines( lt_tadir ) > 0.
-      RAISE EXCEPTION lx_error.
+      zcx_abapgit_exception=>raise( 'Error during uninstall. Check the log.' ).
     ENDIF.
 
   ENDMETHOD.
@@ -94657,5 +94681,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-18T17:29:13.635Z
+* abapmerge 0.14.1 - 2020-11-19T08:32:49.389Z
 ****************************************************
