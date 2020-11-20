@@ -33631,7 +33631,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -34149,7 +34149,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
       <ls_sel>-varoption = |{ <ls_pull>-number } - { <ls_pull>-title } @{ <ls_pull>-user }|.
     ENDLOOP.
-    SORT lt_selection BY varoption DESCENDING.
 
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
       EXPORTING
@@ -38778,7 +38777,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -39694,6 +39693,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       IF lines( lt_pulls ) = 0.
         RETURN. " false
       ENDIF.
+
+      SORT lt_pulls BY number DESCENDING.
 
       ls_pull = zcl_abapgit_ui_factory=>get_popups( )->choose_pr_popup( lt_pulls ).
       IF ls_pull IS INITIAL.
@@ -94720,5 +94721,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-20T07:39:49.162Z
+* abapmerge 0.14.1 - 2020-11-20T07:52:27.085Z
 ****************************************************
