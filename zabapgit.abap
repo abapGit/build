@@ -1517,6 +1517,7 @@ INTERFACE zif_abapgit_html_viewer .
     RETURNING
       VALUE(rv_url) TYPE w3url.
   METHODS back .
+  METHODS set_visiblity IMPORTING iv_visible TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_repo .
@@ -14684,13 +14685,13 @@ CLASS zcl_abapgit_html_viewer_gui DEFINITION
     DATA mo_html_viewer TYPE REF TO cl_gui_html_viewer .
 
     METHODS on_event
-          FOR EVENT sapevent OF cl_gui_html_viewer
+        FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING
-          !action
-          !frame
-          !getdata
-          !postdata
-          !query_table .
+        !action
+        !frame
+        !getdata
+        !postdata
+        !query_table .
 
   PRIVATE SECTION.
 ENDCLASS.
@@ -32018,12 +32019,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_html_viewer.
 
-    IF gi_html_viewer IS BOUND.
-      ri_viewer = gi_html_viewer.
-      RETURN.
+    IF gi_html_viewer IS NOT BOUND.
+      CREATE OBJECT gi_html_viewer TYPE zcl_abapgit_html_viewer_gui.
     ENDIF.
 
-    CREATE OBJECT ri_viewer TYPE zcl_abapgit_html_viewer_gui.
+    ri_viewer = gi_html_viewer.
 
   ENDMETHOD.
   METHOD get_popups.
@@ -35314,7 +35314,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -35388,6 +35388,18 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
 
     mo_html_viewer->show_url( iv_url ).
 
+  ENDMETHOD.
+
+  METHOD zif_abapgit_html_viewer~set_visiblity.
+    DATA: lv_visible TYPE c LENGTH 1.
+
+    IF iv_visible = abap_true.
+      lv_visible = cl_gui_container=>visible_true.
+    ELSE.
+      lv_visible = cl_gui_container=>visible_false.
+    ENDIF.
+
+    mo_html_viewer->set_visible( lv_visible ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -36932,13 +36944,27 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD sap_gui_actions.
 
-    DATA: ls_item TYPE zif_abapgit_definitions=>ty_item.
+    DATA: ls_item        TYPE zif_abapgit_definitions=>ty_item,
+          lx_ex          TYPE REF TO zcx_abapgit_exception,
+          li_html_viewer TYPE REF TO zif_abapgit_html_viewer.
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-jump.                          " Open object editor
         ls_item-obj_type = ii_event->query( )->get( 'TYPE' ).
         ls_item-obj_name = ii_event->query( )->get( 'NAME' ).
-        zcl_abapgit_objects=>jump( ls_item ).
+
+        li_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
+
+        TRY.
+            " Hide HTML Viewer in dummy screen0 for direct CALL SCREEN to work
+            li_html_viewer->set_visiblity( abap_false ).
+            zcl_abapgit_objects=>jump( ls_item ).
+            li_html_viewer->set_visiblity( abap_true ).
+          CATCH zcx_abapgit_exception INTO lx_ex.
+            li_html_viewer->set_visiblity( abap_true ).
+            RAISE EXCEPTION lx_ex.
+        ENDTRY.
+
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
       WHEN zif_abapgit_definitions=>c_action-jump_transport.
@@ -94694,5 +94720,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-19T14:23:47.725Z
+* abapmerge 0.14.1 - 2020-11-20T07:39:49.162Z
 ****************************************************
