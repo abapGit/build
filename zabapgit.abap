@@ -6443,6 +6443,9 @@ CLASS zcl_abapgit_object_ddls DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS read_baseinfo
       RETURNING
         VALUE(rv_baseinfo_string) TYPE string.
+    METHODS format_source_before_serialize
+      CHANGING
+        cv_string TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -84196,6 +84199,8 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
     ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
     ASSERT sy-subrc = 0.
 
+    format_source_before_serialize( CHANGING cv_string = <lg_field> ).
+
     mo_files->add_string( iv_ext    = 'asddls'
                           iv_string = <lg_field> ).
 
@@ -84203,6 +84208,31 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
 
     io_xml->add( iv_name = 'DDLS'
                  ig_data = <lg_data> ).
+
+  ENDMETHOD.
+  METHOD format_source_before_serialize.
+
+    DATA:
+      lv_len       TYPE i,
+      lv_lastchar1 TYPE c,
+      lv_lastchar2 TYPE c.
+
+    " New line included in 751+ by CL_DD_DDL_HANDLER=>ADD_BASEOBJS_INFO_TO_DDLS
+    " Change for 750-
+
+    lv_len = strlen( cv_string ) - 1.
+    lv_lastchar1 = cv_string+lv_len(1).
+
+    lv_len = strlen( cv_string ) - 2.
+    lv_lastchar2 = cv_string+lv_len(1).
+
+    " only add a line break, if the last character is unequal to cr_lf and newline !
+    IF lv_lastchar1 <> cl_abap_char_utilities=>cr_lf AND lv_lastchar1 <> cl_abap_char_utilities=>newline AND
+        lv_lastchar1 <> space OR
+        ( lv_lastchar1 = space AND
+          ( lv_lastchar2 <> cl_abap_char_utilities=>cr_lf AND lv_lastchar2 <> cl_abap_char_utilities=>newline ) ).
+      cv_string = |{ cv_string }{ cl_abap_char_utilities=>cr_lf }|.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -94774,5 +94804,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-22T08:46:49.688Z
+* abapmerge 0.14.1 - 2020-11-22T08:48:16.048Z
 ****************************************************
