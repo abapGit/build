@@ -692,7 +692,8 @@ CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_pers DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_glob DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_sett DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
@@ -2088,6 +2089,7 @@ INTERFACE zif_abapgit_definitions .
       go_tag_overview               TYPE string VALUE 'go_tag_overview',
       go_debuginfo                  TYPE string VALUE 'go_debuginfo',
       go_settings                   TYPE string VALUE 'go_settings',
+      go_settings_personal          TYPE string VALUE 'go_settings_personal',
       go_tutorial                   TYPE string VALUE 'go_tutorial',
       go_patch                      TYPE string VALUE 'go_patch',
       jump                          TYPE string VALUE 'jump',
@@ -11745,20 +11747,23 @@ CLASS zcl_abapgit_html DEFINITION
         no_indent_jscss TYPE abap_bool,
         within_style    TYPE abap_bool,
         within_js       TYPE abap_bool,
+        within_textarea TYPE abap_bool,
         indent          TYPE i,
         indent_str      TYPE string,
       END OF ty_indent_context .
     TYPES:
       BEGIN OF ty_study_result,
-        style_open   TYPE abap_bool,
-        style_close  TYPE abap_bool,
-        script_open  TYPE abap_bool,
-        script_close TYPE abap_bool,
-        tag_close    TYPE abap_bool,
-        curly_close  TYPE abap_bool,
-        openings     TYPE i,
-        closings     TYPE i,
-        singles      TYPE i,
+        style_open     TYPE abap_bool,
+        style_close    TYPE abap_bool,
+        script_open    TYPE abap_bool,
+        script_close   TYPE abap_bool,
+        textarea_open  TYPE abap_bool,
+        textarea_close TYPE abap_bool,
+        tag_close      TYPE abap_bool,
+        curly_close    TYPE abap_bool,
+        openings       TYPE i,
+        closings       TYPE i,
+        singles        TYPE i,
       END OF ty_study_result .
 
     CLASS-DATA go_single_tags_re TYPE REF TO cl_abap_regex .
@@ -12089,6 +12094,11 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     CLASS-METHODS help_submenu
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
+    CLASS-METHODS settings_toolbar
+      IMPORTING
+        !iv_act        TYPE string
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     CLASS-METHODS render_branch_name
@@ -13787,102 +13797,145 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_settings DEFINITION
+CLASS zcl_abapgit_gui_page_sett_glob DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    CONSTANTS:
-      BEGIN OF c_action,
-        save_settings       TYPE string VALUE 'save_settings',
-        change_proxy_bypass TYPE string VALUE 'change_proxy_bypass',
-      END OF c_action.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
     METHODS constructor
-      RAISING zcx_abapgit_exception.
-    METHODS zif_abapgit_gui_event_handler~on_event REDEFINITION.
-
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
   PRIVATE SECTION.
 
-    DATA mo_settings TYPE REF TO zcl_abapgit_settings .
-    DATA mv_error TYPE abap_bool .
-    DATA mt_post_fields TYPE tihttpnvp .
-    DATA mt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
-    DATA mt_default_hotkeys TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr.
+    CONSTANTS:
+      BEGIN OF c_id,
+        proxy_settings           TYPE string VALUE 'proxy_settings',
+        proxy_url                TYPE string VALUE 'proxy_url',
+        proxy_port               TYPE string VALUE 'proxy_port',
+        proxy_auth               TYPE string VALUE 'proxy_auth',
+        proxy_bypass             TYPE string VALUE 'proxy_bypass',
+        commit_settings          TYPE string VALUE 'commit_settings',
+        commitmsg_comment_length TYPE string VALUE 'commitmsg_comment_length',
+        commitmsg_comment_deflt  TYPE string VALUE 'commitmsg_comment_deflt',
+        commitmsg_body_size      TYPE string VALUE 'commitmsg_body_size',
+        devint_settings          TYPE string VALUE 'devint_settings',
+        run_critical_tests       TYPE string VALUE 'run_critical_tests',
+        experimental_features    TYPE string VALUE 'experimental_features',
+        activate_wo_popup        TYPE string VALUE 'activate_wo_popup',
+      END OF c_id.
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back      TYPE string VALUE 'go-back',
+        proxy_bypass TYPE string VALUE 'proxy_bypass',
+        save         TYPE string VALUE 'save',
+      END OF c_event.
+    DATA mo_settings TYPE REF TO zcl_abapgit_settings.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
 
-    METHODS post_commit_msg .
-    METHODS post_development_internals .
-    METHODS post_hotkeys .
-    METHODS render_proxy
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_development_internals
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_form_begin
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_form_end
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_max_lines
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_icon_scaling
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_ui_theme
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_adt_jump_enabled
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_commit_msg
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS post_proxy .
-    METHODS post
+    METHODS validate_form
       IMPORTING
-        !it_post_fields TYPE tihttpnvp .
-    METHODS validate_settings .
-    METHODS persist_settings
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception .
-    METHODS read_settings .
-    METHODS render_section_begin
-      IMPORTING
-        !iv_header     TYPE csequence
+        zcx_abapgit_exception.
+    METHODS get_form_schema
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_section_end
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_start_up
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_link_hints
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+    METHODS read_settings
       RAISING
-        zcx_abapgit_exception .
-    METHODS render_hotkeys
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+        zcx_abapgit_exception.
+    METHODS save_settings
       RAISING
-        zcx_abapgit_exception .
-    METHODS is_post_field_checked
-      IMPORTING
-        iv_name          TYPE string
-      RETURNING
-        VALUE(rv_return) TYPE abap_bool .
+        zcx_abapgit_exception.
+    METHODS read_proxy_bypass
+      RAISING
+        zcx_abapgit_exception.
+    METHODS save_proxy_bypass
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
 
-    METHODS render_parallel_proc
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        startup                TYPE string VALUE 'startup',
+        show_default_repo      TYPE string VALUE 'show_default_repo',
+        ui                     TYPE string VALUE 'ui',
+        ui_theme               TYPE string VALUE 'ui_theme',
+        icon_scaling           TYPE string VALUE 'icon_scaling',
+        max_lines              TYPE string VALUE 'max_lines',
+        interaction            TYPE string VALUE 'interaction',
+        adt_jump_enabled       TYPE string VALUE 'adt_jump_enabled',
+        link_hints_enabled     TYPE string VALUE 'link_hints_enabled',
+        link_hint_key          TYPE string VALUE 'link_hint_key',
+        hotkeys                TYPE string VALUE 'hotkeys',
+        resources              TYPE string VALUE 'resources',
+        parallel_proc_disabled TYPE string VALUE 'parallel_proc_disabled',
+        hide_sapgui_hint       TYPE string VALUE 'hide_sapgui_hint',
+        activate_wo_popup      TYPE string VALUE 'activate_wo_popup',
+      END OF c_id.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back TYPE string VALUE 'go-back',
+        save    TYPE string VALUE 'save',
+      END OF c_event.
+
+    DATA mo_settings TYPE REF TO zcl_abapgit_settings.
+    DATA ms_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+
+    METHODS validate_form
+      IMPORTING
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+    METHODS read_settings
+      RAISING
+        zcx_abapgit_exception.
+    METHODS save_settings
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_stage DEFINITION
   FINAL
@@ -14478,7 +14531,6 @@ CLASS zcl_abapgit_html_form DEFINITION
       IMPORTING
         !iv_label       TYPE csequence
         !iv_name        TYPE csequence
-        !iv_rows        TYPE i DEFAULT 3
         !iv_hint        TYPE csequence OPTIONAL
         !iv_required    TYPE abap_bool DEFAULT abap_false
         !iv_readonly    TYPE abap_bool DEFAULT abap_false
@@ -14567,7 +14619,6 @@ CLASS zcl_abapgit_html_form DEFINITION
         password      TYPE abap_bool,
         min           TYPE i,
         max           TYPE i,
-        rows          TYPE i,
 *        onclick ???
       END OF ty_field.
     TYPES:
@@ -27935,6 +27986,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  width: 0;' ).
     lo_buf->add( '  padding: 0;' ).
     lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  position: absolute;' ).
     lo_buf->add( '  overflow: hidden;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -28838,6 +28890,11 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  width: 25%;' ).
     lo_buf->add( '  box-sizing: border-box;' ).
     lo_buf->add( '  height: 2.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog textarea {' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  box-sizing: border-box;' ).
+    lo_buf->add( '  padding: 10px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"] {' ).
     lo_buf->add( '  visibility: hidden;' ).
@@ -35821,6 +35878,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     DATA lv_required TYPE string.
     DATA lv_attr TYPE string.
     DATA lv_type TYPE string.
+    DATA lv_rows TYPE i.
     FIELD-SYMBOLS <ls_opt> LIKE LINE OF is_field-subitems.
 
     " Get value and validation error from maps
@@ -35894,8 +35952,12 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
           ii_html->add( |<small>{ lv_error }</small>| ).
         ENDIF.
 
+        lv_rows = lines( zcl_abapgit_convert=>split_string( lv_value ) ) + 1.
+
         ii_html->add( |<textarea name="{ is_field-name }" id="{
-          is_field-name }" value="{ lv_value }" rows="{ is_field-rows }"{ lv_attr }>| ).
+          is_field-name }" rows="{ lv_rows }"{ lv_attr }>| ).
+        ii_html->add( escape( val    = lv_value
+                              format = cl_abap_format=>e_html_attr ) ).
         ii_html->add( |</textarea>| ).
 
       WHEN c_field_type-checkbox.
@@ -35992,7 +36054,6 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ls_field-hint        = iv_hint.
     ls_field-required    = iv_required.
     ls_field-placeholder = iv_placeholder.
-    ls_field-rows        = iv_rows.
 
     APPEND ls_field TO mt_fields.
 
@@ -36537,7 +36598,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA: li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
     CASE ii_event->mv_action.
@@ -36649,11 +36710,14 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-go_debuginfo.
+      WHEN zif_abapgit_definitions=>c_action-go_debuginfo.                   " Go debug info
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_debuginfo.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-go_settings.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_settings.
+      WHEN zif_abapgit_definitions=>c_action-go_settings.                    " Go global settings
+        rs_handled-page  = zcl_abapgit_gui_page_sett_glob=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_settings_personal.           " Go personal settings
+        rs_handled-page  = zcl_abapgit_gui_page_sett_pers=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_background_run.              " Go background run page
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_bkg_run.
@@ -36898,23 +36962,23 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-repo_newoffline.                 " New offline repo
         rs_handled-page  = zcl_abapgit_gui_page_addofflin=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req.
+      WHEN zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req.   " Add objects to transport
         zcl_abapgit_transport=>add_all_objects_to_trans_req( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh.                    " Repo refresh
         zcl_abapgit_services_repo=>refresh( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_syntax
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_syntax        " Syntax check
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-repo_code_inspector.
+      WHEN zif_abapgit_definitions=>c_action-repo_code_inspector.             " Code inspector
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_code_insp
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo remove & purge all objects
+      WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo purge all objects (uninstall)
         zcl_abapgit_services_repo=>purge( lv_key ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
@@ -36922,7 +36986,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         zcl_abapgit_services_repo=>remove( lv_key ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
-      WHEN zif_abapgit_definitions=>c_action-repo_newonline.
+      WHEN zif_abapgit_definitions=>c_action-repo_newonline.                  " New offline repo
         rs_handled-page  = zcl_abapgit_gui_page_addonline=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuild local checksums
@@ -36931,15 +36995,15 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-repo_toggle_fav.                 " Toggle repo as favorite
         zcl_abapgit_services_repo=>toggle_favorite( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_transport_to_branch.
+      WHEN zif_abapgit_definitions=>c_action-repo_transport_to_branch.        " Transport to branch
         zcl_abapgit_services_repo=>transport_to_branch( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_settings.
+      WHEN zif_abapgit_definitions=>c_action-repo_settings.                   " Repo settings
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_sett
           EXPORTING
             io_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-repo_log.
+      WHEN zif_abapgit_definitions=>c_action-repo_log.                        " Repo log
         li_log = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->get_log( ).
         zcl_abapgit_log_viewer=>show_log( ii_log = li_log
                                           iv_header_text = li_log->get_title( ) ).
@@ -38214,571 +38278,486 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETTINGS IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   METHOD constructor.
+
     super->constructor( ).
-    ms_control-page_title = 'Settings'.
-  ENDMETHOD.
-  METHOD is_post_field_checked.
-    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = iv_name.
-    IF sy-subrc = 0
-        AND ( <ls_post_field>-value = abap_true "HTML value when using standard netweaver GUI
-        OR <ls_post_field>-value = 'on' ).     "HTML value when using Netweaver Java GUI
-      rv_return = abap_true.
-    ENDIF.
-  ENDMETHOD.
-  METHOD persist_settings.
-
-    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
-
-    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    lo_settings_persistence->modify( mo_settings ).
-    MESSAGE 'Settings succesfully saved' TYPE 'S'.
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+    mo_form = get_form_schema( ).
 
   ENDMETHOD.
-  METHOD post.
+  METHOD create.
 
-    DATA lv_i_param_value TYPE i.
-    DATA lv_c_param_value TYPE c.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_sett_pers.
 
-    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
-    CREATE OBJECT mo_settings.
-    mt_post_fields = it_post_fields.
-    post_proxy( ).
-    post_commit_msg( ).
-    post_development_internals( ).
+    CREATE OBJECT lo_component.
 
-* todo, refactor to private POST_* methods
-    IF is_post_field_checked( 'show_default_repo' ) = abap_true.
-      mo_settings->set_show_default_repo( abap_true ).
-    ELSE.
-      mo_settings->set_show_default_repo( abap_false ).
-    ENDIF.
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'max_lines'.
-    IF sy-subrc = 0.
-      lv_i_param_value = <ls_post_field>-value.
-      mo_settings->set_max_lines( lv_i_param_value ).
-    ELSE.
-      mo_settings->set_max_lines( 0 ).
-    ENDIF.
-
-    IF is_post_field_checked( 'adt_jump_enabled' ) = abap_true.
-      mo_settings->set_adt_jump_enanbled( abap_true ).
-    ELSE.
-      mo_settings->set_adt_jump_enanbled( abap_false ).
-    ENDIF.
-
-    IF is_post_field_checked( 'link_hints_enabled' ) = abap_true.
-      mo_settings->set_link_hints_enabled( abap_true ).
-    ELSE.
-      mo_settings->set_link_hints_enabled( abap_false ).
-    ENDIF.
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'link_hint_key'.
-    IF sy-subrc = 0.
-      mo_settings->set_link_hint_key( |{ <ls_post_field>-value }| ).
-    ENDIF.
-
-    IF is_post_field_checked( 'parallel_proc_disabled' ) = abap_true.
-      mo_settings->set_parallel_proc_disabled( abap_true ).
-    ELSE.
-      mo_settings->set_parallel_proc_disabled( abap_false ).
-    ENDIF.
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'icon_scaling'.
-    IF sy-subrc = 0.
-      lv_c_param_value = <ls_post_field>-value.
-      mo_settings->set_icon_scaling( lv_c_param_value ).
-    ELSE.
-      mo_settings->set_icon_scaling( '' ).
-    ENDIF.
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'ui_theme'.
-    IF sy-subrc = 0.
-      mo_settings->set_ui_theme( <ls_post_field>-value ).
-    ELSE.
-      mo_settings->set_ui_theme( zcl_abapgit_settings=>c_ui_theme-default ).
-    ENDIF.
-
-    post_hotkeys( ).
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Personal Settings'
+      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_toolbar(
+                             zif_abapgit_definitions=>c_action-go_settings_personal )
+      ii_child_component = lo_component ).
 
   ENDMETHOD.
-  METHOD post_commit_msg.
+  METHOD get_form_schema.
 
-    DATA: lv_i_param_value TYPE i.
+    ro_form = zcl_abapgit_html_form=>create(
+      iv_form_id   = 'personal-setting-form'
+      iv_help_page = 'https://docs.abapgit.org/guide-settings-personal.html' ).
 
-    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_length'.
-    IF sy-subrc = 0.
-      lv_i_param_value = <ls_post_field>-value.
-      IF lv_i_param_value < zcl_abapgit_settings=>c_commitmsg_comment_length_dft.
-        lv_i_param_value = zcl_abapgit_settings=>c_commitmsg_comment_length_dft.
-      ENDIF.
-      mo_settings->set_commitmsg_comment_length( lv_i_param_value ).
-    ELSE.
-      mo_settings->set_commitmsg_comment_length( zcl_abapgit_settings=>c_commitmsg_comment_length_dft ).
-    ENDIF.
+    ro_form->start_group(
+      iv_name          = c_id-startup
+      iv_label         = 'Startup'
+    )->checkbox(
+      iv_name          = c_id-show_default_repo
+      iv_label         = 'Show Last Opened Repository'
+      iv_hint          = 'Recommended to check, if you are using ADT'
+    )->start_group(
+      iv_name          = c_id-ui
+      iv_label         = 'User Interface'
+    )->radio(
+      iv_name          = c_id-ui_theme
+      iv_default_value = zcl_abapgit_settings=>c_ui_theme-default
+      iv_label         = 'Theme'
+    )->option(
+      iv_label         = 'Default'
+      iv_value         = zcl_abapgit_settings=>c_ui_theme-default
+    )->option(
+      iv_label         = 'Dark'
+      iv_value         = zcl_abapgit_settings=>c_ui_theme-dark
+    )->option(
+      iv_label         = 'Belize'
+      iv_value         = zcl_abapgit_settings=>c_ui_theme-belize
+    )->option(
+      iv_label         = 'Synced with SAP GUI'
+      iv_value         = zcl_abapgit_settings=>c_ui_theme-synced_with_gui
+    )->radio(
+      iv_name          = c_id-icon_scaling
+      iv_default_value = ''
+      iv_label         = 'Icon Scaling'
+    )->option(
+      iv_label         = 'Automatic'
+      iv_value         = ''
+    )->option(
+      iv_label         = 'Small'
+      iv_value         = zcl_abapgit_settings=>c_icon_scaling-small
+    )->option(
+      iv_label         = 'Large'
+      iv_value         = zcl_abapgit_settings=>c_icon_scaling-large
+    )->number(
+      iv_name          = c_id-max_lines
+      iv_label         = 'List Size'
+      iv_hint          = 'Maximum number of objects listed (0 = All)'
+      iv_min           = 0
+      iv_max           = 10000
+    )->start_group(
+      iv_name          = c_id-interaction
+      iv_label         = 'Interaction'
+    )->checkbox(
+      iv_name          = c_id-activate_wo_popup
+      iv_label         = 'Activate Objects Without Popup'
+      iv_hint          = 'Activates objects automatically without showing popup'
+    )->checkbox(
+      iv_name          = c_id-adt_jump_enabled
+      iv_label         = 'Enable Jump to ABAP Development Tools (If Available)'
+      iv_hint          = 'Recommended to check, if you are using ADT'
+    )->checkbox(
+      iv_name          = c_id-link_hints_enabled
+      iv_label         = 'Enable Vimium-like Link Hints'
+      iv_hint          = 'When you hit the key, abapGit will identify clickable things and put a label beside it'
+    )->text(
+      iv_name          = c_id-link_hint_key
+      iv_label         = 'Key to Activate Link Hints'
+      iv_min           = 0
+      iv_max           = 1
+    )->start_group(
+      iv_name          = c_id-resources
+      iv_label         = 'System Resources'
+    )->checkbox(
+      iv_name          = c_id-parallel_proc_disabled
+      iv_label         = 'Disable Parallel Processing'
+      iv_hint          = 'If disabled, abapGit will use only a single thread to serialize objects'
+    )->command(
+      iv_label         = 'Save Settings'
+      iv_is_main       = abap_true
+      iv_action        = c_event-save
+    )->command(
+      iv_label         = 'Back'
+      iv_action        = c_event-go_back ).
 
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'comment_default'.
-    IF sy-subrc = 0.
-      mo_settings->set_commitmsg_comment_default( <ls_post_field>-value ).
-    ENDIF.
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'body_size'.
-    IF sy-subrc = 0.
-      lv_i_param_value = <ls_post_field>-value.
-      IF lv_i_param_value < zcl_abapgit_settings=>c_commitmsg_body_size_dft.
-        lv_i_param_value = zcl_abapgit_settings=>c_commitmsg_body_size_dft.
-      ENDIF.
-      mo_settings->set_commitmsg_body_size( lv_i_param_value ).
-    ELSE.
-      mo_settings->set_commitmsg_body_size( zcl_abapgit_settings=>c_commitmsg_body_size_dft ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD post_development_internals.
-
-    mo_settings->set_run_critical_tests( is_post_field_checked( 'critical_tests' ) ).
-
-    mo_settings->set_experimental_features( is_post_field_checked( 'experimental_features' ) ).
-
-    mo_settings->set_activate_wo_popup( is_post_field_checked( 'activate_wo_popup' ) ).
-
-  ENDMETHOD.
-  METHOD post_hotkeys.
-
-    DATA:
-      lt_key_bindings TYPE zif_abapgit_definitions=>ty_hotkey_tt,
-      ls_key_binding  LIKE LINE OF lt_key_bindings.
-
-    FIELD-SYMBOLS:
-      <ls_default_hotkey> LIKE LINE OF mt_default_hotkeys,
-      <ls_post_field>     TYPE ihttpnvp.
-
-    LOOP AT mt_post_fields ASSIGNING <ls_post_field> WHERE name CP 'hk~*'.
-
-      FIND FIRST OCCURRENCE OF REGEX `hk~(.+)~(.+)`
-        IN <ls_post_field>-name
-        SUBMATCHES ls_key_binding-ui_component ls_key_binding-action.
-      CHECK sy-subrc = 0.
-
-      READ TABLE mt_default_hotkeys
-        ASSIGNING <ls_default_hotkey>
-        WITH TABLE KEY action
-        COMPONENTS
-          ui_component = ls_key_binding-ui_component
-          action       = ls_key_binding-action.
-      IF sy-subrc = 0 AND <ls_post_field>-value IS NOT INITIAL AND <ls_post_field>-value <> <ls_default_hotkey>-hotkey.
-        ls_key_binding-hotkey = <ls_post_field>-value.
-        APPEND ls_key_binding TO lt_key_bindings.
-      ENDIF.
-
-    ENDLOOP.
-
-    mo_settings->set_hotkeys( lt_key_bindings ).
-
-  ENDMETHOD.
-  METHOD post_proxy.
-
-    FIELD-SYMBOLS: <ls_post_field> TYPE ihttpnvp.
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_url'.
-    IF sy-subrc <> 0.
-      mv_error = abap_true.
-    ENDIF.
-    mo_settings->set_proxy_url( <ls_post_field>-value ).
-
-    READ TABLE mt_post_fields ASSIGNING <ls_post_field> WITH KEY name = 'proxy_port'.
-    IF sy-subrc <> 0.
-      mv_error = abap_true.
-    ENDIF.
-    mo_settings->set_proxy_port( <ls_post_field>-value ).
-
-    IF is_post_field_checked( 'proxy_auth' ) = abap_true.
-      mo_settings->set_proxy_authentication( abap_true ).
-    ELSE.
-      mo_settings->set_proxy_authentication( abap_false ).
-    ENDIF.
-
-    mo_settings->set_proxy_bypass( mt_proxy_bypass ).
+    " Not available via this form:
+    " - User-specific hotkey settings have been discontinued
+    " - hide_sapgui_hint is set via ZCL_ABAPGIT_SERVICES_ABAPGIT-CHECK_SAPGUI
 
   ENDMETHOD.
   METHOD read_settings.
 
-    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
+    " Get settings from DB
+    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    ms_settings = mo_settings->get_user_settings( ).
 
-    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    mo_settings = lo_settings_persistence->read( ).
+    " Startup
+    mo_form_data->set(
+      iv_key = c_id-show_default_repo
+      iv_val = |{ ms_settings-show_default_repo }| ).
 
-    mt_proxy_bypass = mo_settings->get_proxy_bypass( ).
+    " UI
+    mo_form_data->set(
+      iv_key = c_id-ui_theme
+      iv_val = ms_settings-ui_theme ).
+    mo_form_data->set(
+      iv_key = c_id-icon_scaling
+      iv_val = |{ ms_settings-icon_scaling }| ).
+    mo_form_data->set(
+      iv_key = c_id-max_lines
+      iv_val = |{ ms_settings-max_lines }| ).
+
+    " Interaction
+    mo_form_data->set(
+      iv_key = c_id-activate_wo_popup
+      iv_val = |{ ms_settings-activate_wo_popup }| ).
+    mo_form_data->set(
+      iv_key = c_id-adt_jump_enabled
+      iv_val = |{ ms_settings-adt_jump_enabled }| ).
+    mo_form_data->set(
+      iv_key = c_id-link_hints_enabled
+      iv_val = |{ ms_settings-link_hints_enabled }| ).
+    mo_form_data->set(
+      iv_key = c_id-link_hint_key
+      iv_val = |{ ms_settings-link_hint_key }| ).
+
+    " Resources
+    mo_form_data->set(
+      iv_key = c_id-parallel_proc_disabled
+      iv_val = |{ ms_settings-parallel_proc_disabled }| ).
 
   ENDMETHOD.
-  METHOD render_adt_jump_enabled.
+  METHOD save_settings.
 
-    DATA lv_checked TYPE string.
+    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_settings.
 
-    IF mo_settings->get_adt_jump_enabled( ) = abap_true.
-      lv_checked = 'checked'.
-    ENDIF.
+    " Startup
+    ms_settings-show_default_repo = mo_form_data->get( c_id-show_default_repo ).
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>ABAP Development Tools (ADT)</h2>| ).
-    ri_html->add( `<input type="checkbox" name="adt_jump_enabled" value="X" `
-                   && lv_checked && ` > Enable Jump to ADT First` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
+    " UI
+    ms_settings-ui_theme = mo_form_data->get( c_id-ui_theme ).
+    ms_settings-icon_scaling = mo_form_data->get( c_id-icon_scaling ).
+    ms_settings-max_lines = mo_form_data->get( c_id-max_lines ).
+
+    " Interaction
+    ms_settings-activate_wo_popup = mo_form_data->get( c_id-activate_wo_popup ).
+    ms_settings-adt_jump_enabled = mo_form_data->get( c_id-adt_jump_enabled ).
+    ms_settings-link_hints_enabled = mo_form_data->get( c_id-link_hints_enabled ).
+    ms_settings-link_hint_key = mo_form_data->get( c_id-link_hint_key ).
+
+    " Resources
+    ms_settings-parallel_proc_disabled = mo_form_data->get( c_id-parallel_proc_disabled ).
+
+    " Store in DB
+    mo_settings->set_user_settings( ms_settings ).
+
+    lo_persistence = zcl_abapgit_persist_settings=>get_instance( ).
+    lo_persistence->modify( mo_settings ).
+
+    MESSAGE 'Settings succesfully saved' TYPE 'S'.
+
   ENDMETHOD.
-  METHOD render_commit_msg.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+  METHOD validate_form.
 
-    ri_html->add( |<h2>Commit Message</h2>| ).
-    ri_html->add( |<label for="comment_length" title="(Recommendation 50)">Max. Length of Comment</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<input name="comment_length" type="number" step="10" size="3" maxlength="3" min="50"| &&
-                  | value="{ mo_settings->get_commitmsg_comment_length( ) }">| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<label for="comment_default"| &&
-                  |title="(Possible Variables: $OBJECT, $FILE)">Default for Comment</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<input name="comment_default" type="text" size="80" maxlength="255"| &&
-                  | value="{ mo_settings->get_commitmsg_comment_default( ) }">| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<label for="body_size" title="(Recommendation 72)">Max. Line Size of Body</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<input name="body_size" type="number" size="3" maxlength="3" min="50"| &&
-                  | value="{ mo_settings->get_commitmsg_body_size( ) }">| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
+    ro_validation_log = mo_form->validate_required_fields( io_form_data ).
+
   ENDMETHOD.
-  METHOD render_content.
+  METHOD zif_abapgit_gui_event_handler~on_event.
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    mo_form_data = mo_form->normalize_form_data( ii_event->form_data( ) ).
+
+    CASE ii_event->mv_action.
+      WHEN c_event-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-save.
+        " Validate all form entries
+        mo_validation_log = validate_form( mo_form_data ).
+
+        IF mo_validation_log->is_empty( ) = abap_true.
+          save_settings( ).
+
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
+        ENDIF.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    gui_services( )->register_event_handler( me ).
 
     read_settings( ).
 
-    ri_html->add( render_form_begin( ) ).
-    ri_html->add( render_section_begin( |Global Settings| ) ).
-    ri_html->add( render_proxy( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_commit_msg( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_development_internals( ) ).
-    ri_html->add( render_section_end( ) ).
-    ri_html->add( render_section_begin( |User Specific Settings| ) ).
-    ri_html->add( render_start_up( ) ).
-    ri_html->add( render_max_lines( ) ).
-    ri_html->add( render_icon_scaling( ) ).
-    ri_html->add( render_ui_theme( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_adt_jump_enabled( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_parallel_proc( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_link_hints( ) ).
-    ri_html->add( |<hr>| ).
-    ri_html->add( render_hotkeys( ) ).
-    ri_html->add( render_section_end( ) ).
-    ri_html->add( render_form_end( ) ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( mo_form->render(
+      iv_form_class     = 'dialog w600px m-em5-sides margin-v1'
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
-  METHOD render_development_internals.
+ENDCLASS.
 
-    DATA: lv_critical_tests TYPE string,
-          lv_experimental   TYPE string,
-          lv_act_wo_popup   TYPE string.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
+  METHOD constructor.
 
-    IF mo_settings->get_run_critical_tests( ) = abap_true.
-      lv_critical_tests = 'checked'.
+    super->constructor( ).
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+    mo_form = get_form_schema( ).
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_sett_glob.
+
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Global Settings'
+      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_toolbar(
+                             zif_abapgit_definitions=>c_action-go_settings )
+      ii_child_component = lo_component ).
+
+  ENDMETHOD.
+  METHOD get_form_schema.
+
+    CONSTANTS lc_abapgit_prog TYPE progname VALUE `ZABAPGIT`.
+
+    ro_form = zcl_abapgit_html_form=>create(
+      iv_form_id   = 'global-setting-form'
+      iv_help_page = 'https://docs.abapgit.org/guide-settings-global.html' ).
+
+    ro_form->start_group(
+      iv_name        = c_id-proxy_settings
+      iv_label       = 'Proxy Settings'
+    )->text(
+      iv_name        = c_id-proxy_url
+      iv_label       = 'Proxy Host'
+      iv_hint        = 'Hostname or IP of proxy required to access the Internet (do not enter http://)'
+      iv_placeholder = 'Hostname or IP without http://'
+    )->number(
+      iv_name        = c_id-proxy_port
+      iv_label       = 'Proxy Port'
+      iv_hint        = 'Port of proxy required to access the Internet'
+      iv_min         = 0
+      iv_max         = 65535
+    )->checkbox(
+      iv_name        = c_id-proxy_auth
+      iv_label       = 'Proxy Authentication'
+      iv_hint        = 'Check, if proxy requires you to login'
+    )->textarea(
+      iv_name        = c_id-proxy_bypass
+      iv_label       = 'Proxy Bypass'
+      iv_hint        = 'List of hosts/domains for which to bypass using proxy'
+    )->start_group(
+      iv_name        = c_id-commit_settings
+      iv_label       = 'Commit Message Settings'
+    )->number(
+      iv_name        = c_id-commitmsg_comment_length
+      iv_required    = abap_true
+      iv_label       = 'Maximum Length of Comment'
+      iv_hint        = |At least { zcl_abapgit_settings=>c_commitmsg_comment_length_dft } characters|
+      iv_min         = zcl_abapgit_settings=>c_commitmsg_comment_length_dft
+    )->text(
+      iv_name        = c_id-commitmsg_comment_deflt
+      iv_label       = 'Default Text For Comment'
+      iv_hint        = 'You can use $OBJECT or $FILE to include the number of objects/files'
+    )->number(
+      iv_name        = c_id-commitmsg_body_size
+      iv_required    = abap_true
+      iv_label       = 'Maximum Line Size of Body'
+      iv_hint        = |At least { zcl_abapgit_settings=>c_commitmsg_body_size_dft } characters|
+      iv_min         = zcl_abapgit_settings=>c_commitmsg_body_size_dft ).
+
+    IF zcl_abapgit_services_abapgit=>is_installed( ) = abap_true AND sy-cprog = lc_abapgit_prog.
+      ro_form->start_group(
+        iv_name        = c_id-devint_settings
+        iv_label       = 'Development Internal Settings'
+      )->checkbox(
+        iv_name        = c_id-run_critical_tests
+        iv_label       = 'Enable Critical Unit Tests'
+      )->checkbox(
+        iv_name        = c_id-experimental_features
+        iv_label       = 'Enable Experimental Features' ).
     ENDIF.
 
-    IF mo_settings->get_experimental_features( ) = abap_true.
-      lv_experimental = 'checked'.
-    ENDIF.
-
-    IF mo_settings->get_activate_wo_popup( ) = abap_true.
-      lv_act_wo_popup = 'checked'.
-    ENDIF.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>abapGit Development Internals</h2>| ).
-    ri_html->add( `<input type="checkbox" name="critical_tests" `
-                   && lv_critical_tests && ` > Enable Critical Unit Tests (See LTCL_DANGEROUS)` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( `<input type="checkbox" name="experimental_features" `
-                   && lv_experimental && ` > Enable Experimental Features` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( `<input type="checkbox" name="activate_wo_popup" `
-                   && lv_act_wo_popup && ` > Activate Objects Without Popup` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
+    ro_form->command(
+      iv_label       = 'Save Settings'
+      iv_is_main     = abap_true
+      iv_action      = c_event-save
+    )->command(
+      iv_label       = 'Back'
+      iv_action      = c_event-go_back ).
 
   ENDMETHOD.
-  METHOD render_form_begin.
+  METHOD read_proxy_bypass.
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( '<div class="settings_container">' ).
-    ri_html->add( `<form id="settings_form" method="post" action="sapevent:` && c_action-save_settings && `">` ).
+    DATA:
+      lt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
+      ls_proxy_bypass LIKE LINE OF lt_proxy_bypass,
+      lv_val          TYPE string.
 
-  ENDMETHOD.
-  METHOD render_form_end.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( '<input type="submit" value="Save" class="floating-button blue-set emphasis">' ).
-    ri_html->add( '</form>' ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_hotkeys.
-
-    DATA lv_hk_id TYPE string.
-    DATA lt_hotkeys LIKE mt_default_hotkeys.
-    FIELD-SYMBOLS <ls_key> LIKE LINE OF mt_default_hotkeys.
-
-    mt_default_hotkeys = zcl_abapgit_hotkeys=>get_all_default_hotkeys( ). " Cache for save processing
-    lt_hotkeys = mt_default_hotkeys.
-    zcl_abapgit_hotkeys=>merge_hotkeys_with_settings( CHANGING ct_hotkey_actions = lt_hotkeys ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>Hotkeys</h2>| ).
-
-    ri_html->add( '<table class="settings_tab">' ).
-    ri_html->add( '<thead><tr><th>Component</th><th>Action</th><th>Key</th></tr></thead>' ).
-
-    LOOP AT lt_hotkeys ASSIGNING <ls_key>.
-
-      ri_html->add( '<tr>' ).
-      ri_html->add( |<td>{ <ls_key>-ui_component }</td>| ).
-      ri_html->add( |<td>{ <ls_key>-description }</td>| ).
-      lv_hk_id = |hk~{ <ls_key>-ui_component }~{ <ls_key>-action }|.
-      ri_html->add( |<td><input name="{ lv_hk_id }" maxlength=1 type="text" value="{ <ls_key>-hotkey }"></td>| ).
-      ri_html->add( '</tr>' ).
-
+    lt_proxy_bypass = mo_settings->get_proxy_bypass( ).
+    LOOP AT lt_proxy_bypass INTO ls_proxy_bypass.
+      lv_val = lv_val && ls_proxy_bypass-low && zif_abapgit_definitions=>c_crlf.
     ENDLOOP.
 
-    ri_html->add( '</table>' ).
+    mo_form_data->set(
+      iv_key = c_id-proxy_bypass
+      iv_val = lv_val ).
 
   ENDMETHOD.
-  METHOD render_icon_scaling.
+  METHOD read_settings.
+
+    " Get settings from DB
+    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    " Proxy
+    mo_form_data->set(
+      iv_key = c_id-proxy_url
+      iv_val = mo_settings->get_proxy_url( ) ).
+    mo_form_data->set(
+      iv_key = c_id-proxy_port
+      iv_val = mo_settings->get_proxy_port( ) ).
+    mo_form_data->set(
+      iv_key = c_id-proxy_auth
+      iv_val = mo_settings->get_proxy_authentication( ) ).
+
+    read_proxy_bypass( ).
+
+    " Commit Message
+    mo_form_data->set(
+      iv_key = c_id-commitmsg_comment_length
+      iv_val = |{ mo_settings->get_commitmsg_comment_length( ) }| ).
+    mo_form_data->set(
+      iv_key = c_id-commitmsg_comment_deflt
+      iv_val = mo_settings->get_commitmsg_comment_default( ) ).
+    mo_form_data->set(
+      iv_key = c_id-commitmsg_body_size
+      iv_val = |{ mo_settings->get_commitmsg_body_size( ) }| ).
+
+    " Dev Internal
+    mo_form_data->set(
+      iv_key = c_id-run_critical_tests
+      iv_val = |{ mo_settings->get_run_critical_tests( ) }| ).
+    mo_form_data->set(
+      iv_key = c_id-experimental_features
+      iv_val = |{ mo_settings->get_experimental_features( ) }| ).
+
+  ENDMETHOD.
+  METHOD save_proxy_bypass.
 
     DATA:
-      BEGIN OF ls_sel,
-        auto  TYPE string,
-        large TYPE string,
-        small TYPE string,
-      END OF ls_sel.
+      lt_textarea     TYPE TABLE OF string,
+      lt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
+      ls_proxy_bypass LIKE LINE OF lt_proxy_bypass.
 
-    CASE mo_settings->get_icon_scaling( ).
-      WHEN zcl_abapgit_settings=>c_icon_scaling-large.
-        ls_sel-large = ' selected'.
-      WHEN zcl_abapgit_settings=>c_icon_scaling-small.
-        ls_sel-small = ' selected'.
-      WHEN OTHERS.
-        ls_sel-auto = ' selected'.
-    ENDCASE.
+    lt_textarea = zcl_abapgit_convert=>split_string( mo_form_data->get( c_id-proxy_bypass ) ).
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ls_proxy_bypass-sign = 'I'.
+    ls_proxy_bypass-option = 'EQ'.
+    LOOP AT lt_textarea INTO ls_proxy_bypass-low WHERE table_line IS NOT INITIAL.
+      APPEND ls_proxy_bypass TO lt_proxy_bypass.
+    ENDLOOP.
 
-    ri_html->add( |<h2>UI Icon Scaling</h2>| ).
-    ri_html->add( |<label for="icon_scaling">High DPI Icon Scaling</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<select name="icon_scaling" size="3">| ).
-    ri_html->add( |<option value=""{ ls_sel-auto }>Auto</option>| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-large }"{ ls_sel-large }>Large</option>| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_icon_scaling-small }"{ ls_sel-small }>Small</option>| ).
-    ri_html->add( |</select>| ).
-
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
+    mo_settings->set_proxy_bypass( lt_proxy_bypass ).
 
   ENDMETHOD.
-  METHOD render_link_hints.
-
-    DATA: lv_checked       TYPE string,
-          lv_link_hint_key TYPE c LENGTH 1.
-
-    IF mo_settings->get_link_hints_enabled( ) = abap_true.
-      lv_checked = 'checked'.
-    ENDIF.
-
-    lv_link_hint_key = mo_settings->get_link_hint_key( ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>Vimium-like Link Hints</h2>| ).
-    ri_html->add( `<input type="checkbox" name="link_hints_enabled" value="X" `
-                   && lv_checked && ` > Enable Vimium-like Link Hints` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<input type="text" name="link_hint_key" size="1" maxlength="1" value="{ lv_link_hint_key }" |
-               && |> Key to Activate Links| ).
-
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-
-  ENDMETHOD.
-  METHOD render_max_lines.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( |<h2>List size</h2>| ).
-    ri_html->add( |<label for="max_lines">Max. # of Objects Listed (0 = All)</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( `<input name="max_lines" type="text" size="5" value="` && mo_settings->get_max_lines( ) && `">` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-  ENDMETHOD.
-  METHOD render_parallel_proc.
-
-    DATA lv_checked TYPE string.
-
-    IF mo_settings->get_parallel_proc_disabled( ) = abap_true.
-      lv_checked = 'checked'.
-    ENDIF.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>Parallel Processing</h2>| ).
-    ri_html->add( `<input type="checkbox" name="parallel_proc_disabled" value="X" `
-                   && lv_checked && ` > Disable Parallel Processing` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-  ENDMETHOD.
-  METHOD render_proxy.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( |<h2>Proxy</h2>| ).
-    ri_html->add( |<label for="proxy_url">Proxy URL</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( `<input name="proxy_url" type="text" size="50" value="` &&
-      mo_settings->get_proxy_url( ) && `">` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<label for="proxy_port">Proxy Port</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( `<input name="proxy_port" type="text" size="5" value="` &&
-      mo_settings->get_proxy_port( ) && `">` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<label for="proxy_auth">Proxy Authentication</label>| ).
-    IF mo_settings->get_proxy_authentication( ) = abap_true.
-      ri_html->add( `<input name="proxy_auth" type="checkbox" checked>` ).
-    ELSE.
-      ri_html->add( `<input name="proxy_auth" type="checkbox">` ).
-    ENDIF.
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<label for="proxy_bypass">Bypass Proxy Settings for These Hosts & Domains</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<button type="button" name="proxy_bypass" class="grey-set"|
-                & |onclick="location.href='sapevent:{ c_action-change_proxy_bypass }';">Maintain</button>| ).
-    ri_html->add( |<br>| ).
-
-    ri_html->add( |<br>| ).
-
-  ENDMETHOD.
-  METHOD render_section_begin.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( |<h1>{ iv_header }</h1>| ).
-    ri_html->add( |<div class="settings_section">| ).
-
-  ENDMETHOD.
-  METHOD render_section_end.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( |</div>| ).
-
-  ENDMETHOD.
-  METHOD render_start_up.
-
-    DATA lv_checked TYPE string.
-
-    IF mo_settings->get_show_default_repo( ) = abap_true.
-      lv_checked = 'checked'.
-    ENDIF.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<h2>Startup</h2>| ).
-    ri_html->add( `<input type="checkbox" name="show_default_repo" value="X" `
-                   && lv_checked && ` > Show Last Opened Repository` ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
-  ENDMETHOD.
-  METHOD render_ui_theme.
-
-    " TODO: unify with render_icon_scaling, make list component
+  METHOD save_settings.
 
     DATA:
-      BEGIN OF ls_sel,
-        default         TYPE string,
-        dark            TYPE string,
-        belize          TYPE string,
-        synced_with_gui TYPE string,
-      END OF ls_sel.
+      lo_persistence TYPE REF TO zcl_abapgit_persist_settings,
+      lv_value       TYPE i.
 
-    CASE mo_settings->get_ui_theme( abap_false ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-default.
-        ls_sel-default = ' selected'.
-      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        ls_sel-dark = ' selected'.
-      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
-        ls_sel-belize = ' selected'.
-      WHEN zcl_abapgit_settings=>c_ui_theme-synced_with_gui.
-        ls_sel-synced_with_gui = ' selected'.
-    ENDCASE.
+    " Proxy
+    mo_settings->set_proxy_url( mo_form_data->get( c_id-proxy_url ) ).
+    mo_settings->set_proxy_port( mo_form_data->get( c_id-proxy_port ) ).
+    mo_settings->set_proxy_authentication( boolc( mo_form_data->get( c_id-proxy_auth ) = abap_true ) ).
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    save_proxy_bypass( ).
 
-    ri_html->add( |<h2>UI Theme</h2>| ).
-    ri_html->add( |<label for="ui_theme">UI Theme</label>| ).
-    ri_html->add( |<br>| ).
-    ri_html->add( |<select name="ui_theme" size="4">| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-default }"{
-      ls_sel-default }>{ zcl_abapgit_settings=>c_ui_theme-default }</option>| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-dark }"{
-      ls_sel-dark }>{ zcl_abapgit_settings=>c_ui_theme-dark }</option>| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-belize }"{
-      ls_sel-belize }>{ zcl_abapgit_settings=>c_ui_theme-belize }</option>| ).
-    ri_html->add( |<option value="{ zcl_abapgit_settings=>c_ui_theme-synced_with_gui }"{
-      ls_sel-synced_with_gui }>Synced with SAP GUI</option>| ).
-    ri_html->add( |</select>| ).
+    " Commit Message
+    lv_value = mo_form_data->get( c_id-commitmsg_comment_length ).
+    mo_settings->set_commitmsg_comment_length( lv_value ).
+    mo_settings->set_commitmsg_comment_default( mo_form_data->get( c_id-commitmsg_comment_deflt ) ).
+    lv_value = mo_form_data->get( c_id-commitmsg_body_size ).
+    mo_settings->set_commitmsg_body_size( lv_value ).
 
-    ri_html->add( |<br>| ).
-    ri_html->add( |<br>| ).
+    " Dev Internal
+    mo_settings->set_run_critical_tests( boolc( mo_form_data->get( c_id-run_critical_tests ) = abap_true ) ).
+    mo_settings->set_experimental_features( boolc( mo_form_data->get( c_id-experimental_features ) = abap_true ) ).
+
+    " Store in DB
+    lo_persistence = zcl_abapgit_persist_settings=>get_instance( ).
+    lo_persistence->modify( mo_settings ).
+
+    MESSAGE 'Settings succesfully saved' TYPE 'S'.
 
   ENDMETHOD.
-  METHOD validate_settings.
+  METHOD validate_form.
 
-    IF ( mo_settings->get_proxy_url( ) IS NOT INITIAL AND mo_settings->get_proxy_port( ) IS INITIAL ) OR
-                 ( mo_settings->get_proxy_url( ) IS INITIAL AND mo_settings->get_proxy_port( ) IS NOT INITIAL ).
-      MESSAGE 'If specifying proxy, specify both URL and port' TYPE 'W'.
+    ro_validation_log = mo_form->validate_required_fields( io_form_data ).
+
+    IF io_form_data->get( c_id-proxy_url ) IS NOT INITIAL AND io_form_data->get( c_id-proxy_port ) IS INITIAL OR
+       io_form_data->get( c_id-proxy_url ) IS INITIAL AND io_form_data->get( c_id-proxy_port ) IS NOT INITIAL.
+      ro_validation_log->set(
+        iv_key = c_id-proxy_url
+        iv_val = |If you specify a proxy, you have to specify host and port| ).
+    ENDIF.
+
+    IF ( io_form_data->get( c_id-proxy_url ) IS INITIAL OR io_form_data->get( c_id-proxy_port ) IS INITIAL ) AND
+       io_form_data->get( c_id-proxy_auth ) = abap_true.
+      ro_validation_log->set(
+        iv_key = c_id-proxy_auth
+        iv_val = |To turn on authentication, you have to specify host and port| ).
     ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
-* todo, check input values eg INT
 
-    DATA:
-      lt_post_fields TYPE tihttpnvp.
+    mo_form_data = mo_form->normalize_form_data( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_action-save_settings.
-        lt_post_fields = zcl_abapgit_html_action_utils=>parse_post_form_data( ii_event->mt_postdata ).
+      WHEN c_event-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
-        post( lt_post_fields ).
-        validate_settings( ).
+      WHEN c_event-save.
+        " Validate all form entries
+        mo_validation_log = validate_form( mo_form_data ).
 
-        IF mv_error = abap_true.
-          MESSAGE 'Error when saving settings. Open an issue at https://github.com/abapGit/abapGit' TYPE 'E'.
+        IF mo_validation_log->is_empty( ) = abap_true.
+          save_settings( ).
+
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
         ELSE.
-          persist_settings( ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render. " Display errors
         ENDIF.
 
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-      WHEN c_action-change_proxy_bypass.
-        mt_proxy_bypass = zcl_abapgit_ui_factory=>get_popups( )->popup_proxy_bypass( mt_proxy_bypass ).
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    gui_services( )->register_event_handler( me ).
+
+    read_settings( ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( mo_form->render(
+      iv_form_class     = 'dialog w600px m-em5-sides margin-v1'
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -39093,6 +39072,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     ro_toolbar->add( iv_txt = zcl_abapgit_html=>icon( iv_name = 'cog' )
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ mv_key }|
                      iv_title = `Repository Settings` ).
+
   ENDMETHOD.
   METHOD build_obj_jump_link.
 
@@ -39417,7 +39397,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
                         iv_act = c_actions-display_more )
             } more. (Set in Advanced > {
             ri_html->a( iv_txt = 'Settings'
-                        iv_act = zif_abapgit_definitions=>c_action-go_settings )
+                        iv_act = zif_abapgit_definitions=>c_action-go_settings_personal )
             } )| ).
           ri_html->add( '</div>' ).
         ENDIF.
@@ -45060,7 +45040,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -45820,6 +45800,20 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ri_html->add( '<div class="dummydiv warning">' ).
     ri_html->add( |{ ri_html->icon( 'exclamation-triangle/yellow' ) } { iv_text }| ).
     ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD settings_toolbar.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-settings'.
+
+    ro_menu->add(
+      iv_txt = 'Global'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings )
+    )->add(
+      iv_txt = 'Personal'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings_personal
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings_personal ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -47067,7 +47061,7 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
+CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -47128,6 +47122,17 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     ls_study = study_line(
       is_context = cs_context
       iv_line    = cv_line ).
+
+    " No indent for textarea tags
+    IF ls_study-textarea_open = abap_true.
+      cs_context-within_textarea = abap_true.
+      RETURN.
+    ELSEIF ls_study-textarea_close = abap_true.
+      cs_context-within_textarea = abap_false.
+      RETURN.
+    ELSEIF cs_context-within_textarea = abap_true.
+      RETURN.
+    ENDIF.
 
     " First closing tag - shift back exceptionally
     IF ( ls_study-script_close = abap_true
@@ -47223,6 +47228,16 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       FIND ALL OCCURRENCES OF REGEX go_single_tags_re IN lv_line MATCH COUNT rs_result-singles.
       rs_result-openings = rs_result-openings - rs_result-closings - rs_result-singles.
 
+    ENDIF.
+
+    " Textarea (same assumptions as above)
+    IF is_context-within_textarea = abap_true AND lv_len >= 10 AND lv_line(10) = '</TEXTAREA'.
+      rs_result-textarea_close = abap_true.
+    ELSEIF is_context-within_textarea = abap_false AND lv_len >= 9 AND lv_line(9) = '<TEXTAREA'.
+      FIND FIRST OCCURRENCE OF '</TEXTAREA' IN lv_line.
+      IF sy-subrc > 0. " Not found
+        rs_result-textarea_open = abap_true.
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -94804,5 +94819,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-22T13:49:59.187Z
+* abapmerge 0.14.1 - 2020-11-23T07:25:42.804Z
 ****************************************************
