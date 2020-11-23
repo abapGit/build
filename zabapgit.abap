@@ -15539,6 +15539,38 @@ CLASS zcl_abapgit_hash DEFINITION
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
+
+    CLASS-METHODS sha1_commit
+      IMPORTING
+        !iv_data       TYPE xstring
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+
+    CLASS-METHODS sha1_tree
+      IMPORTING
+        !iv_data       TYPE xstring
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+
+    CLASS-METHODS sha1_tag
+      IMPORTING
+        !iv_data       TYPE xstring
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
+
+    CLASS-METHODS sha1_blob
+      IMPORTING
+        !iv_data       TYPE xstring
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS sha1_raw
       IMPORTING
         !iv_data       TYPE xstring
@@ -15546,6 +15578,8 @@ CLASS zcl_abapgit_hash DEFINITION
         VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 *----------------------------------------------------------------------*
 * This helper class is used to set and restore the current language.
@@ -18868,8 +18902,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
       <ls_file>-data = lv_data.
 
-      <ls_file>-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                               iv_data = <ls_file>-data ).
+      <ls_file>-sha1 = zcl_abapgit_hash=>sha1_blob( <ls_file>-data ).
 
     ENDLOOP.
 
@@ -21808,7 +21841,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -21824,8 +21857,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       rs_file-path     = zif_abapgit_definitions=>c_root_dir.
       rs_file-filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
       rs_file-data     = zcl_abapgit_convert=>string_to_xstring_utf8( lo_manifest_writer->serialize( ) ).
-      rs_file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                                 iv_data = rs_file-data ).
+      rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
     ENDIF.
   ENDMETHOD.
   METHOD build_dotabapgit_file.
@@ -21833,8 +21865,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     rs_file-path     = zif_abapgit_definitions=>c_root_dir.
     rs_file-filename = zif_abapgit_definitions=>c_dot_abapgit.
     rs_file-data     = get_dot_abapgit( )->serialize( ).
-    rs_file-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                               iv_data = rs_file-data ).
+    rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
 
   ENDMETHOD.
   METHOD check_for_restart.
@@ -24200,8 +24231,7 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
     rs_signature-path     = zif_abapgit_definitions=>c_root_dir.
     rs_signature-filename = zif_abapgit_definitions=>c_dot_abapgit.
-    rs_signature-sha1     = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                                    iv_data = serialize( ) ).
+    rs_signature-sha1     = zcl_abapgit_hash=>sha1_blob( serialize( ) ).
 
   ENDMETHOD.
   METHOD get_starting_folder.
@@ -26909,7 +26939,7 @@ CLASS ZCL_ABAPGIT_LANGUAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_hash IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HASH IMPLEMENTATION.
   METHOD adler32.
 
     CONSTANTS: lc_adler TYPE i VALUE 65521,
@@ -26973,6 +27003,14 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
     rv_sha1 = sha1_raw( lv_xstring ).
 
   ENDMETHOD.
+  METHOD sha1_blob.
+    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-blob
+                    iv_data = iv_data ).
+  ENDMETHOD.
+  METHOD sha1_commit.
+    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-commit
+                    iv_data = iv_data ).
+  ENDMETHOD.
   METHOD sha1_raw.
 
     DATA: lv_hash  TYPE string,
@@ -26992,6 +27030,14 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
     rv_sha1 = lv_hash.
     TRANSLATE rv_sha1 TO LOWER CASE.
 
+  ENDMETHOD.
+  METHOD sha1_tag.
+    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-tag
+                    iv_data = iv_data ).
+  ENDMETHOD.
+  METHOD sha1_tree.
+    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-tree
+                    iv_data = iv_data ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -41283,9 +41329,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
     lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( lv_merge_content ).
 
     READ TABLE mt_conflicts ASSIGNING <ls_conflict> INDEX mv_current_conflict_index.
-    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>c_type-blob
-      iv_data = lv_new_file_content ).
+    <ls_conflict>-result_sha1 = zcl_abapgit_hash=>sha1_blob( lv_new_file_content ).
     <ls_conflict>-result_data = lv_new_file_content.
     mo_merge->resolve_conflict( <ls_conflict> ).
 
@@ -54381,7 +54425,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -55297,9 +55341,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     rs_files_and_item-item-inactive = boolc( li_obj->is_active( ) = abap_false ).
 
     LOOP AT rs_files_and_item-files ASSIGNING <ls_file>.
-      <ls_file>-sha1 = zcl_abapgit_hash=>sha1(
-        iv_type = zif_abapgit_definitions=>c_type-blob
-        iv_data = <ls_file>-data ).
+      <ls_file>-sha1 = zcl_abapgit_hash=>sha1_blob( <ls_file>-data ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -91585,7 +91627,7 @@ CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
   METHOD build_trees.
 
     DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
@@ -91632,8 +91674,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       CLEAR ls_tree.
       ls_tree-path = <ls_folder>-path.
       ls_tree-data = zcl_abapgit_git_pack=>encode_tree( lt_nodes ).
-      ls_tree-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-tree
-                                             iv_data = ls_tree-data ).
+      ls_tree-sha1 = zcl_abapgit_hash=>sha1_tree( ls_tree-data ).
       APPEND ls_tree TO rt_trees.
 
       <ls_folder>-sha1 = ls_tree-sha1.
@@ -91797,6 +91838,28 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                              iv_base    = '/' ).
 
   ENDMETHOD.
+  METHOD pull.
+
+    DATA: ls_object TYPE zif_abapgit_definitions=>ty_object,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+
+    READ TABLE it_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_definitions=>c_type-commit
+        sha1 = iv_commit.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Commit/Branch not found.' ).
+    ENDIF.
+
+    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
+
+    walk( EXPORTING it_objects = it_objects
+                    iv_sha1    = ls_commit-tree
+                    iv_path    = '/'
+          CHANGING  ct_files   = rt_files ).
+
+  ENDMETHOD.
   METHOD pull_by_branch.
 
     zcl_abapgit_git_transport=>upload_pack_by_branch(
@@ -91827,29 +91890,6 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                             it_objects = rs_result-objects ).
 
   ENDMETHOD.
-  METHOD pull.
-
-    DATA: ls_object TYPE zif_abapgit_definitions=>ty_object,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-
-    READ TABLE it_objects INTO ls_object
-      WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>c_type-commit
-        sha1 = iv_commit.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Commit/Branch not found.' ).
-    ENDIF.
-
-    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
-
-    walk( EXPORTING it_objects = it_objects
-                    iv_sha1    = ls_commit-tree
-                    iv_path    = '/'
-          CHANGING  ct_files   = rt_files ).
-
-  ENDMETHOD.
-
   METHOD push.
 
     DATA: lt_expanded TYPE zif_abapgit_definitions=>ty_expanded_tt,
@@ -91887,8 +91927,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
             <ls_exp>-chmod = zif_abapgit_definitions=>c_chmod-file.
           ENDIF.
 
-          lv_sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-blob
-                                            iv_data = <ls_stage>-file-data ).
+          lv_sha1 = zcl_abapgit_hash=>sha1_blob( <ls_stage>-file-data ).
           IF <ls_exp>-sha1 <> lv_sha1.
             <ls_exp>-sha1 = lv_sha1.
           ENDIF.
@@ -91953,9 +91992,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     lv_tag = zcl_abapgit_git_pack=>encode_tag( ls_tag ).
 
-    lv_new_tag_sha1 = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>c_type-tag
-      iv_data = lv_tag ).
+    lv_new_tag_sha1 = zcl_abapgit_hash=>sha1_tag( lv_tag ).
 
     ls_object-sha1 = lv_new_tag_sha1.
     ls_object-type = zif_abapgit_definitions=>c_type-tag.
@@ -92005,8 +92042,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     ls_commit-body      = is_comment-comment.
     lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
 
-    ls_object-sha1 = zcl_abapgit_hash=>sha1( iv_type = zif_abapgit_definitions=>c_type-commit
-                                             iv_data = lv_commit ).
+    ls_object-sha1 = zcl_abapgit_hash=>sha1_commit( lv_commit ).
     ls_object-type = zif_abapgit_definitions=>c_type-commit.
     ls_object-data = lv_commit.
     APPEND ls_object TO et_new_objects.
@@ -92034,9 +92070,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     LOOP AT it_blobs ASSIGNING <ls_blob>.
       CLEAR ls_object.
-      ls_object-sha1 = zcl_abapgit_hash=>sha1(
-        iv_type = zif_abapgit_definitions=>c_type-blob
-        iv_data = <ls_blob>-data ).
+      ls_object-sha1 = zcl_abapgit_hash=>sha1_blob( <ls_blob>-data ).
 
       READ TABLE et_new_objects
         WITH KEY type COMPONENTS
@@ -92058,9 +92092,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     lv_pack = zcl_abapgit_git_pack=>encode( et_new_objects ).
 
-    ev_new_commit = zcl_abapgit_hash=>sha1(
-      iv_type = zif_abapgit_definitions=>c_type-commit
-      iv_data = lv_commit ).
+    ev_new_commit = zcl_abapgit_hash=>sha1_commit( lv_commit ).
 
     zcl_abapgit_git_transport=>receive_pack(
       iv_url         = iv_url
@@ -94819,5 +94851,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-23T09:35:39.085Z
+* abapmerge 0.14.1 - 2020-11-23T13:31:38.360Z
 ****************************************************
