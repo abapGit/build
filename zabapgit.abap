@@ -42045,7 +42045,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     ls_hotkey_action-description   = |New offline repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newoffline.
-    ls_hotkey_action-hotkey = |f|.
+    ls_hotkey_action-hotkey = |o|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
@@ -94852,5 +94852,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T07:03:56.244Z
+* abapmerge 0.14.1 - 2020-11-24T07:05:45.338Z
 ****************************************************
