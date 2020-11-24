@@ -92797,6 +92797,13 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_length.
 
+* https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt
+
+* n-byte sizeN (as long as MSB is set, each 7-bit)
+*    size0..sizeN form 4+7+7+..+7 bit integer, size0
+*    is the least significant part, and sizeN is the
+*    most significant part.
+
     DATA: lv_x           TYPE x,
           lv_length_bits TYPE string,
           lv_bitbyte     TYPE zif_abapgit_definitions=>ty_bitbyte.
@@ -94845,5 +94852,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T07:01:49.846Z
+* abapmerge 0.14.1 - 2020-11-24T07:03:56.244Z
 ****************************************************
