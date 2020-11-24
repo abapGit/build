@@ -16905,22 +16905,6 @@ CLASS zcl_abapgit_news DEFINITION
     METHODS latest_version
       RETURNING
         VALUE(rv_version) TYPE string .
-    CLASS-METHODS version_to_numeric
-      IMPORTING
-        !iv_version       TYPE string
-      RETURNING
-        VALUE(rv_version) TYPE i .
-    CLASS-METHODS normalize_version
-      IMPORTING
-        !iv_version       TYPE string
-      RETURNING
-        VALUE(rv_version) TYPE string .
-    CLASS-METHODS compare_versions
-      IMPORTING
-        !iv_a            TYPE string
-        !iv_b            TYPE string
-      RETURNING
-        VALUE(rv_result) TYPE i .
     CLASS-METHODS parse_line
       IMPORTING
         !iv_line            TYPE string
@@ -17918,29 +17902,41 @@ CLASS zcl_abapgit_version DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS normalize
       IMPORTING
         !iv_version       TYPE string
       RETURNING
-        VALUE(rv_version) TYPE string.
-
+        VALUE(rv_version) TYPE string .
     CLASS-METHODS conv_str_to_version
       IMPORTING
         !iv_version       TYPE csequence
       RETURNING
         VALUE(rs_version) TYPE zif_abapgit_definitions=>ty_version
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS check_dependant_version
       IMPORTING
         !is_current   TYPE zif_abapgit_definitions=>ty_version
         !is_dependant TYPE zif_abapgit_definitions=>ty_version
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+    CLASS-METHODS compare
+      IMPORTING
+        !iv_a            TYPE string OPTIONAL
+        !iv_b            TYPE string OPTIONAL
+        !is_a            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
+        !is_b            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
+      RETURNING
+        VALUE(rv_result) TYPE i .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-METHODS version_to_numeric
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE i.
 ENDCLASS.
 CLASS zcl_abapgit_zip DEFINITION
   CREATE PUBLIC .
@@ -18967,38 +18963,88 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_version IMPLEMENTATION.
-  METHOD normalize.
+  METHOD check_dependant_version.
 
-    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
-    CONSTANTS:
-      lc_version_pattern    TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$',
-      lc_prerelease_pattern TYPE string VALUE '^((rc|beta|alpha)\.\d{1,3})\s*$'.
+    CONSTANTS: lc_message TYPE string VALUE 'Current version is older than required'.
 
-    DATA: lv_version      TYPE string,
-          lv_prerelease   TYPE string,
-          lv_version_n    TYPE string,
-          lv_prerelease_n TYPE string.
-
-    SPLIT iv_version AT '-' INTO lv_version lv_prerelease.
-
-    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
-      IN lv_version SUBMATCHES lv_version_n.
-
-    IF lv_prerelease IS NOT INITIAL.
-
-      FIND FIRST OCCURRENCE OF REGEX lc_prerelease_pattern
-        IN lv_prerelease SUBMATCHES lv_prerelease_n.
-
-    ENDIF.
-
-    IF lv_version_n IS INITIAL.
+    IF is_dependant-major > is_current-major.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-major < is_current-major.
       RETURN.
     ENDIF.
 
-    rv_version = lv_version_n.
+    IF is_dependant-minor > is_current-minor.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-minor < is_current-minor.
+      RETURN.
+    ENDIF.
 
-    IF lv_prerelease_n IS NOT INITIAL.
-      CONCATENATE rv_version '-' lv_prerelease_n INTO rv_version.
+    IF is_dependant-patch > is_current-patch.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-patch < is_current-patch.
+      RETURN.
+    ENDIF.
+
+    IF is_current-prerelase IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CASE is_current-prerelase.
+      WHEN 'rc'.
+        IF is_dependant-prerelase = ''.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'beta'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'alpha'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc' OR is_dependant-prerelase = 'beta'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+    ENDCASE.
+
+    IF is_dependant-prerelase = is_current-prerelase AND is_dependant-prerelase_patch > is_current-prerelase_patch.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD compare.
+
+    DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
+          ls_version_b TYPE zif_abapgit_definitions=>ty_version.
+
+    TRY.
+        IF is_a IS NOT INITIAL.
+          ls_version_a = is_a.
+        ELSE.
+          ls_version_a = conv_str_to_version( iv_a ).
+        ENDIF.
+
+        IF is_b IS NOT INITIAL.
+          ls_version_b = is_b.
+        ELSE.
+          ls_version_b = conv_str_to_version( iv_b ).
+        ENDIF.
+      CATCH zcx_abapgit_exception.
+        rv_result = 0.
+        RETURN.
+    ENDTRY.
+
+    IF ls_version_a = ls_version_b.
+      rv_result = 0.
+    ELSE.
+      TRY.
+          check_dependant_version( is_current   = ls_version_a
+                                   is_dependant = ls_version_b ).
+          rv_result = 1.
+        CATCH zcx_abapgit_exception.
+          rv_result = -1.
+          RETURN.
+      ENDTRY.
     ENDIF.
 
   ENDMETHOD.
@@ -19058,53 +19104,51 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD check_dependant_version.
+  METHOD normalize.
 
-    CONSTANTS: lc_message TYPE string VALUE 'Current version is older than required'.
+    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
+    CONSTANTS:
+      lc_version_pattern    TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$',
+      lc_prerelease_pattern TYPE string VALUE '^((rc|beta|alpha)\.\d{1,3})\s*$'.
 
-    IF is_dependant-major > is_current-major.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-major < is_current-major.
+    DATA: lv_version      TYPE string,
+          lv_prerelease   TYPE string,
+          lv_version_n    TYPE string,
+          lv_prerelease_n TYPE string.
+
+    SPLIT iv_version AT '-' INTO lv_version lv_prerelease.
+
+    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
+      IN lv_version SUBMATCHES lv_version_n.
+
+    IF lv_prerelease IS NOT INITIAL.
+
+      FIND FIRST OCCURRENCE OF REGEX lc_prerelease_pattern
+        IN lv_prerelease SUBMATCHES lv_prerelease_n.
+
+    ENDIF.
+
+    IF lv_version_n IS INITIAL.
       RETURN.
     ENDIF.
 
-    IF is_dependant-minor > is_current-minor.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-minor < is_current-minor.
-      RETURN.
+    rv_version = lv_version_n.
+
+    IF lv_prerelease_n IS NOT INITIAL.
+      CONCATENATE rv_version '-' lv_prerelease_n INTO rv_version.
     ENDIF.
 
-    IF is_dependant-patch > is_current-patch.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-patch < is_current-patch.
-      RETURN.
-    ENDIF.
+  ENDMETHOD.
+  METHOD version_to_numeric.
 
-    IF is_current-prerelase IS INITIAL.
-      RETURN.
-    ENDIF.
+    DATA: lv_major   TYPE n LENGTH 4,
+          lv_minor   TYPE n LENGTH 4,
+          lv_release TYPE n LENGTH 4.
 
-    CASE is_current-prerelase.
-      WHEN 'rc'.
-        IF is_dependant-prerelase = ''.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
+    SPLIT iv_version AT '.' INTO lv_major lv_minor lv_release.
 
-      WHEN 'beta'.
-        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc'.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
-
-      WHEN 'alpha'.
-        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc' OR is_dependant-prerelase = 'beta'.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
-
-    ENDCASE.
-
-    IF is_dependant-prerelase = is_current-prerelase AND is_dependant-prerelase_patch > is_current-prerelase_patch.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ENDIF.
+    " Calculated value of version number, empty version will become 0 which is OK
+    rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
 
   ENDMETHOD.
 ENDCLASS.
@@ -22598,33 +22642,6 @@ CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_news IMPLEMENTATION.
-  METHOD compare_versions.
-
-    DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
-          ls_version_b TYPE zif_abapgit_definitions=>ty_version.
-
-    TRY.
-        ls_version_a = zcl_abapgit_version=>conv_str_to_version( iv_a ).
-        ls_version_b = zcl_abapgit_version=>conv_str_to_version( iv_b ).
-      CATCH zcx_abapgit_exception.
-        rv_result = 0.
-        RETURN.
-    ENDTRY.
-
-    IF ls_version_a = ls_version_b.
-      rv_result = 0.
-    ELSE.
-      TRY.
-          zcl_abapgit_version=>check_dependant_version( is_current   = ls_version_a
-                                                        is_dependant = ls_version_b ).
-          rv_result = 1.
-        CATCH zcx_abapgit_exception.
-          rv_result = -1.
-          RETURN.
-      ENDTRY.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD constructor.
 
     DATA: lt_lines    TYPE string_table,
@@ -22632,8 +22649,8 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
           ls_log_line LIKE LINE OF mt_log.
 
     " Validate params
-    mv_current_version  = normalize_version( iv_current_version ).
-    mv_lastseen_version = normalize_version( iv_lastseen_version ).
+    mv_current_version  = zcl_abapgit_version=>normalize( iv_current_version ).
+    mv_lastseen_version = zcl_abapgit_version=>normalize( iv_lastseen_version ).
     IF mv_current_version IS INITIAL.
       RETURN. " Internal format of program version is not correct -> abort parsing
     ENDIF.
@@ -22701,7 +22718,7 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
         EXPORTING
           iv_rawdata          = <ls_file>-data
           iv_current_version  = lv_version
-          iv_lastseen_version = normalize_version( lv_last_seen ).
+          iv_lastseen_version = zcl_abapgit_version=>normalize( lv_last_seen ).
 
       EXIT.
 
@@ -22725,22 +22742,17 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
     rv_boolean = boolc( lines( mt_log ) > 0 ).
   ENDMETHOD.
   METHOD has_unseen.
-    rv_boolean = boolc( compare_versions(
+    rv_boolean = boolc( zcl_abapgit_version=>compare(
       iv_a = mv_latest_version
       iv_b = mv_lastseen_version ) > 0 ).
   ENDMETHOD.
   METHOD has_updates.
-    rv_boolean = boolc( compare_versions(
+    rv_boolean = boolc( zcl_abapgit_version=>compare(
       iv_a = mv_latest_version
       iv_b = mv_current_version ) > 0 ).
   ENDMETHOD.
   METHOD latest_version.
     rv_version = mv_latest_version.
-  ENDMETHOD.
-  METHOD normalize_version.
-
-    rv_version = zcl_abapgit_version=>normalize( iv_version ).
-
   ENDMETHOD.
   METHOD parse.
 
@@ -22760,16 +22772,16 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
 
       IF lv_first_version_found = abap_false.
         lv_first_version_found = abap_true.
-        IF compare_versions( iv_a = ls_log-version
-                             iv_b = iv_current_version ) <= 0.
+        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
+                                         iv_b = iv_current_version ) <= 0.
           lv_tail = c_tail_length. " Display some last versions if no updates
         ENDIF.
       ENDIF.
 
       IF ls_log-is_header = abap_true.
         "Skip everything below current version or show tail news
-        IF compare_versions( iv_a = ls_log-version
-                             iv_b = iv_current_version ) <= 0.
+        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
+                                         iv_b = iv_current_version ) <= 0.
           IF lv_tail > 0.
             lv_tail = lv_tail - 1.
           ELSE.
@@ -22799,29 +22811,17 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
     " Check if line is a header line
     FIND FIRST OCCURRENCE OF REGEX lc_header_pattern IN iv_line SUBMATCHES lv_version.
     IF sy-subrc IS INITIAL.
-      lv_version        = normalize_version( lv_version ).
+      lv_version        = zcl_abapgit_version=>normalize( lv_version ).
       rs_log-version    = lv_version.
       rs_log-is_header  = abap_true.
-      rs_log-pos_to_cur = compare_versions( iv_a = lv_version
-                                            iv_b = iv_current_version ).
+      rs_log-pos_to_cur = zcl_abapgit_version=>compare( iv_a = lv_version
+                                                        iv_b = iv_current_version ).
     ELSE.
       FIND FIRST OCCURRENCE OF REGEX '^\s*!' IN iv_line.
       rs_log-is_important = boolc( sy-subrc IS INITIAL ). " Change is important
     ENDIF.
 
     rs_log-text = iv_line.
-
-  ENDMETHOD.
-  METHOD version_to_numeric.
-
-    DATA: lv_major   TYPE n LENGTH 4,
-          lv_minor   TYPE n LENGTH 4,
-          lv_release TYPE n LENGTH 4.
-
-    SPLIT iv_version AT '.' INTO lv_major lv_minor lv_release.
-
-    " Calculated value of version number, empty version will become 0 which is OK
-    rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
 
   ENDMETHOD.
 ENDCLASS.
@@ -95103,5 +95103,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T07:12:58.773Z
+* abapmerge 0.14.1 - 2020-11-24T07:18:04.324Z
 ****************************************************
