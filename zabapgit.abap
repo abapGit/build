@@ -2539,7 +2539,7 @@ INTERFACE zif_abapgit_log .
       !iv_type TYPE symsgty DEFAULT 'E'
       !iv_rc   TYPE balsort OPTIONAL
       !is_item TYPE zif_abapgit_definitions=>ty_item OPTIONAL
-      !ix_exc  TYPE REF TO cx_root OPTIONAL.
+      !ix_exc  TYPE REF TO cx_root OPTIONAL .
   METHODS add_error
     IMPORTING
       !iv_msg  TYPE csequence
@@ -2573,7 +2573,8 @@ INTERFACE zif_abapgit_log .
     RETURNING
       VALUE(rt_msg) TYPE ty_log_outs .
   METHODS get_item_status
-    RETURNING VALUE(rt_item_status) TYPE ty_item_status_outs .
+    RETURNING
+      VALUE(rt_item_status) TYPE ty_item_status_outs .
   METHODS get_status
     RETURNING
       VALUE(rv_status) TYPE symsgty .
@@ -2582,7 +2583,7 @@ INTERFACE zif_abapgit_log .
       VALUE(rv_title) TYPE string .
   METHODS set_title
     IMPORTING
-      !iv_title TYPE string .
+      !iv_title TYPE csequence .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_xml_input .
@@ -14804,8 +14805,7 @@ CLASS zcl_abapgit_log_viewer DEFINITION
 
     CLASS-METHODS show_log
       IMPORTING
-        !iv_header_text TYPE csequence DEFAULT 'Log'
-        !ii_log         TYPE REF TO zif_abapgit_log .
+        !ii_log TYPE REF TO zif_abapgit_log .
     CLASS-METHODS to_html
       IMPORTING
         !ii_log        TYPE REF TO zif_abapgit_log
@@ -18692,6 +18692,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
           lt_zip     TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lv_package TYPE devclass.
     CREATE OBJECT li_log TYPE zcl_abapgit_log.
+    li_log->set_title( 'Zip Export Log' ).
 
     lv_package = io_repo->get_package( ).
 
@@ -18703,8 +18704,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
                                        it_filter = it_filter ).
 
     IF li_log->count( ) > 0 AND iv_show_log = abap_true.
-      zcl_abapgit_log_viewer=>show_log( iv_header_text = 'Zip Export Log'
-                                        ii_log         = li_log ).
+      zcl_abapgit_log_viewer=>show_log( li_log ).
     ENDIF.
 
     rv_xstr = encode_files( lt_zip ).
@@ -32725,9 +32725,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     COMMIT WORK.
 
     IF ri_log IS BOUND AND ri_log->count( ) > 0.
-      zcl_abapgit_log_viewer=>show_log(
-        ii_log         = ri_log
-        iv_header_text = ri_log->get_title( ) ).
+      zcl_abapgit_log_viewer=>show_log( ri_log ).
       RETURN.
     ENDIF.
 
@@ -35295,7 +35293,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lv_add_obj_col TYPE abap_bool,
           lo_event       TYPE REF TO cl_salv_events_table.
 
-    gt_log = prepare_log_for_display( ii_log = ii_log ).
+    gt_log = prepare_log_for_display( ii_log ).
 
     "check if log contains any object info
     LOOP AT gt_log REFERENCE INTO lr_log.
@@ -35361,7 +35359,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
 
         CREATE OBJECT lo_form_header
           EXPORTING
-            text = iv_header_text.
+            text = ii_log->get_title( ).
 
         lo_alv->set_top_of_list( lo_form_header ).
 
@@ -36881,7 +36879,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA: li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
     CASE ii_event->mv_action.
@@ -37288,8 +37286,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_log.                        " Repo log
         li_log = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key )->get_log( ).
-        zcl_abapgit_log_viewer=>show_log( ii_log = li_log
-                                          iv_header_text = li_log->get_title( ) ).
+        zcl_abapgit_log_viewer=>show_log( li_log ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
@@ -54360,7 +54357,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
     IF use_new_activation_logic( ) = abap_true.
@@ -54610,14 +54607,14 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
     DELETE lt_lines WHERE severity <> 'E'.
 
     CREATE OBJECT li_log TYPE zcl_abapgit_log.
+    li_log->set_title( 'Activation Errors' ).
 
     LOOP AT lt_lines ASSIGNING <ls_line>.
       li_log->add( <ls_line>-line ).
     ENDLOOP.
 
     IF li_log->count( ) > 0.
-      zcl_abapgit_log_viewer=>show_log( iv_header_text = 'Activation Errors'
-                                        ii_log         = li_log ).
+      zcl_abapgit_log_viewer=>show_log( li_log ).
     ENDIF.
 
   ENDMETHOD.
@@ -95095,5 +95092,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T14:38:20.488Z
+* abapmerge 0.14.1 - 2020-11-24T14:42:39.021Z
 ****************************************************
