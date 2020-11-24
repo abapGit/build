@@ -3381,10 +3381,9 @@ INTERFACE zif_abapgit_repo_online .
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_repo_srv.
-
+INTERFACE zif_abapgit_repo_srv .
   TYPES:
-    ty_repo_list TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY.
+    ty_repo_list TYPE STANDARD TABLE OF REF TO zcl_abapgit_repo WITH DEFAULT KEY .
 
   METHODS delete
     IMPORTING
@@ -3436,9 +3435,10 @@ INTERFACE zif_abapgit_repo_srv.
       zcx_abapgit_exception .
   METHODS purge
     IMPORTING
-      !io_repo   TYPE REF TO zcl_abapgit_repo
-      !is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
-      !ii_log    TYPE REF TO zif_abapgit_log OPTIONAL
+      !io_repo      TYPE REF TO zcl_abapgit_repo
+      !is_checks    TYPE zif_abapgit_definitions=>ty_delete_checks
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log
     RAISING
       zcx_abapgit_exception .
   METHODS validate_package
@@ -15145,7 +15145,9 @@ CLASS zcl_abapgit_services_repo DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS purge
       IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
+      RETURNING
+        VALUE(ri_log) TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS new_offline
@@ -20841,7 +20843,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -21197,9 +21199,15 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~purge.
 
-* todo, this should be a method on the repo instead
+* uninstalls all objects, no UI or popups in this class
+
+* todo, this should be a method on the repo instead?
 
     DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    CREATE OBJECT ri_log TYPE zcl_abapgit_log.
+    ri_log->set_title( 'Uninstall Log' ).
+
     IF io_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
     ELSEIF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
@@ -21210,7 +21218,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     zcl_abapgit_objects=>delete( it_tadir  = lt_tadir
                                  is_checks = is_checks
-                                 ii_log    = ii_log ).
+                                 ii_log    = ri_log ).
 
     delete( io_repo ).
 
@@ -32409,7 +32417,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -32608,7 +32616,6 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     DATA: lt_tadir     TYPE zif_abapgit_definitions=>ty_tadir_tt,
           lv_answer    TYPE c LENGTH 1,
           lo_repo      TYPE REF TO zcl_abapgit_repo,
-          li_log       TYPE REF TO zif_abapgit_log,
           lv_package   TYPE devclass,
           lv_question  TYPE c LENGTH 100,
           ls_checks    TYPE zif_abapgit_definitions=>ty_delete_checks,
@@ -32647,16 +32654,16 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                         )->popup_transport_request( ls_checks-transport-type ).
     ENDIF.
 
-    zcl_abapgit_repo_srv=>get_instance( )->purge( io_repo   = lo_repo
-                                                  is_checks = ls_checks
-                                                  ii_log    = lo_repo->create_new_log( 'Uninstall Log' ) ).
+    ri_log = zcl_abapgit_repo_srv=>get_instance( )->purge(
+      io_repo   = lo_repo
+      is_checks = ls_checks ).
 
     COMMIT WORK.
 
-    li_log = lo_repo->get_log( ).
-    IF li_log IS BOUND AND li_log->count( ) > 0.
-      zcl_abapgit_log_viewer=>show_log( ii_log = li_log
-                                        iv_header_text = li_log->get_title( ) ).
+    IF ri_log IS BOUND AND ri_log->count( ) > 0.
+      zcl_abapgit_log_viewer=>show_log(
+        ii_log         = ri_log
+        iv_header_text = ri_log->get_title( ) ).
       RETURN.
     ENDIF.
 
@@ -94838,5 +94845,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T06:56:25.404Z
+* abapmerge 0.14.1 - 2020-11-24T06:59:37.211Z
 ****************************************************
