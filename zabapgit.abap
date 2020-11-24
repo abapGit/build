@@ -16409,6 +16409,11 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         VALUE(rv_xstr) TYPE xstring
       RAISING
         zcx_abapgit_exception .
+    METHODS to_file
+      RETURNING
+        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
+      RAISING
+        zcx_abapgit_exception.
     METHODS get_data
       RETURNING
         VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit .
@@ -17117,11 +17122,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS notify_listener
       IMPORTING
         !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
-      RAISING
-        zcx_abapgit_exception .
-    METHODS build_dotabapgit_file
-      RETURNING
-        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
       RAISING
         zcx_abapgit_exception .
     METHODS build_apack_manifest_file
@@ -21849,14 +21849,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
     ENDIF.
   ENDMETHOD.
-  METHOD build_dotabapgit_file.
-
-    rs_file-path     = zif_abapgit_definitions=>c_root_dir.
-    rs_file-filename = zif_abapgit_definitions=>c_dot_abapgit.
-    rs_file-data     = get_dot_abapgit( )->serialize( ).
-    rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
-
-  ENDMETHOD.
   METHOD check_for_restart.
 
     CONSTANTS:
@@ -22057,7 +22049,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDIF.
 
     APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file = build_dotabapgit_file( ).
+    <ls_return>-file = get_dot_abapgit( )->to_file( ).
 
     ls_apack_file = build_apack_manifest_file( ).
     IF ls_apack_file IS NOT INITIAL.
@@ -24293,6 +24285,12 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_starting_folder.
     ms_data-starting_folder = iv_path.
+  ENDMETHOD.
+  METHOD to_file.
+    rs_file-path     = zif_abapgit_definitions=>c_root_dir.
+    rs_file-filename = zif_abapgit_definitions=>c_dot_abapgit.
+    rs_file-data     = serialize( ).
+    rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
   ENDMETHOD.
   METHOD to_xml.
 
@@ -94840,5 +94838,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T06:54:11.371Z
+* abapmerge 0.14.1 - 2020-11-24T06:56:25.404Z
 ****************************************************
