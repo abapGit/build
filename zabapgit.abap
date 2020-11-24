@@ -3540,20 +3540,26 @@ CLASS zcl_abapgit_apack_helper DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS are_dependencies_met
       IMPORTING
         !it_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies
       RETURNING
         VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS dependencies_popup
       IMPORTING
         !it_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+    CLASS-METHODS to_file
+      IMPORTING
+        !iv_package    TYPE devclass
+      RETURNING
+        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -3561,15 +3567,16 @@ CLASS zcl_abapgit_apack_helper DEFINITION
       BEGIN OF ty_manifest_declaration,
         clsname  TYPE seometarel-clsname,
         devclass TYPE devclass,
-      END OF ty_manifest_declaration,
-      ty_manifest_declarations TYPE STANDARD TABLE OF ty_manifest_declaration WITH NON-UNIQUE DEFAULT KEY.
-
+      END OF ty_manifest_declaration .
+    TYPES:
+      ty_manifest_declarations TYPE STANDARD TABLE OF ty_manifest_declaration WITH NON-UNIQUE DEFAULT KEY .
     TYPES:
       BEGIN OF ty_dependency_status,
         met TYPE zif_abapgit_definitions=>ty_yes_no_partial.
         INCLUDE TYPE zif_abapgit_apack_definitions=>ty_dependency.
-    TYPES: END OF ty_dependency_status,
-      ty_dependency_statuses TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY.
+    TYPES: END OF ty_dependency_status .
+    TYPES:
+      ty_dependency_statuses TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY .
 
     CLASS-METHODS get_dependencies_met_status
       IMPORTING
@@ -3577,19 +3584,17 @@ CLASS zcl_abapgit_apack_helper DEFINITION
       RETURNING
         VALUE(rt_status) TYPE ty_dependency_statuses
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS get_installed_packages
       RETURNING
         VALUE(rt_packages) TYPE zif_abapgit_apack_definitions=>ty_descriptors
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     CLASS-METHODS show_dependencies_popup
       IMPORTING
         !it_dependencies TYPE ty_dependency_statuses
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_apack_migration DEFINITION
   FINAL
@@ -17154,11 +17159,6 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
       RAISING
         zcx_abapgit_exception .
-    METHODS build_apack_manifest_file
-      RETURNING
-        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
-      RAISING
-        zcx_abapgit_exception .
     METHODS update_last_deserialize
       RAISING
         zcx_abapgit_exception .
@@ -17398,21 +17398,31 @@ CLASS zcl_abapgit_serialize DEFINITION
 
     METHODS constructor
       IMPORTING
-        iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false.
+        !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false .
     METHODS on_end_of_task
       IMPORTING
         !p_task TYPE clike .
     METHODS serialize
       IMPORTING
-        it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
-        iv_language         TYPE langu DEFAULT sy-langu
-        ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
-        iv_force_sequential TYPE abap_bool DEFAULT abap_false
+        !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
+        !iv_language         TYPE langu DEFAULT sy-langu
+        !ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
+        !iv_force_sequential TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_files)     TYPE zif_abapgit_definitions=>ty_files_item_tt
+        VALUE(rt_files)      TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
-
+    METHODS files_local
+      IMPORTING
+        !iv_package        TYPE devclass
+        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !ii_log            TYPE REF TO zif_abapgit_log
+        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RETURNING
+        VALUE(rt_files)    TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
     TYPES: ty_char32 TYPE c LENGTH 32.
 
@@ -20529,7 +20539,55 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
     rv_threads = gv_max_threads.
 
   ENDMETHOD.
+  METHOD files_local.
+
+* serializes objects, including .abapgit.xml, apack, and takes into account local settings
+
+    DATA: ls_apack_file TYPE zif_abapgit_definitions=>ty_file,
+          lo_filter     TYPE REF TO zcl_abapgit_repo_filter,
+          lv_force      TYPE abap_bool,
+          lt_found      LIKE rt_files,
+          lt_tadir      TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
+
+    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+    <ls_return>-file = io_dot_abapgit->to_file( ).
+
+    ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
+    IF ls_apack_file IS NOT INITIAL.
+      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+      <ls_return>-file = ls_apack_file.
+    ENDIF.
+
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = iv_package
+      iv_ignore_subpackages = is_local_settings-ignore_subpackages
+      iv_only_local_objects = is_local_settings-only_local_objects
+      io_dot                = io_dot_abapgit
+      ii_log                = ii_log ).
+
+    CREATE OBJECT lo_filter.
+
+    lo_filter->apply( EXPORTING it_filter = it_filter
+                      CHANGING  ct_tadir  = lt_tadir ).
+
+* if there are less than 10 objects run in single thread
+* this helps a lot when debugging, plus performance gain
+* with low number of objects does not matter much
+    lv_force = boolc( lines( lt_tadir ) < 10 ).
+
+    lt_found = serialize(
+      it_tadir            = lt_tadir
+      iv_language         = io_dot_abapgit->get_master_language( )
+      ii_log              = ii_log
+      iv_force_sequential = lv_force ).
+    APPEND LINES OF lt_found TO rt_files.
+
+  ENDMETHOD.
   METHOD on_end_of_task.
+
+* this method will be called from the parallel processing, thus it must be public
 
     DATA: lv_result    TYPE xstring,
           lv_path      TYPE string,
@@ -20574,17 +20632,17 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
         DESTINATION IN GROUP mv_group
         CALLING on_end_of_task ON END OF TASK
         EXPORTING
-          iv_obj_type           = is_tadir-object
-          iv_obj_name           = is_tadir-obj_name
-          iv_devclass           = is_tadir-devclass
-          iv_language           = iv_language
-          iv_path               = is_tadir-path
+          iv_obj_type                   = is_tadir-object
+          iv_obj_name                   = is_tadir-obj_name
+          iv_devclass                   = is_tadir-devclass
+          iv_language                   = iv_language
+          iv_path                       = is_tadir-path
           iv_serialize_master_lang_only = mv_serialize_master_lang_only
         EXCEPTIONS
-          system_failure        = 1 MESSAGE lv_msg
-          communication_failure = 2 MESSAGE lv_msg
-          resource_failure      = 3
-          OTHERS                = 4.
+          system_failure                = 1 MESSAGE lv_msg
+          communication_failure         = 2 MESSAGE lv_msg
+          resource_failure              = 3
+          OTHERS                        = 4.
       IF sy-subrc = 3.
         lv_free = mv_free.
         WAIT UNTIL mv_free <> lv_free UP TO 1 SECONDS.
@@ -21929,21 +21987,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
-  METHOD build_apack_manifest_file.
-    DATA: lo_manifest_reader TYPE REF TO zcl_abapgit_apack_reader,
-          ls_descriptor      TYPE zif_abapgit_apack_definitions=>ty_descriptor,
-          lo_manifest_writer TYPE REF TO zcl_abapgit_apack_writer.
-
-    lo_manifest_reader = zcl_abapgit_apack_reader=>create_instance( ms_data-package ).
-    IF lo_manifest_reader->has_manifest( ) = abap_true.
-      ls_descriptor = lo_manifest_reader->get_manifest_descriptor( ).
-      lo_manifest_writer = zcl_abapgit_apack_writer=>create_instance( ls_descriptor ).
-      rs_file-path     = zif_abapgit_definitions=>c_root_dir.
-      rs_file-filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
-      rs_file-data     = zcl_abapgit_convert=>string_to_xstring_utf8( lo_manifest_writer->serialize( ) ).
-      rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
-    ENDIF.
-  ENDMETHOD.
   METHOD check_for_restart.
 
     CONSTANTS:
@@ -22129,56 +22172,26 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_files_local.
 
-    DATA: lo_filter     TYPE REF TO zcl_abapgit_repo_filter,
-          lt_tadir      TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lo_serialize  TYPE REF TO zcl_abapgit_serialize,
-          lt_found      LIKE rt_files,
-          lv_force      TYPE abap_bool,
-          ls_apack_file TYPE zif_abapgit_definitions=>ty_file.
+* todo, after refactoring is done, I think the IT_FILTER parameter can be removed
 
-    FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
+    DATA: lo_serialize TYPE REF TO zcl_abapgit_serialize.
+
     " Serialization happened before and no refresh request
     IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
       rt_files = mt_local.
       RETURN.
     ENDIF.
 
-    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file = get_dot_abapgit( )->to_file( ).
-
-    ls_apack_file = build_apack_manifest_file( ).
-    IF ls_apack_file IS NOT INITIAL.
-      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-      <ls_return>-file = ls_apack_file.
-    ENDIF.
-
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = get_package( )
-      iv_ignore_subpackages = get_local_settings( )-ignore_subpackages
-      iv_only_local_objects = get_local_settings( )-only_local_objects
-      io_dot                = get_dot_abapgit( )
-      ii_log                = ii_log ).
-
-    CREATE OBJECT lo_filter.
-
-    lo_filter->apply( EXPORTING it_filter = it_filter
-                      CHANGING  ct_tadir  = lt_tadir ).
-
     CREATE OBJECT lo_serialize
       EXPORTING
         iv_serialize_master_lang_only = ms_data-local_settings-serialize_master_lang_only.
 
-* if there are less than 10 objects run in single thread
-* this helps a lot when debugging, plus performance gain
-* with low number of objects does not matter much
-    lv_force = boolc( lines( lt_tadir ) < 10 ).
-
-    lt_found = lo_serialize->serialize(
-      it_tadir            = lt_tadir
-      iv_language         = get_dot_abapgit( )->get_master_language( )
-      ii_log              = ii_log
-      iv_force_sequential = lv_force ).
-    APPEND LINES OF lt_found TO rt_files.
+    rt_files = lo_serialize->files_local(
+      iv_package        = get_package( )
+      io_dot_abapgit    = get_dot_abapgit( )
+      is_local_settings = get_local_settings( )
+      ii_log            = ii_log
+      it_filter         = it_filter ).
 
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
@@ -94583,8 +94596,8 @@ CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
         exception(1) TYPE c,
         color        TYPE lvc_t_scol.
         INCLUDE TYPE ty_dependency_status.
-    TYPES: t_hyperlink  TYPE salv_t_int4_column,
-      END OF ty_color_line.
+    TYPES: t_hyperlink TYPE salv_t_int4_column,
+           END OF ty_color_line.
 
     TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
 
@@ -94710,6 +94723,23 @@ CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
       CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error cx_salv_existing INTO lx_ex.
         zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD to_file.
+
+    DATA: lo_manifest_reader TYPE REF TO zcl_abapgit_apack_reader,
+          ls_descriptor      TYPE zif_abapgit_apack_definitions=>ty_descriptor,
+          lo_manifest_writer TYPE REF TO zcl_abapgit_apack_writer.
+
+    lo_manifest_reader = zcl_abapgit_apack_reader=>create_instance( iv_package ).
+    IF lo_manifest_reader->has_manifest( ) = abap_true.
+      ls_descriptor = lo_manifest_reader->get_manifest_descriptor( ).
+      lo_manifest_writer = zcl_abapgit_apack_writer=>create_instance( ls_descriptor ).
+      rs_file-path     = zif_abapgit_definitions=>c_root_dir.
+      rs_file-filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
+      rs_file-data     = zcl_abapgit_convert=>string_to_xstring_utf8( lo_manifest_writer->serialize( ) ).
+      rs_file-sha1     = zcl_abapgit_hash=>sha1_blob( rs_file-data ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -95096,5 +95126,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T14:45:02.853Z
+* abapmerge 0.14.1 - 2020-11-24T14:47:10.890Z
 ****************************************************
