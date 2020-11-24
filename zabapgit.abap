@@ -39161,6 +39161,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
 
     ro_advanced_dropdown->add( iv_txt = 'Remove'
+                               iv_title = `Remove abapGit's records of the repository (the system's `
+                                       && `development objects will remain unaffected)`
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_remove }?key={ mv_key }| ).
 
     CLEAR lv_crossout.
@@ -39169,6 +39171,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
     ro_advanced_dropdown->add( iv_txt = 'Uninstall'
+                               iv_title = `Delete all development objects belonging to this package `
+                                       && `(and subpackages) from the system`
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_purge }?key={ mv_key }|
                                iv_opt = lv_crossout ).
 
@@ -95092,5 +95096,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T14:42:39.021Z
+* abapmerge 0.14.1 - 2020-11-24T14:45:02.853Z
 ****************************************************
