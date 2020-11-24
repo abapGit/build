@@ -563,7 +563,6 @@ INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_merge DEFERRED.
 INTERFACE zif_abapgit_lang_definitions DEFERRED.
-INTERFACE zif_abapgit_git_operations DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
@@ -3233,24 +3232,6 @@ INTERFACE zif_abapgit_exit .
     RAISING   zcx_abapgit_exception .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_git_operations .
-
-  METHODS push
-    IMPORTING
-      !is_comment TYPE zif_abapgit_definitions=>ty_comment
-      !io_stage   TYPE REF TO zcl_abapgit_stage
-    RAISING
-      zcx_abapgit_exception .
-
-  METHODS create_branch
-    IMPORTING
-      !iv_name TYPE string
-      !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
-    RAISING
-      zcx_abapgit_exception .
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_lang_definitions .
 
   TYPES: BEGIN OF ty_i18n_tpool,
@@ -3378,7 +3359,19 @@ INTERFACE zif_abapgit_repo_online .
       iv_overwrite TYPE abap_bool DEFAULT abap_false
     RAISING
       zcx_abapgit_exception .
+  METHODS push
+    IMPORTING
+      !is_comment TYPE zif_abapgit_definitions=>ty_comment
+      !io_stage   TYPE REF TO zcl_abapgit_stage
+    RAISING
+      zcx_abapgit_exception .
 
+  METHODS create_branch
+    IMPORTING
+      !iv_name TYPE string
+      !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_srv .
@@ -17266,11 +17259,10 @@ CLASS zcl_abapgit_repo_online DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_repo_online.
-    INTERFACES zif_abapgit_git_operations .
 
     ALIASES:
-      create_branch FOR zif_abapgit_git_operations~create_branch,
-      push FOR zif_abapgit_git_operations~push,
+      create_branch FOR zif_abapgit_repo_online~create_branch,
+      push FOR zif_abapgit_repo_online~push,
       get_url FOR zif_abapgit_repo_online~get_url,
       get_selected_branch FOR zif_abapgit_repo_online~get_selected_branch,
       set_url FOR zif_abapgit_repo_online~set_url,
@@ -21360,7 +21352,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -21388,10 +21380,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     mv_current_commit = ls_pull-commit.
 
   ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_current_remote.
-    fetch_remote( ).
-    rv_sha1 = mv_current_commit.
-  ENDMETHOD.
   METHOD get_files_remote.
     fetch_remote( ).
     rt_files = super->get_files_remote( ).
@@ -21402,22 +21390,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
       rv_name = zcl_abapgit_url=>name( ms_data-url ).
       rv_name = cl_http_utility=>if_http_utility~unescape_url( rv_name ).
     ENDIF.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_objects.
-    fetch_remote( ).
-    rt_objects = mt_objects.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_selected_branch.
-    rv_name = ms_data-branch_name.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_selected_commit.
-    rv_selected_commit = ms_data-selected_commit.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_switched_origin.
-    rv_url = ms_data-switched_origin.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_url.
-    rv_url = ms_data-url.
   ENDMETHOD.
   METHOD handle_stage_ignore.
 
@@ -21509,65 +21481,10 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_repo_online~select_branch.
-
-    reset_remote( ).
-    set( iv_branch_name     = iv_branch_name
-         iv_selected_commit = space  ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~select_commit.
-
-    reset_remote( ).
-    set( iv_selected_commit = iv_selected_commit ).
-
-  ENDMETHOD.
   METHOD set_objects.
     mt_objects = it_objects.
   ENDMETHOD.
-  METHOD zif_abapgit_repo_online~set_url.
-
-    reset_remote( ).
-    set( iv_url = iv_url ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~switch_origin.
-
-    DATA lv_offs TYPE i.
-
-    IF iv_overwrite = abap_true. " For repo settings page
-      set( iv_switched_origin = iv_url ).
-      RETURN.
-    ENDIF.
-
-    IF iv_url IS INITIAL.
-      IF ms_data-switched_origin IS INITIAL.
-        RETURN.
-      ELSE.
-        lv_offs = find(
-          val = reverse( ms_data-switched_origin )
-          sub = '@' ).
-        IF lv_offs = -1.
-          zcx_abapgit_exception=>raise( 'Incorrect format of switched origin' ).
-        ENDIF.
-        lv_offs = strlen( ms_data-switched_origin ) - lv_offs - 1.
-        set_url( substring(
-          val = ms_data-switched_origin
-          len = lv_offs ) ).
-        select_branch( substring(
-          val = ms_data-switched_origin
-          off = lv_offs + 1 ) ).
-        set( iv_switched_origin = '' ).
-      ENDIF.
-    ELSEIF ms_data-switched_origin IS INITIAL.
-      set( iv_switched_origin = ms_data-url && '@' && ms_data-branch_name ).
-      set_url( iv_url ).
-    ELSE.
-      zcx_abapgit_exception=>raise( 'Cannot switch origin twice' ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_git_operations~create_branch.
+  METHOD zif_abapgit_repo_online~create_branch.
 
     DATA: lv_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
 
@@ -21588,7 +21505,27 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     select_branch( iv_name ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_git_operations~push.
+  METHOD zif_abapgit_repo_online~get_current_remote.
+    fetch_remote( ).
+    rv_sha1 = mv_current_commit.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_objects.
+    fetch_remote( ).
+    rt_objects = mt_objects.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_selected_branch.
+    rv_name = ms_data-branch_name.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_selected_commit.
+    rv_selected_commit = ms_data-selected_commit.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_switched_origin.
+    rv_url = ms_data-switched_origin.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_url.
+    rv_url = ms_data-url.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~push.
 
 * assumption: PUSH is done on top of the currently selected branch
 
@@ -21631,6 +21568,61 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     update_local_checksums( ls_push-updated_files ).
 
     reset_status( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~select_branch.
+
+    reset_remote( ).
+    set( iv_branch_name     = iv_branch_name
+         iv_selected_commit = space  ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~select_commit.
+
+    reset_remote( ).
+    set( iv_selected_commit = iv_selected_commit ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~set_url.
+
+    reset_remote( ).
+    set( iv_url = iv_url ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~switch_origin.
+
+    DATA lv_offs TYPE i.
+
+    IF iv_overwrite = abap_true. " For repo settings page
+      set( iv_switched_origin = iv_url ).
+      RETURN.
+    ENDIF.
+
+    IF iv_url IS INITIAL.
+      IF ms_data-switched_origin IS INITIAL.
+        RETURN.
+      ELSE.
+        lv_offs = find(
+          val = reverse( ms_data-switched_origin )
+          sub = '@' ).
+        IF lv_offs = -1.
+          zcx_abapgit_exception=>raise( 'Incorrect format of switched origin' ).
+        ENDIF.
+        lv_offs = strlen( ms_data-switched_origin ) - lv_offs - 1.
+        set_url( substring(
+          val = ms_data-switched_origin
+          len = lv_offs ) ).
+        select_branch( substring(
+          val = ms_data-switched_origin
+          off = lv_offs + 1 ) ).
+        set( iv_switched_origin = '' ).
+      ENDIF.
+    ELSEIF ms_data-switched_origin IS INITIAL.
+      set( iv_switched_origin = ms_data-url && '@' && ms_data-branch_name ).
+      set_url( iv_url ).
+    ELSE.
+      zcx_abapgit_exception=>raise( 'Cannot switch origin twice' ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -95103,5 +95095,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-24T07:18:04.324Z
+* abapmerge 0.14.1 - 2020-11-24T14:38:20.488Z
 ****************************************************
