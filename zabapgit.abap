@@ -5667,6 +5667,12 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS get_deserialize_steps
       RETURNING
         VALUE(rt_steps) TYPE zif_abapgit_objects=>ty_step_data_tt .
+    CLASS-METHODS check_main_package
+      IMPORTING
+        !iv_package  TYPE devclass
+        !iv_obj_type TYPE tadir-object
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_objects_activation DEFINITION
   CREATE PUBLIC .
@@ -54678,7 +54684,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD adjust_namespaces.
 
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
@@ -54747,6 +54753,31 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
       CONCATENATE LINES OF lt_duplicates INTO lv_all_duplicates SEPARATED BY `, `.
       zcx_abapgit_exception=>raise( |Duplicates: { lv_all_duplicates }| ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD check_main_package.
+
+    " check package restrictions, closed package, descriptive or
+    " functional package
+    cl_pak_object_types=>check_object_type(
+      EXPORTING
+        i_working_mode         = 'I'
+        i_package_name         = iv_package
+        i_pgmid                = 'R3TR'
+        i_object_type          = iv_obj_type
+      EXCEPTIONS
+        wrong_object_type      = 1
+        package_not_extensible = 2
+        package_not_loaded     = 3
+        OTHERS                 = 4 ).
+    CASE sy-subrc.
+      WHEN 0.
+        RETURN.
+      WHEN 2.
+        zcx_abapgit_exception=>raise( |Object type { iv_obj_type } not allowed for package { iv_package }| ).
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise_t100(  ).
+    ENDCASE.
 
   ENDMETHOD.
   METHOD check_objects_locked.
@@ -55079,6 +55110,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
             iv_top  = io_repo->get_package( )
             io_dot  = io_repo->get_dot_abapgit( )
             iv_path = <ls_result>-path ).
+
+          check_main_package(
+            iv_package  = lv_package
+            iv_obj_type = ls_item-obj_type ).
 
           IF ls_item-obj_type = 'DEVC'.
             " Packages have the same filename across different folders. The path needs to be supplied
@@ -95128,5 +95163,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-25T08:50:10.784Z
+* abapmerge 0.14.1 - 2020-11-25T08:55:07.287Z
 ****************************************************
