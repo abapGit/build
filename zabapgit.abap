@@ -1766,7 +1766,6 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_metadata,
       class        TYPE string,
       version      TYPE string,
-      late_deser   TYPE abap_bool, " refactor: can be removed later. replaced by steps
       delete_tadir TYPE abap_bool,
       ddic         TYPE abap_bool,
     END OF ty_metadata .
@@ -9927,6 +9926,16 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mo_plugin TYPE REF TO object.
+
+    " Metadata with late_deser to stay compatible with old bridge
+    TYPES:
+      BEGIN OF ty_metadata,
+        class        TYPE string,
+        version      TYPE string,
+        late_deser   TYPE abap_bool,
+        delete_tadir TYPE abap_bool,
+        ddic         TYPE abap_bool,
+      END OF ty_metadata .
 
     TYPES: BEGIN OF ty_s_objtype_map,
              obj_typ      TYPE trobjtype,
@@ -54221,7 +54230,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
+CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   METHOD class_constructor.
 
     DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
@@ -54340,9 +54349,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
 
-    DATA: ls_meta TYPE zif_abapgit_definitions=>ty_metadata.
+    DATA ls_meta TYPE ty_metadata.
 
-    ls_meta = zif_abapgit_object~get_metadata( ).
+    CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
+      RECEIVING
+        rs_metadata = ls_meta.
 
     IF ls_meta-late_deser = abap_true.
       APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -54355,9 +54366,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
 
+    DATA ls_meta TYPE ty_metadata.
+
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~GET_METADATA')
       RECEIVING
-        rs_metadata = rs_metadata.
+        rs_metadata = ls_meta.
+
+    MOVE-CORRESPONDING ls_meta TO rs_metadata.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -95163,5 +95178,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-25T08:55:07.287Z
+* abapmerge 0.14.1 - 2020-11-25T09:00:46.909Z
 ****************************************************
