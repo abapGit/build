@@ -1546,6 +1546,7 @@ INTERFACE zif_abapgit_progress .
   METHODS set_total
     IMPORTING
       !iv_total TYPE i .
+  METHODS off .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_auth.
@@ -19874,7 +19875,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD build.
 
     DATA: lv_path         TYPE string,
@@ -20005,6 +20006,8 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
         APPEND <ls_tadir> TO rt_tadir.
       ENDIF.
     ENDLOOP.
+
+    li_progress->off( ).
 
   ENDMETHOD.
   METHOD exists.
@@ -22569,6 +22572,9 @@ CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_abapgit_progress~show.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_progress~off.
   ENDMETHOD.
 ENDCLASS.
 
@@ -26549,7 +26555,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
+CLASS zcl_abapgit_progress IMPLEMENTATION.
   METHOD calc_pct.
 
     DATA: lv_f TYPE f.
@@ -26580,6 +26586,12 @@ CLASS ZCL_ABAPGIT_PROGRESS IMPLEMENTATION.
   METHOD set_instance.
 
     gi_progress = ii_progress.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~off.
+
+    " Clear the status bar
+    CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'.
 
   ENDMETHOD.
   METHOD zif_abapgit_progress~set_total.
@@ -42751,6 +42763,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     register_deferred_script( render_scripts( ) ).
 
+    li_progress->off( ).
+
   ENDMETHOD.
   METHOD render_diff.
 
@@ -55050,6 +55064,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error during uninstall. Check the log.' ).
     ENDIF.
 
+    li_progress->off( ).
+
   ENDMETHOD.
   METHOD delete_obj.
 
@@ -55226,6 +55242,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
+    li_progress->off( ).
+
   ENDMETHOD.
   METHOD deserialize_checks.
 
@@ -55293,6 +55311,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         zcl_abapgit_objects_activation=>activate( abap_true ).
         zcl_abapgit_objects_activation=>activate( abap_false ).
     ENDCASE.
+
+    li_progress->off( ).
 
 *   Call postprocessing
     li_exit = zcl_abapgit_exit=>get_instance( ).
@@ -95202,5 +95222,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-26T11:34:40.112Z
+* abapmerge 0.14.1 - 2020-11-27T09:20:09.883Z
 ****************************************************
