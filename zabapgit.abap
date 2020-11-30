@@ -17029,7 +17029,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_files_local
       IMPORTING
         !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
-        !it_filter      TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
@@ -17974,13 +17973,22 @@ CLASS zcl_abapgit_zip DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS export
+    CLASS-METHODS encode_files
       IMPORTING
-        !io_repo       TYPE REF TO zcl_abapgit_repo
-        !iv_show_log   TYPE abap_bool DEFAULT abap_true
-        !it_filter     TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
       RETURNING
         VALUE(rv_xstr) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS export
+      IMPORTING
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !iv_package        TYPE devclass
+        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_show_log       TYPE abap_bool DEFAULT abap_true
+        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RETURNING
+        VALUE(rv_xstr)     TYPE xstring
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS export_object
@@ -18000,22 +18008,16 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS save_binstring_to_localfile
-      IMPORTING iv_filename  TYPE string
-                iv_binstring TYPE xstring
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !iv_filename  TYPE string
+        !iv_binstring TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     CLASS-DATA gv_prev TYPE string .
   PRIVATE SECTION.
 
-    CLASS-METHODS encode_files
-      IMPORTING
-        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
     CLASS-METHODS filename
       IMPORTING
         !iv_str      TYPE string
@@ -18028,7 +18030,7 @@ CLASS zcl_abapgit_zip DEFINITION
       CHANGING
         !ct_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS unzip_file
       IMPORTING
         !iv_xstr        TYPE xstring
@@ -18727,20 +18729,26 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
   METHOD export.
 
-    DATA: li_log     TYPE REF TO zif_abapgit_log,
-          lt_zip     TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lv_package TYPE devclass.
+    DATA li_log       TYPE REF TO zif_abapgit_log.
+    DATA lt_zip       TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
     CREATE OBJECT li_log TYPE zcl_abapgit_log.
     li_log->set_title( 'Zip Export Log' ).
 
-    lv_package = io_repo->get_package( ).
-
-    IF zcl_abapgit_factory=>get_sap_package( lv_package )->exists( ) = abap_false.
-      zcx_abapgit_exception=>raise( |Package { lv_package } doesn't exist| ).
+    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
+      zcx_abapgit_exception=>raise( |Package { iv_package } doesn't exist| ).
     ENDIF.
 
-    lt_zip = io_repo->get_files_local( ii_log    = li_log
-                                       it_filter = it_filter ).
+    CREATE OBJECT lo_serialize
+      EXPORTING
+        iv_serialize_master_lang_only = is_local_settings-serialize_master_lang_only.
+
+    lt_zip = lo_serialize->files_local(
+      iv_package        = iv_package
+      io_dot_abapgit    = io_dot_abapgit
+      is_local_settings = is_local_settings
+      ii_log            = li_log
+      it_filter         = it_filter ).
 
     IF li_log->count( ) > 0 AND iv_show_log = abap_true.
       zcl_abapgit_log_viewer=>show_log( li_log ).
@@ -18803,33 +18811,33 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   ENDMETHOD.
   METHOD export_package.
 
-    DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_offline,
-          ls_data   TYPE zif_abapgit_persistence=>ty_repo,
-          li_popups TYPE REF TO zif_abapgit_popups.
-
-    DATA lv_serialize_master_lang_only TYPE abap_bool.
-
-    ls_data-key = 'DUMMY'.
-    ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
-
+    DATA: ls_local_settings             TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          lo_dot_abapgit                TYPE REF TO zcl_abapgit_dot_abapgit,
+          li_popups                     TYPE REF TO zif_abapgit_popups,
+          lv_folder_logic               TYPE string,
+          lv_package                    TYPE devclass,
+          lv_serialize_master_lang_only TYPE abap_bool.
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_package_export(
       IMPORTING
-        ev_package      = ls_data-package
-        ev_folder_logic = ls_data-dot_abapgit-folder_logic
+        ev_package                    = lv_package
+        ev_folder_logic               = lv_folder_logic
         ev_serialize_master_lang_only = lv_serialize_master_lang_only ).
-    IF ls_data-package IS INITIAL.
+    IF lv_package IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    ls_data-local_settings-serialize_master_lang_only = lv_serialize_master_lang_only.
+    ls_local_settings-serialize_master_lang_only = lv_serialize_master_lang_only.
 
-    CREATE OBJECT lo_repo
-      EXPORTING
-        is_data = ls_data.
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
+    lo_dot_abapgit->set_folder_logic( lv_folder_logic ).
 
-    ev_xstr = export( lo_repo ).
-    ev_package = ls_data-package.
+    ev_xstr = export(
+      is_local_settings = ls_local_settings
+      iv_package        = lv_package
+      io_dot_abapgit    = lo_dot_abapgit ).
+
+    ev_package = lv_package.
 
   ENDMETHOD.
   METHOD filename.
@@ -19826,12 +19834,13 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip.
 
-    DATA: lt_requests TYPE trwbo_requests,
-          lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lv_package  TYPE devclass,
-          ls_data     TYPE zif_abapgit_persistence=>ty_repo,
-          lo_repo     TYPE REF TO zcl_abapgit_repo_offline,
-          lt_trkorr   TYPE trwbo_request_headers.
+    DATA: lt_requests       TYPE trwbo_requests,
+          lt_tadir          TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lv_package        TYPE devclass,
+          lo_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit,
+          ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          lo_repo           TYPE REF TO zcl_abapgit_repo_offline,
+          lt_trkorr         TYPE trwbo_request_headers.
     IF is_trkorr IS SUPPLIED.
       APPEND is_trkorr TO lt_trkorr.
     ELSE.
@@ -19853,24 +19862,19 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error finding super package' ).
     ENDIF.
 
-    ls_data-key         = 'TZIP'.
-    ls_data-package     = lv_package.
-    ls_data-dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
-
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     IF iv_logic IS SUPPLIED AND iv_logic IS NOT INITIAL.
-      ls_data-dot_abapgit-folder_logic = iv_logic.
+      lo_dot_abapgit->set_folder_logic( iv_logic ).
     ELSE.
-      ls_data-dot_abapgit-folder_logic = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ).
+      lo_dot_abapgit->set_folder_logic( zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
     ENDIF.
 
-    CREATE OBJECT lo_repo
-      EXPORTING
-        is_data = ls_data.
-
     rv_xstr = zcl_abapgit_zip=>export(
-      io_repo     = lo_repo
-      it_filter   = lt_tadir
-      iv_show_log = iv_show_log_popup ).
+      iv_package        = lv_package
+      io_dot_abapgit    = lo_dot_abapgit
+      is_local_settings = ls_local_settings
+      it_filter         = lt_tadir
+      iv_show_log       = iv_show_log_popup ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -22147,9 +22151,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_files_local.
-
-* todo, after refactoring is done, I think the IT_FILTER parameter can be removed
-
     DATA: lo_serialize TYPE REF TO zcl_abapgit_serialize.
 
     " Serialization happened before and no refresh request
@@ -22166,8 +22167,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       iv_package        = get_package( )
       io_dot_abapgit    = get_dot_abapgit( )
       is_local_settings = get_local_settings( )
-      ii_log            = ii_log
-      it_filter         = it_filter ).
+      ii_log            = ii_log ).
 
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
@@ -37453,7 +37453,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         ENDCASE.
       WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
         lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-        lv_xstr = zcl_abapgit_zip=>export( lo_repo ).
+        lv_xstr = zcl_abapgit_zip=>encode_files( lo_repo->get_files_local( ) ).
         file_download( iv_package = lo_repo->get_package( )
                        iv_xstr    = lv_xstr ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -95222,5 +95222,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-29T15:19:23.036Z
+* abapmerge 0.14.1 - 2020-11-30T10:25:13.012Z
 ****************************************************
