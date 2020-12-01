@@ -3326,12 +3326,12 @@ INTERFACE zif_abapgit_repo_online .
       VALUE(rv_name) TYPE zif_abapgit_persistence=>ty_repo-branch_name .
   METHODS set_url
     IMPORTING
-      iv_url TYPE zif_abapgit_persistence=>ty_repo-url
+      !iv_url TYPE zif_abapgit_persistence=>ty_repo-url
     RAISING
       zcx_abapgit_exception .
   METHODS select_branch
     IMPORTING
-      iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
+      !iv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name
     RAISING
       zcx_abapgit_exception .
   METHODS get_selected_commit
@@ -3346,12 +3346,7 @@ INTERFACE zif_abapgit_repo_online .
       zcx_abapgit_exception .
   METHODS select_commit
     IMPORTING
-      iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
-    RAISING
-      zcx_abapgit_exception .
-  METHODS get_objects
-    RETURNING
-      VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+      !iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
     RAISING
       zcx_abapgit_exception .
   METHODS get_switched_origin
@@ -3359,8 +3354,8 @@ INTERFACE zif_abapgit_repo_online .
       VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-switched_origin .
   METHODS switch_origin
     IMPORTING
-      iv_url       TYPE zif_abapgit_persistence=>ty_repo-url
-      iv_overwrite TYPE abap_bool DEFAULT abap_false
+      !iv_url       TYPE zif_abapgit_persistence=>ty_repo-url
+      !iv_overwrite TYPE abap_bool DEFAULT abap_false
     RAISING
       zcx_abapgit_exception .
   METHODS push
@@ -3369,7 +3364,6 @@ INTERFACE zif_abapgit_repo_online .
       !io_stage   TYPE REF TO zcl_abapgit_stage
     RAISING
       zcx_abapgit_exception .
-
   METHODS create_branch
     IMPORTING
       !iv_name TYPE string
@@ -17300,7 +17294,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
       get_selected_commit FOR zif_abapgit_repo_online~get_selected_commit,
       get_current_remote FOR zif_abapgit_repo_online~get_current_remote,
       select_commit FOR zif_abapgit_repo_online~select_commit,
-      get_objects FOR zif_abapgit_repo_online~get_objects,
       get_switched_origin FOR zif_abapgit_repo_online~get_switched_origin,
       switch_origin FOR zif_abapgit_repo_online~switch_origin.
 
@@ -17327,6 +17320,11 @@ CLASS zcl_abapgit_repo_online DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS fetch_remote
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_objects
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -21547,7 +21545,7 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     fetch_remote( ).
     rv_sha1 = mv_current_commit.
   ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_objects.
+  METHOD get_objects.
     fetch_remote( ).
     rt_objects = mt_objects.
   ENDMETHOD.
@@ -95220,5 +95218,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-01T03:55:31.271Z
+* abapmerge 0.14.2 - 2020-12-01T04:02:02.134Z
 ****************************************************
