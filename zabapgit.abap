@@ -16192,13 +16192,18 @@ CLASS zcl_abapgit_xml_pretty DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS: print
-      IMPORTING iv_xml           TYPE string
-                iv_ignore_errors TYPE abap_bool DEFAULT abap_true
-                iv_unpretty      TYPE abap_bool DEFAULT abap_false
-      RETURNING VALUE(rv_xml)    TYPE string
-      RAISING   zcx_abapgit_exception.
 
+    CLASS-METHODS print
+      IMPORTING
+        !iv_xml           TYPE string
+        !iv_ignore_errors TYPE abap_bool DEFAULT abap_true
+        !iv_unpretty      TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_xml)     TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_auth DEFINITION
   FINAL
@@ -95223,5 +95228,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-01T04:07:06.879Z
+* abapmerge 0.14.2 - 2020-12-01T04:10:06.123Z
 ****************************************************
