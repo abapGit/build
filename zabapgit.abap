@@ -26343,7 +26343,6 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   METHOD to_abap.
 
     DATA lo_type TYPE REF TO cl_abap_typedescr.
-    DATA lo_struc TYPE REF TO cl_abap_structdescr.
     DATA lv_field TYPE string.
     FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
     FIELD-SYMBOLS <lv_val> TYPE any.
@@ -26354,7 +26353,6 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Only structures supported' ).
     ENDIF.
 
-    lo_struc ?= lo_type.
     LOOP AT mt_entries ASSIGNING <ls_entry>.
       lv_field = to_upper( <ls_entry>-k ).
       ASSIGN COMPONENT lv_field OF STRUCTURE cs_container TO <lv_val>.
@@ -95222,5 +95220,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.1 - 2020-11-30T10:25:13.012Z
+* abapmerge 0.14.2 - 2020-12-01T03:55:31.271Z
 ****************************************************
