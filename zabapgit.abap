@@ -50337,7 +50337,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
+CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
   METHOD zif_abapgit_oo_object_fnc~create.
     DATA: lt_vseoattrib TYPE seoo_attributes_r.
     FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
@@ -50384,7 +50384,7 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
             OTHERS          = 7.
     ENDTRY.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_INTERFACE_CREATE_COMPLETE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
@@ -50399,7 +50399,7 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
         other        = 5
         OTHERS       = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_INTERFACE_DELETE_COMPLETE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~get_includes.
@@ -50422,7 +50422,7 @@ CLASS ZCL_ABAPGIT_OO_INTERFACE IMPLEMENTATION.
     IF sy-subrc = 1.
       RETURN. " in case only inactive version exists
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from seo_clif_get. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
@@ -50441,7 +50441,7 @@ CLASS zcl_abapgit_oo_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
+CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   METHOD create_report.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
@@ -50481,7 +50481,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         internal_error_insert_report   = 11
         OTHERS                         = 12.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_METHOD_GENERATE_INCLUDE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     rv_program = cl_oo_classname_service=>get_method_include( ls_mtdkey ).
@@ -50519,7 +50519,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
         _internal_class_overflow      = 19
         OTHERS                        = 20.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_GENERATE_CLASSPOOL. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -50633,7 +50633,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
             OTHERS             = 3.
     ENDTRY.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error instantiating CL_OO_CLASS_SECTION_SOURCE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lo_update->set_dark_mode( abap_true ).
@@ -50760,7 +50760,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
             OTHERS          = 7.
     ENDTRY.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_CREATE_COMPLETE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -50785,7 +50785,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
 * this can happen when the SXCI object is deleted before the implementing CLAS
       RETURN.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLASS_DELETE_COMPLETE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~deserialize_source.
@@ -50925,7 +50925,7 @@ CLASS ZCL_ABAPGIT_OO_CLASS IMPLEMENTATION.
     IF sy-subrc = 1.
       RETURN. " in case only inactive version exists
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from SEO_CLIF_GET. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~get_includes.
@@ -51080,7 +51080,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         class_not_existing = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from CL_OO_SOURCE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     TRY.
@@ -51114,7 +51114,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         ret_code      = 1
         OTHERS        = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from DOCU_UPD. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
@@ -95228,5 +95228,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-02T11:59:08.116Z
+* abapmerge 0.14.2 - 2020-12-02T12:09:54.102Z
 ****************************************************
