@@ -569,7 +569,6 @@ INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
-INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_branch_overview DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
@@ -611,6 +610,7 @@ INTERFACE zif_abapgit_ajson_reader DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
+INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
 CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
@@ -619,10 +619,6 @@ CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
 CLASS zcl_abapgit_zip DEFINITION DEFERRED.
 CLASS zcl_abapgit_version DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_mass DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport DEFINITION DEFERRED.
 CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
@@ -648,8 +644,6 @@ CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_environment DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
-CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
-CLASS zcl_abapgit_cts_api DEFINITION DEFERRED.
 CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
@@ -928,6 +922,12 @@ CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_mass DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_cts_api DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
@@ -958,6 +958,48 @@ INTERFACE zif_abapgit_background .
       !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_cts_api.
+  METHODS:
+    "! Returns the transport request / task the object is currently locked in
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter iv_object_name | Object name
+    "! @parameter iv_resolve_task_to_request | Return the transport request number if the object is locked in a task
+    "! @parameter rv_transport | Transport request / task
+    "! @raising zcx_abapgit_exception | Object is not locked in a transport
+    get_current_transport_for_obj IMPORTING iv_program_id              TYPE pgmid DEFAULT 'R3TR'
+                                            iv_object_type             TYPE trobjtype
+                                            iv_object_name             TYPE sobj_name
+                                            iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_true
+                                  RETURNING VALUE(rv_transport)        TYPE trkorr
+                                  RAISING   zcx_abapgit_exception,
+    "! Check if the object is currently locked in a transport
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter iv_object_name | Object name
+    "! @parameter rv_locked | Object is locked
+    "! @raising zcx_abapgit_exception | Object type is not lockable
+    is_object_locked_in_transport IMPORTING iv_program_id    TYPE pgmid DEFAULT 'R3TR'
+                                            iv_object_type   TYPE trobjtype
+                                            iv_object_name   TYPE sobj_name
+                                  RETURNING VALUE(rv_locked) TYPE abap_bool
+                                  RAISING   zcx_abapgit_exception,
+    "! Check if the object type is lockable
+    "! @parameter iv_program_id | Program ID
+    "! @parameter iv_object_type | Object type
+    "! @parameter rv_lockable | Lockable
+    is_object_type_lockable IMPORTING iv_program_id      TYPE pgmid DEFAULT 'R3TR'
+                                      iv_object_type     TYPE trobjtype
+                            RETURNING VALUE(rv_lockable) TYPE abap_bool,
+    "! Check if change recording is possible for the given package
+    "! @parameter iv_package | Package
+    "! @parameter rv_possible | Change recording is possible
+    "! @raising zcx_abapgit_exception | Package could not be loaded
+    is_chrec_possible_for_package IMPORTING iv_package         TYPE devclass
+                                  RETURNING VALUE(rv_possible) TYPE abap_bool
+                                  RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_pr_enum_provider .
@@ -1580,48 +1622,6 @@ INTERFACE zif_abapgit_code_inspector .
   METHODS is_successful
     RETURNING
       VALUE(rv_success) TYPE abap_bool .
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_cts_api.
-  METHODS:
-    "! Returns the transport request / task the object is currently locked in
-    "! @parameter iv_program_id | Program ID
-    "! @parameter iv_object_type | Object type
-    "! @parameter iv_object_name | Object name
-    "! @parameter iv_resolve_task_to_request | Return the transport request number if the object is locked in a task
-    "! @parameter rv_transport | Transport request / task
-    "! @raising zcx_abapgit_exception | Object is not locked in a transport
-    get_current_transport_for_obj IMPORTING iv_program_id              TYPE pgmid DEFAULT 'R3TR'
-                                            iv_object_type             TYPE trobjtype
-                                            iv_object_name             TYPE sobj_name
-                                            iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_true
-                                  RETURNING VALUE(rv_transport)        TYPE trkorr
-                                  RAISING   zcx_abapgit_exception,
-    "! Check if the object is currently locked in a transport
-    "! @parameter iv_program_id | Program ID
-    "! @parameter iv_object_type | Object type
-    "! @parameter iv_object_name | Object name
-    "! @parameter rv_locked | Object is locked
-    "! @raising zcx_abapgit_exception | Object type is not lockable
-    is_object_locked_in_transport IMPORTING iv_program_id    TYPE pgmid DEFAULT 'R3TR'
-                                            iv_object_type   TYPE trobjtype
-                                            iv_object_name   TYPE sobj_name
-                                  RETURNING VALUE(rv_locked) TYPE abap_bool
-                                  RAISING   zcx_abapgit_exception,
-    "! Check if the object type is lockable
-    "! @parameter iv_program_id | Program ID
-    "! @parameter iv_object_type | Object type
-    "! @parameter rv_lockable | Lockable
-    is_object_type_lockable IMPORTING iv_program_id      TYPE pgmid DEFAULT 'R3TR'
-                                      iv_object_type     TYPE trobjtype
-                            RETURNING VALUE(rv_lockable) TYPE abap_bool,
-    "! Check if change recording is possible for the given package
-    "! @parameter iv_package | Package
-    "! @parameter rv_possible | Change recording is possible
-    "! @raising zcx_abapgit_exception | Package could not be loaded
-    is_chrec_possible_for_package IMPORTING iv_package         TYPE devclass
-                                  RETURNING VALUE(rv_possible) TYPE abap_bool
-                                  RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_definitions .
@@ -3801,6 +3801,193 @@ CLASS zcl_abapgit_background_push_fi DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+ENDCLASS.
+"! Change transport system API
+CLASS zcl_abapgit_cts_api DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_cts_api.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_default_transport DEFINITION
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+    CLASS-METHODS:
+      get_instance
+        RETURNING
+          VALUE(ro_instance) TYPE REF TO zcl_abapgit_default_transport
+        RAISING
+          zcx_abapgit_exception.
+
+    METHODS:
+      constructor
+        RAISING
+          zcx_abapgit_exception,
+
+      set
+        IMPORTING
+          iv_transport TYPE trkorr
+        RAISING
+          zcx_abapgit_exception,
+
+      reset
+        RAISING
+          zcx_abapgit_exception,
+      get
+        RETURNING
+          VALUE(rs_default_task) TYPE e070use
+        RAISING
+          zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_transport .
+    DATA mv_is_set_by_abapgit TYPE abap_bool .
+    DATA ms_save TYPE e070use .
+
+    METHODS store
+      RAISING
+        zcx_abapgit_exception .
+    METHODS restore
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_internal
+      IMPORTING
+        !iv_transport TYPE trkorr
+      RAISING
+        zcx_abapgit_exception .
+    METHODS clear
+      IMPORTING
+        !is_default_task TYPE e070use
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_transport DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS zip
+      IMPORTING
+        !iv_show_log_popup TYPE abap_bool DEFAULT abap_true
+        !iv_logic          TYPE string OPTIONAL
+        !is_trkorr         TYPE trwbo_request_header OPTIONAL
+      RETURNING
+        VALUE(rv_xstr)     TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS to_tadir
+      IMPORTING
+        it_transport_headers TYPE trwbo_request_headers
+      RETURNING
+        VALUE(rt_tadir)      TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS add_all_objects_to_trans_req
+      IMPORTING
+        iv_key TYPE zif_abapgit_persistence=>ty_value
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+
+    CLASS-METHODS read_requests
+      IMPORTING
+        !it_trkorr         TYPE trwbo_request_headers
+      RETURNING
+        VALUE(rt_requests) TYPE trwbo_requests
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS find_top_package
+      IMPORTING
+        !it_tadir         TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rv_package) TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS resolve
+      IMPORTING
+        !it_requests    TYPE trwbo_requests
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+    CLASS-METHODS collect_all_objects
+      IMPORTING
+        iv_key            TYPE zif_abapgit_persistence=>ty_value
+      RETURNING
+        VALUE(rt_objects) TYPE tr_objects
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
+CLASS zcl_abapgit_transport_2_branch DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS create
+      IMPORTING
+        !io_repository          TYPE REF TO zcl_abapgit_repo_online
+        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
+        !it_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+
+    METHODS generate_commit_message
+      IMPORTING
+        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
+      RETURNING
+        VALUE(rs_comment)       TYPE zif_abapgit_definitions=>ty_comment .
+    METHODS stage_transport_objects
+      IMPORTING
+        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt
+        !io_stage             TYPE REF TO zcl_abapgit_stage
+        !is_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_transport_mass DEFINITION
+  INHERITING FROM zcl_abapgit_transport
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS run .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+ENDCLASS.
+CLASS zcl_abapgit_transport_objects DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
+    METHODS to_stage
+      IMPORTING
+        !io_stage           TYPE REF TO zcl_abapgit_stage
+        !is_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files
+        !it_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mt_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
 ENDCLASS.
 CLASS zcl_abapgit_git_add_patch DEFINITION
   FINAL
@@ -16350,72 +16537,6 @@ CLASS zcl_abapgit_code_inspector DEFINITION
       RETURNING
         VALUE(rv_run_mode) TYPE ty_run_mode.
 ENDCLASS.
-"! Change transport system API
-CLASS zcl_abapgit_cts_api DEFINITION
-  FINAL
-  CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory.
-
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_cts_api.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-CLASS zcl_abapgit_default_transport DEFINITION
-  CREATE PRIVATE .
-
-  PUBLIC SECTION.
-    CLASS-METHODS:
-      get_instance
-        RETURNING
-          VALUE(ro_instance) TYPE REF TO zcl_abapgit_default_transport
-        RAISING
-          zcx_abapgit_exception.
-
-    METHODS:
-      constructor
-        RAISING
-          zcx_abapgit_exception,
-
-      set
-        IMPORTING
-          iv_transport TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
-      reset
-        RAISING
-          zcx_abapgit_exception,
-      get
-        RETURNING
-          VALUE(rs_default_task) TYPE e070use
-        RAISING
-          zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_transport .
-    DATA mv_is_set_by_abapgit TYPE abap_bool .
-    DATA ms_save TYPE e070use .
-
-    METHODS store
-      RAISING
-        zcx_abapgit_exception .
-    METHODS restore
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_internal
-      IMPORTING
-        !iv_transport TYPE trkorr
-      RAISING
-        zcx_abapgit_exception .
-    METHODS clear
-      IMPORTING
-        !is_default_task TYPE e070use
-      RAISING
-        zcx_abapgit_exception .
-ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -17814,127 +17935,6 @@ CLASS zcl_abapgit_tadir DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_transport DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS zip
-      IMPORTING
-        !iv_show_log_popup TYPE abap_bool DEFAULT abap_true
-        !iv_logic          TYPE string OPTIONAL
-        !is_trkorr         TYPE trwbo_request_header OPTIONAL
-      RETURNING
-        VALUE(rv_xstr)     TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS to_tadir
-      IMPORTING
-        it_transport_headers TYPE trwbo_request_headers
-      RETURNING
-        VALUE(rt_tadir)      TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS add_all_objects_to_trans_req
-      IMPORTING
-        iv_key TYPE zif_abapgit_persistence=>ty_value
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-
-    CLASS-METHODS read_requests
-      IMPORTING
-        !it_trkorr         TYPE trwbo_request_headers
-      RETURNING
-        VALUE(rt_requests) TYPE trwbo_requests
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS find_top_package
-      IMPORTING
-        !it_tadir         TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RETURNING
-        VALUE(rv_package) TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS resolve
-      IMPORTING
-        !it_requests    TYPE trwbo_requests
-      RETURNING
-        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-    CLASS-METHODS collect_all_objects
-      IMPORTING
-        iv_key            TYPE zif_abapgit_persistence=>ty_value
-      RETURNING
-        VALUE(rt_objects) TYPE tr_objects
-      RAISING
-        zcx_abapgit_exception.
-ENDCLASS.
-CLASS zcl_abapgit_transport_2_branch DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS create
-      IMPORTING
-        !io_repository          TYPE REF TO zcl_abapgit_repo_online
-        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
-        !it_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-
-    METHODS generate_commit_message
-      IMPORTING
-        !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
-      RETURNING
-        VALUE(rs_comment)       TYPE zif_abapgit_definitions=>ty_comment .
-    METHODS stage_transport_objects
-      IMPORTING
-        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt
-        !io_stage             TYPE REF TO zcl_abapgit_stage
-        !is_stage_objects     TYPE zif_abapgit_definitions=>ty_stage_files
-        !it_object_statuses   TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-ENDCLASS.
-CLASS zcl_abapgit_transport_mass DEFINITION
-  INHERITING FROM zcl_abapgit_transport
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS run .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-ENDCLASS.
-CLASS zcl_abapgit_transport_objects DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS constructor
-      IMPORTING
-        !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
-    METHODS to_stage
-      IMPORTING
-        !io_stage           TYPE REF TO zcl_abapgit_stage
-        !is_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files
-        !it_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    DATA mt_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
-ENDCLASS.
 CLASS zcl_abapgit_version DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -19196,693 +19196,6 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
 
     " Calculated value of version number, empty version will become 0 which is OK
     rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
-  METHOD constructor.
-    mt_transport_objects = it_transport_objects.
-  ENDMETHOD.
-  METHOD to_stage.
-    DATA: ls_transport_object LIKE LINE OF mt_transport_objects,
-          ls_local_file       TYPE zif_abapgit_definitions=>ty_file_item,
-          ls_object_status    TYPE zif_abapgit_definitions=>ty_result.
-
-    LOOP AT mt_transport_objects INTO ls_transport_object.
-      LOOP AT it_object_statuses INTO ls_object_status
-          WHERE obj_name = ls_transport_object-obj_name
-          AND obj_type = ls_transport_object-object
-          AND NOT lstate IS INITIAL.
-
-        CASE ls_object_status-lstate.
-          WHEN zif_abapgit_definitions=>c_state-added OR zif_abapgit_definitions=>c_state-modified.
-            IF ls_transport_object-delflag = abap_true.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-                } should be added/modified, but has deletion flag in transport| ).
-            ENDIF.
-
-            READ TABLE is_stage_objects-local
-                  INTO ls_local_file
-              WITH KEY item-obj_name = ls_transport_object-obj_name
-                       item-obj_type = ls_transport_object-object
-                       file-filename = ls_object_status-filename.
-            IF sy-subrc <> 0.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-                } not found in the local repository files| ).
-            ELSE.
-              io_stage->add(
-                iv_path     = ls_local_file-file-path
-                iv_filename = ls_local_file-file-filename
-                iv_data     = ls_local_file-file-data ).
-            ENDIF.
-          WHEN zif_abapgit_definitions=>c_state-deleted.
-* SUSC, see https://github.com/abapGit/abapGit/issues/2772
-            IF ls_transport_object-delflag = abap_false
-                AND ls_transport_object-object <> 'SUSC'
-                AND ls_transport_object-object <> 'IWOM'
-                AND ls_transport_object-object <> 'IWMO'
-                AND ls_transport_object-object <> 'IWSG'
-                AND ls_transport_object-object <> 'IWSV'.
-              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
-                } should be removed, but has NO deletion flag in transport| ).
-            ENDIF.
-            io_stage->rm(
-              iv_path     = ls_object_status-path
-              iv_filename = ls_object_status-filename ).
-          WHEN OTHERS.
-            ASSERT 0 = 1. "Unexpected state
-        ENDCASE.
-      ENDLOOP.
-      IF sy-subrc <> 0.
-        " Since not all objects in a transport might be in the local repo
-        " i.e generated SADL objects, we don't add these objects to
-        " the stage.
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION DEFERRED.
-CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih DEFINITION DEFERRED.
-* renamed: zcl_abapgit_transport_mass :: lcl_gui
-CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih DEFINITION FINAL.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS f4_folder RETURNING VALUE(rv_folder) TYPE string RAISING zcx_abapgit_exception.
-    CLASS-METHODS open_folder_frontend IMPORTING iv_folder TYPE string.
-    CLASS-METHODS select_tr_requests RETURNING VALUE(rt_trkorr) TYPE trwbo_request_headers.
-
-  PRIVATE SECTION.
-    CLASS-DATA: gv_last_folder TYPE string.
-
-ENDCLASS.
-
-CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih IMPLEMENTATION.
-
-  METHOD f4_folder.
-
-    DATA: lv_title  TYPE string.
-
-    lv_title = 'Choose the destination folder for the ZIP files'.
-
-    cl_gui_frontend_services=>directory_browse(
-      EXPORTING
-        window_title         = lv_title
-        initial_folder       = gv_last_folder
-      CHANGING
-        selected_folder      = rv_folder
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-
-    IF sy-subrc = 0.
-      gv_last_folder = rv_folder. "Store the last directory for user friendly UI
-    ELSE.
-      zcx_abapgit_exception=>raise( 'Folder matchcode exception' ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD open_folder_frontend.
-
-    IF NOT iv_folder IS INITIAL.
-
-      cl_gui_frontend_services=>execute(
-        EXPORTING
-          document               = iv_folder
-        EXCEPTIONS
-          cntl_error             = 1
-          error_no_gui           = 2
-          bad_parameter          = 3
-          file_not_found         = 4
-          path_not_found         = 5
-          file_extension_unknown = 6
-          error_execute_failed   = 7
-          OTHERS                 = 8 ).
-      IF sy-subrc <> 0.
-        MESSAGE 'Problem when opening output folder' TYPE 'S' DISPLAY LIKE 'E'.
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD select_tr_requests.
-
-    DATA: ls_popup     TYPE strhi_popup,
-          ls_selection TYPE trwbo_selection.
-
-    ls_popup-start_column = 5.
-    ls_popup-start_row    = 5.
-
-*- Prepare the selection ----------------------------------------------*
-    ls_selection-trkorrpattern = space.
-    ls_selection-client        = space.
-    ls_selection-stdrequest    = space.
-    ls_selection-reqfunctions  = 'K'.
-    ls_selection-reqstatus     = 'RNODL'.
-
-*- Call transport selection popup -------------------------------------*
-    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
-      EXPORTING
-        iv_username_pattern    = '*'
-        iv_via_selscreen       = 'X'
-        is_selection           = ls_selection
-        iv_complete_projects   = space
-        iv_title               = 'ABAPGit Transport Mass Downloader'
-        is_popup               = ls_popup
-      IMPORTING
-        et_requests            = rt_trkorr
-      EXCEPTIONS
-        action_aborted_by_user = 1
-        OTHERS                 = 2.
-    IF sy-subrc <> 0.
-      CLEAR rt_trkorr.
-    ELSE.
-      SORT rt_trkorr BY trkorr.
-      DELETE ADJACENT DUPLICATES FROM rt_trkorr COMPARING trkorr.
-    ENDIF.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-* renamed: zcl_abapgit_transport_mass :: lcl_transport_zipper
-CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
-
-  PUBLIC SECTION.
-    TYPES ty_folder TYPE string.
-    TYPES ty_filename TYPE string.
-
-* File extension
-    CONSTANTS gc_zip_ext TYPE string VALUE '.zip'.
-
-    METHODS constructor  IMPORTING iv_folder TYPE ty_folder
-                         RAISING   zcx_abapgit_exception.
-
-    METHODS generate_files IMPORTING it_trkorr TYPE trwbo_request_headers
-                                     ig_logic  TYPE any
-                           RAISING   zcx_abapgit_exception.
-
-    METHODS get_folder RETURNING VALUE(rv_full_folder) TYPE ty_folder.
-
-    CLASS-METHODS does_folder_exist IMPORTING iv_folder              TYPE string
-                                    RETURNING VALUE(rv_folder_exist) TYPE abap_bool
-                                    RAISING   zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-    DATA: mv_timestamp   TYPE string,
-          mv_separator   TYPE c,
-          mv_full_folder TYPE ty_folder.
-
-    METHODS get_full_folder IMPORTING iv_folder             TYPE ty_folder
-                            RETURNING VALUE(rv_full_folder) TYPE ty_folder
-                            RAISING   zcx_abapgit_exception.
-
-    METHODS get_filename IMPORTING is_trkorr          TYPE trwbo_request_header
-                         RETURNING VALUE(rv_filename) TYPE ty_filename.
-
-ENDCLASS.
-
-CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
-
-  METHOD constructor.
-
-    CONCATENATE sy-datlo sy-timlo INTO mv_timestamp SEPARATED BY '_'.
-
-    mv_full_folder = get_full_folder( iv_folder = iv_folder ).
-
-    cl_gui_frontend_services=>get_file_separator(
-      CHANGING
-        file_separator       = mv_separator
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      mv_separator = '\'. "Default MS Windows separator
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD get_folder.
-    rv_full_folder = mv_full_folder.
-  ENDMETHOD.
-
-  METHOD does_folder_exist.
-
-    cl_gui_frontend_services=>directory_exist(
-      EXPORTING
-        directory            = iv_folder
-      RECEIVING
-        result               = rv_folder_exist
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        wrong_parameter      = 3
-        not_supported_by_gui = 4
-        OTHERS               = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from cl_gui_frontend_services=>directory_exist' ).
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD get_full_folder.
-
-    DATA: lv_sep TYPE c,
-          lv_rc  TYPE i.
-
-*-obtain file separator character---------------------------------------
-    cl_gui_frontend_services=>get_file_separator(
-      CHANGING
-        file_separator       = lv_sep
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Internal error getting file separator' ).
-    ENDIF.
-
-    CONCATENATE iv_folder
-                mv_timestamp
-           INTO rv_full_folder SEPARATED BY lv_sep.
-
-    IF does_folder_exist( iv_folder = rv_full_folder ) = abap_false.
-
-      cl_gui_frontend_services=>directory_create(
-        EXPORTING
-          directory                = rv_full_folder
-        CHANGING
-          rc                       = lv_rc    " Return Code
-        EXCEPTIONS
-          directory_create_failed  = 1
-          cntl_error               = 2
-          error_no_gui             = 3
-          directory_access_denied  = 4
-          directory_already_exists = 5
-          path_not_found           = 6
-          unknown_error            = 7
-          not_supported_by_gui     = 8
-          wrong_parameter          = 9
-          OTHERS                   = 10 ).
-      IF sy-subrc <> 0 AND sy-subrc <> 5.
-        zcx_abapgit_exception=>raise( 'Error from cl_gui_frontend_services=>directory_create' ).
-      ENDIF.
-
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD get_filename.
-
-* Generate filename
-    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' mv_timestamp gc_zip_ext
-      INTO rv_filename.
-
-* Remove reserved characters (for Windows based systems)
-    TRANSLATE rv_filename USING '/ \ : " * > < ? | '.
-
-    CONCATENATE mv_full_folder rv_filename INTO rv_filename SEPARATED BY mv_separator.
-
-  ENDMETHOD.
-
-  METHOD generate_files.
-
-    DATA: ls_trkorr       LIKE LINE OF it_trkorr,
-          lv_zipbinstring TYPE xstring.
-
-    LOOP AT it_trkorr INTO ls_trkorr.
-
-      lv_zipbinstring = zcl_abapgit_transport_mass=>zip( is_trkorr         = ls_trkorr
-                                                         iv_logic          = ig_logic
-                                                         iv_show_log_popup = abap_false ).
-
-      zcl_abapgit_zip=>save_binstring_to_localfile( iv_binstring = lv_zipbinstring
-                                                    iv_filename  = get_filename( ls_trkorr ) ).
-
-    ENDLOOP.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS zcl_abapgit_transport_mass IMPLEMENTATION.
-  METHOD run.
-
-    DATA:
-      lt_trkorr           TYPE trwbo_request_headers,
-      lo_transport_zipper TYPE REF TO kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr,
-      lx_except           TYPE REF TO cx_root,
-      lv_folder           TYPE string,
-      lv_text             TYPE string.
-
-    TRY.
-
-        lt_trkorr = kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>select_tr_requests( ).
-
-        IF lt_trkorr[] IS NOT INITIAL.
-
-          lv_folder = kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>f4_folder( ).
-
-          IF lv_folder IS INITIAL.
-* Empty folder
-            zcx_abapgit_exception=>raise( 'Empty destination folder' ).
-          ENDIF.
-
-* Instantiate transport zipper object that will also create the timestamped output folder
-          CREATE OBJECT lo_transport_zipper TYPE kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr
-            EXPORTING
-              iv_folder = lv_folder.
-
-* Generate the local zip files from the given list of transport requests
-          lo_transport_zipper->generate_files(
-            it_trkorr = lt_trkorr
-            ig_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
-
-* Open output folder if user asked it
-          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->get_folder( ) ).
-
-        ELSE.
-* No data found for the provided selection criterias
-          zcx_abapgit_exception=>raise( 'No transport requests selected' ).
-        ENDIF.
-
-      CATCH zcx_abapgit_exception INTO lx_except.
-
-        lv_text = lx_except->get_text( ).
-        MESSAGE lv_text TYPE 'S' DISPLAY LIKE 'E'.
-
-    ENDTRY.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
-  METHOD create.
-    DATA:
-      lv_branch_name     TYPE string,
-      ls_comment         TYPE zif_abapgit_definitions=>ty_comment,
-      lo_stage           TYPE REF TO zcl_abapgit_stage,
-      ls_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files,
-      lt_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt.
-
-    lv_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
-        zcl_abapgit_git_branch_list=>normalize_branch_name( is_transport_to_branch-branch_name ) ).
-
-    io_repository->create_branch( lv_branch_name ).
-
-    CREATE OBJECT lo_stage.
-
-    ls_stage_objects = zcl_abapgit_factory=>get_stage_logic( )->get( io_repository ).
-
-    lt_object_statuses = io_repository->status( ).
-
-    stage_transport_objects(
-       it_transport_objects = it_transport_objects
-       io_stage             = lo_stage
-       is_stage_objects     = ls_stage_objects
-       it_object_statuses   = lt_object_statuses ).
-
-    ls_comment = generate_commit_message( is_transport_to_branch ).
-
-    io_repository->push( is_comment = ls_comment
-                         io_stage   = lo_stage ).
-  ENDMETHOD.
-  METHOD generate_commit_message.
-    rs_comment-committer-name  = sy-uname.
-    rs_comment-committer-email = |{ rs_comment-committer-name }@localhost|.
-    rs_comment-comment         = is_transport_to_branch-commit_text.
-  ENDMETHOD.
-  METHOD stage_transport_objects.
-    DATA lo_transport_objects TYPE REF TO zcl_abapgit_transport_objects.
-    CREATE OBJECT lo_transport_objects
-      EXPORTING
-        it_transport_objects = it_transport_objects.
-
-    lo_transport_objects->to_stage(
-      io_stage           = io_stage
-      is_stage_objects   = is_stage_objects
-      it_object_statuses = it_object_statuses ).
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
-  METHOD add_all_objects_to_trans_req.
-
-    DATA:
-      ls_request      TYPE trwbo_request_header,
-      lt_e071         TYPE tr_objects,
-      lv_text         TYPE string,
-      lv_answer       TYPE c LENGTH 1,
-      lv_lock_objects TYPE trparflag.
-
-    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-                    iv_titlebar              = `Lock objects?`
-                    iv_text_question         = `Shall all objects be locked in the transport request?`
-                    iv_display_cancel_button = abap_true ).
-
-    CASE lv_answer.
-      WHEN '1'.
-        lv_lock_objects = abap_true.
-      WHEN '2'.
-        lv_lock_objects = abap_false.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
-
-    lt_e071 = collect_all_objects( iv_key ).
-
-    CALL FUNCTION 'TR_REQUEST_CHOICE'
-      EXPORTING
-        it_e071              = lt_e071
-        iv_lock_objects      = lv_lock_objects
-      IMPORTING
-        es_request           = ls_request
-      EXCEPTIONS
-        invalid_request      = 1
-        invalid_request_type = 2
-        user_not_owner       = 3
-        no_objects_appended  = 4
-        enqueue_error        = 5
-        cancelled_by_user    = 6
-        recursive_call       = 7
-        OTHERS               = 8.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    lv_text = |Objects successfully added to { ls_request-trkorr }|.
-    MESSAGE lv_text TYPE 'S'.
-
-  ENDMETHOD.
-  METHOD collect_all_objects.
-
-    DATA:
-      lt_objects     TYPE scts_tadir,
-      lt_objects_all LIKE lt_objects,
-      ls_e071        LIKE LINE OF rt_objects,
-      lo_repo        TYPE REF TO zcl_abapgit_repo,
-      lv_package     TYPE zif_abapgit_persistence=>ty_repo-package,
-      lt_packages    TYPE zif_abapgit_sap_package=>ty_devclass_tt.
-
-    FIELD-SYMBOLS:
-      <lv_package> TYPE devclass,
-      <ls_object>  TYPE tadir.
-
-    lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lv_package  = lo_repo->get_package( ).
-    lt_packages = zcl_abapgit_factory=>get_sap_package( lv_package )->list_subpackages( ).
-    INSERT lv_package INTO TABLE lt_packages.
-
-    LOOP AT lt_packages ASSIGNING <lv_package>.
-
-      CLEAR: lt_objects.
-
-      CALL FUNCTION 'TRINT_SELECT_OBJECTS'
-        EXPORTING
-          iv_devclass       = <lv_package>
-          iv_via_selscreen  = abap_false
-        IMPORTING
-          et_objects_tadir  = lt_objects
-        EXCEPTIONS
-          cancelled_by_user = 1
-          invalid_input     = 2
-          OTHERS            = 3.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |FM TRINT_SELECT_OBJECTS subrc={ sy-subrc }| ).
-      ENDIF.
-
-      INSERT LINES OF lt_objects INTO TABLE lt_objects_all.
-
-    ENDLOOP.
-
-    IF lines( lt_objects_all ) = 0.
-      zcx_abapgit_exception=>raise( |No objects found| ).
-    ENDIF.
-
-    LOOP AT lt_objects_all ASSIGNING <ls_object>.
-
-      CLEAR: ls_e071.
-
-      MOVE-CORRESPONDING <ls_object> TO ls_e071.
-      INSERT ls_e071 INTO TABLE rt_objects.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD find_top_package.
-* assumption: all objects in transport share a common super package
-
-    DATA: lt_obj   TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-          lt_super TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-          lv_super LIKE LINE OF lt_super,
-          lv_index TYPE i.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-    READ TABLE it_tadir INDEX 1 ASSIGNING <ls_tadir>.
-    ASSERT sy-subrc = 0.
-    lt_super = zcl_abapgit_factory=>get_sap_package( <ls_tadir>-devclass )->list_superpackages( ).
-
-    LOOP AT it_tadir ASSIGNING <ls_tadir>.
-      lt_obj = zcl_abapgit_factory=>get_sap_package( <ls_tadir>-devclass )->list_superpackages( ).
-
-* filter out possibilities from lt_super
-      LOOP AT lt_super INTO lv_super.
-        lv_index = sy-tabix.
-        READ TABLE lt_obj FROM lv_super TRANSPORTING NO FIELDS.
-        IF sy-subrc <> 0.
-          DELETE lt_super INDEX lv_index.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    READ TABLE lt_super INDEX lines( lt_super ) INTO rv_package.
-  ENDMETHOD.
-  METHOD read_requests.
-    DATA lt_requests LIKE rt_requests.
-    FIELD-SYMBOLS <ls_trkorr> LIKE LINE OF it_trkorr.
-
-    LOOP AT it_trkorr ASSIGNING <ls_trkorr>.
-      CALL FUNCTION 'TR_READ_REQUEST_WITH_TASKS'
-        EXPORTING
-          iv_trkorr     = <ls_trkorr>-trkorr
-        IMPORTING
-          et_requests   = lt_requests
-        EXCEPTIONS
-          invalid_input = 1
-          OTHERS        = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from TR_READ_REQUEST_WITH_TASKS' ).
-      ENDIF.
-
-      APPEND LINES OF lt_requests TO rt_requests.
-    ENDLOOP.
-  ENDMETHOD.
-  METHOD resolve.
-    DATA: lv_object     TYPE tadir-object,
-          lv_obj_name   TYPE tadir-obj_name,
-          lv_trobj_name TYPE trobj_name,
-          ls_tadir      TYPE zif_abapgit_definitions=>ty_tadir.
-
-    FIELD-SYMBOLS: <ls_request> LIKE LINE OF it_requests,
-                   <ls_object>  LIKE LINE OF <ls_request>-objects.
-    LOOP AT it_requests ASSIGNING <ls_request>.
-      LOOP AT <ls_request>-objects ASSIGNING <ls_object>.
-        " VARX, see https://github.com/abapGit/abapGit/issues/3107
-        IF <ls_object>-pgmid = 'LIMU' AND <ls_object>-object <> 'VARX'.
-          CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
-            EXPORTING
-              p_limu_objtype = <ls_object>-object
-              p_limu_objname = <ls_object>-obj_name
-            IMPORTING
-              p_r3tr_objtype = lv_object
-              p_r3tr_objname = lv_trobj_name
-            EXCEPTIONS
-              no_mapping     = 1
-              OTHERS         = 2.
-          IF sy-subrc <> 0.
-            zcx_abapgit_exception=>raise( 'error from GET_R3TR_OBJECT_FROM_LIMU_OBJ' ).
-          ENDIF.
-          lv_obj_name = lv_trobj_name.
-        ELSE.
-          lv_object   = <ls_object>-object.
-          lv_obj_name = <ls_object>-obj_name.
-        ENDIF.
-
-        ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
-          iv_object   = lv_object
-          iv_obj_name = lv_obj_name ).
-
-        APPEND ls_tadir TO rt_tadir.
-      ENDLOOP.
-    ENDLOOP.
-
-    SORT rt_tadir BY object ASCENDING obj_name ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM rt_tadir COMPARING object obj_name.
-    DELETE rt_tadir WHERE table_line IS INITIAL.
-  ENDMETHOD.
-  METHOD to_tadir.
-    DATA: lt_requests TYPE trwbo_requests.
-    IF lines( it_transport_headers ) = 0.
-      RETURN.
-    ENDIF.
-
-    lt_requests = read_requests( it_transport_headers ).
-    rt_tadir = resolve( lt_requests ).
-  ENDMETHOD.
-  METHOD zip.
-
-    DATA: lt_requests       TYPE trwbo_requests,
-          lt_tadir          TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lv_package        TYPE devclass,
-          lo_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit,
-          ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lo_repo           TYPE REF TO zcl_abapgit_repo_offline,
-          lt_trkorr         TYPE trwbo_request_headers.
-    IF is_trkorr IS SUPPLIED.
-      APPEND is_trkorr TO lt_trkorr.
-    ELSE.
-      lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
-    ENDIF.
-
-    IF lines( lt_trkorr ) = 0.
-      RETURN.
-    ENDIF.
-
-    lt_requests = read_requests( lt_trkorr ).
-    lt_tadir = resolve( lt_requests ).
-    IF lines( lt_tadir ) = 0.
-      zcx_abapgit_exception=>raise( 'empty transport' ).
-    ENDIF.
-
-    lv_package = find_top_package( lt_tadir ).
-    IF lv_package IS INITIAL.
-      zcx_abapgit_exception=>raise( 'error finding super package' ).
-    ENDIF.
-
-    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
-    IF iv_logic IS SUPPLIED AND iv_logic IS NOT INITIAL.
-      lo_dot_abapgit->set_folder_logic( iv_logic ).
-    ELSE.
-      lo_dot_abapgit->set_folder_logic( zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
-    ENDIF.
-
-    rv_xstr = zcl_abapgit_zip=>export(
-      iv_package        = lv_package
-      io_dot_abapgit    = lo_dot_abapgit
-      is_local_settings = ls_local_settings
-      it_filter         = lt_tadir
-      iv_show_log       = iv_show_log_popup ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -24690,261 +24003,6 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
-  METHOD clear.
-
-    CALL FUNCTION 'TR_TASK_RESET'
-      EXPORTING
-        iv_username      = is_default_task-username
-        iv_order         = is_default_task-ordernum
-        iv_task          = is_default_task-tasknum
-        iv_dialog        = abap_false
-      EXCEPTIONS
-        invalid_username = 1
-        invalid_order    = 2
-        invalid_task     = 3
-        OTHERS           = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_RESET. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    store( ).
-
-  ENDMETHOD.
-  METHOD get.
-
-    DATA: lt_e070use TYPE STANDARD TABLE OF e070use.
-
-    CALL FUNCTION 'TR_TASK_GET'
-      TABLES
-        tt_e070use       = lt_e070use
-      EXCEPTIONS
-        invalid_username = 1
-        invalid_category = 2
-        invalid_client   = 3
-        OTHERS           = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_GET. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-    READ TABLE lt_e070use INTO rs_default_task
-                          INDEX 1.
-
-  ENDMETHOD.
-  METHOD get_instance.
-
-    IF go_instance IS NOT BOUND.
-      CREATE OBJECT go_instance.
-    ENDIF.
-
-    ro_instance = go_instance.
-
-  ENDMETHOD.
-  METHOD reset.
-
-    DATA: ls_default_task TYPE e070use.
-
-    IF mv_is_set_by_abapgit = abap_false.
-      " if the default transport request task isn't set
-      " by us there is nothing to do.
-      RETURN.
-    ENDIF.
-
-    CLEAR mv_is_set_by_abapgit.
-
-    ls_default_task = get( ).
-
-    IF ls_default_task IS NOT INITIAL.
-
-      clear( ls_default_task ).
-
-    ENDIF.
-
-    restore( ).
-
-  ENDMETHOD.
-  METHOD restore.
-
-    IF ms_save IS INITIAL.
-      " There wasn't a default transport request before
-      " so we needn't restore anything.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'TR_TASK_SET'
-      EXPORTING
-        iv_order          = ms_save-ordernum
-        iv_task           = ms_save-tasknum
-      EXCEPTIONS
-        invalid_username  = 1
-        invalid_category  = 2
-        invalid_client    = 3
-        invalid_validdays = 4
-        invalid_order     = 5
-        invalid_task      = 6
-        OTHERS            = 7.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD set.
-
-    " checks whether object changes of the package are rerorded in transport
-    " requests. If true then we set the default task, so that no annoying
-    " transport request popups are shown while deserializing.
-
-    IF mv_is_set_by_abapgit = abap_true.
-      " the default transport request task is already set by us
-      " -> no reason to do it again.
-      RETURN.
-    ENDIF.
-
-    IF iv_transport IS INITIAL.
-      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
-    ENDIF.
-
-    set_internal( iv_transport ).
-
-    mv_is_set_by_abapgit = abap_true.
-
-  ENDMETHOD.
-  METHOD set_internal.
-
-    CALL FUNCTION 'TR_TASK_SET'
-      EXPORTING
-        iv_order          = iv_transport
-        iv_validdays      = 1
-      EXCEPTIONS
-        invalid_username  = 1
-        invalid_category  = 2
-        invalid_client    = 3
-        invalid_validdays = 4
-        invalid_order     = 5
-        invalid_task      = 6
-        OTHERS            = 7.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD store.
-
-    ms_save = get( ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_cts_api IMPLEMENTATION.
-  METHOD zif_abapgit_cts_api~get_current_transport_for_obj.
-    DATA: lv_object_lockable   TYPE abap_bool,
-          lv_locked            TYPE abap_bool,
-          lv_transport_request TYPE trkorr,
-          lv_task              TYPE trkorr,
-          lv_tr_object_name    TYPE trobj_name.
-
-    lv_tr_object_name = iv_object_name.
-
-    CALL FUNCTION 'TR_CHECK_OBJECT_LOCK'
-      EXPORTING
-        wi_pgmid             = iv_program_id
-        wi_object            = iv_object_type
-        wi_objname           = lv_tr_object_name
-      IMPORTING
-        we_lockable_object   = lv_object_lockable
-        we_locked            = lv_locked
-        we_lock_order        = lv_transport_request
-        we_lock_task         = lv_task
-      EXCEPTIONS
-        empty_key            = 1
-        no_systemname        = 2
-        no_systemtype        = 3
-        unallowed_lock_order = 4
-        OTHERS               = 5.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    IF lv_locked = abap_false.
-      zcx_abapgit_exception=>raise( |Object { iv_program_id }-{ iv_object_type }-{ iv_object_name } is not locked| ).
-    ENDIF.
-
-    IF lv_object_lockable = abap_false.
-      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
-    ENDIF.
-
-    IF lv_task IS NOT INITIAL AND lv_task <> lv_transport_request AND iv_resolve_task_to_request = abap_false.
-      rv_transport = lv_task.
-    ELSE.
-      rv_transport = lv_transport_request.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_cts_api~is_object_locked_in_transport.
-    DATA: ls_object_key        TYPE e071,
-          lv_type_check_result TYPE c LENGTH 1,
-          ls_lock_key          TYPE tlock_int,
-          lv_lock_flag         TYPE c LENGTH 1.
-
-    ls_object_key-pgmid = iv_program_id.
-    ls_object_key-object = iv_object_type.
-    ls_object_key-obj_name = iv_object_name.
-
-    CALL FUNCTION 'TR_CHECK_TYPE'
-      EXPORTING
-        wi_e071     = ls_object_key
-      IMPORTING
-        pe_result   = lv_type_check_result
-        we_lock_key = ls_lock_key.
-
-    IF lv_type_check_result <> 'L'.
-      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
-    ENDIF.
-
-    CALL FUNCTION 'TRINT_CHECK_LOCKS'
-      EXPORTING
-        wi_lock_key = ls_lock_key
-      IMPORTING
-        we_lockflag = lv_lock_flag
-      EXCEPTIONS
-        empty_key   = 1
-        OTHERS      = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |TRINT_CHECK_LOCKS: { sy-subrc }| ).
-    ENDIF.
-
-    rv_locked = boolc( lv_lock_flag <> space ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_cts_api~is_object_type_lockable.
-    DATA: ls_object_key        TYPE e071,
-          lv_type_check_result TYPE c LENGTH 1.
-
-    ls_object_key-pgmid = iv_program_id.
-    ls_object_key-object = iv_object_type.
-    ls_object_key-obj_name = '_'. " Dummy value #2071
-
-    CALL FUNCTION 'TR_CHECK_TYPE'
-      EXPORTING
-        wi_e071   = ls_object_key
-      IMPORTING
-        pe_result = lv_type_check_result.
-
-    rv_lockable = boolc( lv_type_check_result = 'L' ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_cts_api~is_chrec_possible_for_package.
-    rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -93771,6 +92829,948 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
+  METHOD constructor.
+    mt_transport_objects = it_transport_objects.
+  ENDMETHOD.
+  METHOD to_stage.
+    DATA: ls_transport_object LIKE LINE OF mt_transport_objects,
+          ls_local_file       TYPE zif_abapgit_definitions=>ty_file_item,
+          ls_object_status    TYPE zif_abapgit_definitions=>ty_result.
+
+    LOOP AT mt_transport_objects INTO ls_transport_object.
+      LOOP AT it_object_statuses INTO ls_object_status
+          WHERE obj_name = ls_transport_object-obj_name
+          AND obj_type = ls_transport_object-object
+          AND NOT lstate IS INITIAL.
+
+        CASE ls_object_status-lstate.
+          WHEN zif_abapgit_definitions=>c_state-added OR zif_abapgit_definitions=>c_state-modified.
+            IF ls_transport_object-delflag = abap_true.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+                } should be added/modified, but has deletion flag in transport| ).
+            ENDIF.
+
+            READ TABLE is_stage_objects-local
+                  INTO ls_local_file
+              WITH KEY item-obj_name = ls_transport_object-obj_name
+                       item-obj_type = ls_transport_object-object
+                       file-filename = ls_object_status-filename.
+            IF sy-subrc <> 0.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+                } not found in the local repository files| ).
+            ELSE.
+              io_stage->add(
+                iv_path     = ls_local_file-file-path
+                iv_filename = ls_local_file-file-filename
+                iv_data     = ls_local_file-file-data ).
+            ENDIF.
+          WHEN zif_abapgit_definitions=>c_state-deleted.
+* SUSC, see https://github.com/abapGit/abapGit/issues/2772
+            IF ls_transport_object-delflag = abap_false
+                AND ls_transport_object-object <> 'SUSC'
+                AND ls_transport_object-object <> 'IWOM'
+                AND ls_transport_object-object <> 'IWMO'
+                AND ls_transport_object-object <> 'IWSG'
+                AND ls_transport_object-object <> 'IWSV'.
+              zcx_abapgit_exception=>raise( |Object { ls_transport_object-obj_name
+                } should be removed, but has NO deletion flag in transport| ).
+            ENDIF.
+            io_stage->rm(
+              iv_path     = ls_object_status-path
+              iv_filename = ls_object_status-filename ).
+          WHEN OTHERS.
+            ASSERT 0 = 1. "Unexpected state
+        ENDCASE.
+      ENDLOOP.
+      IF sy-subrc <> 0.
+        " Since not all objects in a transport might be in the local repo
+        " i.e generated SADL objects, we don't add these objects to
+        " the stage.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION DEFERRED.
+CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih DEFINITION DEFERRED.
+* renamed: zcl_abapgit_transport_mass :: lcl_gui
+CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih DEFINITION FINAL.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS f4_folder RETURNING VALUE(rv_folder) TYPE string RAISING zcx_abapgit_exception.
+    CLASS-METHODS open_folder_frontend IMPORTING iv_folder TYPE string.
+    CLASS-METHODS select_tr_requests RETURNING VALUE(rt_trkorr) TYPE trwbo_request_headers.
+
+  PRIVATE SECTION.
+    CLASS-DATA: gv_last_folder TYPE string.
+
+ENDCLASS.
+
+CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih IMPLEMENTATION.
+
+  METHOD f4_folder.
+
+    DATA: lv_title  TYPE string.
+
+    lv_title = 'Choose the destination folder for the ZIP files'.
+
+    cl_gui_frontend_services=>directory_browse(
+      EXPORTING
+        window_title         = lv_title
+        initial_folder       = gv_last_folder
+      CHANGING
+        selected_folder      = rv_folder
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+
+    IF sy-subrc = 0.
+      gv_last_folder = rv_folder. "Store the last directory for user friendly UI
+    ELSE.
+      zcx_abapgit_exception=>raise( 'Folder matchcode exception' ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD open_folder_frontend.
+
+    IF NOT iv_folder IS INITIAL.
+
+      cl_gui_frontend_services=>execute(
+        EXPORTING
+          document               = iv_folder
+        EXCEPTIONS
+          cntl_error             = 1
+          error_no_gui           = 2
+          bad_parameter          = 3
+          file_not_found         = 4
+          path_not_found         = 5
+          file_extension_unknown = 6
+          error_execute_failed   = 7
+          OTHERS                 = 8 ).
+      IF sy-subrc <> 0.
+        MESSAGE 'Problem when opening output folder' TYPE 'S' DISPLAY LIKE 'E'.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD select_tr_requests.
+
+    DATA: ls_popup     TYPE strhi_popup,
+          ls_selection TYPE trwbo_selection.
+
+    ls_popup-start_column = 5.
+    ls_popup-start_row    = 5.
+
+*- Prepare the selection ----------------------------------------------*
+    ls_selection-trkorrpattern = space.
+    ls_selection-client        = space.
+    ls_selection-stdrequest    = space.
+    ls_selection-reqfunctions  = 'K'.
+    ls_selection-reqstatus     = 'RNODL'.
+
+*- Call transport selection popup -------------------------------------*
+    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
+      EXPORTING
+        iv_username_pattern    = '*'
+        iv_via_selscreen       = 'X'
+        is_selection           = ls_selection
+        iv_complete_projects   = space
+        iv_title               = 'ABAPGit Transport Mass Downloader'
+        is_popup               = ls_popup
+      IMPORTING
+        et_requests            = rt_trkorr
+      EXCEPTIONS
+        action_aborted_by_user = 1
+        OTHERS                 = 2.
+    IF sy-subrc <> 0.
+      CLEAR rt_trkorr.
+    ELSE.
+      SORT rt_trkorr BY trkorr.
+      DELETE ADJACENT DUPLICATES FROM rt_trkorr COMPARING trkorr.
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+* renamed: zcl_abapgit_transport_mass :: lcl_transport_zipper
+CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
+
+  PUBLIC SECTION.
+    TYPES ty_folder TYPE string.
+    TYPES ty_filename TYPE string.
+
+* File extension
+    CONSTANTS gc_zip_ext TYPE string VALUE '.zip'.
+
+    METHODS constructor  IMPORTING iv_folder TYPE ty_folder
+                         RAISING   zcx_abapgit_exception.
+
+    METHODS generate_files IMPORTING it_trkorr TYPE trwbo_request_headers
+                                     ig_logic  TYPE any
+                           RAISING   zcx_abapgit_exception.
+
+    METHODS get_folder RETURNING VALUE(rv_full_folder) TYPE ty_folder.
+
+    CLASS-METHODS does_folder_exist IMPORTING iv_folder              TYPE string
+                                    RETURNING VALUE(rv_folder_exist) TYPE abap_bool
+                                    RAISING   zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA: mv_timestamp   TYPE string,
+          mv_separator   TYPE c,
+          mv_full_folder TYPE ty_folder.
+
+    METHODS get_full_folder IMPORTING iv_folder             TYPE ty_folder
+                            RETURNING VALUE(rv_full_folder) TYPE ty_folder
+                            RAISING   zcx_abapgit_exception.
+
+    METHODS get_filename IMPORTING is_trkorr          TYPE trwbo_request_header
+                         RETURNING VALUE(rv_filename) TYPE ty_filename.
+
+ENDCLASS.
+
+CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
+
+  METHOD constructor.
+
+    CONCATENATE sy-datlo sy-timlo INTO mv_timestamp SEPARATED BY '_'.
+
+    mv_full_folder = get_full_folder( iv_folder = iv_folder ).
+
+    cl_gui_frontend_services=>get_file_separator(
+      CHANGING
+        file_separator       = mv_separator
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      mv_separator = '\'. "Default MS Windows separator
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_folder.
+    rv_full_folder = mv_full_folder.
+  ENDMETHOD.
+
+  METHOD does_folder_exist.
+
+    cl_gui_frontend_services=>directory_exist(
+      EXPORTING
+        directory            = iv_folder
+      RECEIVING
+        result               = rv_folder_exist
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        wrong_parameter      = 3
+        not_supported_by_gui = 4
+        OTHERS               = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from cl_gui_frontend_services=>directory_exist' ).
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_full_folder.
+
+    DATA: lv_sep TYPE c,
+          lv_rc  TYPE i.
+
+*-obtain file separator character---------------------------------------
+    cl_gui_frontend_services=>get_file_separator(
+      CHANGING
+        file_separator       = lv_sep
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Internal error getting file separator' ).
+    ENDIF.
+
+    CONCATENATE iv_folder
+                mv_timestamp
+           INTO rv_full_folder SEPARATED BY lv_sep.
+
+    IF does_folder_exist( iv_folder = rv_full_folder ) = abap_false.
+
+      cl_gui_frontend_services=>directory_create(
+        EXPORTING
+          directory                = rv_full_folder
+        CHANGING
+          rc                       = lv_rc    " Return Code
+        EXCEPTIONS
+          directory_create_failed  = 1
+          cntl_error               = 2
+          error_no_gui             = 3
+          directory_access_denied  = 4
+          directory_already_exists = 5
+          path_not_found           = 6
+          unknown_error            = 7
+          not_supported_by_gui     = 8
+          wrong_parameter          = 9
+          OTHERS                   = 10 ).
+      IF sy-subrc <> 0 AND sy-subrc <> 5.
+        zcx_abapgit_exception=>raise( 'Error from cl_gui_frontend_services=>directory_create' ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_filename.
+
+* Generate filename
+    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' mv_timestamp gc_zip_ext
+      INTO rv_filename.
+
+* Remove reserved characters (for Windows based systems)
+    TRANSLATE rv_filename USING '/ \ : " * > < ? | '.
+
+    CONCATENATE mv_full_folder rv_filename INTO rv_filename SEPARATED BY mv_separator.
+
+  ENDMETHOD.
+
+  METHOD generate_files.
+
+    DATA: ls_trkorr       LIKE LINE OF it_trkorr,
+          lv_zipbinstring TYPE xstring.
+
+    LOOP AT it_trkorr INTO ls_trkorr.
+
+      lv_zipbinstring = zcl_abapgit_transport_mass=>zip( is_trkorr         = ls_trkorr
+                                                         iv_logic          = ig_logic
+                                                         iv_show_log_popup = abap_false ).
+
+      zcl_abapgit_zip=>save_binstring_to_localfile( iv_binstring = lv_zipbinstring
+                                                    iv_filename  = get_filename( ls_trkorr ) ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_transport_mass IMPLEMENTATION.
+  METHOD run.
+
+    DATA:
+      lt_trkorr           TYPE trwbo_request_headers,
+      lo_transport_zipper TYPE REF TO kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr,
+      lx_except           TYPE REF TO cx_root,
+      lv_folder           TYPE string,
+      lv_text             TYPE string.
+
+    TRY.
+
+        lt_trkorr = kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>select_tr_requests( ).
+
+        IF lt_trkorr[] IS NOT INITIAL.
+
+          lv_folder = kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>f4_folder( ).
+
+          IF lv_folder IS INITIAL.
+* Empty folder
+            zcx_abapgit_exception=>raise( 'Empty destination folder' ).
+          ENDIF.
+
+* Instantiate transport zipper object that will also create the timestamped output folder
+          CREATE OBJECT lo_transport_zipper TYPE kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr
+            EXPORTING
+              iv_folder = lv_folder.
+
+* Generate the local zip files from the given list of transport requests
+          lo_transport_zipper->generate_files(
+            it_trkorr = lt_trkorr
+            ig_logic  = zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
+
+* Open output folder if user asked it
+          kHGwlFZZSwYWAxVpEdIbTqkphOFmih=>open_folder_frontend( lo_transport_zipper->get_folder( ) ).
+
+        ELSE.
+* No data found for the provided selection criterias
+          zcx_abapgit_exception=>raise( 'No transport requests selected' ).
+        ENDIF.
+
+      CATCH zcx_abapgit_exception INTO lx_except.
+
+        lv_text = lx_except->get_text( ).
+        MESSAGE lv_text TYPE 'S' DISPLAY LIKE 'E'.
+
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
+  METHOD create.
+    DATA:
+      lv_branch_name     TYPE string,
+      ls_comment         TYPE zif_abapgit_definitions=>ty_comment,
+      lo_stage           TYPE REF TO zcl_abapgit_stage,
+      ls_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files,
+      lt_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt.
+
+    lv_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
+        zcl_abapgit_git_branch_list=>normalize_branch_name( is_transport_to_branch-branch_name ) ).
+
+    io_repository->create_branch( lv_branch_name ).
+
+    CREATE OBJECT lo_stage.
+
+    ls_stage_objects = zcl_abapgit_factory=>get_stage_logic( )->get( io_repository ).
+
+    lt_object_statuses = io_repository->status( ).
+
+    stage_transport_objects(
+       it_transport_objects = it_transport_objects
+       io_stage             = lo_stage
+       is_stage_objects     = ls_stage_objects
+       it_object_statuses   = lt_object_statuses ).
+
+    ls_comment = generate_commit_message( is_transport_to_branch ).
+
+    io_repository->push( is_comment = ls_comment
+                         io_stage   = lo_stage ).
+  ENDMETHOD.
+  METHOD generate_commit_message.
+    rs_comment-committer-name  = sy-uname.
+    rs_comment-committer-email = |{ rs_comment-committer-name }@localhost|.
+    rs_comment-comment         = is_transport_to_branch-commit_text.
+  ENDMETHOD.
+  METHOD stage_transport_objects.
+    DATA lo_transport_objects TYPE REF TO zcl_abapgit_transport_objects.
+    CREATE OBJECT lo_transport_objects
+      EXPORTING
+        it_transport_objects = it_transport_objects.
+
+    lo_transport_objects->to_stage(
+      io_stage           = io_stage
+      is_stage_objects   = is_stage_objects
+      it_object_statuses = it_object_statuses ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
+  METHOD add_all_objects_to_trans_req.
+
+    DATA:
+      ls_request      TYPE trwbo_request_header,
+      lt_e071         TYPE tr_objects,
+      lv_text         TYPE string,
+      lv_answer       TYPE c LENGTH 1,
+      lv_lock_objects TYPE trparflag.
+
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+                    iv_titlebar              = `Lock objects?`
+                    iv_text_question         = `Shall all objects be locked in the transport request?`
+                    iv_display_cancel_button = abap_true ).
+
+    CASE lv_answer.
+      WHEN '1'.
+        lv_lock_objects = abap_true.
+      WHEN '2'.
+        lv_lock_objects = abap_false.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+
+    lt_e071 = collect_all_objects( iv_key ).
+
+    CALL FUNCTION 'TR_REQUEST_CHOICE'
+      EXPORTING
+        it_e071              = lt_e071
+        iv_lock_objects      = lv_lock_objects
+      IMPORTING
+        es_request           = ls_request
+      EXCEPTIONS
+        invalid_request      = 1
+        invalid_request_type = 2
+        user_not_owner       = 3
+        no_objects_appended  = 4
+        enqueue_error        = 5
+        cancelled_by_user    = 6
+        recursive_call       = 7
+        OTHERS               = 8.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    lv_text = |Objects successfully added to { ls_request-trkorr }|.
+    MESSAGE lv_text TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD collect_all_objects.
+
+    DATA:
+      lt_objects     TYPE scts_tadir,
+      lt_objects_all LIKE lt_objects,
+      ls_e071        LIKE LINE OF rt_objects,
+      lo_repo        TYPE REF TO zcl_abapgit_repo,
+      lv_package     TYPE zif_abapgit_persistence=>ty_repo-package,
+      lt_packages    TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    FIELD-SYMBOLS:
+      <lv_package> TYPE devclass,
+      <ls_object>  TYPE tadir.
+
+    lo_repo     = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    lv_package  = lo_repo->get_package( ).
+    lt_packages = zcl_abapgit_factory=>get_sap_package( lv_package )->list_subpackages( ).
+    INSERT lv_package INTO TABLE lt_packages.
+
+    LOOP AT lt_packages ASSIGNING <lv_package>.
+
+      CLEAR: lt_objects.
+
+      CALL FUNCTION 'TRINT_SELECT_OBJECTS'
+        EXPORTING
+          iv_devclass       = <lv_package>
+          iv_via_selscreen  = abap_false
+        IMPORTING
+          et_objects_tadir  = lt_objects
+        EXCEPTIONS
+          cancelled_by_user = 1
+          invalid_input     = 2
+          OTHERS            = 3.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |FM TRINT_SELECT_OBJECTS subrc={ sy-subrc }| ).
+      ENDIF.
+
+      INSERT LINES OF lt_objects INTO TABLE lt_objects_all.
+
+    ENDLOOP.
+
+    IF lines( lt_objects_all ) = 0.
+      zcx_abapgit_exception=>raise( |No objects found| ).
+    ENDIF.
+
+    LOOP AT lt_objects_all ASSIGNING <ls_object>.
+
+      CLEAR: ls_e071.
+
+      MOVE-CORRESPONDING <ls_object> TO ls_e071.
+      INSERT ls_e071 INTO TABLE rt_objects.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD find_top_package.
+* assumption: all objects in transport share a common super package
+
+    DATA: lt_obj   TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+          lt_super TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+          lv_super LIKE LINE OF lt_super,
+          lv_index TYPE i.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
+    READ TABLE it_tadir INDEX 1 ASSIGNING <ls_tadir>.
+    ASSERT sy-subrc = 0.
+    lt_super = zcl_abapgit_factory=>get_sap_package( <ls_tadir>-devclass )->list_superpackages( ).
+
+    LOOP AT it_tadir ASSIGNING <ls_tadir>.
+      lt_obj = zcl_abapgit_factory=>get_sap_package( <ls_tadir>-devclass )->list_superpackages( ).
+
+* filter out possibilities from lt_super
+      LOOP AT lt_super INTO lv_super.
+        lv_index = sy-tabix.
+        READ TABLE lt_obj FROM lv_super TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0.
+          DELETE lt_super INDEX lv_index.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    READ TABLE lt_super INDEX lines( lt_super ) INTO rv_package.
+  ENDMETHOD.
+  METHOD read_requests.
+    DATA lt_requests LIKE rt_requests.
+    FIELD-SYMBOLS <ls_trkorr> LIKE LINE OF it_trkorr.
+
+    LOOP AT it_trkorr ASSIGNING <ls_trkorr>.
+      CALL FUNCTION 'TR_READ_REQUEST_WITH_TASKS'
+        EXPORTING
+          iv_trkorr     = <ls_trkorr>-trkorr
+        IMPORTING
+          et_requests   = lt_requests
+        EXCEPTIONS
+          invalid_input = 1
+          OTHERS        = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from TR_READ_REQUEST_WITH_TASKS' ).
+      ENDIF.
+
+      APPEND LINES OF lt_requests TO rt_requests.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD resolve.
+    DATA: lv_object     TYPE tadir-object,
+          lv_obj_name   TYPE tadir-obj_name,
+          lv_trobj_name TYPE trobj_name,
+          ls_tadir      TYPE zif_abapgit_definitions=>ty_tadir.
+
+    FIELD-SYMBOLS: <ls_request> LIKE LINE OF it_requests,
+                   <ls_object>  LIKE LINE OF <ls_request>-objects.
+    LOOP AT it_requests ASSIGNING <ls_request>.
+      LOOP AT <ls_request>-objects ASSIGNING <ls_object>.
+        " VARX, see https://github.com/abapGit/abapGit/issues/3107
+        IF <ls_object>-pgmid = 'LIMU' AND <ls_object>-object <> 'VARX'.
+          CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
+            EXPORTING
+              p_limu_objtype = <ls_object>-object
+              p_limu_objname = <ls_object>-obj_name
+            IMPORTING
+              p_r3tr_objtype = lv_object
+              p_r3tr_objname = lv_trobj_name
+            EXCEPTIONS
+              no_mapping     = 1
+              OTHERS         = 2.
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise( 'error from GET_R3TR_OBJECT_FROM_LIMU_OBJ' ).
+          ENDIF.
+          lv_obj_name = lv_trobj_name.
+        ELSE.
+          lv_object   = <ls_object>-object.
+          lv_obj_name = <ls_object>-obj_name.
+        ENDIF.
+
+        ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
+          iv_object   = lv_object
+          iv_obj_name = lv_obj_name ).
+
+        APPEND ls_tadir TO rt_tadir.
+      ENDLOOP.
+    ENDLOOP.
+
+    SORT rt_tadir BY object ASCENDING obj_name ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM rt_tadir COMPARING object obj_name.
+    DELETE rt_tadir WHERE table_line IS INITIAL.
+  ENDMETHOD.
+  METHOD to_tadir.
+    DATA: lt_requests TYPE trwbo_requests.
+    IF lines( it_transport_headers ) = 0.
+      RETURN.
+    ENDIF.
+
+    lt_requests = read_requests( it_transport_headers ).
+    rt_tadir = resolve( lt_requests ).
+  ENDMETHOD.
+  METHOD zip.
+
+    DATA: lt_requests       TYPE trwbo_requests,
+          lt_tadir          TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lv_package        TYPE devclass,
+          lo_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit,
+          ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          lo_repo           TYPE REF TO zcl_abapgit_repo_offline,
+          lt_trkorr         TYPE trwbo_request_headers.
+    IF is_trkorr IS SUPPLIED.
+      APPEND is_trkorr TO lt_trkorr.
+    ELSE.
+      lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
+    ENDIF.
+
+    IF lines( lt_trkorr ) = 0.
+      RETURN.
+    ENDIF.
+
+    lt_requests = read_requests( lt_trkorr ).
+    lt_tadir = resolve( lt_requests ).
+    IF lines( lt_tadir ) = 0.
+      zcx_abapgit_exception=>raise( 'empty transport' ).
+    ENDIF.
+
+    lv_package = find_top_package( lt_tadir ).
+    IF lv_package IS INITIAL.
+      zcx_abapgit_exception=>raise( 'error finding super package' ).
+    ENDIF.
+
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
+    IF iv_logic IS SUPPLIED AND iv_logic IS NOT INITIAL.
+      lo_dot_abapgit->set_folder_logic( iv_logic ).
+    ELSE.
+      lo_dot_abapgit->set_folder_logic( zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
+    ENDIF.
+
+    rv_xstr = zcl_abapgit_zip=>export(
+      iv_package        = lv_package
+      io_dot_abapgit    = lo_dot_abapgit
+      is_local_settings = ls_local_settings
+      it_filter         = lt_tadir
+      iv_show_log       = iv_show_log_popup ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
+  METHOD clear.
+
+    CALL FUNCTION 'TR_TASK_RESET'
+      EXPORTING
+        iv_username      = is_default_task-username
+        iv_order         = is_default_task-ordernum
+        iv_task          = is_default_task-tasknum
+        iv_dialog        = abap_false
+      EXCEPTIONS
+        invalid_username = 1
+        invalid_order    = 2
+        invalid_task     = 3
+        OTHERS           = 4.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_RESET. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    store( ).
+
+  ENDMETHOD.
+  METHOD get.
+
+    DATA: lt_e070use TYPE STANDARD TABLE OF e070use.
+
+    CALL FUNCTION 'TR_TASK_GET'
+      TABLES
+        tt_e070use       = lt_e070use
+      EXCEPTIONS
+        invalid_username = 1
+        invalid_category = 2
+        invalid_client   = 3
+        OTHERS           = 4.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_GET. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+    READ TABLE lt_e070use INTO rs_default_task
+                          INDEX 1.
+
+  ENDMETHOD.
+  METHOD get_instance.
+
+    IF go_instance IS NOT BOUND.
+      CREATE OBJECT go_instance.
+    ENDIF.
+
+    ro_instance = go_instance.
+
+  ENDMETHOD.
+  METHOD reset.
+
+    DATA: ls_default_task TYPE e070use.
+
+    IF mv_is_set_by_abapgit = abap_false.
+      " if the default transport request task isn't set
+      " by us there is nothing to do.
+      RETURN.
+    ENDIF.
+
+    CLEAR mv_is_set_by_abapgit.
+
+    ls_default_task = get( ).
+
+    IF ls_default_task IS NOT INITIAL.
+
+      clear( ls_default_task ).
+
+    ENDIF.
+
+    restore( ).
+
+  ENDMETHOD.
+  METHOD restore.
+
+    IF ms_save IS INITIAL.
+      " There wasn't a default transport request before
+      " so we needn't restore anything.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'TR_TASK_SET'
+      EXPORTING
+        iv_order          = ms_save-ordernum
+        iv_task           = ms_save-tasknum
+      EXCEPTIONS
+        invalid_username  = 1
+        invalid_category  = 2
+        invalid_client    = 3
+        invalid_validdays = 4
+        invalid_order     = 5
+        invalid_task      = 6
+        OTHERS            = 7.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD set.
+
+    " checks whether object changes of the package are rerorded in transport
+    " requests. If true then we set the default task, so that no annoying
+    " transport request popups are shown while deserializing.
+
+    IF mv_is_set_by_abapgit = abap_true.
+      " the default transport request task is already set by us
+      " -> no reason to do it again.
+      RETURN.
+    ENDIF.
+
+    IF iv_transport IS INITIAL.
+      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
+    ENDIF.
+
+    set_internal( iv_transport ).
+
+    mv_is_set_by_abapgit = abap_true.
+
+  ENDMETHOD.
+  METHOD set_internal.
+
+    CALL FUNCTION 'TR_TASK_SET'
+      EXPORTING
+        iv_order          = iv_transport
+        iv_validdays      = 1
+      EXCEPTIONS
+        invalid_username  = 1
+        invalid_category  = 2
+        invalid_client    = 3
+        invalid_validdays = 4
+        invalid_order     = 5
+        invalid_task      = 6
+        OTHERS            = 7.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD store.
+
+    ms_save = get( ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_cts_api IMPLEMENTATION.
+  METHOD zif_abapgit_cts_api~get_current_transport_for_obj.
+    DATA: lv_object_lockable   TYPE abap_bool,
+          lv_locked            TYPE abap_bool,
+          lv_transport_request TYPE trkorr,
+          lv_task              TYPE trkorr,
+          lv_tr_object_name    TYPE trobj_name.
+
+    lv_tr_object_name = iv_object_name.
+
+    CALL FUNCTION 'TR_CHECK_OBJECT_LOCK'
+      EXPORTING
+        wi_pgmid             = iv_program_id
+        wi_object            = iv_object_type
+        wi_objname           = lv_tr_object_name
+      IMPORTING
+        we_lockable_object   = lv_object_lockable
+        we_locked            = lv_locked
+        we_lock_order        = lv_transport_request
+        we_lock_task         = lv_task
+      EXCEPTIONS
+        empty_key            = 1
+        no_systemname        = 2
+        no_systemtype        = 3
+        unallowed_lock_order = 4
+        OTHERS               = 5.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    IF lv_locked = abap_false.
+      zcx_abapgit_exception=>raise( |Object { iv_program_id }-{ iv_object_type }-{ iv_object_name } is not locked| ).
+    ENDIF.
+
+    IF lv_object_lockable = abap_false.
+      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
+    ENDIF.
+
+    IF lv_task IS NOT INITIAL AND lv_task <> lv_transport_request AND iv_resolve_task_to_request = abap_false.
+      rv_transport = lv_task.
+    ELSE.
+      rv_transport = lv_transport_request.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_object_locked_in_transport.
+    DATA: ls_object_key        TYPE e071,
+          lv_type_check_result TYPE c LENGTH 1,
+          ls_lock_key          TYPE tlock_int,
+          lv_lock_flag         TYPE c LENGTH 1.
+
+    ls_object_key-pgmid = iv_program_id.
+    ls_object_key-object = iv_object_type.
+    ls_object_key-obj_name = iv_object_name.
+
+    CALL FUNCTION 'TR_CHECK_TYPE'
+      EXPORTING
+        wi_e071     = ls_object_key
+      IMPORTING
+        pe_result   = lv_type_check_result
+        we_lock_key = ls_lock_key.
+
+    IF lv_type_check_result <> 'L'.
+      zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
+    ENDIF.
+
+    CALL FUNCTION 'TRINT_CHECK_LOCKS'
+      EXPORTING
+        wi_lock_key = ls_lock_key
+      IMPORTING
+        we_lockflag = lv_lock_flag
+      EXCEPTIONS
+        empty_key   = 1
+        OTHERS      = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |TRINT_CHECK_LOCKS: { sy-subrc }| ).
+    ENDIF.
+
+    rv_locked = boolc( lv_lock_flag <> space ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_object_type_lockable.
+    DATA: ls_object_key        TYPE e071,
+          lv_type_check_result TYPE c LENGTH 1.
+
+    ls_object_key-pgmid = iv_program_id.
+    ls_object_key-object = iv_object_type.
+    ls_object_key-obj_name = '_'. " Dummy value #2071
+
+    CALL FUNCTION 'TR_CHECK_TYPE'
+      EXPORTING
+        wi_e071   = ls_object_key
+      IMPORTING
+        pe_result = lv_type_check_result.
+
+    rv_lockable = boolc( lv_type_check_result = 'L' ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~is_chrec_possible_for_package.
+    rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   METHOD build_comment.
 
@@ -95228,5 +95228,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-01T04:10:06.123Z
+* abapmerge 0.14.2 - 2020-12-02T11:59:08.116Z
 ****************************************************
