@@ -70154,7 +70154,7 @@ CLASS kHGwlqJyKbsVHldwKaGddDbbHeNaet IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
+CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD create_facade.
 
     CREATE OBJECT ri_facade TYPE kHGwlqJyKbsVHldwKaGddDbbHeNaet
@@ -70319,6 +70319,8 @@ CLASS ZCL_ABAPGIT_OBJECT_PINF IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: li_interface TYPE REF TO iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
+
+    corr_insert( iv_package ).
 
     li_interface = load( |{ ms_item-obj_name }| ).
 
@@ -95228,5 +95230,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-02T12:09:54.102Z
+* abapmerge 0.14.2 - 2020-12-03T14:14:08.251Z
 ****************************************************
