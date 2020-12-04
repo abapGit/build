@@ -79338,6 +79338,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           MOVE-CORRESPONDING <ls_dd07v_tmp> TO <ls_dd07_text>.
         ELSE.
           " no translation -> keep entry but clear texts
+          MOVE-CORRESPONDING <ls_dd07v> TO <ls_dd07_text>.
           <ls_dd07_text>-ddlanguage = <lv_lang>.
           CLEAR: <ls_dd07_text>-ddtext, <ls_dd07_text>-domval_ld, <ls_dd07_text>-domval_hd.
         ENDIF.
@@ -95235,5 +95236,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-04T07:53:00.245Z
+* abapmerge 0.14.2 - 2020-12-04T08:02:58.031Z
 ****************************************************
