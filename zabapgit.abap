@@ -20652,9 +20652,12 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
           lv_branch_name LIKE iv_branch_name,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
-          ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
+          ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
+          lv_url         TYPE string.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_package IS INITIAL.
+
+    lv_url = condense( iv_url ).
 
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
@@ -20663,17 +20666,17 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     validate_package( iv_package    = iv_package
                       iv_ign_subpkg = iv_ign_subpkg ).
 
-    zcl_abapgit_url=>validate( iv_url ).
+    zcl_abapgit_url=>validate( lv_url ).
 
     lv_branch_name = determine_branch_name(
       iv_name = iv_branch_name
-      iv_url  = iv_url ).
+      iv_url  = lv_url ).
 
     ls_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
     ls_dot_abapgit-folder_logic = iv_folder_logic.
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
-      iv_url          = iv_url
+      iv_url          = lv_url
       iv_branch_name  = lv_branch_name " local !
       iv_display_name = iv_display_name
       iv_package      = iv_package
@@ -95226,5 +95229,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-03T14:16:35.907Z
+* abapmerge 0.14.2 - 2020-12-04T04:45:32.734Z
 ****************************************************
