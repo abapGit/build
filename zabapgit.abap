@@ -598,11 +598,11 @@ INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
 INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
 INTERFACE zif_abapgit_objects DEFERRED.
+INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_comparator DEFERRED.
+INTERFACE zif_abapgit_longtexts DEFERRED.
 INTERFACE zif_abapgit_object_enhs DEFERRED.
 INTERFACE zif_abapgit_object_enho DEFERRED.
-INTERFACE zif_abapgit_object DEFERRED.
-INTERFACE zif_abapgit_longtexts DEFERRED.
-INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
@@ -632,7 +632,6 @@ CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
@@ -726,6 +725,7 @@ CLASS zcl_abapgit_gui_event DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
+CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
@@ -740,7 +740,6 @@ CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
-CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_interface DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_factory DEFINITION DEFERRED.
@@ -842,17 +841,7 @@ CLASS zcl_abapgit_object_ftgl DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ensc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enqu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhs_hook_d DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhs_badi_d DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enhs DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_wdyn DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_wdyc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_intf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_hook DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_fugr DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_enhc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
@@ -890,7 +879,18 @@ CLASS zcl_abapgit_object_asfc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_area DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
+CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhs_hook_d DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhs_badi_d DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_wdyn DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_wdyc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_intf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_hook DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_fugr DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_system_upl DEFINITION DEFERRED.
@@ -1197,22 +1197,6 @@ INTERFACE zif_abapgit_ecatt_upload .
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_comparator .
-  TYPES:
-    BEGIN OF ty_result,
-      text TYPE string,
-    END OF ty_result .
-
-  METHODS compare
-    IMPORTING
-      !ii_remote       TYPE REF TO zif_abapgit_xml_input
-      !ii_log          TYPE REF TO zif_abapgit_log
-    RETURNING
-      VALUE(rs_result) TYPE ty_result
-    RAISING
-      zcx_abapgit_exception .
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_object_enho.
 
   METHODS:
@@ -1241,6 +1225,22 @@ INTERFACE zif_abapgit_object_enhs.
                 ii_enh_spot_tool TYPE REF TO if_enh_spot_tool
       RAISING   zcx_abapgit_exception.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_comparator .
+  TYPES:
+    BEGIN OF ty_result,
+      text TYPE string,
+    END OF ty_result .
+
+  METHODS compare
+    IMPORTING
+      !ii_remote       TYPE REF TO zif_abapgit_xml_input
+      !ii_log          TYPE REF TO zif_abapgit_log
+    RETURNING
+      VALUE(rs_result) TYPE ty_result
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_asset_manager .
@@ -5374,39 +5374,6 @@ CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION
       mv_external_xml TYPE xstring.
 
 ENDCLASS.
-CLASS zcl_abapgit_longtexts DEFINITION
-  CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_longtexts .
-  PROTECTED SECTION.
-
-    TYPES:
-      BEGIN OF ty_longtext,
-        dokil TYPE dokil,
-        head  TYPE thead,
-        lines TYPE tline_tab,
-      END OF ty_longtext .
-    TYPES:
-      ty_longtexts TYPE STANDARD TABLE OF ty_longtext
-                           WITH NON-UNIQUE DEFAULT KEY .
-
-    METHODS read
-      IMPORTING
-        !iv_object_name      TYPE sobj_name
-        !iv_longtext_id      TYPE dokil-id
-        !it_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt
-        !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(rt_longtexts)  TYPE ty_longtexts
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-
-    CONSTANTS c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
-ENDCLASS.
 CLASS zcl_abapgit_object_enho_badi DEFINITION.
 
   PUBLIC SECTION.
@@ -5578,6 +5545,81 @@ CLASS zcl_abapgit_object_enhs_hook_d DEFINITION.
              def_hooks TYPE enh_hook_def_ext_it,
            END OF ty_hook_defifnition.
 
+ENDCLASS.
+CLASS zcl_abapgit_longtexts DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_longtexts .
+  PROTECTED SECTION.
+
+    TYPES:
+      BEGIN OF ty_longtext,
+        dokil TYPE dokil,
+        head  TYPE thead,
+        lines TYPE tline_tab,
+      END OF ty_longtext .
+    TYPES:
+      ty_longtexts TYPE STANDARD TABLE OF ty_longtext
+                           WITH NON-UNIQUE DEFAULT KEY .
+
+    METHODS read
+      IMPORTING
+        !iv_object_name      TYPE sobj_name
+        !iv_longtext_id      TYPE dokil-id
+        !it_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt
+        !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rt_longtexts)  TYPE ty_longtexts
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+
+    CONSTANTS c_docu_state_active TYPE dokstate VALUE 'A' ##NO_TEXT.
+ENDCLASS.
+CLASS zcl_abapgit_sotr_handler DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      ty_sotr_use_tt TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY .
+
+    CLASS-METHODS read_sotr
+      IMPORTING
+        !iv_pgmid    TYPE pgmid
+        !iv_object   TYPE trobjtype
+        !iv_obj_name TYPE csequence
+        !io_xml      TYPE REF TO zif_abapgit_xml_output OPTIONAL
+      EXPORTING
+        !et_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt
+        !et_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS create_sotr
+      IMPORTING
+        !iv_package TYPE devclass
+        !io_xml     TYPE REF TO zif_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+    CLASS-METHODS get_sotr_usage
+      IMPORTING
+        !iv_pgmid          TYPE pgmid
+        !iv_object         TYPE trobjtype
+        !iv_obj_name       TYPE csequence
+      RETURNING
+        VALUE(rt_sotr_use) TYPE ty_sotr_use_tt.
+
+    CLASS-METHODS get_sotr_4_concept
+      IMPORTING
+        !iv_concept    TYPE sotr_conc
+      RETURNING
+        VALUE(rs_sotr) TYPE zif_abapgit_definitions=>ty_sotr .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_tabl_compar DEFINITION
   CREATE PUBLIC .
@@ -7312,11 +7354,17 @@ CLASS zcl_abapgit_object_enhs DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_enqu DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
+CLASS zcl_abapgit_object_enqu DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  FINAL
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
+    INTERFACES zif_abapgit_object .
+
+    ALIASES mo_files
+      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_dd27p TYPE STANDARD TABLE OF dd27p WITH DEFAULT KEY.
@@ -10860,48 +10908,6 @@ CLASS zcl_abapgit_oo_serializer DEFINITION
       CHANGING
         !ct_source TYPE zif_abapgit_definitions=>ty_string_tt .
 ENDCLASS.
-CLASS zcl_abapgit_sotr_handler DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    TYPES:
-      ty_sotr_use_tt TYPE STANDARD TABLE OF sotr_use WITH DEFAULT KEY .
-
-    CLASS-METHODS read_sotr
-      IMPORTING
-        !iv_pgmid    TYPE pgmid
-        !iv_object   TYPE trobjtype
-        !iv_obj_name TYPE csequence
-        !io_xml      TYPE REF TO zif_abapgit_xml_output OPTIONAL
-      EXPORTING
-        !et_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt
-        !et_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS create_sotr
-      IMPORTING
-        !iv_package TYPE devclass
-        !io_xml     TYPE REF TO zif_abapgit_xml_input
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-    CLASS-METHODS get_sotr_usage
-      IMPORTING
-        !iv_pgmid          TYPE pgmid
-        !iv_object         TYPE trobjtype
-        !iv_obj_name       TYPE csequence
-      RETURNING
-        VALUE(rt_sotr_use) TYPE ty_sotr_use_tt.
-
-    CLASS-METHODS get_sotr_4_concept
-      IMPORTING
-        !iv_concept    TYPE sotr_conc
-      RETURNING
-        VALUE(rs_sotr) TYPE zif_abapgit_definitions=>ty_sotr .
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_persist_background DEFINITION
   CREATE PUBLIC .
 
@@ -11627,6 +11633,62 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
     METHODS order_matches REDEFINITION.
 
   PRIVATE SECTION.
+ENDCLASS.
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION DEFERRED.
+*"* use this source file for any type of declarations (class
+*"* definitions, interfaces or type declarations) you need for
+*"* components in the private section
+
+* renamed: zcl_abapgit_performance_test :: lcl_dummy_progress
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_progress.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+"! Performance test run
+CLASS zcl_abapgit_performance_test DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    TYPES:
+      BEGIN OF ty_result,
+        pgmid    TYPE pgmid,
+        object   TYPE trobjtype,
+        obj_name TYPE sobj_name,
+        devclass TYPE devclass,
+        counter  TYPE i,
+        runtime  TYPE i,
+        seconds  TYPE p LENGTH 16 DECIMALS 6,
+      END OF ty_result,
+      ty_results TYPE STANDARD TABLE OF ty_result WITH KEY pgmid object obj_name.
+    METHODS:
+      constructor IMPORTING iv_package                    TYPE devclass
+                            iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
+                            iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_true,
+      set_object_type_filter IMPORTING it_object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
+      set_object_name_filter IMPORTING it_object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
+      get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
+      get_object_name_filter RETURNING VALUE(rt_object_name_range) TYPE zif_abapgit_definitions=>ty_object_name_range,
+      run_measurement RAISING zcx_abapgit_exception,
+      get_result RETURNING VALUE(rt_result) TYPE ty_results.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    METHODS:
+      select_tadir_entries RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+                           RAISING   zcx_abapgit_exception.
+    DATA:
+      mv_package                    TYPE devclass,
+      mv_include_sub_packages       TYPE abap_bool,
+      mv_serialize_master_lang_only TYPE abap_bool,
+      BEGIN OF ms_filter_parameters,
+        object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
+        object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
+      END OF ms_filter_parameters,
+      mt_result TYPE ty_results.
 ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
   CREATE PUBLIC .
@@ -17063,62 +17125,6 @@ CLASS zcl_abapgit_news DEFINITION
       RETURNING
         VALUE(rt_log)       TYPE ty_logs .
 ENDCLASS.
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION DEFERRED.
-*"* use this source file for any type of declarations (class
-*"* definitions, interfaces or type declarations) you need for
-*"* components in the private section
-
-* renamed: zcl_abapgit_performance_test :: lcl_dummy_progress
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION.
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_progress.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-
-"! Performance test run
-CLASS zcl_abapgit_performance_test DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    TYPES:
-      BEGIN OF ty_result,
-        pgmid    TYPE pgmid,
-        object   TYPE trobjtype,
-        obj_name TYPE sobj_name,
-        devclass TYPE devclass,
-        counter  TYPE i,
-        runtime  TYPE i,
-        seconds  TYPE p LENGTH 16 DECIMALS 6,
-      END OF ty_result,
-      ty_results TYPE STANDARD TABLE OF ty_result WITH KEY pgmid object obj_name.
-    METHODS:
-      constructor IMPORTING iv_package                    TYPE devclass
-                            iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
-                            iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_true,
-      set_object_type_filter IMPORTING it_object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
-      set_object_name_filter IMPORTING it_object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
-      get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
-      get_object_name_filter RETURNING VALUE(rt_object_name_range) TYPE zif_abapgit_definitions=>ty_object_name_range,
-      run_measurement RAISING zcx_abapgit_exception,
-      get_result RETURNING VALUE(rt_result) TYPE ty_results.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    METHODS:
-      select_tadir_entries RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-                           RAISING   zcx_abapgit_exception.
-    DATA:
-      mv_package                    TYPE devclass,
-      mv_include_sub_packages       TYPE abap_bool,
-      mv_serialize_master_lang_only TYPE abap_bool,
-      BEGIN OF ms_filter_parameters,
-        object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
-        object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
-      END OF ms_filter_parameters,
-      mt_result TYPE ty_results.
-ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
   CREATE PUBLIC .
@@ -21886,103 +21892,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
   ENDMETHOD.
 
-ENDCLASS.
-
-*"* use this source file for the definition and implementation of
-*"* local helper classes, interface definitions and type
-*"* declarations
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
-  METHOD zif_abapgit_progress~set_total.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_progress~show.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_progress~off.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
-  METHOD constructor.
-    mv_package = iv_package.
-    mv_include_sub_packages = iv_include_sub_packages.
-    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
-  ENDMETHOD.
-  METHOD get_object_name_filter.
-    rt_object_name_range = ms_filter_parameters-object_name_range.
-  ENDMETHOD.
-  METHOD get_object_type_filter.
-    rt_object_type_range = ms_filter_parameters-object_type_range.
-  ENDMETHOD.
-  METHOD get_result.
-    rt_result = mt_result.
-  ENDMETHOD.
-  METHOD run_measurement.
-    DATA: li_actual_progress TYPE REF TO zif_abapgit_progress,
-          lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tadir_single    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lo_serializer      TYPE REF TO zcl_abapgit_serialize,
-          lv_start_runtime   TYPE i,
-          lv_end_runtime     TYPE i,
-          lx_exception       TYPE REF TO zcx_abapgit_exception,
-          lo_dummy_progress  TYPE REF TO kHGwlHkHxZmEuFZbkdsccOjvsqAbPX.
-    FIELD-SYMBOLS: <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir,
-                   <ls_result> TYPE ty_result.
-
-    CLEAR mt_result.
-
-    li_actual_progress = zcl_abapgit_progress=>get_instance( 1 ).
-    CREATE OBJECT lo_dummy_progress.
-    zcl_abapgit_progress=>set_instance( lo_dummy_progress ).
-
-    TRY.
-        lt_tadir = select_tadir_entries( ).
-
-        CREATE OBJECT lo_serializer
-          EXPORTING
-            iv_serialize_master_lang_only = mv_serialize_master_lang_only.
-
-        LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-          INSERT <ls_tadir> INTO TABLE lt_tadir_single.
-
-          GET RUN TIME FIELD lv_start_runtime.
-
-          lo_serializer->serialize(
-            it_tadir            = lt_tadir_single
-            iv_force_sequential = abap_true ).
-
-          GET RUN TIME FIELD lv_end_runtime.
-
-          APPEND INITIAL LINE TO mt_result ASSIGNING <ls_result>.
-          <ls_result>-pgmid = <ls_tadir>-pgmid.
-          <ls_result>-object = <ls_tadir>-object.
-          <ls_result>-obj_name = <ls_tadir>-obj_name.
-          <ls_result>-devclass = <ls_tadir>-devclass.
-          <ls_result>-runtime = lv_end_runtime - lv_start_runtime.
-          <ls_result>-seconds = <ls_result>-runtime / 1000000.
-
-          CLEAR lt_tadir_single.
-        ENDLOOP.
-
-      CATCH zcx_abapgit_exception INTO lx_exception.
-        zcl_abapgit_progress=>set_instance( li_actual_progress ).
-        RAISE EXCEPTION lx_exception.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD select_tadir_entries.
-    rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = mv_package
-      iv_ignore_subpackages = boolc( mv_include_sub_packages = abap_false ) ).
-
-    DELETE rt_tadir WHERE object NOT IN ms_filter_parameters-object_type_range
-                       OR obj_name NOT IN ms_filter_parameters-object_name_range.
-  ENDMETHOD.
-  METHOD set_object_name_filter.
-    ms_filter_parameters-object_name_range = it_object_name_range.
-  ENDMETHOD.
-  METHOD set_object_type_filter.
-    ms_filter_parameters-object_type_range = it_object_type_range.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_news IMPLEMENTATION.
@@ -47557,6 +47466,103 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
+  METHOD zif_abapgit_progress~set_total.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_progress~show.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_progress~off.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
+  METHOD constructor.
+    mv_package = iv_package.
+    mv_include_sub_packages = iv_include_sub_packages.
+    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
+  ENDMETHOD.
+  METHOD get_object_name_filter.
+    rt_object_name_range = ms_filter_parameters-object_name_range.
+  ENDMETHOD.
+  METHOD get_object_type_filter.
+    rt_object_type_range = ms_filter_parameters-object_type_range.
+  ENDMETHOD.
+  METHOD get_result.
+    rt_result = mt_result.
+  ENDMETHOD.
+  METHOD run_measurement.
+    DATA: li_actual_progress TYPE REF TO zif_abapgit_progress,
+          lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_tadir_single    TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lo_serializer      TYPE REF TO zcl_abapgit_serialize,
+          lv_start_runtime   TYPE i,
+          lv_end_runtime     TYPE i,
+          lx_exception       TYPE REF TO zcx_abapgit_exception,
+          lo_dummy_progress  TYPE REF TO kHGwlHkHxZmEuFZbkdsccOjvsqAbPX.
+    FIELD-SYMBOLS: <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir,
+                   <ls_result> TYPE ty_result.
+
+    CLEAR mt_result.
+
+    li_actual_progress = zcl_abapgit_progress=>get_instance( 1 ).
+    CREATE OBJECT lo_dummy_progress.
+    zcl_abapgit_progress=>set_instance( lo_dummy_progress ).
+
+    TRY.
+        lt_tadir = select_tadir_entries( ).
+
+        CREATE OBJECT lo_serializer
+          EXPORTING
+            iv_serialize_master_lang_only = mv_serialize_master_lang_only.
+
+        LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+          INSERT <ls_tadir> INTO TABLE lt_tadir_single.
+
+          GET RUN TIME FIELD lv_start_runtime.
+
+          lo_serializer->serialize(
+            it_tadir            = lt_tadir_single
+            iv_force_sequential = abap_true ).
+
+          GET RUN TIME FIELD lv_end_runtime.
+
+          APPEND INITIAL LINE TO mt_result ASSIGNING <ls_result>.
+          <ls_result>-pgmid = <ls_tadir>-pgmid.
+          <ls_result>-object = <ls_tadir>-object.
+          <ls_result>-obj_name = <ls_tadir>-obj_name.
+          <ls_result>-devclass = <ls_tadir>-devclass.
+          <ls_result>-runtime = lv_end_runtime - lv_start_runtime.
+          <ls_result>-seconds = <ls_result>-runtime / 1000000.
+
+          CLEAR lt_tadir_single.
+        ENDLOOP.
+
+      CATCH zcx_abapgit_exception INTO lx_exception.
+        zcl_abapgit_progress=>set_instance( li_actual_progress ).
+        RAISE EXCEPTION lx_exception.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD select_tadir_entries.
+    rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = mv_package
+      iv_ignore_subpackages = boolc( mv_include_sub_packages = abap_false ) ).
+
+    DELETE rt_tadir WHERE object NOT IN ms_filter_parameters-object_type_range
+                       OR obj_name NOT IN ms_filter_parameters-object_name_range.
+  ENDMETHOD.
+  METHOD set_object_name_filter.
+    ms_filter_parameters-object_name_range = it_object_name_range.
+  ENDMETHOD.
+  METHOD set_object_type_filter.
+    ms_filter_parameters-object_type_range = it_object_type_range.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
   METHOD constructor.
 
@@ -49956,172 +49962,6 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
     CALL TRANSFORMATION id
       SOURCE data = ls_xml
       RESULT XML rv_string.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
-  METHOD create_sotr.
-
-    DATA:
-      lt_objects  TYPE sotr_objects,
-      ls_paket    TYPE sotr_pack,
-      lv_object   LIKE LINE OF lt_objects,
-      lt_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt,
-      lt_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt.
-
-    FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
-
-    io_xml->read( EXPORTING iv_name = 'SOTR'
-                  CHANGING cg_data = lt_sotr ).
-    io_xml->read( EXPORTING iv_name = 'SOTR_USE'
-                  CHANGING cg_data = lt_sotr_use ).
-
-    LOOP AT lt_sotr ASSIGNING <ls_sotr>.
-      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
-        EXPORTING
-          object_vector    = <ls_sotr>-header-objid_vec
-        IMPORTING
-          objects          = lt_objects
-        EXCEPTIONS
-          object_not_found = 1
-          OTHERS           = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from SOTR_OBJECT_GET_OBJECTS. Subrc = { sy-subrc }| ).
-      ENDIF.
-
-      READ TABLE lt_objects INDEX 1 INTO lv_object.
-      ASSERT sy-subrc = 0.
-
-      ls_paket-paket = iv_package.
-
-      CALL FUNCTION 'SOTR_CREATE_CONCEPT'
-        EXPORTING
-          paket                         = ls_paket
-          crea_lan                      = <ls_sotr>-header-crea_lan
-          alias_name                    = <ls_sotr>-header-alias_name
-          object                        = lv_object
-          entries                       = <ls_sotr>-entries
-          concept_default               = <ls_sotr>-header-concept
-        EXCEPTIONS
-          package_missing               = 1
-          crea_lan_missing              = 2
-          object_missing                = 3
-          paket_does_not_exist          = 4
-          alias_already_exist           = 5
-          object_type_not_found         = 6
-          langu_missing                 = 7
-          identical_context_not_allowed = 8
-          text_too_long                 = 9
-          error_in_update               = 10
-          no_master_langu               = 11
-          error_in_concept_id           = 12
-          alias_not_allowed             = 13
-          tadir_entry_creation_failed   = 14
-          internal_error                = 15
-          error_in_correction           = 16
-          user_cancelled                = 17
-          no_entry_found                = 18
-          OTHERS                        = 19.
-      IF sy-subrc <> 0 AND sy-subrc <> 5.
-        zcx_abapgit_exception=>raise( |Error from SOTR_CREATE_CONCEPT. Subrc = { sy-subrc }| ).
-      ENDIF.
-    ENDLOOP.
-
-    CALL FUNCTION 'SOTR_USAGE_MODIFY'
-      EXPORTING
-        sotr_usage = lt_sotr_use.
-
-  ENDMETHOD.
-  METHOD get_sotr_4_concept.
-
-    DATA: ls_header  TYPE sotr_head,
-          lt_entries TYPE sotr_text_tt.
-
-    FIELD-SYMBOLS: <ls_entry> LIKE LINE OF lt_entries.
-
-    CALL FUNCTION 'SOTR_GET_CONCEPT'
-      EXPORTING
-        concept        = iv_concept
-      IMPORTING
-        header         = ls_header
-      TABLES
-        entries        = lt_entries
-      EXCEPTIONS
-        no_entry_found = 1
-        OTHERS         = 2.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-
-    CLEAR: ls_header-paket,
-           ls_header-crea_name,
-           ls_header-crea_tstut,
-           ls_header-chan_name,
-           ls_header-chan_tstut,
-           ls_header-system_id.
-
-    LOOP AT lt_entries ASSIGNING <ls_entry>.
-      CLEAR: <ls_entry>-version,
-             <ls_entry>-crea_name,
-             <ls_entry>-crea_tstut,
-             <ls_entry>-chan_name,
-             <ls_entry>-chan_tstut.
-    ENDLOOP.
-
-    rs_sotr-header  = ls_header.
-    rs_sotr-entries = lt_entries.
-
-  ENDMETHOD.
-  METHOD get_sotr_usage.
-
-    DATA: lv_obj_name TYPE trobj_name.
-
-    lv_obj_name = iv_obj_name.
-
-    " Objects with multiple components
-    IF iv_pgmid = 'LIMU' AND ( iv_object = 'WDYV' OR iv_object = 'WAPP' ).
-      lv_obj_name+30 = '%'.
-    ENDIF.
-
-    CALL FUNCTION 'SOTR_USAGE_READ'
-      EXPORTING
-        pgmid          = iv_pgmid
-        object         = iv_object
-        obj_name       = lv_obj_name
-      IMPORTING
-        sotr_usage     = rt_sotr_use
-      EXCEPTIONS
-        no_entry_found = 1
-        error_in_pgmid = 2
-        OTHERS         = 3.
-    IF sy-subrc = 0.
-      SORT rt_sotr_use.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD read_sotr.
-
-    FIELD-SYMBOLS <ls_sotr_use> TYPE sotr_use.
-
-    " Known SOTR usage...
-    " LIMU: CPUB, WAPP, WDYV
-    " R3TR: ENHC, ENHO, ENHS, ENSC, SCGR, SMIF, WDYA, WEBI, WEBS
-
-    et_sotr_use = get_sotr_usage( iv_pgmid    = iv_pgmid
-                                  iv_object   = iv_object
-                                  iv_obj_name = iv_obj_name ).
-
-    LOOP AT et_sotr_use ASSIGNING <ls_sotr_use> WHERE NOT concept IS INITIAL.
-      INSERT get_sotr_4_concept( <ls_sotr_use>-concept ) INTO TABLE et_sotr.
-    ENDLOOP.
-
-    IF io_xml IS BOUND.
-      io_xml->add( iv_name = 'SOTR'
-                   ig_data = et_sotr ).
-      io_xml->add( iv_name = 'SOTR_USE'
-                   ig_data = et_sotr_use ).
-    ENDIF.
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -77894,7 +77734,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
+CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd25l
@@ -78060,170 +77900,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENQU IMPLEMENTATION.
       CLEAR <ls_dd27p>-domname.
       CLEAR <ls_dd27p>-signflag.
     ENDLOOP.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECT_ENHS_HOOK_D IMPLEMENTATION.
-  METHOD zif_abapgit_object_enhs~deserialize.
-
-    DATA: lv_enh_shorttext       TYPE string,
-          ls_enh_hook_definition TYPE enh_hook_def,
-          ls_hook_definition     TYPE ty_hook_defifnition,
-          li_enh_object          TYPE REF TO if_enh_object,
-          li_enh_object_docu     TYPE REF TO if_enh_object_docu,
-          lo_hookdef_tool        TYPE REF TO cl_enh_tool_hook_def,
-          lx_error               TYPE REF TO cx_enh_root,
-          lv_text                TYPE string.
-
-    FIELD-SYMBOLS: <ls_hook_definition> TYPE enh_hook_def_ext.
-
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING  cg_data = lv_enh_shorttext ).
-
-    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
-                  CHANGING  cg_data = ls_hook_definition ).
-
-    li_enh_object ?= ii_enh_spot_tool.
-    li_enh_object_docu ?= ii_enh_spot_tool.
-
-    TRY.
-        li_enh_object_docu->set_shorttext( lv_enh_shorttext ).
-
-        lo_hookdef_tool ?= ii_enh_spot_tool.
-
-        lo_hookdef_tool->set_original_object( pgmid     = ls_hook_definition-pgmid
-                                              obj_name  = ls_hook_definition-obj_name
-                                              obj_type  = ls_hook_definition-obj_type
-                                              program   = ls_hook_definition-program
-                                              main_type = ls_hook_definition-main_type
-                                              main_name = ls_hook_definition-main_name ).
-
-        LOOP AT ls_hook_definition-def_hooks ASSIGNING <ls_hook_definition>.
-          MOVE-CORRESPONDING <ls_hook_definition> TO ls_enh_hook_definition.
-          lo_hookdef_tool->add_hook_def( ls_enh_hook_definition ).
-        ENDLOOP.
-
-        li_enh_object->save( ).
-        li_enh_object->activate( ).
-        li_enh_object->unlock( ).
-
-      CATCH cx_enh_root INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enhs~serialize.
-
-    DATA: lo_hookdef_tool    TYPE REF TO cl_enh_tool_hook_def,
-          lv_enh_shorttext   TYPE string,
-          li_enh_object_docu TYPE REF TO if_enh_object_docu,
-          ls_hook_definition TYPE ty_hook_defifnition.
-
-    lo_hookdef_tool ?= ii_enh_spot_tool.
-
-    li_enh_object_docu ?= ii_enh_spot_tool.
-    lv_enh_shorttext = li_enh_object_docu->get_shorttext( ).
-
-    ls_hook_definition-def_hooks = lo_hookdef_tool->get_hook_defs( ).
-
-    lo_hookdef_tool->get_original_object(
-      IMPORTING
-        pgmid     = ls_hook_definition-pgmid
-        obj_name  = ls_hook_definition-obj_name
-        obj_type  = ls_hook_definition-obj_type
-        main_type = ls_hook_definition-main_type
-        main_name = ls_hook_definition-main_name
-        program   = ls_hook_definition-program ).
-
-    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
-                 iv_name = 'TOOL' ).
-
-    ii_xml->add( ig_data = lv_enh_shorttext
-                 iv_name = 'SHORTTEXT' ).
-
-    ii_xml->add( ig_data = ls_hook_definition
-                 iv_name = 'BADI_DATA' ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
-  METHOD zif_abapgit_object_enhs~deserialize.
-
-    DATA: lv_parent          TYPE enhspotcompositename,
-          lt_enh_badi        TYPE enh_badi_data_it,
-          lo_badidef_tool    TYPE REF TO cl_enh_tool_badi_def,
-          lv_enh_shorttext   TYPE string,
-          li_enh_object      TYPE REF TO if_enh_object,
-          li_enh_object_docu TYPE REF TO if_enh_object_docu,
-          lv_text            TYPE string,
-          lx_error           TYPE REF TO cx_enh_root.
-
-    FIELD-SYMBOLS: <ls_enh_badi> LIKE LINE OF lt_enh_badi.
-
-    ii_xml->read( EXPORTING iv_name = 'PARENT_COMP'
-                  CHANGING  cg_data = lv_parent ).
-
-    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
-                  CHANGING  cg_data = lt_enh_badi ).
-
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING  cg_data = lv_enh_shorttext ).
-
-    li_enh_object ?= ii_enh_spot_tool.
-    li_enh_object_docu ?= ii_enh_spot_tool.
-
-    TRY.
-        li_enh_object_docu->set_shorttext( lv_enh_shorttext ).
-
-        lo_badidef_tool ?= ii_enh_spot_tool.
-
-        LOOP AT lt_enh_badi ASSIGNING <ls_enh_badi>.
-          lo_badidef_tool->add_badi_def( <ls_enh_badi> ).
-        ENDLOOP.
-
-        li_enh_object->save( ).
-        li_enh_object->activate( ).
-        li_enh_object->unlock( ).
-
-      CATCH cx_enh_root INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enhs~serialize.
-
-    DATA: lv_spot_name       TYPE enhspotname,
-          lv_parent          TYPE enhspotcompositename,
-          lt_enh_badi        TYPE enh_badi_data_it,
-          lo_badidef_tool    TYPE REF TO cl_enh_tool_badi_def,
-          lv_enh_shorttext   TYPE string,
-          li_enh_object_docu TYPE REF TO if_enh_object_docu.
-
-    lo_badidef_tool ?= ii_enh_spot_tool.
-
-    li_enh_object_docu ?= ii_enh_spot_tool.
-    lv_enh_shorttext = li_enh_object_docu->get_shorttext( ).
-
-    "get parent = composite enhs (ENHC)
-    lv_parent = cl_r3standard_persistence=>enh_find_parent_composite( lv_spot_name ).
-    "get subsequent BADI definitions
-    lt_enh_badi = lo_badidef_tool->get_badi_defs( ).
-
-    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
-                 iv_name = 'TOOL' ).
-
-    ii_xml->add( ig_data = lv_enh_shorttext
-                 iv_name = 'SHORTTEXT' ).
-
-    ii_xml->add( ig_data = lv_parent
-                 iv_name = 'PARENT_COMP' ).
-
-    ii_xml->add( ig_data = lt_enh_badi
-                 iv_name = 'BADI_DATA' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -78398,933 +78074,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
       io_xml      = io_xml ).
 
   ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
-  METHOD constructor.
-    ms_item = is_item.
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: ls_enh_data  TYPE enhwdyn,
-          li_tool      TYPE REF TO if_enh_tool,
-          lo_wdyn      TYPE REF TO cl_enh_tool_wdy,
-          lv_tool_type TYPE enhtooltype,
-          lv_package   TYPE devclass.
-
-    FIELD-SYMBOLS: <ls_controller_data> TYPE enhwdyc,
-                   <ls_view_data>       TYPE enhwdyv.
-    ii_xml->read(
-      EXPORTING
-        iv_name = 'TOOL'
-      CHANGING
-        cg_data = lv_tool_type ).
-
-    ii_xml->read(
-      EXPORTING
-        iv_name = 'COMPONENT_DATA'
-      CHANGING
-        cg_data = ls_enh_data ).
-
-    lv_package = iv_package.
-
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = |{ ms_item-obj_name }|
-            enhtype     = ''
-            enhtooltype = lv_tool_type
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-
-        lo_wdyn ?= li_tool.
-
-        lo_wdyn->initialize( ls_enh_data-component_name ).
-
-        lo_wdyn->set_component_data( ls_enh_data-component_data ).
-
-        LOOP AT ls_enh_data-controller_data ASSIGNING <ls_controller_data>.
-
-          lo_wdyn->set_controller_data( p_controller_name = <ls_controller_data>-controller_name
-                                        p_enh_data        = <ls_controller_data> ).
-
-        ENDLOOP.
-
-        LOOP AT ls_enh_data-view_data ASSIGNING <ls_view_data>.
-
-          lo_wdyn->set_view_data( p_view_name = <ls_view_data>-view_name
-                                  p_enh_data  = <ls_view_data> ).
-
-        ENDLOOP.
-
-        lo_wdyn->if_enh_object~save( run_dark = abap_true ).
-        lo_wdyn->if_enh_object~unlock( ).
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |error deserializing ENHO wdyn { ms_item-obj_name }| ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_wdyn           TYPE REF TO cl_enh_tool_wdy,
-          lv_component_name TYPE wdy_component_name,
-          ls_enh_data       TYPE enhwdyn.
-    lo_wdyn ?= ii_enh_tool.
-    lv_component_name = lo_wdyn->get_component_name( ).
-
-    TRY.
-        lo_wdyn->get_all_data_for_comp(
-          EXPORTING
-            p_component_name = lv_component_name
-          IMPORTING
-            p_enh_data       = ls_enh_data ).
-
-        ii_xml->add( iv_name = 'TOOL'
-                     ig_data = ii_enh_tool->get_tool( ) ).
-
-        ii_xml->add( iv_name = 'COMPONENT_DATA'
-                     ig_data = ls_enh_data ).
-
-      CATCH cx_enh_not_found.
-        zcx_abapgit_exception=>raise( |error serializing ENHO wdyn { ms_item-obj_name }| ).
-    ENDTRY.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
-
-  METHOD constructor.
-    ms_item = is_item.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lv_enhname TYPE enhname,
-          lo_wdyconf TYPE REF TO cl_wdr_cfg_enhancement,
-          li_tool    TYPE REF TO if_enh_tool,
-          ls_obj     TYPE wdy_config_key,
-          lv_package TYPE devclass.
-    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
-                  CHANGING cg_data  = ls_obj ).
-
-    lv_enhname = ms_item-obj_name.
-    lv_package = iv_package.
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = lv_enhname
-            enhtype     = ''
-            enhtooltype = cl_wdr_cfg_enhancement=>tooltype
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-        lo_wdyconf ?= li_tool.
-
-* todo
-* io_xml->read_xml()
-* CL_WDR_CFG_PERSISTENCE_UTILS=>COMP_XML_TO_TABLES( )
-* lo_wdyconf->set_enhancement_data( )
-        ASSERT 0 = 1.
-
-        lo_wdyconf->if_enh_object~save( run_dark = abap_true ).
-        lo_wdyconf->if_enh_object~unlock( ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_wdyconf  TYPE REF TO cl_wdr_cfg_enhancement,
-          lt_data     TYPE wdy_cfg_expl_data_tab,
-          ls_outline  TYPE wdy_cfg_outline_data,
-          ls_obj      TYPE wdy_config_key,
-          li_document TYPE REF TO if_ixml_document,
-          li_element  TYPE REF TO if_ixml_element.
-    lo_wdyconf ?= ii_enh_tool.
-
-    ls_obj = lo_wdyconf->get_original_object( ).
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = ii_enh_tool->get_tool( ) ).
-    ii_xml->add( iv_name = 'ORIGINAL_OBJECT'
-                 ig_data = ls_obj ).
-
-* only works on new ABAP versions, parameters differ between versions
-    CALL METHOD lo_wdyconf->('GET_ENHANCEMENT_DATA')
-      EXPORTING
-        p_scope    = 1
-      IMPORTING
-        p_enh_data = lt_data.
-
-    CALL METHOD cl_wdr_cfg_persistence_utils=>('COMP_TABLES_TO_XML')
-      EXPORTING
-        outline_data  = ls_outline
-        expl_data_tab = lt_data
-      IMPORTING
-        element       = li_element
-      CHANGING
-        document      = li_document.
-
-    ii_xml->add_xml( iv_name = 'ENHANCEMENT_DATA'
-                     ii_xml = li_element ).
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
-
-  METHOD constructor.
-    ms_item  = is_item.
-    mo_files = io_files.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_enh_intf  TYPE REF TO cl_enh_tool_intf,
-          lv_class     TYPE seoclsname,
-          lv_shorttext TYPE string.
-    lo_enh_intf ?= ii_enh_tool.
-
-    lv_shorttext = lo_enh_intf->if_enh_object_docu~get_shorttext( ).
-    lo_enh_intf->get_class( IMPORTING class_name = lv_class ).
-
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = ii_enh_tool->get_tool( ) ).
-    ii_xml->add( ig_data = lv_shorttext
-                 iv_name = 'SHORTTEXT' ).
-    ii_xml->add( iv_name = 'CLASS'
-                 ig_data = lv_class ).
-
-    zcl_abapgit_object_enho_clif=>serialize(
-      io_xml  = ii_xml
-      io_files = mo_files
-      io_clif = lo_enh_intf ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lo_enh_intf  TYPE REF TO cl_enh_tool_intf,
-          li_tool      TYPE REF TO if_enh_tool,
-          lv_shorttext TYPE string,
-          lv_class     TYPE seoclsname,
-          lv_enhname   TYPE enhname,
-          lv_package   TYPE devclass.
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING cg_data  = lv_shorttext ).
-    ii_xml->read( EXPORTING iv_name = 'CLASS'
-                  CHANGING cg_data  = lv_class ).
-
-    lv_enhname = ms_item-obj_name.
-    lv_package = iv_package.
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = lv_enhname
-            enhtype     = ''
-            enhtooltype = cl_enh_tool_intf=>tooltype
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-        lo_enh_intf ?= li_tool.
-
-        lo_enh_intf->if_enh_object_docu~set_shorttext( lv_shorttext ).
-        lo_enh_intf->set_class( lv_class ).
-
-        zcl_abapgit_object_enho_clif=>deserialize(
-          io_xml  = ii_xml
-          io_clif = lo_enh_intf ).
-
-        lo_enh_intf->if_enh_object~save( run_dark = abap_true ).
-        lo_enh_intf->if_enh_object~unlock( ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'error deserializing ENHO interface' ).
-    ENDTRY.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
-
-  METHOD constructor.
-    ms_item = is_item.
-    mo_files = io_files.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lv_shorttext       TYPE string,
-          lo_hook_impl       TYPE REF TO cl_enh_tool_hook_impl,
-          ls_original_object TYPE enh_hook_admin,
-          lt_spaces          TYPE ty_spaces_tt,
-          lt_enhancements    TYPE enh_hook_impl_it.
-
-    FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
-    lo_hook_impl ?= ii_enh_tool.
-
-    lv_shorttext = lo_hook_impl->if_enh_object_docu~get_shorttext( ).
-    lo_hook_impl->get_original_object(
-      IMPORTING
-        pgmid     = ls_original_object-pgmid
-        obj_name  = ls_original_object-org_obj_name
-        obj_type  = ls_original_object-org_obj_type
-        main_type = ls_original_object-org_main_type
-        main_name = ls_original_object-org_main_name
-        program   = ls_original_object-programname ).
-    ls_original_object-include_bound = lo_hook_impl->get_include_bound( ).
-    lt_enhancements = lo_hook_impl->get_hook_impls( ).
-
-    LOOP AT lt_enhancements ASSIGNING <ls_enhancement>.
-      CLEAR: <ls_enhancement>-extid,
-             <ls_enhancement>-id.
-    ENDLOOP.
-
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = ii_enh_tool->get_tool( ) ).
-    ii_xml->add( ig_data = lv_shorttext
-                 iv_name = 'SHORTTEXT' ).
-    ii_xml->add( ig_data = ls_original_object
-                 iv_name = 'ORIGINAL_OBJECT' ).
-    ii_xml->add( iv_name = 'ENHANCEMENTS'
-                 ig_data = lt_enhancements ).
-    ii_xml->add( iv_name = 'SPACES'
-                 ig_data = lt_spaces ).
-
-  ENDMETHOD.
-
-  METHOD hook_impl_deserialize.
-
-    FIELD-SYMBOLS: <ls_impl>   LIKE LINE OF ct_impl,
-                   <lv_line>   TYPE string,
-                   <lv_space>  TYPE i,
-                   <ls_spaces> LIKE LINE OF it_spaces.
-    LOOP AT ct_impl ASSIGNING <ls_impl>.
-      READ TABLE it_spaces ASSIGNING <ls_spaces> WITH KEY full_name = <ls_impl>-full_name.
-      IF sy-subrc = 0.
-        LOOP AT <ls_impl>-source ASSIGNING <lv_line>.
-          READ TABLE <ls_spaces>-spaces ASSIGNING <lv_space> INDEX sy-tabix.
-          IF sy-subrc = 0 AND <lv_space> > 0.
-            DO <lv_space> TIMES.
-              CONCATENATE space <lv_line> INTO <lv_line> RESPECTING BLANKS.
-            ENDDO.
-          ENDIF.
-        ENDLOOP.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lv_shorttext       TYPE string,
-          lo_hook_impl       TYPE REF TO cl_enh_tool_hook_impl,
-          li_tool            TYPE REF TO if_enh_tool,
-          lv_enhname         TYPE enhname,
-          lv_package         TYPE devclass,
-          ls_original_object TYPE enh_hook_admin,
-          lt_spaces          TYPE ty_spaces_tt,
-          lt_enhancements    TYPE enh_hook_impl_it,
-          lx_enh_root        TYPE REF TO cx_enh_root.
-
-    FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING cg_data  = lv_shorttext ).
-    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
-                  CHANGING cg_data  = ls_original_object ).
-    ii_xml->read( EXPORTING iv_name = 'ENHANCEMENTS'
-                  CHANGING cg_data  = lt_enhancements ).
-    ii_xml->read( EXPORTING iv_name = 'SPACES'
-                  CHANGING cg_data  = lt_spaces ).
-
-    " todo: kept for compatibility, remove after grace period #3680
-    hook_impl_deserialize( EXPORTING it_spaces = lt_spaces
-                           CHANGING ct_impl    = lt_enhancements ).
-
-    lv_enhname = ms_item-obj_name.
-    lv_package = iv_package.
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = lv_enhname
-            enhtype     = cl_abstract_enh_tool_redef=>credefinition
-            enhtooltype = cl_enh_tool_hook_impl=>tooltype
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-        lo_hook_impl ?= li_tool.
-
-        lo_hook_impl->if_enh_object_docu~set_shorttext( lv_shorttext ).
-        lo_hook_impl->set_original_object(
-            pgmid       = ls_original_object-pgmid
-            obj_name    = ls_original_object-org_obj_name
-            obj_type    = ls_original_object-org_obj_type
-            program     = ls_original_object-programname
-            main_type   = ls_original_object-org_main_type
-            main_name   = ls_original_object-org_main_name ).
-        lo_hook_impl->set_include_bound( ls_original_object-include_bound ).
-
-        LOOP AT lt_enhancements ASSIGNING <ls_enhancement>.
-          lo_hook_impl->add_hook_impl(
-              overwrite        = <ls_enhancement>-overwrite
-              method           = <ls_enhancement>-method
-              enhmode          = <ls_enhancement>-enhmode
-              full_name        = <ls_enhancement>-full_name
-              source           = <ls_enhancement>-source
-              spot             = <ls_enhancement>-spotname
-              parent_full_name = <ls_enhancement>-parent_full_name ).
-        ENDLOOP.
-        lo_hook_impl->if_enh_object~save( run_dark = abap_true ).
-        lo_hook_impl->if_enh_object~unlock( ).
-      CATCH cx_enh_root INTO lx_enh_root.
-        zcx_abapgit_exception=>raise( lx_enh_root->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
-  METHOD constructor.
-    ms_item = is_item.
-    mo_files = io_files.
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
-          ls_enha_data TYPE enhfugrdata,
-          li_tool      TYPE REF TO if_enh_tool,
-          lv_tool      TYPE enhtooltype,
-          lv_package   TYPE devclass.
-
-    FIELD-SYMBOLS: <ls_fuba> TYPE enhfugrfuncdata.
-
-    ii_xml->read(
-      EXPORTING
-        iv_name = 'TOOL'
-      CHANGING
-        cg_data = lv_tool ).
-
-    ii_xml->read(
-      EXPORTING
-        iv_name = 'FUGRDATA'
-      CHANGING
-        cg_data = ls_enha_data ).
-
-    lv_package = iv_package.
-
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = |{ ms_item-obj_name }|
-            enhtype     = ''
-            enhtooltype = lv_tool
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-
-        lo_fugrdata ?= li_tool.
-
-        lo_fugrdata->set_fugr( ls_enha_data-fugr ).
-
-        LOOP AT ls_enha_data-enh_fubas ASSIGNING <ls_fuba>.
-
-          lo_fugrdata->set_func_data( func_name     = <ls_fuba>-fuba
-                                      func_enhadata = <ls_fuba> ).
-
-        ENDLOOP.
-
-        lo_fugrdata->if_enh_object~save( run_dark = abap_true ).
-        lo_fugrdata->if_enh_object~unlock( ).
-
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
-          lv_fugr_name TYPE rs38l-area,
-          ls_enha_data TYPE enhfugrdata.
-
-    FIELD-SYMBOLS: <ls_docuobj> TYPE enhfugrparamdocu.
-    lo_fugrdata ?= ii_enh_tool.
-
-    lo_fugrdata->get_fugr( IMPORTING fugr_name = lv_fugr_name ).
-
-    TRY.
-        lo_fugrdata->get_all_data_for_fugr(
-          EXPORTING
-            fugr_name = lv_fugr_name
-          IMPORTING
-            enha_data = ls_enha_data ).
-
-        LOOP AT ls_enha_data-docuobjs ASSIGNING <ls_docuobj>.
-          CLEAR: <ls_docuobj>-shorttext,
-                 <ls_docuobj>-longtext.
-        ENDLOOP.
-
-      CATCH cx_enh_not_found.
-        zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
-    ENDTRY.
-
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = lo_fugrdata->if_enh_tool~get_tool( ) ).
-
-    ii_xml->add( iv_name = 'FUGRDATA'
-                 ig_data = ls_enha_data ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
-  METHOD deserialize.
-
-    DATA: lt_tab_attributes TYPE enhclasstabattrib,
-          lt_tab_types      TYPE enhtype_tab,
-          lt_tab_methods    TYPE enhnewmeth_tab,
-          ls_type_line      TYPE vseotype,
-          ls_header         TYPE vseomethod,
-          ls_param          TYPE vseomepara,
-          ls_exc            TYPE vseoexcep,
-          lt_tab_eventdata  TYPE enhevent_tab,
-          ls_event_line     TYPE vseoevent,
-          ls_event_param    TYPE vseoeparam.
-
-    FIELD-SYMBOLS: <ls_type>        LIKE LINE OF lt_tab_types,
-                   <ls_method>      LIKE LINE OF lt_tab_methods,
-                   <ls_param>       LIKE LINE OF <ls_method>-meth_param,
-                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
-                   <ls_exc>         LIKE LINE OF <ls_method>-meth_exc,
-                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
-    io_xml->read( EXPORTING iv_name = 'TAB_ATTRIBUTES'
-                  CHANGING cg_data = lt_tab_attributes ).
-    io_xml->read( EXPORTING iv_name = 'TAB_TYPES'
-                  CHANGING cg_data = lt_tab_types ).
-    io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
-                  CHANGING cg_data = lt_tab_methods ).
-    io_xml->read( EXPORTING iv_name = 'TAB_EVENTDATA'
-                  CHANGING cg_data = lt_tab_eventdata ).
-
-    LOOP AT lt_tab_types ASSIGNING <ls_type>.
-      MOVE-CORRESPONDING <ls_type> TO ls_type_line.
-      TRY.
-          io_clif->add_change_enha_type( type_line = ls_type_line ).
-        CATCH cx_enh_mod_not_allowed
-        cx_enh_is_not_enhanceable.
-          " TODO
-      ENDTRY.
-    ENDLOOP.
-
-    io_clif->set_enhattributes( lt_tab_attributes ).
-
-* SAP standard SET_ENH_NEW_METHOS does not work
-
-    LOOP AT lt_tab_methods ASSIGNING <ls_method>.
-
-      MOVE-CORRESPONDING <ls_method>-meth_header TO ls_header.
-
-      io_clif->add_change_new_enh_method(
-        methkey       = <ls_method>-methkey
-        method_header = ls_header ).
-
-* parameters
-      LOOP AT <ls_method>-meth_param ASSIGNING <ls_param>.
-        MOVE-CORRESPONDING <ls_param> TO ls_param.
-        io_clif->add_change_enh_methparam(
-          methname   = <ls_method>-methkey-cmpname
-          param_line = ls_param ).
-      ENDLOOP.
-
-* exceptions
-      LOOP AT <ls_method>-meth_exc ASSIGNING <ls_exc>.
-        MOVE-CORRESPONDING <ls_exc> TO ls_exc.
-        io_clif->add_change_enh_methexc(
-          methname    = <ls_method>-methkey-cmpname
-          except_line = ls_exc ).
-      ENDLOOP.
-
-    ENDLOOP.
-
-    " events are renumbered based on
-    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
-
-      MOVE-CORRESPONDING <ls_event>-event_header TO ls_event_line.
-
-      io_clif->add_change_enha_event(
-        event_key  = <ls_event>-eventkey
-        event_line = ls_event_line ).
-
-* parameters
-      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
-        MOVE-CORRESPONDING <ls_event_param> TO ls_event_param.
-        io_clif->add_change_enh_eventparam(
-          eventname   = <ls_event>-eventkey-cmpname
-          event_param = ls_event_param ).
-      ENDLOOP.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD serialize.
-
-    DATA: lt_tab_attributes TYPE enhclasstabattrib,
-          lt_tab_types      TYPE enhtype_tab,
-          lt_tab_methods    TYPE enhnewmeth_tab,
-          lt_tab_eventdata  TYPE enhevent_tab.
-
-    FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
-                   <ls_type>        LIKE LINE OF lt_tab_types,
-                   <ls_meth>        LIKE LINE OF lt_tab_methods,
-                   <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
-                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
-                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
-    io_clif->get_enhattributes( IMPORTING tab_attributes = lt_tab_attributes ).
-
-    io_clif->get_enhatypes( IMPORTING tab_types = lt_tab_types ).
-
-    io_clif->get_enh_new_methodes( IMPORTING tab_methodes = lt_tab_methods ).
-
-    io_clif->get_enhevents( IMPORTING tab_eventdata = lt_tab_eventdata ).
-
-    LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
-      CLEAR: <ls_attr>-author,
-             <ls_attr>-createdon,
-             <ls_attr>-changedby,
-             <ls_attr>-changedon,
-             <ls_attr>-descript_id.
-    ENDLOOP.
-
-    LOOP AT lt_tab_types ASSIGNING <ls_type>.
-      CLEAR: <ls_type>-author,
-             <ls_type>-createdon,
-             <ls_type>-changedby,
-             <ls_type>-changedon,
-             <ls_type>-descript_id.
-    ENDLOOP.
-
-    LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
-      CLEAR: <ls_meth>-meth_header-author,
-             <ls_meth>-meth_header-createdon,
-             <ls_meth>-meth_header-changedby,
-             <ls_meth>-meth_header-changedon,
-             <ls_meth>-meth_header-descript_id.
-      LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
-        CLEAR: <ls_param>-author,
-               <ls_param>-createdon,
-               <ls_param>-changedby,
-               <ls_param>-changedon,
-               <ls_param>-descript_id.
-      ENDLOOP.
-    ENDLOOP.
-
-    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
-      CLEAR: <ls_event>-event_header-author,
-             <ls_event>-event_header-createdon,
-             <ls_event>-event_header-changedby,
-             <ls_event>-event_header-changedon,
-             <ls_event>-event_header-descript_id.
-      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
-        CLEAR: <ls_event_param>-author,
-               <ls_event_param>-createdon,
-               <ls_event_param>-changedby,
-               <ls_event_param>-changedon,
-               <ls_event_param>-descript_id.
-      ENDLOOP.
-    ENDLOOP.
-
-    io_xml->add( iv_name = 'TAB_ATTRIBUTES'
-                 ig_data = lt_tab_attributes ).
-    io_xml->add( iv_name = 'TAB_TYPES'
-                 ig_data = lt_tab_types ).
-    io_xml->add( iv_name = 'TAB_METHODS'
-                 ig_data = lt_tab_methods ).
-    io_xml->add( iv_name = 'TAB_EVENTDATA'
-                 ig_data = lt_tab_eventdata ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
-  METHOD constructor.
-    ms_item = is_item.
-    mo_files = io_files.
-  ENDMETHOD.
-  METHOD deserialize_includes.
-
-    DATA: lt_tab_methods TYPE enhnewmeth_tab,
-          lv_editorder   TYPE n LENGTH 3,
-          lv_methname    TYPE seocpdname,
-          lt_abap        TYPE rswsourcet,
-          lx_enh         TYPE REF TO cx_enh_root.
-
-    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods.
-
-    ii_xml->read( EXPORTING iv_name = 'TAB_METHODS'
-                  CHANGING cg_data = lt_tab_methods ).
-
-    LOOP AT lt_tab_methods ASSIGNING <ls_method>.
-
-      lv_editorder = <ls_method>-meth_header-editorder.
-      lv_methname = <ls_method>-methkey-cmpname.
-      lt_abap = mo_files->read_abap( iv_extra = 'em' && lv_editorder ).
-
-      TRY.
-          io_class->add_change_new_method_source(
-              clsname    = <ls_method>-methkey-clsname
-              methname   = lv_methname
-              methsource = lt_abap ).
-        CATCH cx_enh_mod_not_allowed cx_enh_is_not_enhanceable INTO lx_enh.
-          zcx_abapgit_exception=>raise( iv_text = 'Error deserializing ENHO method include'
-                                        ix_previous = lx_enh ).
-      ENDTRY.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD serialize_includes.
-
-    DATA: lt_includes TYPE enhnewmeth_tabincl_plus_enha,
-          lt_source   TYPE TABLE OF abaptxt255,
-          lv_include  TYPE programm.
-
-    FIELD-SYMBOLS: <ls_include> LIKE LINE OF lt_includes.
-    lt_includes = io_class->get_enh_method_includes( ).
-    LOOP AT lt_includes ASSIGNING <ls_include>.
-      lv_include = io_class->if_enh_tool~get_name( ).
-      TRANSLATE lv_include USING ' ='.
-      lv_include+30 = 'EM'.
-      lv_include+32(8) = <ls_include>-includenr.
-
-      CALL FUNCTION 'RPY_PROGRAM_READ'
-        EXPORTING
-          program_name     = lv_include
-          with_includelist = abap_false
-          with_lowercase   = abap_true
-        TABLES
-          source_extended  = lt_source
-        EXCEPTIONS
-          cancelled        = 1
-          not_found        = 2
-          permission_error = 3
-          OTHERS           = 4.
-      IF sy-subrc = 0.
-        mo_files->add_abap( iv_extra = |EM{ <ls_include>-includenr }|
-                            it_abap  = lt_source ).
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lo_enh_class TYPE REF TO cl_enh_tool_class,
-          lt_owr       TYPE enhmeth_tabkeys,
-          lt_pre       TYPE enhmeth_tabkeys,
-          lt_post      TYPE enhmeth_tabkeys,
-          lt_source    TYPE rswsourcet,
-          li_tool      TYPE REF TO if_enh_tool,
-          lv_shorttext TYPE string,
-          lv_class     TYPE seoclsname,
-          lv_enhname   TYPE enhname,
-          lv_package   TYPE devclass.
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING cg_data  = lv_shorttext ).
-    ii_xml->read( EXPORTING iv_name = 'OWR_METHODS'
-                  CHANGING cg_data  = lt_owr ).
-    ii_xml->read( EXPORTING iv_name = 'PRE_METHODS'
-                  CHANGING cg_data  = lt_pre ).
-    ii_xml->read( EXPORTING iv_name = 'POST_METHODS'
-                  CHANGING cg_data  = lt_post ).
-    ii_xml->read( EXPORTING iv_name = 'CLASS'
-                  CHANGING cg_data  = lv_class ).
-    lt_source = mo_files->read_abap( ).
-
-    lv_enhname = ms_item-obj_name.
-    lv_package = iv_package.
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = lv_enhname
-            enhtype     = ''
-            enhtooltype = cl_enh_tool_class=>tooltype
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-        lo_enh_class ?= li_tool.
-
-        lo_enh_class->if_enh_object_docu~set_shorttext( lv_shorttext ).
-        lo_enh_class->set_class( lv_class ).
-        lo_enh_class->set_owr_methods( version     = 'I'
-                                       owr_methods = lt_owr ).
-        lo_enh_class->set_pre_methods( version     = 'I'
-                                       pre_methods = lt_pre ).
-        lo_enh_class->set_post_methods( version      = 'I'
-                                        post_methods = lt_post ).
-        lo_enh_class->set_eimp_include( version     = 'I'
-                                        eimp_source = lt_source ).
-
-        zcl_abapgit_object_enho_clif=>deserialize(
-          io_xml  = ii_xml
-          io_clif = lo_enh_class ).
-
-        deserialize_includes(
-          ii_xml   = ii_xml
-          io_class = lo_enh_class ).
-
-        lo_enh_class->if_enh_object~save( run_dark = abap_true ).
-        lo_enh_class->if_enh_object~unlock( ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'error deserializing ENHO class' ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_enh_class TYPE REF TO cl_enh_tool_class,
-          lt_owr       TYPE enhmeth_tabkeys,
-          lt_pre       TYPE enhmeth_tabkeys,
-          lt_post      TYPE enhmeth_tabkeys,
-          lt_source    TYPE rswsourcet,
-          lv_class     TYPE seoclsname,
-          lv_shorttext TYPE string.
-    lo_enh_class ?= ii_enh_tool.
-
-    lv_shorttext = lo_enh_class->if_enh_object_docu~get_shorttext( ).
-    lt_owr = lo_enh_class->get_owr_methods( ).
-    lt_pre = lo_enh_class->get_pre_methods( ).
-    lt_post = lo_enh_class->get_post_methods( ).
-    lt_source = lo_enh_class->get_eimp_include( ).
-    lo_enh_class->get_class( IMPORTING class_name = lv_class ).
-
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = ii_enh_tool->get_tool( ) ).
-    ii_xml->add( ig_data = lv_shorttext
-                 iv_name = 'SHORTTEXT' ).
-    ii_xml->add( iv_name = 'CLASS'
-                 ig_data = lv_class ).
-    ii_xml->add( iv_name = 'OWR_METHODS'
-                 ig_data = lt_owr ).
-    ii_xml->add( iv_name = 'PRE_METHODS'
-                 ig_data = lt_pre ).
-    ii_xml->add( iv_name = 'POST_METHODS'
-                 ig_data = lt_post ).
-
-    mo_files->add_abap( lt_source ).
-
-    zcl_abapgit_object_enho_clif=>serialize(
-      io_xml   = ii_xml
-      io_files = mo_files
-      io_clif  = lo_enh_class ).
-
-    serialize_includes( lo_enh_class ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
-
-  METHOD constructor.
-    ms_item = is_item.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~serialize.
-
-    DATA: lo_badi_impl TYPE REF TO cl_enh_tool_badi_impl,
-          lv_spot_name TYPE enhspotname,
-          lv_shorttext TYPE string,
-          lt_impl      TYPE enh_badi_impl_data_it.
-
-    FIELD-SYMBOLS: <ls_impl>   LIKE LINE OF lt_impl,
-                   <ls_values> LIKE LINE OF <ls_impl>-filter_values,
-                   <ls_filter> LIKE LINE OF <ls_impl>-filters.
-    lo_badi_impl ?= ii_enh_tool.
-
-    lv_shorttext = lo_badi_impl->if_enh_object_docu~get_shorttext( ).
-    lv_spot_name = lo_badi_impl->get_spot_name( ).
-    lt_impl      = lo_badi_impl->get_implementations( ).
-
-    LOOP AT lt_impl ASSIGNING <ls_impl>.
-* make sure the XML serialization does not dump, field type = N
-      LOOP AT <ls_impl>-filter_values ASSIGNING <ls_values>.
-        IF <ls_values>-filter_numeric_value1 CA space.
-          CLEAR <ls_values>-filter_numeric_value1.
-        ENDIF.
-      ENDLOOP.
-      LOOP AT <ls_impl>-filters ASSIGNING <ls_filter>.
-        IF <ls_filter>-filter_numeric_value1 CA space.
-          CLEAR <ls_filter>-filter_numeric_value1.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    ii_xml->add( iv_name = 'TOOL'
-                 ig_data = ii_enh_tool->get_tool( ) ).
-    ii_xml->add( ig_data = lv_shorttext
-                 iv_name = 'SHORTTEXT' ).
-    ii_xml->add( iv_name = 'SPOT_NAME'
-                 ig_data = lv_spot_name ).
-    ii_xml->add( iv_name = 'IMPL'
-                 ig_data = lt_impl ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object_enho~deserialize.
-
-    DATA: lv_spot_name TYPE enhspotname,
-          lv_shorttext TYPE string,
-          lv_enhname   TYPE enhname,
-          lo_badi      TYPE REF TO cl_enh_tool_badi_impl,
-          li_tool      TYPE REF TO if_enh_tool,
-          lv_package   TYPE devclass,
-          lt_impl      TYPE enh_badi_impl_data_it.
-
-    FIELD-SYMBOLS: <ls_impl> LIKE LINE OF lt_impl.
-    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
-                  CHANGING cg_data  = lv_shorttext ).
-    ii_xml->read( EXPORTING iv_name = 'SPOT_NAME'
-                  CHANGING cg_data  = lv_spot_name ).
-    ii_xml->read( EXPORTING iv_name = 'IMPL'
-                  CHANGING cg_data  = lt_impl ).
-
-    lv_enhname = ms_item-obj_name.
-    lv_package = iv_package.
-    TRY.
-        cl_enh_factory=>create_enhancement(
-          EXPORTING
-            enhname     = lv_enhname
-            enhtype     = cl_abstract_enh_tool_redef=>credefinition
-            enhtooltype = cl_enh_tool_badi_impl=>tooltype
-          IMPORTING
-            enhancement = li_tool
-          CHANGING
-            devclass    = lv_package ).
-        lo_badi ?= li_tool.
-
-        lo_badi->set_spot_name( lv_spot_name ).
-        lo_badi->if_enh_object_docu~set_shorttext( lv_shorttext ).
-        LOOP AT lt_impl ASSIGNING <ls_impl>.
-          lo_badi->add_implementation( <ls_impl> ).
-        ENDLOOP.
-        lo_badi->if_enh_object~save( run_dark = abap_true ).
-        lo_badi->if_enh_object~unlock( ).
-      CATCH cx_enh_root.
-        zcx_abapgit_exception=>raise( 'error deserializing ENHO badi' ).
-    ENDTRY.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
@@ -87488,6 +86237,172 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
+  METHOD create_sotr.
+
+    DATA:
+      lt_objects  TYPE sotr_objects,
+      ls_paket    TYPE sotr_pack,
+      lv_object   LIKE LINE OF lt_objects,
+      lt_sotr     TYPE zif_abapgit_definitions=>ty_sotr_tt,
+      lt_sotr_use TYPE zif_abapgit_definitions=>ty_sotr_use_tt.
+
+    FIELD-SYMBOLS: <ls_sotr> LIKE LINE OF lt_sotr.
+
+    io_xml->read( EXPORTING iv_name = 'SOTR'
+                  CHANGING cg_data = lt_sotr ).
+    io_xml->read( EXPORTING iv_name = 'SOTR_USE'
+                  CHANGING cg_data = lt_sotr_use ).
+
+    LOOP AT lt_sotr ASSIGNING <ls_sotr>.
+      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
+        EXPORTING
+          object_vector    = <ls_sotr>-header-objid_vec
+        IMPORTING
+          objects          = lt_objects
+        EXCEPTIONS
+          object_not_found = 1
+          OTHERS           = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |error from SOTR_OBJECT_GET_OBJECTS. Subrc = { sy-subrc }| ).
+      ENDIF.
+
+      READ TABLE lt_objects INDEX 1 INTO lv_object.
+      ASSERT sy-subrc = 0.
+
+      ls_paket-paket = iv_package.
+
+      CALL FUNCTION 'SOTR_CREATE_CONCEPT'
+        EXPORTING
+          paket                         = ls_paket
+          crea_lan                      = <ls_sotr>-header-crea_lan
+          alias_name                    = <ls_sotr>-header-alias_name
+          object                        = lv_object
+          entries                       = <ls_sotr>-entries
+          concept_default               = <ls_sotr>-header-concept
+        EXCEPTIONS
+          package_missing               = 1
+          crea_lan_missing              = 2
+          object_missing                = 3
+          paket_does_not_exist          = 4
+          alias_already_exist           = 5
+          object_type_not_found         = 6
+          langu_missing                 = 7
+          identical_context_not_allowed = 8
+          text_too_long                 = 9
+          error_in_update               = 10
+          no_master_langu               = 11
+          error_in_concept_id           = 12
+          alias_not_allowed             = 13
+          tadir_entry_creation_failed   = 14
+          internal_error                = 15
+          error_in_correction           = 16
+          user_cancelled                = 17
+          no_entry_found                = 18
+          OTHERS                        = 19.
+      IF sy-subrc <> 0 AND sy-subrc <> 5.
+        zcx_abapgit_exception=>raise( |Error from SOTR_CREATE_CONCEPT. Subrc = { sy-subrc }| ).
+      ENDIF.
+    ENDLOOP.
+
+    CALL FUNCTION 'SOTR_USAGE_MODIFY'
+      EXPORTING
+        sotr_usage = lt_sotr_use.
+
+  ENDMETHOD.
+  METHOD get_sotr_4_concept.
+
+    DATA: ls_header  TYPE sotr_head,
+          lt_entries TYPE sotr_text_tt.
+
+    FIELD-SYMBOLS: <ls_entry> LIKE LINE OF lt_entries.
+
+    CALL FUNCTION 'SOTR_GET_CONCEPT'
+      EXPORTING
+        concept        = iv_concept
+      IMPORTING
+        header         = ls_header
+      TABLES
+        entries        = lt_entries
+      EXCEPTIONS
+        no_entry_found = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    CLEAR: ls_header-paket,
+           ls_header-crea_name,
+           ls_header-crea_tstut,
+           ls_header-chan_name,
+           ls_header-chan_tstut,
+           ls_header-system_id.
+
+    LOOP AT lt_entries ASSIGNING <ls_entry>.
+      CLEAR: <ls_entry>-version,
+             <ls_entry>-crea_name,
+             <ls_entry>-crea_tstut,
+             <ls_entry>-chan_name,
+             <ls_entry>-chan_tstut.
+    ENDLOOP.
+
+    rs_sotr-header  = ls_header.
+    rs_sotr-entries = lt_entries.
+
+  ENDMETHOD.
+  METHOD get_sotr_usage.
+
+    DATA: lv_obj_name TYPE trobj_name.
+
+    lv_obj_name = iv_obj_name.
+
+    " Objects with multiple components
+    IF iv_pgmid = 'LIMU' AND ( iv_object = 'WDYV' OR iv_object = 'WAPP' ).
+      lv_obj_name+30 = '%'.
+    ENDIF.
+
+    CALL FUNCTION 'SOTR_USAGE_READ'
+      EXPORTING
+        pgmid          = iv_pgmid
+        object         = iv_object
+        obj_name       = lv_obj_name
+      IMPORTING
+        sotr_usage     = rt_sotr_use
+      EXCEPTIONS
+        no_entry_found = 1
+        error_in_pgmid = 2
+        OTHERS         = 3.
+    IF sy-subrc = 0.
+      SORT rt_sotr_use.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD read_sotr.
+
+    FIELD-SYMBOLS <ls_sotr_use> TYPE sotr_use.
+
+    " Known SOTR usage...
+    " LIMU: CPUB, WAPP, WDYV
+    " R3TR: ENHC, ENHO, ENHS, ENSC, SCGR, SMIF, WDYA, WEBI, WEBS
+
+    et_sotr_use = get_sotr_usage( iv_pgmid    = iv_pgmid
+                                  iv_object   = iv_object
+                                  iv_obj_name = iv_obj_name ).
+
+    LOOP AT et_sotr_use ASSIGNING <ls_sotr_use> WHERE NOT concept IS INITIAL.
+      INSERT get_sotr_4_concept( <ls_sotr_use>-concept ) INTO TABLE et_sotr.
+    ENDLOOP.
+
+    IF io_xml IS BOUND.
+      io_xml->add( iv_name = 'SOTR'
+                   ig_data = et_sotr ).
+      io_xml->add( iv_name = 'SOTR_USE'
+                   ig_data = et_sotr_use ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   METHOD read.
 
@@ -87648,6 +86563,1097 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
                  ig_data = lt_longtexts ).
 
   ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECT_ENHS_HOOK_D IMPLEMENTATION.
+  METHOD zif_abapgit_object_enhs~deserialize.
+
+    DATA: lv_enh_shorttext       TYPE string,
+          ls_enh_hook_definition TYPE enh_hook_def,
+          ls_hook_definition     TYPE ty_hook_defifnition,
+          li_enh_object          TYPE REF TO if_enh_object,
+          li_enh_object_docu     TYPE REF TO if_enh_object_docu,
+          lo_hookdef_tool        TYPE REF TO cl_enh_tool_hook_def,
+          lx_error               TYPE REF TO cx_enh_root,
+          lv_text                TYPE string.
+
+    FIELD-SYMBOLS: <ls_hook_definition> TYPE enh_hook_def_ext.
+
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING  cg_data = lv_enh_shorttext ).
+
+    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
+                  CHANGING  cg_data = ls_hook_definition ).
+
+    li_enh_object ?= ii_enh_spot_tool.
+    li_enh_object_docu ?= ii_enh_spot_tool.
+
+    TRY.
+        li_enh_object_docu->set_shorttext( lv_enh_shorttext ).
+
+        lo_hookdef_tool ?= ii_enh_spot_tool.
+
+        lo_hookdef_tool->set_original_object( pgmid     = ls_hook_definition-pgmid
+                                              obj_name  = ls_hook_definition-obj_name
+                                              obj_type  = ls_hook_definition-obj_type
+                                              program   = ls_hook_definition-program
+                                              main_type = ls_hook_definition-main_type
+                                              main_name = ls_hook_definition-main_name ).
+
+        LOOP AT ls_hook_definition-def_hooks ASSIGNING <ls_hook_definition>.
+          MOVE-CORRESPONDING <ls_hook_definition> TO ls_enh_hook_definition.
+          lo_hookdef_tool->add_hook_def( ls_enh_hook_definition ).
+        ENDLOOP.
+
+        li_enh_object->save( ).
+        li_enh_object->activate( ).
+        li_enh_object->unlock( ).
+
+      CATCH cx_enh_root INTO lx_error.
+        lv_text = lx_error->get_text( ).
+        zcx_abapgit_exception=>raise( lv_text ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enhs~serialize.
+
+    DATA: lo_hookdef_tool    TYPE REF TO cl_enh_tool_hook_def,
+          lv_enh_shorttext   TYPE string,
+          li_enh_object_docu TYPE REF TO if_enh_object_docu,
+          ls_hook_definition TYPE ty_hook_defifnition.
+
+    lo_hookdef_tool ?= ii_enh_spot_tool.
+
+    li_enh_object_docu ?= ii_enh_spot_tool.
+    lv_enh_shorttext = li_enh_object_docu->get_shorttext( ).
+
+    ls_hook_definition-def_hooks = lo_hookdef_tool->get_hook_defs( ).
+
+    lo_hookdef_tool->get_original_object(
+      IMPORTING
+        pgmid     = ls_hook_definition-pgmid
+        obj_name  = ls_hook_definition-obj_name
+        obj_type  = ls_hook_definition-obj_type
+        main_type = ls_hook_definition-main_type
+        main_name = ls_hook_definition-main_name
+        program   = ls_hook_definition-program ).
+
+    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
+                 iv_name = 'TOOL' ).
+
+    ii_xml->add( ig_data = lv_enh_shorttext
+                 iv_name = 'SHORTTEXT' ).
+
+    ii_xml->add( ig_data = ls_hook_definition
+                 iv_name = 'BADI_DATA' ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECT_ENHS_BADI_D IMPLEMENTATION.
+  METHOD zif_abapgit_object_enhs~deserialize.
+
+    DATA: lv_parent          TYPE enhspotcompositename,
+          lt_enh_badi        TYPE enh_badi_data_it,
+          lo_badidef_tool    TYPE REF TO cl_enh_tool_badi_def,
+          lv_enh_shorttext   TYPE string,
+          li_enh_object      TYPE REF TO if_enh_object,
+          li_enh_object_docu TYPE REF TO if_enh_object_docu,
+          lv_text            TYPE string,
+          lx_error           TYPE REF TO cx_enh_root.
+
+    FIELD-SYMBOLS: <ls_enh_badi> LIKE LINE OF lt_enh_badi.
+
+    ii_xml->read( EXPORTING iv_name = 'PARENT_COMP'
+                  CHANGING  cg_data = lv_parent ).
+
+    ii_xml->read( EXPORTING iv_name = 'BADI_DATA'
+                  CHANGING  cg_data = lt_enh_badi ).
+
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING  cg_data = lv_enh_shorttext ).
+
+    li_enh_object ?= ii_enh_spot_tool.
+    li_enh_object_docu ?= ii_enh_spot_tool.
+
+    TRY.
+        li_enh_object_docu->set_shorttext( lv_enh_shorttext ).
+
+        lo_badidef_tool ?= ii_enh_spot_tool.
+
+        LOOP AT lt_enh_badi ASSIGNING <ls_enh_badi>.
+          lo_badidef_tool->add_badi_def( <ls_enh_badi> ).
+        ENDLOOP.
+
+        li_enh_object->save( ).
+        li_enh_object->activate( ).
+        li_enh_object->unlock( ).
+
+      CATCH cx_enh_root INTO lx_error.
+        lv_text = lx_error->get_text( ).
+        zcx_abapgit_exception=>raise( lv_text ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enhs~serialize.
+
+    DATA: lv_spot_name       TYPE enhspotname,
+          lv_parent          TYPE enhspotcompositename,
+          lt_enh_badi        TYPE enh_badi_data_it,
+          lo_badidef_tool    TYPE REF TO cl_enh_tool_badi_def,
+          lv_enh_shorttext   TYPE string,
+          li_enh_object_docu TYPE REF TO if_enh_object_docu.
+
+    lo_badidef_tool ?= ii_enh_spot_tool.
+
+    li_enh_object_docu ?= ii_enh_spot_tool.
+    lv_enh_shorttext = li_enh_object_docu->get_shorttext( ).
+
+    "get parent = composite enhs (ENHC)
+    lv_parent = cl_r3standard_persistence=>enh_find_parent_composite( lv_spot_name ).
+    "get subsequent BADI definitions
+    lt_enh_badi = lo_badidef_tool->get_badi_defs( ).
+
+    ii_xml->add( ig_data = ii_enh_spot_tool->get_tool( )
+                 iv_name = 'TOOL' ).
+
+    ii_xml->add( ig_data = lv_enh_shorttext
+                 iv_name = 'SHORTTEXT' ).
+
+    ii_xml->add( ig_data = lv_parent
+                 iv_name = 'PARENT_COMP' ).
+
+    ii_xml->add( ig_data = lt_enh_badi
+                 iv_name = 'BADI_DATA' ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
+  METHOD constructor.
+    ms_item = is_item.
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: ls_enh_data  TYPE enhwdyn,
+          li_tool      TYPE REF TO if_enh_tool,
+          lo_wdyn      TYPE REF TO cl_enh_tool_wdy,
+          lv_tool_type TYPE enhtooltype,
+          lv_package   TYPE devclass.
+
+    FIELD-SYMBOLS: <ls_controller_data> TYPE enhwdyc,
+                   <ls_view_data>       TYPE enhwdyv.
+    ii_xml->read(
+      EXPORTING
+        iv_name = 'TOOL'
+      CHANGING
+        cg_data = lv_tool_type ).
+
+    ii_xml->read(
+      EXPORTING
+        iv_name = 'COMPONENT_DATA'
+      CHANGING
+        cg_data = ls_enh_data ).
+
+    lv_package = iv_package.
+
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = |{ ms_item-obj_name }|
+            enhtype     = ''
+            enhtooltype = lv_tool_type
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+
+        lo_wdyn ?= li_tool.
+
+        lo_wdyn->initialize( ls_enh_data-component_name ).
+
+        lo_wdyn->set_component_data( ls_enh_data-component_data ).
+
+        LOOP AT ls_enh_data-controller_data ASSIGNING <ls_controller_data>.
+
+          lo_wdyn->set_controller_data( p_controller_name = <ls_controller_data>-controller_name
+                                        p_enh_data        = <ls_controller_data> ).
+
+        ENDLOOP.
+
+        LOOP AT ls_enh_data-view_data ASSIGNING <ls_view_data>.
+
+          lo_wdyn->set_view_data( p_view_name = <ls_view_data>-view_name
+                                  p_enh_data  = <ls_view_data> ).
+
+        ENDLOOP.
+
+        lo_wdyn->if_enh_object~save( run_dark = abap_true ).
+        lo_wdyn->if_enh_object~unlock( ).
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |error deserializing ENHO wdyn { ms_item-obj_name }| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_wdyn           TYPE REF TO cl_enh_tool_wdy,
+          lv_component_name TYPE wdy_component_name,
+          ls_enh_data       TYPE enhwdyn.
+    lo_wdyn ?= ii_enh_tool.
+    lv_component_name = lo_wdyn->get_component_name( ).
+
+    TRY.
+        lo_wdyn->get_all_data_for_comp(
+          EXPORTING
+            p_component_name = lv_component_name
+          IMPORTING
+            p_enh_data       = ls_enh_data ).
+
+        ii_xml->add( iv_name = 'TOOL'
+                     ig_data = ii_enh_tool->get_tool( ) ).
+
+        ii_xml->add( iv_name = 'COMPONENT_DATA'
+                     ig_data = ls_enh_data ).
+
+      CATCH cx_enh_not_found.
+        zcx_abapgit_exception=>raise( |error serializing ENHO wdyn { ms_item-obj_name }| ).
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
+
+  METHOD constructor.
+    ms_item = is_item.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lv_enhname TYPE enhname,
+          lo_wdyconf TYPE REF TO cl_wdr_cfg_enhancement,
+          li_tool    TYPE REF TO if_enh_tool,
+          ls_obj     TYPE wdy_config_key,
+          lv_package TYPE devclass.
+    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
+                  CHANGING cg_data  = ls_obj ).
+
+    lv_enhname = ms_item-obj_name.
+    lv_package = iv_package.
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = lv_enhname
+            enhtype     = ''
+            enhtooltype = cl_wdr_cfg_enhancement=>tooltype
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+        lo_wdyconf ?= li_tool.
+
+* todo
+* io_xml->read_xml()
+* CL_WDR_CFG_PERSISTENCE_UTILS=>COMP_XML_TO_TABLES( )
+* lo_wdyconf->set_enhancement_data( )
+        ASSERT 0 = 1.
+
+        lo_wdyconf->if_enh_object~save( run_dark = abap_true ).
+        lo_wdyconf->if_enh_object~unlock( ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_wdyconf  TYPE REF TO cl_wdr_cfg_enhancement,
+          lt_data     TYPE wdy_cfg_expl_data_tab,
+          ls_outline  TYPE wdy_cfg_outline_data,
+          ls_obj      TYPE wdy_config_key,
+          li_document TYPE REF TO if_ixml_document,
+          li_element  TYPE REF TO if_ixml_element.
+    lo_wdyconf ?= ii_enh_tool.
+
+    ls_obj = lo_wdyconf->get_original_object( ).
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = ii_enh_tool->get_tool( ) ).
+    ii_xml->add( iv_name = 'ORIGINAL_OBJECT'
+                 ig_data = ls_obj ).
+
+* only works on new ABAP versions, parameters differ between versions
+    CALL METHOD lo_wdyconf->('GET_ENHANCEMENT_DATA')
+      EXPORTING
+        p_scope    = 1
+      IMPORTING
+        p_enh_data = lt_data.
+
+    CALL METHOD cl_wdr_cfg_persistence_utils=>('COMP_TABLES_TO_XML')
+      EXPORTING
+        outline_data  = ls_outline
+        expl_data_tab = lt_data
+      IMPORTING
+        element       = li_element
+      CHANGING
+        document      = li_document.
+
+    ii_xml->add_xml( iv_name = 'ENHANCEMENT_DATA'
+                     ii_xml = li_element ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
+
+  METHOD constructor.
+    ms_item  = is_item.
+    mo_files = io_files.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_enh_intf  TYPE REF TO cl_enh_tool_intf,
+          lv_class     TYPE seoclsname,
+          lv_shorttext TYPE string.
+    lo_enh_intf ?= ii_enh_tool.
+
+    lv_shorttext = lo_enh_intf->if_enh_object_docu~get_shorttext( ).
+    lo_enh_intf->get_class( IMPORTING class_name = lv_class ).
+
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = ii_enh_tool->get_tool( ) ).
+    ii_xml->add( ig_data = lv_shorttext
+                 iv_name = 'SHORTTEXT' ).
+    ii_xml->add( iv_name = 'CLASS'
+                 ig_data = lv_class ).
+
+    zcl_abapgit_object_enho_clif=>serialize(
+      io_xml  = ii_xml
+      io_files = mo_files
+      io_clif = lo_enh_intf ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lo_enh_intf  TYPE REF TO cl_enh_tool_intf,
+          li_tool      TYPE REF TO if_enh_tool,
+          lv_shorttext TYPE string,
+          lv_class     TYPE seoclsname,
+          lv_enhname   TYPE enhname,
+          lv_package   TYPE devclass.
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING cg_data  = lv_shorttext ).
+    ii_xml->read( EXPORTING iv_name = 'CLASS'
+                  CHANGING cg_data  = lv_class ).
+
+    lv_enhname = ms_item-obj_name.
+    lv_package = iv_package.
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = lv_enhname
+            enhtype     = ''
+            enhtooltype = cl_enh_tool_intf=>tooltype
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+        lo_enh_intf ?= li_tool.
+
+        lo_enh_intf->if_enh_object_docu~set_shorttext( lv_shorttext ).
+        lo_enh_intf->set_class( lv_class ).
+
+        zcl_abapgit_object_enho_clif=>deserialize(
+          io_xml  = ii_xml
+          io_clif = lo_enh_intf ).
+
+        lo_enh_intf->if_enh_object~save( run_dark = abap_true ).
+        lo_enh_intf->if_enh_object~unlock( ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'error deserializing ENHO interface' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
+
+  METHOD constructor.
+    ms_item = is_item.
+    mo_files = io_files.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lv_shorttext       TYPE string,
+          lo_hook_impl       TYPE REF TO cl_enh_tool_hook_impl,
+          ls_original_object TYPE enh_hook_admin,
+          lt_spaces          TYPE ty_spaces_tt,
+          lt_enhancements    TYPE enh_hook_impl_it.
+
+    FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
+    lo_hook_impl ?= ii_enh_tool.
+
+    lv_shorttext = lo_hook_impl->if_enh_object_docu~get_shorttext( ).
+    lo_hook_impl->get_original_object(
+      IMPORTING
+        pgmid     = ls_original_object-pgmid
+        obj_name  = ls_original_object-org_obj_name
+        obj_type  = ls_original_object-org_obj_type
+        main_type = ls_original_object-org_main_type
+        main_name = ls_original_object-org_main_name
+        program   = ls_original_object-programname ).
+    ls_original_object-include_bound = lo_hook_impl->get_include_bound( ).
+    lt_enhancements = lo_hook_impl->get_hook_impls( ).
+
+    LOOP AT lt_enhancements ASSIGNING <ls_enhancement>.
+      CLEAR: <ls_enhancement>-extid,
+             <ls_enhancement>-id.
+    ENDLOOP.
+
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = ii_enh_tool->get_tool( ) ).
+    ii_xml->add( ig_data = lv_shorttext
+                 iv_name = 'SHORTTEXT' ).
+    ii_xml->add( ig_data = ls_original_object
+                 iv_name = 'ORIGINAL_OBJECT' ).
+    ii_xml->add( iv_name = 'ENHANCEMENTS'
+                 ig_data = lt_enhancements ).
+    ii_xml->add( iv_name = 'SPACES'
+                 ig_data = lt_spaces ).
+
+  ENDMETHOD.
+
+  METHOD hook_impl_deserialize.
+
+    FIELD-SYMBOLS: <ls_impl>   LIKE LINE OF ct_impl,
+                   <lv_line>   TYPE string,
+                   <lv_space>  TYPE i,
+                   <ls_spaces> LIKE LINE OF it_spaces.
+    LOOP AT ct_impl ASSIGNING <ls_impl>.
+      READ TABLE it_spaces ASSIGNING <ls_spaces> WITH KEY full_name = <ls_impl>-full_name.
+      IF sy-subrc = 0.
+        LOOP AT <ls_impl>-source ASSIGNING <lv_line>.
+          READ TABLE <ls_spaces>-spaces ASSIGNING <lv_space> INDEX sy-tabix.
+          IF sy-subrc = 0 AND <lv_space> > 0.
+            DO <lv_space> TIMES.
+              CONCATENATE space <lv_line> INTO <lv_line> RESPECTING BLANKS.
+            ENDDO.
+          ENDIF.
+        ENDLOOP.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lv_shorttext       TYPE string,
+          lo_hook_impl       TYPE REF TO cl_enh_tool_hook_impl,
+          li_tool            TYPE REF TO if_enh_tool,
+          lv_enhname         TYPE enhname,
+          lv_package         TYPE devclass,
+          ls_original_object TYPE enh_hook_admin,
+          lt_spaces          TYPE ty_spaces_tt,
+          lt_enhancements    TYPE enh_hook_impl_it,
+          lx_enh_root        TYPE REF TO cx_enh_root.
+
+    FIELD-SYMBOLS: <ls_enhancement> LIKE LINE OF lt_enhancements.
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING cg_data  = lv_shorttext ).
+    ii_xml->read( EXPORTING iv_name = 'ORIGINAL_OBJECT'
+                  CHANGING cg_data  = ls_original_object ).
+    ii_xml->read( EXPORTING iv_name = 'ENHANCEMENTS'
+                  CHANGING cg_data  = lt_enhancements ).
+    ii_xml->read( EXPORTING iv_name = 'SPACES'
+                  CHANGING cg_data  = lt_spaces ).
+
+    " todo: kept for compatibility, remove after grace period #3680
+    hook_impl_deserialize( EXPORTING it_spaces = lt_spaces
+                           CHANGING ct_impl    = lt_enhancements ).
+
+    lv_enhname = ms_item-obj_name.
+    lv_package = iv_package.
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = lv_enhname
+            enhtype     = cl_abstract_enh_tool_redef=>credefinition
+            enhtooltype = cl_enh_tool_hook_impl=>tooltype
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+        lo_hook_impl ?= li_tool.
+
+        lo_hook_impl->if_enh_object_docu~set_shorttext( lv_shorttext ).
+        lo_hook_impl->set_original_object(
+            pgmid       = ls_original_object-pgmid
+            obj_name    = ls_original_object-org_obj_name
+            obj_type    = ls_original_object-org_obj_type
+            program     = ls_original_object-programname
+            main_type   = ls_original_object-org_main_type
+            main_name   = ls_original_object-org_main_name ).
+        lo_hook_impl->set_include_bound( ls_original_object-include_bound ).
+
+        LOOP AT lt_enhancements ASSIGNING <ls_enhancement>.
+          lo_hook_impl->add_hook_impl(
+              overwrite        = <ls_enhancement>-overwrite
+              method           = <ls_enhancement>-method
+              enhmode          = <ls_enhancement>-enhmode
+              full_name        = <ls_enhancement>-full_name
+              source           = <ls_enhancement>-source
+              spot             = <ls_enhancement>-spotname
+              parent_full_name = <ls_enhancement>-parent_full_name ).
+        ENDLOOP.
+        lo_hook_impl->if_enh_object~save( run_dark = abap_true ).
+        lo_hook_impl->if_enh_object~unlock( ).
+      CATCH cx_enh_root INTO lx_enh_root.
+        zcx_abapgit_exception=>raise( lx_enh_root->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
+  METHOD constructor.
+    ms_item = is_item.
+    mo_files = io_files.
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
+          ls_enha_data TYPE enhfugrdata,
+          li_tool      TYPE REF TO if_enh_tool,
+          lv_tool      TYPE enhtooltype,
+          lv_package   TYPE devclass.
+
+    FIELD-SYMBOLS: <ls_fuba> TYPE enhfugrfuncdata.
+
+    ii_xml->read(
+      EXPORTING
+        iv_name = 'TOOL'
+      CHANGING
+        cg_data = lv_tool ).
+
+    ii_xml->read(
+      EXPORTING
+        iv_name = 'FUGRDATA'
+      CHANGING
+        cg_data = ls_enha_data ).
+
+    lv_package = iv_package.
+
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = |{ ms_item-obj_name }|
+            enhtype     = ''
+            enhtooltype = lv_tool
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+
+        lo_fugrdata ?= li_tool.
+
+        lo_fugrdata->set_fugr( ls_enha_data-fugr ).
+
+        LOOP AT ls_enha_data-enh_fubas ASSIGNING <ls_fuba>.
+
+          lo_fugrdata->set_func_data( func_name     = <ls_fuba>-fuba
+                                      func_enhadata = <ls_fuba> ).
+
+        ENDLOOP.
+
+        lo_fugrdata->if_enh_object~save( run_dark = abap_true ).
+        lo_fugrdata->if_enh_object~unlock( ).
+
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_fugrdata  TYPE REF TO cl_enh_tool_fugr,
+          lv_fugr_name TYPE rs38l-area,
+          ls_enha_data TYPE enhfugrdata.
+
+    FIELD-SYMBOLS: <ls_docuobj> TYPE enhfugrparamdocu.
+    lo_fugrdata ?= ii_enh_tool.
+
+    lo_fugrdata->get_fugr( IMPORTING fugr_name = lv_fugr_name ).
+
+    TRY.
+        lo_fugrdata->get_all_data_for_fugr(
+          EXPORTING
+            fugr_name = lv_fugr_name
+          IMPORTING
+            enha_data = ls_enha_data ).
+
+        LOOP AT ls_enha_data-docuobjs ASSIGNING <ls_docuobj>.
+          CLEAR: <ls_docuobj>-shorttext,
+                 <ls_docuobj>-longtext.
+        ENDLOOP.
+
+      CATCH cx_enh_not_found.
+        zcx_abapgit_exception=>raise( |error deserializing ENHO fugrdata { ms_item-obj_name }| ).
+    ENDTRY.
+
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = lo_fugrdata->if_enh_tool~get_tool( ) ).
+
+    ii_xml->add( iv_name = 'FUGRDATA'
+                 ig_data = ls_enha_data ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
+  METHOD deserialize.
+
+    DATA: lt_tab_attributes TYPE enhclasstabattrib,
+          lt_tab_types      TYPE enhtype_tab,
+          lt_tab_methods    TYPE enhnewmeth_tab,
+          ls_type_line      TYPE vseotype,
+          ls_header         TYPE vseomethod,
+          ls_param          TYPE vseomepara,
+          ls_exc            TYPE vseoexcep,
+          lt_tab_eventdata  TYPE enhevent_tab,
+          ls_event_line     TYPE vseoevent,
+          ls_event_param    TYPE vseoeparam.
+
+    FIELD-SYMBOLS: <ls_type>        LIKE LINE OF lt_tab_types,
+                   <ls_method>      LIKE LINE OF lt_tab_methods,
+                   <ls_param>       LIKE LINE OF <ls_method>-meth_param,
+                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
+                   <ls_exc>         LIKE LINE OF <ls_method>-meth_exc,
+                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
+    io_xml->read( EXPORTING iv_name = 'TAB_ATTRIBUTES'
+                  CHANGING cg_data = lt_tab_attributes ).
+    io_xml->read( EXPORTING iv_name = 'TAB_TYPES'
+                  CHANGING cg_data = lt_tab_types ).
+    io_xml->read( EXPORTING iv_name = 'TAB_METHODS'
+                  CHANGING cg_data = lt_tab_methods ).
+    io_xml->read( EXPORTING iv_name = 'TAB_EVENTDATA'
+                  CHANGING cg_data = lt_tab_eventdata ).
+
+    LOOP AT lt_tab_types ASSIGNING <ls_type>.
+      MOVE-CORRESPONDING <ls_type> TO ls_type_line.
+      TRY.
+          io_clif->add_change_enha_type( type_line = ls_type_line ).
+        CATCH cx_enh_mod_not_allowed
+        cx_enh_is_not_enhanceable.
+          " TODO
+      ENDTRY.
+    ENDLOOP.
+
+    io_clif->set_enhattributes( lt_tab_attributes ).
+
+* SAP standard SET_ENH_NEW_METHOS does not work
+
+    LOOP AT lt_tab_methods ASSIGNING <ls_method>.
+
+      MOVE-CORRESPONDING <ls_method>-meth_header TO ls_header.
+
+      io_clif->add_change_new_enh_method(
+        methkey       = <ls_method>-methkey
+        method_header = ls_header ).
+
+* parameters
+      LOOP AT <ls_method>-meth_param ASSIGNING <ls_param>.
+        MOVE-CORRESPONDING <ls_param> TO ls_param.
+        io_clif->add_change_enh_methparam(
+          methname   = <ls_method>-methkey-cmpname
+          param_line = ls_param ).
+      ENDLOOP.
+
+* exceptions
+      LOOP AT <ls_method>-meth_exc ASSIGNING <ls_exc>.
+        MOVE-CORRESPONDING <ls_exc> TO ls_exc.
+        io_clif->add_change_enh_methexc(
+          methname    = <ls_method>-methkey-cmpname
+          except_line = ls_exc ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+    " events are renumbered based on
+    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
+
+      MOVE-CORRESPONDING <ls_event>-event_header TO ls_event_line.
+
+      io_clif->add_change_enha_event(
+        event_key  = <ls_event>-eventkey
+        event_line = ls_event_line ).
+
+* parameters
+      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
+        MOVE-CORRESPONDING <ls_event_param> TO ls_event_param.
+        io_clif->add_change_enh_eventparam(
+          eventname   = <ls_event>-eventkey-cmpname
+          event_param = ls_event_param ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD serialize.
+
+    DATA: lt_tab_attributes TYPE enhclasstabattrib,
+          lt_tab_types      TYPE enhtype_tab,
+          lt_tab_methods    TYPE enhnewmeth_tab,
+          lt_tab_eventdata  TYPE enhevent_tab.
+
+    FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
+                   <ls_type>        LIKE LINE OF lt_tab_types,
+                   <ls_meth>        LIKE LINE OF lt_tab_methods,
+                   <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
+                   <ls_event>       LIKE LINE OF lt_tab_eventdata,
+                   <ls_event_param> LIKE LINE OF <ls_event>-event_param.
+    io_clif->get_enhattributes( IMPORTING tab_attributes = lt_tab_attributes ).
+
+    io_clif->get_enhatypes( IMPORTING tab_types = lt_tab_types ).
+
+    io_clif->get_enh_new_methodes( IMPORTING tab_methodes = lt_tab_methods ).
+
+    io_clif->get_enhevents( IMPORTING tab_eventdata = lt_tab_eventdata ).
+
+    LOOP AT lt_tab_attributes ASSIGNING <ls_attr>.
+      CLEAR: <ls_attr>-author,
+             <ls_attr>-createdon,
+             <ls_attr>-changedby,
+             <ls_attr>-changedon,
+             <ls_attr>-descript_id.
+    ENDLOOP.
+
+    LOOP AT lt_tab_types ASSIGNING <ls_type>.
+      CLEAR: <ls_type>-author,
+             <ls_type>-createdon,
+             <ls_type>-changedby,
+             <ls_type>-changedon,
+             <ls_type>-descript_id.
+    ENDLOOP.
+
+    LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
+      CLEAR: <ls_meth>-meth_header-author,
+             <ls_meth>-meth_header-createdon,
+             <ls_meth>-meth_header-changedby,
+             <ls_meth>-meth_header-changedon,
+             <ls_meth>-meth_header-descript_id.
+      LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
+        CLEAR: <ls_param>-author,
+               <ls_param>-createdon,
+               <ls_param>-changedby,
+               <ls_param>-changedon,
+               <ls_param>-descript_id.
+      ENDLOOP.
+    ENDLOOP.
+
+    LOOP AT lt_tab_eventdata ASSIGNING <ls_event>.
+      CLEAR: <ls_event>-event_header-author,
+             <ls_event>-event_header-createdon,
+             <ls_event>-event_header-changedby,
+             <ls_event>-event_header-changedon,
+             <ls_event>-event_header-descript_id.
+      LOOP AT <ls_event>-event_param ASSIGNING <ls_event_param>.
+        CLEAR: <ls_event_param>-author,
+               <ls_event_param>-createdon,
+               <ls_event_param>-changedby,
+               <ls_event_param>-changedon,
+               <ls_event_param>-descript_id.
+      ENDLOOP.
+    ENDLOOP.
+
+    io_xml->add( iv_name = 'TAB_ATTRIBUTES'
+                 ig_data = lt_tab_attributes ).
+    io_xml->add( iv_name = 'TAB_TYPES'
+                 ig_data = lt_tab_types ).
+    io_xml->add( iv_name = 'TAB_METHODS'
+                 ig_data = lt_tab_methods ).
+    io_xml->add( iv_name = 'TAB_EVENTDATA'
+                 ig_data = lt_tab_eventdata ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
+  METHOD constructor.
+    ms_item = is_item.
+    mo_files = io_files.
+  ENDMETHOD.
+  METHOD deserialize_includes.
+
+    DATA: lt_tab_methods TYPE enhnewmeth_tab,
+          lv_editorder   TYPE n LENGTH 3,
+          lv_methname    TYPE seocpdname,
+          lt_abap        TYPE rswsourcet,
+          lx_enh         TYPE REF TO cx_enh_root.
+
+    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods.
+
+    ii_xml->read( EXPORTING iv_name = 'TAB_METHODS'
+                  CHANGING cg_data = lt_tab_methods ).
+
+    LOOP AT lt_tab_methods ASSIGNING <ls_method>.
+
+      lv_editorder = <ls_method>-meth_header-editorder.
+      lv_methname = <ls_method>-methkey-cmpname.
+      lt_abap = mo_files->read_abap( iv_extra = 'em' && lv_editorder ).
+
+      TRY.
+          io_class->add_change_new_method_source(
+              clsname    = <ls_method>-methkey-clsname
+              methname   = lv_methname
+              methsource = lt_abap ).
+        CATCH cx_enh_mod_not_allowed cx_enh_is_not_enhanceable INTO lx_enh.
+          zcx_abapgit_exception=>raise( iv_text = 'Error deserializing ENHO method include'
+                                        ix_previous = lx_enh ).
+      ENDTRY.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD serialize_includes.
+
+    DATA: lt_includes TYPE enhnewmeth_tabincl_plus_enha,
+          lt_source   TYPE TABLE OF abaptxt255,
+          lv_include  TYPE programm.
+
+    FIELD-SYMBOLS: <ls_include> LIKE LINE OF lt_includes.
+    lt_includes = io_class->get_enh_method_includes( ).
+    LOOP AT lt_includes ASSIGNING <ls_include>.
+      lv_include = io_class->if_enh_tool~get_name( ).
+      TRANSLATE lv_include USING ' ='.
+      lv_include+30 = 'EM'.
+      lv_include+32(8) = <ls_include>-includenr.
+
+      CALL FUNCTION 'RPY_PROGRAM_READ'
+        EXPORTING
+          program_name     = lv_include
+          with_includelist = abap_false
+          with_lowercase   = abap_true
+        TABLES
+          source_extended  = lt_source
+        EXCEPTIONS
+          cancelled        = 1
+          not_found        = 2
+          permission_error = 3
+          OTHERS           = 4.
+      IF sy-subrc = 0.
+        mo_files->add_abap( iv_extra = |EM{ <ls_include>-includenr }|
+                            it_abap  = lt_source ).
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lo_enh_class TYPE REF TO cl_enh_tool_class,
+          lt_owr       TYPE enhmeth_tabkeys,
+          lt_pre       TYPE enhmeth_tabkeys,
+          lt_post      TYPE enhmeth_tabkeys,
+          lt_source    TYPE rswsourcet,
+          li_tool      TYPE REF TO if_enh_tool,
+          lv_shorttext TYPE string,
+          lv_class     TYPE seoclsname,
+          lv_enhname   TYPE enhname,
+          lv_package   TYPE devclass.
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING cg_data  = lv_shorttext ).
+    ii_xml->read( EXPORTING iv_name = 'OWR_METHODS'
+                  CHANGING cg_data  = lt_owr ).
+    ii_xml->read( EXPORTING iv_name = 'PRE_METHODS'
+                  CHANGING cg_data  = lt_pre ).
+    ii_xml->read( EXPORTING iv_name = 'POST_METHODS'
+                  CHANGING cg_data  = lt_post ).
+    ii_xml->read( EXPORTING iv_name = 'CLASS'
+                  CHANGING cg_data  = lv_class ).
+    lt_source = mo_files->read_abap( ).
+
+    lv_enhname = ms_item-obj_name.
+    lv_package = iv_package.
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = lv_enhname
+            enhtype     = ''
+            enhtooltype = cl_enh_tool_class=>tooltype
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+        lo_enh_class ?= li_tool.
+
+        lo_enh_class->if_enh_object_docu~set_shorttext( lv_shorttext ).
+        lo_enh_class->set_class( lv_class ).
+        lo_enh_class->set_owr_methods( version     = 'I'
+                                       owr_methods = lt_owr ).
+        lo_enh_class->set_pre_methods( version     = 'I'
+                                       pre_methods = lt_pre ).
+        lo_enh_class->set_post_methods( version      = 'I'
+                                        post_methods = lt_post ).
+        lo_enh_class->set_eimp_include( version     = 'I'
+                                        eimp_source = lt_source ).
+
+        zcl_abapgit_object_enho_clif=>deserialize(
+          io_xml  = ii_xml
+          io_clif = lo_enh_class ).
+
+        deserialize_includes(
+          ii_xml   = ii_xml
+          io_class = lo_enh_class ).
+
+        lo_enh_class->if_enh_object~save( run_dark = abap_true ).
+        lo_enh_class->if_enh_object~unlock( ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'error deserializing ENHO class' ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_enh_class TYPE REF TO cl_enh_tool_class,
+          lt_owr       TYPE enhmeth_tabkeys,
+          lt_pre       TYPE enhmeth_tabkeys,
+          lt_post      TYPE enhmeth_tabkeys,
+          lt_source    TYPE rswsourcet,
+          lv_class     TYPE seoclsname,
+          lv_shorttext TYPE string.
+    lo_enh_class ?= ii_enh_tool.
+
+    lv_shorttext = lo_enh_class->if_enh_object_docu~get_shorttext( ).
+    lt_owr = lo_enh_class->get_owr_methods( ).
+    lt_pre = lo_enh_class->get_pre_methods( ).
+    lt_post = lo_enh_class->get_post_methods( ).
+    lt_source = lo_enh_class->get_eimp_include( ).
+    lo_enh_class->get_class( IMPORTING class_name = lv_class ).
+
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = ii_enh_tool->get_tool( ) ).
+    ii_xml->add( ig_data = lv_shorttext
+                 iv_name = 'SHORTTEXT' ).
+    ii_xml->add( iv_name = 'CLASS'
+                 ig_data = lv_class ).
+    ii_xml->add( iv_name = 'OWR_METHODS'
+                 ig_data = lt_owr ).
+    ii_xml->add( iv_name = 'PRE_METHODS'
+                 ig_data = lt_pre ).
+    ii_xml->add( iv_name = 'POST_METHODS'
+                 ig_data = lt_post ).
+
+    mo_files->add_abap( lt_source ).
+
+    zcl_abapgit_object_enho_clif=>serialize(
+      io_xml   = ii_xml
+      io_files = mo_files
+      io_clif  = lo_enh_class ).
+
+    serialize_includes( lo_enh_class ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
+
+  METHOD constructor.
+    ms_item = is_item.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~serialize.
+
+    DATA: lo_badi_impl TYPE REF TO cl_enh_tool_badi_impl,
+          lv_spot_name TYPE enhspotname,
+          lv_shorttext TYPE string,
+          lt_impl      TYPE enh_badi_impl_data_it.
+
+    FIELD-SYMBOLS: <ls_impl>   LIKE LINE OF lt_impl,
+                   <ls_values> LIKE LINE OF <ls_impl>-filter_values,
+                   <ls_filter> LIKE LINE OF <ls_impl>-filters.
+    lo_badi_impl ?= ii_enh_tool.
+
+    lv_shorttext = lo_badi_impl->if_enh_object_docu~get_shorttext( ).
+    lv_spot_name = lo_badi_impl->get_spot_name( ).
+    lt_impl      = lo_badi_impl->get_implementations( ).
+
+    LOOP AT lt_impl ASSIGNING <ls_impl>.
+* make sure the XML serialization does not dump, field type = N
+      LOOP AT <ls_impl>-filter_values ASSIGNING <ls_values>.
+        IF <ls_values>-filter_numeric_value1 CA space.
+          CLEAR <ls_values>-filter_numeric_value1.
+        ENDIF.
+      ENDLOOP.
+      LOOP AT <ls_impl>-filters ASSIGNING <ls_filter>.
+        IF <ls_filter>-filter_numeric_value1 CA space.
+          CLEAR <ls_filter>-filter_numeric_value1.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    ii_xml->add( iv_name = 'TOOL'
+                 ig_data = ii_enh_tool->get_tool( ) ).
+    ii_xml->add( ig_data = lv_shorttext
+                 iv_name = 'SHORTTEXT' ).
+    ii_xml->add( iv_name = 'SPOT_NAME'
+                 ig_data = lv_spot_name ).
+    ii_xml->add( iv_name = 'IMPL'
+                 ig_data = lt_impl ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_enho~deserialize.
+
+    DATA: lv_spot_name TYPE enhspotname,
+          lv_shorttext TYPE string,
+          lv_enhname   TYPE enhname,
+          lo_badi      TYPE REF TO cl_enh_tool_badi_impl,
+          li_tool      TYPE REF TO if_enh_tool,
+          lv_package   TYPE devclass,
+          lt_impl      TYPE enh_badi_impl_data_it.
+
+    FIELD-SYMBOLS: <ls_impl> LIKE LINE OF lt_impl.
+    ii_xml->read( EXPORTING iv_name = 'SHORTTEXT'
+                  CHANGING cg_data  = lv_shorttext ).
+    ii_xml->read( EXPORTING iv_name = 'SPOT_NAME'
+                  CHANGING cg_data  = lv_spot_name ).
+    ii_xml->read( EXPORTING iv_name = 'IMPL'
+                  CHANGING cg_data  = lt_impl ).
+
+    lv_enhname = ms_item-obj_name.
+    lv_package = iv_package.
+    TRY.
+        cl_enh_factory=>create_enhancement(
+          EXPORTING
+            enhname     = lv_enhname
+            enhtype     = cl_abstract_enh_tool_redef=>credefinition
+            enhtooltype = cl_enh_tool_badi_impl=>tooltype
+          IMPORTING
+            enhancement = li_tool
+          CHANGING
+            devclass    = lv_package ).
+        lo_badi ?= li_tool.
+
+        lo_badi->set_spot_name( lv_spot_name ).
+        lo_badi->if_enh_object_docu~set_shorttext( lv_shorttext ).
+        LOOP AT lt_impl ASSIGNING <ls_impl>.
+          lo_badi->add_implementation( <ls_impl> ).
+        ENDLOOP.
+        lo_badi->if_enh_object~save( run_dark = abap_true ).
+        lo_badi->if_enh_object~unlock( ).
+      CATCH cx_enh_root.
+        zcx_abapgit_exception=>raise( 'error deserializing ENHO badi' ).
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
@@ -95229,5 +95235,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-04T04:45:32.734Z
+* abapmerge 0.14.2 - 2020-12-04T07:42:55.925Z
 ****************************************************
