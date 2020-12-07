@@ -731,6 +731,7 @@ CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_js DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
@@ -11270,7 +11271,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_syntax_highlighter DEFINITION
+CLASS zcl_abapgit_syntax_factory DEFINITION
   ABSTRACT
   CREATE PUBLIC .
 
@@ -11282,11 +11283,23 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
         !iv_hidden_chars   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_syntax_highlighter .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_syntax_highlighter DEFINITION
+  ABSTRACT
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
     METHODS process_line
       IMPORTING
         !iv_line       TYPE string
       RETURNING
         VALUE(rv_line) TYPE string .
+    METHODS set_hidden_chars
+      IMPORTING
+        !iv_hidden_chars TYPE abap_bool .
   PROTECTED SECTION.
 
     TYPES:
@@ -11349,9 +11362,6 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION
         !iv_string       TYPE string
       RETURNING
         VALUE(rv_result) TYPE abap_bool .
-    METHODS set_hidden_chars
-      IMPORTING
-        !iv_hidden_chars TYPE abap_bool .
     METHODS show_hidden_chars
       IMPORTING
         !iv_line       TYPE string
@@ -40594,7 +40604,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
   METHOD apply_merged_content.
 
     DATA:
@@ -40816,7 +40826,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_RES IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_diff>  LIKE LINE OF lt_diffs.
 
-    lo_highlighter = zcl_abapgit_syntax_highlighter=>create( is_diff-filename ).
+    lo_highlighter = zcl_abapgit_syntax_factory=>create( is_diff-filename ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_diffs = is_diff-o_diff->get( ).
@@ -41864,8 +41874,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_diff> LIKE LINE OF lt_diffs.
 
-    lo_highlighter = zcl_abapgit_syntax_highlighter=>create( iv_filename     = is_diff-filename
-                                                             iv_hidden_chars = mv_hidden_chars ).
+    lo_highlighter = zcl_abapgit_syntax_factory=>create( iv_filename     = is_diff-filename
+                                                         iv_hidden_chars = mv_hidden_chars ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lt_diffs = is_diff-o_diff->get( ).
@@ -45971,7 +45981,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_db_dis IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_key = is_key.
@@ -45994,7 +46004,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_DIS IMPLEMENTATION.
     ENDTRY.
 
     " Create syntax highlighter
-    lo_highlighter  = zcl_abapgit_syntax_highlighter=>create( '*.xml' ).
+    lo_highlighter  = zcl_abapgit_syntax_factory=>create( '*.xml' ).
 
     ls_action-type  = ms_key-type.
     ls_action-value = ms_key-value.
@@ -48057,29 +48067,6 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD create.
-
-    " Create instance of highighter dynamically dependent on syntax type
-    IF iv_filename CP '*.abap'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_abap.
-    ELSEIF iv_filename CP '*.xml' OR iv_filename CP '*.html'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_xml.
-    ELSEIF iv_filename CP '*.css'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_css.
-    ELSEIF iv_filename CP '*.js'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_js.
-    ELSEIF iv_filename CP '*.json'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_json.
-    ELSEIF iv_filename CP '*.txt' OR iv_filename CP '*.ini'  OR iv_filename CP '*.text'.
-      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_txt.
-    ELSE.
-      CLEAR ro_instance.
-    ENDIF.
-
-    IF ro_instance IS BOUND.
-      ro_instance->set_hidden_chars( iv_hidden_chars ).
-    ENDIF.
-  ENDMETHOD.
   METHOD extend_matches.
 
     DATA: lv_line_len TYPE i,
@@ -48239,6 +48226,32 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_syntax_factory IMPLEMENTATION.
+  METHOD create.
+
+    " Create instance of highighter dynamically dependent on syntax type
+    IF iv_filename CP '*.abap'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_abap.
+    ELSEIF iv_filename CP '*.xml' OR iv_filename CP '*.html'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_xml.
+    ELSEIF iv_filename CP '*.css'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_css.
+    ELSEIF iv_filename CP '*.js'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_js.
+    ELSEIF iv_filename CP '*.json'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_json.
+    ELSEIF iv_filename CP '*.txt' OR iv_filename CP '*.ini'  OR iv_filename CP '*.text'.
+      CREATE OBJECT ro_instance TYPE zcl_abapgit_syntax_txt.
+    ELSE.
+      CLEAR ro_instance.
+    ENDIF.
+
+    IF ro_instance IS BOUND.
+      ro_instance->set_hidden_chars( iv_hidden_chars ).
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -95261,5 +95274,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-07T08:11:12.961Z
+* abapmerge 0.14.2 - 2020-12-07T08:15:01.601Z
 ****************************************************
