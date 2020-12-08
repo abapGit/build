@@ -17147,8 +17147,6 @@ CLASS zcl_abapgit_repo DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS c_new_repo_size TYPE i VALUE 3.
-
     METHODS bind_listener
       IMPORTING
         !ii_listener TYPE REF TO zif_abapgit_repo_listener .
@@ -17393,6 +17391,10 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
 
     METHODS filter_changes
       CHANGING ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt.
+
+    METHODS check_repo_size
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_repo_filter DEFINITION
   FINAL
@@ -21117,7 +21119,7 @@ CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -21244,6 +21246,25 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD check_repo_size.
+
+    CONSTANTS lc_new_repo_size TYPE i VALUE 10.
+
+    DATA lt_remote TYPE zif_abapgit_definitions=>ty_files_tt.
+
+    lt_remote = mo_repo->get_files_remote( ).
+
+    IF lines( lt_remote ) > lc_new_repo_size.
+      " Less files means it's a new repo (with just readme and license, for example) which is ok
+      READ TABLE lt_remote TRANSPORTING NO FIELDS
+        WITH KEY path = zif_abapgit_definitions=>c_root_dir
+        filename = zif_abapgit_definitions=>c_dot_abapgit.
+      IF sy-subrc <> 0.
+        mi_log->add_warning( |Cannot find .abapgit.xml - Is this an abapGit repository?| ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
     mo_repo = io_repo.
     CREATE OBJECT mi_log TYPE zcl_abapgit_log.
@@ -21286,6 +21307,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
     IF mo_repo->has_remote_source( ) = abap_true.
       rt_repo_items = build_repo_items_with_remote( ).
+      check_repo_size( ).
     ELSE.
       rt_repo_items = build_repo_items_local_only( ).
     ENDIF.
@@ -21354,6 +21376,27 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     IF get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD compare_with_remote_checksum.
+    FIELD-SYMBOLS: <ls_remote_file> LIKE LINE OF it_remote_files,
+                   <ls_file_sig>    LIKE LINE OF cs_checksum-files.
+    READ TABLE it_remote_files ASSIGNING <ls_remote_file>
+        WITH KEY path = is_local_file-path filename = is_local_file-filename
+        BINARY SEARCH.
+    IF sy-subrc <> 0.  " Ignore new local ones
+      RETURN.
+    ENDIF.
+
+    APPEND INITIAL LINE TO cs_checksum-files ASSIGNING <ls_file_sig>.
+    MOVE-CORRESPONDING is_local_file TO <ls_file_sig>.
+
+    " If hashes are equal -> local sha1 is OK
+    " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
+    "      Else (branches equal) -> assume changes were local, state - remote sha1
+    IF is_local_file-sha1 <> <ls_remote_file>-sha1.
+      <ls_file_sig>-sha1 = <ls_remote_file>-sha1.
     ENDIF.
 
   ENDMETHOD.
@@ -21461,9 +21504,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
       set_dot_abapgit( ro_dot ).
       COMMIT WORK AND WAIT. " to release lock
-    ELSEIF lines( mt_remote ) > c_new_repo_size.
-      " Less files means it's a new repo (with just readme and license, for example) which is ok
-      zcx_abapgit_exception=>raise( |Cannot find .abapgit.xml - Is this an abapGit repo?| ).
     ENDIF.
 
   ENDMETHOD.
@@ -21607,39 +21647,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     reset_status( ).
 
   ENDMETHOD.
-
-  METHOD remove_non_code_related_files.
-
-    DELETE ct_local_files
-          WHERE item IS INITIAL
-          AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
-          AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
-    SORT ct_local_files BY item.
-
-  ENDMETHOD.
-
-  METHOD compare_with_remote_checksum.
-    FIELD-SYMBOLS: <ls_remote_file> LIKE LINE OF it_remote_files,
-                   <ls_file_sig>    LIKE LINE OF cs_checksum-files.
-    READ TABLE it_remote_files ASSIGNING <ls_remote_file>
-        WITH KEY path = is_local_file-path filename = is_local_file-filename
-        BINARY SEARCH.
-    IF sy-subrc <> 0.  " Ignore new local ones
-      RETURN.
-    ENDIF.
-
-    APPEND INITIAL LINE TO cs_checksum-files ASSIGNING <ls_file_sig>.
-    MOVE-CORRESPONDING is_local_file TO <ls_file_sig>.
-
-    " If hashes are equal -> local sha1 is OK
-    " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
-    "      Else (branches equal) -> assume changes were local, state - remote sha1
-    IF is_local_file-sha1 <> <ls_remote_file>-sha1.
-      <ls_file_sig>-sha1 = <ls_remote_file>-sha1.
-    ENDIF.
-
-  ENDMETHOD.
-
   METHOD refresh.
 
     mv_request_local_refresh = abap_true.
@@ -21688,6 +21695,15 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     mv_request_local_refresh = abap_true.
     get_files_local( ).
+
+  ENDMETHOD.
+  METHOD remove_non_code_related_files.
+
+    DELETE ct_local_files
+          WHERE item IS INITIAL
+          AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
+          AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
+    SORT ct_local_files BY item.
 
   ENDMETHOD.
   METHOD reset_log.
@@ -21907,7 +21923,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_news IMPLEMENTATION.
@@ -95295,5 +95310,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-08T14:27:16.572Z
+* abapmerge 0.14.2 - 2020-12-08T14:36:40.472Z
 ****************************************************
