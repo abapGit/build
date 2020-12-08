@@ -52981,7 +52981,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
                           it_items    = lt_items ).
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-    LOOP AT lt_results ASSIGNING <ls_result>.
+    LOOP AT lt_results ASSIGNING <ls_result> WHERE rstate <> zif_abapgit_definitions=>c_state-deleted.
       li_progress->show( iv_current = sy-tabix
                          iv_text    = |Deserialize { <ls_result>-obj_name }| ).
 
@@ -95310,5 +95310,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-08T14:36:40.472Z
+* abapmerge 0.14.2 - 2020-12-08T16:17:09.148Z
 ****************************************************
