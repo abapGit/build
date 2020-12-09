@@ -5784,7 +5784,7 @@ CLASS zcl_abapgit_longtexts DEFINITION
       END OF ty_longtext .
     TYPES:
       ty_longtexts TYPE STANDARD TABLE OF ty_longtext
-                           WITH NON-UNIQUE DEFAULT KEY .
+                             WITH NON-UNIQUE DEFAULT KEY .
 
     METHODS read
       IMPORTING
@@ -5792,6 +5792,7 @@ CLASS zcl_abapgit_longtexts DEFINITION
         !iv_longtext_id      TYPE dokil-id
         !it_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt
         !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
+        !iv_clear_fields     TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(rt_longtexts)  TYPE ty_longtexts
       RAISING
@@ -85357,7 +85358,7 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
+CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   METHOD read.
 
     DATA: ls_longtext TYPE ty_longtext,
@@ -85409,14 +85410,16 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
         TABLES
           line    = ls_longtext-lines.
 
-      CLEAR: ls_longtext-head-tdfuser,
-             ls_longtext-head-tdfreles,
-             ls_longtext-head-tdfdate,
-             ls_longtext-head-tdftime,
-             ls_longtext-head-tdluser,
-             ls_longtext-head-tdlreles,
-             ls_longtext-head-tdldate,
-             ls_longtext-head-tdltime.
+      IF iv_clear_fields = abap_true.
+        CLEAR: ls_longtext-head-tdfuser,
+               ls_longtext-head-tdfreles,
+               ls_longtext-head-tdfdate,
+               ls_longtext-head-tdftime,
+               ls_longtext-head-tdluser,
+               ls_longtext-head-tdlreles,
+               ls_longtext-head-tdldate,
+               ls_longtext-head-tdltime.
+      ENDIF.
 
       INSERT ls_longtext INTO TABLE rt_longtexts.
 
@@ -85428,13 +85431,17 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
     DATA: lt_longtexts TYPE ty_longtexts.
     FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
 
-    lt_longtexts = read( iv_object_name = iv_object_name
-                         iv_longtext_id = iv_longtext_id
-                         it_dokil       = it_dokil ).
+    lt_longtexts = read( iv_object_name  = iv_object_name
+                         iv_longtext_id  = iv_longtext_id
+                         it_dokil        = it_dokil
+                         iv_clear_fields = abap_false ).
 
     READ TABLE lt_longtexts INDEX 1 ASSIGNING <ls_longtext>.
     IF sy-subrc = 0.
       rv_user = <ls_longtext>-head-tdluser.
+      IF rv_user IS INITIAL.
+        rv_user = <ls_longtext>-head-tdfuser.
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -95314,5 +95321,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-09T07:04:04.399Z
+* abapmerge 0.14.2 - 2020-12-09T08:28:25.332Z
 ****************************************************
