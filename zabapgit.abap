@@ -64548,7 +64548,11 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    SELECT SINGLE chan_name FROM sotr_headu INTO rv_user
+      WHERE paket = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -95310,5 +95314,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-08T16:17:09.148Z
+* abapmerge 0.14.2 - 2020-12-09T04:28:12.666Z
 ****************************************************
