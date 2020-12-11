@@ -52715,7 +52715,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
+CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   METHOD add_fm_exception.
 
     DATA: ls_exception LIKE LINE OF ct_exception.
@@ -52782,6 +52782,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
   METHOD delta_controller.
 
     DATA: li_controller TYPE REF TO if_wdy_md_controller,
+          lx_error      TYPE REF TO cx_wdy_md_exception,
           lv_found      TYPE abap_bool,
           ls_key        TYPE wdy_md_controller_key,
           ls_obj_new    TYPE svrs2_versionable_object,
@@ -52807,8 +52808,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
                 controller_type = is_controller-definition-controller_type ).
           li_controller->save_to_database( ).
           li_controller->unlock( ).
-        CATCH cx_wdy_md_exception.
-          zcx_abapgit_exception=>raise( 'error creating dummy controller' ).
+        CATCH cx_wdy_md_exception INTO lx_error.
+          zcx_abapgit_exception=>raise( |Error creating dummy controller: { lx_error->get_text( ) }| ).
       ENDTRY.
     ENDIF.
 
@@ -52878,6 +52879,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
           lv_found     TYPE abap_bool,
           ls_obj_new   TYPE svrs2_versionable_object,
           li_component TYPE REF TO if_wdy_md_component,
+          lx_error     TYPE REF TO cx_wdy_md_exception,
           ls_obj_old   TYPE svrs2_versionable_object.
     ls_key-component_name = is_definition-definition-component_name.
 
@@ -52893,8 +52895,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
               devclass  = iv_package ).
           li_component->save_to_database( ).
           li_component->unlock( ).
-        CATCH cx_wdy_md_exception.
-          zcx_abapgit_exception=>raise( 'error creating dummy component' ).
+        CATCH cx_wdy_md_exception INTO lx_error.
+          zcx_abapgit_exception=>raise( |Error creating dummy component: { lx_error->get_text( ) }| ).
       ENDTRY.
     ENDIF.
 
@@ -52931,6 +52933,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
           ls_obj_new TYPE svrs2_versionable_object,
           ls_obj_old TYPE svrs2_versionable_object,
           lv_found   TYPE abap_bool,
+          lx_error   TYPE REF TO cx_wdy_md_exception,
           li_view    TYPE REF TO if_wdy_md_abstract_view.
 
     FIELD-SYMBOLS: <ls_def> LIKE LINE OF ls_obj_old-wdyv-defin.
@@ -52948,8 +52951,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
                       type           = is_view-definition-type ).
           li_view->save_to_database( ).
           li_view->unlock( ).
-        CATCH cx_wdy_md_exception.
-          zcx_abapgit_exception=>raise( 'error creating dummy view' ).
+        CATCH cx_wdy_md_exception INTO lx_error.
+          zcx_abapgit_exception=>raise( |Error creating dummy view: { lx_error->get_text( ) }| ).
       ENDTRY.
     ENDIF.
 
@@ -53285,6 +53288,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     DATA: ls_key    TYPE wdy_controller_key,
           lv_corrnr TYPE trkorr,
+          lx_error  TYPE REF TO cx_wdy_md_exception,
           ls_delta  TYPE svrs2_xversionable_object.
     ls_delta = delta_controller( is_controller ).
     ls_key-component_name  = is_controller-definition-component_name.
@@ -53297,8 +53301,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
             delta          = ls_delta-wdyc
           CHANGING
             corrnr         = lv_corrnr ).
-      CATCH cx_wdy_md_exception.
-        zcx_abapgit_exception=>raise( 'error recovering version of controller' ).
+      CATCH cx_wdy_md_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( |Error recovering version of controller: { lx_error->get_text( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -53306,6 +53310,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     DATA: ls_key    TYPE wdy_md_component_key,
           lv_corrnr TYPE trkorr,
+          lx_error      TYPE REF TO cx_wdy_md_exception,
           ls_delta  TYPE svrs2_xversionable_object.
     ls_delta = delta_definition(
       is_definition = is_definition
@@ -53320,8 +53325,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
             delta         = ls_delta-wdyd
           CHANGING
             corrnr        = lv_corrnr ).
-      CATCH cx_wdy_md_exception.
-        zcx_abapgit_exception=>raise( 'error recovering version of component' ).
+      CATCH cx_wdy_md_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( |Error recovering version of component: { lx_error->get_text( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -53329,6 +53334,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
 
     DATA: ls_key    TYPE wdy_md_view_key,
           lv_corrnr TYPE trkorr,
+          lx_error      TYPE REF TO cx_wdy_md_exception,
           ls_delta  TYPE svrs2_xversionable_object.
     ls_delta = delta_view( is_view ).
     ls_key-component_name = is_view-definition-component_name.
@@ -53341,8 +53347,8 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
             delta    = ls_delta-wdyv
           CHANGING
             corrnr   = lv_corrnr ).
-      CATCH cx_wdy_md_exception.
-        zcx_abapgit_exception=>raise( 'error recovering version of abstract view' ).
+      CATCH cx_wdy_md_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( |Error recovering version of abstract view: { lx_error->get_text( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -53415,8 +53421,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYN IMPLEMENTATION.
     DATA: lv_component_name TYPE wdy_component-component_name.
     SELECT SINGLE component_name FROM wdy_component
       INTO lv_component_name
-      WHERE component_name = ms_item-obj_name
-      AND version = 'A'.                                "#EC CI_GENBUFF
+      WHERE component_name = ms_item-obj_name.          "#EC CI_GENBUFF
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -95339,5 +95344,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-11T06:51:13.043Z
+* abapmerge 0.14.2 - 2020-12-11T06:55:28.450Z
 ****************************************************
