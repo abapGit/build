@@ -557,14 +557,12 @@ CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
 
 INTERFACE zif_abapgit_version DEFERRED.
-INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_stage_logic DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_merge DEFERRED.
-INTERFACE zif_abapgit_lang_definitions DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
@@ -600,12 +598,14 @@ INTERFACE zif_abapgit_objects DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
 INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_longtexts DEFERRED.
+INTERFACE zif_abapgit_lang_definitions DEFERRED.
 INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
 INTERFACE zif_abapgit_object_enhs DEFERRED.
 INTERFACE zif_abapgit_object_enho DEFERRED.
 INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
+INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_ajson_reader DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
@@ -619,12 +619,9 @@ CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
 CLASS zcl_abapgit_zip DEFINITION DEFERRED.
 CLASS zcl_abapgit_version DEFINITION DEFERRED.
-CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_stage DEFINITION DEFERRED.
-CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
-CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
@@ -636,13 +633,10 @@ CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
-CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_environment DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
-CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
 CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
@@ -745,9 +739,7 @@ CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_saxx_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_generic DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_xslt DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_xinx DEFINITION DEFERRED.
@@ -905,6 +897,14 @@ CLASS zcl_abapgit_ecatt_data_upload DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
+CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
+CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
+CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
@@ -2175,6 +2175,38 @@ INTERFACE zif_abapgit_apack_definitions.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_tadir .
+  METHODS get_object_package
+    IMPORTING
+      !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
+      !iv_object         TYPE tadir-object
+      !iv_obj_name       TYPE tadir-obj_name
+    RETURNING
+      VALUE(rv_devclass) TYPE tadir-devclass
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read
+    IMPORTING
+      !iv_package            TYPE tadir-devclass
+      !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+      !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
+      !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+      !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
+    RETURNING
+      VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read_single
+    IMPORTING
+      !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
+      !iv_object      TYPE tadir-object
+      !iv_obj_name    TYPE tadir-obj_name
+    RETURNING
+      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_oo_object_fnc.
 
   TYPES: BEGIN OF ty_includes,
@@ -2323,6 +2355,24 @@ INTERFACE zif_abapgit_oo_object_fnc.
         VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_lang_definitions .
+
+  TYPES: BEGIN OF ty_i18n_tpool,
+           language TYPE langu,
+           textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
+         END OF ty_i18n_tpool,
+         ty_i18n_tpools TYPE STANDARD TABLE OF ty_i18n_tpool.
+
+  TYPES: BEGIN OF ty_i18n_line,
+           language TYPE langu,
+           lines    TYPE tlinetab,
+         END OF ty_i18n_line,
+         ty_i18n_lines TYPE STANDARD TABLE OF ty_i18n_line.
+
+  TYPES: ty_langus TYPE STANDARD TABLE OF langu.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_longtexts .
   METHODS changed_by
     IMPORTING
@@ -2427,6 +2477,11 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_objects.
 
+  TYPES:
+    BEGIN OF ty_serialization,
+      files TYPE zif_abapgit_definitions=>ty_files_tt,
+      item  TYPE zif_abapgit_definitions=>ty_item,
+    END OF ty_serialization .
   TYPES:
     BEGIN OF ty_deserialization,
       obj     TYPE REF TO zif_abapgit_object,
@@ -3237,24 +3292,6 @@ INTERFACE zif_abapgit_exit .
     RAISING   zcx_abapgit_exception .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_lang_definitions .
-
-  TYPES: BEGIN OF ty_i18n_tpool,
-           language TYPE langu,
-           textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
-         END OF ty_i18n_tpool,
-         ty_i18n_tpools TYPE STANDARD TABLE OF ty_i18n_tpool.
-
-  TYPES: BEGIN OF ty_i18n_line,
-           language TYPE langu,
-           lines    TYPE tlinetab,
-         END OF ty_i18n_line,
-         ty_i18n_lines TYPE STANDARD TABLE OF ty_i18n_line.
-
-  TYPES: ty_langus TYPE STANDARD TABLE OF langu.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_merge .
 
   TYPES:
@@ -3492,38 +3529,6 @@ INTERFACE zif_abapgit_stage_logic .
     RAISING
       zcx_abapgit_exception .
 
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_tadir .
-  METHODS get_object_package
-    IMPORTING
-      !iv_pgmid          TYPE tadir-pgmid DEFAULT 'R3TR'
-      !iv_object         TYPE tadir-object
-      !iv_obj_name       TYPE tadir-obj_name
-    RETURNING
-      VALUE(rv_devclass) TYPE tadir-devclass
-    RAISING
-      zcx_abapgit_exception .
-  METHODS read
-    IMPORTING
-      !iv_package            TYPE tadir-devclass
-      !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-      !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
-      !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
-      !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
-    RETURNING
-      VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
-    RAISING
-      zcx_abapgit_exception .
-  METHODS read_single
-    IMPORTING
-      !iv_pgmid       TYPE tadir-pgmid DEFAULT 'R3TR'
-      !iv_object      TYPE tadir-object
-      !iv_obj_name    TYPE tadir-obj_name
-    RETURNING
-      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
-    RAISING
-      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_version .
@@ -5049,6 +5054,456 @@ CLASS zcl_abapgit_ajson DEFINITION
         VALUE(rv_item) TYPE REF TO ty_node.
 
 ENDCLASS.
+CLASS zcl_abapgit_dependencies DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS resolve
+      CHANGING
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_dependency,
+        depname  TYPE dd02l-tabname,
+        deptyp   TYPE c LENGTH 4,
+        deplocal TYPE dd02l-as4local,
+        refname  TYPE dd02l-tabname,
+        reftyp   TYPE c LENGTH 4,
+        kind     TYPE c LENGTH 1,
+      END OF ty_dependency .
+    TYPES:
+      ty_dedenpencies TYPE STANDARD TABLE OF ty_dependency
+                                 WITH NON-UNIQUE DEFAULT KEY .
+    TYPES:
+      BEGIN OF ty_item,
+        obj_type TYPE tadir-object,
+        obj_name TYPE tadir-obj_name,
+        devclass TYPE devclass,
+      END OF ty_item .
+
+    CLASS-METHODS resolve_ddic
+      CHANGING
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_ddls_dependencies
+      IMPORTING
+        iv_ddls_name         TYPE tadir-obj_name
+      RETURNING
+        VALUE(rt_dependency) TYPE ty_dedenpencies.
+    CLASS-METHODS resolve_packages
+      CHANGING
+        ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+ENDCLASS.
+CLASS zcl_abapgit_file_status DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS status
+      IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo
+                ii_log            TYPE REF TO zif_abapgit_log OPTIONAL
+      RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+      RAISING   zcx_abapgit_exception.
+    CLASS-METHODS: identify_object
+        IMPORTING iv_filename TYPE string
+                  iv_path     TYPE string
+                  iv_devclass TYPE devclass OPTIONAL
+                  io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
+        EXPORTING es_item     TYPE zif_abapgit_definitions=>ty_item
+                  ev_is_xml   TYPE abap_bool
+        RAISING   zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS: calculate_status
+        IMPORTING iv_devclass       TYPE devclass
+                  io_dot            TYPE REF TO zcl_abapgit_dot_abapgit
+                  it_local          TYPE zif_abapgit_definitions=>ty_files_item_tt
+                  it_remote         TYPE zif_abapgit_definitions=>ty_files_tt
+                  it_cur_state      TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
+        RAISING   zcx_abapgit_exception,
+      run_checks
+        IMPORTING ii_log     TYPE REF TO zif_abapgit_log
+                  it_results TYPE zif_abapgit_definitions=>ty_results_tt
+                  io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
+                  iv_top     TYPE devclass
+        RAISING   zcx_abapgit_exception,
+      build_existing
+        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
+                  is_remote        TYPE zif_abapgit_definitions=>ty_file
+                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
+      build_new_local
+        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
+      build_new_remote
+        IMPORTING iv_devclass      TYPE devclass
+                  io_dot           TYPE REF TO zcl_abapgit_dot_abapgit
+                  is_remote        TYPE zif_abapgit_definitions=>ty_file
+                  it_items         TYPE zif_abapgit_definitions=>ty_items_ts
+                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result
+        RAISING   zcx_abapgit_exception,
+      get_object_package
+        IMPORTING
+          iv_object          TYPE tadir-object
+          iv_obj_name        TYPE tadir-obj_name
+        RETURNING
+          VALUE(rv_devclass) TYPE devclass
+        RAISING
+          zcx_abapgit_exception .
+
+ENDCLASS.
+CLASS zcl_abapgit_folder_logic DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS package_to_path
+      IMPORTING
+        !iv_top        TYPE devclass
+        !io_dot        TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_package    TYPE devclass
+      RETURNING
+        VALUE(rv_path) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS path_to_package
+      IMPORTING
+        !iv_top                  TYPE devclass
+        !io_dot                  TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_path                 TYPE string
+        !iv_create_if_not_exists TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rv_package)        TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_instance
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_folder_logic .
+  PROTECTED SECTION.
+
+    METHODS get_parent
+      IMPORTING
+        !iv_package      TYPE devclass
+      RETURNING
+        VALUE(rv_parent) TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_devclass_info,
+        devclass  TYPE devclass,
+        namespace TYPE namespace,
+        parentcl  TYPE parentcl,
+      END OF ty_devclass_info .
+    TYPES:
+      ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
+        WITH UNIQUE KEY devclass .
+    DATA mt_parent TYPE ty_devclass_info_tt .
+ENDCLASS.
+CLASS zcl_abapgit_objects_activation DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS add
+      IMPORTING
+        !iv_type   TYPE trobjtype
+        !iv_name   TYPE clike
+        !iv_delete TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS add_item
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS activate
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS clear .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA:
+      gt_classes TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY .
+    CLASS-DATA:
+      gt_objects TYPE TABLE OF dwinactiv .
+
+    CLASS-METHODS update_where_used .
+    CLASS-METHODS use_new_activation_logic
+      RETURNING
+        VALUE(rv_use_new_activation_logic) TYPE abap_bool .
+    CLASS-METHODS activate_new
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS activate_old
+      IMPORTING
+        !iv_ddic TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS activate_ddic
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS show_activation_errors
+      IMPORTING
+        !iv_logname TYPE ddmass-logname
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS is_ddic_type
+      IMPORTING
+        !iv_obj_type     TYPE trobjtype
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool .
+ENDCLASS.
+CLASS zcl_abapgit_objects_files DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !iv_path TYPE string OPTIONAL .
+    METHODS add_string
+      IMPORTING
+        !iv_extra  TYPE clike OPTIONAL
+        !iv_ext    TYPE string
+        !iv_string TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_string
+      IMPORTING
+        !iv_extra        TYPE clike OPTIONAL
+        !iv_ext          TYPE string
+      RETURNING
+        VALUE(rv_string) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_xml
+      IMPORTING
+        !iv_extra     TYPE clike OPTIONAL
+        !ii_xml       TYPE REF TO zif_abapgit_xml_output
+        !iv_normalize TYPE abap_bool DEFAULT abap_true
+        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_xml
+      IMPORTING
+        !iv_extra     TYPE clike OPTIONAL
+      RETURNING
+        VALUE(ri_xml) TYPE REF TO zif_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_abap
+      IMPORTING
+        !iv_extra      TYPE clike OPTIONAL
+        !iv_error      TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rt_abap) TYPE abaptxt255_tab
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_abap
+      IMPORTING
+        !iv_extra TYPE clike OPTIONAL
+        !it_abap  TYPE STANDARD TABLE
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add
+      IMPORTING
+        !is_file TYPE zif_abapgit_definitions=>ty_file .
+    METHODS add_raw
+      IMPORTING
+        !iv_extra TYPE clike OPTIONAL
+        !iv_ext   TYPE string
+        !iv_data  TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_raw
+      IMPORTING
+        !iv_extra      TYPE clike OPTIONAL
+        !iv_ext        TYPE string
+      RETURNING
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_files
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
+    METHODS set_files
+      IMPORTING
+        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
+    METHODS get_accessed_files
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+    METHODS contains
+      IMPORTING
+        !iv_extra         TYPE clike OPTIONAL
+        !iv_ext           TYPE string
+      RETURNING
+        VALUE(rv_present) TYPE abap_bool.
+  PROTECTED SECTION.
+
+    METHODS read_file
+      IMPORTING
+        !iv_filename   TYPE string
+        !iv_error      TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    METHODS filename
+      IMPORTING
+        !iv_extra          TYPE clike OPTIONAL
+        !iv_ext            TYPE string
+      RETURNING
+        VALUE(rv_filename) TYPE string .
+  PRIVATE SECTION.
+
+    DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
+    DATA mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_tt .
+    DATA mv_path TYPE string .
+ENDCLASS.
+CLASS zcl_abapgit_serialize DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false .
+    METHODS on_end_of_task
+      IMPORTING
+        !p_task TYPE clike .
+    METHODS serialize
+      IMPORTING
+        !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
+        !iv_language         TYPE langu DEFAULT sy-langu
+        !ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
+        !iv_force_sequential TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rt_files)      TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS files_local
+      IMPORTING
+        !iv_package        TYPE devclass
+        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !ii_log            TYPE REF TO zif_abapgit_log
+        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RETURNING
+        VALUE(rt_files)    TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+    TYPES: ty_char32 TYPE c LENGTH 32.
+
+    CLASS-DATA gv_max_threads TYPE i .
+    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
+    DATA mv_free TYPE i .
+    DATA mi_log TYPE REF TO zif_abapgit_log .
+    DATA mv_group TYPE rzlli_apcl .
+    DATA mv_serialize_master_lang_only TYPE abap_bool.
+
+    METHODS add_to_return
+      IMPORTING
+        !iv_path      TYPE string
+        !is_file_item TYPE zif_abapgit_objects=>ty_serialization .
+    METHODS run_parallel
+      IMPORTING
+        !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
+        !iv_language TYPE langu
+        !iv_task     TYPE ty_char32
+      RAISING
+        zcx_abapgit_exception .
+    METHODS run_sequential
+      IMPORTING
+        !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
+        !iv_language TYPE langu
+      RAISING
+        zcx_abapgit_exception .
+    METHODS determine_max_threads
+      IMPORTING
+        !iv_force_sequential TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_threads)    TYPE i
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      skip_sadl_generated_objects
+        IMPORTING
+          it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
+          ii_log          TYPE REF TO zif_abapgit_log OPTIONAL
+        RETURNING
+          VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    METHODS:
+      has_sadl_superclass
+        IMPORTING
+          is_class         TYPE zif_abapgit_definitions=>ty_tadir
+        RETURNING
+          VALUE(rv_return) TYPE abap_bool.
+
+ENDCLASS.
+CLASS zcl_abapgit_tadir DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_tadir .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS exists
+      IMPORTING
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
+      RETURNING
+        VALUE(rv_exists) TYPE abap_bool .
+    METHODS check_exists
+      IMPORTING
+        !it_tadir       TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build
+      IMPORTING
+        !iv_package            TYPE tadir-devclass
+        !iv_top                TYPE tadir-devclass
+        !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+        !iv_only_local_objects TYPE abap_bool
+        !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
+      RETURNING
+        VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_config_download
   CREATE PUBLIC .
@@ -6119,174 +6574,6 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_obj_type TYPE tadir-object
       RAISING
         zcx_abapgit_exception .
-ENDCLASS.
-CLASS zcl_abapgit_objects_activation DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS add
-      IMPORTING
-        !iv_type   TYPE trobjtype
-        !iv_name   TYPE clike
-        !iv_delete TYPE abap_bool DEFAULT abap_false
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS add_item
-      IMPORTING
-        !is_item TYPE zif_abapgit_definitions=>ty_item
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS activate
-      IMPORTING
-        !iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS clear .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-DATA:
-      gt_classes TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY .
-    CLASS-DATA:
-      gt_objects TYPE TABLE OF dwinactiv .
-
-    CLASS-METHODS update_where_used .
-    CLASS-METHODS use_new_activation_logic
-      RETURNING
-        VALUE(rv_use_new_activation_logic) TYPE abap_bool .
-    CLASS-METHODS activate_new
-      IMPORTING
-        !iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS activate_old
-      IMPORTING
-        !iv_ddic TYPE abap_bool DEFAULT abap_false
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS activate_ddic
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS show_activation_errors
-      IMPORTING
-        !iv_logname TYPE ddmass-logname
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS is_ddic_type
-      IMPORTING
-        !iv_obj_type     TYPE trobjtype
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool .
-ENDCLASS.
-CLASS zcl_abapgit_objects_files DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS constructor
-      IMPORTING
-        !is_item TYPE zif_abapgit_definitions=>ty_item
-        !iv_path TYPE string OPTIONAL .
-    METHODS add_string
-      IMPORTING
-        !iv_extra  TYPE clike OPTIONAL
-        !iv_ext    TYPE string
-        !iv_string TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS read_string
-      IMPORTING
-        !iv_extra        TYPE clike OPTIONAL
-        !iv_ext          TYPE string
-      RETURNING
-        VALUE(rv_string) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS add_xml
-      IMPORTING
-        !iv_extra     TYPE clike OPTIONAL
-        !ii_xml       TYPE REF TO zif_abapgit_xml_output
-        !iv_normalize TYPE abap_bool DEFAULT abap_true
-        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
-    METHODS read_xml
-      IMPORTING
-        !iv_extra     TYPE clike OPTIONAL
-      RETURNING
-        VALUE(ri_xml) TYPE REF TO zif_abapgit_xml_input
-      RAISING
-        zcx_abapgit_exception .
-    METHODS read_abap
-      IMPORTING
-        !iv_extra      TYPE clike OPTIONAL
-        !iv_error      TYPE abap_bool DEFAULT abap_true
-      RETURNING
-        VALUE(rt_abap) TYPE abaptxt255_tab
-      RAISING
-        zcx_abapgit_exception .
-    METHODS add_abap
-      IMPORTING
-        !iv_extra TYPE clike OPTIONAL
-        !it_abap  TYPE STANDARD TABLE
-      RAISING
-        zcx_abapgit_exception .
-    METHODS add
-      IMPORTING
-        !is_file TYPE zif_abapgit_definitions=>ty_file .
-    METHODS add_raw
-      IMPORTING
-        !iv_extra TYPE clike OPTIONAL
-        !iv_ext   TYPE string
-        !iv_data  TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    METHODS read_raw
-      IMPORTING
-        !iv_extra      TYPE clike OPTIONAL
-        !iv_ext        TYPE string
-      RETURNING
-        VALUE(rv_data) TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_files
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
-    METHODS set_files
-      IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
-    METHODS get_accessed_files
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
-    METHODS contains
-      IMPORTING
-        !iv_extra         TYPE clike OPTIONAL
-        !iv_ext           TYPE string
-      RETURNING
-        VALUE(rv_present) TYPE abap_bool.
-  PROTECTED SECTION.
-
-    METHODS read_file
-      IMPORTING
-        !iv_filename   TYPE string
-        !iv_error      TYPE abap_bool DEFAULT abap_true
-      RETURNING
-        VALUE(rv_data) TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    METHODS filename
-      IMPORTING
-        !iv_extra          TYPE clike OPTIONAL
-        !iv_ext            TYPE string
-      RETURNING
-        VALUE(rv_filename) TYPE string .
-  PRIVATE SECTION.
-
-    DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
-    DATA mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
-    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_tt .
-    DATA mv_path TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_objects_generic DEFINITION
   CREATE PUBLIC .
@@ -16616,53 +16903,6 @@ CLASS zcl_abapgit_code_inspector DEFINITION
       RETURNING
         VALUE(rv_run_mode) TYPE ty_run_mode.
 ENDCLASS.
-CLASS zcl_abapgit_dependencies DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS resolve
-      CHANGING
-        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_dependency,
-        depname  TYPE dd02l-tabname,
-        deptyp   TYPE c LENGTH 4,
-        deplocal TYPE dd02l-as4local,
-        refname  TYPE dd02l-tabname,
-        reftyp   TYPE c LENGTH 4,
-        kind     TYPE c LENGTH 1,
-      END OF ty_dependency .
-    TYPES:
-      ty_dedenpencies TYPE STANDARD TABLE OF ty_dependency
-                                 WITH NON-UNIQUE DEFAULT KEY .
-    TYPES:
-      BEGIN OF ty_item,
-        obj_type TYPE tadir-object,
-        obj_name TYPE tadir-obj_name,
-        devclass TYPE devclass,
-      END OF ty_item .
-
-    CLASS-METHODS resolve_ddic
-      CHANGING
-        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS get_ddls_dependencies
-      IMPORTING
-        iv_ddls_name         TYPE tadir-obj_name
-      RETURNING
-        VALUE(rt_dependency) TYPE ty_dedenpencies.
-    CLASS-METHODS resolve_packages
-      CHANGING
-        ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
-ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
 
@@ -16852,117 +17092,6 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_environment TYPE REF TO zif_abapgit_environment .
     CLASS-DATA gi_longtext TYPE REF TO zif_abapgit_longtexts .
     CLASS-DATA gi_http_agent TYPE REF TO zif_abapgit_http_agent .
-ENDCLASS.
-CLASS zcl_abapgit_file_status DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS status
-      IMPORTING io_repo           TYPE REF TO zcl_abapgit_repo
-                ii_log            TYPE REF TO zif_abapgit_log OPTIONAL
-      RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING   zcx_abapgit_exception.
-    CLASS-METHODS: identify_object
-        IMPORTING iv_filename TYPE string
-                  iv_path     TYPE string
-                  iv_devclass TYPE devclass OPTIONAL
-                  io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
-        EXPORTING es_item     TYPE zif_abapgit_definitions=>ty_item
-                  ev_is_xml   TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-METHODS: calculate_status
-        IMPORTING iv_devclass       TYPE devclass
-                  io_dot            TYPE REF TO zcl_abapgit_dot_abapgit
-                  it_local          TYPE zif_abapgit_definitions=>ty_files_item_tt
-                  it_remote         TYPE zif_abapgit_definitions=>ty_files_tt
-                  it_cur_state      TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-        RETURNING VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-        RAISING   zcx_abapgit_exception,
-      run_checks
-        IMPORTING ii_log     TYPE REF TO zif_abapgit_log
-                  it_results TYPE zif_abapgit_definitions=>ty_results_tt
-                  io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
-                  iv_top     TYPE devclass
-        RAISING   zcx_abapgit_exception,
-      build_existing
-        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
-                  is_remote        TYPE zif_abapgit_definitions=>ty_file
-                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
-      build_new_local
-        IMPORTING is_local         TYPE zif_abapgit_definitions=>ty_file_item
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result,
-      build_new_remote
-        IMPORTING iv_devclass      TYPE devclass
-                  io_dot           TYPE REF TO zcl_abapgit_dot_abapgit
-                  is_remote        TYPE zif_abapgit_definitions=>ty_file
-                  it_items         TYPE zif_abapgit_definitions=>ty_items_ts
-                  it_state         TYPE zif_abapgit_definitions=>ty_file_signatures_ts
-        RETURNING VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result
-        RAISING   zcx_abapgit_exception,
-      get_object_package
-        IMPORTING
-          iv_object          TYPE tadir-object
-          iv_obj_name        TYPE tadir-obj_name
-        RETURNING
-          VALUE(rv_devclass) TYPE devclass
-        RAISING
-          zcx_abapgit_exception .
-
-ENDCLASS.
-CLASS zcl_abapgit_folder_logic DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS package_to_path
-      IMPORTING
-        !iv_top        TYPE devclass
-        !io_dot        TYPE REF TO zcl_abapgit_dot_abapgit
-        !iv_package    TYPE devclass
-      RETURNING
-        VALUE(rv_path) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS path_to_package
-      IMPORTING
-        !iv_top                  TYPE devclass
-        !io_dot                  TYPE REF TO zcl_abapgit_dot_abapgit
-        !iv_path                 TYPE string
-        !iv_create_if_not_exists TYPE abap_bool DEFAULT abap_true
-      RETURNING
-        VALUE(rv_package)        TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS get_instance
-      RETURNING
-        VALUE(ro_instance) TYPE REF TO zcl_abapgit_folder_logic .
-  PROTECTED SECTION.
-
-    METHODS get_parent
-      IMPORTING
-        !iv_package      TYPE devclass
-      RETURNING
-        VALUE(rv_parent) TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-    TYPES:
-      BEGIN OF ty_devclass_info,
-        devclass  TYPE devclass,
-        namespace TYPE namespace,
-        parentcl  TYPE parentcl,
-      END OF ty_devclass_info .
-    TYPES:
-      ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
-        WITH UNIQUE KEY devclass .
-    DATA mt_parent TYPE ty_devclass_info_tt .
 ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE.
@@ -17573,74 +17702,6 @@ CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
     DATA: mv_package TYPE devclass.
 
 ENDCLASS.
-CLASS zcl_abapgit_serialize DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS constructor
-      IMPORTING
-        !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false .
-    METHODS on_end_of_task
-      IMPORTING
-        !p_task TYPE clike .
-    METHODS serialize
-      IMPORTING
-        !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
-        !iv_language         TYPE langu DEFAULT sy-langu
-        !ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
-        !iv_force_sequential TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(rt_files)      TYPE zif_abapgit_definitions=>ty_files_item_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS files_local
-      IMPORTING
-        !iv_package        TYPE devclass
-        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
-        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
-        !ii_log            TYPE REF TO zif_abapgit_log
-        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
-      RETURNING
-        VALUE(rt_files)    TYPE zif_abapgit_definitions=>ty_files_item_tt
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-    TYPES: ty_char32 TYPE c LENGTH 32.
-
-    CLASS-DATA gv_max_threads TYPE i .
-    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
-    DATA mv_free TYPE i .
-    DATA mi_log TYPE REF TO zif_abapgit_log .
-    DATA mv_group TYPE rzlli_apcl .
-    DATA mv_serialize_master_lang_only TYPE abap_bool.
-
-    METHODS add_to_return
-      IMPORTING
-        !iv_path      TYPE string
-        !is_fils_item TYPE zcl_abapgit_objects=>ty_serialization .
-    METHODS run_parallel
-      IMPORTING
-        !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
-        !iv_language TYPE langu
-        !iv_task     TYPE ty_char32
-      RAISING
-        zcx_abapgit_exception .
-    METHODS run_sequential
-      IMPORTING
-        !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
-        !iv_language TYPE langu
-      RAISING
-        zcx_abapgit_exception .
-    METHODS determine_max_threads
-      IMPORTING
-        !iv_force_sequential TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(rv_threads)    TYPE i
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
@@ -17820,26 +17881,6 @@ CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
       set_default_link_hint_key.
 
 ENDCLASS.
-CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    METHODS:
-      skip_sadl_generated_objects
-        IMPORTING
-          it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-          ii_log          TYPE REF TO zif_abapgit_log OPTIONAL
-        RETURNING
-          VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    METHODS:
-      has_sadl_superclass
-        IMPORTING
-          is_class         TYPE zif_abapgit_definitions=>ty_tadir
-        RETURNING
-          VALUE(rv_return) TYPE abap_bool.
-
-ENDCLASS.
 CLASS zcl_abapgit_stage DEFINITION
   CREATE PUBLIC .
 
@@ -17923,42 +17964,6 @@ CLASS zcl_abapgit_stage_logic DEFINITION
       remove_identical
         CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
-ENDCLASS.
-CLASS zcl_abapgit_tadir DEFINITION
-  FINAL
-  CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory .
-
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_tadir .
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    METHODS exists
-      IMPORTING
-        !is_item         TYPE zif_abapgit_definitions=>ty_item
-      RETURNING
-        VALUE(rv_exists) TYPE abap_bool .
-    METHODS check_exists
-      IMPORTING
-        !it_tadir       TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RETURNING
-        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS build
-      IMPORTING
-        !iv_package            TYPE tadir-devclass
-        !iv_top                TYPE tadir-devclass
-        !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
-        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-        !iv_only_local_objects TYPE abap_bool
-        !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
-      RETURNING
-        VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_version DEFINITION
   FINAL
@@ -19225,215 +19230,6 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
-  METHOD build.
-
-    DATA: lv_path         TYPE string,
-          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
-          lt_excludes     TYPE RANGE OF trobjtype,
-          lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
-          ls_srcsystem    LIKE LINE OF lt_srcsystem,
-          ls_exclude      LIKE LINE OF lt_excludes,
-          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic,
-          lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
-          lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
-
-    FIELD-SYMBOLS: <ls_tadir>   LIKE LINE OF rt_tadir,
-                   <lv_package> LIKE LINE OF lt_packages.
-    "Determine Packages to Read
-    IF iv_ignore_subpackages = abap_false.
-      lt_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
-    ENDIF.
-    INSERT iv_package INTO lt_packages INDEX 1.
-
-    ls_exclude-sign = 'I'.
-    ls_exclude-option = 'EQ'.
-
-    ls_exclude-low = 'SOTR'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB1'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB2'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'STOB'. " auto generated by core data services
-    APPEND ls_exclude TO lt_excludes.
-
-    IF iv_only_local_objects = abap_true.
-      ls_srcsystem-sign   = 'I'.
-      ls_srcsystem-option = 'EQ'.
-      ls_srcsystem-low    = sy-sysid.
-      APPEND ls_srcsystem TO lt_srcsystem.
-    ENDIF.
-
-    IF lt_packages IS NOT INITIAL.
-      SELECT * FROM tadir
-        INTO CORRESPONDING FIELDS OF TABLE rt_tadir
-        FOR ALL ENTRIES IN lt_packages
-        WHERE devclass = lt_packages-table_line
-        AND pgmid = 'R3TR'
-        AND object NOT IN lt_excludes
-        AND delflag = abap_false
-        AND srcsystem IN lt_srcsystem
-        ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF "#EC CI_SUBRC
-    ENDIF.
-
-    SORT rt_tadir BY devclass pgmid object obj_name.
-
-    CREATE OBJECT lo_skip_objects.
-    rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
-      it_tadir = rt_tadir
-      ii_log   = ii_log ).
-
-    LOOP AT lt_packages ASSIGNING <lv_package>.
-      " Local packages are not in TADIR, only in TDEVC, act as if they were
-      IF <lv_package> CP '$*'. " OR <package> CP 'T*' ).
-        APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
-        <ls_tadir>-pgmid    = 'R3TR'.
-        <ls_tadir>-object   = 'DEVC'.
-        <ls_tadir>-obj_name = <lv_package>.
-        <ls_tadir>-devclass = <lv_package>.
-      ENDIF.
-    ENDLOOP.
-
-    LOOP AT rt_tadir ASSIGNING <ls_tadir>.
-
-      IF lv_last_package <> <ls_tadir>-devclass.
-        "Change in Package
-        lv_last_package = <ls_tadir>-devclass.
-
-        IF NOT io_dot IS INITIAL.
-          "Reuse given Folder Logic Instance
-          IF lo_folder_logic IS NOT BOUND.
-            "Get Folder Logic Instance
-            lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-          ENDIF.
-
-          lv_path = lo_folder_logic->package_to_path(
-            iv_top     = iv_top
-            io_dot     = io_dot
-            iv_package = <ls_tadir>-devclass ).
-        ENDIF.
-      ENDIF.
-
-      <ls_tadir>-path = lv_path.
-
-      IF <ls_tadir>-object = 'SICF'.
-* replace the internal GUID with a hash of the path
-        TRY.
-            CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
-              EXPORTING
-                iv_obj_name = <ls_tadir>-obj_name
-              RECEIVING
-                rv_hash     = <ls_tadir>-obj_name+15.
-          CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
-* SICF might not be supported in some systems, assume this code is not called
-        ENDTRY.
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-  METHOD check_exists.
-
-    DATA: li_progress TYPE REF TO zif_abapgit_progress,
-          ls_item     TYPE zif_abapgit_definitions=>ty_item.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
-
-* rows from database table TADIR are not removed for
-* transportable objects until the transport is released
-    LOOP AT it_tadir ASSIGNING <ls_tadir>.
-      IF sy-tabix MOD 200 = 0.
-        li_progress->show(
-          iv_current = sy-tabix
-          iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
-      ENDIF.
-
-      ls_item-obj_type = <ls_tadir>-object.
-      ls_item-obj_name = <ls_tadir>-obj_name.
-      ls_item-devclass = <ls_tadir>-devclass.
-
-      IF exists( ls_item ) = abap_true.
-        APPEND <ls_tadir> TO rt_tadir.
-      ENDIF.
-    ENDLOOP.
-
-    li_progress->off( ).
-
-  ENDMETHOD.
-  METHOD exists.
-
-    IF is_item IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    IF zcl_abapgit_objects=>is_supported( is_item ) = abap_false.
-      rv_exists = abap_true.
-      RETURN.
-    ENDIF.
-
-    rv_exists = zcl_abapgit_objects=>exists( is_item ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_tadir~get_object_package.
-
-    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
-          ls_item  TYPE zif_abapgit_definitions=>ty_item.
-
-    ls_tadir = zif_abapgit_tadir~read_single(
-      iv_pgmid    = iv_pgmid
-      iv_object   = iv_object
-      iv_obj_name = iv_obj_name ).
-
-    IF ls_tadir-delflag = 'X'.
-      RETURN. "Mark for deletion -> return nothing
-    ENDIF.
-
-    ls_item-obj_type = ls_tadir-object.
-    ls_item-obj_name = ls_tadir-obj_name.
-    ls_item-devclass = ls_tadir-devclass.
-    IF exists( ls_item ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    rv_devclass = ls_tadir-devclass.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_tadir~read.
-
-    DATA: li_exit TYPE REF TO zif_abapgit_exit.
-
-* start recursion
-* hmm, some problems here, should TADIR also build path?
-    rt_tadir = build( iv_package            = iv_package
-                      iv_top                = iv_package
-                      io_dot                = io_dot
-                      iv_ignore_subpackages = iv_ignore_subpackages
-                      iv_only_local_objects = iv_only_local_objects
-                      ii_log                = ii_log ).
-
-    li_exit = zcl_abapgit_exit=>get_instance( ).
-    li_exit->change_tadir(
-      EXPORTING
-        iv_package = iv_package
-        ii_log     = ii_log
-      CHANGING
-        ct_tadir   = rt_tadir ).
-
-    rt_tadir = check_exists( rt_tadir ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_tadir~read_single.
-
-* note that SICF has special handling, the obj_name is different in the system than serialized
-
-    SELECT SINGLE * FROM tadir INTO CORRESPONDING FIELDS OF rs_tadir
-      WHERE pgmid = iv_pgmid
-      AND object = iv_object
-      AND obj_name = iv_obj_name.                         "#EC CI_SUBRC
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   METHOD remove_identical.
 
@@ -19576,52 +19372,6 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
             iv_filename = iv_filename
             is_status   = is_status
             iv_method   = zif_abapgit_definitions=>c_method-rm ).
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
-  METHOD has_sadl_superclass.
-
-    DATA: li_oo_functions TYPE REF TO zif_abapgit_oo_object_fnc,
-          lv_class_name   TYPE seoclsname,
-          lv_superclass   TYPE seoclsname.
-    li_oo_functions = zcl_abapgit_oo_factory=>make( is_class-object ).
-    lv_class_name = is_class-obj_name.
-    lv_superclass = li_oo_functions->read_superclass( lv_class_name ).
-    IF lv_superclass = 'CL_SADL_GTK_EXPOSURE_MPC'.
-      rv_return = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD skip_sadl_generated_objects.
-
-    DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
-          ls_tadir           LIKE LINE OF rt_tadir,
-          lt_candidates      LIKE rt_tadir,
-          lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-    lt_candidates = it_tadir.
-    DELETE lt_candidates WHERE object <> 'CLAS' OR genflag = abap_false.
-
-    LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
-      LOOP AT lt_candidates INTO ls_tadir_class
-          WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
-        IF has_sadl_superclass( ls_tadir_class ) = abap_true.
-          APPEND ls_tadir_class TO lt_lines_to_delete.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    rt_tadir = it_tadir.
-    DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
-    LOOP AT lt_lines_to_delete INTO ls_tadir_class.
-      DELETE TABLE rt_tadir FROM ls_tadir_class.
-      IF ii_log IS BOUND.
-        ii_log->add(
-          iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
-          iv_type = 'W' ).
-      ENDIF.
-    ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
 
@@ -19829,273 +19579,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
         iv_name = zcl_abapgit_persistence_db=>c_type_settings
       CHANGING
         cg_data = ms_settings ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
-  METHOD add_to_return.
-
-    FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_fils_item-files,
-                   <ls_return> LIKE LINE OF mt_files.
-    LOOP AT is_fils_item-files ASSIGNING <ls_file>.
-      APPEND INITIAL LINE TO mt_files ASSIGNING <ls_return>.
-      <ls_return>-file = <ls_file>.
-      <ls_return>-file-path = iv_path.
-      <ls_return>-item = is_fils_item-item.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
-
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
-
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
-        OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
-      gv_max_threads = 1.
-    ENDIF.
-
-    mv_group = 'parallel_generators'.
-    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
-
-  ENDMETHOD.
-  METHOD determine_max_threads.
-
-    IF iv_force_sequential = abap_true.
-      rv_threads = 1.
-      RETURN.
-    ENDIF.
-
-    IF gv_max_threads >= 1.
-* SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
-* multiple times in same session
-      rv_threads = gv_max_threads.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'Z_ABAPGIT_SERIALIZE_PARALLEL'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc <> 0.
-      gv_max_threads = 1.
-    ELSE.
-* todo, add possibility to set group name in user exit
-      CALL FUNCTION 'SPBT_INITIALIZE'
-        EXPORTING
-          group_name                     = mv_group
-        IMPORTING
-          free_pbt_wps                   = gv_max_threads
-        EXCEPTIONS
-          invalid_group_name             = 1
-          internal_error                 = 2
-          pbt_env_already_initialized    = 3
-          currently_no_resources_avail   = 4
-          no_pbt_resources_found         = 5
-          cant_init_different_pbt_groups = 6
-          OTHERS                         = 7.
-      IF sy-subrc <> 0.
-*   fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
-*   RZ12, SM50, SM21, SARFC
-        gv_max_threads = 1.
-      ENDIF.
-    ENDIF.
-
-    IF gv_max_threads > 1.
-      gv_max_threads = gv_max_threads - 1.
-    ENDIF.
-
-    ASSERT gv_max_threads >= 1.
-
-    IF gv_max_threads > 32.
-* https://en.wikipedia.org/wiki/Amdahl%27s_law
-      gv_max_threads = 32.
-    ENDIF.
-
-    rv_threads = gv_max_threads.
-
-  ENDMETHOD.
-  METHOD files_local.
-
-* serializes objects, including .abapgit.xml, apack, and takes into account local settings
-
-    DATA: ls_apack_file TYPE zif_abapgit_definitions=>ty_file,
-          lo_filter     TYPE REF TO zcl_abapgit_repo_filter,
-          lv_force      TYPE abap_bool,
-          lt_found      LIKE rt_files,
-          lt_tadir      TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-    FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
-
-    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file = io_dot_abapgit->to_file( ).
-
-    ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
-    IF ls_apack_file IS NOT INITIAL.
-      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-      <ls_return>-file = ls_apack_file.
-    ENDIF.
-
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = iv_package
-      iv_ignore_subpackages = is_local_settings-ignore_subpackages
-      iv_only_local_objects = is_local_settings-only_local_objects
-      io_dot                = io_dot_abapgit
-      ii_log                = ii_log ).
-
-    CREATE OBJECT lo_filter.
-
-    lo_filter->apply( EXPORTING it_filter = it_filter
-                      CHANGING  ct_tadir  = lt_tadir ).
-
-* if there are less than 10 objects run in single thread
-* this helps a lot when debugging, plus performance gain
-* with low number of objects does not matter much
-    lv_force = boolc( lines( lt_tadir ) < 10 ).
-
-    lt_found = serialize(
-      it_tadir            = lt_tadir
-      iv_language         = io_dot_abapgit->get_master_language( )
-      ii_log              = ii_log
-      iv_force_sequential = lv_force ).
-    APPEND LINES OF lt_found TO rt_files.
-
-  ENDMETHOD.
-  METHOD on_end_of_task.
-
-* this method will be called from the parallel processing, thus it must be public
-
-    DATA: lv_result    TYPE xstring,
-          lv_path      TYPE string,
-          lv_mess      TYPE c LENGTH 200,
-          ls_fils_item TYPE zcl_abapgit_objects=>ty_serialization.
-    RECEIVE RESULTS FROM FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
-      IMPORTING
-        ev_result = lv_result
-        ev_path   = lv_path
-      EXCEPTIONS
-        error     = 1
-        system_failure = 2 MESSAGE lv_mess
-        communication_failure = 3 MESSAGE lv_mess
-        OTHERS = 4.
-    IF sy-subrc <> 0.
-      IF NOT mi_log IS INITIAL.
-        IF NOT lv_mess IS INITIAL.
-          mi_log->add_error( lv_mess ).
-        ELSE.
-          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }, { sy-subrc }| ).
-        ENDIF.
-      ENDIF.
-    ELSE.
-      IMPORT data = ls_fils_item FROM DATA BUFFER lv_result. "#EC CI_SUBRC
-      ASSERT sy-subrc = 0.
-      add_to_return( is_fils_item = ls_fils_item
-                     iv_path      = lv_path ).
-    ENDIF.
-
-    mv_free = mv_free + 1.
-
-  ENDMETHOD.
-  METHOD run_parallel.
-
-    DATA: lv_msg  TYPE c LENGTH 100,
-          lv_free LIKE mv_free.
-    ASSERT mv_free > 0.
-
-    DO.
-      CALL FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
-        STARTING NEW TASK iv_task
-        DESTINATION IN GROUP mv_group
-        CALLING on_end_of_task ON END OF TASK
-        EXPORTING
-          iv_obj_type                   = is_tadir-object
-          iv_obj_name                   = is_tadir-obj_name
-          iv_devclass                   = is_tadir-devclass
-          iv_language                   = iv_language
-          iv_path                       = is_tadir-path
-          iv_serialize_master_lang_only = mv_serialize_master_lang_only
-        EXCEPTIONS
-          system_failure                = 1 MESSAGE lv_msg
-          communication_failure         = 2 MESSAGE lv_msg
-          resource_failure              = 3
-          OTHERS                        = 4.
-      IF sy-subrc = 3.
-        lv_free = mv_free.
-        WAIT UNTIL mv_free <> lv_free UP TO 1 SECONDS.
-        CONTINUE.
-      ELSEIF sy-subrc <> 0.
-        ASSERT lv_msg = '' AND 0 = 1.
-      ENDIF.
-      EXIT.
-    ENDDO.
-
-    mv_free = mv_free - 1.
-
-  ENDMETHOD.
-  METHOD run_sequential.
-
-    DATA: lx_error     TYPE REF TO zcx_abapgit_exception,
-          ls_fils_item TYPE zcl_abapgit_objects=>ty_serialization.
-    ls_fils_item-item-obj_type = is_tadir-object.
-    ls_fils_item-item-obj_name = is_tadir-obj_name.
-    ls_fils_item-item-devclass = is_tadir-devclass.
-
-    TRY.
-        ls_fils_item = zcl_abapgit_objects=>serialize(
-          is_item     = ls_fils_item-item
-          iv_serialize_master_lang_only = mv_serialize_master_lang_only
-          iv_language = iv_language ).
-
-        add_to_return( is_fils_item = ls_fils_item
-                       iv_path      = is_tadir-path ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        IF NOT mi_log IS INITIAL.
-          mi_log->add_exception(
-              ix_exc  = lx_error
-              is_item = ls_fils_item-item ).
-        ENDIF.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD serialize.
-
-    DATA: lv_max      TYPE i,
-          li_progress TYPE REF TO zif_abapgit_progress.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
-    CLEAR mt_files.
-
-    lv_max = determine_max_threads( iv_force_sequential ).
-    mv_free = lv_max.
-    mi_log = ii_log.
-
-    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
-
-    LOOP AT it_tadir ASSIGNING <ls_tadir>.
-
-      li_progress->show(
-        iv_current = sy-tabix
-        iv_text    = |Serialize { <ls_tadir>-obj_name }, { lv_max } threads| ).
-
-      IF lv_max = 1.
-        run_sequential(
-          is_tadir    = <ls_tadir>
-          iv_language = iv_language ).
-      ELSE.
-        run_parallel(
-          is_tadir    = <ls_tadir>
-          iv_task     = |{ sy-tabix }|
-          iv_language = iv_language ).
-        WAIT UNTIL mv_free > 0 UP TO 120 SECONDS.
-      ENDIF.
-    ENDLOOP.
-
-    WAIT UNTIL mv_free = lv_max UP TO 120 SECONDS.
-    rt_files = mt_files.
 
   ENDMETHOD.
 ENDCLASS.
@@ -22562,597 +22045,6 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
-  METHOD get_instance.
-    CREATE OBJECT ro_instance.
-  ENDMETHOD.
-  METHOD get_parent.
-    DATA: ls_parent LIKE LINE OF mt_parent.
-
-    "Determine Parent Package
-    READ TABLE mt_parent INTO ls_parent
-      WITH TABLE KEY devclass = iv_package.
-    IF sy-subrc <> 0.
-      rv_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
-      ls_parent-devclass = iv_package.
-      ls_parent-parentcl = rv_parent.
-      INSERT ls_parent INTO TABLE mt_parent.
-    ELSE.
-      rv_parent = ls_parent-parentcl.
-    ENDIF.
-  ENDMETHOD.
-  METHOD package_to_path.
-
-    DATA: lv_len          TYPE i,
-          lv_path         TYPE string,
-          lv_message      TYPE string,
-          lv_parentcl     TYPE tdevc-parentcl,
-          lv_folder_logic TYPE string.
-
-    IF iv_top = iv_package.
-      rv_path = io_dot->get_starting_folder( ).
-    ELSE.
-      lv_parentcl = get_parent( iv_package ).
-
-      IF lv_parentcl IS INITIAL.
-        zcx_abapgit_exception=>raise( |error, expected parent package, { iv_package }| ).
-      ELSE.
-        lv_folder_logic = io_dot->get_folder_logic( ).
-        CASE lv_folder_logic.
-          WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
-            lv_len = 0.
-            IF iv_package(1) = '$'.
-              lv_len = 1.
-            ENDIF.
-          WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
-            lv_len = strlen( lv_parentcl ).
-
-            IF iv_package(lv_len) <> lv_parentcl.
-* if abapGit project is installed in package ZZZ, all subpackages should be named
-* ZZZ_something. This will define the folder name in the zip file to be "something",
-* similarily with online projects. Alternatively change to FULL folder logic
-              lv_message = 'PREFIX: Unexpected package naming (' && iv_package && ')'
-                           && 'you might switch to FULL folder logic'.
-              zcx_abapgit_exception=>raise( lv_message ).
-            ENDIF.
-          WHEN OTHERS.
-            zcx_abapgit_exception=>raise( |Invalid folder logic: { lv_folder_logic }| ).
-        ENDCASE.
-
-        lv_path = iv_package+lv_len.
-        IF strlen( lv_path ) = 0.
-          zcx_abapgit_exception=>raise( |Folder logic: length = 0, parent: {
-            lv_parentcl }, child: { iv_package }| ).
-        ENDIF.
-
-        IF lv_path(1) = '_'.
-          lv_path = lv_path+1.
-        ENDIF.
-        IF strlen( lv_path ) = 0.
-          zcx_abapgit_exception=>raise( |Folder logic: length = 0, parent: {
-            lv_parentcl }, child: { iv_package }| ).
-        ENDIF.
-
-        TRANSLATE lv_path USING '/#'.
-        TRANSLATE lv_path TO LOWER CASE.
-        CONCATENATE lv_path '/' INTO lv_path.
-
-        rv_path = package_to_path( iv_top     = iv_top
-                                   io_dot     = io_dot
-                                   iv_package = lv_parentcl ).
-
-        CONCATENATE rv_path lv_path INTO rv_path.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD path_to_package.
-
-    DATA: lv_length               TYPE i,
-          lv_parent               TYPE devclass,
-          lv_new                  TYPE string,
-          lv_path                 TYPE string,
-          lv_absolute_name        TYPE string,
-          lv_top                  TYPE devclass,
-          lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
-
-    lv_top = iv_top.
-
-    lv_length  = strlen( io_dot->get_starting_folder( ) ).
-    IF lv_length > strlen( iv_path ).
-* treat as not existing locally
-      RETURN.
-    ENDIF.
-    lv_path    = iv_path+lv_length.
-    lv_parent  = lv_top.
-    rv_package = lv_top.
-
-    INSERT iv_top INTO TABLE lt_unique_package_names.
-
-    WHILE lv_path CA '/'.
-      SPLIT lv_path AT '/' INTO lv_new lv_path.
-
-      CASE io_dot->get_folder_logic( ).
-        WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
-          lv_absolute_name = lv_new.
-          TRANSLATE lv_absolute_name USING '#/'.
-          IF iv_top(1) = '$'.
-            CONCATENATE '$' lv_absolute_name INTO lv_absolute_name.
-          ENDIF.
-        WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
-          CONCATENATE rv_package '_' lv_new INTO lv_absolute_name.
-        WHEN OTHERS.
-          ASSERT 0 = 1.
-      ENDCASE.
-
-      TRANSLATE lv_absolute_name TO UPPER CASE.
-
-      IF strlen( lv_absolute_name ) > 30.
-        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters-name limit| ).
-      ENDIF.
-
-      rv_package = lv_absolute_name.
-      READ TABLE lt_unique_package_names TRANSPORTING NO FIELDS
-        WITH TABLE KEY table_line = rv_package.
-      IF sy-subrc = 0.
-        zcx_abapgit_exception=>raise( |Package { rv_package } has a subpackage with the same name| ).
-      ELSE.
-        INSERT rv_package INTO TABLE lt_unique_package_names.
-      ENDIF.
-
-      IF zcl_abapgit_factory=>get_sap_package( rv_package )->exists( ) = abap_false AND
-          iv_create_if_not_exists = abap_true.
-
-        zcl_abapgit_factory=>get_sap_package( lv_parent )->create_child( rv_package ).
-      ENDIF.
-
-      lv_parent = rv_package.
-    ENDWHILE.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
-  METHOD build_existing.
-
-    DATA: ls_file_sig LIKE LINE OF it_state.
-
-    " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
-
-    " File
-    rs_result-path     = is_local-file-path.
-    rs_result-filename = is_local-file-filename.
-
-    IF is_local-file-sha1 = is_remote-sha1.
-      rs_result-match = abap_true.
-      RETURN.
-    ENDIF.
-
-    " Match against current state
-    READ TABLE it_state INTO ls_file_sig
-      WITH KEY path = is_local-file-path
-      filename = is_local-file-filename
-      BINARY SEARCH.
-
-    IF sy-subrc = 0.
-      IF ls_file_sig-sha1 <> is_local-file-sha1.
-        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
-      ENDIF.
-      IF ls_file_sig-sha1 <> is_remote-sha1.
-        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
-      ENDIF.
-      rs_result-match = boolc( rs_result-lstate IS INITIAL
-        AND rs_result-rstate IS INITIAL ).
-    ELSE.
-      " This is a strange situation. As both local and remote exist
-      " the state should also be present. Maybe this is a first run of the code.
-      " In this case just compare hashes directly and mark both changed
-      " the user will presumably decide what to do after checking the actual diff
-      rs_result-match = boolc( is_local-file-sha1 = is_remote-sha1 ).
-      IF rs_result-match = abap_false.
-        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
-        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD build_new_local.
-
-    " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
-
-    " File
-    rs_result-path     = is_local-file-path.
-    rs_result-filename = is_local-file-filename.
-
-    " Match
-    rs_result-match    = abap_false.
-    rs_result-lstate   = zif_abapgit_definitions=>c_state-added.
-
-  ENDMETHOD.
-  METHOD build_new_remote.
-
-    DATA: ls_item     LIKE LINE OF it_items,
-          ls_file_sig LIKE LINE OF it_state.
-
-    " Common and default part
-    rs_result-path     = is_remote-path.
-    rs_result-filename = is_remote-filename.
-    rs_result-match    = abap_false.
-    rs_result-rstate   = zif_abapgit_definitions=>c_state-added.
-
-    identify_object( EXPORTING iv_filename = is_remote-filename
-                               iv_path     = is_remote-path
-                               iv_devclass = iv_devclass
-                               io_dot      = io_dot
-                     IMPORTING es_item     = ls_item ).
-
-    " Check if in item index + get package
-    READ TABLE it_items INTO ls_item
-      WITH KEY obj_type = ls_item-obj_type obj_name = ls_item-obj_name
-      BINARY SEARCH.
-
-    IF sy-subrc = 0.
-
-      " Completely new (xml, abap) and new file in an existing object
-      rs_result-obj_type = ls_item-obj_type.
-      rs_result-obj_name = ls_item-obj_name.
-      rs_result-package  = ls_item-devclass.
-
-      READ TABLE it_state INTO ls_file_sig
-        WITH KEY path = is_remote-path filename = is_remote-filename
-        BINARY SEARCH.
-
-      " Existing file but from another package
-      " was not added during local file proc as was not in tadir for repo package
-      IF sy-subrc = 0.
-        IF ls_file_sig-sha1 = is_remote-sha1.
-          rs_result-match = abap_true.
-          CLEAR rs_result-rstate.
-        ELSE.
-          rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
-        ENDIF.
-
-        " Item is in state and in cache but with no package - it was deleted
-        " OR devclass is the same as repo package (see #532)
-        IF ls_item-devclass IS INITIAL OR ls_item-devclass = iv_devclass.
-          rs_result-match  = abap_false.
-          rs_result-lstate = zif_abapgit_definitions=>c_state-deleted.
-        ENDIF.
-      ENDIF.
-
-    ELSE. " Completely unknown file, probably non-abapgit
-      ASSERT 1 = 1. " No action, just follow defaults
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD calculate_status.
-
-    DATA: lt_remote       LIKE it_remote,
-          lv_index        TYPE i,
-          lt_items        TYPE zif_abapgit_definitions=>ty_items_tt,
-          ls_item         LIKE LINE OF lt_items,
-          lv_is_xml       TYPE abap_bool,
-          lv_sub_fetched  TYPE abap_bool,
-          lt_sub_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
-          lt_items_idx    TYPE zif_abapgit_definitions=>ty_items_ts,
-          lt_state_idx    TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
-                   <ls_result> LIKE LINE OF rt_results,
-                   <ls_state>  LIKE LINE OF it_cur_state,
-                   <ls_local>  LIKE LINE OF it_local.
-    lt_state_idx = it_cur_state. " Force sort it
-    lt_remote    = it_remote.
-    SORT lt_remote BY path filename.
-
-    " Skip ignored files
-    LOOP AT lt_remote ASSIGNING <ls_remote>.
-      lv_index = sy-tabix.
-      IF io_dot->is_ignored( iv_path     = <ls_remote>-path
-                             iv_filename = <ls_remote>-filename ) = abap_true.
-        DELETE lt_remote INDEX lv_index.
-      ENDIF.
-    ENDLOOP.
-
-    " Process local files and new local files
-    LOOP AT it_local ASSIGNING <ls_local>.
-      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
-      IF <ls_local>-item IS NOT INITIAL.
-        APPEND <ls_local>-item TO lt_items. " Collect for item index
-      ENDIF.
-
-      READ TABLE lt_remote ASSIGNING <ls_remote>
-        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-        BINARY SEARCH.
-      IF sy-subrc = 0.  " Exist local and remote
-        <ls_result> = build_existing(
-          is_local  = <ls_local>
-          is_remote = <ls_remote>
-          it_state  = lt_state_idx ).
-        ASSERT <ls_remote>-sha1 IS NOT INITIAL.
-        CLEAR <ls_remote>-sha1. " Mark as processed
-      ELSE.             " Only L exists
-        <ls_result> = build_new_local( <ls_local> ).
-        " Check if same file exists in different location
-        READ TABLE lt_remote ASSIGNING <ls_remote>
-          WITH KEY filename = <ls_local>-file-filename.
-        IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
-          <ls_result>-packmove = abap_true.
-        ELSEIF sy-subrc = 4.
-          " Check if file existed before and was deleted remotely
-          READ TABLE lt_state_idx ASSIGNING <ls_state>
-            WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-            BINARY SEARCH.
-          IF sy-subrc = 0.
-            IF <ls_local>-file-sha1 = <ls_state>-sha1.
-              <ls_result>-lstate = zif_abapgit_definitions=>c_state-unchanged.
-            ELSE.
-              <ls_result>-lstate = zif_abapgit_definitions=>c_state-modified.
-            ENDIF.
-            <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted.
-          ENDIF.
-        ENDIF.
-      ENDIF.
-      <ls_result>-inactive = <ls_local>-item-inactive.
-    ENDLOOP.
-
-    " Complete item index for unmarked remote files
-    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
-      identify_object( EXPORTING iv_filename = <ls_remote>-filename
-                                 iv_path     = <ls_remote>-path
-                                 io_dot      = io_dot
-                                 iv_devclass = iv_devclass
-                       IMPORTING es_item     = ls_item
-                                 ev_is_xml   = lv_is_xml ).
-
-      CHECK lv_is_xml = abap_true. " only object definitions
-
-      ls_item-devclass = get_object_package(
-        iv_object   = ls_item-obj_type
-        iv_obj_name = ls_item-obj_name ).
-
-      IF NOT ls_item-devclass IS INITIAL AND iv_devclass <> ls_item-devclass.
-        IF lv_sub_fetched = abap_false.
-          lt_sub_packages = zcl_abapgit_factory=>get_sap_package( iv_devclass )->list_subpackages( ).
-          lv_sub_fetched = abap_true.
-          SORT lt_sub_packages BY table_line. "Optimize Read Access
-        ENDIF.
-        " Make sure the package is under the repo main package
-        READ TABLE lt_sub_packages TRANSPORTING NO FIELDS
-          WITH KEY table_line = ls_item-devclass
-          BINARY SEARCH.
-        IF sy-subrc <> 0.
-          CLEAR ls_item-devclass.
-        ENDIF.
-      ENDIF.
-
-      APPEND ls_item TO lt_items.
-    ENDLOOP.
-
-    SORT lt_items DESCENDING. " Default key - type, name, pkg, inactive
-    DELETE ADJACENT DUPLICATES FROM lt_items COMPARING obj_type obj_name devclass.
-    lt_items_idx = lt_items. " Self protection + UNIQUE records assertion
-
-    " Process new remote files (marked above with empty SHA1)
-    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
-      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
-      <ls_result> = build_new_remote( iv_devclass = iv_devclass
-                                      io_dot      = io_dot
-                                      is_remote   = <ls_remote>
-                                      it_items    = lt_items_idx
-                                      it_state    = lt_state_idx ).
-      " Check if same file exists in different location
-      READ TABLE it_local ASSIGNING <ls_local>
-        WITH KEY file-filename = <ls_remote>-filename.
-      IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
-        <ls_result>-packmove = abap_true.
-      ELSEIF sy-subrc = 4.
-        " Check if file existed before and was deleted locally
-        READ TABLE lt_state_idx ASSIGNING <ls_state>
-          WITH KEY path = <ls_remote>-path filename = <ls_remote>-filename
-          BINARY SEARCH.
-        IF sy-subrc = 0.
-          <ls_result>-lstate = zif_abapgit_definitions=>c_state-deleted.
-        ENDIF.
-      ENDIF.
-    ENDLOOP.
-
-    SORT rt_results BY
-      obj_type ASCENDING
-      obj_name ASCENDING
-      filename ASCENDING.
-
-  ENDMETHOD.
-  METHOD get_object_package.
-    DATA: lv_name    TYPE devclass,
-          li_package TYPE REF TO zif_abapgit_sap_package.
-
-    rv_devclass = zcl_abapgit_factory=>get_tadir( )->get_object_package(
-      iv_object   = iv_object
-      iv_obj_name = iv_obj_name ).
-    IF rv_devclass IS INITIAL AND iv_object = 'DEVC' AND iv_obj_name(1) = '$'.
-      " local packages usually have no tadir entry
-      lv_name = iv_obj_name.
-      li_package = zcl_abapgit_factory=>get_sap_package( lv_name ).
-      IF li_package->exists( ) = abap_true.
-        rv_devclass = lv_name.
-      ENDIF.
-    ENDIF.
-  ENDMETHOD.
-  METHOD identify_object.
-
-    DATA: lv_name TYPE string,
-          lv_type TYPE string,
-          lv_ext  TYPE string.
-
-    " Guess object type and name
-    SPLIT to_upper( iv_filename ) AT '.' INTO lv_name lv_type lv_ext.
-
-    " Handle namespaces
-    REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
-    REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
-    REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
-
-    " The counter part to this logic must be maintained in ZCL_ABAPGIT_OBJECTS_FILES->FILENAME
-    IF lv_type = 'DEVC'.
-      " Try to get a unique package name for DEVC by using the path
-      ASSERT lv_name = 'PACKAGE'.
-      lv_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
-        iv_top                  = iv_devclass
-        io_dot                  = io_dot
-        iv_create_if_not_exists = abap_false
-        iv_path                 = iv_path ).
-    ELSE.
-      " Get original object name
-      lv_name = cl_http_utility=>unescape_url( lv_name ).
-    ENDIF.
-
-    CLEAR es_item.
-    es_item-obj_type = lv_type.
-    es_item-obj_name = lv_name.
-    ev_is_xml        = boolc( lv_ext = 'XML' AND strlen( lv_type ) = 4 ).
-
-  ENDMETHOD.
-  METHOD run_checks.
-
-    DATA: lv_path         TYPE string,
-          ls_item         TYPE zif_abapgit_definitions=>ty_item,
-          ls_file         TYPE zif_abapgit_definitions=>ty_file_signature,
-          lt_res_sort     LIKE it_results,
-          lt_item_idx     LIKE it_results,
-          lt_move_idx     LIKE it_results,
-          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
-
-    FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
-                   <ls_res2> LIKE LINE OF it_results.
-
-    " This method just adds messages to the log. No log, nothing to do here
-    IF ii_log IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    " Find all objects which were assigned to a different package
-    LOOP AT it_results ASSIGNING <ls_res1>
-      WHERE lstate = zif_abapgit_definitions=>c_state-added AND packmove = abap_true.
-      READ TABLE lt_move_idx TRANSPORTING NO FIELDS
-        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
-        BINARY SEARCH. " Sorted since it_result is sorted
-      IF sy-subrc <> 0.
-        ii_log->add( iv_msg  = |Changed package assignment for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '5' ).
-        APPEND INITIAL LINE TO lt_move_idx ASSIGNING <ls_res2>.
-        <ls_res2>-obj_type = <ls_res1>-obj_type.
-        <ls_res2>-obj_name = <ls_res1>-obj_name.
-        <ls_res2>-path     = <ls_res1>-path.
-      ENDIF.
-    ENDLOOP.
-
-    " Collect object indexe
-    lt_res_sort = it_results.
-    SORT lt_res_sort BY obj_type ASCENDING obj_name ASCENDING.
-
-    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL AND packmove = abap_false.
-      IF NOT ( <ls_res1>-obj_type = ls_item-obj_type
-          AND <ls_res1>-obj_name = ls_item-obj_name ).
-        APPEND INITIAL LINE TO lt_item_idx ASSIGNING <ls_res2>.
-        <ls_res2>-obj_type = <ls_res1>-obj_type.
-        <ls_res2>-obj_name = <ls_res1>-obj_name.
-        <ls_res2>-path     = <ls_res1>-path.
-        MOVE-CORRESPONDING <ls_res1> TO ls_item.
-      ENDIF.
-    ENDLOOP.
-
-    " Check files for one object is in the same folder
-    LOOP AT it_results ASSIGNING <ls_res1>
-      WHERE NOT obj_type IS INITIAL AND obj_type <> 'DEVC' AND packmove = abap_false.
-      READ TABLE lt_item_idx ASSIGNING <ls_res2>
-        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
-        BINARY SEARCH. " Sorted above
-
-      IF sy-subrc <> 0 OR <ls_res1>-path <> <ls_res2>-path. " All paths are same
-        ii_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
-                       <ls_res1>-obj_name } are not placed in the same folder|
-                     iv_type = 'W'
-                     iv_rc   = '1' ).
-      ENDIF.
-    ENDLOOP.
-
-    " Check that objects are created in package corresponding to folder
-    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-    LOOP AT it_results ASSIGNING <ls_res1>
-      WHERE NOT package IS INITIAL AND NOT path IS INITIAL AND packmove = abap_false.
-      lv_path = lo_folder_logic->package_to_path(
-        iv_top     = iv_top
-        io_dot     = io_dot
-        iv_package = <ls_res1>-package ).
-      IF lv_path <> <ls_res1>-path.
-        ii_log->add( iv_msg = |Package and path does not match for object, {
-                       <ls_res1>-obj_type } { <ls_res1>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '2' ).
-      ENDIF.
-    ENDLOOP.
-
-    " Check for multiple files with same filename
-    SORT lt_res_sort BY filename ASCENDING.
-
-    LOOP AT lt_res_sort ASSIGNING <ls_res1> WHERE obj_type <> 'DEVC' AND packmove = abap_false.
-      IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
-        ii_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
-                     iv_type = 'W'
-                     iv_rc   = '3' ).
-      ENDIF.
-
-      IF <ls_res1>-filename IS INITIAL.
-        ii_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '4' ).
-      ENDIF.
-
-      MOVE-CORRESPONDING <ls_res1> TO ls_file.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD status.
-
-    DATA: lv_index LIKE sy-tabix,
-          lt_local TYPE zif_abapgit_definitions=>ty_files_item_tt.
-
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
-
-    lt_local = io_repo->get_files_local( ii_log = ii_log ).
-
-    IF lines( lt_local ) <= 2.
-      " Less equal two means that we have only the .abapgit.xml and the package in
-      " our local repository. In this case we have to update our local .abapgit.xml
-      " from the remote one. Otherwise we get errors when e.g. the folder starting
-      " folder is different.
-      io_repo->find_remote_dot_abapgit( ).
-    ENDIF.
-
-    rt_results = calculate_status(
-      iv_devclass  = io_repo->get_package( )
-      io_dot       = io_repo->get_dot_abapgit( )
-      it_local     = io_repo->get_files_local( ii_log = ii_log )
-      it_remote    = io_repo->get_files_remote( )
-      it_cur_state = io_repo->get_local_checksums_per_file( ) ).
-
-    run_checks(
-      ii_log     = ii_log
-      it_results = rt_results
-      io_dot     = io_repo->get_dot_abapgit( )
-      iv_top     = io_repo->get_package( ) ).
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_branch_overview.
 
@@ -23646,302 +22538,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
       IN rv_xml
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
     ASSERT sy-subrc = 0.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_dependencies IMPLEMENTATION.
-  METHOD get_ddls_dependencies.
-
-    DATA: lt_ddls_name TYPE TABLE OF ddsymtab,
-          ls_ddls_name TYPE ddsymtab.
-
-    ls_ddls_name-name = iv_ddls_name.
-    INSERT ls_ddls_name INTO TABLE lt_ddls_name.
-
-    PERFORM ('DDLS_GET_DEP') IN PROGRAM ('RADMASDL')
-                             TABLES lt_ddls_name rt_dependency.
-
-  ENDMETHOD.
-  METHOD resolve.
-
-    DATA: lv_tabclass TYPE dd02l-tabclass.
-
-    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
-
-    " misuse field KORRNUM to fix deletion sequence
-    " higher value means later deletion
-
-    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
-      CASE <ls_tadir>-object.
-        WHEN 'DEVC'.
-          " Packages last
-          <ls_tadir>-korrnum = '999000'.
-        WHEN 'DOMA'.
-          <ls_tadir>-korrnum = '900000'.
-        WHEN 'PARA'.
-          " PARA after DTEL
-          <ls_tadir>-korrnum = '810000'.
-        WHEN 'DTEL'.
-          <ls_tadir>-korrnum = '800000'.
-        WHEN 'SHLP'.
-          " SHLP after TABL
-          <ls_tadir>-korrnum = '760000'.
-        WHEN 'TTYP' OR 'TABL' OR 'VIEW'.
-          SELECT SINGLE tabclass FROM dd02l
-            INTO lv_tabclass
-            WHERE tabname = <ls_tadir>-obj_name
-            AND as4local = 'A'
-            AND as4vers = '0000'.
-          IF sy-subrc = 0 AND lv_tabclass = 'APPEND'.
-            " delete append structures before database tables
-            <ls_tadir>-korrnum = '730000'.
-          ELSE.
-            <ls_tadir>-korrnum = '750000'.
-          ENDIF.
-        WHEN 'DDLS'.
-          " DDLS after DCLS but before other DDIC
-          <ls_tadir>-korrnum = '720000'.
-        WHEN 'AUTH'.
-          " AUTH after DCLS
-          <ls_tadir>-korrnum = '715000'.
-        WHEN 'SUSO'.
-          " SUSO after DCLS
-          <ls_tadir>-korrnum = '710000'.
-        WHEN 'DCLS'.
-          " AUTH and SUSO after DCLS
-          <ls_tadir>-korrnum = '705000'.
-        WHEN 'IASP'.
-          <ls_tadir>-korrnum = '552000'.
-        WHEN 'IARP'.
-          <ls_tadir>-korrnum = '551000'.
-        WHEN 'IATU'.
-          <ls_tadir>-korrnum = '550000'.
-        WHEN 'SUSC'.
-          <ls_tadir>-korrnum = '500000'.
-        WHEN 'ACID'.
-          " ACID after PROG/FUGR/CLAS
-          <ls_tadir>-korrnum = '300000'.
-        WHEN 'FUGR'.
-          <ls_tadir>-korrnum = '260000'.
-        WHEN 'PROG'.
-          " delete includes after main programs
-          SELECT COUNT(*) FROM reposrc
-            WHERE progname = <ls_tadir>-obj_name
-            AND r3state = 'A'
-            AND subc = 'I'.
-          IF sy-subrc = 0.
-            <ls_tadir>-korrnum = '250000'.
-          ELSE.
-            <ls_tadir>-korrnum = '240000'.
-          ENDIF.
-        WHEN 'INTF'.
-          <ls_tadir>-korrnum = '230000'.
-        WHEN 'CLAS'.
-          <ls_tadir>-korrnum = '220000'.
-        WHEN 'IDOC'.
-          <ls_tadir>-korrnum = '200000'.
-        WHEN 'WDCA'.
-          <ls_tadir>-korrnum = '174000'.
-        WHEN 'WDYA'.
-          <ls_tadir>-korrnum = '173000'.
-        WHEN 'WDCC'.
-          <ls_tadir>-korrnum = '172000'.
-        WHEN 'WDYN'.
-          <ls_tadir>-korrnum = '171000'.
-        WHEN 'IEXT'.
-          <ls_tadir>-korrnum = '150000'.
-        WHEN OTHERS.
-          <ls_tadir>-korrnum = '100000'.
-      ENDCASE.
-    ENDLOOP.
-
-    resolve_ddic( CHANGING ct_tadir = ct_tadir ).
-    resolve_packages( CHANGING ct_tadir = ct_tadir ).
-
-    SORT ct_tadir BY korrnum ASCENDING.
-
-  ENDMETHOD.
-  METHOD resolve_ddic.
-* this will make sure the deletion sequence of structures/tables work
-* in case they have dependencies with .INCLUDE
-
-    TYPES: BEGIN OF ty_edge,
-             from TYPE ty_item,
-             to   TYPE ty_item,
-           END OF ty_edge.
-
-    DATA: lt_nodes        TYPE TABLE OF ty_item,
-          lt_edges        TYPE TABLE OF ty_edge,
-          lt_findstrings  TYPE TABLE OF rsfind,
-          lv_plus         TYPE i VALUE 1,
-          lv_find_obj_cls TYPE euobj-id,
-          lv_index        TYPE i,
-          lv_before       TYPE i,
-          lt_founds       TYPE TABLE OF rsfindlst,
-          lt_scope        TYPE STANDARD TABLE OF seu_obj,
-          lt_dependency   TYPE ty_dedenpencies.
-
-    FIELD-SYMBOLS: <ls_tadir_ddls>      TYPE zif_abapgit_definitions=>ty_tadir,
-                   <ls_dependency>      TYPE ty_dependency,
-                   <ls_tadir_dependent> TYPE zif_abapgit_definitions=>ty_tadir,
-                   <ls_tadir>           LIKE LINE OF ct_tadir,
-                   <ls_edge>            LIKE LINE OF lt_edges,
-                   <ls_found>           LIKE LINE OF lt_founds,
-                   <ls_node>            LIKE LINE OF lt_nodes.
-
-    " build nodes
-    LOOP AT ct_tadir ASSIGNING <ls_tadir>
-        WHERE object = 'TABL'
-        OR object = 'VIEW'
-        OR object = 'TTYP'.
-      APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-      <ls_node>-obj_name = <ls_tadir>-obj_name.
-      <ls_node>-obj_type = <ls_tadir>-object.
-    ENDLOOP.
-
-    APPEND 'TABL' TO lt_scope.
-    APPEND 'VIEW' TO lt_scope.
-    APPEND 'STRU' TO lt_scope.
-    APPEND 'TTYP' TO lt_scope.
-
-    " build edges
-    LOOP AT lt_nodes ASSIGNING <ls_node>.
-
-      CLEAR lt_findstrings.
-      APPEND <ls_node>-obj_name TO lt_findstrings.
-      lv_find_obj_cls = <ls_node>-obj_type.
-
-      CALL FUNCTION 'RS_EU_CROSSREF'
-        EXPORTING
-          i_find_obj_cls           = lv_find_obj_cls
-        TABLES
-          i_findstrings            = lt_findstrings
-          o_founds                 = lt_founds
-          i_scope_object_cls       = lt_scope
-        EXCEPTIONS
-          not_executed             = 1
-          not_found                = 2
-          illegal_object           = 3
-          no_cross_for_this_object = 4
-          batch                    = 5
-          batchjob_error           = 6
-          wrong_type               = 7
-          object_not_exist         = 8
-          OTHERS                   = 9.
-      IF sy-subrc <> 0.
-        CONTINUE.
-      ENDIF.
-
-      LOOP AT lt_founds ASSIGNING <ls_found>.
-        APPEND INITIAL LINE TO lt_edges ASSIGNING <ls_edge>.
-        <ls_edge>-from = <ls_node>.
-
-        <ls_edge>-to-obj_name   = <ls_found>-object.
-        CASE <ls_found>-object_cls.
-          WHEN 'DS'
-              OR 'DT'.
-            <ls_edge>-to-obj_type = 'TABL'.
-          WHEN 'DV'.
-            <ls_edge>-to-obj_type = 'VIEW'.
-          WHEN 'DA'.
-            <ls_edge>-to-obj_type = 'TTYP'.
-          WHEN OTHERS.
-            zcx_abapgit_exception=>raise( 'resolve_ddic, unknown object_cls' ).
-        ENDCASE.
-      ENDLOOP.
-
-    ENDLOOP.
-
-    " build DDLS edges
-    SORT ct_tadir. "binary search
-    LOOP AT ct_tadir ASSIGNING <ls_tadir_ddls>
-                     WHERE object = 'DDLS'.
-
-      CLEAR: lt_dependency.
-
-      APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-      <ls_node>-obj_name = <ls_tadir_ddls>-obj_name.
-      <ls_node>-obj_type = <ls_tadir_ddls>-object.
-
-      lt_dependency = get_ddls_dependencies( <ls_tadir_ddls>-obj_name ).
-
-      LOOP AT lt_dependency ASSIGNING <ls_dependency>
-                            WHERE deptyp = 'DDLS'
-                            AND refname = <ls_tadir_ddls>-obj_name.
-
-        READ TABLE ct_tadir ASSIGNING <ls_tadir_dependent>
-                            WITH KEY pgmid    = 'R3TR'
-                                     object   = 'DDLS'
-                                     obj_name = <ls_dependency>-depname
-                            BINARY SEARCH.
-        CHECK sy-subrc = 0.
-
-        APPEND INITIAL LINE TO lt_edges ASSIGNING <ls_edge>.
-        <ls_edge>-from = <ls_node>.
-        <ls_edge>-to-obj_name = <ls_dependency>-depname.
-        <ls_edge>-to-obj_type = 'DDLS'.
-
-      ENDLOOP.
-
-    ENDLOOP.
-
-    DO.
-      lv_before = lines( lt_nodes ).
-      LOOP AT lt_nodes ASSIGNING <ls_node>.
-        lv_index = sy-tabix.
-        READ TABLE lt_edges WITH KEY
-          from-obj_name = <ls_node>-obj_name
-          from-obj_type = <ls_node>-obj_type
-          TRANSPORTING NO FIELDS.
-        IF sy-subrc <> 0.
-          LOOP AT ct_tadir ASSIGNING <ls_tadir>
-              WHERE obj_name = <ls_node>-obj_name
-              AND object = <ls_node>-obj_type.
-            <ls_tadir>-korrnum = <ls_tadir>-korrnum + lv_plus.
-            CONDENSE <ls_tadir>-korrnum.
-          ENDLOOP.
-          DELETE lt_edges
-            WHERE to-obj_name = <ls_node>-obj_name
-            AND to-obj_type = <ls_node>-obj_type.
-          DELETE lt_nodes INDEX lv_index.
-          EXIT. " make sure the sequence is fixed
-        ENDIF.
-      ENDLOOP.
-      IF lv_before = lines( lt_nodes ).
-        EXIT.
-      ENDIF.
-      lv_plus = lv_plus + 1.
-    ENDDO.
-
-  ENDMETHOD.
-  METHOD resolve_packages.
-
-    DATA: lt_subpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
-
-    FIELD-SYMBOLS: <ls_tadir>            LIKE LINE OF ct_tadir,
-                   <lv_subpackage>       LIKE LINE OF lt_subpackages,
-                   <ls_tadir_subpackage> LIKE LINE OF ct_tadir.
-
-    " List subpackage before corresponding superpackage
-
-    LOOP AT ct_tadir ASSIGNING <ls_tadir>
-                     WHERE object = 'DEVC'.
-
-      lt_subpackages = zcl_abapgit_factory=>get_sap_package( |{ <ls_tadir>-obj_name }| )->list_subpackages( ).
-
-      LOOP AT lt_subpackages ASSIGNING <lv_subpackage>.
-
-        READ TABLE ct_tadir ASSIGNING <ls_tadir_subpackage>
-                            WITH KEY object   = 'DEVC'
-                                     obj_name = <lv_subpackage>.
-        IF sy-subrc = 0.
-          <ls_tadir_subpackage>-korrnum = condense( |{ <ls_tadir_subpackage>-korrnum - 1 }| ).
-        ENDIF.
-
-      ENDLOOP.
-
-    ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
@@ -51867,238 +50463,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_files IMPLEMENTATION.
-  METHOD add.
-    APPEND is_file TO mt_files.
-  ENDMETHOD.
-  METHOD add_abap.
-
-    DATA: lv_source TYPE string,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file.
-    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>c_newline.
-* when editing files via eg. GitHub web interface it adds a newline at end of file
-    lv_source = lv_source && zif_abapgit_definitions=>c_newline.
-
-    ls_file-path = '/'.
-    ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = 'abap' ).
-    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_source ).
-
-    APPEND ls_file TO mt_files.
-
-  ENDMETHOD.
-  METHOD add_raw.
-
-    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
-
-    ls_file-path     = '/'.
-    ls_file-data     = iv_data.
-    ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = iv_ext ).
-
-    APPEND ls_file TO mt_files.
-
-  ENDMETHOD.
-  METHOD add_string.
-
-    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
-    ls_file-path = '/'.
-    ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = iv_ext ).
-    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string ).
-
-    APPEND ls_file TO mt_files.
-
-  ENDMETHOD.
-  METHOD add_xml.
-
-    DATA: lv_xml  TYPE string,
-          ls_file TYPE zif_abapgit_definitions=>ty_file.
-
-    lv_xml = ii_xml->render( iv_normalize = iv_normalize
-                             is_metadata = is_metadata ).
-    ls_file-path = '/'.
-
-    ls_file-filename = filename( iv_extra = iv_extra
-                                 iv_ext   = 'xml' ).
-
-    REPLACE FIRST OCCURRENCE
-      OF REGEX '<\?xml version="1\.0" encoding="[\w-]+"\?>'
-      IN lv_xml
-      WITH '<?xml version="1.0" encoding="utf-8"?>'.
-    ASSERT sy-subrc = 0.
-
-    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
-
-    APPEND ls_file TO mt_files.
-  ENDMETHOD.
-  METHOD constructor.
-    ms_item = is_item.
-    mv_path = iv_path.
-  ENDMETHOD.
-  METHOD contains.
-    DATA: lv_filename TYPE string.
-
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = iv_ext ).
-
-    IF mv_path IS NOT INITIAL.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
-                                                          filename = lv_filename.
-    ELSE.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
-    ENDIF.
-
-    IF sy-subrc = 0.
-      rv_present = abap_true.
-    ENDIF.
-  ENDMETHOD.
-  METHOD filename.
-
-    DATA: lv_obj_name TYPE string.
-    lv_obj_name = ms_item-obj_name.
-
-    " The counter part to this logic must be maintained in ZCL_ABAPGIT_FILE_STATUS->IDENTIFY_OBJECT
-    IF ms_item-obj_type = 'DEVC'.
-      " Packages have a fixed filename so that the repository can be installed to a different
-      " package(-hierarchy) on the client and not show up as a different package in the repo.
-      lv_obj_name = 'package'.
-    ELSE.
-      " Some characters in object names cause problems when identifying the object later
-      " -> we escape these characters here
-      " cl_http_utility=>escape_url doesn't do dots but escapes slash which we use for namespaces
-      " -> we escape just some selected characters
-      REPLACE ALL OCCURRENCES OF `%` IN lv_obj_name WITH '%25'.
-      REPLACE ALL OCCURRENCES OF `#` IN lv_obj_name WITH '%23'.
-      REPLACE ALL OCCURRENCES OF `.` IN lv_obj_name WITH '%2e'.
-      REPLACE ALL OCCURRENCES OF `=` IN lv_obj_name WITH '%3d'.
-      REPLACE ALL OCCURRENCES OF `?` IN lv_obj_name WITH '%3f'.
-      REPLACE ALL OCCURRENCES OF `<` IN lv_obj_name WITH '%3c'.
-      REPLACE ALL OCCURRENCES OF `>` IN lv_obj_name WITH '%3e'.
-    ENDIF.
-
-    IF iv_extra IS INITIAL.
-      CONCATENATE lv_obj_name '.' ms_item-obj_type
-        INTO rv_filename.
-    ELSE.
-      CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_extra
-        INTO rv_filename.
-    ENDIF.
-
-    IF iv_ext IS NOT INITIAL.
-      CONCATENATE rv_filename '.' iv_ext
-        INTO rv_filename.
-    ENDIF.
-
-    " handle namespaces
-    REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
-    TRANSLATE rv_filename TO LOWER CASE.
-
-  ENDMETHOD.
-  METHOD get_accessed_files.
-    rt_files = mt_accessed_files.
-  ENDMETHOD.
-  METHOD get_files.
-    rt_files = mt_files.
-  ENDMETHOD.
-  METHOD read_abap.
-
-    DATA: lv_filename TYPE string,
-          lv_data     TYPE xstring,
-          lv_abap     TYPE string.
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = 'abap' ).
-
-    lv_data = read_file( iv_filename = lv_filename
-                         iv_error    = iv_error ).
-
-    IF lv_data IS INITIAL. " Post-handling of iv_error = false
-      RETURN.
-    ENDIF.
-
-    lv_abap = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
-
-    SPLIT lv_abap AT zif_abapgit_definitions=>c_newline INTO TABLE rt_abap.
-
-  ENDMETHOD.
-  METHOD read_file.
-
-    FIELD-SYMBOLS: <ls_file>     LIKE LINE OF mt_files,
-                   <ls_accessed> LIKE LINE OF mt_accessed_files.
-    IF mv_path IS NOT INITIAL.
-      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY path     = mv_path
-                                                       filename = iv_filename.
-    ELSE.
-      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY filename = iv_filename.
-    ENDIF.
-
-    IF sy-subrc <> 0.
-      IF iv_error = abap_true.
-        zcx_abapgit_exception=>raise( |File not found: { iv_filename }| ).
-      ELSE.
-        RETURN.
-      ENDIF.
-    ENDIF.
-
-    " Update access table
-    READ TABLE mt_accessed_files TRANSPORTING NO FIELDS
-      WITH KEY path = <ls_file>-path filename = <ls_file>-filename.
-    IF sy-subrc > 0. " Not found ? -> Add
-      APPEND INITIAL LINE TO mt_accessed_files ASSIGNING <ls_accessed>.
-      MOVE-CORRESPONDING <ls_file> TO <ls_accessed>.
-    ENDIF.
-
-    rv_data = <ls_file>-data.
-
-  ENDMETHOD.
-  METHOD read_raw.
-
-    DATA: lv_filename TYPE string.
-
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = iv_ext ).
-
-    rv_data = read_file( lv_filename ).
-
-  ENDMETHOD.
-  METHOD read_string.
-
-    DATA: lv_filename TYPE string,
-          lv_data     TYPE xstring.
-
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = iv_ext ).
-
-    lv_data = read_file( lv_filename ).
-
-    rv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
-
-  ENDMETHOD.
-  METHOD read_xml.
-
-    DATA: lv_filename TYPE string,
-          lv_data     TYPE xstring,
-          lv_xml      TYPE string.
-
-    lv_filename = filename( iv_extra = iv_extra
-                            iv_ext   = 'xml' ).
-
-    lv_data = read_file( lv_filename ).
-
-    lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
-
-    CREATE OBJECT ri_xml
-      TYPE zcl_abapgit_xml_input
-      EXPORTING
-        iv_xml      = lv_xml
-        iv_filename = lv_filename.
-
-  ENDMETHOD.
-  METHOD set_files.
-    mt_files = it_files.
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   METHOD class_constructor.
 
@@ -52262,308 +50626,6 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
     CALL METHOD mo_plugin->('WRAP_SERIALIZE')
       EXPORTING
         io_xml = io_xml.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
-  METHOD activate.
-
-    IF use_new_activation_logic( ) = abap_true.
-      activate_new( iv_ddic ).
-    ELSE.
-      activate_old( iv_ddic ).
-    ENDIF.
-
-    update_where_used( ).
-
-  ENDMETHOD.
-  METHOD activate_ddic.
-
-    DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
-          lv_rc         TYPE sy-subrc,
-          ls_gentab     LIKE LINE OF lt_gentab,
-          lt_deltab     TYPE STANDARD TABLE OF dcdeltb,
-          lt_action_tab TYPE STANDARD TABLE OF dctablres,
-          lv_logname    TYPE ddmass-logname.
-
-    FIELD-SYMBOLS: <ls_object> LIKE LINE OF gt_objects.
-    LOOP AT gt_objects ASSIGNING <ls_object>.
-      " Filter types supported by mass activation
-      IF is_ddic_type( <ls_object>-object ) = abap_false.
-        CONTINUE.
-      ENDIF.
-      ls_gentab-tabix = sy-tabix.
-      ls_gentab-type = <ls_object>-object.
-      ls_gentab-name = <ls_object>-obj_name.
-      IF ls_gentab-type = 'INDX' OR ls_gentab-type = 'XINX' OR ls_gentab-type = 'MCID'.
-        CALL FUNCTION 'DD_E071_TO_DD'
-          EXPORTING
-            object   = <ls_object>-object
-            obj_name = <ls_object>-obj_name
-          IMPORTING
-            name     = ls_gentab-name
-            id       = ls_gentab-indx.
-      ENDIF.
-      INSERT ls_gentab INTO TABLE lt_gentab.
-    ENDLOOP.
-
-    IF lt_gentab IS NOT INITIAL.
-
-      lv_logname = |ABAPGIT_{ sy-datum }_{ sy-uzeit }|.
-
-      CALL FUNCTION 'DD_MASS_ACT_C3'
-        EXPORTING
-          ddmode         = 'O'
-          medium         = 'T' " transport order
-          device         = 'T' " saves to table DDRPH?
-          version        = 'M' " activate newest
-          logname        = lv_logname
-          write_log      = abap_true
-          log_head_tail  = abap_true
-          t_on           = space
-          prid           = 1
-        IMPORTING
-          act_rc         = lv_rc
-        TABLES
-          gentab         = lt_gentab
-          deltab         = lt_deltab
-          cnvtab         = lt_action_tab
-        EXCEPTIONS
-          access_failure = 1
-          no_objects     = 2
-          locked         = 3
-          internal_error = 4
-          OTHERS         = 5.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DD_MASS_ACT_C3' ).
-      ENDIF.
-
-      IF lv_rc > 0.
-        show_activation_errors( lv_logname ).
-      ENDIF.
-
-      " Remove objects from activation queue to avoid double activation in activate_old
-      LOOP AT lt_gentab INTO ls_gentab.
-        DELETE gt_objects WHERE object = ls_gentab-type AND obj_name = ls_gentab-name.
-      ENDLOOP.
-      DELETE gt_objects WHERE object = 'INDX' OR object = 'XINX' OR object = 'MCID'.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD activate_new.
-
-    DATA: li_progress TYPE REF TO zif_abapgit_progress.
-
-    IF gt_objects IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    li_progress = zcl_abapgit_progress=>get_instance( 100 ).
-
-    IF iv_ddic = abap_true.
-
-      li_progress->show( iv_current = 98
-                         iv_text    = 'Activating DDIC' ).
-
-      activate_ddic( ).
-
-    ELSE.
-
-      li_progress->show( iv_current = 98
-                         iv_text    = 'Activating non DDIC' ).
-
-      activate_old( ).
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD activate_old.
-
-    DATA: lv_popup TYPE abap_bool,
-          lv_no_ui TYPE abap_bool.
-
-    IF gt_objects IS NOT INITIAL.
-
-      IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
-        IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_activate_wo_popup( ) = abap_true.
-          lv_popup = abap_false.
-        ELSE.
-          lv_popup = abap_true.
-        ENDIF.
-      ELSE.
-        lv_popup = abap_false.
-      ENDIF.
-
-      lv_no_ui = boolc( lv_popup = abap_false ).
-
-      TRY.
-          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-            EXPORTING
-              activate_ddic_objects  = iv_ddic
-              with_popup             = lv_popup
-              ui_decoupled           = lv_no_ui
-            TABLES
-              objects                = gt_objects
-            EXCEPTIONS
-              excecution_error       = 1
-              cancelled              = 2
-              insert_into_corr_error = 3
-              OTHERS                 = 4 ##SUBRC_OK.
-        CATCH cx_sy_dyn_call_param_not_found.
-          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
-            EXPORTING
-              activate_ddic_objects  = iv_ddic
-              with_popup             = lv_popup
-            TABLES
-              objects                = gt_objects
-            EXCEPTIONS
-              excecution_error       = 1
-              cancelled              = 2
-              insert_into_corr_error = 3
-              OTHERS                 = 4 ##SUBRC_OK.
-      ENDTRY.
-      CASE sy-subrc.
-        WHEN 1 OR 3 OR 4.
-          zcx_abapgit_exception=>raise_t100( ).
-        WHEN 2.
-          zcx_abapgit_exception=>raise( 'Activation cancelled. Check the inactive objects.' ).
-      ENDCASE.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD add.
-
-* function group SEWORKINGAREA
-* function module RS_INSERT_INTO_WORKING_AREA
-* class CL_WB_ACTIVATION_WORK_AREA
-
-    FIELD-SYMBOLS: <ls_object> TYPE dwinactiv.
-
-    IF iv_type = 'CLAS'.
-      APPEND iv_name TO gt_classes.
-    ELSE.
-      APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
-      <ls_object>-object     = iv_type.
-      <ls_object>-obj_name   = iv_name.
-      <ls_object>-delet_flag = iv_delete.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD add_item.
-    add( iv_type = is_item-obj_type
-         iv_name = is_item-obj_name ).
-  ENDMETHOD.
-  METHOD clear.
-    CLEAR gt_objects.
-    CLEAR gt_classes.
-  ENDMETHOD.
-  METHOD is_ddic_type.
-
-    " Determine if object can be handled by mass activation (see RADMASUTC form ma_tab_check)
-
-    CONSTANTS:
-      lc_domain     TYPE c LENGTH 9  VALUE 'DOMA DOMD',
-      lc_types      TYPE c LENGTH 50 VALUE 'DTEL DTED TABL TABD SQLT SQLD TTYP TTYD VIEW VIED',
-      lc_technset   TYPE c LENGTH 24 VALUE 'TABT VIET SQTT INDX XINX',
-      lc_f4_objects TYPE c LENGTH 35 VALUE 'SHLP SHLD MCOB MCOD MACO MACD MCID',
-      lc_enqueue    TYPE c LENGTH 9  VALUE 'ENQU ENQD',
-      lc_sqsc       TYPE c LENGTH 4  VALUE 'SQSC',
-      lc_stob       TYPE c LENGTH 4  VALUE 'STOB',
-      lc_ntab       TYPE c LENGTH 14 VALUE 'NTTT NTTB NTDT',
-      lc_ddls       TYPE c LENGTH 4  VALUE 'DDLS',
-      lc_switches   TYPE c LENGTH 24 VALUE 'SF01 SF02 SFSW SFBS SFBF',
-      lc_enhd       TYPE c LENGTH 4  VALUE 'ENHD'.
-
-    rv_result = abap_true.
-    IF lc_domain   NS iv_obj_type AND lc_types      NS iv_obj_type AND
-       lc_technset NS iv_obj_type AND lc_f4_objects NS iv_obj_type AND
-       lc_enqueue  NS iv_obj_type AND lc_sqsc       NS iv_obj_type AND
-       lc_stob     NS iv_obj_type AND lc_ntab       NS iv_obj_type AND
-       lc_ddls     NS iv_obj_type AND
-       lc_switches NS iv_obj_type AND iv_obj_type <> lc_enhd.
-      rv_result = abap_false.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD show_activation_errors.
-
-    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
-          lv_logname_db TYPE ddprh-protname,
-          li_log        TYPE REF TO zif_abapgit_log.
-
-    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
-    lv_logname_db = iv_logname.
-
-    CALL FUNCTION 'TR_READ_LOG'
-      EXPORTING
-        iv_log_type   = 'DB'
-        iv_logname_db = lv_logname_db
-      TABLES
-        et_lines      = lt_lines
-      EXCEPTIONS
-        invalid_input = 1
-        access_error  = 2
-        OTHERS        = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from TR_READ_LOG' ).
-    ENDIF.
-
-    DELETE lt_lines WHERE severity <> 'E'.
-
-    CREATE OBJECT li_log TYPE zcl_abapgit_log.
-    li_log->set_title( 'Activation Errors' ).
-
-    LOOP AT lt_lines ASSIGNING <ls_line>.
-      li_log->add( <ls_line>-line ).
-    ENDLOOP.
-
-    IF li_log->count( ) > 0.
-      zcl_abapgit_log_viewer=>show_log( li_log ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD update_where_used.
-
-    DATA: lv_class    LIKE LINE OF gt_classes,
-          lo_cross    TYPE REF TO cl_wb_crossreference,
-          lv_include  TYPE programm,
-          li_progress TYPE REF TO zif_abapgit_progress.
-    li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
-
-    LOOP AT gt_classes INTO lv_class.
-      IF sy-tabix MOD 20 = 0.
-        li_progress->show(
-          iv_current = sy-tabix
-          iv_text    = 'Updating where-used lists' ).
-      ENDIF.
-
-      lv_include = cl_oo_classname_service=>get_classpool_name( lv_class ).
-
-      CREATE OBJECT lo_cross
-        EXPORTING
-          p_name    = lv_include
-          p_include = lv_include.
-
-      lo_cross->index_actualize( ).
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD use_new_activation_logic.
-
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'DD_MASS_ACT_C3'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc = 0.
-      rv_use_new_activation_logic = abap_true.
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -89297,6 +87359,1949 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
+  METHOD build.
+
+    DATA: lv_path         TYPE string,
+          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
+          lt_excludes     TYPE RANGE OF trobjtype,
+          lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
+          ls_srcsystem    LIKE LINE OF lt_srcsystem,
+          ls_exclude      LIKE LINE OF lt_excludes,
+          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic,
+          lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
+          lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    FIELD-SYMBOLS: <ls_tadir>   LIKE LINE OF rt_tadir,
+                   <lv_package> LIKE LINE OF lt_packages.
+    "Determine Packages to Read
+    IF iv_ignore_subpackages = abap_false.
+      lt_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
+    ENDIF.
+    INSERT iv_package INTO lt_packages INDEX 1.
+
+    ls_exclude-sign = 'I'.
+    ls_exclude-option = 'EQ'.
+
+    ls_exclude-low = 'SOTR'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'SFB1'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'SFB2'.
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low = 'STOB'. " auto generated by core data services
+    APPEND ls_exclude TO lt_excludes.
+
+    IF iv_only_local_objects = abap_true.
+      ls_srcsystem-sign   = 'I'.
+      ls_srcsystem-option = 'EQ'.
+      ls_srcsystem-low    = sy-sysid.
+      APPEND ls_srcsystem TO lt_srcsystem.
+    ENDIF.
+
+    IF lt_packages IS NOT INITIAL.
+      SELECT * FROM tadir
+        INTO CORRESPONDING FIELDS OF TABLE rt_tadir
+        FOR ALL ENTRIES IN lt_packages
+        WHERE devclass = lt_packages-table_line
+        AND pgmid = 'R3TR'
+        AND object NOT IN lt_excludes
+        AND delflag = abap_false
+        AND srcsystem IN lt_srcsystem
+        ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF "#EC CI_SUBRC
+    ENDIF.
+
+    SORT rt_tadir BY devclass pgmid object obj_name.
+
+    CREATE OBJECT lo_skip_objects.
+    rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
+      it_tadir = rt_tadir
+      ii_log   = ii_log ).
+
+    LOOP AT lt_packages ASSIGNING <lv_package>.
+      " Local packages are not in TADIR, only in TDEVC, act as if they were
+      IF <lv_package> CP '$*'. " OR <package> CP 'T*' ).
+        APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
+        <ls_tadir>-pgmid    = 'R3TR'.
+        <ls_tadir>-object   = 'DEVC'.
+        <ls_tadir>-obj_name = <lv_package>.
+        <ls_tadir>-devclass = <lv_package>.
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT rt_tadir ASSIGNING <ls_tadir>.
+
+      IF lv_last_package <> <ls_tadir>-devclass.
+        "Change in Package
+        lv_last_package = <ls_tadir>-devclass.
+
+        IF NOT io_dot IS INITIAL.
+          "Reuse given Folder Logic Instance
+          IF lo_folder_logic IS NOT BOUND.
+            "Get Folder Logic Instance
+            lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
+          ENDIF.
+
+          lv_path = lo_folder_logic->package_to_path(
+            iv_top     = iv_top
+            io_dot     = io_dot
+            iv_package = <ls_tadir>-devclass ).
+        ENDIF.
+      ENDIF.
+
+      <ls_tadir>-path = lv_path.
+
+      IF <ls_tadir>-object = 'SICF'.
+* replace the internal GUID with a hash of the path
+        TRY.
+            CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
+              EXPORTING
+                iv_obj_name = <ls_tadir>-obj_name
+              RECEIVING
+                rv_hash     = <ls_tadir>-obj_name+15.
+          CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+* SICF might not be supported in some systems, assume this code is not called
+        ENDTRY.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD check_exists.
+
+    DATA: li_progress TYPE REF TO zif_abapgit_progress,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
+    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
+
+* rows from database table TADIR are not removed for
+* transportable objects until the transport is released
+    LOOP AT it_tadir ASSIGNING <ls_tadir>.
+      IF sy-tabix MOD 200 = 0.
+        li_progress->show(
+          iv_current = sy-tabix
+          iv_text    = |Check object exists { <ls_tadir>-object } { <ls_tadir>-obj_name }| ).
+      ENDIF.
+
+      ls_item-obj_type = <ls_tadir>-object.
+      ls_item-obj_name = <ls_tadir>-obj_name.
+      ls_item-devclass = <ls_tadir>-devclass.
+
+      IF exists( ls_item ) = abap_true.
+        APPEND <ls_tadir> TO rt_tadir.
+      ENDIF.
+    ENDLOOP.
+
+    li_progress->off( ).
+
+  ENDMETHOD.
+  METHOD exists.
+
+    IF is_item IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    IF zcl_abapgit_objects=>is_supported( is_item ) = abap_false.
+      rv_exists = abap_true.
+      RETURN.
+    ENDIF.
+
+    rv_exists = zcl_abapgit_objects=>exists( is_item ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_tadir~get_object_package.
+
+    DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
+          ls_item  TYPE zif_abapgit_definitions=>ty_item.
+
+    ls_tadir = zif_abapgit_tadir~read_single(
+      iv_pgmid    = iv_pgmid
+      iv_object   = iv_object
+      iv_obj_name = iv_obj_name ).
+
+    IF ls_tadir-delflag = 'X'.
+      RETURN. "Mark for deletion -> return nothing
+    ENDIF.
+
+    ls_item-obj_type = ls_tadir-object.
+    ls_item-obj_name = ls_tadir-obj_name.
+    ls_item-devclass = ls_tadir-devclass.
+    IF exists( ls_item ) = abap_false.
+      RETURN.
+    ENDIF.
+
+    rv_devclass = ls_tadir-devclass.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_tadir~read.
+
+    DATA: li_exit TYPE REF TO zif_abapgit_exit.
+
+* start recursion
+* hmm, some problems here, should TADIR also build path?
+    rt_tadir = build( iv_package            = iv_package
+                      iv_top                = iv_package
+                      io_dot                = io_dot
+                      iv_ignore_subpackages = iv_ignore_subpackages
+                      iv_only_local_objects = iv_only_local_objects
+                      ii_log                = ii_log ).
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_tadir(
+      EXPORTING
+        iv_package = iv_package
+        ii_log     = ii_log
+      CHANGING
+        ct_tadir   = rt_tadir ).
+
+    rt_tadir = check_exists( rt_tadir ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_tadir~read_single.
+
+* note that SICF has special handling, the obj_name is different in the system than serialized
+
+    SELECT SINGLE * FROM tadir INTO CORRESPONDING FIELDS OF rs_tadir
+      WHERE pgmid = iv_pgmid
+      AND object = iv_object
+      AND obj_name = iv_obj_name.                         "#EC CI_SUBRC
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
+  METHOD has_sadl_superclass.
+
+    DATA: li_oo_functions TYPE REF TO zif_abapgit_oo_object_fnc,
+          lv_class_name   TYPE seoclsname,
+          lv_superclass   TYPE seoclsname.
+    li_oo_functions = zcl_abapgit_oo_factory=>make( is_class-object ).
+    lv_class_name = is_class-obj_name.
+    lv_superclass = li_oo_functions->read_superclass( lv_class_name ).
+    IF lv_superclass = 'CL_SADL_GTK_EXPOSURE_MPC'.
+      rv_return = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD skip_sadl_generated_objects.
+
+    DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
+          ls_tadir           LIKE LINE OF rt_tadir,
+          lt_candidates      LIKE rt_tadir,
+          lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    lt_candidates = it_tadir.
+    DELETE lt_candidates WHERE object <> 'CLAS' OR genflag = abap_false.
+
+    LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
+      LOOP AT lt_candidates INTO ls_tadir_class
+          WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
+        IF has_sadl_superclass( ls_tadir_class ) = abap_true.
+          APPEND ls_tadir_class TO lt_lines_to_delete.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    rt_tadir = it_tadir.
+    DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
+    LOOP AT lt_lines_to_delete INTO ls_tadir_class.
+      DELETE TABLE rt_tadir FROM ls_tadir_class.
+      IF ii_log IS BOUND.
+        ii_log->add(
+          iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
+          iv_type = 'W' ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_serialize IMPLEMENTATION.
+  METHOD add_to_return.
+
+    FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_file_item-files,
+                   <ls_return> LIKE LINE OF mt_files.
+    LOOP AT is_file_item-files ASSIGNING <ls_file>.
+      APPEND INITIAL LINE TO mt_files ASSIGNING <ls_return>.
+      <ls_return>-file = <ls_file>.
+      <ls_return>-file-path = iv_path.
+      <ls_return>-item = is_file_item-item.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
+
+    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
+        OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
+      gv_max_threads = 1.
+    ENDIF.
+
+    mv_group = 'parallel_generators'.
+    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
+
+  ENDMETHOD.
+  METHOD determine_max_threads.
+
+    IF iv_force_sequential = abap_true.
+      rv_threads = 1.
+      RETURN.
+    ENDIF.
+
+    IF gv_max_threads >= 1.
+* SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
+* multiple times in same session
+      rv_threads = gv_max_threads.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = 'Z_ABAPGIT_SERIALIZE_PARALLEL'
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    IF sy-subrc <> 0.
+      gv_max_threads = 1.
+    ELSE.
+* todo, add possibility to set group name in user exit
+      CALL FUNCTION 'SPBT_INITIALIZE'
+        EXPORTING
+          group_name                     = mv_group
+        IMPORTING
+          free_pbt_wps                   = gv_max_threads
+        EXCEPTIONS
+          invalid_group_name             = 1
+          internal_error                 = 2
+          pbt_env_already_initialized    = 3
+          currently_no_resources_avail   = 4
+          no_pbt_resources_found         = 5
+          cant_init_different_pbt_groups = 6
+          OTHERS                         = 7.
+      IF sy-subrc <> 0.
+*   fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
+*   RZ12, SM50, SM21, SARFC
+        gv_max_threads = 1.
+      ENDIF.
+    ENDIF.
+
+    IF gv_max_threads > 1.
+      gv_max_threads = gv_max_threads - 1.
+    ENDIF.
+
+    ASSERT gv_max_threads >= 1.
+
+    IF gv_max_threads > 32.
+* https://en.wikipedia.org/wiki/Amdahl%27s_law
+      gv_max_threads = 32.
+    ENDIF.
+
+    rv_threads = gv_max_threads.
+
+  ENDMETHOD.
+  METHOD files_local.
+
+* serializes objects, including .abapgit.xml, apack, and takes into account local settings
+
+    DATA: ls_apack_file TYPE zif_abapgit_definitions=>ty_file,
+          lo_filter     TYPE REF TO zcl_abapgit_repo_filter,
+          lv_force      TYPE abap_bool,
+          lt_found      LIKE rt_files,
+          lt_tadir      TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
+
+    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+    <ls_return>-file = io_dot_abapgit->to_file( ).
+
+    ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
+    IF ls_apack_file IS NOT INITIAL.
+      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
+      <ls_return>-file = ls_apack_file.
+    ENDIF.
+
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = iv_package
+      iv_ignore_subpackages = is_local_settings-ignore_subpackages
+      iv_only_local_objects = is_local_settings-only_local_objects
+      io_dot                = io_dot_abapgit
+      ii_log                = ii_log ).
+
+    CREATE OBJECT lo_filter.
+
+    lo_filter->apply( EXPORTING it_filter = it_filter
+                      CHANGING  ct_tadir  = lt_tadir ).
+
+* if there are less than 10 objects run in single thread
+* this helps a lot when debugging, plus performance gain
+* with low number of objects does not matter much
+    lv_force = boolc( lines( lt_tadir ) < 10 ).
+
+    lt_found = serialize(
+      it_tadir            = lt_tadir
+      iv_language         = io_dot_abapgit->get_master_language( )
+      ii_log              = ii_log
+      iv_force_sequential = lv_force ).
+    APPEND LINES OF lt_found TO rt_files.
+
+  ENDMETHOD.
+  METHOD on_end_of_task.
+
+* this method will be called from the parallel processing, thus it must be public
+
+    DATA: lv_result    TYPE xstring,
+          lv_path      TYPE string,
+          lv_mess      TYPE c LENGTH 200,
+          ls_file_item TYPE zif_abapgit_objects=>ty_serialization.
+    RECEIVE RESULTS FROM FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
+      IMPORTING
+        ev_result = lv_result
+        ev_path   = lv_path
+      EXCEPTIONS
+        error     = 1
+        system_failure = 2 MESSAGE lv_mess
+        communication_failure = 3 MESSAGE lv_mess
+        OTHERS = 4.
+    IF sy-subrc <> 0.
+      IF NOT mi_log IS INITIAL.
+        IF NOT lv_mess IS INITIAL.
+          mi_log->add_error( lv_mess ).
+        ELSE.
+          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }, { sy-subrc }| ).
+        ENDIF.
+      ENDIF.
+    ELSE.
+      IMPORT data = ls_file_item FROM DATA BUFFER lv_result. "#EC CI_SUBRC
+      ASSERT sy-subrc = 0.
+      add_to_return( is_file_item = ls_file_item
+                     iv_path      = lv_path ).
+    ENDIF.
+
+    mv_free = mv_free + 1.
+
+  ENDMETHOD.
+  METHOD run_parallel.
+
+    DATA: lv_msg  TYPE c LENGTH 100,
+          lv_free LIKE mv_free.
+    ASSERT mv_free > 0.
+
+    DO.
+      CALL FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
+        STARTING NEW TASK iv_task
+        DESTINATION IN GROUP mv_group
+        CALLING on_end_of_task ON END OF TASK
+        EXPORTING
+          iv_obj_type                   = is_tadir-object
+          iv_obj_name                   = is_tadir-obj_name
+          iv_devclass                   = is_tadir-devclass
+          iv_language                   = iv_language
+          iv_path                       = is_tadir-path
+          iv_serialize_master_lang_only = mv_serialize_master_lang_only
+        EXCEPTIONS
+          system_failure                = 1 MESSAGE lv_msg
+          communication_failure         = 2 MESSAGE lv_msg
+          resource_failure              = 3
+          OTHERS                        = 4.
+      IF sy-subrc = 3.
+        lv_free = mv_free.
+        WAIT UNTIL mv_free <> lv_free UP TO 1 SECONDS.
+        CONTINUE.
+      ELSEIF sy-subrc <> 0.
+        ASSERT lv_msg = '' AND 0 = 1.
+      ENDIF.
+      EXIT.
+    ENDDO.
+
+    mv_free = mv_free - 1.
+
+  ENDMETHOD.
+  METHOD run_sequential.
+
+    DATA: lx_error     TYPE REF TO zcx_abapgit_exception,
+          ls_file_item TYPE zif_abapgit_objects=>ty_serialization.
+    ls_file_item-item-obj_type = is_tadir-object.
+    ls_file_item-item-obj_name = is_tadir-obj_name.
+    ls_file_item-item-devclass = is_tadir-devclass.
+
+    TRY.
+        ls_file_item = zcl_abapgit_objects=>serialize(
+          is_item     = ls_file_item-item
+          iv_serialize_master_lang_only = mv_serialize_master_lang_only
+          iv_language = iv_language ).
+
+        add_to_return( is_file_item = ls_file_item
+                       iv_path      = is_tadir-path ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        IF NOT mi_log IS INITIAL.
+          mi_log->add_exception(
+              ix_exc  = lx_error
+              is_item = ls_file_item-item ).
+        ENDIF.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD serialize.
+
+    DATA: lv_max      TYPE i,
+          li_progress TYPE REF TO zif_abapgit_progress.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
+    CLEAR mt_files.
+
+    lv_max = determine_max_threads( iv_force_sequential ).
+    mv_free = lv_max.
+    mi_log = ii_log.
+
+    li_progress = zcl_abapgit_progress=>get_instance( lines( it_tadir ) ).
+
+    LOOP AT it_tadir ASSIGNING <ls_tadir>.
+
+      li_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Serialize { <ls_tadir>-obj_name }, { lv_max } threads| ).
+
+      IF lv_max = 1.
+        run_sequential(
+          is_tadir    = <ls_tadir>
+          iv_language = iv_language ).
+      ELSE.
+        run_parallel(
+          is_tadir    = <ls_tadir>
+          iv_task     = |{ sy-tabix }|
+          iv_language = iv_language ).
+        WAIT UNTIL mv_free > 0 UP TO 120 SECONDS.
+      ENDIF.
+    ENDLOOP.
+
+    WAIT UNTIL mv_free = lv_max UP TO 120 SECONDS.
+    rt_files = mt_files.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_objects_files IMPLEMENTATION.
+  METHOD add.
+    APPEND is_file TO mt_files.
+  ENDMETHOD.
+  METHOD add_abap.
+
+    DATA: lv_source TYPE string,
+          ls_file   TYPE zif_abapgit_definitions=>ty_file.
+    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>c_newline.
+* when editing files via eg. GitHub web interface it adds a newline at end of file
+    lv_source = lv_source && zif_abapgit_definitions=>c_newline.
+
+    ls_file-path = '/'.
+    ls_file-filename = filename( iv_extra = iv_extra
+                                 iv_ext   = 'abap' ).
+    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_source ).
+
+    APPEND ls_file TO mt_files.
+
+  ENDMETHOD.
+  METHOD add_raw.
+
+    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
+
+    ls_file-path     = '/'.
+    ls_file-data     = iv_data.
+    ls_file-filename = filename( iv_extra = iv_extra
+                                 iv_ext   = iv_ext ).
+
+    APPEND ls_file TO mt_files.
+
+  ENDMETHOD.
+  METHOD add_string.
+
+    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
+    ls_file-path = '/'.
+    ls_file-filename = filename( iv_extra = iv_extra
+                                 iv_ext   = iv_ext ).
+    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( iv_string ).
+
+    APPEND ls_file TO mt_files.
+
+  ENDMETHOD.
+  METHOD add_xml.
+
+    DATA: lv_xml  TYPE string,
+          ls_file TYPE zif_abapgit_definitions=>ty_file.
+
+    lv_xml = ii_xml->render( iv_normalize = iv_normalize
+                             is_metadata = is_metadata ).
+    ls_file-path = '/'.
+
+    ls_file-filename = filename( iv_extra = iv_extra
+                                 iv_ext   = 'xml' ).
+
+    REPLACE FIRST OCCURRENCE
+      OF REGEX '<\?xml version="1\.0" encoding="[\w-]+"\?>'
+      IN lv_xml
+      WITH '<?xml version="1.0" encoding="utf-8"?>'.
+    ASSERT sy-subrc = 0.
+
+    ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
+
+    APPEND ls_file TO mt_files.
+  ENDMETHOD.
+  METHOD constructor.
+    ms_item = is_item.
+    mv_path = iv_path.
+  ENDMETHOD.
+  METHOD contains.
+    DATA: lv_filename TYPE string.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = iv_ext ).
+
+    IF mv_path IS NOT INITIAL.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
+                                                          filename = lv_filename.
+    ELSE.
+      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
+    ENDIF.
+
+    IF sy-subrc = 0.
+      rv_present = abap_true.
+    ENDIF.
+  ENDMETHOD.
+  METHOD filename.
+
+    DATA: lv_obj_name TYPE string.
+    lv_obj_name = ms_item-obj_name.
+
+    " The counter part to this logic must be maintained in ZCL_ABAPGIT_FILE_STATUS->IDENTIFY_OBJECT
+    IF ms_item-obj_type = 'DEVC'.
+      " Packages have a fixed filename so that the repository can be installed to a different
+      " package(-hierarchy) on the client and not show up as a different package in the repo.
+      lv_obj_name = 'package'.
+    ELSE.
+      " Some characters in object names cause problems when identifying the object later
+      " -> we escape these characters here
+      " cl_http_utility=>escape_url doesn't do dots but escapes slash which we use for namespaces
+      " -> we escape just some selected characters
+      REPLACE ALL OCCURRENCES OF `%` IN lv_obj_name WITH '%25'.
+      REPLACE ALL OCCURRENCES OF `#` IN lv_obj_name WITH '%23'.
+      REPLACE ALL OCCURRENCES OF `.` IN lv_obj_name WITH '%2e'.
+      REPLACE ALL OCCURRENCES OF `=` IN lv_obj_name WITH '%3d'.
+      REPLACE ALL OCCURRENCES OF `?` IN lv_obj_name WITH '%3f'.
+      REPLACE ALL OCCURRENCES OF `<` IN lv_obj_name WITH '%3c'.
+      REPLACE ALL OCCURRENCES OF `>` IN lv_obj_name WITH '%3e'.
+    ENDIF.
+
+    IF iv_extra IS INITIAL.
+      CONCATENATE lv_obj_name '.' ms_item-obj_type
+        INTO rv_filename.
+    ELSE.
+      CONCATENATE lv_obj_name '.' ms_item-obj_type '.' iv_extra
+        INTO rv_filename.
+    ENDIF.
+
+    IF iv_ext IS NOT INITIAL.
+      CONCATENATE rv_filename '.' iv_ext
+        INTO rv_filename.
+    ENDIF.
+
+    " handle namespaces
+    REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
+    TRANSLATE rv_filename TO LOWER CASE.
+
+  ENDMETHOD.
+  METHOD get_accessed_files.
+    rt_files = mt_accessed_files.
+  ENDMETHOD.
+  METHOD get_files.
+    rt_files = mt_files.
+  ENDMETHOD.
+  METHOD read_abap.
+
+    DATA: lv_filename TYPE string,
+          lv_data     TYPE xstring,
+          lv_abap     TYPE string.
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = 'abap' ).
+
+    lv_data = read_file( iv_filename = lv_filename
+                         iv_error    = iv_error ).
+
+    IF lv_data IS INITIAL. " Post-handling of iv_error = false
+      RETURN.
+    ENDIF.
+
+    lv_abap = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+
+    SPLIT lv_abap AT zif_abapgit_definitions=>c_newline INTO TABLE rt_abap.
+
+  ENDMETHOD.
+  METHOD read_file.
+
+    FIELD-SYMBOLS: <ls_file>     LIKE LINE OF mt_files,
+                   <ls_accessed> LIKE LINE OF mt_accessed_files.
+    IF mv_path IS NOT INITIAL.
+      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY path     = mv_path
+                                                       filename = iv_filename.
+    ELSE.
+      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY filename = iv_filename.
+    ENDIF.
+
+    IF sy-subrc <> 0.
+      IF iv_error = abap_true.
+        zcx_abapgit_exception=>raise( |File not found: { iv_filename }| ).
+      ELSE.
+        RETURN.
+      ENDIF.
+    ENDIF.
+
+    " Update access table
+    READ TABLE mt_accessed_files TRANSPORTING NO FIELDS
+      WITH KEY path = <ls_file>-path filename = <ls_file>-filename.
+    IF sy-subrc > 0. " Not found ? -> Add
+      APPEND INITIAL LINE TO mt_accessed_files ASSIGNING <ls_accessed>.
+      MOVE-CORRESPONDING <ls_file> TO <ls_accessed>.
+    ENDIF.
+
+    rv_data = <ls_file>-data.
+
+  ENDMETHOD.
+  METHOD read_raw.
+
+    DATA: lv_filename TYPE string.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = iv_ext ).
+
+    rv_data = read_file( lv_filename ).
+
+  ENDMETHOD.
+  METHOD read_string.
+
+    DATA: lv_filename TYPE string,
+          lv_data     TYPE xstring.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = iv_ext ).
+
+    lv_data = read_file( lv_filename ).
+
+    rv_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+
+  ENDMETHOD.
+  METHOD read_xml.
+
+    DATA: lv_filename TYPE string,
+          lv_data     TYPE xstring,
+          lv_xml      TYPE string.
+
+    lv_filename = filename( iv_extra = iv_extra
+                            iv_ext   = 'xml' ).
+
+    lv_data = read_file( lv_filename ).
+
+    lv_xml = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+
+    CREATE OBJECT ri_xml
+      TYPE zcl_abapgit_xml_input
+      EXPORTING
+        iv_xml      = lv_xml
+        iv_filename = lv_filename.
+
+  ENDMETHOD.
+  METHOD set_files.
+    mt_files = it_files.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
+  METHOD activate.
+
+    IF use_new_activation_logic( ) = abap_true.
+      activate_new( iv_ddic ).
+    ELSE.
+      activate_old( iv_ddic ).
+    ENDIF.
+
+    update_where_used( ).
+
+  ENDMETHOD.
+  METHOD activate_ddic.
+
+    DATA: lt_gentab     TYPE STANDARD TABLE OF dcgentb,
+          lv_rc         TYPE sy-subrc,
+          ls_gentab     LIKE LINE OF lt_gentab,
+          lt_deltab     TYPE STANDARD TABLE OF dcdeltb,
+          lt_action_tab TYPE STANDARD TABLE OF dctablres,
+          lv_logname    TYPE ddmass-logname.
+
+    FIELD-SYMBOLS: <ls_object> LIKE LINE OF gt_objects.
+    LOOP AT gt_objects ASSIGNING <ls_object>.
+      " Filter types supported by mass activation
+      IF is_ddic_type( <ls_object>-object ) = abap_false.
+        CONTINUE.
+      ENDIF.
+      ls_gentab-tabix = sy-tabix.
+      ls_gentab-type = <ls_object>-object.
+      ls_gentab-name = <ls_object>-obj_name.
+      IF ls_gentab-type = 'INDX' OR ls_gentab-type = 'XINX' OR ls_gentab-type = 'MCID'.
+        CALL FUNCTION 'DD_E071_TO_DD'
+          EXPORTING
+            object   = <ls_object>-object
+            obj_name = <ls_object>-obj_name
+          IMPORTING
+            name     = ls_gentab-name
+            id       = ls_gentab-indx.
+      ENDIF.
+      INSERT ls_gentab INTO TABLE lt_gentab.
+    ENDLOOP.
+
+    IF lt_gentab IS NOT INITIAL.
+
+      lv_logname = |ABAPGIT_{ sy-datum }_{ sy-uzeit }|.
+
+      CALL FUNCTION 'DD_MASS_ACT_C3'
+        EXPORTING
+          ddmode         = 'O'
+          medium         = 'T' " transport order
+          device         = 'T' " saves to table DDRPH?
+          version        = 'M' " activate newest
+          logname        = lv_logname
+          write_log      = abap_true
+          log_head_tail  = abap_true
+          t_on           = space
+          prid           = 1
+        IMPORTING
+          act_rc         = lv_rc
+        TABLES
+          gentab         = lt_gentab
+          deltab         = lt_deltab
+          cnvtab         = lt_action_tab
+        EXCEPTIONS
+          access_failure = 1
+          no_objects     = 2
+          locked         = 3
+          internal_error = 4
+          OTHERS         = 5.
+
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from DD_MASS_ACT_C3' ).
+      ENDIF.
+
+      IF lv_rc > 0.
+        show_activation_errors( lv_logname ).
+      ENDIF.
+
+      " Remove objects from activation queue to avoid double activation in activate_old
+      LOOP AT lt_gentab INTO ls_gentab.
+        DELETE gt_objects WHERE object = ls_gentab-type AND obj_name = ls_gentab-name.
+      ENDLOOP.
+      DELETE gt_objects WHERE object = 'INDX' OR object = 'XINX' OR object = 'MCID'.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD activate_new.
+
+    DATA: li_progress TYPE REF TO zif_abapgit_progress.
+
+    IF gt_objects IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    li_progress = zcl_abapgit_progress=>get_instance( 100 ).
+
+    IF iv_ddic = abap_true.
+
+      li_progress->show( iv_current = 98
+                         iv_text    = 'Activating DDIC' ).
+
+      activate_ddic( ).
+
+    ELSE.
+
+      li_progress->show( iv_current = 98
+                         iv_text    = 'Activating non DDIC' ).
+
+      activate_old( ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD activate_old.
+
+    DATA: lv_popup TYPE abap_bool,
+          lv_no_ui TYPE abap_bool.
+
+    IF gt_objects IS NOT INITIAL.
+
+      IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
+        IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_activate_wo_popup( ) = abap_true.
+          lv_popup = abap_false.
+        ELSE.
+          lv_popup = abap_true.
+        ENDIF.
+      ELSE.
+        lv_popup = abap_false.
+      ENDIF.
+
+      lv_no_ui = boolc( lv_popup = abap_false ).
+
+      TRY.
+          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+            EXPORTING
+              activate_ddic_objects  = iv_ddic
+              with_popup             = lv_popup
+              ui_decoupled           = lv_no_ui
+            TABLES
+              objects                = gt_objects
+            EXCEPTIONS
+              excecution_error       = 1
+              cancelled              = 2
+              insert_into_corr_error = 3
+              OTHERS                 = 4 ##SUBRC_OK.
+        CATCH cx_sy_dyn_call_param_not_found.
+          CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
+            EXPORTING
+              activate_ddic_objects  = iv_ddic
+              with_popup             = lv_popup
+            TABLES
+              objects                = gt_objects
+            EXCEPTIONS
+              excecution_error       = 1
+              cancelled              = 2
+              insert_into_corr_error = 3
+              OTHERS                 = 4 ##SUBRC_OK.
+      ENDTRY.
+      CASE sy-subrc.
+        WHEN 1 OR 3 OR 4.
+          zcx_abapgit_exception=>raise_t100( ).
+        WHEN 2.
+          zcx_abapgit_exception=>raise( 'Activation cancelled. Check the inactive objects.' ).
+      ENDCASE.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add.
+
+* function group SEWORKINGAREA
+* function module RS_INSERT_INTO_WORKING_AREA
+* class CL_WB_ACTIVATION_WORK_AREA
+
+    FIELD-SYMBOLS: <ls_object> TYPE dwinactiv.
+
+    IF iv_type = 'CLAS'.
+      APPEND iv_name TO gt_classes.
+    ELSE.
+      APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
+      <ls_object>-object     = iv_type.
+      <ls_object>-obj_name   = iv_name.
+      <ls_object>-delet_flag = iv_delete.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add_item.
+    add( iv_type = is_item-obj_type
+         iv_name = is_item-obj_name ).
+  ENDMETHOD.
+  METHOD clear.
+    CLEAR gt_objects.
+    CLEAR gt_classes.
+  ENDMETHOD.
+  METHOD is_ddic_type.
+
+    " Determine if object can be handled by mass activation (see RADMASUTC form ma_tab_check)
+
+    CONSTANTS:
+      lc_domain     TYPE c LENGTH 9  VALUE 'DOMA DOMD',
+      lc_types      TYPE c LENGTH 50 VALUE 'DTEL DTED TABL TABD SQLT SQLD TTYP TTYD VIEW VIED',
+      lc_technset   TYPE c LENGTH 24 VALUE 'TABT VIET SQTT INDX XINX',
+      lc_f4_objects TYPE c LENGTH 35 VALUE 'SHLP SHLD MCOB MCOD MACO MACD MCID',
+      lc_enqueue    TYPE c LENGTH 9  VALUE 'ENQU ENQD',
+      lc_sqsc       TYPE c LENGTH 4  VALUE 'SQSC',
+      lc_stob       TYPE c LENGTH 4  VALUE 'STOB',
+      lc_ntab       TYPE c LENGTH 14 VALUE 'NTTT NTTB NTDT',
+      lc_ddls       TYPE c LENGTH 4  VALUE 'DDLS',
+      lc_switches   TYPE c LENGTH 24 VALUE 'SF01 SF02 SFSW SFBS SFBF',
+      lc_enhd       TYPE c LENGTH 4  VALUE 'ENHD'.
+
+    rv_result = abap_true.
+    IF lc_domain   NS iv_obj_type AND lc_types      NS iv_obj_type AND
+       lc_technset NS iv_obj_type AND lc_f4_objects NS iv_obj_type AND
+       lc_enqueue  NS iv_obj_type AND lc_sqsc       NS iv_obj_type AND
+       lc_stob     NS iv_obj_type AND lc_ntab       NS iv_obj_type AND
+       lc_ddls     NS iv_obj_type AND
+       lc_switches NS iv_obj_type AND iv_obj_type <> lc_enhd.
+      rv_result = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD show_activation_errors.
+
+    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
+          lv_logname_db TYPE ddprh-protname,
+          li_log        TYPE REF TO zif_abapgit_log.
+
+    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
+    lv_logname_db = iv_logname.
+
+    CALL FUNCTION 'TR_READ_LOG'
+      EXPORTING
+        iv_log_type   = 'DB'
+        iv_logname_db = lv_logname_db
+      TABLES
+        et_lines      = lt_lines
+      EXCEPTIONS
+        invalid_input = 1
+        access_error  = 2
+        OTHERS        = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from TR_READ_LOG' ).
+    ENDIF.
+
+    DELETE lt_lines WHERE severity <> 'E'.
+
+    CREATE OBJECT li_log TYPE zcl_abapgit_log.
+    li_log->set_title( 'Activation Errors' ).
+
+    LOOP AT lt_lines ASSIGNING <ls_line>.
+      li_log->add( <ls_line>-line ).
+    ENDLOOP.
+
+    IF li_log->count( ) > 0.
+      zcl_abapgit_log_viewer=>show_log( li_log ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD update_where_used.
+
+    DATA: lv_class    LIKE LINE OF gt_classes,
+          lo_cross    TYPE REF TO cl_wb_crossreference,
+          lv_include  TYPE programm,
+          li_progress TYPE REF TO zif_abapgit_progress.
+    li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
+
+    LOOP AT gt_classes INTO lv_class.
+      IF sy-tabix MOD 20 = 0.
+        li_progress->show(
+          iv_current = sy-tabix
+          iv_text    = 'Updating where-used lists' ).
+      ENDIF.
+
+      lv_include = cl_oo_classname_service=>get_classpool_name( lv_class ).
+
+      CREATE OBJECT lo_cross
+        EXPORTING
+          p_name    = lv_include
+          p_include = lv_include.
+
+      lo_cross->index_actualize( ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD use_new_activation_logic.
+
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = 'DD_MASS_ACT_C3'
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    IF sy-subrc = 0.
+      rv_use_new_activation_logic = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_FOLDER_LOGIC IMPLEMENTATION.
+  METHOD get_instance.
+    CREATE OBJECT ro_instance.
+  ENDMETHOD.
+  METHOD get_parent.
+    DATA: ls_parent LIKE LINE OF mt_parent.
+
+    "Determine Parent Package
+    READ TABLE mt_parent INTO ls_parent
+      WITH TABLE KEY devclass = iv_package.
+    IF sy-subrc <> 0.
+      rv_parent = zcl_abapgit_factory=>get_sap_package( iv_package )->read_parent( ).
+      ls_parent-devclass = iv_package.
+      ls_parent-parentcl = rv_parent.
+      INSERT ls_parent INTO TABLE mt_parent.
+    ELSE.
+      rv_parent = ls_parent-parentcl.
+    ENDIF.
+  ENDMETHOD.
+  METHOD package_to_path.
+
+    DATA: lv_len          TYPE i,
+          lv_path         TYPE string,
+          lv_message      TYPE string,
+          lv_parentcl     TYPE tdevc-parentcl,
+          lv_folder_logic TYPE string.
+
+    IF iv_top = iv_package.
+      rv_path = io_dot->get_starting_folder( ).
+    ELSE.
+      lv_parentcl = get_parent( iv_package ).
+
+      IF lv_parentcl IS INITIAL.
+        zcx_abapgit_exception=>raise( |error, expected parent package, { iv_package }| ).
+      ELSE.
+        lv_folder_logic = io_dot->get_folder_logic( ).
+        CASE lv_folder_logic.
+          WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
+            lv_len = 0.
+            IF iv_package(1) = '$'.
+              lv_len = 1.
+            ENDIF.
+          WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
+            lv_len = strlen( lv_parentcl ).
+
+            IF iv_package(lv_len) <> lv_parentcl.
+* if abapGit project is installed in package ZZZ, all subpackages should be named
+* ZZZ_something. This will define the folder name in the zip file to be "something",
+* similarily with online projects. Alternatively change to FULL folder logic
+              lv_message = 'PREFIX: Unexpected package naming (' && iv_package && ')'
+                           && 'you might switch to FULL folder logic'.
+              zcx_abapgit_exception=>raise( lv_message ).
+            ENDIF.
+          WHEN OTHERS.
+            zcx_abapgit_exception=>raise( |Invalid folder logic: { lv_folder_logic }| ).
+        ENDCASE.
+
+        lv_path = iv_package+lv_len.
+        IF strlen( lv_path ) = 0.
+          zcx_abapgit_exception=>raise( |Folder logic: length = 0, parent: {
+            lv_parentcl }, child: { iv_package }| ).
+        ENDIF.
+
+        IF lv_path(1) = '_'.
+          lv_path = lv_path+1.
+        ENDIF.
+        IF strlen( lv_path ) = 0.
+          zcx_abapgit_exception=>raise( |Folder logic: length = 0, parent: {
+            lv_parentcl }, child: { iv_package }| ).
+        ENDIF.
+
+        TRANSLATE lv_path USING '/#'.
+        TRANSLATE lv_path TO LOWER CASE.
+        CONCATENATE lv_path '/' INTO lv_path.
+
+        rv_path = package_to_path( iv_top     = iv_top
+                                   io_dot     = io_dot
+                                   iv_package = lv_parentcl ).
+
+        CONCATENATE rv_path lv_path INTO rv_path.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD path_to_package.
+
+    DATA: lv_length               TYPE i,
+          lv_parent               TYPE devclass,
+          lv_new                  TYPE string,
+          lv_path                 TYPE string,
+          lv_absolute_name        TYPE string,
+          lv_top                  TYPE devclass,
+          lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
+
+    lv_top = iv_top.
+
+    lv_length  = strlen( io_dot->get_starting_folder( ) ).
+    IF lv_length > strlen( iv_path ).
+* treat as not existing locally
+      RETURN.
+    ENDIF.
+    lv_path    = iv_path+lv_length.
+    lv_parent  = lv_top.
+    rv_package = lv_top.
+
+    INSERT iv_top INTO TABLE lt_unique_package_names.
+
+    WHILE lv_path CA '/'.
+      SPLIT lv_path AT '/' INTO lv_new lv_path.
+
+      CASE io_dot->get_folder_logic( ).
+        WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
+          lv_absolute_name = lv_new.
+          TRANSLATE lv_absolute_name USING '#/'.
+          IF iv_top(1) = '$'.
+            CONCATENATE '$' lv_absolute_name INTO lv_absolute_name.
+          ENDIF.
+        WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
+          CONCATENATE rv_package '_' lv_new INTO lv_absolute_name.
+        WHEN OTHERS.
+          ASSERT 0 = 1.
+      ENDCASE.
+
+      TRANSLATE lv_absolute_name TO UPPER CASE.
+
+      IF strlen( lv_absolute_name ) > 30.
+        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters-name limit| ).
+      ENDIF.
+
+      rv_package = lv_absolute_name.
+      READ TABLE lt_unique_package_names TRANSPORTING NO FIELDS
+        WITH TABLE KEY table_line = rv_package.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( |Package { rv_package } has a subpackage with the same name| ).
+      ELSE.
+        INSERT rv_package INTO TABLE lt_unique_package_names.
+      ENDIF.
+
+      IF zcl_abapgit_factory=>get_sap_package( rv_package )->exists( ) = abap_false AND
+          iv_create_if_not_exists = abap_true.
+
+        zcl_abapgit_factory=>get_sap_package( lv_parent )->create_child( rv_package ).
+      ENDIF.
+
+      lv_parent = rv_package.
+    ENDWHILE.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
+  METHOD build_existing.
+
+    DATA: ls_file_sig LIKE LINE OF it_state.
+
+    " Item
+    rs_result-obj_type = is_local-item-obj_type.
+    rs_result-obj_name = is_local-item-obj_name.
+    rs_result-package  = is_local-item-devclass.
+
+    " File
+    rs_result-path     = is_local-file-path.
+    rs_result-filename = is_local-file-filename.
+
+    IF is_local-file-sha1 = is_remote-sha1.
+      rs_result-match = abap_true.
+      RETURN.
+    ENDIF.
+
+    " Match against current state
+    READ TABLE it_state INTO ls_file_sig
+      WITH KEY path = is_local-file-path
+      filename = is_local-file-filename
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+      IF ls_file_sig-sha1 <> is_local-file-sha1.
+        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
+      ENDIF.
+      IF ls_file_sig-sha1 <> is_remote-sha1.
+        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
+      ENDIF.
+      rs_result-match = boolc( rs_result-lstate IS INITIAL
+        AND rs_result-rstate IS INITIAL ).
+    ELSE.
+      " This is a strange situation. As both local and remote exist
+      " the state should also be present. Maybe this is a first run of the code.
+      " In this case just compare hashes directly and mark both changed
+      " the user will presumably decide what to do after checking the actual diff
+      rs_result-match = boolc( is_local-file-sha1 = is_remote-sha1 ).
+      IF rs_result-match = abap_false.
+        rs_result-lstate = zif_abapgit_definitions=>c_state-modified.
+        rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD build_new_local.
+
+    " Item
+    rs_result-obj_type = is_local-item-obj_type.
+    rs_result-obj_name = is_local-item-obj_name.
+    rs_result-package  = is_local-item-devclass.
+
+    " File
+    rs_result-path     = is_local-file-path.
+    rs_result-filename = is_local-file-filename.
+
+    " Match
+    rs_result-match    = abap_false.
+    rs_result-lstate   = zif_abapgit_definitions=>c_state-added.
+
+  ENDMETHOD.
+  METHOD build_new_remote.
+
+    DATA: ls_item     LIKE LINE OF it_items,
+          ls_file_sig LIKE LINE OF it_state.
+
+    " Common and default part
+    rs_result-path     = is_remote-path.
+    rs_result-filename = is_remote-filename.
+    rs_result-match    = abap_false.
+    rs_result-rstate   = zif_abapgit_definitions=>c_state-added.
+
+    identify_object( EXPORTING iv_filename = is_remote-filename
+                               iv_path     = is_remote-path
+                               iv_devclass = iv_devclass
+                               io_dot      = io_dot
+                     IMPORTING es_item     = ls_item ).
+
+    " Check if in item index + get package
+    READ TABLE it_items INTO ls_item
+      WITH KEY obj_type = ls_item-obj_type obj_name = ls_item-obj_name
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+
+      " Completely new (xml, abap) and new file in an existing object
+      rs_result-obj_type = ls_item-obj_type.
+      rs_result-obj_name = ls_item-obj_name.
+      rs_result-package  = ls_item-devclass.
+
+      READ TABLE it_state INTO ls_file_sig
+        WITH KEY path = is_remote-path filename = is_remote-filename
+        BINARY SEARCH.
+
+      " Existing file but from another package
+      " was not added during local file proc as was not in tadir for repo package
+      IF sy-subrc = 0.
+        IF ls_file_sig-sha1 = is_remote-sha1.
+          rs_result-match = abap_true.
+          CLEAR rs_result-rstate.
+        ELSE.
+          rs_result-rstate = zif_abapgit_definitions=>c_state-modified.
+        ENDIF.
+
+        " Item is in state and in cache but with no package - it was deleted
+        " OR devclass is the same as repo package (see #532)
+        IF ls_item-devclass IS INITIAL OR ls_item-devclass = iv_devclass.
+          rs_result-match  = abap_false.
+          rs_result-lstate = zif_abapgit_definitions=>c_state-deleted.
+        ENDIF.
+      ENDIF.
+
+    ELSE. " Completely unknown file, probably non-abapgit
+      ASSERT 1 = 1. " No action, just follow defaults
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD calculate_status.
+
+    DATA: lt_remote       LIKE it_remote,
+          lv_index        TYPE i,
+          lt_items        TYPE zif_abapgit_definitions=>ty_items_tt,
+          ls_item         LIKE LINE OF lt_items,
+          lv_is_xml       TYPE abap_bool,
+          lv_sub_fetched  TYPE abap_bool,
+          lt_sub_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
+          lt_items_idx    TYPE zif_abapgit_definitions=>ty_items_ts,
+          lt_state_idx    TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF it_remote,
+                   <ls_result> LIKE LINE OF rt_results,
+                   <ls_state>  LIKE LINE OF it_cur_state,
+                   <ls_local>  LIKE LINE OF it_local.
+    lt_state_idx = it_cur_state. " Force sort it
+    lt_remote    = it_remote.
+    SORT lt_remote BY path filename.
+
+    " Skip ignored files
+    LOOP AT lt_remote ASSIGNING <ls_remote>.
+      lv_index = sy-tabix.
+      IF io_dot->is_ignored( iv_path     = <ls_remote>-path
+                             iv_filename = <ls_remote>-filename ) = abap_true.
+        DELETE lt_remote INDEX lv_index.
+      ENDIF.
+    ENDLOOP.
+
+    " Process local files and new local files
+    LOOP AT it_local ASSIGNING <ls_local>.
+      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
+      IF <ls_local>-item IS NOT INITIAL.
+        APPEND <ls_local>-item TO lt_items. " Collect for item index
+      ENDIF.
+
+      READ TABLE lt_remote ASSIGNING <ls_remote>
+        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+        BINARY SEARCH.
+      IF sy-subrc = 0.  " Exist local and remote
+        <ls_result> = build_existing(
+          is_local  = <ls_local>
+          is_remote = <ls_remote>
+          it_state  = lt_state_idx ).
+        ASSERT <ls_remote>-sha1 IS NOT INITIAL.
+        CLEAR <ls_remote>-sha1. " Mark as processed
+      ELSE.             " Only L exists
+        <ls_result> = build_new_local( <ls_local> ).
+        " Check if same file exists in different location
+        READ TABLE lt_remote ASSIGNING <ls_remote>
+          WITH KEY filename = <ls_local>-file-filename.
+        IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
+          <ls_result>-packmove = abap_true.
+        ELSEIF sy-subrc = 4.
+          " Check if file existed before and was deleted remotely
+          READ TABLE lt_state_idx ASSIGNING <ls_state>
+            WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+            BINARY SEARCH.
+          IF sy-subrc = 0.
+            IF <ls_local>-file-sha1 = <ls_state>-sha1.
+              <ls_result>-lstate = zif_abapgit_definitions=>c_state-unchanged.
+            ELSE.
+              <ls_result>-lstate = zif_abapgit_definitions=>c_state-modified.
+            ENDIF.
+            <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+      <ls_result>-inactive = <ls_local>-item-inactive.
+    ENDLOOP.
+
+    " Complete item index for unmarked remote files
+    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
+      identify_object( EXPORTING iv_filename = <ls_remote>-filename
+                                 iv_path     = <ls_remote>-path
+                                 io_dot      = io_dot
+                                 iv_devclass = iv_devclass
+                       IMPORTING es_item     = ls_item
+                                 ev_is_xml   = lv_is_xml ).
+
+      CHECK lv_is_xml = abap_true. " only object definitions
+
+      ls_item-devclass = get_object_package(
+        iv_object   = ls_item-obj_type
+        iv_obj_name = ls_item-obj_name ).
+
+      IF NOT ls_item-devclass IS INITIAL AND iv_devclass <> ls_item-devclass.
+        IF lv_sub_fetched = abap_false.
+          lt_sub_packages = zcl_abapgit_factory=>get_sap_package( iv_devclass )->list_subpackages( ).
+          lv_sub_fetched = abap_true.
+          SORT lt_sub_packages BY table_line. "Optimize Read Access
+        ENDIF.
+        " Make sure the package is under the repo main package
+        READ TABLE lt_sub_packages TRANSPORTING NO FIELDS
+          WITH KEY table_line = ls_item-devclass
+          BINARY SEARCH.
+        IF sy-subrc <> 0.
+          CLEAR ls_item-devclass.
+        ENDIF.
+      ENDIF.
+
+      APPEND ls_item TO lt_items.
+    ENDLOOP.
+
+    SORT lt_items DESCENDING. " Default key - type, name, pkg, inactive
+    DELETE ADJACENT DUPLICATES FROM lt_items COMPARING obj_type obj_name devclass.
+    lt_items_idx = lt_items. " Self protection + UNIQUE records assertion
+
+    " Process new remote files (marked above with empty SHA1)
+    LOOP AT lt_remote ASSIGNING <ls_remote> WHERE sha1 IS NOT INITIAL.
+      APPEND INITIAL LINE TO rt_results ASSIGNING <ls_result>.
+      <ls_result> = build_new_remote( iv_devclass = iv_devclass
+                                      io_dot      = io_dot
+                                      is_remote   = <ls_remote>
+                                      it_items    = lt_items_idx
+                                      it_state    = lt_state_idx ).
+      " Check if same file exists in different location
+      READ TABLE it_local ASSIGNING <ls_local>
+        WITH KEY file-filename = <ls_remote>-filename.
+      IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
+        <ls_result>-packmove = abap_true.
+      ELSEIF sy-subrc = 4.
+        " Check if file existed before and was deleted locally
+        READ TABLE lt_state_idx ASSIGNING <ls_state>
+          WITH KEY path = <ls_remote>-path filename = <ls_remote>-filename
+          BINARY SEARCH.
+        IF sy-subrc = 0.
+          <ls_result>-lstate = zif_abapgit_definitions=>c_state-deleted.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+    SORT rt_results BY
+      obj_type ASCENDING
+      obj_name ASCENDING
+      filename ASCENDING.
+
+  ENDMETHOD.
+  METHOD get_object_package.
+    DATA: lv_name    TYPE devclass,
+          li_package TYPE REF TO zif_abapgit_sap_package.
+
+    rv_devclass = zcl_abapgit_factory=>get_tadir( )->get_object_package(
+      iv_object   = iv_object
+      iv_obj_name = iv_obj_name ).
+    IF rv_devclass IS INITIAL AND iv_object = 'DEVC' AND iv_obj_name(1) = '$'.
+      " local packages usually have no tadir entry
+      lv_name = iv_obj_name.
+      li_package = zcl_abapgit_factory=>get_sap_package( lv_name ).
+      IF li_package->exists( ) = abap_true.
+        rv_devclass = lv_name.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+  METHOD identify_object.
+
+    DATA: lv_name TYPE string,
+          lv_type TYPE string,
+          lv_ext  TYPE string.
+
+    " Guess object type and name
+    SPLIT to_upper( iv_filename ) AT '.' INTO lv_name lv_type lv_ext.
+
+    " Handle namespaces
+    REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
+    REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
+    REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
+
+    " The counter part to this logic must be maintained in ZCL_ABAPGIT_OBJECTS_FILES->FILENAME
+    IF lv_type = 'DEVC'.
+      " Try to get a unique package name for DEVC by using the path
+      ASSERT lv_name = 'PACKAGE'.
+      lv_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
+        iv_top                  = iv_devclass
+        io_dot                  = io_dot
+        iv_create_if_not_exists = abap_false
+        iv_path                 = iv_path ).
+    ELSE.
+      " Get original object name
+      lv_name = cl_http_utility=>unescape_url( lv_name ).
+    ENDIF.
+
+    CLEAR es_item.
+    es_item-obj_type = lv_type.
+    es_item-obj_name = lv_name.
+    ev_is_xml        = boolc( lv_ext = 'XML' AND strlen( lv_type ) = 4 ).
+
+  ENDMETHOD.
+  METHOD run_checks.
+
+    DATA: lv_path         TYPE string,
+          ls_item         TYPE zif_abapgit_definitions=>ty_item,
+          ls_file         TYPE zif_abapgit_definitions=>ty_file_signature,
+          lt_res_sort     LIKE it_results,
+          lt_item_idx     LIKE it_results,
+          lt_move_idx     LIKE it_results,
+          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
+
+    FIELD-SYMBOLS: <ls_res1> LIKE LINE OF it_results,
+                   <ls_res2> LIKE LINE OF it_results.
+
+    " This method just adds messages to the log. No log, nothing to do here
+    IF ii_log IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Find all objects which were assigned to a different package
+    LOOP AT it_results ASSIGNING <ls_res1>
+      WHERE lstate = zif_abapgit_definitions=>c_state-added AND packmove = abap_true.
+      READ TABLE lt_move_idx TRANSPORTING NO FIELDS
+        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
+        BINARY SEARCH. " Sorted since it_result is sorted
+      IF sy-subrc <> 0.
+        ii_log->add( iv_msg  = |Changed package assignment for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+                     iv_type = 'W'
+                     iv_rc   = '5' ).
+        APPEND INITIAL LINE TO lt_move_idx ASSIGNING <ls_res2>.
+        <ls_res2>-obj_type = <ls_res1>-obj_type.
+        <ls_res2>-obj_name = <ls_res1>-obj_name.
+        <ls_res2>-path     = <ls_res1>-path.
+      ENDIF.
+    ENDLOOP.
+
+    " Collect object indexe
+    lt_res_sort = it_results.
+    SORT lt_res_sort BY obj_type ASCENDING obj_name ASCENDING.
+
+    LOOP AT it_results ASSIGNING <ls_res1> WHERE NOT obj_type IS INITIAL AND packmove = abap_false.
+      IF NOT ( <ls_res1>-obj_type = ls_item-obj_type
+          AND <ls_res1>-obj_name = ls_item-obj_name ).
+        APPEND INITIAL LINE TO lt_item_idx ASSIGNING <ls_res2>.
+        <ls_res2>-obj_type = <ls_res1>-obj_type.
+        <ls_res2>-obj_name = <ls_res1>-obj_name.
+        <ls_res2>-path     = <ls_res1>-path.
+        MOVE-CORRESPONDING <ls_res1> TO ls_item.
+      ENDIF.
+    ENDLOOP.
+
+    " Check files for one object is in the same folder
+    LOOP AT it_results ASSIGNING <ls_res1>
+      WHERE NOT obj_type IS INITIAL AND obj_type <> 'DEVC' AND packmove = abap_false.
+      READ TABLE lt_item_idx ASSIGNING <ls_res2>
+        WITH KEY obj_type = <ls_res1>-obj_type obj_name = <ls_res1>-obj_name
+        BINARY SEARCH. " Sorted above
+
+      IF sy-subrc <> 0 OR <ls_res1>-path <> <ls_res2>-path. " All paths are same
+        ii_log->add( iv_msg = |Files for object { <ls_res1>-obj_type } {
+                       <ls_res1>-obj_name } are not placed in the same folder|
+                     iv_type = 'W'
+                     iv_rc   = '1' ).
+      ENDIF.
+    ENDLOOP.
+
+    " Check that objects are created in package corresponding to folder
+    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
+    LOOP AT it_results ASSIGNING <ls_res1>
+      WHERE NOT package IS INITIAL AND NOT path IS INITIAL AND packmove = abap_false.
+      lv_path = lo_folder_logic->package_to_path(
+        iv_top     = iv_top
+        io_dot     = io_dot
+        iv_package = <ls_res1>-package ).
+      IF lv_path <> <ls_res1>-path.
+        ii_log->add( iv_msg = |Package and path does not match for object, {
+                       <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+                     iv_type = 'W'
+                     iv_rc   = '2' ).
+      ENDIF.
+    ENDLOOP.
+
+    " Check for multiple files with same filename
+    SORT lt_res_sort BY filename ASCENDING.
+
+    LOOP AT lt_res_sort ASSIGNING <ls_res1> WHERE obj_type <> 'DEVC' AND packmove = abap_false.
+      IF <ls_res1>-filename IS NOT INITIAL AND <ls_res1>-filename = ls_file-filename.
+        ii_log->add( iv_msg  = |Multiple files with same filename, { <ls_res1>-filename }|
+                     iv_type = 'W'
+                     iv_rc   = '3' ).
+      ENDIF.
+
+      IF <ls_res1>-filename IS INITIAL.
+        ii_log->add( iv_msg  = |Filename is empty for object { <ls_res1>-obj_type } { <ls_res1>-obj_name }|
+                     iv_type = 'W'
+                     iv_rc   = '4' ).
+      ENDIF.
+
+      MOVE-CORRESPONDING <ls_res1> TO ls_file.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD status.
+
+    DATA: lv_index LIKE sy-tabix,
+          lt_local TYPE zif_abapgit_definitions=>ty_files_item_tt.
+
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF rt_results.
+
+    lt_local = io_repo->get_files_local( ii_log = ii_log ).
+
+    IF lines( lt_local ) <= 2.
+      " Less equal two means that we have only the .abapgit.xml and the package in
+      " our local repository. In this case we have to update our local .abapgit.xml
+      " from the remote one. Otherwise we get errors when e.g. the folder starting
+      " folder is different.
+      io_repo->find_remote_dot_abapgit( ).
+    ENDIF.
+
+    rt_results = calculate_status(
+      iv_devclass  = io_repo->get_package( )
+      io_dot       = io_repo->get_dot_abapgit( )
+      it_local     = io_repo->get_files_local( ii_log = ii_log )
+      it_remote    = io_repo->get_files_remote( )
+      it_cur_state = io_repo->get_local_checksums_per_file( ) ).
+
+    run_checks(
+      ii_log     = ii_log
+      it_results = rt_results
+      io_dot     = io_repo->get_dot_abapgit( )
+      iv_top     = io_repo->get_package( ) ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_dependencies IMPLEMENTATION.
+  METHOD get_ddls_dependencies.
+
+    DATA: lt_ddls_name TYPE TABLE OF ddsymtab,
+          ls_ddls_name TYPE ddsymtab.
+
+    ls_ddls_name-name = iv_ddls_name.
+    INSERT ls_ddls_name INTO TABLE lt_ddls_name.
+
+    PERFORM ('DDLS_GET_DEP') IN PROGRAM ('RADMASDL')
+                             TABLES lt_ddls_name rt_dependency.
+
+  ENDMETHOD.
+  METHOD resolve.
+
+    DATA: lv_tabclass TYPE dd02l-tabclass.
+
+    FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF ct_tadir.
+
+    " misuse field KORRNUM to fix deletion sequence
+    " higher value means later deletion
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
+      CASE <ls_tadir>-object.
+        WHEN 'DEVC'.
+          " Packages last
+          <ls_tadir>-korrnum = '999000'.
+        WHEN 'DOMA'.
+          <ls_tadir>-korrnum = '900000'.
+        WHEN 'PARA'.
+          " PARA after DTEL
+          <ls_tadir>-korrnum = '810000'.
+        WHEN 'DTEL'.
+          <ls_tadir>-korrnum = '800000'.
+        WHEN 'SHLP'.
+          " SHLP after TABL
+          <ls_tadir>-korrnum = '760000'.
+        WHEN 'TTYP' OR 'TABL' OR 'VIEW'.
+          SELECT SINGLE tabclass FROM dd02l
+            INTO lv_tabclass
+            WHERE tabname = <ls_tadir>-obj_name
+            AND as4local = 'A'
+            AND as4vers = '0000'.
+          IF sy-subrc = 0 AND lv_tabclass = 'APPEND'.
+            " delete append structures before database tables
+            <ls_tadir>-korrnum = '730000'.
+          ELSE.
+            <ls_tadir>-korrnum = '750000'.
+          ENDIF.
+        WHEN 'DDLS'.
+          " DDLS after DCLS but before other DDIC
+          <ls_tadir>-korrnum = '720000'.
+        WHEN 'AUTH'.
+          " AUTH after DCLS
+          <ls_tadir>-korrnum = '715000'.
+        WHEN 'SUSO'.
+          " SUSO after DCLS
+          <ls_tadir>-korrnum = '710000'.
+        WHEN 'DCLS'.
+          " AUTH and SUSO after DCLS
+          <ls_tadir>-korrnum = '705000'.
+        WHEN 'IASP'.
+          <ls_tadir>-korrnum = '552000'.
+        WHEN 'IARP'.
+          <ls_tadir>-korrnum = '551000'.
+        WHEN 'IATU'.
+          <ls_tadir>-korrnum = '550000'.
+        WHEN 'SUSC'.
+          <ls_tadir>-korrnum = '500000'.
+        WHEN 'ACID'.
+          " ACID after PROG/FUGR/CLAS
+          <ls_tadir>-korrnum = '300000'.
+        WHEN 'FUGR'.
+          <ls_tadir>-korrnum = '260000'.
+        WHEN 'PROG'.
+          " delete includes after main programs
+          SELECT COUNT(*) FROM reposrc
+            WHERE progname = <ls_tadir>-obj_name
+            AND r3state = 'A'
+            AND subc = 'I'.
+          IF sy-subrc = 0.
+            <ls_tadir>-korrnum = '250000'.
+          ELSE.
+            <ls_tadir>-korrnum = '240000'.
+          ENDIF.
+        WHEN 'INTF'.
+          <ls_tadir>-korrnum = '230000'.
+        WHEN 'CLAS'.
+          <ls_tadir>-korrnum = '220000'.
+        WHEN 'IDOC'.
+          <ls_tadir>-korrnum = '200000'.
+        WHEN 'WDCA'.
+          <ls_tadir>-korrnum = '174000'.
+        WHEN 'WDYA'.
+          <ls_tadir>-korrnum = '173000'.
+        WHEN 'WDCC'.
+          <ls_tadir>-korrnum = '172000'.
+        WHEN 'WDYN'.
+          <ls_tadir>-korrnum = '171000'.
+        WHEN 'IEXT'.
+          <ls_tadir>-korrnum = '150000'.
+        WHEN OTHERS.
+          <ls_tadir>-korrnum = '100000'.
+      ENDCASE.
+    ENDLOOP.
+
+    resolve_ddic( CHANGING ct_tadir = ct_tadir ).
+    resolve_packages( CHANGING ct_tadir = ct_tadir ).
+
+    SORT ct_tadir BY korrnum ASCENDING.
+
+  ENDMETHOD.
+  METHOD resolve_ddic.
+* this will make sure the deletion sequence of structures/tables work
+* in case they have dependencies with .INCLUDE
+
+    TYPES: BEGIN OF ty_edge,
+             from TYPE ty_item,
+             to   TYPE ty_item,
+           END OF ty_edge.
+
+    DATA: lt_nodes        TYPE TABLE OF ty_item,
+          lt_edges        TYPE TABLE OF ty_edge,
+          lt_findstrings  TYPE TABLE OF rsfind,
+          lv_plus         TYPE i VALUE 1,
+          lv_find_obj_cls TYPE euobj-id,
+          lv_index        TYPE i,
+          lv_before       TYPE i,
+          lt_founds       TYPE TABLE OF rsfindlst,
+          lt_scope        TYPE STANDARD TABLE OF seu_obj,
+          lt_dependency   TYPE ty_dedenpencies.
+
+    FIELD-SYMBOLS: <ls_tadir_ddls>      TYPE zif_abapgit_definitions=>ty_tadir,
+                   <ls_dependency>      TYPE ty_dependency,
+                   <ls_tadir_dependent> TYPE zif_abapgit_definitions=>ty_tadir,
+                   <ls_tadir>           LIKE LINE OF ct_tadir,
+                   <ls_edge>            LIKE LINE OF lt_edges,
+                   <ls_found>           LIKE LINE OF lt_founds,
+                   <ls_node>            LIKE LINE OF lt_nodes.
+
+    " build nodes
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>
+        WHERE object = 'TABL'
+        OR object = 'VIEW'
+        OR object = 'TTYP'.
+      APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
+      <ls_node>-obj_name = <ls_tadir>-obj_name.
+      <ls_node>-obj_type = <ls_tadir>-object.
+    ENDLOOP.
+
+    APPEND 'TABL' TO lt_scope.
+    APPEND 'VIEW' TO lt_scope.
+    APPEND 'STRU' TO lt_scope.
+    APPEND 'TTYP' TO lt_scope.
+
+    " build edges
+    LOOP AT lt_nodes ASSIGNING <ls_node>.
+
+      CLEAR lt_findstrings.
+      APPEND <ls_node>-obj_name TO lt_findstrings.
+      lv_find_obj_cls = <ls_node>-obj_type.
+
+      CALL FUNCTION 'RS_EU_CROSSREF'
+        EXPORTING
+          i_find_obj_cls           = lv_find_obj_cls
+        TABLES
+          i_findstrings            = lt_findstrings
+          o_founds                 = lt_founds
+          i_scope_object_cls       = lt_scope
+        EXCEPTIONS
+          not_executed             = 1
+          not_found                = 2
+          illegal_object           = 3
+          no_cross_for_this_object = 4
+          batch                    = 5
+          batchjob_error           = 6
+          wrong_type               = 7
+          object_not_exist         = 8
+          OTHERS                   = 9.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      LOOP AT lt_founds ASSIGNING <ls_found>.
+        APPEND INITIAL LINE TO lt_edges ASSIGNING <ls_edge>.
+        <ls_edge>-from = <ls_node>.
+
+        <ls_edge>-to-obj_name   = <ls_found>-object.
+        CASE <ls_found>-object_cls.
+          WHEN 'DS'
+              OR 'DT'.
+            <ls_edge>-to-obj_type = 'TABL'.
+          WHEN 'DV'.
+            <ls_edge>-to-obj_type = 'VIEW'.
+          WHEN 'DA'.
+            <ls_edge>-to-obj_type = 'TTYP'.
+          WHEN OTHERS.
+            zcx_abapgit_exception=>raise( 'resolve_ddic, unknown object_cls' ).
+        ENDCASE.
+      ENDLOOP.
+
+    ENDLOOP.
+
+    " build DDLS edges
+    SORT ct_tadir. "binary search
+    LOOP AT ct_tadir ASSIGNING <ls_tadir_ddls>
+                     WHERE object = 'DDLS'.
+
+      CLEAR: lt_dependency.
+
+      APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
+      <ls_node>-obj_name = <ls_tadir_ddls>-obj_name.
+      <ls_node>-obj_type = <ls_tadir_ddls>-object.
+
+      lt_dependency = get_ddls_dependencies( <ls_tadir_ddls>-obj_name ).
+
+      LOOP AT lt_dependency ASSIGNING <ls_dependency>
+                            WHERE deptyp = 'DDLS'
+                            AND refname = <ls_tadir_ddls>-obj_name.
+
+        READ TABLE ct_tadir ASSIGNING <ls_tadir_dependent>
+                            WITH KEY pgmid    = 'R3TR'
+                                     object   = 'DDLS'
+                                     obj_name = <ls_dependency>-depname
+                            BINARY SEARCH.
+        CHECK sy-subrc = 0.
+
+        APPEND INITIAL LINE TO lt_edges ASSIGNING <ls_edge>.
+        <ls_edge>-from = <ls_node>.
+        <ls_edge>-to-obj_name = <ls_dependency>-depname.
+        <ls_edge>-to-obj_type = 'DDLS'.
+
+      ENDLOOP.
+
+    ENDLOOP.
+
+    DO.
+      lv_before = lines( lt_nodes ).
+      LOOP AT lt_nodes ASSIGNING <ls_node>.
+        lv_index = sy-tabix.
+        READ TABLE lt_edges WITH KEY
+          from-obj_name = <ls_node>-obj_name
+          from-obj_type = <ls_node>-obj_type
+          TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0.
+          LOOP AT ct_tadir ASSIGNING <ls_tadir>
+              WHERE obj_name = <ls_node>-obj_name
+              AND object = <ls_node>-obj_type.
+            <ls_tadir>-korrnum = <ls_tadir>-korrnum + lv_plus.
+            CONDENSE <ls_tadir>-korrnum.
+          ENDLOOP.
+          DELETE lt_edges
+            WHERE to-obj_name = <ls_node>-obj_name
+            AND to-obj_type = <ls_node>-obj_type.
+          DELETE lt_nodes INDEX lv_index.
+          EXIT. " make sure the sequence is fixed
+        ENDIF.
+      ENDLOOP.
+      IF lv_before = lines( lt_nodes ).
+        EXIT.
+      ENDIF.
+      lv_plus = lv_plus + 1.
+    ENDDO.
+
+  ENDMETHOD.
+  METHOD resolve_packages.
+
+    DATA: lt_subpackages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    FIELD-SYMBOLS: <ls_tadir>            LIKE LINE OF ct_tadir,
+                   <lv_subpackage>       LIKE LINE OF lt_subpackages,
+                   <ls_tadir_subpackage> LIKE LINE OF ct_tadir.
+
+    " List subpackage before corresponding superpackage
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>
+                     WHERE object = 'DEVC'.
+
+      lt_subpackages = zcl_abapgit_factory=>get_sap_package( |{ <ls_tadir>-obj_name }| )->list_subpackages( ).
+
+      LOOP AT lt_subpackages ASSIGNING <lv_subpackage>.
+
+        READ TABLE ct_tadir ASSIGNING <ls_tadir_subpackage>
+                            WITH KEY object   = 'DEVC'
+                                     obj_name = <lv_subpackage>.
+        IF sy-subrc = 0.
+          <ls_tadir_subpackage>-korrnum = condense( |{ <ls_tadir_subpackage>-korrnum - 1 }| ).
+        ENDIF.
+
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu DEFINITION DEFERRED.
@@ -95334,5 +95339,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-11T06:47:09.910Z
+* abapmerge 0.14.2 - 2020-12-11T06:51:13.043Z
 ****************************************************
