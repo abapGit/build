@@ -66719,12 +66719,14 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: ls_msg    TYPE hier_mess,
-          ls_head   TYPE ttree,
-          lt_titles TYPE TABLE OF ttreet,
-          lt_nodes  TYPE TABLE OF hier_iface,
-          lt_texts  TYPE TABLE OF hier_texts,
-          lt_refs   TYPE TABLE OF hier_ref.
+    DATA: ls_msg           TYPE hier_mess,
+          ls_head          TYPE ttree,
+          lt_titles        TYPE TABLE OF ttreet,
+          lt_nodes         TYPE TABLE OF hier_iface,
+          lt_texts         TYPE TABLE OF hier_texts,
+          lt_refs          TYPE TABLE OF hier_ref,
+          lv_language      TYPE spras,
+          lv_all_languages TYPE abap_bool.
     CALL FUNCTION 'STREE_STRUCTURE_READ'
       EXPORTING
         structure_id     = mv_tree_id
@@ -66734,11 +66736,21 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       TABLES
         description      = lt_titles.
 
+    lv_all_languages = abap_false.
+
+    IF io_xml->i18n_params( )-serialize_master_lang_only = abap_false.
+      lv_all_languages = abap_true.
+    ELSE.
+      lv_language = mv_language.
+      DELETE lt_titles WHERE spras <> lv_language.
+    ENDIF.
+
     CALL FUNCTION 'STREE_HIERARCHY_READ'
       EXPORTING
         structure_id       = mv_tree_id
         read_also_texts    = 'X'
-        all_languages      = 'X'
+        all_languages      = lv_all_languages
+        language           = lv_language
       IMPORTING
         message            = ls_msg
       TABLES
@@ -66748,6 +66760,12 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
     clear_fields( CHANGING cs_head  = ls_head
                            ct_nodes = lt_nodes ).
+
+    SORT lt_titles BY id.
+    DELETE ADJACENT DUPLICATES FROM lt_titles COMPARING id.
+
+    SORT lt_texts BY spras.
+    DELETE ADJACENT DUPLICATES FROM lt_texts COMPARING spras node_id.
 
     io_xml->add( iv_name = 'TREE_HEAD'
                  ig_data = ls_head ).
@@ -95321,5 +95339,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-09T08:28:25.332Z
+* abapmerge 0.14.2 - 2020-12-11T06:44:56.923Z
 ****************************************************
