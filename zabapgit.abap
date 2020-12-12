@@ -3477,6 +3477,12 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_chk_exists TYPE abap_bool DEFAULT abap_true
     RAISING
       zcx_abapgit_exception .
+  METHODS validate_url
+    IMPORTING
+      !iv_url        TYPE string
+      !iv_chk_exists TYPE abap_bool DEFAULT abap_true
+    RAISING
+      zcx_abapgit_exception .
   METHODS get_repo_from_package
     IMPORTING
       !iv_package    TYPE devclass
@@ -3484,6 +3490,14 @@ INTERFACE zif_abapgit_repo_srv .
     EXPORTING
       VALUE(eo_repo) TYPE REF TO zcl_abapgit_repo
       !ev_reason     TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_repo_from_url
+    IMPORTING
+      !iv_url    TYPE string
+    EXPORTING
+      !eo_repo   TYPE REF TO zcl_abapgit_repo
+      !ev_reason TYPE string
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -16596,6 +16610,13 @@ CLASS zcl_abapgit_url DEFINITION
         !iv_url           TYPE string
       RETURNING
         VALUE(rv_abapgit) TYPE abap_bool .
+    CLASS-METHODS url_address
+      IMPORTING
+        !iv_url          TYPE string
+      RETURNING
+        VALUE(rv_adress) TYPE string
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -17653,6 +17674,9 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     ALIASES get_repo_from_package
       FOR zif_abapgit_repo_srv~get_repo_from_package .
 
+    ALIASES get_repo_from_url
+      FOR zif_abapgit_repo_srv~get_repo_from_url .
+
     CLASS-METHODS get_instance
       RETURNING
         VALUE(ri_srv) TYPE REF TO zif_abapgit_repo_srv .
@@ -17667,6 +17691,8 @@ CLASS zcl_abapgit_repo_srv DEFINITION
       FOR zif_abapgit_repo_srv~list .
     ALIASES validate_package
       FOR zif_abapgit_repo_srv~validate_package .
+    ALIASES validate_url
+      FOR zif_abapgit_repo_srv~validate_url .
 
     CLASS-DATA gi_ref TYPE REF TO zif_abapgit_repo_srv .
     DATA mv_init TYPE abap_bool VALUE abap_false ##NO_TEXT.
@@ -19879,7 +19905,7 @@ CLASS ZCL_ABAPGIT_SAP_PACKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
+CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -20105,6 +20131,42 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~get_repo_from_url.
+
+    DATA:
+      lt_repos                TYPE zif_abapgit_persistence=>ty_repos,
+      lv_current_repo_address TYPE string,
+      lv_check_repo_address   TYPE string,
+      lv_repo_path            TYPE string,
+      lv_name                 TYPE zif_abapgit_persistence=>ty_local_settings-display_name,
+      lv_owner                TYPE zif_abapgit_persistence=>ty_local_settings-display_name.
+
+    FIELD-SYMBOLS:
+      <ls_repo> LIKE LINE OF lt_repos.
+
+    CLEAR:
+      eo_repo, ev_reason.
+
+    lv_current_repo_address = zcl_abapgit_url=>url_address( iv_url ).
+
+    " check if url is already in use for a different package
+    lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
+    LOOP AT lt_repos ASSIGNING <ls_repo>.
+
+      lv_check_repo_address = zcl_abapgit_url=>url_address( <ls_repo>-url ).
+
+      IF lv_current_repo_address = lv_check_repo_address.
+        eo_repo      = get_instance( )->get( <ls_repo>-key ).
+        lv_repo_path = zcl_abapgit_url=>path_name( iv_url ).
+        lv_name      = eo_repo->get_name( ).
+        lv_owner     = <ls_repo>-created_by.
+        ev_reason    = |Repository { lv_repo_path } already versioned as { lv_name } by { lv_owner }|.
+        RETURN.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD zif_abapgit_repo_srv~is_repo_installed.
 
     DATA: lt_repo        TYPE zif_abapgit_repo_srv=>ty_repo_list,
@@ -20202,7 +20264,7 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
     validate_package( iv_package    = iv_package
                       iv_ign_subpkg = iv_ign_subpkg ).
 
-    zcl_abapgit_url=>validate( lv_url ).
+    validate_url( lv_url ).
 
     lv_branch_name = determine_branch_name(
       iv_name = iv_branch_name
@@ -20296,6 +20358,27 @@ CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
           eo_repo    = lo_repo
           ev_reason  = lv_reason ).
 
+      IF lo_repo IS BOUND.
+        zcx_abapgit_exception=>raise( lv_reason ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~validate_url.
+
+    DATA:
+      lo_repo   TYPE REF TO zcl_abapgit_repo,
+      lv_reason TYPE string.
+
+    zcl_abapgit_url=>validate( iv_url ).
+
+    IF iv_chk_exists = abap_true.
+      get_repo_from_url(
+        EXPORTING
+          iv_url    = iv_url
+        IMPORTING
+          eo_repo   = lo_repo
+          ev_reason = lv_reason ).
       IF lo_repo IS BOUND.
         zcx_abapgit_exception=>raise( lv_reason ).
       ENDIF.
@@ -23747,7 +23830,7 @@ CLASS zcl_abapgit_user_record IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
+CLASS zcl_abapgit_url IMPLEMENTATION.
   METHOD host.
 
     regex( EXPORTING iv_url = iv_url
@@ -23807,6 +23890,31 @@ CLASS ZCL_ABAPGIT_URL IMPLEMENTATION.
 
     name( iv_url      = iv_url
           iv_validate = abap_true ).
+
+  ENDMETHOD.
+  METHOD url_address.
+
+    DATA:
+      lv_host TYPE string,
+      lv_path TYPE string,
+      lv_name TYPE string,
+      lv_len  TYPE i.
+
+    regex( EXPORTING iv_url  = iv_url
+           IMPORTING ev_host = lv_host
+                     ev_path = lv_path
+                     ev_name = lv_name ).
+
+    IF lv_path IS INITIAL AND lv_name IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Malformed URL' ).
+    ELSEIF lv_name IS INITIAL.
+      lv_len = strlen( lv_path ) - 1.
+      IF lv_path+lv_len(1) = '/'.
+        lv_path = lv_path(lv_len).
+      ENDIF.
+    ENDIF.
+
+    rv_adress = |{ lv_host }{ lv_path }{ lv_name }|.
 
   ENDMETHOD.
 ENDCLASS.
@@ -42543,7 +42651,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
 
     IF io_form_data->get( c_id-url ) IS NOT INITIAL.
       TRY.
-          zcl_abapgit_url=>validate( io_form_data->get( c_id-url ) ).
+          zcl_abapgit_repo_srv=>get_instance( )->validate_url( io_form_data->get( c_id-url ) ).
         CATCH zcx_abapgit_exception INTO lx_err.
           ro_validation_log->set(
             iv_key = c_id-url
@@ -95477,5 +95585,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-12T07:46:51.491Z
+* abapmerge 0.14.2 - 2020-12-12T07:50:49.877Z
 ****************************************************
