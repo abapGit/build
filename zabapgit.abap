@@ -5621,7 +5621,7 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
         RETURNING
           VALUE(ri_template_over_all) TYPE REF TO if_ixml_document
         RAISING
-          cx_ecatt_apl_xml.
+          cx_ecatt_apl.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -5652,7 +5652,7 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
     METHODS:
       set_script_to_template
         RAISING
-          cx_ecatt_apl_util,
+          cx_ecatt_apl,
 
       set_control_data_for_tcd
         IMPORTING
@@ -5667,15 +5667,15 @@ CLASS zcl_abapgit_ecatt_script_downl DEFINITION
           iv_tabname TYPE string
           iv_node    TYPE string
         RAISING
-          cx_ecatt_apl_util,
+          cx_ecatt_apl,
 
       set_blob_to_template
         RAISING
-          cx_ecatt_apl_util,
+          cx_ecatt_apl,
 
       set_artmp_to_template
         RAISING
-          cx_ecatt_apl_util.
+          cx_ecatt_apl.
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_upl DEFINITION
@@ -95585,5 +95585,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-12T07:50:49.877Z
+* abapmerge 0.14.2 - 2020-12-12T07:52:44.163Z
 ****************************************************
