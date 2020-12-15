@@ -736,7 +736,6 @@ CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_saxx_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_generic DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
@@ -749,7 +748,7 @@ CLASS zcl_abapgit_object_wdya DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_wdcc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_wdca DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_wapa DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_w3super DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_w3xx_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_w3mi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_w3ht DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_view DEFINITION DEFERRED.
@@ -793,6 +792,7 @@ CLASS zcl_abapgit_object_sfbs DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sfbf DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_scvi DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_scp1 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_saxx_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sapc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_samc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_prog DEFINITION DEFERRED.
@@ -8887,6 +8887,87 @@ CLASS zcl_abapgit_object_prag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           zcx_abapgit_exception.
 
 ENDCLASS.
+CLASS zcl_abapgit_object_saxx_super DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  ABSTRACT
+  CREATE PUBLIC .
+
+* common class for SAPC and SAMC objects
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+
+  PROTECTED SECTION.
+
+    METHODS get_persistence_class_name
+          ABSTRACT
+      RETURNING
+        VALUE(rv_persistence_class_name) TYPE seoclsname .
+    METHODS get_data_class_name
+          ABSTRACT
+      RETURNING
+        VALUE(rv_data_class_name) TYPE seoclsname .
+    METHODS get_data_structure_name
+          ABSTRACT
+      RETURNING
+        VALUE(rv_data_structure_name) TYPE string .
+
+  PRIVATE SECTION.
+
+    DATA mi_persistence TYPE REF TO if_wb_object_persist .
+    DATA mi_appl_obj_data TYPE REF TO if_wb_object_data_model .
+    DATA mv_data_structure_name TYPE string .
+    DATA mv_appl_obj_cls_name TYPE seoclsname .
+    DATA mv_persistence_cls_name TYPE seoclsname .
+
+    METHODS create_channel_objects
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_data
+      EXPORTING
+        !eg_data TYPE any
+      RAISING
+        zcx_abapgit_exception .
+    METHODS lock
+      RAISING
+        zcx_abapgit_exception .
+    METHODS unlock
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_names .
+ENDCLASS.
+CLASS zcl_abapgit_object_samc DEFINITION
+  INHERITING FROM zcl_abapgit_object_saxx_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+
+    METHODS get_data_class_name
+        REDEFINITION .
+    METHODS get_data_structure_name
+        REDEFINITION .
+    METHODS get_persistence_class_name
+        REDEFINITION .
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_object_sapc DEFINITION
+  INHERITING FROM zcl_abapgit_object_saxx_super
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+  PROTECTED SECTION.
+
+    METHODS get_data_class_name
+        REDEFINITION .
+    METHODS get_data_structure_name
+        REDEFINITION .
+    METHODS get_persistence_class_name
+        REDEFINITION .
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_object_scp1 DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
   CREATE PUBLIC .
@@ -10293,26 +10374,31 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_w3super DEFINITION INHERITING FROM zcl_abapgit_objects_super ABSTRACT.
+CLASS zcl_abapgit_object_w3xx_super DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  ABSTRACT
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
 
-    TYPES ty_wwwparams_tt TYPE STANDARD TABLE OF wwwparams WITH DEFAULT KEY.
+    INTERFACES zif_abapgit_object .
 
-    CONSTANTS: BEGIN OF c_param_names,
-                 version  TYPE w3_name VALUE 'version',
-                 fileext  TYPE w3_name VALUE 'fileextension',
-                 filesize TYPE w3_name VALUE 'filesize',
-                 filename TYPE w3_name VALUE 'filename',
-                 mimetype TYPE w3_name VALUE 'mimetype',
-               END OF c_param_names.
+    TYPES:
+      ty_wwwparams_tt TYPE STANDARD TABLE OF wwwparams WITH DEFAULT KEY .
+
+    CONSTANTS:
+      BEGIN OF c_param_names,
+        version  TYPE w3_name VALUE 'version',
+        fileext  TYPE w3_name VALUE 'fileextension',
+        filesize TYPE w3_name VALUE 'filesize',
+        filename TYPE w3_name VALUE 'filename',
+        mimetype TYPE w3_name VALUE 'mimetype',
+      END OF c_param_names .
 
     METHODS constructor
       IMPORTING
-        is_item     TYPE zif_abapgit_definitions=>ty_item
-        iv_language TYPE spras.
-
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras .
   PROTECTED SECTION.
     TYPES ty_bdcdata TYPE STANDARD TABLE OF bdcdata
                            WITH NON-UNIQUE DEFAULT KEY.
@@ -10348,15 +10434,17 @@ CLASS zcl_abapgit_object_w3super DEFINITION INHERITING FROM zcl_abapgit_objects_
       RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_object_w3ht DEFINITION INHERITING FROM zcl_abapgit_object_w3super FINAL.
+CLASS zcl_abapgit_object_w3ht DEFINITION INHERITING FROM zcl_abapgit_object_w3xx_super FINAL.
 
   PROTECTED SECTION.
     METHODS: change_bdc_jump_data REDEFINITION.
+  PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_object_w3mi DEFINITION INHERITING FROM zcl_abapgit_object_w3super FINAL.
+CLASS zcl_abapgit_object_w3mi DEFINITION INHERITING FROM zcl_abapgit_object_w3xx_super FINAL.
 
   PROTECTED SECTION.
     METHODS: change_bdc_jump_data REDEFINITION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_wapa DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -11144,71 +11232,6 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
           VALUE(rv_is_program_locked) TYPE abap_bool
         RAISING
           zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcl_abapgit_objects_saxx_super DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super
-  ABSTRACT
-  CREATE PUBLIC .
-
-* common class for SAPC and SAMC objects
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_object .
-  PROTECTED SECTION.
-
-    METHODS get_persistence_class_name
-          ABSTRACT
-      RETURNING
-        VALUE(rv_persistence_class_name) TYPE seoclsname .
-    METHODS get_data_class_name
-          ABSTRACT
-      RETURNING
-        VALUE(rv_data_class_name) TYPE seoclsname .
-    METHODS get_data_structure_name
-          ABSTRACT
-      RETURNING
-        VALUE(rv_data_structure_name) TYPE string .
-  PRIVATE SECTION.
-
-    DATA mi_persistence TYPE REF TO if_wb_object_persist .
-    DATA mi_appl_obj_data TYPE REF TO if_wb_object_data_model .
-    DATA mv_data_structure_name TYPE string .
-    DATA mv_appl_obj_cls_name TYPE seoclsname .
-    DATA mv_persistence_cls_name TYPE seoclsname .
-
-    METHODS create_channel_objects
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_data
-      EXPORTING
-        !eg_data TYPE any
-      RAISING
-        zcx_abapgit_exception .
-    METHODS lock
-      RAISING
-        zcx_abapgit_exception .
-    METHODS unlock
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_names .
-ENDCLASS.
-CLASS zcl_abapgit_object_samc DEFINITION INHERITING FROM zcl_abapgit_objects_saxx_super FINAL.
-
-  PROTECTED SECTION.
-    METHODS:
-      get_persistence_class_name REDEFINITION,
-      get_data_class_name REDEFINITION,
-      get_data_structure_name REDEFINITION.
-
-ENDCLASS.
-CLASS zcl_abapgit_object_sapc DEFINITION INHERITING FROM zcl_abapgit_objects_saxx_super FINAL.
-
-  PROTECTED SECTION.
-    METHODS:
-      get_persistence_class_name REDEFINITION,
-      get_data_class_name REDEFINITION,
-      get_data_structure_name REDEFINITION.
 
 ENDCLASS.
 CLASS zcl_abapgit_persist_background DEFINITION
@@ -49135,320 +49158,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_saxx_super IMPLEMENTATION.
-  METHOD create_channel_objects.
-
-    get_names( ).
-
-    TRY.
-        IF mi_appl_obj_data IS NOT BOUND.
-          CREATE OBJECT mi_appl_obj_data TYPE (mv_appl_obj_cls_name).
-        ENDIF.
-
-        IF mi_persistence IS NOT BOUND.
-          CREATE OBJECT mi_persistence TYPE (mv_persistence_cls_name).
-        ENDIF.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD get_data.
-
-    DATA: lv_object_key TYPE seu_objkey.
-
-    lv_object_key = ms_item-obj_name.
-
-    TRY.
-        mi_persistence->get(
-          EXPORTING
-            p_object_key  = lv_object_key
-            p_version     = 'A'
-          CHANGING
-            p_object_data = mi_appl_obj_data ).
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-    ENDTRY.
-
-    mi_appl_obj_data->get_data( IMPORTING p_data = eg_data ).
-
-  ENDMETHOD.
-  METHOD get_names.
-
-    IF mv_data_structure_name IS INITIAL.
-      mv_data_structure_name  = get_data_structure_name( ).
-    ENDIF.
-
-    IF mv_appl_obj_cls_name IS INITIAL.
-      mv_appl_obj_cls_name    = get_data_class_name( ).
-    ENDIF.
-
-    IF mv_persistence_cls_name IS INITIAL.
-      mv_persistence_cls_name = get_persistence_class_name( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD lock.
-
-    DATA: lv_objname    TYPE trobj_name,
-          lv_object_key TYPE seu_objkey,
-          lv_objtype    TYPE trobjtype.
-    lv_objname    = ms_item-obj_name.
-    lv_object_key = ms_item-obj_name.
-    lv_objtype    = ms_item-obj_type.
-
-    mi_persistence->lock(
-      EXPORTING
-        p_objname_tr   = lv_objname
-        p_object_key   = lv_object_key
-        p_objtype_tr   = lv_objtype
-      EXCEPTIONS
-        foreign_lock   = 1
-        error_occurred = 2
-        OTHERS         = 3 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } { lv_objname }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD unlock.
-
-    DATA: lv_objname    TYPE trobj_name,
-          lv_object_key TYPE seu_objkey,
-          lv_objtype    TYPE trobjtype.
-
-    lv_objname    = ms_item-obj_name.
-    lv_object_key = ms_item-obj_name.
-    lv_objtype    = ms_item-obj_type.
-
-    mi_persistence->unlock( p_objname_tr = lv_objname
-                            p_object_key = lv_object_key
-                            p_objtype_tr = lv_objtype ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~changed_by.
-
-    DATA: lr_data TYPE REF TO data.
-
-    FIELD-SYMBOLS: <lg_data>       TYPE any,
-                   <lg_header>     TYPE any,
-                   <lg_changed_by> TYPE any.
-
-    create_channel_objects( ).
-
-    TRY.
-        CREATE DATA lr_data TYPE (mv_data_structure_name).
-        ASSIGN lr_data->* TO <lg_data>.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |{ ms_item-obj_name } not supported| ).
-    ENDTRY.
-
-    get_data( IMPORTING eg_data = <lg_data> ).
-
-    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <lg_data> TO <lg_header>.
-    ASSERT sy-subrc = 0.
-    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_changed_by>.
-    ASSERT sy-subrc = 0.
-
-    IF <lg_changed_by> IS NOT INITIAL.
-      rv_user = <lg_changed_by>.
-    ELSE.
-      rv_user = c_user_unknown.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~delete.
-
-    DATA: lv_object_key TYPE seu_objkey.
-
-    create_channel_objects( ).
-
-    lv_object_key = ms_item-obj_name.
-
-    TRY.
-        lock( ).
-
-        mi_persistence->delete( lv_object_key ).
-
-        unlock( ).
-
-      CATCH cx_swb_exception.
-        zcx_abapgit_exception=>raise( |Error occured while deleting { ms_item-obj_type }| ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~deserialize.
-
-    DATA: lr_data TYPE REF TO data.
-
-    FIELD-SYMBOLS: <lg_data> TYPE any.
-
-    create_channel_objects( ).
-
-    TRY.
-        CREATE DATA lr_data TYPE (mv_data_structure_name).
-        ASSIGN lr_data->* TO <lg_data>.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-    ENDTRY.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = ms_item-obj_type
-      CHANGING
-        cg_data = <lg_data> ).
-
-    IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
-    ENDIF.
-
-    TRY.
-        lock( ).
-
-        CALL FUNCTION 'RS_CORR_INSERT'
-          EXPORTING
-            object              = ms_item-obj_name
-            object_class        = ms_item-obj_type
-            mode                = 'I'
-            global_lock         = abap_true
-            devclass            = iv_package
-            master_language     = mv_language
-            suppress_dialog     = abap_true
-          EXCEPTIONS
-            cancelled           = 1
-            permission_failure  = 2
-            unknown_objectclass = 3
-            OTHERS              = 4.
-
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
-        ENDIF.
-
-        mi_appl_obj_data->set_data( <lg_data> ).
-
-        mi_persistence->save( mi_appl_obj_data ).
-
-        unlock( ).
-
-      CATCH cx_swb_exception.
-        zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~exists.
-
-    DATA: lv_object_key TYPE seu_objkey.
-
-    create_channel_objects( ).
-
-    lv_object_key = ms_item-obj_name.
-
-    TRY.
-        mi_persistence->get( p_object_key           = lv_object_key
-                             p_version              = 'A'
-                             p_existence_check_only = abap_true ).
-
-      CATCH cx_swb_object_does_not_exist cx_swb_exception.
-        rv_bool = abap_false.
-        RETURN.
-    ENDTRY.
-
-    rv_bool = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_comparator.
-    RETURN.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_deserialize_steps.
-    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-
-    DATA: lr_data             TYPE REF TO data.
-
-    FIELD-SYMBOLS: <lg_data>   TYPE any,
-                   <lg_header> TYPE any,
-                   <lg_field>  TYPE any.
-
-    create_channel_objects( ).
-
-    TRY.
-        CREATE DATA lr_data TYPE (mv_data_structure_name).
-        ASSIGN lr_data->* TO <lg_data>.
-
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
-    ENDTRY.
-
-    get_data( IMPORTING eg_data = <lg_data> ).
-
-    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <lg_data> TO <lg_header>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'CHANGED_ON' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CHANGED_AT' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CHANGED_CLNT' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CREATED_ON' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CREATED_BY' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CREATED_AT' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    ASSIGN COMPONENT 'CREATED_CLNT' OF STRUCTURE <lg_header> TO <lg_field>.
-    ASSERT sy-subrc = 0.
-    CLEAR <lg_field>.
-
-    io_xml->add( iv_name = ms_item-obj_type
-                 ig_data = <lg_data> ).
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD add_tpool.
 
@@ -55158,7 +54867,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item = is_item
                         iv_language = iv_language ).
@@ -55581,7 +55290,6 @@ CLASS ZCL_ABAPGIT_OBJECT_W3SUPER IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_w3mi IMPLEMENTATION.
-
   METHOD change_bdc_jump_data.
 
     DATA: ls_bdcdata LIKE LINE OF ct_bdcdata.
@@ -55596,11 +55304,9 @@ CLASS zcl_abapgit_object_w3mi IMPLEMENTATION.
     APPEND ls_bdcdata TO ct_bdcdata.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
-
   METHOD change_bdc_jump_data.
 
     DATA: ls_bdcdata LIKE LINE OF ct_bdcdata.
@@ -55615,7 +55321,6 @@ CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
     APPEND ls_bdcdata TO ct_bdcdata.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_view IMPLEMENTATION.
@@ -66702,7 +66407,321 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SAPC IMPLEMENTATION.
+CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
+  METHOD create_channel_objects.
+
+    get_names( ).
+
+    TRY.
+        IF mi_appl_obj_data IS NOT BOUND.
+          CREATE OBJECT mi_appl_obj_data TYPE (mv_appl_obj_cls_name).
+        ENDIF.
+
+        IF mi_persistence IS NOT BOUND.
+          CREATE OBJECT mi_persistence TYPE (mv_persistence_cls_name).
+        ENDIF.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get_data.
+
+    DATA: lv_object_key TYPE seu_objkey.
+
+    lv_object_key = ms_item-obj_name.
+
+    TRY.
+        mi_persistence->get(
+          EXPORTING
+            p_object_key  = lv_object_key
+            p_version     = 'A'
+          CHANGING
+            p_object_data = mi_appl_obj_data ).
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
+    ENDTRY.
+
+    mi_appl_obj_data->get_data( IMPORTING p_data = eg_data ).
+
+  ENDMETHOD.
+  METHOD get_names.
+
+    IF mv_data_structure_name IS INITIAL.
+      mv_data_structure_name  = get_data_structure_name( ).
+    ENDIF.
+
+    IF mv_appl_obj_cls_name IS INITIAL.
+      mv_appl_obj_cls_name    = get_data_class_name( ).
+    ENDIF.
+
+    IF mv_persistence_cls_name IS INITIAL.
+      mv_persistence_cls_name = get_persistence_class_name( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD lock.
+
+    DATA: lv_objname    TYPE trobj_name,
+          lv_object_key TYPE seu_objkey,
+          lv_objtype    TYPE trobjtype.
+    lv_objname    = ms_item-obj_name.
+    lv_object_key = ms_item-obj_name.
+    lv_objtype    = ms_item-obj_type.
+
+    mi_persistence->lock(
+      EXPORTING
+        p_objname_tr   = lv_objname
+        p_object_key   = lv_object_key
+        p_objtype_tr   = lv_objtype
+      EXCEPTIONS
+        foreign_lock   = 1
+        error_occurred = 2
+        OTHERS         = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error occured while locking { ms_item-obj_type } { lv_objname }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD unlock.
+
+    DATA: lv_objname    TYPE trobj_name,
+          lv_object_key TYPE seu_objkey,
+          lv_objtype    TYPE trobjtype.
+
+    lv_objname    = ms_item-obj_name.
+    lv_object_key = ms_item-obj_name.
+    lv_objtype    = ms_item-obj_type.
+
+    mi_persistence->unlock( p_objname_tr = lv_objname
+                            p_object_key = lv_object_key
+                            p_objtype_tr = lv_objtype ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+
+    DATA: lr_data TYPE REF TO data.
+
+    FIELD-SYMBOLS: <lg_data>       TYPE any,
+                   <lg_header>     TYPE any,
+                   <lg_changed_by> TYPE any.
+
+    create_channel_objects( ).
+
+    TRY.
+        CREATE DATA lr_data TYPE (mv_data_structure_name).
+        ASSIGN lr_data->* TO <lg_data>.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |{ ms_item-obj_name } not supported| ).
+    ENDTRY.
+
+    get_data( IMPORTING eg_data = <lg_data> ).
+
+    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <lg_data> TO <lg_header>.
+    ASSERT sy-subrc = 0.
+    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_changed_by>.
+    ASSERT sy-subrc = 0.
+
+    IF <lg_changed_by> IS NOT INITIAL.
+      rv_user = <lg_changed_by>.
+    ELSE.
+      rv_user = c_user_unknown.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    DATA: lv_object_key TYPE seu_objkey.
+
+    create_channel_objects( ).
+
+    lv_object_key = ms_item-obj_name.
+
+    TRY.
+        lock( ).
+
+        mi_persistence->delete( lv_object_key ).
+
+        unlock( ).
+
+      CATCH cx_swb_exception.
+        zcx_abapgit_exception=>raise( |Error occured while deleting { ms_item-obj_type }| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA: lr_data TYPE REF TO data.
+
+    FIELD-SYMBOLS: <lg_data> TYPE any.
+
+    create_channel_objects( ).
+
+    TRY.
+        CREATE DATA lr_data TYPE (mv_data_structure_name).
+        ASSIGN lr_data->* TO <lg_data>.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
+    ENDTRY.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = ms_item-obj_type
+      CHANGING
+        cg_data = <lg_data> ).
+
+    IF zif_abapgit_object~exists( ) = abap_true.
+      zif_abapgit_object~delete( iv_package ).
+    ENDIF.
+
+    TRY.
+        lock( ).
+
+        CALL FUNCTION 'RS_CORR_INSERT'
+          EXPORTING
+            object              = ms_item-obj_name
+            object_class        = ms_item-obj_type
+            mode                = 'I'
+            global_lock         = abap_true
+            devclass            = iv_package
+            master_language     = mv_language
+            suppress_dialog     = abap_true
+          EXCEPTIONS
+            cancelled           = 1
+            permission_failure  = 2
+            unknown_objectclass = 3
+            OTHERS              = 4.
+
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
+        ENDIF.
+
+        mi_appl_obj_data->set_data( <lg_data> ).
+
+        mi_persistence->save( mi_appl_obj_data ).
+
+        unlock( ).
+
+      CATCH cx_swb_exception.
+        zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA: lv_object_key TYPE seu_objkey.
+
+    create_channel_objects( ).
+
+    lv_object_key = ms_item-obj_name.
+
+    TRY.
+        mi_persistence->get( p_object_key           = lv_object_key
+                             p_version              = 'A'
+                             p_existence_check_only = abap_true ).
+
+      CATCH cx_swb_object_does_not_exist cx_swb_exception.
+        rv_bool = abap_false.
+        RETURN.
+    ENDTRY.
+
+    rv_bool = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation   = 'SHOW'
+        object_name = ms_item-obj_name
+        object_type = ms_item-obj_type.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA: lr_data             TYPE REF TO data.
+
+    FIELD-SYMBOLS: <lg_data>   TYPE any,
+                   <lg_header> TYPE any,
+                   <lg_field>  TYPE any.
+
+    create_channel_objects( ).
+
+    TRY.
+        CREATE DATA lr_data TYPE (mv_data_structure_name).
+        ASSIGN lr_data->* TO <lg_data>.
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |{ ms_item-obj_type } not supported| ).
+    ENDTRY.
+
+    get_data( IMPORTING eg_data = <lg_data> ).
+
+    ASSIGN COMPONENT 'HEADER' OF STRUCTURE <lg_data> TO <lg_header>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'CHANGED_ON' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CHANGED_AT' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CHANGED_CLNT' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CREATED_ON' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CREATED_BY' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CREATED_AT' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    ASSIGN COMPONENT 'CREATED_CLNT' OF STRUCTURE <lg_header> TO <lg_field>.
+    ASSERT sy-subrc = 0.
+    CLEAR <lg_field>.
+
+    io_xml->add( iv_name = ms_item-obj_type
+                 ig_data = <lg_data> ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_sapc IMPLEMENTATION.
   METHOD get_data_class_name.
 
     rv_data_class_name = 'CL_APC_APPLICATION_OBJ_DATA'.
@@ -66720,7 +66739,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SAPC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SAMC IMPLEMENTATION.
+CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   METHOD get_data_class_name.
 
     rv_data_class_name = 'CL_AMC_APPLICATION_OBJ_DATA'.
@@ -95628,5 +95647,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-15T07:01:34.028Z
+* abapmerge 0.14.2 - 2020-12-15T07:06:10.044Z
 ****************************************************
