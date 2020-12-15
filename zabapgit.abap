@@ -78698,7 +78698,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
               intern_err            = 4
               OTHERS                = 5.
 
-        CATCH cx_root.
+        CATCH cx_sy_dyn_call_param_not_found.
 
           li_package->delete(
             EXCEPTIONS
@@ -78714,18 +78714,32 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
-      li_package->save(
-        EXPORTING
-          i_suppress_dialog     = abap_true
-        EXCEPTIONS
-          object_invalid        = 1
-          object_not_changeable = 2
-          cancelled_in_corr     = 3
-          permission_failure    = 4
-          unexpected_error      = 5
-          intern_err            = 6
-          OTHERS                = 7 ).
+      TRY.
+          CALL METHOD li_package->('SAVE')
+            EXPORTING
+              i_suppress_dialog     = abap_true
+            EXCEPTIONS
+              object_invalid        = 1
+              object_not_changeable = 2
+              cancelled_in_corr     = 3
+              permission_failure    = 4
+              unexpected_error      = 5
+              intern_err            = 6
+              OTHERS                = 7.
 
+        CATCH cx_sy_dyn_call_param_not_found.
+
+          li_package->save(
+            EXCEPTIONS
+              object_invalid        = 1
+              object_not_changeable = 2
+              cancelled_in_corr     = 3
+              permission_failure    = 4
+              unexpected_error      = 5
+              intern_err            = 6
+              OTHERS                = 7 ).
+
+      ENDTRY.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
@@ -95614,5 +95628,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-14T13:55:27.041Z
+* abapmerge 0.14.2 - 2020-12-15T07:01:34.028Z
 ****************************************************
