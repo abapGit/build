@@ -20179,7 +20179,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     " check if url is already in use for a different package
     lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
-    LOOP AT lt_repos ASSIGNING <ls_repo>.
+    LOOP AT lt_repos ASSIGNING <ls_repo> WHERE offline = abap_false.
 
       lv_check_repo_address = zcl_abapgit_url=>url_address( <ls_repo>-url ).
 
@@ -95647,5 +95647,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-15T07:06:10.044Z
+* abapmerge 0.14.2 - 2020-12-15T07:10:49.028Z
 ****************************************************
