@@ -7851,13 +7851,6 @@ CLASS zcl_abapgit_object_ecat DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7865,6 +7858,7 @@ CLASS zcl_abapgit_object_ecat DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsd DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -7872,13 +7866,6 @@ CLASS zcl_abapgit_object_ecsd DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7886,6 +7873,7 @@ CLASS zcl_abapgit_object_ecsd DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_ecsp DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -7893,13 +7881,6 @@ CLASS zcl_abapgit_object_ecsp DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7907,6 +7888,7 @@ CLASS zcl_abapgit_object_ecsp DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_ectc DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -7914,13 +7896,6 @@ CLASS zcl_abapgit_object_ectc DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7928,6 +7903,7 @@ CLASS zcl_abapgit_object_ectc DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_ectd DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -7935,13 +7911,6 @@ CLASS zcl_abapgit_object_ectd DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7949,6 +7918,7 @@ CLASS zcl_abapgit_object_ectd DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_ecvo DEFINITION
   INHERITING FROM zcl_abapgit_object_ecatt_super
@@ -7956,13 +7926,6 @@ CLASS zcl_abapgit_object_ecvo DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING
-          !is_item     TYPE zif_abapgit_definitions=>ty_item
-          !iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS:
       get_object_type REDEFINITION,
@@ -7970,6 +7933,7 @@ CLASS zcl_abapgit_object_ecvo DEFINITION
       get_download REDEFINITION,
       get_lock_object REDEFINITION.
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_enhc DEFINITION
   INHERITING FROM zcl_abapgit_objects_super.
@@ -10684,17 +10648,15 @@ CLASS zcl_abapgit_object_wdca DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_wdcc DEFINITION
-  INHERITING FROM zcl_abapgit_objects_super.
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
-    METHODS constructor
-      IMPORTING
-        !is_item     TYPE zif_abapgit_definitions=>ty_item
-        !iv_language TYPE spras.
+    INTERFACES zif_abapgit_object .
 
+    ALIASES mo_files
+      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -53833,13 +53795,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
-  METHOD constructor.
-
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
-
-  ENDMETHOD.
+CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_outline    TYPE wdy_cfg_outline_data,
@@ -75997,10 +75953,14 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
-  METHOD constructor.
+  METHOD get_download.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_val_obj_down.
+
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TD'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76009,33 +75969,22 @@ CLASS zcl_abapgit_object_ecvo IMPLEMENTATION.
     rv_object_type = 'ECVO'.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_val_obj_upl.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_val_obj_down.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT_TD'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
+  METHOD get_download.
 
-  METHOD constructor.
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_data_downl.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TD'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76043,32 +75992,22 @@ CLASS zcl_abapgit_object_ectd IMPLEMENTATION.
     rv_object_type = cl_apl_ecatt_const=>obj_type_test_data.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_data_upload.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_data_downl.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT_TD'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
-  METHOD constructor.
+  METHOD get_download.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_config_downl.
+
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_TC'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76076,32 +76015,22 @@ CLASS zcl_abapgit_object_ectc IMPLEMENTATION.
     rv_object_type = cl_apl_ecatt_const=>obj_type_test_config.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_config_upl.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_config_downl.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT_TC'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
-  METHOD constructor.
+  METHOD get_download.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_sp_download.
+
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_SP'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76110,32 +76039,22 @@ CLASS zcl_abapgit_object_ecsp IMPLEMENTATION.
     rv_object_type = 'ECSP'.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_sp_upload.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_sp_download.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT_SP'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
-  METHOD constructor.
+  METHOD get_download.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_system_downl.
+
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT_SD'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76143,25 +76062,11 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
     rv_object_type = cl_apl_ecatt_const=>obj_type_system_data.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_system_upl.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_system_downl.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT_SD'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
@@ -76599,10 +76504,14 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
-  METHOD constructor.
+  METHOD get_download.
 
-    super->constructor( is_item     = is_item
-                        iv_language = iv_language ).
+    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_script_downl.
+
+  ENDMETHOD.
+  METHOD get_lock_object.
+
+    rv_lock_object = 'E_ECATT'.
 
   ENDMETHOD.
   METHOD get_object_type.
@@ -76610,25 +76519,11 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
     rv_object_type = cl_apl_ecatt_const=>obj_type_test_script.
 
   ENDMETHOD.
-
   METHOD get_upload.
 
     CREATE OBJECT ro_upload TYPE zcl_abapgit_ecatt_script_upl.
 
   ENDMETHOD.
-
-  METHOD get_download.
-
-    CREATE OBJECT ro_download TYPE zcl_abapgit_ecatt_script_downl.
-
-  ENDMETHOD.
-
-  METHOD get_lock_object.
-
-    rv_lock_object = 'E_ECATT'.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
@@ -96911,5 +96806,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-22T05:53:58.346Z
+* abapmerge 0.14.2 - 2020-12-22T06:06:22.215Z
 ****************************************************
