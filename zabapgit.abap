@@ -38005,14 +38005,17 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     ls_col_spec-tech_name = 'OBJ_TYPE'.
     ls_col_spec-display_name = 'Type'.
+    ls_col_spec-allow_order_by = abap_true.
     APPEND ls_col_spec TO lt_col_spec.
 
     ls_col_spec-tech_name = 'OBJ_NAME'.
     ls_col_spec-display_name = 'Name'.
+    ls_col_spec-allow_order_by = abap_true.
     APPEND ls_col_spec TO lt_col_spec.
 
     ls_col_spec-tech_name = 'PATH'.
     ls_col_spec-display_name = 'Path'.
+    ls_col_spec-allow_order_by = abap_true.
     APPEND ls_col_spec TO lt_col_spec.
 
     APPEND INITIAL LINE TO lt_col_spec.
@@ -96900,5 +96903,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-22T05:45:55.609Z
+* abapmerge 0.14.2 - 2020-12-22T05:48:52.018Z
 ****************************************************
