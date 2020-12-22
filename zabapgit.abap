@@ -66940,7 +66940,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_prog IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -67009,15 +67009,21 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_program  LIKE sy-repid,
-          lv_obj_name TYPE e071-obj_name.
+    DATA:
+      lv_program    LIKE sy-repid,
+      lv_obj_name   TYPE e071-obj_name,
+      lv_corrnumber TYPE e071-trkorr.
 
     lv_program = ms_item-obj_name.
+    lv_corrnumber = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     CALL FUNCTION 'RS_DELETE_PROGRAM'
       EXPORTING
+        corrnumber                 = lv_corrnumber
         program                    = lv_program
         suppress_popup             = abap_true
+        mass_delete_call           = abap_true
+        tadir_devclass             = iv_package
         force_delete_used_includes = abap_true
       EXCEPTIONS
         enqueue_lock               = 1
@@ -96894,5 +96900,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-22T05:42:49.469Z
+* abapmerge 0.14.2 - 2020-12-22T05:45:55.609Z
 ****************************************************
