@@ -1518,7 +1518,7 @@ INTERFACE zif_abapgit_html.
     IMPORTING
       !iv_txt   TYPE string
       !iv_act   TYPE string
-      !iv_typ   TYPE char1 DEFAULT c_action_type-sapevent
+      !iv_typ   TYPE c DEFAULT c_action_type-sapevent
       !iv_opt   TYPE clike OPTIONAL
       !iv_class TYPE string OPTIONAL
       !iv_id    TYPE string OPTIONAL
@@ -1532,7 +1532,7 @@ INTERFACE zif_abapgit_html.
     IMPORTING
       !iv_txt       TYPE string
       !iv_act       TYPE string
-      !iv_typ       TYPE char1 DEFAULT zif_abapgit_html=>c_action_type-sapevent
+      !iv_typ       TYPE c DEFAULT zif_abapgit_html=>c_action_type-sapevent
       !iv_opt       TYPE clike OPTIONAL
       !iv_class     TYPE string OPTIONAL
       !iv_id        TYPE string OPTIONAL
@@ -96806,5 +96806,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-22T06:06:22.215Z
+* abapmerge 0.14.2 - 2020-12-24T07:38:03.873Z
 ****************************************************
