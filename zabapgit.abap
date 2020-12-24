@@ -80335,7 +80335,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
+CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -80436,12 +80436,15 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+    DATA: lv_img_activity TYPE cus_img_ac.
 
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+    lv_img_activity = mv_img_activity.
 
-*   doesn't work...
-*    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_MAINTAIN'
-
+    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_MAINTAIN'
+      EXPORTING
+        i_display    = abap_true
+      CHANGING
+        img_activity = lv_img_activity.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96806,5 +96809,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-24T07:38:03.873Z
+* abapmerge 0.14.2 - 2020-12-24T09:02:33.890Z
 ****************************************************
