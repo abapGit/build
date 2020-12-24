@@ -80196,7 +80196,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
+CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -80301,9 +80301,35 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+    DATA: lt_bdc_data TYPE STANDARD TABLE OF bdcdata.
+    FIELD-SYMBOLS: <ls_bdc_data> TYPE bdcdata.
 
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+    APPEND INITIAL LINE TO lt_bdc_data ASSIGNING <ls_bdc_data>.
+    <ls_bdc_data>-program = 'SAPLS_CUS_ACTIVITY'.
+    <ls_bdc_data>-dynpro = '0200'.
+    <ls_bdc_data>-dynbegin = 'X'.
 
+    APPEND INITIAL LINE TO lt_bdc_data ASSIGNING <ls_bdc_data>.
+    <ls_bdc_data>-fnam = 'CUS_ACTH-ACT_ID'.
+    <ls_bdc_data>-fval = mv_customizing_activity.
+
+    APPEND INITIAL LINE TO lt_bdc_data ASSIGNING <ls_bdc_data>.
+    <ls_bdc_data>-fnam = 'BDC_OKCODE'.
+    <ls_bdc_data>-fval = '=ACT_DISP'.
+
+    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+      EXPORTING
+        tcode                   = 'S_CUS_ACTIVITY'
+        mode_val                = 'E'
+      TABLES
+        using_tab               = lt_bdc_data
+      EXCEPTIONS
+        call_transaction_denied = 1
+        tcode_invalid           = 2
+        OTHERS                  = 3.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from JUMP CUS1: { sy-subrc }| ).
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96809,5 +96835,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-24T09:02:33.890Z
+* abapmerge 0.14.2 - 2020-12-24T11:56:43.679Z
 ****************************************************
