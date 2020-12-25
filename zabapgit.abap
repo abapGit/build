@@ -2658,10 +2658,10 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_log .
   TYPES:
     BEGIN OF ty_log_out,
-      type      TYPE symsgty,
+      type      TYPE sy-msgty,
       text      TYPE string,
-      obj_type  TYPE trobjtype,
-      obj_name  TYPE sobj_name,
+      obj_type  TYPE tadir-object,
+      obj_name  TYPE tadir-obj_name,
       exception TYPE REF TO cx_root,
     END OF ty_log_out .
   TYPES:
@@ -2670,7 +2670,7 @@ INTERFACE zif_abapgit_log .
   TYPES:
     BEGIN OF ty_msg,
       text TYPE string,
-      type TYPE symsgty,
+      type TYPE sy-msgty,
     END OF ty_msg .
   TYPES:
     ty_msgs TYPE STANDARD TABLE OF ty_msg
@@ -2678,7 +2678,7 @@ INTERFACE zif_abapgit_log .
   TYPES:
     BEGIN OF ty_item_status_out,
       item     TYPE zif_abapgit_definitions=>ty_item,
-      status   TYPE symsgty,
+      status   TYPE sy-msgty,
       messages TYPE ty_msgs,
     END OF ty_item_status_out .
   TYPES:
@@ -2688,8 +2688,8 @@ INTERFACE zif_abapgit_log .
   METHODS add
     IMPORTING
       !iv_msg  TYPE csequence
-      !iv_type TYPE symsgty DEFAULT 'E'
-      !iv_rc   TYPE balsort OPTIONAL
+      !iv_type TYPE sy-msgty DEFAULT 'E'
+      !iv_rc   TYPE sy-subrc OPTIONAL
       !is_item TYPE zif_abapgit_definitions=>ty_item OPTIONAL
       !ix_exc  TYPE REF TO cx_root OPTIONAL .
   METHODS add_error
@@ -2718,7 +2718,7 @@ INTERFACE zif_abapgit_log .
       VALUE(rv_count) TYPE i .
   METHODS has_rc
     IMPORTING
-      !iv_rc        TYPE balsort
+      !iv_rc        TYPE sy-subrc
     RETURNING
       VALUE(rv_yes) TYPE abap_bool .
   METHODS get_messages
@@ -2729,7 +2729,7 @@ INTERFACE zif_abapgit_log .
       VALUE(rt_item_status) TYPE ty_item_status_outs .
   METHODS get_status
     RETURNING
-      VALUE(rv_status) TYPE symsgty .
+      VALUE(rv_status) TYPE sy-msgty .
   METHODS get_title
     RETURNING
       VALUE(rv_title) TYPE string .
@@ -16424,18 +16424,17 @@ CLASS zcl_abapgit_log DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_log .
-
   PROTECTED SECTION.
 
     TYPES:
       BEGIN OF ty_msg,
         text TYPE string,
-        type TYPE symsgty,
+        type TYPE sy-msgty,
       END OF ty_msg .
     TYPES:
       BEGIN OF ty_log, "in order of occurrence
         msg       TYPE ty_msg,
-        rc        TYPE balsort,
+        rc        TYPE sy-subrc,
         item      TYPE zif_abapgit_definitions=>ty_item,
         exception TYPE REF TO cx_root,
       END OF ty_log .
@@ -16448,7 +16447,7 @@ CLASS zcl_abapgit_log DEFINITION
       IMPORTING
         !it_msg          TYPE zif_abapgit_log=>ty_msgs
       RETURNING
-        VALUE(rv_status) TYPE symsgty .
+        VALUE(rv_status) TYPE sy-msgty .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_login_manager DEFINITION
@@ -96835,5 +96834,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-25T09:11:46.824Z
+* abapmerge 0.14.2 - 2020-12-25T09:13:32.224Z
 ****************************************************
