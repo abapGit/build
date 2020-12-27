@@ -24696,7 +24696,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 
     CONCATENATE iv_username ':' iv_password INTO lv_concat.
 
-    rv_auth = cl_http_utility=>if_http_utility~encode_base64( lv_concat ).
+    rv_auth = cl_http_utility=>encode_base64( lv_concat ).
 
     CONCATENATE 'Basic' rv_auth INTO rv_auth
       SEPARATED BY space.
@@ -96834,5 +96834,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-25T09:13:32.224Z
+* abapmerge 0.14.2 - 2020-12-27T17:02:00.929Z
 ****************************************************
