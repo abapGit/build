@@ -627,6 +627,9 @@ INTERFACE zif_abapgit_ajson_reader DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
+INTERFACE zif_abapgit_data_serializer DEFERRED.
+INTERFACE zif_abapgit_data_deserializer DEFERRED.
+INTERFACE zif_abapgit_data_config DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
@@ -941,6 +944,11 @@ CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_deserializer DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_config DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport_mass DEFINITION DEFERRED.
 CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
@@ -2267,6 +2275,82 @@ INTERFACE zif_abapgit_apack_definitions.
   CONSTANTS c_dot_apack_manifest TYPE string VALUE '.apack-manifest.xml' ##NO_TEXT.
   CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_config .
+  TYPES:
+    ty_data_type TYPE c LENGTH 4 .
+  TYPES:
+    BEGIN OF ty_config,
+      type  TYPE ty_data_type,
+      name  TYPE tadir-obj_name,
+      where TYPE string_table,
+    END OF ty_config .
+  TYPES:
+    ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name.
+
+  CONSTANTS c_default_path TYPE string VALUE '/data/' ##NO_TEXT.
+  CONSTANTS:
+    BEGIN OF c_data_type,
+      tabu TYPE ty_data_type VALUE 'TABU',
+      vdat TYPE ty_data_type VALUE 'VDAT',
+      cdat TYPE ty_data_type VALUE 'CDAT',
+      tdat TYPE ty_data_type VALUE 'TDAT',
+    END OF c_data_type .
+
+  METHODS get_path
+    RETURNING
+      VALUE(rv_path) TYPE string .
+  METHODS set_path
+    IMPORTING
+      !iv_path TYPE string
+    RAISING
+      zcx_abapgit_exception .
+  METHODS from_json
+    IMPORTING
+      !it_files TYPE zif_abapgit_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS to_json
+    RETURNING
+      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
+  METHODS add_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+  METHODS update_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+  METHODS remove_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_configs
+    RETURNING
+      VALUE(rt_configs) TYPE ty_config_tt .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_deserializer .
+
+  METHODS deserialize
+    IMPORTING
+      ii_config TYPE REF TO zif_abapgit_data_config
+      it_files  TYPE zif_abapgit_definitions=>ty_files_tt.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_serializer .
+  METHODS serialize
+    IMPORTING
+      !ii_config      TYPE REF TO zif_abapgit_data_config
+    RETURNING
+      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_tadir .
@@ -4102,6 +4186,90 @@ CLASS zcl_abapgit_transport_objects DEFINITION
   PRIVATE SECTION.
 
     DATA mt_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt .
+ENDCLASS.
+CLASS zcl_abapgit_data_config DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_data_config .
+
+    METHODS constructor .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mv_path TYPE string .
+    DATA mt_config TYPE zif_abapgit_data_config=>ty_config_tt .
+ENDCLASS.
+CLASS zcl_abapgit_data_deserializer DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_data_deserializer .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_data_factory DEFINITION
+  CREATE PUBLIC
+  FRIENDS ZCL_ABAPGIT_data_injector .
+
+  PUBLIC SECTION.
+
+    METHODS get_serializer
+      RETURNING
+        VALUE(ri_serializer) TYPE REF TO zif_abapgit_data_serializer .
+    METHODS get_deserializer
+      RETURNING
+        VALUE(ri_deserializer) TYPE REF TO zif_abapgit_data_deserializer .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA gi_serializer TYPE REF TO zif_abapgit_data_serializer .
+    CLASS-DATA gi_deserializer TYPE REF TO zif_abapgit_data_deserializer .
+ENDCLASS.
+CLASS zcl_abapgit_data_injector DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS set_serializer
+      IMPORTING
+        !ii_serializer TYPE REF TO zif_abapgit_data_serializer .
+    METHODS set_deserializer
+      IMPORTING
+        !ii_deserializer TYPE REF TO zif_abapgit_data_deserializer .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_data_serializer DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_data_serializer .
+  PROTECTED SECTION.
+
+    METHODS dump_itab
+      IMPORTING
+        !ir_data       TYPE REF TO data
+      RETURNING
+        VALUE(rv_data) TYPE xstring .
+    METHODS build_table_itab
+      IMPORTING
+        !iv_name       TYPE tadir-obj_name
+      RETURNING
+        VALUE(rr_data) TYPE REF TO data .
+    METHODS read_database_table
+      IMPORTING
+        !iv_name       TYPE tadir-obj_name
+        !it_where      TYPE string_table
+      RETURNING
+        VALUE(rr_data) TYPE REF TO data .
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_git_add_patch DEFINITION
   FINAL
@@ -94772,6 +94940,178 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
+  METHOD build_table_itab.
+
+    DATA lo_structure TYPE REF TO cl_abap_structdescr.
+    DATA lo_table TYPE REF TO cl_abap_tabledescr.
+
+    lo_structure ?= cl_abap_structdescr=>describe_by_name( iv_name ).
+* todo, also add unique key corresponding to the db table, so duplicates cannot be returned
+    lo_table = cl_abap_tabledescr=>create( lo_structure ).
+    CREATE DATA rr_data TYPE HANDLE lo_table.
+
+  ENDMETHOD.
+  METHOD dump_itab.
+
+* quick and dirty, will be json instead
+
+    DATA lt_data TYPE string_table.
+    DATA lv_str TYPE string.
+    FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_row> TYPE any.
+    ASSIGN ir_data->* TO <lg_tab>.
+    LOOP AT <lg_tab> ASSIGNING <ls_row>.
+      cl_abap_container_utilities=>fill_container_c(
+        EXPORTING
+          im_value     = <ls_row>
+        IMPORTING
+          ex_container = lv_str ).
+      APPEND lv_str TO lt_data.
+    ENDLOOP.
+
+    rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( concat_lines_of( table = lt_data
+                                                                            sep   = |\n| ) ).
+
+  ENDMETHOD.
+  METHOD read_database_table.
+
+    DATA lv_where LIKE LINE OF it_where.
+    FIELD-SYMBOLS: <lg_tab> TYPE ANY TABLE.
+
+    rr_data = build_table_itab( iv_name ).
+    ASSIGN rr_data->* TO <lg_tab>.
+
+    LOOP AT it_where INTO lv_where.
+      SELECT * FROM (iv_name) INTO TABLE <lg_tab> WHERE (lv_where).
+    ENDLOOP.
+    IF lines( it_where ) = 0.
+      SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_serializer~serialize.
+
+    DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
+    DATA ls_config LIKE LINE OF lt_configs.
+    DATA ls_file LIKE LINE OF rt_files.
+    DATA lr_data TYPE REF TO data.
+    ls_file-path = ii_config->get_path( ).
+    lt_configs = ii_config->get_configs( ).
+
+    LOOP AT lt_configs INTO ls_config.
+      ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
+      ASSERT NOT ls_config-name IS INITIAL.
+
+      lr_data = read_database_table(
+        iv_name  = ls_config-name
+        it_where = ls_config-where ).
+
+      ls_file-filename = to_lower( |{ ls_config-name }.{ ls_config-type }.todo| ).
+      ls_file-data = dump_itab( lr_data ).
+      ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
+      APPEND ls_file TO rt_files.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DATA_INJECTOR IMPLEMENTATION.
+  METHOD set_deserializer.
+    zcl_abapgit_data_factory=>gi_deserializer = ii_deserializer.
+  ENDMETHOD.
+  METHOD set_serializer.
+    zcl_abapgit_data_factory=>gi_serializer = ii_serializer.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
+  METHOD get_deserializer.
+
+    IF gi_deserializer IS INITIAL.
+      CREATE OBJECT gi_deserializer TYPE zcl_abapgit_data_deserializer.
+    ENDIF.
+
+    ri_deserializer = gi_deserializer.
+
+  ENDMETHOD.
+  METHOD get_serializer.
+
+    IF gi_serializer IS INITIAL.
+      CREATE OBJECT gi_serializer TYPE zcl_abapgit_data_serializer.
+    ENDIF.
+
+    ri_serializer = gi_serializer.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
+  METHOD zif_abapgit_data_deserializer~deserialize.
+* todo
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
+  METHOD constructor.
+
+    mv_path = zif_abapgit_data_config=>c_default_path.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~add_config.
+
+    ASSERT NOT is_config-type IS INITIAL.
+    ASSERT NOT is_config-name IS INITIAL.
+
+    INSERT is_config INTO TABLE mt_config.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Already in table' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~from_json.
+* todo
+    ASSERT 0 = 1.
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~get_configs.
+    rt_configs = mt_config.
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~get_path.
+
+    rv_path = mv_path.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~remove_config.
+
+* todo, give exception if it does not exist
+
+    DELETE mt_config WHERE name = is_config-name AND type = is_config-type.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Not found' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~set_path.
+
+* todo, validate format
+
+    mv_path = iv_path.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~to_json.
+* todo
+    ASSERT 0 = 1.
+  ENDMETHOD.
+  METHOD zif_abapgit_data_config~update_config.
+
+    zif_abapgit_data_config~remove_config( is_config ).
+    zif_abapgit_data_config~add_config( is_config ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_transport_objects IMPLEMENTATION.
   METHOD constructor.
     mt_transport_objects = it_transport_objects.
@@ -97171,5 +97511,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-28T12:27:50.913Z
+* abapmerge 0.14.2 - 2020-12-28T12:30:28.336Z
 ****************************************************
