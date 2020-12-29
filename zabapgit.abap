@@ -65042,6 +65042,8 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
     DATA: ls_message             TYPE hier_mess,
           lv_deletion_successful TYPE hier_yesno.
 
+    corr_insert( iv_package ).
+
     CALL FUNCTION 'STREE_EXTENSION_DELETE'
       EXPORTING
         extension           = mv_extension
@@ -65076,6 +65078,8 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
     DELETE FROM ttree_extt WHERE extension = ls_extension-header-extension.
     MODIFY ttree_extt FROM TABLE ls_extension-texts.
+
+    corr_insert( iv_package ).
 
     tadir_insert( iv_package ).
 
@@ -97511,5 +97515,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-28T12:30:28.336Z
+* abapmerge 0.14.2 - 2020-12-29T08:29:46.791Z
 ****************************************************
