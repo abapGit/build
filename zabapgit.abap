@@ -75530,7 +75530,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
+CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -75544,13 +75544,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENSC IMPLEMENTATION.
 
     TRY.
         li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
-          lock = 'X'
+          lock = abap_true
           name = lv_spot_name ).
 
         IF li_spot_ref IS BOUND.
           li_spot_ref->if_enh_object~delete(
-            nevertheless_delete = 'X'
-            run_dark            = 'X' ).
+            nevertheless_delete = abap_true
+            run_dark            = abap_true ).
         ENDIF.
         li_spot_ref->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_root.
@@ -76056,7 +76056,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
+CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   METHOD factory.
 
     CASE iv_tool.
@@ -76149,8 +76149,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
         li_enh_object = cl_enh_factory=>get_enhancement(
           enhancement_id = lv_enh_id
           lock           = abap_true ).
-        li_enh_object->delete( ).
-        li_enh_object->save( run_dark = abap_true ).
+        li_enh_object->delete( nevertheless_delete = abap_true
+                               run_dark            = abap_true ).
         li_enh_object->unlock( ).
       CATCH cx_enh_root.
         zcx_abapgit_exception=>raise( 'Error deleting ENHO' ).
@@ -76263,7 +76263,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
+CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -76287,8 +76287,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHC IMPLEMENTATION.
           name = mv_composite_id
           lock = abap_true ).
 
-        li_enh_object->delete( ).
-        li_enh_object->save( ).
+        li_enh_object->delete( nevertheless_delete = abap_true
+                               run_dark            = abap_true ).
         li_enh_object->unlock( ).
 
       CATCH cx_enh_root INTO lx_error.
@@ -97515,5 +97515,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-29T08:29:46.791Z
+* abapmerge 0.14.2 - 2020-12-29T08:42:10.526Z
 ****************************************************
