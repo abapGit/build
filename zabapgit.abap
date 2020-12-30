@@ -5689,7 +5689,10 @@ CLASS zcl_abapgit_objects_files DEFINITION
         !iv_extra         TYPE clike OPTIONAL
         !iv_ext           TYPE string
       RETURNING
-        VALUE(rv_present) TYPE abap_bool.
+        VALUE(rv_present) TYPE abap_bool .
+    METHODS get_file_pattern
+      RETURNING
+        VALUE(rv_pattern) TYPE string .
   PROTECTED SECTION.
 
     METHODS read_file
@@ -88967,6 +88970,9 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   METHOD get_files.
     rt_files = mt_files.
   ENDMETHOD.
+  METHOD get_file_pattern.
+    rv_pattern = filename( iv_ext = '*' ).
+  ENDMETHOD.
   METHOD read_abap.
 
     DATA: lv_filename TYPE string,
@@ -89061,7 +89067,21 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_files.
-    mt_files = it_files.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF it_files.
+
+    CLEAR mt_files.
+
+    " Set only files matching the pattern for this object
+    " If a path has been defined in the constructor, then the path has to match, too
+    LOOP AT it_files ASSIGNING <ls_file> WHERE filename CP get_file_pattern( ).
+      IF mv_path IS INITIAL.
+        INSERT <ls_file> INTO TABLE mt_files.
+      ELSEIF mv_path = <ls_file>-path.
+        INSERT <ls_file> INTO TABLE mt_files.
+      ENDIF.
+    ENDLOOP.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -97515,5 +97535,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-29T10:35:47.716Z
+* abapmerge 0.14.2 - 2020-12-30T08:00:42.542Z
 ****************************************************
