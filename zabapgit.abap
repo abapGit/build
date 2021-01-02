@@ -12070,11 +12070,6 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(ro_dot) TYPE REF TO zcl_abapgit_dot_abapgit
       RAISING
         zcx_abapgit_exception .
-    METHODS find_remote_dot_apack
-      RETURNING
-        VALUE(ro_dot) TYPE REF TO zcl_abapgit_apack_reader
-      RAISING
-        zcx_abapgit_exception .
     METHODS is_offline
       RETURNING
         VALUE(rv_offline) TYPE abap_bool
@@ -12092,7 +12087,7 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
-      ABSTRACT
+          ABSTRACT
       RETURNING
         VALUE(rv_yes) TYPE abap_bool .
     METHODS status
@@ -12115,7 +12110,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_log
       RETURNING
         VALUE(ri_log) TYPE REF TO zif_abapgit_log .
-    METHODS reset_log .
     METHODS refresh_local_object
       IMPORTING
         !iv_obj_type TYPE tadir-object
@@ -12136,6 +12130,11 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mi_log TYPE REF TO zif_abapgit_log .
 
+    METHODS find_remote_dot_apack
+      RETURNING
+        VALUE(ro_dot) TYPE REF TO zcl_abapgit_apack_reader
+      RAISING
+        zcx_abapgit_exception .
     METHODS set_dot_apack
       IMPORTING
         !io_dot_apack TYPE REF TO zcl_abapgit_apack_reader
@@ -47772,9 +47771,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
           AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
     SORT ct_local_files BY item.
 
-  ENDMETHOD.
-  METHOD reset_log.
-    CLEAR mi_log.
   ENDMETHOD.
   METHOD reset_remote.
     CLEAR mt_remote.
@@ -97535,5 +97531,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2020-12-30T08:00:42.542Z
+* abapmerge 0.14.2 - 2021-01-02T08:03:57.385Z
 ****************************************************
