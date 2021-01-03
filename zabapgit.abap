@@ -707,6 +707,7 @@ CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
@@ -946,6 +947,7 @@ CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_factory DEFINITION DEFERRED.
@@ -2379,7 +2381,7 @@ INTERFACE zif_abapgit_data_config .
       where TYPE string_table,
     END OF ty_config .
   TYPES:
-    ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name.
+    ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name .
 
   CONSTANTS c_default_path TYPE string VALUE '/data/' ##NO_TEXT.
   CONSTANTS:
@@ -2405,7 +2407,9 @@ INTERFACE zif_abapgit_data_config .
       zcx_abapgit_exception .
   METHODS to_json
     RETURNING
-      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
+      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
   METHODS add_config
     IMPORTING
       !is_config TYPE ty_config
@@ -2428,10 +2432,27 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
 
+  TYPES: BEGIN OF ty_result,
+           table   TYPE tadir-obj_name,
+           deletes TYPE REF TO data,
+           updates TYPE REF TO data,
+           inserts TYPE REF TO data,
+         END OF ty_result.
+
   METHODS deserialize
     IMPORTING
-      ii_config TYPE REF TO zif_abapgit_data_config
-      it_files  TYPE zif_abapgit_definitions=>ty_files_tt.
+      !ii_config       TYPE REF TO zif_abapgit_data_config
+      !it_files        TYPE zif_abapgit_definitions=>ty_files_tt
+    RETURNING
+      VALUE(rs_result) TYPE ty_result
+    RAISING
+      zcx_abapgit_exception .
+
+  METHODS actualize
+    IMPORTING
+      is_result TYPE ty_result
+    RAISING
+      zcx_abapgit_exception .
 
 ENDINTERFACE.
 
@@ -4264,8 +4285,17 @@ CLASS zcl_abapgit_data_config DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CONSTANTS c_extension TYPE string VALUE '.config.json'.
     DATA mv_path TYPE string .
     DATA mt_config TYPE zif_abapgit_data_config=>ty_config_tt .
+
+    METHODS dump
+      IMPORTING
+        !is_config     TYPE zif_abapgit_data_config=>ty_config
+      RETURNING
+        VALUE(rv_json) TYPE string
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_deserializer DEFINITION
   FINAL
@@ -4276,6 +4306,13 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
     INTERFACES zif_abapgit_data_deserializer .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    METHODS read_json
+      IMPORTING
+        !is_file TYPE zif_abapgit_definitions=>ty_file
+        !ir_data TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_factory DEFINITION
   CREATE PUBLIC
@@ -4322,18 +4359,34 @@ CLASS zcl_abapgit_data_serializer DEFINITION
       IMPORTING
         !ir_data       TYPE REF TO data
       RETURNING
-        VALUE(rv_data) TYPE xstring .
-    METHODS build_table_itab
-      IMPORTING
-        !iv_name       TYPE tadir-obj_name
-      RETURNING
-        VALUE(rr_data) TYPE REF TO data .
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     METHODS read_database_table
       IMPORTING
         !iv_name       TYPE tadir-obj_name
         !it_where      TYPE string_table
       RETURNING
         VALUE(rr_data) TYPE REF TO data .
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_data_utils DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS build_table_itab
+      IMPORTING
+        !iv_name       TYPE tadir-obj_name
+      RETURNING
+        VALUE(rr_data) TYPE REF TO data .
+
+    CLASS-METHODS build_filename
+      IMPORTING
+        is_config          TYPE zif_abapgit_data_config=>ty_config
+      RETURNING
+        VALUE(rv_filename) TYPE string.
+
+  PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_git_add_patch DEFINITION
@@ -14313,6 +14366,64 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_data DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS zif_abapgit_gui_event_handler~on_event
+        REDEFINITION .
+  PROTECTED SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        add    TYPE string VALUE 'add',
+        update TYPE string VALUE 'update',
+        remove TYPE string VALUE 'remove',
+      END OF c_event .
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        table TYPE string VALUE 'table',
+        where TYPE string VALUE 'where',
+      END OF c_id .
+
+    DATA mi_config TYPE REF TO zif_abapgit_data_config .
+
+    METHODS render_content
+        REDEFINITION .
+  PRIVATE SECTION.
+
+    METHODS render_add
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS render_existing
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS event_add
+      IMPORTING
+        !ii_event TYPE REF TO zif_abapgit_gui_event
+      RAISING
+        zcx_abapgit_exception .
+    METHODS event_remove
+      IMPORTING
+        !ii_event TYPE REF TO zif_abapgit_gui_event
+      RAISING
+        zcx_abapgit_exception .
+    METHODS event_update
+      IMPORTING
+        !ii_event TYPE REF TO zif_abapgit_gui_event
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
   FINAL
@@ -15110,6 +15221,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         display_more             TYPE string VALUE 'display_more' ##NO_TEXT,
         repo_switch_origin_to_pr TYPE string VALUE 'repo_switch_origin_to_pr',
         repo_reset_origin        TYPE string VALUE 'repo_reset_origin',
+        go_data                  TYPE string VALUE 'go_data',
       END OF c_actions .
 
     METHODS constructor
@@ -35674,7 +35786,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -35784,6 +35896,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
     ro_advanced_dropdown->add( iv_txt = 'Update Local Checksums'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh_checksums }?key={ mv_key }|
+                               iv_opt = lv_crossout ).
+
+    ro_advanced_dropdown->add( iv_txt = 'Beta - Data'
+                               iv_act = |{ c_actions-go_data }?key={ mv_key }|
                                iv_opt = lv_crossout ).
 
     IF is_repo_lang_logon_lang( ) = abap_false AND get_abapgit_tcode( ) IS NOT INITIAL.
@@ -36091,6 +36207,20 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD get_abapgit_tcode.
+    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
+    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
+
+    SELECT tcode
+      FROM tstc
+      INTO TABLE lt_tcodes
+      WHERE pgmna = sy-cprog
+        AND cinfo = lc_report_tcode_hex.
+
+    IF lines( lt_tcodes ) = 1.
+      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
+    ENDIF.
+  ENDMETHOD.
   METHOD get_item_class.
 
     DATA lt_class TYPE TABLE OF string.
@@ -36132,6 +36262,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                                         iv_hint = 'Folder' ).
     ENDIF.
 
+  ENDMETHOD.
+  METHOD is_repo_lang_logon_lang.
+    rv_repo_lang_is_logon_lang = boolc( mo_repo->get_dot_abapgit( )->get_master_language( ) = sy-langu ).
   ENDMETHOD.
   METHOD open_in_master_language.
 
@@ -36624,6 +36757,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
             iv_key = |{ ii_event->query( )->get( 'KEY' ) }|.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
 
+      WHEN c_actions-go_data.
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_data.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
         mv_hide_files    = zcl_abapgit_persistence_user=>get_instance( )->toggle_hide_files( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -36743,25 +36880,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-hotkey = |x|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-  ENDMETHOD.
-
-  METHOD is_repo_lang_logon_lang.
-    rv_repo_lang_is_logon_lang = boolc( mo_repo->get_dot_abapgit( )->get_master_language( ) = sy-langu ).
-  ENDMETHOD.
-
-  METHOD get_abapgit_tcode.
-    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
-    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
-
-    SELECT tcode
-      FROM tstc
-      INTO TABLE lt_tcodes
-      WHERE pgmna = sy-cprog
-        AND cinfo = lc_report_tcode_hex.
-
-    IF lines( lt_tcodes ) = 1.
-      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -39909,6 +40027,154 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     rv_html = rv_html && |</tbody></table>|.
     rv_html = rv_html && |<br>|.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    ms_control-page_title = 'Data'.
+
+    CREATE OBJECT mi_config TYPE zcl_abapgit_data_config.
+
+  ENDMETHOD.
+  METHOD event_add.
+
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
+    DATA ls_config TYPE zif_abapgit_data_config=>ty_config.
+
+    lo_map = ii_event->form_data( ).
+
+    ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
+    ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    SPLIT lo_map->get( c_id-where ) AT |\n| INTO TABLE ls_config-where.
+
+    mi_config->add_config( ls_config ).
+
+  ENDMETHOD.
+  METHOD event_remove.
+
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
+    DATA ls_config TYPE zif_abapgit_data_config=>ty_config.
+
+    lo_map = ii_event->form_data( ).
+
+    ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
+    ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+
+    mi_config->remove_config( ls_config ).
+
+  ENDMETHOD.
+  METHOD event_update.
+
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
+    DATA ls_config TYPE zif_abapgit_data_config=>ty_config.
+
+    lo_map = ii_event->form_data( ).
+
+    ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
+    ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    SPLIT lo_map->get( c_id-where ) AT |\n| INTO TABLE ls_config-where.
+
+    mi_config->update_config( ls_config ).
+
+  ENDMETHOD.
+  METHOD render_add.
+
+    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA lo_form_data TYPE REF TO zcl_abapgit_string_map.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    CREATE OBJECT lo_form_data.
+
+    lo_form = zcl_abapgit_html_form=>create( ).
+    lo_form->text(
+      iv_label    = 'Table'
+      iv_name     = c_id-table
+      iv_required = abap_true ).
+    lo_form->textarea(
+      iv_label       = 'Where'
+      iv_placeholder = 'Conditions separated by newline'
+      iv_name        = c_id-where ).
+    lo_form->command(
+      iv_label       = 'Add'
+      iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action      = c_event-add ).
+    ri_html->add( lo_form->render(
+      iv_form_class = 'dialog w600px m-em5-sides margin-v1'
+      io_values     = lo_form_data ) ).
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( render_add( ) ).
+    ri_html->add( render_existing( ) ).
+
+  ENDMETHOD.
+  METHOD render_existing.
+
+    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA lo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
+    DATA ls_config LIKE LINE OF lt_configs.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    CREATE OBJECT lo_form_data.
+
+    lt_configs = mi_config->get_configs( ).
+
+    LOOP AT lt_configs INTO ls_config.
+      lo_form = zcl_abapgit_html_form=>create(  ).
+      CREATE OBJECT lo_form_data.
+
+      lo_form_data->set(
+        iv_key = c_id-table
+        iv_val = |{ ls_config-name }| ).
+      lo_form->text(
+        iv_label    = 'Table'
+        iv_name     = c_id-table
+        iv_readonly = abap_true ).
+
+      lo_form_data->set(
+        iv_key = c_id-where
+        iv_val = concat_lines_of( table = ls_config-where sep = |\n| ) ).
+      lo_form->textarea(
+        iv_label       = 'Where'
+        iv_placeholder = 'Conditions separated by newline'
+        iv_name        = c_id-where ).
+
+      lo_form->command(
+        iv_label       = 'Update'
+        iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
+        iv_action      = c_event-update ).
+      lo_form->command(
+        iv_label       = 'Remove'
+        iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
+        iv_action      = c_event-remove ).
+      ri_html->add( lo_form->render(
+        iv_form_class = 'dialog w600px m-em5-sides margin-v1'
+        io_values     = lo_form_data ) ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    CASE ii_event->mv_action.
+      WHEN c_event-add.
+        event_add( ii_event ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_event-update.
+        event_update( ii_event ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_event-remove.
+        event_remove( ii_event ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -95089,7 +95355,12 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DATA_UTILS IMPLEMENTATION.
+  METHOD build_filename.
+
+    rv_filename = to_lower( |{ is_config-name }.{ is_config-type }.json| ).
+
+  ENDMETHOD.
   METHOD build_table_itab.
 
     DATA lo_structure TYPE REF TO cl_abap_structdescr.
@@ -95101,26 +95372,28 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     CREATE DATA rr_data TYPE HANDLE lo_table.
 
   ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
   METHOD dump_itab.
 
-* quick and dirty, will be json instead
-
-    DATA lt_data TYPE string_table.
-    DATA lv_str TYPE string.
+    DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
+    DATA lv_string TYPE string.
+    DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
     FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
-    FIELD-SYMBOLS <ls_row> TYPE any.
     ASSIGN ir_data->* TO <lg_tab>.
-    LOOP AT <lg_tab> ASSIGNING <ls_row>.
-      cl_abap_container_utilities=>fill_container_c(
-        EXPORTING
-          im_value     = <ls_row>
-        IMPORTING
-          ex_container = lv_str ).
-      APPEND lv_str TO lt_data.
-    ENDLOOP.
 
-    rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( concat_lines_of( table = lt_data
-                                                                            sep   = |\n| ) ).
+    TRY.
+        lo_ajson = zcl_abapgit_ajson=>create_empty( ).
+        lo_ajson->zif_abapgit_ajson_writer~set(
+          iv_path = '/'
+          iv_val = <lg_tab> ).
+        lv_string = lo_ajson->stringify( 2 ).
+      CATCH zcx_abapgit_ajson_error INTO lx_ajson.
+        zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
+    ENDTRY.
+
+    rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
   ENDMETHOD.
   METHOD read_database_table.
@@ -95128,7 +95401,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     DATA lv_where LIKE LINE OF it_where.
     FIELD-SYMBOLS: <lg_tab> TYPE ANY TABLE.
 
-    rr_data = build_table_itab( iv_name ).
+    rr_data = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
     ASSIGN rr_data->* TO <lg_tab>.
 
     LOOP AT it_where INTO lv_where.
@@ -95156,7 +95429,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
         iv_name  = ls_config-name
         it_where = ls_config-where ).
 
-      ls_file-filename = to_lower( |{ ls_config-name }.{ ls_config-type }.todo| ).
+      ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
       ls_file-data = dump_itab( lr_data ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       APPEND ls_file TO rt_files.
@@ -95197,8 +95470,51 @@ CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
+  METHOD read_json.
+
+    DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
+    DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+    FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
+    ASSIGN ir_data->* TO <lg_tab>.
+
+    TRY.
+        lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( is_file-data ) ).
+        lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = <lg_tab> ).
+      CATCH zcx_abapgit_ajson_error INTO lx_ajson.
+        zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_deserializer~actualize.
+
+* todo, this method will update the database
+
+  ENDMETHOD.
   METHOD zif_abapgit_data_deserializer~deserialize.
+
+* this method does not persist any changes to the database
+
+    DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
+    DATA ls_config LIKE LINE OF lt_configs.
+    DATA lr_data  TYPE REF TO data.
+    DATA ls_file LIKE LINE OF it_files.
+    lt_configs = ii_config->get_configs( ).
+
+    LOOP AT lt_configs INTO ls_config.
+
+      lr_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
+
+      READ TABLE it_files INTO ls_file WITH KEY
+        path = ii_config->get_path( )
+        filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
+      IF sy-subrc = 0.
+        read_json(
+          ir_data = lr_data
+          is_file = ls_file ).
+      ENDIF.
+
 * todo
+    ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
@@ -95209,10 +95525,27 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
     mv_path = zif_abapgit_data_config=>c_default_path.
 
   ENDMETHOD.
+  METHOD dump.
+
+    DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
+    DATA lv_string TYPE string.
+    DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+    TRY.
+        lo_ajson = zcl_abapgit_ajson=>create_empty( ).
+        lo_ajson->zif_abapgit_ajson_writer~set(
+          iv_path = '/'
+          iv_val = is_config ).
+        rv_json = zcl_abapgit_convert=>string_to_xstring_utf8( lo_ajson->stringify( 2 ) ).
+      CATCH zcx_abapgit_ajson_error INTO lx_ajson.
+        zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_data_config~add_config.
 
     ASSERT NOT is_config-type IS INITIAL.
     ASSERT NOT is_config-name IS INITIAL.
+    ASSERT is_config-name = to_upper( is_config-name ).
 
     INSERT is_config INTO TABLE mt_config.
     IF sy-subrc <> 0.
@@ -95221,8 +95554,24 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_data_config~from_json.
-* todo
-    ASSERT 0 = 1.
+
+    DATA ls_file LIKE LINE OF it_files.
+    DATA ls_config TYPE zif_abapgit_data_config=>ty_config.
+    DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
+    DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+
+    CLEAR mt_config.
+    LOOP AT it_files INTO ls_file WHERE path = mv_path AND filename CP |*{ c_extension }|.
+      TRY.
+          lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( ls_file-data ) ).
+          lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = ls_config ).
+        CATCH zcx_abapgit_ajson_error INTO lx_ajson.
+          zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
+      ENDTRY.
+
+      zif_abapgit_data_config~add_config( ls_config ).
+    ENDLOOP.
+
   ENDMETHOD.
   METHOD zif_abapgit_data_config~get_configs.
     rt_configs = mt_config.
@@ -95234,7 +95583,9 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_data_config~remove_config.
 
-* todo, give exception if it does not exist
+    ASSERT NOT is_config-type IS INITIAL.
+    ASSERT NOT is_config-name IS INITIAL.
+    ASSERT is_config-name = to_upper( is_config-name ).
 
     DELETE mt_config WHERE name = is_config-name AND type = is_config-type.
     IF sy-subrc <> 0.
@@ -95250,8 +95601,19 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_data_config~to_json.
-* todo
-    ASSERT 0 = 1.
+
+    DATA ls_config LIKE LINE OF mt_config.
+    DATA ls_file LIKE LINE OF rt_files.
+
+    ls_file-path = mv_path.
+
+    LOOP AT mt_config INTO ls_config.
+      ls_file-filename = to_lower( |{ ls_config-name }{ c_extension }| ).
+      ls_file-data = dump( ls_config ).
+      ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
+      APPEND ls_file TO rt_files.
+    ENDLOOP.
+
   ENDMETHOD.
   METHOD zif_abapgit_data_config~update_config.
 
@@ -97660,5 +98022,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-03T03:54:51.373Z
+* abapmerge 0.14.2 - 2021-01-03T03:56:35.509Z
 ****************************************************
