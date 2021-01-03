@@ -17393,64 +17393,63 @@ CLASS zcl_abapgit_string_map DEFINITION
       BEGIN OF ty_entry,
         k TYPE string,
         v TYPE string,
-      END OF ty_entry.
+      END OF ty_entry .
     TYPES:
-      ty_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k.
+      ty_entries TYPE SORTED TABLE OF ty_entry WITH UNIQUE KEY k .
+
+    DATA mt_entries TYPE ty_entries READ-ONLY .
 
     CLASS-METHODS create
       IMPORTING
-        iv_case_insensitive TYPE abap_bool DEFAULT abap_false
+        !iv_case_insensitive TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map.
+        VALUE(ro_instance)   TYPE REF TO zcl_abapgit_string_map .
     METHODS constructor
       IMPORTING
-        iv_case_insensitive TYPE abap_bool DEFAULT abap_false.
+        !iv_case_insensitive TYPE abap_bool DEFAULT abap_false .
     METHODS get
       IMPORTING
-        iv_key        TYPE string
+        !iv_key       TYPE string
       RETURNING
-        VALUE(rv_val) TYPE string.
+        VALUE(rv_val) TYPE string .
     METHODS has
       IMPORTING
-        iv_key        TYPE string
+        !iv_key       TYPE string
       RETURNING
-        VALUE(rv_has) TYPE abap_bool.
+        VALUE(rv_has) TYPE abap_bool .
     METHODS set
       IMPORTING
-        iv_key TYPE string
-        iv_val TYPE string OPTIONAL
+        !iv_key       TYPE string
+        !iv_val       TYPE csequence OPTIONAL
       RETURNING
         VALUE(ro_map) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS size
       RETURNING
-        VALUE(rv_size) TYPE i.
+        VALUE(rv_size) TYPE i .
     METHODS is_empty
       RETURNING
-        VALUE(rv_yes) TYPE abap_bool.
+        VALUE(rv_yes) TYPE abap_bool .
     METHODS delete
       IMPORTING
-        iv_key TYPE string
+        !iv_key TYPE string
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS clear
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS to_abap
       CHANGING
         !cs_container TYPE any
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS strict
       IMPORTING
-        !iv_strict TYPE abap_bool DEFAULT abap_true
+        !iv_strict         TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map .
-    METHODS freeze.
-
-    DATA mt_entries TYPE ty_entries READ-ONLY.
-
+    METHODS freeze .
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mv_read_only TYPE abap_bool.
@@ -32116,7 +32115,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
   METHOD constructor.
     mo_form = io_form.
   ENDMETHOD.
@@ -32218,7 +32217,7 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
       IF <ls_field>-type = zif_abapgit_html_form=>c_field_type-checkbox.
         ro_form_data->set(
           iv_key = <ls_field>-name
-          iv_val = boolc( lv_value = 'on' ) ).
+          iv_val = boolc( lv_value = 'on' ) ) ##TYPE.
       ELSEIF <ls_field>-type = zif_abapgit_html_form=>c_field_type-text AND <ls_field>-upper_case = abap_true.
         ro_form_data->set(
           iv_key = <ls_field>-name
@@ -35166,7 +35165,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35307,13 +35306,13 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
     " Interaction
     mo_form_data->set(
       iv_key = c_id-activate_wo_popup
-      iv_val = boolc( ms_settings-activate_wo_popup = abap_true ) ).
+      iv_val = boolc( ms_settings-activate_wo_popup = abap_true ) ) ##TYPE.
     mo_form_data->set(
       iv_key = c_id-adt_jump_enabled
-      iv_val = boolc( ms_settings-adt_jump_enabled = abap_true ) ).
+      iv_val = boolc( ms_settings-adt_jump_enabled = abap_true ) ) ##TYPE.
     mo_form_data->set(
       iv_key = c_id-link_hints_enabled
-      iv_val = boolc( ms_settings-link_hints_enabled = abap_true ) ).
+      iv_val = boolc( ms_settings-link_hints_enabled = abap_true ) ) ##TYPE.
     mo_form_data->set(
       iv_key = c_id-link_hint_key
       iv_val = |{ ms_settings-link_hint_key }| ).
@@ -35321,7 +35320,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
     " Resources
     mo_form_data->set(
       iv_key = c_id-parallel_proc_disabled
-      iv_val = boolc( ms_settings-parallel_proc_disabled = abap_true ) ).
+      iv_val = boolc( ms_settings-parallel_proc_disabled = abap_true ) ) ##TYPE.
 
     " Set for is_dirty check
     mo_form_util->set_data( mo_form_data ).
@@ -35405,7 +35404,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35533,7 +35532,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
       iv_val = mo_settings->get_proxy_port( ) ).
     mo_form_data->set(
       iv_key = c_id-proxy_auth
-      iv_val = boolc( mo_settings->get_proxy_authentication( ) = abap_true ) ).
+      iv_val = boolc( mo_settings->get_proxy_authentication( ) = abap_true ) ) ##TYPE.
 
     read_proxy_bypass( ).
 
@@ -35552,10 +35551,10 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
       mo_form_data->set(
         iv_key = c_id-run_critical_tests
-        iv_val = boolc( mo_settings->get_run_critical_tests( ) = abap_true ) ).
+        iv_val = boolc( mo_settings->get_run_critical_tests( ) = abap_true ) ) ##TYPE.
       mo_form_data->set(
         iv_key = c_id-experimental_features
-        iv_val = boolc( mo_settings->get_experimental_features( ) = abap_true ) ).
+        iv_val = boolc( mo_settings->get_experimental_features( ) = abap_true ) ) ##TYPE.
     ENDIF.
 
     " Set for is_dirty check
@@ -97661,5 +97660,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-02T14:16:20.535Z
+* abapmerge 0.14.2 - 2021-01-03T03:52:19.954Z
 ****************************************************
