@@ -41788,7 +41788,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -41861,8 +41861,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
 
     IF io_form_data->get( c_id-package ) IS NOT INITIAL.
       TRY.
-          zcl_abapgit_repo_srv=>get_instance( )->validate_package(
-            iv_package    = |{ io_form_data->get( c_id-package ) }| ).
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package( |{ io_form_data->get( c_id-package ) }| ).
         CATCH zcx_abapgit_exception INTO lx_err.
           ro_validation_log->set(
             iv_key = c_id-package
@@ -47580,7 +47579,7 @@ CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -47753,9 +47752,9 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
       LOOP AT lt_repo_msg REFERENCE INTO lr_repo_msg WHERE type CA 'EW'.
         CASE lr_repo_msg->type.
           WHEN 'E'.
-            ri_log->add_error( iv_msg = lr_repo_msg->text ).
+            ri_log->add_error( lr_repo_msg->text ).
           WHEN 'W'.
-            ri_log->add_warning( iv_msg = lr_repo_msg->text ).
+            ri_log->add_warning( lr_repo_msg->text ).
           WHEN OTHERS.
             CONTINUE.
         ENDCASE.
@@ -59415,7 +59414,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -59811,7 +59810,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD update_extras.
 
     IF is_tabl_extras-tddat IS INITIAL.
-      delete_extras( iv_tabname = iv_tabname ).
+      delete_extras( iv_tabname ).
     ELSE.
       MODIFY tddat FROM is_tabl_extras-tddat.
     ENDIF.
@@ -59910,7 +59909,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
       delete_longtexts( c_longtext_id_tabl ).
 
-      delete_extras( iv_tabname = lv_objname ).
+      delete_extras( lv_objname ).
 
     ENDIF.
 
@@ -60252,7 +60251,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     serialize_idoc_segment( io_xml ).
 
-    ls_extras = read_extras( iv_tabname = lv_name ).
+    ls_extras = read_extras( lv_name ).
     io_xml->add( iv_name = c_s_dataname-tabl_extras
                  ig_data = ls_extras ).
 
@@ -95843,7 +95842,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
     CONCATENATE sy-datlo sy-timlo INTO mv_timestamp SEPARATED BY '_'.
 
-    mv_full_folder = get_full_folder( iv_folder = iv_folder ).
+    mv_full_folder = get_full_folder( iv_folder ).
 
     cl_gui_frontend_services=>get_file_separator(
       CHANGING
@@ -95904,7 +95903,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
                 mv_timestamp
            INTO rv_full_folder SEPARATED BY lv_sep.
 
-    IF does_folder_exist( iv_folder = rv_full_folder ) = abap_false.
+    IF does_folder_exist( rv_full_folder ) = abap_false.
 
       cl_gui_frontend_services=>directory_create(
         EXPORTING
@@ -97041,7 +97040,7 @@ CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
   METHOD constructor.
     mv_package_name = iv_package_name.
   ENDMETHOD.
@@ -97151,7 +97150,7 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
             CLEAR: rs_manifest_descriptor.
         ENDTRY.
         IF lo_manifest_provider IS BOUND.
-          copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
+          copy_manifest_descriptor( lo_manifest_provider ).
         ENDIF.
       ENDIF.
 
@@ -97481,7 +97480,7 @@ CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
       ENDIF.
 
       lo_apack_reader = zcl_abapgit_apack_reader=>create_instance( ls_manifest_implementation-devclass ).
-      lo_apack_reader->copy_manifest_descriptor( io_manifest_provider = lo_manifest_provider ).
+      lo_apack_reader->copy_manifest_descriptor( lo_manifest_provider ).
       ls_descriptor = lo_apack_reader->get_manifest_descriptor( ).
 
       IF ls_descriptor IS NOT INITIAL.
@@ -98028,5 +98027,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-04T09:07:51.561Z
+* abapmerge 0.14.2 - 2021-01-04T09:42:21.492Z
 ****************************************************
