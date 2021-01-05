@@ -76667,7 +76667,11 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    rv_user = c_user_unknown.
+    SELECT SINGLE changedby INTO rv_user FROM enhcompheader
+      WHERE enhcomposite = ms_item-obj_name AND version = 'A'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -98027,5 +98031,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-04T09:42:21.492Z
+* abapmerge 0.14.2 - 2021-01-05T06:56:24.344Z
 ****************************************************
