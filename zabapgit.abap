@@ -16116,7 +16116,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form .
     METHODS render
       IMPORTING
-        !iv_form_class     TYPE csequence
+        !iv_form_class     TYPE csequence DEFAULT 'dialog-form'
         !io_values         TYPE REF TO zcl_abapgit_string_map
         !io_validation_log TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
@@ -25397,6 +25397,15 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  border-radius: 6px;' ).
     lo_buf->add( '  text-align: left;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog-form {' ).
+    lo_buf->add( '  margin: 1em 1em 1em 1em; ' ).
+    lo_buf->add( '  width: 600px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog-form-center {' ).
+    lo_buf->add( '  margin: 1em auto 1em; ' ).
+    lo_buf->add( '  max-width: 600px;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '.dialog ul {' ).
     lo_buf->add( '  padding: 0;' ).
     lo_buf->add( '  margin: 0;' ).
@@ -32582,7 +32591,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( |<div class="{ iv_form_class }">| ).
+    ri_html->add( |<div class="dialog { iv_form_class }">| ). " to center use 'dialog-form-center'
     ri_html->add( |<form method="post"{ ls_form_id }>| ).
 
     " Add hidden button that triggers main command when pressing enter
@@ -32952,6 +32961,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   METHOD render_field_textarea.
 
     DATA lv_rows TYPE i.
+    DATA lv_html TYPE string.
 
     ii_html->add( |<label for="{ is_field-name }"{ is_attr-hint }>{
                   is_field-label }{ is_attr-required }</label>| ).
@@ -32962,11 +32972,13 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     lv_rows = lines( zcl_abapgit_convert=>split_string( is_attr-value ) ).
 
-    ii_html->add( |<textarea name="{ is_field-name }" id="{
-                  is_field-name }" rows="{ lv_rows }"{ is_attr-readonly }>| ).
-    ii_html->add( escape( val    = is_attr-value
-                          format = cl_abap_format=>e_html_attr ) ).
-    ii_html->add( |</textarea>| ).
+    " Avoid adding line-breaks inside textarea tag (except for the actual value)
+    lv_html = |<textarea name="{ is_field-name }" id="{ is_field-name }" rows="{ lv_rows }"{ is_attr-readonly }>|.
+    lv_html = lv_html && escape( val    = is_attr-value
+                                 format = cl_abap_format=>e_html_attr ).
+    lv_html = lv_html && |</textarea>|.
+
+    ii_html->add( lv_html ).
 
   ENDMETHOD.
   METHOD start_group.
@@ -35277,7 +35289,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35509,14 +35521,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( mo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides margin-v1'
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35779,7 +35790,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( mo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides margin-v1'
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
@@ -40031,7 +40041,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -40103,9 +40113,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
       iv_label       = 'Add'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action      = c_event-add ).
-    ri_html->add( lo_form->render(
-      iv_form_class = 'dialog w600px m-em5-sides margin-v1'
-      io_values     = lo_form_data ) ).
+    ri_html->add( lo_form->render( lo_form_data ) ).
 
   ENDMETHOD.
   METHOD render_content.
@@ -40156,9 +40164,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
         iv_label       = 'Remove'
         iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
         iv_action      = c_event-remove ).
-      ri_html->add( lo_form->render(
-        iv_form_class = 'dialog w600px m-em5-sides margin-v1'
-        io_values     = lo_form_data ) ).
+      ri_html->add( lo_form->render( lo_form_data ) ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -41781,14 +41787,13 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( mo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -41940,7 +41945,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( mo_form->render(
-      iv_form_class     = 'dialog w600px m-em5-sides margin-v1' " to center add wmax600px and auto-center instead
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
@@ -98031,5 +98035,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-05T06:58:28.833Z
+* abapmerge 0.14.2 - 2021-01-05T08:26:58.528Z
 ****************************************************
