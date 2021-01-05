@@ -33078,7 +33078,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     add_field( EXPORTING iv_name = 'VALUE'
                          ig_field = is_key-value CHANGING ct_field = lt_fields ).
 
-    rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
+    rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
   ENDMETHOD.
   METHOD dir_encode.
@@ -33086,7 +33086,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     DATA: lt_fields TYPE tihttpnvp.
     add_field( EXPORTING iv_name = 'PATH'
                          ig_field = iv_path CHANGING ct_field = lt_fields ).
-    rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
+    rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
   ENDMETHOD.
   METHOD field_keys_to_upper.
@@ -33108,7 +33108,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     add_field( EXPORTING iv_name = 'FILENAME'
                          ig_field = ig_file CHANGING ct_field = lt_fields ).
 
-    rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
+    rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
   ENDMETHOD.
   METHOD get_field.
@@ -33148,7 +33148,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     add_field( EXPORTING iv_name = 'NAME'
                          ig_field = iv_obj_name CHANGING ct_field = lt_fields ).
 
-    rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
+    rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
   ENDMETHOD.
   METHOD obj_encode.
@@ -33161,7 +33161,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
     add_field( EXPORTING iv_name = 'OBJ_NAME'
                          ig_field = ig_object CHANGING ct_field = lt_fields ).
 
-    rv_string = cl_http_utility=>if_http_utility~fields_to_string( lt_fields ).
+    rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
   ENDMETHOD.
   METHOD parse_fields.
@@ -98031,5 +98031,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-05T06:56:24.344Z
+* abapmerge 0.14.2 - 2021-01-05T06:58:28.833Z
 ****************************************************
