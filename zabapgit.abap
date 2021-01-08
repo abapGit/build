@@ -3635,6 +3635,9 @@ INTERFACE zif_abapgit_environment.
   METHODS is_restart_required
     RETURNING
       VALUE(rv_result) TYPE abap_bool.
+  METHODS is_sap_object_allowed
+    RETURNING
+      VALUE(rv_allowed) TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -12493,9 +12496,6 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     METHODS refresh
       RAISING
         zcx_abapgit_exception .
-    METHODS is_sap_object_allowed
-      RETURNING
-        VALUE(rv_allowed) TYPE abap_bool .
     METHODS instantiate_and_add
       IMPORTING
         !is_repo_meta  TYPE zif_abapgit_persistence=>ty_repo
@@ -21305,7 +21305,7 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
+CLASS zcl_abapgit_environment IMPLEMENTATION.
   METHOD zif_abapgit_environment~compare_with_inactive.
     rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
   ENDMETHOD.
@@ -21364,6 +21364,16 @@ CLASS ZCL_ABAPGIT_ENVIRONMENT IMPLEMENTATION.
       ENDTRY.
     ENDIF.
     rv_result = mv_cloud.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_sap_object_allowed.
+
+    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
+    IF rv_allowed = abap_true.
+      RETURN.
+    ENDIF.
+
+    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -46815,16 +46825,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     add( ro_repo ).
 
   ENDMETHOD.
-  METHOD is_sap_object_allowed.
-
-    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
-    IF rv_allowed = abap_true.
-      RETURN.
-    ENDIF.
-
-    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
-
-  ENDMETHOD.
   METHOD refresh.
 
     DATA: lt_list TYPE zif_abapgit_persistence=>ty_repos.
@@ -47208,7 +47208,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Package { iv_package } not found| ).
     ENDIF.
 
-    IF is_sap_object_allowed( ) = abap_false AND lv_as4user = 'SAP'.
+    IF zcl_abapgit_factory=>get_environment( )->is_sap_object_allowed( ) = abap_false AND lv_as4user = 'SAP'.
       zcx_abapgit_exception=>raise( |Package { iv_package } not allowed, responsible user = 'SAP'| ).
     ENDIF.
 
@@ -98041,5 +98041,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-08T10:58:59.874Z
+* abapmerge 0.14.2 - 2021-01-08T11:07:34.775Z
 ****************************************************
