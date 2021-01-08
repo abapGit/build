@@ -89376,6 +89376,9 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_file_pattern.
     rv_pattern = filename( iv_ext = '*' ).
+    " Escape special characters for use with 'covers pattern' (CP)
+    REPLACE ALL OCCURRENCES OF '#' IN rv_pattern WITH '##'.
+    REPLACE ALL OCCURRENCES OF '+' IN rv_pattern WITH '#+'.
   ENDMETHOD.
   METHOD read_abap.
 
@@ -98038,5 +98041,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-07T17:15:28.043Z
+* abapmerge 0.14.2 - 2021-01-08T10:58:59.874Z
 ****************************************************
