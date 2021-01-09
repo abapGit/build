@@ -2397,12 +2397,9 @@ INTERFACE zif_abapgit_data_config .
       tdat TYPE ty_data_type VALUE 'TDAT',
     END OF c_data_type .
 
-  METHODS get_path
-    RETURNING
-      VALUE(rv_path) TYPE string .
-  METHODS set_path
+  METHODS add_config
     IMPORTING
-      !iv_path TYPE string
+      !is_config TYPE ty_config
     RAISING
       zcx_abapgit_exception .
   METHODS from_json
@@ -2410,14 +2407,17 @@ INTERFACE zif_abapgit_data_config .
       !it_files TYPE zif_abapgit_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
+  METHODS get_configs
+    RETURNING
+      VALUE(rt_configs) TYPE ty_config_tt .
+  METHODS remove_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
   METHODS to_json
     RETURNING
       VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-    RAISING
-      zcx_abapgit_exception .
-  METHODS add_config
-    IMPORTING
-      !is_config TYPE ty_config
     RAISING
       zcx_abapgit_exception .
   METHODS update_config
@@ -2425,14 +2425,6 @@ INTERFACE zif_abapgit_data_config .
       !is_config TYPE ty_config
     RAISING
       zcx_abapgit_exception .
-  METHODS remove_config
-    IMPORTING
-      !is_config TYPE ty_config
-    RAISING
-      zcx_abapgit_exception .
-  METHODS get_configs
-    RETURNING
-      VALUE(rt_configs) TYPE ty_config_tt .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
@@ -4289,12 +4281,10 @@ CLASS zcl_abapgit_data_config DEFINITION
 
     INTERFACES zif_abapgit_data_config .
 
-    METHODS constructor .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     CONSTANTS c_extension TYPE string VALUE '.config.json'.
-    DATA mv_path TYPE string .
     DATA mt_config TYPE zif_abapgit_data_config=>ty_config_tt .
 
     METHODS dump
@@ -4306,8 +4296,8 @@ CLASS zcl_abapgit_data_config DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_deserializer DEFINITION
-  FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_data_factory .
 
   PUBLIC SECTION.
 
@@ -4328,10 +4318,10 @@ CLASS zcl_abapgit_data_factory DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS get_serializer
+    CLASS-METHODS get_serializer
       RETURNING
         VALUE(ri_serializer) TYPE REF TO zif_abapgit_data_serializer .
-    METHODS get_deserializer
+    CLASS-METHODS get_deserializer
       RETURNING
         VALUE(ri_deserializer) TYPE REF TO zif_abapgit_data_deserializer .
   PROTECTED SECTION.
@@ -4355,8 +4345,8 @@ CLASS zcl_abapgit_data_injector DEFINITION
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_data_serializer DEFINITION
-  FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_data_factory .
 
   PUBLIC SECTION.
 
@@ -5870,20 +5860,44 @@ CLASS zcl_abapgit_serialize DEFINITION
         !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
         !ii_log            TYPE REF TO zif_abapgit_log
         !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+        !ii_data_config    TYPE REF TO zif_abapgit_data_config OPTIONAL
       RETURNING
         VALUE(rt_files)    TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
-    TYPES: ty_char32 TYPE c LENGTH 32.
+
+    TYPES:
+      ty_char32 TYPE c LENGTH 32 .
 
     CLASS-DATA gv_max_threads TYPE i .
     DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mv_free TYPE i .
     DATA mi_log TYPE REF TO zif_abapgit_log .
     DATA mv_group TYPE rzlli_apcl .
-    DATA mv_serialize_master_lang_only TYPE abap_bool.
+    DATA mv_serialize_master_lang_only TYPE abap_bool .
 
+    METHODS add_apack
+      IMPORTING
+        !iv_package TYPE devclass
+      CHANGING
+        !ct_files   TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_data
+      IMPORTING
+        !ii_data_config TYPE REF TO zif_abapgit_data_config
+      CHANGING
+        !ct_files       TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_dot_abapgit
+      IMPORTING
+        !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit
+      CHANGING
+        !ct_files       TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS add_to_return
       IMPORTING
         !iv_path      TYPE string
@@ -5899,6 +5913,17 @@ CLASS zcl_abapgit_serialize DEFINITION
       IMPORTING
         !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
         !iv_language TYPE langu
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_objects
+      IMPORTING
+        !iv_package        TYPE devclass
+        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !ii_log            TYPE REF TO zif_abapgit_log
+        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      CHANGING
+        VALUE(ct_files)    TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
     METHODS determine_max_threads
@@ -12172,6 +12197,11 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_dot_apack
       RETURNING
         VALUE(ro_dot_apack) TYPE REF TO zcl_abapgit_apack_reader .
+    METHODS get_data_config
+      RETURNING
+        VALUE(ri_config) TYPE REF TO zif_abapgit_data_config
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize
       IMPORTING
         !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
@@ -12255,6 +12285,9 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mv_request_remote_refresh TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mi_log TYPE REF TO zif_abapgit_log .
+    DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
+    DATA mo_apack_reader TYPE REF TO zcl_abapgit_apack_reader .
+    DATA mi_data_config TYPE REF TO zif_abapgit_data_config .
 
     METHODS find_remote_dot_apack
       RETURNING
@@ -12282,11 +12315,7 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS reset_remote .
-
   PRIVATE SECTION.
-
-    DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
-    DATA mo_apack_reader TYPE REF TO zcl_abapgit_apack_reader .
 
     METHODS get_local_checksums
       RETURNING
@@ -12308,13 +12337,13 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS remove_non_code_related_files
       CHANGING
-        ct_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt.
+        !ct_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
     METHODS compare_with_remote_checksum
       IMPORTING
-        it_remote_files TYPE zif_abapgit_definitions=>ty_files_tt
-        is_local_file   TYPE zif_abapgit_definitions=>ty_file_item-file
+        !it_remote_files TYPE zif_abapgit_definitions=>ty_files_tt
+        !is_local_file   TYPE zif_abapgit_definitions=>ty_file_item-file
       CHANGING
-        cs_checksum     TYPE zif_abapgit_persistence=>ty_local_checksum.
+        !cs_checksum     TYPE zif_abapgit_persistence=>ty_local_checksum .
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -14385,6 +14414,8 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
   PUBLIC SECTION.
 
     METHODS constructor
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
         zcx_abapgit_exception .
 
@@ -14411,6 +14442,13 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
         REDEFINITION .
   PRIVATE SECTION.
 
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo .
+
+    METHODS build_where
+      IMPORTING
+        !io_map         TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(rt_where) TYPE string_table .
     METHODS render_add
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
@@ -34853,7 +34891,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -34885,7 +34923,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       mv_seed = |stage{ lv_ts }|.
     ENDIF.
 
-    ms_control-page_menu  = build_menu( ).
+    ms_control-page_menu = build_menu( ).
 
     IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
       zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
@@ -37870,8 +37908,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
 
       WHEN c_actions-go_data.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_data.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_data
+          EXPORTING
+            iv_key = |{ ii_event->query( )->get( 'KEY' ) }|.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
         mv_hide_files    = zcl_abapgit_persistence_user=>get_instance( )->toggle_hide_files( ).
@@ -41144,13 +41184,29 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
+  METHOD build_where.
+
+    DATA lv_where LIKE LINE OF rt_where.
+
+    SPLIT io_map->get( c_id-where ) AT |\n| INTO TABLE rt_where.
+
+    DELETE rt_where WHERE table_line IS INITIAL.
+
+    LOOP AT rt_where INTO lv_where.
+      IF strlen( lv_where ) <= 2.
+        DELETE rt_where INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
 
     ms_control-page_title = 'Data'.
 
-    CREATE OBJECT mi_config TYPE zcl_abapgit_data_config.
+    mo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    mi_config = mo_repo->get_data_config( ).
 
   ENDMETHOD.
   METHOD event_add.
@@ -41162,7 +41218,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
 
     ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
     ls_config-name = to_upper( lo_map->get( c_id-table ) ).
-    SPLIT lo_map->get( c_id-where ) AT |\n| INTO TABLE ls_config-where.
+    ls_config-where = build_where( lo_map ).
 
     mi_config->add_config( ls_config ).
 
@@ -41189,7 +41245,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
 
     ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
     ls_config-name = to_upper( lo_map->get( c_id-table ) ).
-    SPLIT lo_map->get( c_id-where ) AT |\n| INTO TABLE ls_config-where.
+    ls_config-where = build_where( lo_map ).
 
     mi_config->update_config( ls_config ).
 
@@ -49097,6 +49153,27 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_data_config.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF mt_remote.
+
+    IF mi_data_config IS BOUND.
+      ri_config = mi_data_config.
+      RETURN.
+    ENDIF.
+
+    get_files_remote( ).
+
+    CREATE OBJECT ri_config TYPE zcl_abapgit_data_config.
+    mi_data_config = ri_config.
+
+    READ TABLE mt_remote ASSIGNING <ls_remote>
+      WITH KEY path = zif_abapgit_data_config=>c_default_path.
+    IF sy-subrc = 0.
+      ri_config->from_json( mt_remote ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_dot_abapgit.
     CREATE OBJECT ro_dot_abapgit
       EXPORTING
@@ -49111,7 +49188,8 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_files_local.
-    DATA: lo_serialize TYPE REF TO zcl_abapgit_serialize.
+
+    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
 
     " Serialization happened before and no refresh request
     IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
@@ -49127,6 +49205,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       iv_package        = get_package( )
       io_dot_abapgit    = get_dot_abapgit( )
       is_local_settings = get_local_settings( )
+      ii_data_config    = get_data_config( )
       ii_log            = ii_log ).
 
     mt_local                 = rt_files.
@@ -49229,7 +49308,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     CLEAR mi_log.
 
     IF iv_drop_cache = abap_true.
-      CLEAR: mt_local.
+      CLEAR mt_local.
     ENDIF.
 
   ENDMETHOD.
@@ -49611,6 +49690,10 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     " Ignore all files outside of starting folder tree
     IF ms_data-starting_folder <> '/' AND NOT lv_name CP lv_starting.
       rv_ignored = abap_true.
+    ENDIF.
+
+    IF iv_path = zif_abapgit_data_config=>c_default_path.
+      rv_ignored = abap_false.
     ENDIF.
 
   ENDMETHOD.
@@ -90083,7 +90166,82 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_serialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
+  METHOD add_apack.
+
+    DATA ls_apack_file TYPE zif_abapgit_definitions=>ty_file.
+
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF ct_files.
+    ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
+    IF ls_apack_file IS NOT INITIAL.
+      APPEND INITIAL LINE TO ct_files ASSIGNING <ls_file>.
+      <ls_file>-file = ls_apack_file.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add_data.
+
+    DATA lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA ls_file LIKE LINE OF lt_files.
+
+    FIELD-SYMBOLS <ls_return> LIKE LINE OF ct_files.
+
+    IF ii_data_config IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lt_files = ii_data_config->to_json( ).
+    LOOP AT lt_files INTO ls_file.
+      APPEND INITIAL LINE TO ct_files ASSIGNING <ls_return>.
+      <ls_return>-file = ls_file.
+    ENDLOOP.
+
+    lt_files = zcl_abapgit_data_factory=>get_serializer( )->serialize( ii_data_config ).
+    LOOP AT lt_files INTO ls_file.
+      APPEND INITIAL LINE TO ct_files ASSIGNING <ls_return>.
+      <ls_return>-file = ls_file.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD add_dot_abapgit.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ct_files.
+
+    APPEND INITIAL LINE TO ct_files ASSIGNING <ls_file>.
+    <ls_file>-file = io_dot_abapgit->to_file( ).
+
+  ENDMETHOD.
+  METHOD add_objects.
+
+    DATA: lo_filter TYPE REF TO zcl_abapgit_repo_filter,
+          lv_force  TYPE abap_bool,
+          lt_found  LIKE ct_files,
+          lt_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = iv_package
+      iv_ignore_subpackages = is_local_settings-ignore_subpackages
+      iv_only_local_objects = is_local_settings-only_local_objects
+      io_dot                = io_dot_abapgit
+      ii_log                = ii_log ).
+
+    CREATE OBJECT lo_filter.
+
+    lo_filter->apply( EXPORTING it_filter = it_filter
+                      CHANGING  ct_tadir  = lt_tadir ).
+
+* if there are less than 10 objects run in single thread
+* this helps a lot when debugging, plus performance gain
+* with low number of objects does not matter much
+    lv_force = boolc( lines( lt_tadir ) < 10 ).
+
+    lt_found = serialize(
+      it_tadir            = lt_tadir
+      iv_language         = io_dot_abapgit->get_master_language( )
+      ii_log              = ii_log
+      iv_force_sequential = lv_force ).
+    APPEND LINES OF lt_found TO ct_files.
+
+  ENDMETHOD.
   METHOD add_to_return.
 
     FIELD-SYMBOLS: <ls_file>   LIKE LINE OF is_file_item-files,
@@ -90173,46 +90331,33 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
 * serializes objects, including .abapgit.xml, apack, and takes into account local settings
 
-    DATA: ls_apack_file TYPE zif_abapgit_definitions=>ty_file,
-          lo_filter     TYPE REF TO zcl_abapgit_repo_filter,
-          lv_force      TYPE abap_bool,
-          lt_found      LIKE rt_files,
-          lt_tadir      TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    add_dot_abapgit(
+      EXPORTING
+        io_dot_abapgit = io_dot_abapgit
+      CHANGING
+        ct_files       = rt_files ).
 
-    FIELD-SYMBOLS: <ls_return> LIKE LINE OF rt_files.
+    add_apack(
+      EXPORTING
+        iv_package = iv_package
+      CHANGING
+        ct_files   = rt_files ).
 
-    APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-    <ls_return>-file = io_dot_abapgit->to_file( ).
+    add_data(
+      EXPORTING
+        ii_data_config = ii_data_config
+      CHANGING
+        ct_files       = rt_files ).
 
-    ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
-    IF ls_apack_file IS NOT INITIAL.
-      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_return>.
-      <ls_return>-file = ls_apack_file.
-    ENDIF.
-
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = iv_package
-      iv_ignore_subpackages = is_local_settings-ignore_subpackages
-      iv_only_local_objects = is_local_settings-only_local_objects
-      io_dot                = io_dot_abapgit
-      ii_log                = ii_log ).
-
-    CREATE OBJECT lo_filter.
-
-    lo_filter->apply( EXPORTING it_filter = it_filter
-                      CHANGING  ct_tadir  = lt_tadir ).
-
-* if there are less than 10 objects run in single thread
-* this helps a lot when debugging, plus performance gain
-* with low number of objects does not matter much
-    lv_force = boolc( lines( lt_tadir ) < 10 ).
-
-    lt_found = serialize(
-      it_tadir            = lt_tadir
-      iv_language         = io_dot_abapgit->get_master_language( )
-      ii_log              = ii_log
-      iv_force_sequential = lv_force ).
-    APPEND LINES OF lt_found TO rt_files.
+    add_objects(
+      EXPORTING
+        iv_package        = iv_package
+        io_dot_abapgit    = io_dot_abapgit
+        is_local_settings = is_local_settings
+        ii_log            = ii_log
+        it_filter         = it_filter
+      CHANGING
+        ct_files          = rt_files ).
 
   ENDMETHOD.
   METHOD on_end_of_task.
@@ -90312,6 +90457,8 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD serialize.
+
+* serializes only objects
 
     DATA: lv_max      TYPE i,
           li_progress TYPE REF TO zif_abapgit_progress.
@@ -96534,7 +96681,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     ASSIGN rr_data->* TO <lg_tab>.
 
     LOOP AT it_where INTO lv_where.
-      SELECT * FROM (iv_name) INTO TABLE <lg_tab> WHERE (lv_where).
+      SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where).
     ENDLOOP.
     IF lines( it_where ) = 0.
       SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
@@ -96547,7 +96694,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     DATA ls_config LIKE LINE OF lt_configs.
     DATA ls_file LIKE LINE OF rt_files.
     DATA lr_data TYPE REF TO data.
-    ls_file-path = ii_config->get_path( ).
+    ls_file-path = zif_abapgit_data_config=>c_default_path.
     lt_configs = ii_config->get_configs( ).
 
     LOOP AT lt_configs INTO ls_config.
@@ -96634,7 +96781,7 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
       lr_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
 
       READ TABLE it_files INTO ls_file WITH KEY
-        path = ii_config->get_path( )
+        path = zif_abapgit_data_config=>c_default_path
         filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
       IF sy-subrc = 0.
         read_json(
@@ -96643,17 +96790,13 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
       ENDIF.
 
 * todo
+
     ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
-  METHOD constructor.
-
-    mv_path = zif_abapgit_data_config=>c_default_path.
-
-  ENDMETHOD.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -96690,7 +96833,8 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
 
     CLEAR mt_config.
-    LOOP AT it_files INTO ls_file WHERE path = mv_path AND filename CP |*{ c_extension }|.
+    LOOP AT it_files INTO ls_file WHERE path = zif_abapgit_data_config=>c_default_path
+        AND filename CP |*{ c_extension }|.
       TRY.
           lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( ls_file-data ) ).
           lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = ls_config ).
@@ -96705,11 +96849,6 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   METHOD zif_abapgit_data_config~get_configs.
     rt_configs = mt_config.
   ENDMETHOD.
-  METHOD zif_abapgit_data_config~get_path.
-
-    rv_path = mv_path.
-
-  ENDMETHOD.
   METHOD zif_abapgit_data_config~remove_config.
 
     ASSERT NOT is_config-type IS INITIAL.
@@ -96722,19 +96861,12 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_data_config~set_path.
-
-* todo, validate format
-
-    mv_path = iv_path.
-
-  ENDMETHOD.
   METHOD zif_abapgit_data_config~to_json.
 
     DATA ls_config LIKE LINE OF mt_config.
     DATA ls_file LIKE LINE OF rt_files.
 
-    ls_file-path = mv_path.
+    ls_file-path = zif_abapgit_data_config=>c_default_path.
 
     LOOP AT mt_config INTO ls_config.
       ls_file-filename = to_lower( |{ ls_config-name }{ c_extension }| ).
@@ -99151,5 +99283,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-08T12:10:39.793Z
+* abapmerge 0.14.2 - 2021-01-09T09:52:01.121Z
 ****************************************************
