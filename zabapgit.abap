@@ -22329,7 +22329,25 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_xml_output IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
+  METHOD build_asx_node.
+
+    DATA: li_attr TYPE REF TO if_ixml_attribute.
+    ri_element = mi_xml_doc->create_element_ns(
+      name   = 'abap'
+      prefix = 'asx' ).
+
+    li_attr = mi_xml_doc->create_attribute_ns( 'version' ).
+    li_attr->if_ixml_node~set_value( '1.0' ).
+    ri_element->set_attribute_node_ns( li_attr ).
+
+    li_attr = mi_xml_doc->create_attribute_ns(
+      name   = 'asx'
+      prefix = 'xmlns' ).
+    li_attr->if_ixml_node~set_value( 'http://www.sap.com/abapxml' ).
+    ri_element->set_attribute_node_ns( li_attr ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_xml_output~add.
 
     DATA: li_node TYPE REF TO if_ixml_node,
@@ -22371,24 +22389,6 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
     li_element->append_child( ii_xml ).
 
     mi_xml_doc->get_root( )->get_first_child( )->get_first_child( )->append_child( li_element ).
-
-  ENDMETHOD.
-  METHOD build_asx_node.
-
-    DATA: li_attr TYPE REF TO if_ixml_attribute.
-    ri_element = mi_xml_doc->create_element_ns(
-      name   = 'abap'
-      prefix = 'asx' ).
-
-    li_attr = mi_xml_doc->create_attribute_ns( 'version' ).
-    li_attr->if_ixml_node~set_value( '1.0' ).
-    ri_element->set_attribute_node_ns( li_attr ).
-
-    li_attr = mi_xml_doc->create_attribute_ns(
-      name   = 'asx'
-      prefix = 'xmlns' ).
-    li_attr->if_ixml_node~set_value( 'http://www.sap.com/abapxml' ).
-    ri_element->set_attribute_node_ns( li_attr ).
 
   ENDMETHOD.
   METHOD zif_abapgit_xml_output~i18n_params.
@@ -99283,5 +99283,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-09T09:55:49.886Z
+* abapmerge 0.14.2 - 2021-01-09T15:33:50.355Z
 ****************************************************
