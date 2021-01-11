@@ -1736,26 +1736,18 @@ INTERFACE zif_abapgit_html_viewer .
       !ev_assigned_url TYPE c
     CHANGING
       !ct_data_table   TYPE STANDARD TABLE
-    EXCEPTIONS
-      dp_invalid_parameter
-      dp_error_general
-      cntl_error
-      html_syntax_notcorrect .
+    RAISING
+      zcx_abapgit_exception.
   METHODS set_registered_events
     IMPORTING
       !it_events TYPE cntl_simple_events
-    EXCEPTIONS
-      cntl_error
-      cntl_system_error
-      illegal_event_combination .
+    RAISING
+      zcx_abapgit_exception.
   METHODS show_url
     IMPORTING
       !iv_url TYPE c
-    EXCEPTIONS
-      cntl_error
-      cnht_error_not_allowed
-      cnht_error_parameter
-      dp_error_general .
+    RAISING
+      zcx_abapgit_exception.
   METHODS free .
   METHODS close_document .
   METHODS get_url
@@ -46198,7 +46190,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -46488,18 +46480,20 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
            ev_size = lv_size
            et_tab  = lt_html ).
 
-      mi_html_viewer->load_data(
-        EXPORTING
-          iv_type         = iv_type
-          iv_subtype      = iv_subtype
-          iv_size         = lv_size
-          iv_url          = iv_url
-        IMPORTING
-          ev_assigned_url = rv_url
-        CHANGING
-          ct_data_table   = lt_html
-        EXCEPTIONS
-          OTHERS          = 1 ).
+      TRY.
+          mi_html_viewer->load_data(
+            EXPORTING
+              iv_type         = iv_type
+              iv_subtype      = iv_subtype
+              iv_size         = lv_size
+              iv_url          = iv_url
+            IMPORTING
+              ev_assigned_url = rv_url
+            CHANGING
+              ct_data_table   = lt_html ).
+        CATCH zcx_abapgit_exception.
+          ASSERT 1 = 2.
+      ENDTRY.
     ELSE. " Raw input
       zcl_abapgit_convert=>xstring_to_bintab(
         EXPORTING
@@ -46508,18 +46502,20 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
           ev_size   = lv_size
           et_bintab = lt_xdata ).
 
-      mi_html_viewer->load_data(
-        EXPORTING
-          iv_type         = iv_type
-          iv_subtype      = iv_subtype
-          iv_size         = lv_size
-          iv_url          = iv_url
-        IMPORTING
-          ev_assigned_url = rv_url
-        CHANGING
-          ct_data_table   = lt_xdata
-        EXCEPTIONS
-          OTHERS          = 1 ).
+      TRY.
+          mi_html_viewer->load_data(
+            EXPORTING
+              iv_type         = iv_type
+              iv_subtype      = iv_subtype
+              iv_size         = lv_size
+              iv_url          = iv_url
+            IMPORTING
+              ev_assigned_url = rv_url
+            CHANGING
+              ct_data_table   = lt_xdata ).
+        CATCH zcx_abapgit_exception.
+          ASSERT 1 = 2.
+      ENDTRY.
     ENDIF.
 
     ASSERT sy-subrc = 0. " Image data error
@@ -99283,5 +99279,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-09T15:33:50.355Z
+* abapmerge 0.14.2 - 2021-01-11T09:00:24.225Z
 ****************************************************
