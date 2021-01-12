@@ -57054,6 +57054,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cannot delete W3xx params' ).
     ENDIF.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -99642,5 +99644,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-12T07:47:48.422Z
+* abapmerge 0.14.2 - 2021-01-12T07:50:52.603Z
 ****************************************************
