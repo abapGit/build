@@ -1582,33 +1582,29 @@ INTERFACE zif_abapgit_gui_renderable .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_services .
-
   METHODS cache_asset
     IMPORTING
-      iv_text       TYPE string OPTIONAL
-      iv_xdata      TYPE xstring OPTIONAL
-      iv_url        TYPE w3url OPTIONAL
-      iv_type       TYPE c
-      iv_subtype    TYPE c
+      !iv_text      TYPE string OPTIONAL
+      !iv_xdata     TYPE xstring OPTIONAL
+      !iv_url       TYPE w3url OPTIONAL
+      !iv_type      TYPE c
+      !iv_subtype   TYPE c
     RETURNING
-      VALUE(rv_url) TYPE w3url.
-
+      VALUE(rv_url) TYPE w3url
+    RAISING
+      zcx_abapgit_exception .
   METHODS register_event_handler
     IMPORTING
-      ii_event_handler TYPE REF TO zif_abapgit_gui_event_handler.
-
+      !ii_event_handler TYPE REF TO zif_abapgit_gui_event_handler .
   METHODS get_current_page_name
     RETURNING
-      VALUE(rv_page_name) TYPE string.
-
+      VALUE(rv_page_name) TYPE string .
   METHODS get_hotkeys_ctl
     RETURNING
-      VALUE(ri_hotkey_ctl) TYPE REF TO zif_abapgit_gui_hotkey_ctl.
-
+      VALUE(ri_hotkey_ctl) TYPE REF TO zif_abapgit_gui_hotkey_ctl .
   METHODS get_html_parts
     RETURNING
-      VALUE(ro_parts) TYPE REF TO zcl_abapgit_html_parts.
-
+      VALUE(ro_parts) TYPE REF TO zcl_abapgit_html_parts .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_html.
@@ -13137,13 +13133,13 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS on_event
-          FOR EVENT sapevent OF zif_abapgit_html_viewer
+        FOR EVENT sapevent OF zif_abapgit_html_viewer
       IMPORTING
-          !action
-          !frame
-          !getdata
-          !postdata
-          !query_table .
+        !action
+        !frame
+        !getdata
+        !postdata
+        !query_table .
     METHODS constructor
       IMPORTING
         !io_component         TYPE REF TO object OPTIONAL
@@ -13180,7 +13176,9 @@ CLASS zcl_abapgit_gui DEFINITION
       IMPORTING
         !iv_text      TYPE string
       RETURNING
-        VALUE(rv_url) TYPE w3url .
+        VALUE(rv_url) TYPE w3url
+      RAISING
+        zcx_abapgit_exception .
     METHODS startup
       RAISING
         zcx_abapgit_exception .
@@ -32432,27 +32430,38 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
 
     mo_html_viewer->load_data(
       EXPORTING
-        url           = iv_url
-        type          = iv_type
-        subtype       = iv_subtype
-        size          = iv_size
+        url                    = iv_url
+        type                   = iv_type
+        subtype                = iv_subtype
+        size                   = iv_size
       IMPORTING
-        assigned_url  = ev_assigned_url
+        assigned_url           = ev_assigned_url
       CHANGING
-        data_table    = ct_data_table ).
+        data_table             = ct_data_table
+      EXCEPTIONS
+        dp_invalid_parameter   = 1
+        dp_error_general       = 2
+        cntl_error             = 3
+        html_syntax_notcorrect = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error loading data for HTML viewer' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~set_registered_events.
 
-    mo_html_viewer->set_registered_events( it_events ).
+    mo_html_viewer->set_registered_events(
+      EXPORTING
+        events                    = it_events
+      EXCEPTIONS
+        cntl_error                = 1
+        cntl_system_error         = 2
+        illegal_event_combination = 3 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error registering events for HTML viewer' ).
+    ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_html_viewer~show_url.
-
-    mo_html_viewer->show_url( iv_url ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_html_viewer~set_visiblity.
     DATA: lv_visible TYPE c LENGTH 1.
 
@@ -32463,6 +32472,21 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
     ENDIF.
 
     mo_html_viewer->set_visible( lv_visible ).
+  ENDMETHOD.
+  METHOD zif_abapgit_html_viewer~show_url.
+
+    mo_html_viewer->show_url(
+      EXPORTING
+        url                    = iv_url
+      EXCEPTIONS
+        cntl_error             = 1
+        cnht_error_not_allowed = 2
+        cnht_error_parameter   = 3
+        dp_error_general       = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error showing URL in HTML viewer' ).
+    ENDIF.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -46306,7 +46330,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -46596,20 +46620,16 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
            ev_size = lv_size
            et_tab  = lt_html ).
 
-      TRY.
-          mi_html_viewer->load_data(
-            EXPORTING
-              iv_type         = iv_type
-              iv_subtype      = iv_subtype
-              iv_size         = lv_size
-              iv_url          = iv_url
-            IMPORTING
-              ev_assigned_url = rv_url
-            CHANGING
-              ct_data_table   = lt_html ).
-        CATCH zcx_abapgit_exception.
-          ASSERT 1 = 2.
-      ENDTRY.
+      mi_html_viewer->load_data(
+        EXPORTING
+          iv_type         = iv_type
+          iv_subtype      = iv_subtype
+          iv_size         = lv_size
+          iv_url          = iv_url
+        IMPORTING
+          ev_assigned_url = rv_url
+        CHANGING
+          ct_data_table   = lt_html ).
     ELSE. " Raw input
       zcl_abapgit_convert=>xstring_to_bintab(
         EXPORTING
@@ -46618,20 +46638,16 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
           ev_size   = lv_size
           et_bintab = lt_xdata ).
 
-      TRY.
-          mi_html_viewer->load_data(
-            EXPORTING
-              iv_type         = iv_type
-              iv_subtype      = iv_subtype
-              iv_size         = lv_size
-              iv_url          = iv_url
-            IMPORTING
-              ev_assigned_url = rv_url
-            CHANGING
-              ct_data_table   = lt_xdata ).
-        CATCH zcx_abapgit_exception.
-          ASSERT 1 = 2.
-      ENDTRY.
+      mi_html_viewer->load_data(
+        EXPORTING
+          iv_type         = iv_type
+          iv_subtype      = iv_subtype
+          iv_size         = lv_size
+          iv_url          = iv_url
+        IMPORTING
+          ev_assigned_url = rv_url
+        CHANGING
+          ct_data_table   = lt_xdata ).
     ENDIF.
 
     ASSERT sy-subrc = 0. " Image data error
@@ -99644,5 +99660,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-12T07:50:52.603Z
+* abapmerge 0.14.2 - 2021-01-12T07:55:06.858Z
 ****************************************************
