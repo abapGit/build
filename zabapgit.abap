@@ -97016,7 +97016,8 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
 
     TRY.
         lo_ajson = zcl_abapgit_ajson=>create_empty( ).
-        lo_ajson->zif_abapgit_ajson_writer~set(
+        lo_ajson->keep_item_order( ).
+        lo_ajson->set(
           iv_path = '/'
           iv_val = <lg_tab> ).
         lv_string = lo_ajson->stringify( 2 ).
@@ -99638,5 +99639,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-11T09:29:33.840Z
+* abapmerge 0.14.2 - 2021-01-12T07:45:50.468Z
 ****************************************************
