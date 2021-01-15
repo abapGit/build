@@ -15608,7 +15608,6 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo.
     DATA mt_stats TYPE STANDARD TABLE OF ty_stats WITH KEY measure.
-    DATA ms_dot TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
     METHODS get_form_schema
       RETURNING
@@ -33174,7 +33173,6 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   METHOD render_field_radio.
 
     DATA:
-      lv_value     TYPE string,
       lv_checked   TYPE string,
       lv_opt_id    TYPE string,
       lv_opt_value TYPE string.
@@ -33213,8 +33211,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_value     TYPE string,
       lv_readonly  TYPE string,
       lv_rows      TYPE i,
-      lv_cell_id   TYPE string,
-      lv_opt_value TYPE string.
+      lv_cell_id   TYPE string.
 
     FIELD-SYMBOLS <ls_subitem> LIKE LINE OF is_field-subitems.
 
@@ -34090,7 +34087,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           lo_code_inspector_page      TYPE REF TO zcl_abapgit_gui_page_code_insp,
           lo_page_repo                TYPE REF TO zcl_abapgit_gui_page_repo_view,
           lv_answer                   TYPE c LENGTH 1,
-          lv_branch_name              TYPE string,
           lv_question_text            TYPE string,
           lv_question_title           TYPE string,
           lv_show_create_branch_popup TYPE c LENGTH 1.
@@ -35809,7 +35805,6 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       lo_dot          TYPE REF TO zcl_abapgit_dot_abapgit,
       lv_ignore       TYPE string,
       lt_ignore       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      lv_rows         TYPE i,
       ls_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement,
       lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
 
@@ -39733,7 +39728,6 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lv_key TYPE zif_abapgit_persistence=>ty_value.
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
@@ -42171,8 +42165,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_persist.
 
-    DATA: lo_per TYPE REF TO zcl_abapgit_persist_background,
-          lt_per TYPE zcl_abapgit_persist_background=>ty_background_keys.
+    DATA lo_per TYPE REF TO zcl_abapgit_persist_background.
+
     CREATE OBJECT lo_per.
 
     TRY.
@@ -48859,8 +48853,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     FIELD-SYMBOLS:
       <ls_checksum> LIKE LINE OF lt_checksums,
-      <ls_file_sig> LIKE LINE OF <ls_checksum>-files,
-      <ls_remote>   LIKE LINE OF lt_remote,
       <ls_local>    LIKE LINE OF lt_local.
 
     lt_local  = get_files_local( ).
@@ -48882,6 +48874,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
                                       is_local_file = <ls_local>-file
                                     CHANGING
                                       cs_checksum = <ls_checksum> ).
+
     ENDLOOP.
     set( it_checksums = lt_checksums ).
     reset_status( ).
@@ -56943,8 +56936,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
           lt_dd28j TYPE TABLE OF dd28j,
           lt_dd28v TYPE TABLE OF dd28v.
 
-    FIELD-SYMBOLS: <ls_dd27p> LIKE LINE OF lt_dd27p,
-                   <ls_dd28j> LIKE LINE OF lt_dd28j.
+    FIELD-SYMBOLS: <ls_dd27p> LIKE LINE OF lt_dd27p.
 
     io_xml->read( EXPORTING iv_name = 'DD25V'
                   CHANGING cg_data = ls_dd25v ).
@@ -61613,8 +61605,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSH IMPLEMENTATION.
       lt_usobt          TYPE usobt_t,
       lr_appl_head      TYPE REF TO data,
       lr_data_head      TYPE REF TO data,
-      lr_data_usobx     TYPE REF TO data,
-      lr_data_usobt     TYPE REF TO data,
       lr_data_usobx_ext TYPE REF TO data,
       lr_data_usobt_ext TYPE REF TO data,
       lr_err            TYPE REF TO cx_static_check,
@@ -61744,23 +61734,17 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSH IMPLEMENTATION.
     DATA:
       ls_key            TYPE usobkey,
       lo_su22           TYPE REF TO object,
-      lt_clr_comps      TYPE STANDARD TABLE OF fieldname WITH DEFAULT KEY,
       lt_usobx          TYPE usobx_t,
       lt_usobt          TYPE usobt_t,
       lr_data_head      TYPE REF TO data,
-      lr_data_usobx     TYPE REF TO data,
-      lr_data_usobt     TYPE REF TO data,
       lr_data_usobx_ext TYPE REF TO data,
       lr_data_usobt_ext TYPE REF TO data,
       lr_err            TYPE REF TO cx_static_check,
-      lv_text           TYPE string,
       lx_error          TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_data_head>      TYPE any,
                    <lt_data_usobx_ext> TYPE ANY TABLE,
-                   <lt_data_usobt_ext> TYPE ANY TABLE,
-                   <lt_field>          TYPE any,
-                   <lv_comp>           LIKE LINE OF lt_clr_comps.
+                   <lt_data_usobt_ext> TYPE ANY TABLE.
 
     ls_key = ms_item-obj_name.
 
@@ -99270,5 +99254,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-15T07:31:59.719Z
+* abapmerge 0.14.2 - 2021-01-15T16:24:14.612Z
 ****************************************************
