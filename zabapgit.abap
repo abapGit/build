@@ -91451,6 +91451,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           ELSE.
             <ls_tadir>-korrnum = '750000'.
           ENDIF.
+        WHEN 'ENQU'.
+          " ENQU before TABL
+          <ls_tadir>-korrnum = '725000'.
         WHEN 'DDLS'.
           " DDLS after DCLS but before other DDIC
           <ls_tadir>-korrnum = '720000'.
@@ -99277,5 +99280,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-14T13:15:19.750Z
+* abapmerge 0.14.2 - 2021-01-15T07:28:48.140Z
 ****************************************************
