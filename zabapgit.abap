@@ -84590,6 +84590,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAR IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -99299,5 +99300,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-17T08:29:57.463Z
+* abapmerge 0.14.2 - 2021-01-18T06:35:35.428Z
 ****************************************************
