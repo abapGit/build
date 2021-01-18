@@ -80588,7 +80588,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
     " Swap out repository package name with the local installation package name
     ls_package_data-devclass = mv_local_devclass.
-    ls_package_data-pdevclass = li_package->transport_layer.
+    IF li_package IS BOUND.
+      ls_package_data-pdevclass = li_package->transport_layer.
+    ENDIF.
 
     " Parent package is not changed. Assume the folder logic already created the package and set
     " the hierarchy before.
@@ -99300,5 +99302,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-18T06:35:35.428Z
+* abapmerge 0.14.2 - 2021-01-18T08:20:33.519Z
 ****************************************************
