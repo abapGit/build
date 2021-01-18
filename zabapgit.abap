@@ -1452,9 +1452,13 @@ INTERFACE zif_abapgit_dot_abapgit.
     END OF ty_requirement .
   TYPES:
     ty_requirement_tt TYPE STANDARD TABLE OF ty_requirement WITH DEFAULT KEY .
+
+  TYPES:
+    ty_langs_tt TYPE STANDARD TABLE OF laiso WITH DEFAULT KEY.
   TYPES:
     BEGIN OF ty_dot_abapgit,
       master_language              TYPE spras,
+      i18n_langs                   TYPE string,
       starting_folder              TYPE string,
       folder_logic                 TYPE string,
       ignore                       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -12231,6 +12235,14 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_requirements
       IMPORTING
         it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt.
+
+    METHODS get_i18n_langs
+      RETURNING
+        VALUE(rv_langs) TYPE string.
+    METHODS set_i18n_langs
+      IMPORTING
+        iv_langs TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
@@ -12243,6 +12255,13 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
       from_xml
         IMPORTING iv_xml         TYPE string
         RETURNING VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
+
+    CLASS-METHODS decode_i18n_langs_string
+      IMPORTING
+        iv_langs TYPE string
+        iv_skip_master_lang TYPE spras OPTIONAL
+      RETURNING
+        VALUE(rt_langs) TYPE zif_abapgit_dot_abapgit=>ty_langs_tt.
 
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
@@ -15808,6 +15827,7 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
       BEGIN OF c_id,
         dot             TYPE string VALUE 'dot',
         master_language TYPE string VALUE 'master_language',
+        i18n_langs      TYPE string VALUE 'i18n_langs',
         starting_folder TYPE string VALUE 'starting_folder',
         folder_logic    TYPE string VALUE 'folder_logic',
         ignore          TYPE string VALUE 'ignore',
@@ -35661,7 +35681,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35705,6 +35725,10 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_label       = 'Main Language'
       iv_hint        = 'Main language of repository (cannot be changed)'
       iv_readonly    = abap_true
+    )->text(
+      iv_name        = c_id-i18n_langs
+      iv_label       = 'Serialize translations (experimental LXE approach)'
+      iv_hint        = 'Comma separate 2-letter iso lang codes e.g. "de,es,..." - should not include main language'
     )->radio(
       iv_name        = c_id-folder_logic
       iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
@@ -35749,6 +35773,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   METHOD read_settings.
 
     DATA:
+      lo_dot          TYPE REF TO zcl_abapgit_dot_abapgit,
       ls_dot          TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
       lv_language     TYPE t002t-sptxt,
       lv_ignore       TYPE string,
@@ -35760,7 +35785,8 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       <lv_ignore> TYPE string.
 
     " Get settings from DB
-    ls_dot = mo_repo->get_dot_abapgit( )->get_data( ).
+    lo_dot = mo_repo->get_dot_abapgit( ).
+    ls_dot = lo_dot->get_data( ).
 
     " Repository Settings
     SELECT SINGLE sptxt INTO lv_language FROM t002t
@@ -35772,6 +35798,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-master_language
       iv_val = |{ ls_dot-master_language } ({ lv_language })| ).
+    mo_form_data->set(
+      iv_key = c_id-i18n_langs
+      iv_val = lo_dot->get_i18n_langs( ) ).
     mo_form_data->set(
       iv_key = c_id-folder_logic
       iv_val = ls_dot-folder_logic ).
@@ -35839,6 +35868,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     lo_dot->set_folder_logic( mo_form_data->get( c_id-folder_logic ) ).
     lo_dot->set_starting_folder( mo_form_data->get( c_id-starting_folder ) ).
+    lo_dot->set_i18n_langs( mo_form_data->get( c_id-i18n_langs ) ).
 
     " Remove all ignores
     lt_ignore = lo_dot->get_data( )-ignore.
@@ -49214,6 +49244,33 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD constructor.
     ms_data = is_data.
   ENDMETHOD.
+  METHOD decode_i18n_langs_string.
+
+    " This should go as an util to TEXTS/i18n class
+
+    DATA lt_langs_str TYPE string_table.
+    DATA lv_master_lang_iso TYPE laiso.
+    FIELD-SYMBOLS <lv_str> LIKE LINE OF lt_langs_str.
+    FIELD-SYMBOLS <lv_lang> LIKE LINE OF rt_langs.
+
+    IF iv_skip_master_lang IS NOT INITIAL.
+      lv_master_lang_iso = cl_i18n_languages=>sap1_to_sap2( iv_skip_master_lang ).
+    ENDIF.
+
+    SPLIT iv_langs AT ',' INTO TABLE lt_langs_str.
+    LOOP AT lt_langs_str ASSIGNING <lv_str>.
+      CONDENSE <lv_str>.
+      <lv_str> = to_upper( <lv_str> ).
+      IF <lv_str> IS NOT INITIAL AND ( lv_master_lang_iso IS INITIAL OR <lv_str> <> lv_master_lang_iso ).
+        APPEND INITIAL LINE TO rt_langs ASSIGNING <lv_lang>.
+        <lv_lang> = <lv_str>.
+      ENDIF.
+    ENDLOOP.
+
+    " TODO: maybe validate language against table, but system may not have one?
+    " TODO: maybe through on lang > 2 symbols ?
+
+  ENDMETHOD.
   METHOD deserialize.
 
     DATA: lv_xml  TYPE string,
@@ -49249,6 +49306,16 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_folder_logic.
     rv_logic = ms_data-folder_logic.
+  ENDMETHOD.
+  METHOD get_i18n_langs.
+
+    DATA lt_langs TYPE zif_abapgit_dot_abapgit=>ty_langs_tt.
+
+    lt_langs = decode_i18n_langs_string(
+      iv_langs            = ms_data-i18n_langs
+      iv_skip_master_lang = ms_data-master_language ).
+    CONCATENATE LINES OF lt_langs INTO rv_langs SEPARATED BY ','.
+
   ENDMETHOD.
   METHOD get_master_language.
     rv_language = ms_data-master_language.
@@ -49331,6 +49398,16 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_folder_logic.
     ms_data-folder_logic = iv_logic.
+  ENDMETHOD.
+  METHOD set_i18n_langs.
+
+    DATA lt_langs TYPE zif_abapgit_dot_abapgit=>ty_langs_tt.
+
+    lt_langs = decode_i18n_langs_string(
+      iv_langs            = iv_langs
+      iv_skip_master_lang = ms_data-master_language ).
+    CONCATENATE LINES OF lt_langs INTO ms_data-i18n_langs SEPARATED BY ','.
+
   ENDMETHOD.
   METHOD set_requirements.
     ms_data-requirements = it_requirements.
@@ -99287,5 +99364,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-18T08:32:24.793Z
+* abapmerge 0.14.2 - 2021-01-18T08:34:50.657Z
 ****************************************************
