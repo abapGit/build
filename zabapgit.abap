@@ -23110,10 +23110,14 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
   METHOD regex.
 
-    FIND REGEX '(https?://[^/]*)(.*/)([^\.]*)[\.git]?' IN iv_url
+    FIND REGEX '(https?://[^/]*)(.*/)(.*)\.git$' IN iv_url
       SUBMATCHES ev_host ev_path ev_name.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Malformed URL' ).
+      FIND REGEX '(https?://[^/]*)(.*/)(.*)$' IN iv_url
+        SUBMATCHES ev_host ev_path ev_name.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Malformed URL' ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -99897,5 +99901,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-19T13:33:17.990Z
+* abapmerge 0.14.2 - 2021-01-20T11:32:52.404Z
 ****************************************************
