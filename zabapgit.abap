@@ -61053,7 +61053,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           lv_refs      TYPE abap_bool,
           ls_extras    TYPE ty_tabl_extras.
 
-    FIELD-SYMBOLS: <ls_dd03p> TYPE dd03p.
+    FIELD-SYMBOLS: <ls_dd03p> TYPE dd03p,
+                   <lg_roworcolst> TYPE any.
 
     IF deserialize_idoc_segment( io_xml     = io_xml
                                  iv_package = iv_package ) = abap_false.
@@ -61064,6 +61065,10 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
                     CHANGING cg_data = ls_dd09l ).
       io_xml->read( EXPORTING iv_name  = 'DD03P_TABLE'
                     CHANGING cg_data = lt_dd03p ).
+      ASSIGN COMPONENT 'ROWORCOLST' OF STRUCTURE ls_dd09l TO <lg_roworcolst>.
+      IF sy-subrc = 0 AND <lg_roworcolst> IS INITIAL.
+        <lg_roworcolst> = 'C'. "Reverse fix from serialize
+      ENDIF.
 
       " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
       LOOP AT lt_dd03p ASSIGNING <ls_dd03p> WHERE datatype = 'REF'.
@@ -100006,5 +100011,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-20T17:24:22.758Z
+* abapmerge 0.14.2 - 2021-01-21T05:22:28.889Z
 ****************************************************
