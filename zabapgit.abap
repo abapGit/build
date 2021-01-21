@@ -3364,10 +3364,8 @@ INTERFACE zif_abapgit_gui_hotkey_ctl .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
-
   TYPES:
-    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
-
+    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_popup, " TODO remove, use zif_abapgit_services_repo=>ty_repo_params instead
       url              TYPE string,
@@ -3437,7 +3435,7 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rs_popup)    TYPE ty_popup
     RAISING
-      zcx_abapgit_exception ##NO_TEXT.
+      zcx_abapgit_exception  ##NO_TEXT.
   METHODS popup_to_confirm
     IMPORTING
       !iv_titlebar              TYPE clike
@@ -3524,12 +3522,12 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS popup_perf_test_parameters
     EXPORTING
-      !et_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range
-      !et_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range
+      !et_object_type_filter   TYPE zif_abapgit_definitions=>ty_object_type_range
+      !et_object_name_filter   TYPE zif_abapgit_definitions=>ty_object_name_range
     CHANGING
-      !cv_package                    TYPE devclass
-      !cv_include_sub_packages       TYPE abap_bool
-      !cv_serialize_master_lang_only TYPE abap_bool
+      !cv_package              TYPE devclass
+      !cv_include_sub_packages TYPE abap_bool
+      !cv_main_language_only   TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -13336,7 +13334,7 @@ CLASS zcl_abapgit_performance_test DEFINITION
     METHODS:
       constructor IMPORTING iv_package                    TYPE devclass
                             iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
-                            iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_true,
+                            iv_main_language_only TYPE abap_bool DEFAULT abap_true,
       set_object_type_filter IMPORTING it_object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
       set_object_name_filter IMPORTING it_object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
       get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
@@ -13351,7 +13349,7 @@ CLASS zcl_abapgit_performance_test DEFINITION
     DATA:
       mv_package                    TYPE devclass,
       mv_include_sub_packages       TYPE abap_bool,
-      mv_serialize_master_lang_only TYPE abap_bool,
+      mv_main_language_only TYPE abap_bool,
       BEGIN OF ms_filter_parameters,
         object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
         object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
@@ -14345,10 +14343,10 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
 
     CONSTANTS:
       BEGIN OF c_id,
-        url              TYPE string VALUE 'url',
-        package          TYPE string VALUE 'package',
-        folder_logic     TYPE string VALUE 'folder_logic',
-        master_lang_only TYPE string VALUE 'master_lang_only',
+        url            TYPE string VALUE 'url',
+        package        TYPE string VALUE 'package',
+        folder_logic   TYPE string VALUE 'folder_logic',
+        main_lang_only TYPE string VALUE 'main_lang_only',
       END OF c_id .
 
     CONSTANTS:
@@ -14407,7 +14405,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         display_name       TYPE string VALUE 'display_name',
         folder_logic       TYPE string VALUE 'folder_logic',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
-        master_lang_only   TYPE string VALUE 'master_lang_only',
+        main_lang_only     TYPE string VALUE 'main_lang_only',
       END OF c_id.
 
     CONSTANTS:
@@ -16070,7 +16068,7 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
     CONSTANTS:
       BEGIN OF c_id,
         dot             TYPE string VALUE 'dot',
-        master_language TYPE string VALUE 'master_language',
+        main_language   TYPE string VALUE 'main_language',
         i18n_langs      TYPE string VALUE 'i18n_langs',
         starting_folder TYPE string VALUE 'starting_folder',
         folder_logic    TYPE string VALUE 'folder_logic',
@@ -17843,7 +17841,7 @@ ENDCLASS.
 *----------------------------------------------------------------------*
 * This helper class is used to set and restore the current language.
 * As some of the SAP functions used rely on SY-LANGU containing the
-* master language, this class is used to temporarily change and then
+* main language, this class is used to temporarily change and then
 * restore the value of SY-LANGU.
 *----------------------------------------------------------------------*
 CLASS zcl_abapgit_language DEFINITION
@@ -17856,6 +17854,7 @@ CLASS zcl_abapgit_language DEFINITION
     CLASS-METHODS set_current_language
       IMPORTING
         !iv_language TYPE langu .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-DATA gv_login_language TYPE langu .
@@ -24018,7 +24017,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LANGUAGE IMPLEMENTATION.
+CLASS zcl_abapgit_language IMPLEMENTATION.
   METHOD class_constructor.
 
     DATA lv_dummy TYPE string.
@@ -30422,7 +30421,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
+CLASS zcl_abapgit_services_basis IMPLEMENTATION.
   METHOD create_package.
 
     DATA ls_package_data TYPE scompkdtln.
@@ -30504,19 +30503,19 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD run_performance_test.
-    DATA: lo_performance                TYPE REF TO zcl_abapgit_performance_test,
-          lv_package                    TYPE devclass,
-          lv_include_sub_packages       TYPE abap_bool VALUE abap_true,
-          lv_serialize_master_lang_only TYPE abap_bool VALUE abap_true,
-          lt_object_type_filter         TYPE zif_abapgit_definitions=>ty_object_type_range,
-          lt_object_name_filter         TYPE zif_abapgit_definitions=>ty_object_name_range,
-          lt_result                     TYPE zcl_abapgit_performance_test=>ty_results,
-          lo_alv                        TYPE REF TO cl_salv_table,
-          lx_salv_error                 TYPE REF TO cx_salv_error,
-          lv_current_repo               TYPE zif_abapgit_persistence=>ty_value,
-          lo_runtime_column             TYPE REF TO cl_salv_column,
-          lo_seconds_column             TYPE REF TO cl_salv_column,
-          li_popups                     TYPE REF TO zif_abapgit_popups.
+    DATA: lo_performance          TYPE REF TO zcl_abapgit_performance_test,
+          lv_package              TYPE devclass,
+          lv_include_sub_packages TYPE abap_bool VALUE abap_true,
+          lv_main_language_only   TYPE abap_bool VALUE abap_true,
+          lt_object_type_filter   TYPE zif_abapgit_definitions=>ty_object_type_range,
+          lt_object_name_filter   TYPE zif_abapgit_definitions=>ty_object_name_range,
+          lt_result               TYPE zcl_abapgit_performance_test=>ty_results,
+          lo_alv                  TYPE REF TO cl_salv_table,
+          lx_salv_error           TYPE REF TO cx_salv_error,
+          lv_current_repo         TYPE zif_abapgit_persistence=>ty_value,
+          lo_runtime_column       TYPE REF TO cl_salv_column,
+          lo_seconds_column       TYPE REF TO cl_salv_column,
+          li_popups               TYPE REF TO zif_abapgit_popups.
 
     TRY.
         lv_current_repo = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
@@ -30529,18 +30528,18 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_perf_test_parameters(
       IMPORTING
-        et_object_type_filter         = lt_object_type_filter
-        et_object_name_filter         = lt_object_name_filter
+        et_object_type_filter   = lt_object_type_filter
+        et_object_name_filter   = lt_object_name_filter
       CHANGING
-        cv_package                    = lv_package
-        cv_include_sub_packages       = lv_include_sub_packages
-        cv_serialize_master_lang_only = lv_serialize_master_lang_only ).
+        cv_package              = lv_package
+        cv_include_sub_packages = lv_include_sub_packages
+        cv_main_language_only   = lv_main_language_only ).
 
     CREATE OBJECT lo_performance
       EXPORTING
-        iv_package                    = lv_package
-        iv_include_sub_packages       = lv_include_sub_packages
-        iv_serialize_master_lang_only = lv_serialize_master_lang_only.
+        iv_package              = lv_package
+        iv_include_sub_packages = lv_include_sub_packages
+        iv_main_language_only   = lv_main_language_only.
     lo_performance->set_object_type_filter( lt_object_type_filter ).
     lo_performance->set_object_name_filter( lt_object_name_filter ).
 
@@ -30882,7 +30881,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31590,12 +31589,12 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     <ls_field>-value = cv_include_sub_packages.
 
     APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'MASTER_LANG_ONLY'.
+    <ls_field>-name = 'MAIN_LANG_ONLY'.
     <ls_field>-only_parameter = abap_true.
     <ls_field>-ddic_tabname = 'TVDIR'.
     <ls_field>-ddic_fieldname = 'FLAG'.
     <ls_field>-text = 'Main language only'.
-    <ls_field>-value = cv_serialize_master_lang_only.
+    <ls_field>-value = cv_main_language_only.
 
     popup_get_from_free_selections(
       EXPORTING
@@ -31614,8 +31613,8 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
           et_object_name_filter = <ls_field>-value_range.
         WHEN 'INCLUDE_SUB_PACKAGES'.
           cv_include_sub_packages = boolc( <ls_field>-value IS NOT INITIAL ).
-        WHEN 'MASTER_LANG_ONLY'.
-          cv_serialize_master_lang_only = boolc( <ls_field>-value IS NOT INITIAL ).
+        WHEN 'MAIN_LANG_ONLY'.
+          cv_main_language_only = boolc( <ls_field>-value IS NOT INITIAL ).
       ENDCASE.
     ENDLOOP.
   ENDMETHOD.
@@ -35921,7 +35920,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -35961,14 +35960,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
       iv_label       = 'Repository Settings (.abapgit.xml)'
       iv_hint        = 'Settings stored in root folder in .abapgit.xml file'
     )->text(
-      iv_name        = c_id-master_language
+      iv_name        = c_id-main_language
       iv_label       = 'Main Language'
       iv_hint        = 'Main language of repository (cannot be changed)'
       iv_readonly    = abap_true
     )->text(
       iv_name        = c_id-i18n_langs
-      iv_label       = 'Serialize translations (experimental LXE approach)'
-      iv_hint        = 'Comma separate 2-letter iso lang codes e.g. "de,es,..." - should not include main language'
+      iv_label       = 'Serialize Translations (experimental LXE approach)'
+      iv_hint        = 'Comma-separate 2-letter ISO language codes e.g. "DE,ES,..." - should not include main language'
     )->radio(
       iv_name        = c_id-folder_logic
       iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
@@ -36036,7 +36035,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
     ENDIF.
 
     mo_form_data->set(
-      iv_key = c_id-master_language
+      iv_key = c_id-main_language
       iv_val = |{ ls_dot-master_language } ({ lv_language })| ).
     mo_form_data->set(
       iv_key = c_id-i18n_langs
@@ -42682,7 +42681,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       iv_label       = 'Ignore Subpackages'
       iv_hint        = 'Synchronize root package only'
     )->checkbox(
-      iv_name        = c_id-master_lang_only
+      iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -42878,7 +42877,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
     )->checkbox(
-      iv_name        = c_id-master_lang_only
+      iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -46442,11 +46441,11 @@ CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
+CLASS zcl_abapgit_performance_test IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
     mv_include_sub_packages = iv_include_sub_packages.
-    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
+    mv_main_language_only = iv_main_language_only.
   ENDMETHOD.
   METHOD get_object_name_filter.
     rt_object_name_range = ms_filter_parameters-object_name_range.
@@ -46480,7 +46479,7 @@ CLASS ZCL_ABAPGIT_PERFORMANCE_TEST IMPLEMENTATION.
 
         CREATE OBJECT lo_serializer
           EXPORTING
-            iv_serialize_master_lang_only = mv_serialize_master_lang_only.
+            iv_serialize_master_lang_only = mv_main_language_only.
 
         LOOP AT lt_tadir ASSIGNING <ls_tadir>.
           INSERT <ls_tadir> INTO TABLE lt_tadir_single.
@@ -100011,5 +100010,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-21T05:22:28.889Z
+* abapmerge 0.14.2 - 2021-01-21T16:19:11.709Z
 ****************************************************
