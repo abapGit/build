@@ -14346,7 +14346,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
         url            TYPE string VALUE 'url',
         package        TYPE string VALUE 'package',
         folder_logic   TYPE string VALUE 'folder_logic',
-        main_lang_only TYPE string VALUE 'main_lang_only',
+        master_lang_only TYPE string VALUE 'master_lang_only',
       END OF c_id .
 
     CONSTANTS:
@@ -14405,7 +14405,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         display_name       TYPE string VALUE 'display_name',
         folder_logic       TYPE string VALUE 'folder_logic',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
-        main_lang_only     TYPE string VALUE 'main_lang_only',
+        master_lang_only   TYPE string VALUE 'master_lang_only',
       END OF c_id.
 
     CONSTANTS:
@@ -42616,7 +42616,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -42681,7 +42681,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       iv_label       = 'Ignore Subpackages'
       iv_hint        = 'Synchronize root package only'
     )->checkbox(
-      iv_name        = c_id-main_lang_only
+      iv_name        = c_id-master_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -42827,7 +42827,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -42877,7 +42877,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
     )->checkbox(
-      iv_name        = c_id-main_lang_only
+      iv_name        = c_id-master_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -100010,5 +100010,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-21T16:19:11.709Z
+* abapmerge 0.14.2 - 2021-01-22T09:18:34.545Z
 ****************************************************
