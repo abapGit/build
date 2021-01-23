@@ -832,6 +832,7 @@ CLASS zcl_abapgit_object_para DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_otgr DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_odso DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_oa2p DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_nspc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_nrob DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_msag DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_jobd DEFINITION DEFERRED.
@@ -6331,13 +6332,61 @@ CLASS zcl_abapgit_tadir DEFINITION
     METHODS build
       IMPORTING
         !iv_package            TYPE tadir-devclass
-        !iv_top                TYPE tadir-devclass
         !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
         !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
-        !iv_only_local_objects TYPE abap_bool
+        !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
         !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING
         VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS select_objects
+      IMPORTING
+        !iv_package            TYPE tadir-devclass
+        !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
+        !iv_only_local_objects TYPE abap_bool
+      EXPORTING
+        !et_packages           TYPE zif_abapgit_sap_package=>ty_devclass_tt
+        !et_tadir              TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS skip_objects
+      IMPORTING
+        !iv_package TYPE tadir-devclass
+        !io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
+        !ii_log     TYPE REF TO zif_abapgit_log OPTIONAL
+      CHANGING
+        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_local_packages
+      IMPORTING
+        !it_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt
+      CHANGING
+        !ct_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_namespaces
+      IMPORTING
+        !iv_package TYPE devclass
+      CHANGING
+        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS determine_path
+      IMPORTING
+        !iv_package TYPE tadir-devclass
+        !io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
+      CHANGING
+        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS adjust_objects
+      IMPORTING
+        !iv_package TYPE tadir-devclass
+        !io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
+      CHANGING
+        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -9334,6 +9383,50 @@ CLASS zcl_abapgit_object_nrob DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       delete_intervals IMPORTING iv_object TYPE inri-object
                        RAISING   zcx_abapgit_exception.
 
+ENDCLASS.
+CLASS zcl_abapgit_object_nspc DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_nspc,
+        namespace  TYPE trnspacet-namespace,
+        replicense TYPE trnspacet-replicense,
+        sscrflag   TYPE trnspacet-sscrflag,
+        sapflag    TYPE trnspacet-sapflag,
+        gen_only   TYPE trnspacet-gen_only,
+      END OF ty_nspc .
+    TYPES:
+      BEGIN OF ty_nspc_text,
+        spras     TYPE trnspacett-spras,
+        descriptn TYPE trnspacett-descriptn,
+        owner     TYPE trnspacett-owner,
+      END OF ty_nspc_text .
+    TYPES:
+      ty_nspc_texts TYPE STANDARD TABLE OF ty_nspc_text .
+
+    METHODS serialize_texts
+      IMPORTING
+        !ii_xml TYPE REF TO zif_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_texts
+      IMPORTING
+        !ii_xml       TYPE REF TO zif_abapgit_xml_input
+        !iv_namespace TYPE namespace
+      RAISING
+        zcx_abapgit_exception .
+    METHODS add_to_transport
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_oa2p DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -71672,6 +71765,268 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
+  METHOD add_to_transport.
+
+    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+
+    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
+      corr_insert( iv_package ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD deserialize_texts.
+
+    DATA:
+      ls_trnspacett TYPE trnspacett,
+      lt_i18n_langs TYPE TABLE OF langu,
+      lt_nspc_texts TYPE ty_nspc_texts.
+
+    FIELD-SYMBOLS:
+      <lv_lang>      LIKE LINE OF lt_i18n_langs,
+      <ls_nspc_text> LIKE LINE OF lt_nspc_texts.
+
+    ii_xml->read( EXPORTING iv_name = 'I18N_LANGS'
+                  CHANGING  cg_data = lt_i18n_langs ).
+
+    ii_xml->read( EXPORTING iv_name = 'NSPC_TEXTS'
+                  CHANGING  cg_data = lt_nspc_texts ).
+
+    SORT lt_i18n_langs.
+    SORT lt_nspc_texts BY spras. " Optimization
+
+    LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
+      ls_trnspacett-namespace = iv_namespace.
+      READ TABLE lt_nspc_texts ASSIGNING <ls_nspc_text> WITH KEY spras = <lv_lang>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |NSPC_TEXTS cannot find lang { <lv_lang> } in XML| ).
+      ENDIF.
+      MOVE-CORRESPONDING <ls_nspc_text> TO ls_trnspacett.
+
+      MODIFY trnspacett FROM ls_trnspacett.
+      IF sy-subrc <> 0.
+        INSERT trnspacett FROM ls_trnspacett.
+      ENDIF.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error upserting text for namespace| ).
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD serialize_texts.
+
+    DATA:
+      lv_name       TYPE ddobjname,
+      lv_index      TYPE i,
+      ls_trnspacett TYPE trnspacett,
+      lt_nspc_texts TYPE ty_nspc_texts,
+      lt_i18n_langs TYPE TABLE OF langu.
+
+    FIELD-SYMBOLS:
+      <lv_lang>      LIKE LINE OF lt_i18n_langs,
+      <ls_nspc_text> LIKE LINE OF lt_nspc_texts.
+
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
+      RETURN.
+    ENDIF.
+
+    " Collect additional languages, skip main lang - it was serialized already
+    SELECT DISTINCT spras AS langu FROM trnspacett INTO TABLE lt_i18n_langs
+      WHERE namespace = ms_item-obj_name AND spras <> mv_language. "#EC CI_SUBRC
+
+    LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
+      SELECT SINGLE * FROM trnspacett INTO ls_trnspacett
+        WHERE namespace = ms_item-obj_name AND spras = <lv_lang>.
+      IF sy-subrc = 0.
+        APPEND INITIAL LINE TO lt_nspc_texts ASSIGNING <ls_nspc_text>.
+        MOVE-CORRESPONDING ls_trnspacett TO <ls_nspc_text>.
+      ENDIF.
+    ENDLOOP.
+
+    SORT lt_i18n_langs ASCENDING.
+    SORT lt_nspc_texts BY spras ASCENDING.
+
+    IF lines( lt_i18n_langs ) > 0.
+      ii_xml->add( iv_name = 'I18N_LANGS'
+                   ig_data = lt_i18n_langs ).
+
+      ii_xml->add( iv_name = 'NSPC_TEXTS'
+                   ig_data = lt_nspc_texts ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+    SELECT SINGLE changeuser FROM trnspacet INTO rv_user
+       WHERE namespace = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+    RETURN. " not supported
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    DATA:
+      ls_nspc       TYPE ty_nspc,
+      ls_nspc_text  TYPE ty_nspc_text,
+      lv_modifiable TYPE abap_bool,
+      ls_trnspacet  TYPE trnspacet,
+      ls_trnspacett TYPE trnspacett.
+
+    io_xml->read( EXPORTING iv_name = 'NSPC'
+                  CHANGING  cg_data = ls_nspc ).
+
+    io_xml->read( EXPORTING iv_name = 'NSPC_TEXT'
+                  CHANGING  cg_data = ls_nspc_text ).
+
+    add_to_transport( iv_package ).
+
+    SELECT SINGLE * FROM trnspacet INTO ls_trnspacet WHERE namespace = ls_nspc-namespace.
+    IF sy-subrc = 0.
+      " For existing namespace, check if it's modifiable (SE03)
+      SELECT SINGLE editflag FROM trnspace INTO lv_modifiable WHERE namespace = ls_nspc-namespace.
+      IF sy-subrc = 0 AND lv_modifiable = abap_false.
+        zcx_abapgit_exception=>raise( |Namespace is not modifiable| ).
+      ENDIF.
+
+      " keep existing role
+      ls_trnspacet-replicense = ls_nspc-replicense.
+      ls_trnspacet-sscrflag   = ls_nspc-sscrflag.
+      ls_trnspacet-sapflag    = ls_nspc-sapflag.
+      ls_trnspacet-gen_only   = ls_nspc-gen_only.
+      ls_trnspacet-changeuser = sy-uname.
+      ls_trnspacet-changedate = sy-datum.
+      MODIFY trnspacet FROM ls_trnspacet.
+    ELSE.
+      MOVE-CORRESPONDING ls_nspc TO ls_trnspacet.
+      ls_trnspacet-role       = 'C'. " customer repair license
+      ls_trnspacet-changeuser = sy-uname.
+      ls_trnspacet-changedate = sy-datum.
+      INSERT trnspacet FROM ls_trnspacet.
+    ENDIF.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error upserting namespace| ).
+    ENDIF.
+
+    SELECT SINGLE * FROM trnspacett INTO ls_trnspacett
+      WHERE namespace = ls_nspc-namespace AND spras = mv_language.
+    IF sy-subrc = 0.
+      ls_trnspacett-descriptn = ls_nspc_text-descriptn.
+      ls_trnspacett-owner     = ls_nspc_text-owner.
+      MODIFY trnspacett FROM ls_trnspacett.
+    ELSE.
+      MOVE-CORRESPONDING ls_nspc_text TO ls_trnspacett.
+      ls_trnspacett-namespace = ls_nspc-namespace.
+      INSERT trnspacett FROM ls_trnspacett.
+    ENDIF.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error upserting text for namespace| ).
+    ENDIF.
+
+    deserialize_texts( ii_xml       = io_xml
+                       iv_namespace = ls_nspc-namespace ).
+
+    " Fill trnspace and trnspacel tables
+    CALL FUNCTION 'TR_ACTIVATE_NAMESPACE'
+      EXPORTING
+        iv_namespace         = ls_nspc-namespace
+      EXCEPTIONS
+        deletion_not_allowed = 1
+        OTHERS               = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error activating namespace| ).
+    ENDIF.
+
+    " Make namespace modifiable
+    UPDATE trnspace SET editflag = abap_true WHERE namespace = ls_nspc-namespace.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    DATA lv_namespace TYPE trnspace-namespace.
+
+    lv_namespace = ms_item-obj_name.
+
+    CALL FUNCTION 'TR_CHECK_NAMESPACE'
+      EXPORTING
+        iv_namespace        = lv_namespace
+      EXCEPTIONS
+        namespace_not_valid = 1
+        OTHERS              = 2.
+
+    rv_bool = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = zif_abapgit_object~exists( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+    rv_is_locked = abap_false.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+    " Launch general maintenance for namespaces
+    CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+      EXPORTING
+        action                       = 'S'
+        view_name                    = 'V_TRNSPACE'
+        no_warning_for_clientindep   = 'X'
+        variant_for_selection        = 'STANDARD'
+      EXCEPTIONS
+        client_reference             = 1
+        foreign_lock                 = 2
+        invalid_action               = 3
+        no_clientindependent_auth    = 4
+        no_database_function         = 5
+        no_editor_function           = 6
+        no_show_auth                 = 7
+        no_tvdir_entry               = 8
+        no_upd_auth                  = 9
+        only_show_allowed            = 10
+        system_failure               = 11
+        unknown_field_in_dba_sellist = 12
+        view_not_found               = 13
+        OTHERS                       = 14.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    DATA:
+      ls_nspc       TYPE ty_nspc,
+      ls_nspc_text  TYPE ty_nspc_text,
+      ls_trnspacet  TYPE trnspacet,
+      ls_trnspacett TYPE trnspacett.
+
+    SELECT SINGLE * FROM trnspacet INTO CORRESPONDING FIELDS OF ls_nspc
+      WHERE namespace = ms_item-obj_name.
+
+    SELECT SINGLE * FROM trnspacett INTO CORRESPONDING FIELDS OF ls_nspc_text
+      WHERE namespace = ms_item-obj_name AND spras = mv_language.
+
+    io_xml->add( iv_name = 'NSPC'
+                 ig_data = ls_nspc ).
+
+    io_xml->add( iv_name = 'NSPC_TEXT'
+                 ig_data = ls_nspc_text ).
+
+    serialize_texts( io_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   METHOD delete_intervals.
 
@@ -90000,110 +90355,137 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_tadir IMPLEMENTATION.
-  METHOD build.
+  METHOD add_local_packages.
 
-    DATA: lv_path         TYPE string,
-          lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects,
-          lt_excludes     TYPE RANGE OF trobjtype,
-          lt_srcsystem    TYPE RANGE OF tadir-srcsystem,
-          ls_srcsystem    LIKE LINE OF lt_srcsystem,
-          ls_exclude      LIKE LINE OF lt_excludes,
-          lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic,
-          lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab,
-          lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+    FIELD-SYMBOLS:
+      <lv_package> LIKE LINE OF it_packages,
+      <ls_tadir>   LIKE LINE OF ct_tadir.
 
-    FIELD-SYMBOLS: <ls_tadir>   LIKE LINE OF rt_tadir,
-                   <lv_package> LIKE LINE OF lt_packages.
-    "Determine Packages to Read
-    IF iv_ignore_subpackages = abap_false.
-      lt_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
-    ENDIF.
-    INSERT iv_package INTO lt_packages INDEX 1.
+    LOOP AT it_packages ASSIGNING <lv_package>.
 
-    ls_exclude-sign = 'I'.
-    ls_exclude-option = 'EQ'.
-
-    ls_exclude-low = 'SOTR'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB1'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'SFB2'.
-    APPEND ls_exclude TO lt_excludes.
-    ls_exclude-low = 'STOB'. " auto generated by core data services
-    APPEND ls_exclude TO lt_excludes.
-
-    IF iv_only_local_objects = abap_true.
-      ls_srcsystem-sign   = 'I'.
-      ls_srcsystem-option = 'EQ'.
-      ls_srcsystem-low    = sy-sysid.
-      APPEND ls_srcsystem TO lt_srcsystem.
-    ENDIF.
-
-    IF lt_packages IS NOT INITIAL.
-      SELECT * FROM tadir
-        INTO CORRESPONDING FIELDS OF TABLE rt_tadir
-        FOR ALL ENTRIES IN lt_packages
-        WHERE devclass = lt_packages-table_line
-        AND pgmid = 'R3TR'
-        AND object NOT IN lt_excludes
-        AND delflag = abap_false
-        AND srcsystem IN lt_srcsystem
-        ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF "#EC CI_SUBRC
-    ENDIF.
-
-    SORT rt_tadir BY devclass pgmid object obj_name.
-
-    CREATE OBJECT lo_skip_objects.
-    rt_tadir = lo_skip_objects->skip_sadl_generated_objects(
-      it_tadir = rt_tadir
-      ii_log   = ii_log ).
-
-    LOOP AT lt_packages ASSIGNING <lv_package>.
       " Local packages are not in TADIR, only in TDEVC, act as if they were
       IF <lv_package> CP '$*'. " OR <package> CP 'T*' ).
-        APPEND INITIAL LINE TO rt_tadir ASSIGNING <ls_tadir>.
+        APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_tadir>.
         <ls_tadir>-pgmid    = 'R3TR'.
         <ls_tadir>-object   = 'DEVC'.
         <ls_tadir>-obj_name = <lv_package>.
         <ls_tadir>-devclass = <lv_package>.
       ENDIF.
+
     ENDLOOP.
 
-    LOOP AT rt_tadir ASSIGNING <ls_tadir>.
+  ENDMETHOD.
+  METHOD add_namespaces.
 
-      IF lv_last_package <> <ls_tadir>-devclass.
-        "Change in Package
-        lv_last_package = <ls_tadir>-devclass.
+    DATA:
+      lv_name      TYPE progname,
+      lv_namespace TYPE namespace.
 
-        IF NOT io_dot IS INITIAL.
-          "Reuse given Folder Logic Instance
-          IF lo_folder_logic IS NOT BOUND.
-            "Get Folder Logic Instance
-            lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-          ENDIF.
+    FIELD-SYMBOLS:
+      <ls_tadir> LIKE LINE OF ct_tadir,
+      <ls_nspc>  LIKE LINE OF ct_tadir.
 
-          lv_path = lo_folder_logic->package_to_path(
-            iv_top     = iv_top
-            io_dot     = io_dot
-            iv_package = <ls_tadir>-devclass ).
+    LOOP AT ct_tadir ASSIGNING <ls_tadir> WHERE obj_name(1) = '/'.
+
+      " Namespaces are not in TADIR, but are necessary for creating objects in transportable packages
+      lv_name = <ls_tadir>-obj_name.
+
+      CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
+        EXPORTING
+          name_with_namespace = lv_name
+        IMPORTING
+          namespace           = lv_namespace
+        EXCEPTIONS
+          delimiter_error     = 1
+          OTHERS              = 2.
+
+      IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL.
+        READ TABLE ct_tadir TRANSPORTING NO FIELDS
+          WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
+        IF sy-subrc <> 0.
+          APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_nspc>.
+          <ls_nspc>-pgmid    = 'R3TR'.
+          <ls_nspc>-object   = 'NSPC'.
+          <ls_nspc>-obj_name = lv_namespace.
+          <ls_nspc>-devclass = iv_package.
         ENDIF.
       ENDIF.
 
-      <ls_tadir>-path = lv_path.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD adjust_objects.
+
+    " Todo, replace with solution that will work with any object type (might depend on iv_package and io_dot)
+
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF ct_tadir.
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
 
       IF <ls_tadir>-object = 'SICF'.
-* replace the internal GUID with a hash of the path
+        " Replace the internal GUID with a hash of the path
         TRY.
             CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
               EXPORTING
                 iv_obj_name = <ls_tadir>-obj_name
               RECEIVING
                 rv_hash     = <ls_tadir>-obj_name+15.
+
           CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
-* SICF might not be supported in some systems, assume this code is not called
+            " SICF might not be supported in some systems, assume this code is not called
         ENDTRY.
       ENDIF.
+
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD build.
+
+    DATA lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+
+    select_objects(
+      EXPORTING
+        iv_package            = iv_package
+        iv_ignore_subpackages = iv_ignore_subpackages
+        iv_only_local_objects = iv_only_local_objects
+      IMPORTING
+        et_tadir              = rt_tadir
+        et_packages           = lt_packages ).
+
+    skip_objects(
+      EXPORTING
+        iv_package = iv_package
+        io_dot     = io_dot
+        ii_log     = ii_log
+      CHANGING
+        ct_tadir   = rt_tadir ).
+
+    add_local_packages(
+      EXPORTING
+        it_packages = lt_packages
+      CHANGING
+        ct_tadir    = rt_tadir ).
+
+    add_namespaces(
+      EXPORTING
+        iv_package = iv_package
+      CHANGING
+        ct_tadir   = rt_tadir ).
+
+    determine_path(
+      EXPORTING
+        iv_package = iv_package
+        io_dot     = io_dot
+      CHANGING
+        ct_tadir   = rt_tadir ).
+
+    adjust_objects(
+      EXPORTING
+        iv_package = iv_package
+        io_dot     = io_dot
+      CHANGING
+        ct_tadir   = rt_tadir ).
+
   ENDMETHOD.
   METHOD check_exists.
 
@@ -90134,6 +90516,47 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     li_progress->off( ).
 
   ENDMETHOD.
+  METHOD determine_path.
+
+    DATA:
+      lv_path         TYPE string,
+      lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic,
+      lv_last_package TYPE devclass VALUE cl_abap_char_utilities=>horizontal_tab.
+
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF ct_tadir.
+
+    lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
+
+    LOOP AT ct_tadir ASSIGNING <ls_tadir>.
+
+      IF lv_last_package <> <ls_tadir>-devclass.
+        "Change in Package
+        lv_last_package = <ls_tadir>-devclass.
+
+        IF NOT io_dot IS INITIAL.
+          lv_path = lo_folder_logic->package_to_path(
+            iv_top     = iv_package
+            io_dot     = io_dot
+            iv_package = <ls_tadir>-devclass ).
+        ENDIF.
+      ENDIF.
+
+      <ls_tadir>-path = lv_path.
+
+      IF <ls_tadir>-object = 'SICF'.
+* replace the internal GUID with a hash of the path
+        TRY.
+            CALL METHOD ('ZCL_ABAPGIT_OBJECT_SICF')=>read_sicf_url
+              EXPORTING
+                iv_obj_name = <ls_tadir>-obj_name
+              RECEIVING
+                rv_hash     = <ls_tadir>-obj_name+15.
+          CATCH cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+* SICF might not be supported in some systems, assume this code is not called
+        ENDTRY.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
   METHOD exists.
 
     IF is_item IS INITIAL.
@@ -90146,6 +90569,67 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     ENDIF.
 
     rv_exists = zcl_abapgit_objects=>exists( is_item ).
+
+  ENDMETHOD.
+  METHOD select_objects.
+
+    DATA:
+      lt_excludes  TYPE RANGE OF trobjtype,
+      ls_exclude   LIKE LINE OF lt_excludes,
+      lt_srcsystem TYPE RANGE OF tadir-srcsystem,
+      ls_srcsystem LIKE LINE OF lt_srcsystem.
+
+    " Determine packages to read
+    IF iv_ignore_subpackages = abap_false.
+      et_packages = zcl_abapgit_factory=>get_sap_package( iv_package )->list_subpackages( ).
+    ENDIF.
+    INSERT iv_package INTO et_packages INDEX 1.
+
+    " Exclude object types with tadir entries that are included elsewhere
+    ls_exclude-sign   = 'I'.
+    ls_exclude-option = 'EQ'.
+    ls_exclude-low    = 'SOTR'. " automatically create for sap packages (DEVC)
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low    = 'SFB1'. " covered by business function sets (SFBS)
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low    = 'SFB2'. " covered by business functions (SFBF)
+    APPEND ls_exclude TO lt_excludes.
+    ls_exclude-low    = 'STOB'. " auto generated by core data services (DDLS)
+    APPEND ls_exclude TO lt_excludes.
+
+    " Limit to objects belonging to this system
+    IF iv_only_local_objects = abap_true.
+      ls_srcsystem-sign   = 'I'.
+      ls_srcsystem-option = 'EQ'.
+      ls_srcsystem-low    = sy-sysid.
+      APPEND ls_srcsystem TO lt_srcsystem.
+    ENDIF.
+
+    IF et_packages IS NOT INITIAL.
+      SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE et_tadir
+        FOR ALL ENTRIES IN et_packages
+        WHERE devclass = et_packages-table_line
+        AND pgmid      = 'R3TR'
+        AND object     NOT IN lt_excludes
+        AND delflag    = abap_false
+        AND srcsystem  IN lt_srcsystem
+        ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF "#EC CI_SUBRC
+    ENDIF.
+
+    SORT et_tadir BY devclass pgmid object obj_name.
+
+  ENDMETHOD.
+  METHOD skip_objects.
+
+    " Todo, replace with solution that will work with any object type (might depend on iv_package and io_dot)
+
+    DATA lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects.
+
+    CREATE OBJECT lo_skip_objects.
+
+    ct_tadir = lo_skip_objects->skip_sadl_generated_objects(
+      it_tadir = ct_tadir
+      ii_log   = ii_log ).
 
   ENDMETHOD.
   METHOD zif_abapgit_tadir~get_object_package.
@@ -90176,14 +90660,14 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     DATA: li_exit TYPE REF TO zif_abapgit_exit.
 
-* start recursion
-* hmm, some problems here, should TADIR also build path?
-    rt_tadir = build( iv_package            = iv_package
-                      iv_top                = iv_package
-                      io_dot                = io_dot
-                      iv_ignore_subpackages = iv_ignore_subpackages
-                      iv_only_local_objects = iv_only_local_objects
-                      ii_log                = ii_log ).
+    " Start recursion
+    " hmm, some problems here, should TADIR also build path?
+    rt_tadir = build(
+      iv_package            = iv_package
+      io_dot                = io_dot
+      iv_ignore_subpackages = iv_ignore_subpackages
+      iv_only_local_objects = iv_only_local_objects
+      ii_log                = ii_log ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_tadir(
@@ -100032,5 +100516,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-23T08:57:08.963Z
+* abapmerge 0.14.2 - 2021-01-23T09:07:12.643Z
 ****************************************************
