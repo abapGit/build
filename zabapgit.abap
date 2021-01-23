@@ -16117,9 +16117,10 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     INTERFACES zif_abapgit_gui_hotkeys.
 
     CONSTANTS: BEGIN OF c_action,
-                 stage_all    TYPE string VALUE 'stage_all',
-                 stage_commit TYPE string VALUE 'stage_commit',
-                 stage_filter TYPE string VALUE 'stage_filter',
+                 stage_refresh       TYPE string VALUE 'stage_refresh',
+                 stage_all     TYPE string VALUE 'stage_all',
+                 stage_commit  TYPE string VALUE 'stage_commit',
+                 stage_filter  TYPE string VALUE 'stage_filter',
                END OF c_action.
 
     METHODS:
@@ -16242,6 +16243,8 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    METHODS init_files
+      RAISING zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
     INHERITING FROM zcl_abapgit_gui_page_codi_base.
@@ -35215,12 +35218,17 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     IF lines( ms_files-local ) > 0
     OR lines( ms_files-remote ) > 0.
-      ro_menu->add( iv_txt = |Diff|
-                    iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }| ).
-
-      ro_menu->add( iv_txt = |Patch|
-                    iv_typ = zif_abapgit_html=>c_action_type-onclick
-                    iv_id  = |patchBtn| ).
+      ro_menu->add(
+        iv_txt = 'Refresh'
+        iv_act = |{ c_action-stage_refresh }|
+        iv_opt = zif_abapgit_html=>c_html_opt-strong
+      )->add(
+        iv_txt = |Diff|
+        iv_act = |{ zif_abapgit_definitions=>c_action-go_diff }?key={ mo_repo->get_key( ) }|
+      )->add(
+        iv_txt = |Patch|
+        iv_typ = zif_abapgit_html=>c_action_type-onclick
+        iv_id  = |patchBtn| ).
     ENDIF.
 
   ENDMETHOD.
@@ -35267,7 +35275,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     ms_control-page_title = 'Stage'.
     mo_repo               = io_repo.
-    ms_files              = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
     mv_seed               = iv_seed.
 
     IF mv_seed IS INITIAL. " Generate based on time unless obtained from diff page
@@ -35275,11 +35282,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       mv_seed = |stage{ lv_ts }|.
     ENDIF.
 
+    init_files( ).
     ms_control-page_menu = build_menu( ).
-
-    IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
-      zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD count_default_files_to_commit.
@@ -35897,6 +35901,11 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         rs_handled-page  = get_page_patch( lo_stage ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
+      WHEN c_action-stage_refresh.
+        mo_repo->refresh( abap_true ).
+        init_files( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN OTHERS.
         rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
     ENDCASE.
@@ -35917,7 +35926,20 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ls_hotkey_action-hotkey       = |d|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-description  = |Refresh|.
+    ls_hotkey_action-action       = c_action-stage_refresh.
+    ls_hotkey_action-hotkey       = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
   ENDMETHOD.
+
+  METHOD init_files.
+    ms_files = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
+    IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
+      zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
@@ -100010,5 +100032,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-22T09:18:34.545Z
+* abapmerge 0.14.2 - 2021-01-23T08:57:08.963Z
 ****************************************************
