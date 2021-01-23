@@ -1838,13 +1838,13 @@ INTERFACE zif_abapgit_services_repo .
 
   TYPES:
     BEGIN OF ty_repo_params,
-      url              TYPE string,
-      package          TYPE devclass,
-      branch_name      TYPE string,
-      display_name     TYPE string,
-      folder_logic     TYPE string,
+      url                TYPE string,
+      package            TYPE devclass,
+      branch_name        TYPE string,
+      display_name       TYPE string,
+      folder_logic       TYPE string,
       ignore_subpackages TYPE abap_bool,
-      master_lang_only TYPE abap_bool,
+      main_lang_only     TYPE abap_bool,
     END OF ty_repo_params .
 
 ENDINTERFACE.
@@ -14458,7 +14458,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
         url            TYPE string VALUE 'url',
         package        TYPE string VALUE 'package',
         folder_logic   TYPE string VALUE 'folder_logic',
-        master_lang_only TYPE string VALUE 'master_lang_only',
+        main_lang_only TYPE string VALUE 'main_lang_only',
       END OF c_id .
 
     CONSTANTS:
@@ -14517,7 +14517,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         display_name       TYPE string VALUE 'display_name',
         folder_logic       TYPE string VALUE 'folder_logic',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
-        master_lang_only   TYPE string VALUE 'master_lang_only',
+        main_lang_only     TYPE string VALUE 'main_lang_only',
       END OF c_id.
 
     CONSTANTS:
@@ -29726,7 +29726,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -29797,7 +29797,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       iv_url              = is_repo_params-url
       iv_package          = is_repo_params-package
       iv_folder_logic     = is_repo_params-folder_logic
-      iv_master_lang_only = is_repo_params-master_lang_only ).
+      iv_master_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
     ro_repo->rebuild_local_checksums( ).
@@ -29820,7 +29820,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       iv_display_name     = is_repo_params-display_name
       iv_folder_logic     = is_repo_params-folder_logic
       iv_ign_subpkg       = is_repo_params-ignore_subpackages
-      iv_master_lang_only = is_repo_params-master_lang_only ).
+      iv_master_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
     ro_repo->rebuild_local_checksums( ).
@@ -42807,7 +42807,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_BKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -42872,7 +42872,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_label       = 'Ignore Subpackages'
       iv_hint        = 'Synchronize root package only'
     )->checkbox(
-      iv_name        = c_id-master_lang_only
+      iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -43018,7 +43018,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -43068,7 +43068,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
     )->checkbox(
-      iv_name        = c_id-master_lang_only
+      iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
     )->command(
@@ -100602,5 +100602,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-23T09:13:02.801Z
+* abapmerge 0.14.2 - 2021-01-23T09:14:39.599Z
 ****************************************************
