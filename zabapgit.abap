@@ -18264,20 +18264,23 @@ CLASS zcl_abapgit_time DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: ty_unixtime TYPE c LENGTH 16.
+
+    TYPES:
+      ty_unixtime TYPE c LENGTH 16 .
 
     CLASS-METHODS get_unix
-      IMPORTING iv_date        TYPE sy-datum DEFAULT sy-datum
-                iv_time        TYPE sy-uzeit DEFAULT sy-uzeit
-      RETURNING VALUE(rv_time) TYPE ty_unixtime
-      RAISING   zcx_abapgit_exception.
+      RETURNING
+        VALUE(rv_time) TYPE ty_unixtime
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS get_utc
-      IMPORTING iv_unix TYPE ty_unixtime
-      EXPORTING ev_date TYPE sy-datum
-                ev_time TYPE sy-uzeit.
+      IMPORTING
+        !iv_unix TYPE ty_unixtime
+      EXPORTING
+        !ev_date TYPE sy-datum
+        !ev_time TYPE sy-uzeit .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS: c_epoch TYPE d VALUE '19700101'.
 ENDCLASS.
 CLASS zcl_abapgit_url DEFINITION
   FINAL
@@ -23382,54 +23385,33 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_time IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
   METHOD get_unix.
+* returns seconds since unix epoch, including timezone indicator
 
-    DATA: lv_i       TYPE i,
-          lv_tz      TYPE tznzone,
-          lv_utcdiff TYPE tznutcdiff,
-          lv_utcsign TYPE tznutcsign.
-    lv_i = iv_date - c_epoch.
-    lv_i = lv_i * 86400.
-    lv_i = lv_i + iv_time.
+    CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
+    DATA lv_time TYPE timestamp.
+    DATA lv_seconds TYPE tzntstmpl.
 
-    CALL FUNCTION 'TZON_GET_OS_TIMEZONE'
-      IMPORTING
-        ef_timezone = lv_tz.
+    GET TIME STAMP FIELD lv_time.
 
-    CALL FUNCTION 'TZON_GET_OFFSET'
-      EXPORTING
-        if_timezone      = lv_tz
-        if_local_date    = iv_date
-        if_local_time    = iv_time
-      IMPORTING
-        ef_utcdiff       = lv_utcdiff
-        ef_utcsign       = lv_utcsign
-      EXCEPTIONS
-        conversion_error = 1
-        OTHERS           = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Timezone error' ).
-    ENDIF.
+    lv_seconds = cl_abap_tstmp=>subtract(
+      tstmp1 = lv_time
+      tstmp2 = lc_epoch ).
 
-    CASE lv_utcsign.
-      WHEN '+'.
-        lv_i = lv_i - lv_utcdiff.
-      WHEN '-'.
-        lv_i = lv_i + lv_utcdiff.
-    ENDCASE.
-
-    rv_time = lv_i.
+    rv_time = round( val = lv_seconds
+                     dec = 0 ).
     CONDENSE rv_time.
-    rv_time+11 = lv_utcsign.
-    rv_time+12 = lv_utcdiff.
+    rv_time+11 = '+000000'.
 
   ENDMETHOD.
   METHOD get_utc.
 
+    CONSTANTS lc_epoch TYPE d VALUE '19700101'.
+
     DATA: lv_i       TYPE i,
-          lv_utcdiff TYPE tznutcdiff,
-          lv_utcsign TYPE tznutcsign.
+          lv_utcdiff TYPE t,
+          lv_utcsign TYPE c LENGTH 1.
     lv_i = iv_unix(10).
     lv_utcsign = iv_unix+11.
     lv_utcdiff = iv_unix+12.
@@ -23445,7 +23427,7 @@ CLASS zcl_abapgit_time IMPLEMENTATION.
     ev_time = lv_i MOD 86400.
     lv_i = lv_i - ev_time.
     lv_i = lv_i / 86400.
-    ev_date = lv_i + c_epoch.
+    ev_date = lv_i + lc_epoch.
 
   ENDMETHOD.
 ENDCLASS.
@@ -100600,5 +100582,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-23T09:43:17.301Z
+* abapmerge 0.14.2 - 2021-01-25T06:30:08.554Z
 ****************************************************
