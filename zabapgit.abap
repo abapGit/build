@@ -16629,38 +16629,26 @@ CLASS zcl_abapgit_gui_router DEFINITION
         VALUE(rv_state) TYPE i.
 ENDCLASS.
 CLASS zcl_abapgit_hotkeys DEFINITION
-  FINAL
   INHERITING FROM zcl_abapgit_gui_component
+  FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
 
-    INTERFACES:
-      zif_abapgit_gui_hotkey_ctl,
-      zif_abapgit_gui_hotkeys,
-      zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_hotkey_ctl .
+    INTERFACES zif_abapgit_gui_hotkeys .
+    INTERFACES zif_abapgit_gui_renderable .
 
-    CONSTANTS:
-      c_showhotkeys_action TYPE string VALUE `showHotkeys` ##NO_TEXT.
+    CONSTANTS c_showhotkeys_action TYPE string VALUE `showHotkeys` ##NO_TEXT.
 
-    CLASS-METHODS:
-      get_all_default_hotkeys
-        RETURNING
-          VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
-        RAISING
-          zcx_abapgit_exception,
-
-      merge_hotkeys_with_settings
-        CHANGING
-          ct_hotkey_actions TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
-        RAISING
-          zcx_abapgit_exception.
-
-    CLASS-METHODS:
-      should_show_hint
-        RETURNING
-          VALUE(rv_yes) TYPE abap_bool.
-
+    CLASS-METHODS get_all_default_hotkeys
+      RETURNING
+        VALUE(rt_hotkey_actions) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS should_show_hint
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -18959,164 +18947,157 @@ CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
     DATA: mv_package TYPE devclass.
 
 ENDCLASS.
-CLASS zcl_abapgit_settings DEFINITION CREATE PUBLIC.
+CLASS zcl_abapgit_settings DEFINITION
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CONSTANTS: c_commitmsg_comment_length_dft TYPE i VALUE 50.
-    CONSTANTS: c_commitmsg_body_size_dft      TYPE i VALUE 72.
 
+    CONSTANTS c_commitmsg_comment_length_dft TYPE i VALUE 50 ##NO_TEXT.
+    CONSTANTS c_commitmsg_body_size_dft TYPE i VALUE 72 ##NO_TEXT.
     CONSTANTS:
       BEGIN OF c_icon_scaling,
         large TYPE c VALUE 'L',
         small TYPE c VALUE 'S',
-      END OF c_icon_scaling.
-
+      END OF c_icon_scaling .
     CONSTANTS:
       BEGIN OF c_ui_theme,
         default         TYPE string VALUE 'default',
         dark            TYPE string VALUE 'dark',
         belize          TYPE string VALUE 'belize',
         synced_with_gui TYPE string VALUE 'synced_with_gui',
-      END OF c_ui_theme.
+      END OF c_ui_theme .
 
-    METHODS:
-      set_proxy_url
-        IMPORTING
-          iv_url TYPE string,
-      set_proxy_port
-        IMPORTING
-          iv_port TYPE string,
-      set_proxy_authentication
-        IMPORTING
-          iv_auth TYPE abap_bool,
-      set_proxy_bypass
-        IMPORTING
-          it_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url OPTIONAL,
-      get_proxy_url
-        RETURNING
-          VALUE(rv_proxy_url) TYPE string,
-      get_proxy_port
-        RETURNING
-          VALUE(rv_port) TYPE string,
-      get_proxy_authentication
-        RETURNING
-          VALUE(rv_auth) TYPE abap_bool,
-      get_proxy_bypass
-        RETURNING VALUE(rt_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
-      set_run_critical_tests
-        IMPORTING
-          iv_run TYPE abap_bool,
-      get_run_critical_tests
-        RETURNING
-          VALUE(rv_run) TYPE abap_bool,
-      set_experimental_features
-        IMPORTING
-          iv_run TYPE abap_bool,
-      get_experimental_features
-        RETURNING
-          VALUE(rv_run) TYPE abap_bool,
-      set_max_lines
-        IMPORTING iv_lines TYPE i,
-      get_max_lines
-        RETURNING
-          VALUE(rv_lines) TYPE i,
-      set_adt_jump_enanbled
-        IMPORTING
-          iv_adt_jump_enabled TYPE abap_bool,
-      get_adt_jump_enabled
-        RETURNING
-          VALUE(rv_adt_jump_enabled) TYPE abap_bool,
-      set_commitmsg_comment_length
-        IMPORTING
-          iv_length TYPE i,
-      get_commitmsg_comment_length
-        RETURNING
-          VALUE(rv_length) TYPE i,
-      set_commitmsg_comment_default
-        IMPORTING
-          iv_default TYPE string,
-      get_commitmsg_comment_default
-        RETURNING
-          VALUE(rv_default) TYPE string,
-      set_commitmsg_body_size
-        IMPORTING
-          iv_length TYPE i,
-      get_commitmsg_body_size
-        RETURNING
-          VALUE(rv_length) TYPE i,
-      get_settings_xml
-        RETURNING
-          VALUE(rv_settings_xml) TYPE string
-        RAISING
-          zcx_abapgit_exception,
-      get_user_settings
-        RETURNING
-          VALUE(rs_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
-        RAISING
-          zcx_abapgit_exception,
-      set_xml_settings
-        IMPORTING
-          iv_settings_xml TYPE string
-        RAISING
-          zcx_abapgit_exception,
-      set_defaults,
-      set_user_settings
-        IMPORTING
-          is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings,
-      get_show_default_repo
-        RETURNING
-          VALUE(rv_show_default_repo) TYPE abap_bool,
-      set_show_default_repo
-        IMPORTING
-          iv_show_default_repo TYPE abap_bool,
-      set_link_hints_enabled
-        IMPORTING
-          iv_link_hints_enabled TYPE abap_bool,
-      get_link_hints_enabled
-        RETURNING
-          VALUE(rv_link_hints_enabled) TYPE abap_bool
-        RAISING
-          zcx_abapgit_exception,
-      set_link_hint_key
-        IMPORTING
-          iv_link_hint_key TYPE string,
-      get_link_hint_key
-        RETURNING
-          VALUE(rv_link_hint_key) TYPE string,
-      set_hotkeys
-        IMPORTING
-          it_hotkeys TYPE zif_abapgit_definitions=>ty_hotkey_tt,
-      get_hotkeys
-        RETURNING
-          VALUE(rt_hotkeys) TYPE zif_abapgit_definitions=>ty_hotkey_tt
-        RAISING
-          zcx_abapgit_exception,
-      set_parallel_proc_disabled
-        IMPORTING
-          iv_disable_parallel_proc TYPE abap_bool,
-      get_parallel_proc_disabled
-        RETURNING
-          VALUE(rv_disable_parallel_proc) TYPE abap_bool,
-      get_icon_scaling
-        RETURNING
-          VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
-      set_icon_scaling
-        IMPORTING
-          iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling,
-      get_ui_theme
-        IMPORTING
-          iv_resolve_synced  TYPE abap_bool DEFAULT abap_true
-        RETURNING
-          VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
-      set_ui_theme
-        IMPORTING
-          iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme,
-      get_activate_wo_popup
-        RETURNING
-          VALUE(rv_act_wo_popup) TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup,
-      set_activate_wo_popup
-        IMPORTING
-          iv_act_wo_popup TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup.
+    METHODS set_proxy_url
+      IMPORTING
+        !iv_url TYPE string .
+    METHODS set_proxy_port
+      IMPORTING
+        !iv_port TYPE string .
+    METHODS set_proxy_authentication
+      IMPORTING
+        !iv_auth TYPE abap_bool .
+    METHODS set_proxy_bypass
+      IMPORTING
+        !it_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url OPTIONAL .
+    METHODS get_proxy_url
+      RETURNING
+        VALUE(rv_proxy_url) TYPE string .
+    METHODS get_proxy_port
+      RETURNING
+        VALUE(rv_port) TYPE string .
+    METHODS get_proxy_authentication
+      RETURNING
+        VALUE(rv_auth) TYPE abap_bool .
+    METHODS get_proxy_bypass
+      RETURNING
+        VALUE(rt_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url .
+    METHODS set_run_critical_tests
+      IMPORTING
+        !iv_run TYPE abap_bool .
+    METHODS get_run_critical_tests
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool .
+    METHODS set_experimental_features
+      IMPORTING
+        !iv_run TYPE abap_bool .
+    METHODS get_experimental_features
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool .
+    METHODS set_max_lines
+      IMPORTING
+        !iv_lines TYPE i .
+    METHODS get_max_lines
+      RETURNING
+        VALUE(rv_lines) TYPE i .
+    METHODS set_adt_jump_enanbled
+      IMPORTING
+        !iv_adt_jump_enabled TYPE abap_bool .
+    METHODS get_adt_jump_enabled
+      RETURNING
+        VALUE(rv_adt_jump_enabled) TYPE abap_bool .
+    METHODS set_commitmsg_comment_length
+      IMPORTING
+        !iv_length TYPE i .
+    METHODS get_commitmsg_comment_length
+      RETURNING
+        VALUE(rv_length) TYPE i .
+    METHODS set_commitmsg_comment_default
+      IMPORTING
+        !iv_default TYPE string .
+    METHODS get_commitmsg_comment_default
+      RETURNING
+        VALUE(rv_default) TYPE string .
+    METHODS set_commitmsg_body_size
+      IMPORTING
+        !iv_length TYPE i .
+    METHODS get_commitmsg_body_size
+      RETURNING
+        VALUE(rv_length) TYPE i .
+    METHODS get_settings_xml
+      RETURNING
+        VALUE(rv_settings_xml) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_user_settings
+      RETURNING
+        VALUE(rs_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_xml_settings
+      IMPORTING
+        !iv_settings_xml TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_defaults .
+    METHODS set_user_settings
+      IMPORTING
+        !is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings .
+    METHODS get_show_default_repo
+      RETURNING
+        VALUE(rv_show_default_repo) TYPE abap_bool .
+    METHODS set_show_default_repo
+      IMPORTING
+        !iv_show_default_repo TYPE abap_bool .
+    METHODS set_link_hints_enabled
+      IMPORTING
+        !iv_link_hints_enabled TYPE abap_bool .
+    METHODS get_link_hints_enabled
+      RETURNING
+        VALUE(rv_link_hints_enabled) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_link_hint_key
+      IMPORTING
+        !iv_link_hint_key TYPE string .
+    METHODS get_link_hint_key
+      RETURNING
+        VALUE(rv_link_hint_key) TYPE string .
+    METHODS set_parallel_proc_disabled
+      IMPORTING
+        !iv_disable_parallel_proc TYPE abap_bool .
+    METHODS get_parallel_proc_disabled
+      RETURNING
+        VALUE(rv_disable_parallel_proc) TYPE abap_bool .
+    METHODS get_icon_scaling
+      RETURNING
+        VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
+    METHODS set_icon_scaling
+      IMPORTING
+        !iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
+    METHODS get_ui_theme
+      IMPORTING
+        !iv_resolve_synced TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
+    METHODS set_ui_theme
+      IMPORTING
+        !iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
+    METHODS get_activate_wo_popup
+      RETURNING
+        VALUE(rv_act_wo_popup) TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
+    METHODS set_activate_wo_popup
+      IMPORTING
+        !iv_act_wo_popup TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_s_settings,
@@ -20632,7 +20613,7 @@ CLASS ZCL_ABAPGIT_STAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_activate_wo_popup.
     rv_act_wo_popup = ms_user_settings-activate_wo_popup.
   ENDMETHOD.
@@ -20650,9 +20631,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_experimental_features.
     rv_run = ms_settings-experimental_features.
-  ENDMETHOD.
-  METHOD get_hotkeys.
-    rt_hotkeys = ms_user_settings-hotkeys.
   ENDMETHOD.
   METHOD get_icon_scaling.
     rv_scaling = ms_user_settings-icon_scaling.
@@ -20767,9 +20745,6 @@ CLASS ZCL_ABAPGIT_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_experimental_features.
     ms_settings-experimental_features = iv_run.
-  ENDMETHOD.
-  METHOD set_hotkeys.
-    ms_user_settings-hotkeys = it_hotkeys.
   ENDMETHOD.
   METHOD set_icon_scaling.
     ms_user_settings-icon_scaling = iv_scaling.
@@ -34155,25 +34130,6 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     rv_name = lo_ref->get_referenced_type( )->get_relative_name( ).
 
   ENDMETHOD.
-  METHOD merge_hotkeys_with_settings.
-
-    DATA lt_user_defined_hotkeys TYPE zif_abapgit_definitions=>ty_hotkey_tt.
-    FIELD-SYMBOLS <ls_hotkey> LIKE LINE OF ct_hotkey_actions.
-    FIELD-SYMBOLS <ls_user_defined_hotkey> LIKE LINE OF lt_user_defined_hotkeys.
-
-    lt_user_defined_hotkeys = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_hotkeys( ).
-
-    LOOP AT ct_hotkey_actions ASSIGNING <ls_hotkey>.
-      READ TABLE lt_user_defined_hotkeys ASSIGNING <ls_user_defined_hotkey>
-        WITH TABLE KEY action COMPONENTS
-          ui_component = <ls_hotkey>-ui_component
-          action       = <ls_hotkey>-action.
-      IF sy-subrc = 0.
-        <ls_hotkey>-hotkey = <ls_user_defined_hotkey>-hotkey.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD render_scripts.
 
     DATA lv_json TYPE string.
@@ -34225,8 +34181,6 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
     LOOP AT mt_hotkey_providers INTO li_hotkey_provider.
       APPEND LINES OF li_hotkey_provider->get_hotkey_actions( ) TO lt_hotkeys.
     ENDLOOP.
-
-    merge_hotkeys_with_settings( CHANGING ct_hotkey_actions = lt_hotkeys ).
 
     " Compress duplicates
     LOOP AT lt_hotkeys ASSIGNING <ls_hotkey>.
@@ -100590,5 +100544,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-26T18:32:54.647Z
+* abapmerge 0.14.2 - 2021-01-26T18:37:28.416Z
 ****************************************************
