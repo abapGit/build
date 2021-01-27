@@ -17306,13 +17306,13 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS: c_abapgit_repo     TYPE string   VALUE 'https://github.com/abapGit/abapGit'     ##NO_TEXT,
-               c_abapgit_homepage TYPE string   VALUE 'https://www.abapgit.org'                ##NO_TEXT,
-               c_abapgit_wikipage TYPE string   VALUE 'https://docs.abapgit.org'               ##NO_TEXT,
-               c_dotabap_homepage TYPE string   VALUE 'https://dotabap.org'               ##NO_TEXT,
-               c_abapgit_package  TYPE devclass VALUE '$ABAPGIT'                              ##NO_TEXT,
-               c_abapgit_url      TYPE string   VALUE 'https://github.com/abapGit/abapGit.git' ##NO_TEXT,
-               c_abapgit_class    TYPE tcode    VALUE `ZCL_ABAPGIT_REPO`                      ##NO_TEXT.
+    CONSTANTS c_abapgit_repo TYPE string VALUE 'https://github.com/abapGit/abapGit'.
+    CONSTANTS c_abapgit_homepage TYPE string VALUE 'https://www.abapgit.org'.
+    CONSTANTS c_abapgit_wikipage TYPE string VALUE 'https://docs.abapgit.org'.
+    CONSTANTS c_dotabap_homepage TYPE string VALUE 'https://dotabap.org'.
+    CONSTANTS c_abapgit_package TYPE devclass VALUE '$ABAPGIT'.
+    CONSTANTS c_abapgit_url TYPE string VALUE 'https://github.com/abapGit/abapGit.git'.
+    CONSTANTS c_abapgit_class TYPE seoclsname VALUE `ZCX_ABAPGIT_EXCEPTION`.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -30864,7 +30864,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
     DATA lv_text       TYPE c LENGTH 100.
 
     IF NOT is_installed( ) IS INITIAL.
-      lv_text = 'Seems like abapGit package is already installed. No changes to be done'.
+      lv_text = 'Seems like abapGit (developer version) is already installed. No changes to be done'.
       zcl_abapgit_ui_factory=>get_popups( )->popup_to_inform(
         iv_titlebar     = lc_title
         iv_text_message = lv_text ).
@@ -41006,7 +41006,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     ms_control-page_title = 'Debug Info'.
@@ -41077,13 +41077,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
       ri_html->add( 'abapGit installed in package&nbsp;' ).
       ri_html->add( lv_devclass ).
     ELSE.
-      ri_html->add_a( iv_txt = 'install abapGit repo'
+      ri_html->add_a( iv_txt = 'Install abapGit repository'
                       iv_act = zif_abapgit_definitions=>c_action-abapgit_install ).
       ri_html->add( ' - To keep abapGit up-to-date (or also to contribute) you need to' ).
       ri_html->add( 'install it as a repository.' ).
     ENDIF.
 
-    ri_html->add( |<br>| ).
+    ri_html->add( |<br><br>| ).
 
   ENDMETHOD.
   METHOD render_scripts.
@@ -41098,6 +41098,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD render_supported_object_types.
 
     DATA: lv_list     TYPE string,
+          li_html     TYPE REF TO zif_abapgit_html,
           lt_types    TYPE zcl_abapgit_objects=>ty_types_tt,
           lv_type     LIKE LINE OF lt_types,
           lt_obj      TYPE STANDARD TABLE OF ko100 WITH DEFAULT KEY,
@@ -41116,7 +41117,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     lt_types = zcl_abapgit_objects=>supported_list( ).
 
-    rv_html = |<p>Supported objects: { lv_list }</p>|.
+    CREATE OBJECT li_html TYPE zcl_abapgit_html.
+
+    rv_html = li_html->a(
+      iv_txt = 'Complete list of object types supported by abapGit'
+      iv_act = 'https://docs.abapgit.org/ref-supported.html'
+      iv_typ = zif_abapgit_html=>c_action_type-url ).
+
+    rv_html = rv_html && |<br><br>Supported object types in <strong>this</strong> system:<br><br>|.
 
     rv_html = rv_html && |<table border="1px"><thead><tr>|.
     rv_html = rv_html && |<td>Object</td><td>Description</td><td>Class</td><td>Version</td><td>DDIC</td>|.
@@ -100544,5 +100552,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-26T18:37:28.416Z
+* abapmerge 0.14.2 - 2021-01-27T08:24:46.150Z
 ****************************************************
