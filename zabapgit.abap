@@ -86148,7 +86148,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
+CLASS zcl_abapgit_object_acid IMPLEMENTATION.
   METHOD create_object.
 
     DATA: lv_name TYPE aab_id_name.
@@ -86173,7 +86173,15 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
 
     DATA: lo_aab TYPE REF TO cl_aab_id.
     lo_aab = create_object( ).
-    lo_aab->enqueue( ).
+    lo_aab->enqueue(
+      EXCEPTIONS
+        foreign_lock = 1
+        system_error = 2
+        cts_error    = 3
+        OTHERS       = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
     lo_aab->delete(
       EXCEPTIONS
         prop_error       = 1
@@ -86187,7 +86195,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
         where_used_error = 9
         OTHERS           = 10 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error deleting ACID object' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
     lo_aab->dequeue( ).
 
@@ -86197,13 +86205,48 @@ CLASS ZCL_ABAPGIT_OBJECT_ACID IMPLEMENTATION.
     DATA: lv_description TYPE aab_id_descript,
           lo_aab         TYPE REF TO cl_aab_id.
     io_xml->read( EXPORTING iv_name = 'DESCRIPTION'
-                  CHANGING cg_data = lv_description ).
+                  CHANGING  cg_data = lv_description ).
 
     lo_aab = create_object( ).
-    lo_aab->enqueue( ).
-    lo_aab->set_descript( lv_description ).
+
+    lo_aab->enqueue(
+      EXCEPTIONS
+        foreign_lock = 1
+        system_error = 2
+        cts_error    = 3
+        OTHERS       = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    lo_aab->set_descript(
+      EXPORTING
+        im_descript      = lv_description
+      EXCEPTIONS
+        no_authorization = 1
+        OTHERS           = 2 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
     tadir_insert( iv_package ).
-    lo_aab->save( ).
+
+    lo_aab->save(
+      EXCEPTIONS
+        no_descript_specified = 1
+        no_changes_found      = 2
+        prop_error            = 3
+        propt_error           = 4
+        act_error             = 5
+        cts_error             = 6
+        sync_attributes_error = 7
+        action_canceled       = 8
+        OTHERS                = 9 ).
+    IF sy-subrc >= 3.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    lo_aab->dequeue( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -100552,5 +100595,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-28T07:46:22.074Z
+* abapmerge 0.14.2 - 2021-01-28T07:50:19.500Z
 ****************************************************
