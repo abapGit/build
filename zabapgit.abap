@@ -53329,8 +53329,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         zcl_abapgit_objects_activation=>activate( abap_false ).
     ENDCASE.
 
-    li_progress->off( ).
-
 *   Call postprocessing
     li_exit = zcl_abapgit_exit=>get_instance( ).
 
@@ -100978,5 +100976,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-01-31T09:44:32.311Z
+* abapmerge 0.14.2 - 2021-02-01T08:37:20.810Z
 ****************************************************
