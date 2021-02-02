@@ -81058,11 +81058,12 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Ignore the SOTR if is linked to the current SAP package (DEVC)
     SELECT SINGLE obj_name
            FROM tadir
            INTO lv_object_name
            WHERE pgmid = 'R3TR'
-           AND NOT ( object = 'DEVC' AND obj_name = iv_package_name )
+           AND NOT ( ( object = 'DEVC' OR object = 'SOTR' ) AND obj_name = iv_package_name )
            AND devclass = iv_package_name.
     rv_is_empty = boolc( sy-subrc <> 0 ).
 
@@ -100964,5 +100965,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-02T06:32:35.621Z
+* abapmerge 0.14.2 - 2021-02-02T20:02:49.023Z
 ****************************************************
