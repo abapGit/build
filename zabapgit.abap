@@ -17160,8 +17160,8 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         act   TYPE string,
         ico   TYPE string,
         sub   TYPE REF TO zcl_abapgit_html_toolbar,
-        opt   TYPE char1,
-        typ   TYPE char1,
+        opt   TYPE c LENGTH 1,
+        typ   TYPE c LENGTH 1,
         cur   TYPE abap_bool,
         chk   TYPE abap_bool,
         aux   TYPE string,
@@ -100965,5 +100965,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-02T20:02:49.023Z
+* abapmerge 0.14.2 - 2021-02-03T04:55:02.990Z
 ****************************************************
