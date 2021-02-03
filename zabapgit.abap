@@ -7793,6 +7793,7 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       clear_fields
@@ -8389,6 +8390,7 @@ CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       clear_fields
@@ -8478,6 +8480,7 @@ CLASS zcl_abapgit_object_dtdc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       clear_fields
@@ -8973,6 +8976,7 @@ CLASS zcl_abapgit_object_ftgl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
       mv_toggle_id TYPE c LENGTH 40, "sftgl_ft_id
@@ -10607,6 +10611,7 @@ CLASS zcl_abapgit_object_srvb DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
       clear_fields
@@ -32197,7 +32202,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     IF sy-subrc = 1.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ELSEIF sy-subrc > 1.
-      zcx_abapgit_exception=>raise( |Error from TRINT_ORDER_CHOICE { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -44418,7 +44423,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         error_no_gui              = 23
         OTHERS                    = 24 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from gui_download' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -44494,7 +44499,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         not_supported_by_gui    = 4
         OTHERS                  = 5 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from "File Open" dialog' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
@@ -44534,7 +44539,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         not_supported_by_gui = 3
         OTHERS               = 4 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from "File Save" dialog' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
@@ -50388,7 +50393,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
@@ -50461,7 +50466,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
         system_failure = 2
         OTHERS         = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Could not aquire lock { iv_type } { iv_value }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_dummy_update_function = get_update_function( ).
@@ -50587,7 +50592,7 @@ CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
+CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
   METHOD distribute_settings_to_users.
 
     TYPES: ty_char12 TYPE c LENGTH 12.
@@ -50690,7 +50695,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'migrate, error from DDIF_ENQU_PUT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_obj_name = zcl_abapgit_persistence_db=>c_lock.
@@ -50705,7 +50710,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
       EXCEPTIONS
         OTHERS            = 1.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'migrate, error from TR_TADIR_INTERFACE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'DDIF_ENQU_ACTIVATE'
@@ -50867,7 +50872,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'migrate, error from DDIF_TABL_PUT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_obj_name = zcl_abapgit_persistence_db=>c_tabname.
@@ -50882,7 +50887,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
       EXCEPTIONS
         OTHERS            = 1.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'migrate, error from TR_TADIR_INTERFACE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'DDIF_TABL_ACTIVATE'
@@ -51306,7 +51311,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
         OTHERS              = 1.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -51424,7 +51429,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         OTHERS    = 2.
     IF sy-subrc <> 0.
 * if moving code from SAPlink, see https://github.com/abapGit/abapGit/issues/562
-      zcx_abapgit_exception=>raise( |Error from RS_CUA_INTERNAL_WRITE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add(
@@ -51536,10 +51541,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         permission_failure  = 2
         unknown_objectclass = 3
         OTHERS              = 4.
-    IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( |Error from RS_CORR_INSERT, Cancelled, { sy-msgid }, { sy-msgno }| ).
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_CORR_INSERT, { sy-msgid }, { sy-msgno }| ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     READ TABLE it_tpool INTO ls_tpool WITH KEY id = 'R'.
@@ -51848,7 +51851,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         unknown_version = 2
         OTHERS          = 3.
     IF sy-subrc > 1.
-      zcx_abapgit_exception=>raise( |Error from RS_CUA_INTERNAL_FETCH, { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -51882,7 +51885,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         not_found = 1
         OTHERS    = 2.
     IF sy-subrc = 2.
-      zcx_abapgit_exception=>raise( |Error from RS_SCREEN_LIST. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     SORT lt_d020s BY dnum ASCENDING.
@@ -51908,7 +51911,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
           permission_error     = 3
           OTHERS               = 4.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Error while reading dynpro: { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       "#2746: we need the dynpro fields in internal format:
@@ -52001,7 +52004,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       RETURN.
     ELSEIF sy-subrc <> 0.
       zcl_abapgit_language=>restore_login_language( ).
-      zcx_abapgit_exception=>raise( |Error reading program with RPY_PROGRAM_READ. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     zcl_abapgit_language=>restore_login_language( ).
@@ -52064,7 +52067,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
+CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -52175,7 +52178,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
         unknown_objectclass = 3
         OTHERS              = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CMPT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -54898,7 +54901,7 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
         object_not_found = 1
         OTHERS           = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from RS_INACTIVE_OBJECTS_IN_OBJECT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     LOOP AT lt_objects ASSIGNING <ls_object>.
@@ -57831,7 +57834,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     IF sy-subrc = 1.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_objectname = ls_vcldir_entry-vclname.
@@ -57849,7 +57852,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
         object_enqueue_failed = 5
         OTHERS                = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error in OBJ_GENERATE for VCLS' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -57992,7 +57995,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
         incomplete_viewcluster = 2
         OTHERS                 = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error in VIEWCLUSTER_GET_DEFINITION' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     SORT lt_vclstrudep BY vclname object objfield.
@@ -58593,7 +58596,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     IF sy-subrc = 1.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from RS_CORR_INSERT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD deserialize_entities.
@@ -59063,7 +59066,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
+CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
   METHOD clear_dynamic_fields.
 
     FIELD-SYMBOLS: <lg_header> TYPE any.
@@ -59241,7 +59244,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_TOOL_ACCESS' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -59283,7 +59286,7 @@ CLASS ZCL_ABAPGIT_OBJECT_UCSA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
+CLASS zcl_abapgit_object_type IMPLEMENTATION.
   METHOD create.
 
     DATA: lv_progname  TYPE reposrc-progname,
@@ -59306,7 +59309,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
         illegal_name         = 5
         OTHERS               = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_DD_TYGR_INSERT_SOURCES' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CONCATENATE c_prefix lv_typegroup INTO lv_progname.
@@ -60588,7 +60591,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     IF sy-subrc = 1.
       RETURN.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from CTO_OBJECT_GET' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CLEAR: ls_objh-luser,
@@ -60991,7 +60994,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       EXCEPTIONS
         OTHERS              = 1.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from TR_TADIR_INTERFACE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD deserialize_texts.
@@ -61036,7 +61039,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           put_refused       = 5
           OTHERS            = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from DDIF_TABL_PUT @TEXTS, { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDLOOP.
 
@@ -61384,7 +61387,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           put_refused       = 5
           OTHERS            = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DDIF_TABL_PUT' ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -61415,7 +61418,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
             put_refused       = 5
             OTHERS            = 6.
         IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'error from DDIF_INDX_PUT' ).
+          zcx_abapgit_exception=>raise_t100( ).
         ENDIF.
 
         CALL FUNCTION 'DD_DD_TO_E071'
@@ -61641,7 +61644,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
+CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -61665,7 +61668,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS             = 5.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_IMPL_DELETE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -61696,7 +61699,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS       = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_BADI_READ' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_package = iv_package.
@@ -61727,7 +61730,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS           = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_IMPL_SAVE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'SXO_IMPL_ACTIVE'
@@ -61745,7 +61748,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS                    = 8.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_IMPL_ACTIVE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -61797,7 +61800,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_TOOL_ACCESS' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -61825,7 +61828,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS             = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXV_EXIT_FOR_IMP' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'SXO_BADI_READ'
@@ -61845,7 +61848,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS       = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_BADI_READ' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'SXO_IMPL_FOR_BADI_READ'
@@ -61870,7 +61873,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SXCI IMPLEMENTATION.
         OTHERS                      = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SXO_IMPL_FOR_BADI_READ' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CLEAR: ls_classic_badi_implementation-implementation_data-aname,
@@ -62996,7 +62999,7 @@ CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
+CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
   METHOD validate_font.
 
     DATA: lv_tdfamily TYPE tfo01-tdfamily.
@@ -63035,7 +63038,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
         illegal_language      = 6
         OTHERS                = 7.
     IF sy-subrc <> 0 AND sy-subrc <> 2.
-      zcx_abapgit_exception=>raise( 'error from SSF_DELETE_STYLE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -63098,7 +63101,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
           illegal_language     = 5
           OTHERS               = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from SSF_ACTIVATE_STYLE' ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
     ENDIF.
@@ -63203,7 +63206,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SSST IMPLEMENTATION.
     IF sy-subrc = 2.
       RETURN.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from SSF_READ_STYLE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CLEAR ls_header-version.
@@ -63390,8 +63393,8 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
       EXCEPTIONS
         no_form               = 1
         OTHERS                = 2.
-    IF sy-subrc <> 0 AND sy-subrc <> 1.
-      zcx_abapgit_exception=>raise( 'Error from FB_DELETE_FORM' ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -63619,7 +63622,74 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
+  METHOD clear_field.
 
+    FIELD-SYMBOLS: <lv_value> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_service_definition
+           TO <lv_value>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lv_value>.
+
+  ENDMETHOD.
+  METHOD clear_fields.
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'CONTENT-SOURCE'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_AT'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_BY'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_AT'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_BY'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-RESPONSIBLE'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-DT_UUID'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-PACKAGE_REF-NAME'
+      CHANGING
+        cs_service_definition = cs_service_definition ).
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -63637,7 +63707,6 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA:
@@ -63762,7 +63831,7 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -63813,79 +63882,41 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
         iv_string = lv_source ).
 
   ENDMETHOD.
-  METHOD clear_fields.
+ENDCLASS.
 
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'CONTENT-SOURCE'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_AT'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_BY'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_AT'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_BY'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-RESPONSIBLE'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-DT_UUID'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-PACKAGE_REF-NAME'
-      CHANGING
-        cs_service_definition = cs_service_definition ).
-
-  ENDMETHOD.
+CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lv_value> TYPE data.
 
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_service_definition
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_service_binding
            TO <lv_value>.
     ASSERT sy-subrc = 0.
 
     CLEAR: <lv_value>.
 
   ENDMETHOD.
+  METHOD clear_fields.
 
-ENDCLASS.
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_AT'
+      CHANGING
+        cs_service_binding = cs_service_binding ).
 
-CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_BY'
+      CHANGING
+        cs_service_binding = cs_service_binding ).
 
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-LANGUAGE'
+      CHANGING
+        cs_service_binding = cs_service_binding ).
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -63903,7 +63934,6 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA:
@@ -64040,7 +64070,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -64079,42 +64109,9 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         ig_data = <ls_service_binding> ).
 
   ENDMETHOD.
-  METHOD clear_fields.
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_AT'
-      CHANGING
-        cs_service_binding = cs_service_binding ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_BY'
-      CHANGING
-        cs_service_binding = cs_service_binding ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-LANGUAGE'
-      CHANGING
-        cs_service_binding = cs_service_binding ).
-
-  ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lv_value> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_service_binding
-           TO <lv_value>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lv_value>.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
+CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -64248,7 +64245,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRFC IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_TOOL_ACCESS' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -64883,7 +64880,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
+CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   METHOD create_sots.
 
     " Reimplementation of SOTR_STRING_CREATE_CONCEPT because we can't supply
@@ -65030,7 +65027,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
           OTHERS              = 7.
 
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Error in BTFR_DELETE_SINGLE_TEXT subrc={ sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
     ENDLOOP.
@@ -65153,7 +65150,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS Subrc={ sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -65186,7 +65183,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SMTG IMPLEMENTATION.
+CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
   METHOD add_component.
 
     DATA:
@@ -65425,7 +65422,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SMTG IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SMTG Jump Error. RS_TOOL_ACCESS subrc={ sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -65783,7 +65780,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   METHOD change_sicf.
 
     DATA: lt_icfhndlist TYPE icfhndlist,
@@ -65843,7 +65840,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         no_authority              = 26
         OTHERS                    = 27 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SICF - error from change_node. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -65863,7 +65860,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         no_authority          = 5
         OTHERS                = 6 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SICF - error from service_from_url. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -65922,7 +65919,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         no_authority              = 26
         OTHERS                    = 27 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SICF - error from insert_node: { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -65956,7 +65953,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         no_authority      = 4
         OTHERS            = 5 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SICF - error from get_info_from_serv. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     ASSERT lines( lt_serv_info ) = 1.
@@ -66102,7 +66099,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
         no_authority                = 11
         OTHERS                      = 12 ).
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SICF - error from delete_node. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -66250,7 +66247,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_shma IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE chg_user
@@ -66299,7 +66296,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
             OTHERS               = 3.
 
         IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( |Error deleting SHMA { ms_item-obj_name }| ).
+          zcx_abapgit_exception=>raise_t100( ).
         ENDIF.
 
         CALL METHOD ('\PROGRAM=SAPMSHM_MONITOR\CLASS=LCL_SHMM')=>('FREE_AREA_BY_NAME')
@@ -66513,7 +66510,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHMA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
+CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd30l INTO rv_user
@@ -66577,7 +66574,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_SHLP_PUT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -66641,7 +66638,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHLP IMPLEMENTATION.
         illegal_input = 1
         OTHERS        = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_SHLP_GET' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
     IF ls_dd30v IS INITIAL.
       RETURN. " does not exist in system
@@ -67114,7 +67111,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
         no_nodes_given           = 1
         OTHERS                   = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from STREE_HIERARCHY_SAVE, SHI3' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -68445,7 +68442,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCVI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
+CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
   METHOD adjust_inbound.
 
     FIELD-SYMBOLS: <ls_scprvals> TYPE scprvals,
@@ -68562,7 +68559,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         system_failure    = 2
         OTHERS            = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |SCP1 locking error| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -68637,7 +68634,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         database_error            = 4
         OTHERS                    = 5.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error saving SCP1, { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -68683,7 +68680,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SCP1 IMPLEMENTATION.
         error_in_transport_layer = 2
         OTHERS                   = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error saving SCP1, { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -69282,7 +69279,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
           immediate              = 'X'
           actualize_working_area = 'X'.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_DELETE_PROGRAM: { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     delete_longtexts( c_longtext_id_prog ).
@@ -70829,7 +70826,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
+CLASS zcl_abapgit_object_para IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 * looks like "changed by user" is not stored in the database
     rv_user = c_user_unknown.
@@ -70904,7 +70901,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
             type      = 'CR'.
       ENDIF.
     ELSE.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'RS_ACCESS_PERMISSION'
@@ -70948,7 +70945,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
         unknown_objectclass = 3
         OTHERS              = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, PARA' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     MODIFY tpara FROM ls_tpara.                           "#EC CI_SUBRC
@@ -71213,7 +71210,7 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS, CHAR| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -72203,7 +72200,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
         subobject_not_found        = 8
         OTHERS                     = 9.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_INTERVAL_LIST' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     IF lines( lt_list ) = 0.
@@ -72228,7 +72225,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
         object_not_found = 1
         OTHERS           = 2.
     IF sy-subrc <> 0 OR lv_error = abap_true.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_INTERVAL_UPDATE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'NUMBER_RANGE_UPDATE_CLOSE'
@@ -72239,7 +72236,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
         object_not_initialized = 2
         OTHERS                 = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_UPDATE_CLOSE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -72292,7 +72289,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
         wrong_indicator    = 3
         OTHERS             = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_OBJECT_DELETE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -72321,7 +72318,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
         wrong_indicator           = 5
         OTHERS                    = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_OBJECT_UPDATE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     tadir_insert( iv_package ).
@@ -72333,7 +72330,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
       EXCEPTIONS
         object_not_initialized = 1.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_OBJECT_CLOSE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -72415,7 +72412,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     IF sy-subrc = 1.
       RETURN.
     ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from NUMBER_RANGE_OBJECT_READ' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     io_xml->add( iv_name = 'ATTRIBUTES'
@@ -72659,7 +72656,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         OTHERS          = 1.
 
     IF sy-subrc <> 0 OR lv_frozen <> space.
-      zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."can't access
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lv_access_granted = abap_true.
@@ -72679,7 +72676,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       IF lv_access_granted = abap_true.
         free_access_permission( lv_message_id ).
       ENDIF.
-      zcx_abapgit_exception=>raise( 'Error from (copy of) RS_DELETE_MESSAGE_ID' )."can't access
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     delete_msgid( lv_message_id ).
@@ -72835,7 +72832,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
+CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -72952,7 +72949,7 @@ CLASS ZCL_ABAPGIT_OBJECT_JOBD IMPLEMENTATION.
         OTHERS            = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_OBJECT_JUMP_TO_TOOL, JOBD| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -75045,7 +75042,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
+CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
@@ -75294,7 +75291,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IASP IMPLEMENTATION.
         invalid_object_type = 2
         OTHERS              = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from RS_TOOL_ACCESS. Subrc={ sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -76278,7 +76275,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         area_length_error            = 11
         OTHERS                       = 12.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from FUNCTION_INCLUDE_SPLIT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     ii_xml->read( EXPORTING iv_name = 'AREAT'
@@ -76317,7 +76314,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         update_func_group_short_text( iv_group      = lv_group
                                       iv_short_text = lv_stext ).
       WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |error from RS_FUNCTION_POOL_INSERT, code: { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
     ENDCASE.
 
   ENDMETHOD.
@@ -76336,7 +76333,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         function_pool_not_found = 1
         OTHERS                  = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_FUNCTION_POOL_CONTENTS for { lv_area }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
 * The result can also contain function which are lowercase.
@@ -76583,7 +76580,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         area_length_error            = 11
         OTHERS                       = 12.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from FUNCTION_INCLUDE_SPLIT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CONCATENATE lv_namespace 'SAPL' lv_group INTO rv_program.
@@ -76852,7 +76849,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         cancelled              = 9
         OTHERS                 = 10.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_FUNCTION_POOL_DELETE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     update_where_used( lt_includes ).
@@ -76999,6 +76996,19 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lg_field> TYPE data.
+
+    ASSIGN
+      COMPONENT iv_fieldname
+      OF STRUCTURE cg_header
+      TO <lg_field>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lg_field>.
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -77110,7 +77120,7 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |FTGL Jump Error. RS_TOOL_ACCESS subrc={ sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -77154,20 +77164,6 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
         ig_data = <lg_toggle> ).
 
   ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lg_field> TYPE data.
-
-    ASSIGN
-      COMPONENT iv_fieldname
-      OF STRUCTURE cg_header
-      TO <lg_field>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lg_field>.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
@@ -77810,7 +77806,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_ENQU_PUT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -77872,7 +77868,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
         illegal_input = 1
         OTHERS        = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_ENQU_GET' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
     IF ls_dd25v IS INITIAL.
       RETURN. " does not exist in system
@@ -78611,7 +78607,7 @@ CLASS zcl_abapgit_object_ecsd IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD clear_attributes.
 
     DATA: li_element     TYPE REF TO if_ixml_element,
@@ -78680,7 +78676,6 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
           lo_upload   TYPE REF TO cl_apl_ecatt_upload,
           li_upload   TYPE REF TO zif_abapgit_ecatt_upload,
           lv_xml      TYPE xstring,
-          lv_text     TYPE string,
           li_document TYPE REF TO if_ixml_document,
           lv_version  TYPE string,
           lx_error    TYPE REF TO cx_ecatt.
@@ -78711,8 +78706,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
         lo_upload->upload( CHANGING ch_object = ls_object ).
 
       CATCH cx_ecatt INTO lx_error.
-        lv_text = lx_error->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
     ENDTRY.
 
   ENDMETHOD.
@@ -79004,7 +78998,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ECATT_SUPER IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error { sy-subrc } from RS_TOOL_ACCESS | ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -79110,7 +79104,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
           put_refused       = 5
           OTHERS            = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from DDIF_DTEL_PUT @TEXTS, { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDLOOP.
 
@@ -79224,7 +79218,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from DDIF_DTEL_PUT, { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     deserialize_texts( ii_xml   = io_xml
@@ -79341,7 +79335,68 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
+  METHOD clear_field.
 
+    FIELD-SYMBOLS: <lv_value> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_dynamic_cache
+           TO <lv_value>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lv_value>.
+
+  ENDMETHOD.
+  METHOD clear_fields.
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_AT'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_BY'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_AT'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_BY'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-RESPONSIBLE'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-PACKAGE_REF'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'CONTENT-SOURCE'
+      CHANGING
+        cs_dynamic_cache = cs_dynamic_cache ).
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -79357,6 +79412,90 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
       CATCH cx_sy_create_error.
         zcx_abapgit_exception=>raise( |DTDC not supported by your NW release| ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD fill_metadata_from_db.
+
+    DATA:
+      li_wb_object_operator TYPE REF TO object,
+      lr_dynamic_cache_old  TYPE REF TO data.
+
+    FIELD-SYMBOLS:
+      <ls_dynamic_cache_old> TYPE any,
+      <lv_created_at>        TYPE xsddatetime_z,
+      <lv_created_by>        TYPE syuname,
+      <lv_created_at_old>    TYPE xsddatetime_z,
+      <lv_created_by_old>    TYPE syuname.
+
+    li_wb_object_operator = get_wb_object_operator( ).
+
+    CREATE DATA lr_dynamic_cache_old TYPE ('CL_DTDC_WB_OBJECT_DATA=>TY_DTDC_OBJECT_DATA').
+    ASSIGN lr_dynamic_cache_old->* TO <ls_dynamic_cache_old>.
+    ASSERT sy-subrc = 0.
+
+    CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
+      IMPORTING
+        data = <ls_dynamic_cache_old>.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE cs_dynamic_cache
+           TO <lv_created_by>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE cs_dynamic_cache
+           TO <lv_created_at>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE <ls_dynamic_cache_old>
+           TO <lv_created_by_old>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE <ls_dynamic_cache_old>
+           TO <lv_created_at_old>.
+    ASSERT sy-subrc = 0.
+
+    <lv_created_at> = <lv_created_at_old>.
+    <lv_created_by> = <lv_created_by_old>.
+
+  ENDMETHOD.
+  METHOD get_transport_req_if_needed.
+
+    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+
+    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
+      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_wb_object_operator.
+
+    DATA:
+      ls_object_type TYPE wbobjtype,
+      lx_error       TYPE REF TO cx_root.
+
+    IF mi_wb_object_operator IS BOUND.
+      ri_wb_object_operator = mi_wb_object_operator.
+    ENDIF.
+
+    ls_object_type-objtype_tr = 'DTDC'.
+    ls_object_type-subtype_wb = 'DF'.
+
+    TRY.
+        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
+          EXPORTING
+            object_type = ls_object_type
+            object_key  = mv_dynamic_cache_key
+          RECEIVING
+            result      = mi_wb_object_operator.
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise(
+            iv_text     = lx_error->get_text( )
+            ix_previous = lx_error ).
+    ENDTRY.
+
+    ri_wb_object_operator = mi_wb_object_operator.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -79531,7 +79670,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -79583,154 +79722,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         iv_string = lv_source ).
 
   ENDMETHOD.
-
-  METHOD fill_metadata_from_db.
-
-    DATA:
-      li_wb_object_operator TYPE REF TO object,
-      lr_dynamic_cache_old  TYPE REF TO data.
-
-    FIELD-SYMBOLS:
-      <ls_dynamic_cache_old> TYPE any,
-      <lv_created_at>        TYPE xsddatetime_z,
-      <lv_created_by>        TYPE syuname,
-      <lv_created_at_old>    TYPE xsddatetime_z,
-      <lv_created_by_old>    TYPE syuname.
-
-    li_wb_object_operator = get_wb_object_operator( ).
-
-    CREATE DATA lr_dynamic_cache_old TYPE ('CL_DTDC_WB_OBJECT_DATA=>TY_DTDC_OBJECT_DATA').
-    ASSIGN lr_dynamic_cache_old->* TO <ls_dynamic_cache_old>.
-    ASSERT sy-subrc = 0.
-
-    CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
-      IMPORTING
-        data = <ls_dynamic_cache_old>.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE cs_dynamic_cache
-           TO <lv_created_by>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE cs_dynamic_cache
-           TO <lv_created_at>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE <ls_dynamic_cache_old>
-           TO <lv_created_by_old>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE <ls_dynamic_cache_old>
-           TO <lv_created_at_old>.
-    ASSERT sy-subrc = 0.
-
-    <lv_created_at> = <lv_created_at_old>.
-    <lv_created_by> = <lv_created_by_old>.
-
-  ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_wb_object_operator.
-
-    DATA:
-      ls_object_type TYPE wbobjtype,
-      lx_error       TYPE REF TO cx_root.
-
-    IF mi_wb_object_operator IS BOUND.
-      ri_wb_object_operator = mi_wb_object_operator.
-    ENDIF.
-
-    ls_object_type-objtype_tr = 'DTDC'.
-    ls_object_type-subtype_wb = 'DF'.
-
-    TRY.
-        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
-          EXPORTING
-            object_type = ls_object_type
-            object_key  = mv_dynamic_cache_key
-          RECEIVING
-            result      = mi_wb_object_operator.
-
-      CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
-    ENDTRY.
-
-    ri_wb_object_operator = mi_wb_object_operator.
-
-  ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lv_value> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_dynamic_cache
-           TO <lv_value>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lv_value>.
-
-  ENDMETHOD.
-  METHOD clear_fields.
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_AT'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_BY'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_AT'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_BY'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-RESPONSIBLE'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-PACKAGE_REF'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'CONTENT-SOURCE'
-      CHANGING
-        cs_dynamic_cache = cs_dynamic_cache ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
@@ -79883,7 +79874,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
         OTHERS           = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DSYS_EDIT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -79898,7 +79889,68 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_drul IMPLEMENTATION.
+  METHOD clear_field.
 
+    FIELD-SYMBOLS: <lv_value> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_dependency_rule
+           TO <lv_value>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lv_value>.
+
+  ENDMETHOD.
+  METHOD clear_fields.
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_AT'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CREATED_BY'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_AT'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-CHANGED_BY'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-RESPONSIBLE'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'METADATA-PACKAGE_REF'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname          = 'CONTENT-SOURCE'
+      CHANGING
+        cs_dependency_rule = cs_dependency_rule ).
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
@@ -79914,6 +79966,90 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
       CATCH cx_sy_create_error.
         zcx_abapgit_exception=>raise( |DRUL not supported by your NW release| ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD fill_metadata_from_db.
+
+    DATA:
+      li_wb_object_operator  TYPE REF TO object,
+      lr_dependency_rule_old TYPE REF TO data.
+
+    FIELD-SYMBOLS:
+      <ls_dependency_rule_old> TYPE any,
+      <lv_created_at>          TYPE xsddatetime_z,
+      <lv_created_by>          TYPE syuname,
+      <lv_created_at_old>      TYPE xsddatetime_z,
+      <lv_created_by_old>      TYPE syuname.
+
+    li_wb_object_operator = get_wb_object_operator( ).
+
+    CREATE DATA lr_dependency_rule_old TYPE ('CL_DRUL_WB_OBJECT_DATA=>TY_OBJECT_DATA').
+    ASSIGN lr_dependency_rule_old->* TO <ls_dependency_rule_old>.
+    ASSERT sy-subrc = 0.
+
+    CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
+      IMPORTING
+        data = <ls_dependency_rule_old>.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE cs_dependency_rule
+           TO <lv_created_by>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE cs_dependency_rule
+           TO <lv_created_at>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE <ls_dependency_rule_old>
+           TO <lv_created_by_old>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE <ls_dependency_rule_old>
+           TO <lv_created_at_old>.
+    ASSERT sy-subrc = 0.
+
+    <lv_created_at> = <lv_created_at_old>.
+    <lv_created_by> = <lv_created_by_old>.
+
+  ENDMETHOD.
+  METHOD get_transport_req_if_needed.
+
+    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+
+    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
+      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_wb_object_operator.
+
+    DATA:
+      ls_object_type TYPE wbobjtype,
+      lx_error       TYPE REF TO cx_root.
+
+    IF mi_wb_object_operator IS BOUND.
+      ri_wb_object_operator = mi_wb_object_operator.
+    ENDIF.
+
+    ls_object_type-objtype_tr = 'DRUL'.
+    ls_object_type-subtype_wb = 'DRL'.
+
+    TRY.
+        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
+          EXPORTING
+            object_type = ls_object_type
+            object_key  = mv_dependency_rule_key
+          RECEIVING
+            result      = mi_wb_object_operator.
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise(
+            iv_text     = lx_error->get_text( )
+            ix_previous = lx_error ).
+    ENDTRY.
+
+    ri_wb_object_operator = mi_wb_object_operator.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -80087,7 +80223,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -80139,154 +80275,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         iv_string = lv_source ).
 
   ENDMETHOD.
-
-  METHOD fill_metadata_from_db.
-
-    DATA:
-      li_wb_object_operator  TYPE REF TO object,
-      lr_dependency_rule_old TYPE REF TO data.
-
-    FIELD-SYMBOLS:
-      <ls_dependency_rule_old> TYPE any,
-      <lv_created_at>          TYPE xsddatetime_z,
-      <lv_created_by>          TYPE syuname,
-      <lv_created_at_old>      TYPE xsddatetime_z,
-      <lv_created_by_old>      TYPE syuname.
-
-    li_wb_object_operator = get_wb_object_operator( ).
-
-    CREATE DATA lr_dependency_rule_old TYPE ('CL_DRUL_WB_OBJECT_DATA=>TY_OBJECT_DATA').
-    ASSIGN lr_dependency_rule_old->* TO <ls_dependency_rule_old>.
-    ASSERT sy-subrc = 0.
-
-    CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
-      IMPORTING
-        data = <ls_dependency_rule_old>.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE cs_dependency_rule
-           TO <lv_created_by>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE cs_dependency_rule
-           TO <lv_created_at>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_BY' OF STRUCTURE <ls_dependency_rule_old>
-           TO <lv_created_by_old>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA-CREATED_AT' OF STRUCTURE <ls_dependency_rule_old>
-           TO <lv_created_at_old>.
-    ASSERT sy-subrc = 0.
-
-    <lv_created_at> = <lv_created_at_old>.
-    <lv_created_by> = <lv_created_by_old>.
-
-  ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_wb_object_operator.
-
-    DATA:
-      ls_object_type TYPE wbobjtype,
-      lx_error       TYPE REF TO cx_root.
-
-    IF mi_wb_object_operator IS BOUND.
-      ri_wb_object_operator = mi_wb_object_operator.
-    ENDIF.
-
-    ls_object_type-objtype_tr = 'DRUL'.
-    ls_object_type-subtype_wb = 'DRL'.
-
-    TRY.
-        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
-          EXPORTING
-            object_type = ls_object_type
-            object_key  = mv_dependency_rule_key
-          RECEIVING
-            result      = mi_wb_object_operator.
-
-      CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
-    ENDTRY.
-
-    ri_wb_object_operator = mi_wb_object_operator.
-
-  ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lv_value> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_dependency_rule
-           TO <lv_value>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lv_value>.
-
-  ENDMETHOD.
-  METHOD clear_fields.
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_AT'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_BY'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_AT'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_BY'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-MASTER_LANGUAGE'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-RESPONSIBLE'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'METADATA-PACKAGE_REF'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname          = 'CONTENT-SOURCE'
-      CHANGING
-        cs_dependency_rule = cs_dependency_rule ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_doma IMPLEMENTATION.
@@ -80361,7 +80349,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           put_refused       = 5
           OTHERS            = 6.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DDIF_DOMA_PUT @TEXTS' ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDLOOP.
 
@@ -80515,7 +80503,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
         put_refused       = 5
         OTHERS            = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DDIF_DOMA_PUT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     deserialize_texts( ii_xml   = io_xml
@@ -80579,7 +80567,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
         illegal_input = 1
         OTHERS        = 2.
     IF sy-subrc <> 0 OR ls_dd01v IS INITIAL.
-      zcx_abapgit_exception=>raise( 'error from DDIF_DOMA_GET' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CLEAR: ls_dd01v-as4user,
@@ -80617,7 +80605,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
+CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   METHOD read.
 
     DATA: lv_object TYPE dokhl-object,
@@ -80662,7 +80650,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCV IMPLEMENTATION.
         ret_code = 1
         OTHERS   = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from DOCU_DEL' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -80860,7 +80848,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -81000,7 +80988,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
         OTHERS           = 2.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_DIALOG_SHOW, DIAL| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -82819,7 +82807,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
         unknown_objectclass = 3
         OTHERS              = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CUS0' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -82977,7 +82965,7 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
         unknown_objectclass = 3
         OTHERS              = 4.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CUS0' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -83052,7 +83040,7 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
+CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -83154,7 +83142,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
         OTHERS              = 4.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_CORR_INSERT, CMPT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -83213,7 +83201,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMPT IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS, CMPT| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -83985,7 +83973,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
+CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -84038,7 +84026,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
       IF sy-subrc > 1.
-        zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
@@ -84054,7 +84042,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
       IF sy-subrc > 1.
-        zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
@@ -84070,7 +84058,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
       IF sy-subrc > 1.
-        zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
@@ -84086,7 +84074,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
       IF sy-subrc > 1.
-        zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
@@ -84102,7 +84090,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
       IF sy-subrc > 1.
-        zcx_abapgit_exception=>raise( |Error from TR_TADIR_INTERFACE (subrc={ sy-subrc } ).| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
@@ -84328,7 +84316,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHDO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
+CLASS zcl_abapgit_object_char IMPLEMENTATION.
   METHOD instantiate_char_and_lock.
 
     DATA: lv_new  TYPE abap_bool,
@@ -84535,7 +84523,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS, CHAR| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -84572,7 +84560,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_BDEF IMPLEMENTATION.
+CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lv_value> TYPE data.
@@ -85069,7 +85057,7 @@ CLASS ZCL_ABAPGIT_OBJECT_BDEF IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -86243,7 +86231,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
         OTHERS              = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -86298,7 +86286,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
         name_not_allowed = 1
         OTHERS           = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error creating CL_AAB_ID object' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -86470,7 +86458,7 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
           object_not_found = 1
           OTHERS           = 2.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |error from SOTR_OBJECT_GET_OBJECTS. Subrc = { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       READ TABLE lt_objects INDEX 1 INTO lv_object.
@@ -86507,7 +86495,7 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
           no_entry_found                = 18
           OTHERS                        = 19.
       IF sy-subrc <> 0 AND sy-subrc <> 5.
-        zcx_abapgit_exception=>raise( |Error from SOTR_CREATE_CONCEPT. Subrc = { sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDLOOP.
 
@@ -87031,7 +87019,7 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
+CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
   METHOD are_test_classes_skipped.
     rv_return = mv_skip_testclass.
   ENDMETHOD.
@@ -87182,7 +87170,7 @@ CLASS ZCL_ABAPGIT_OO_SERIALIZER IMPLEMENTATION.
         class_not_existing = 1
         OTHERS             = 2.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from CL_OO_SOURCE. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     lo_source->read( 'A' ).
@@ -91757,7 +91745,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
+CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   METHOD activate.
 
     IF use_new_activation_logic( ) = abap_true.
@@ -91828,7 +91816,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
           OTHERS         = 5.
 
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from DD_MASS_ACT_C3' ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       IF lv_rc > 0.
@@ -92001,7 +91989,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
         OTHERS        = 3.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from TR_READ_LOG' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     DELETE lt_lines WHERE severity <> 'E'.
@@ -98943,7 +98931,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_transport IMPLEMENTATION.
   METHOD add_all_objects_to_trans_req.
 
     DATA:
@@ -99028,7 +99016,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
           OTHERS            = 3.
 
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |FM TRINT_SELECT_OBJECTS subrc={ sy-subrc }| ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       INSERT LINES OF lt_objects INTO TABLE lt_objects_all.
@@ -99091,7 +99079,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
           invalid_input = 1
           OTHERS        = 2.
       IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from TR_READ_REQUEST_WITH_TASKS' ).
+        zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
       APPEND LINES OF lt_requests TO rt_requests.
@@ -99209,9 +99197,8 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         invalid_order    = 2
         invalid_task     = 3
         OTHERS           = 4.
-
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_RESET. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -99232,9 +99219,8 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         invalid_category = 2
         invalid_client   = 3
         OTHERS           = 4.
-
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_GET. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     READ TABLE lt_e070use INTO rs_default_task
@@ -99293,9 +99279,8 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
         invalid_order     = 5
         invalid_task      = 6
         OTHERS            = 7.
-
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from TR_TASK_SET. Subrc = { sy-subrc }| ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -100214,7 +100199,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         other           = 6
         OTHERS          = 7.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from SEO_INTERFACE_CREATE_COMPLETE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     add_intf_source_and_activate( ).
@@ -100311,7 +100296,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
         OTHERS                 = 4.
 
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from RS_WORKING_OBJECTS_ACTIVATE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
   ENDMETHOD.
@@ -100965,5 +100950,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-03T04:55:02.990Z
+* abapmerge 0.14.2 - 2021-02-03T15:35:28.265Z
 ****************************************************
