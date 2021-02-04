@@ -27263,13 +27263,26 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '// Use a pre-created form or create a hidden form' ).
     lo_buf->add( '// and submit with sapevent' ).
     lo_buf->add( 'function submitSapeventForm(params, action, method) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function getSapeventPrefix() {' ).
+    lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]''))  {' ).
+    lo_buf->add( '      return "file:///"; //Prefix for chromium based browser control' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      return "";' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  var stub_form_id = "form_" + action;' ).
     lo_buf->add( '  var form = document.getElementById(stub_form_id);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (form === null) {' ).
     lo_buf->add( '    form = document.createElement("form");' ).
     lo_buf->add( '    form.setAttribute("method", method || "post");' ).
-    lo_buf->add( '    form.setAttribute("action", "sapevent:" + action);' ).
+    lo_buf->add( '    if (/sapevent/i.test(action)){' ).
+    lo_buf->add( '      form.setAttribute("action", action);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      form.setAttribute("action", getSapeventPrefix() + "SAPEVENT:" + action);' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  for(var key in params) {' ).
@@ -28453,7 +28466,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    var action = this.oKeyMap[sKey];' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // add a tooltip/title with the hotkey, currently only sapevents are supported' ).
-    lo_buf->add( '    [].slice.call(document.querySelectorAll("a[href^=''sapevent:" + action + "'']")).forEach(function(elAnchor) {' ).
+    lo_buf->add( '    this.getAllSapEventsForSapEventName(action).forEach(function(elAnchor) {' ).
     lo_buf->add( '      elAnchor.title = elAnchor.title + " [" + sKey + "]";' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
@@ -28483,9 +28496,9 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // Or a SAP event' ).
-    lo_buf->add( '      var sUiSapEvent = this.getSapEvent(action);' ).
-    lo_buf->add( '      if (sUiSapEvent) {' ).
-    lo_buf->add( '        submitSapeventForm({}, sUiSapEvent, "post");' ).
+    lo_buf->add( '      var sUiSapEventHref = this.getSapEventHref(action);' ).
+    lo_buf->add( '      if (sUiSapEventHref) {' ).
+    lo_buf->add( '        submitSapeventForm({}, sUiSapEventHref, "post");' ).
     lo_buf->add( '        oEvent.preventDefault();' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
@@ -28504,26 +28517,21 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getSapEvent = function(sSapEvent) {' ).
+    lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function(sSapEvent) {' ).
+    lo_buf->add( '  return [].slice.call(document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"], a[href*="SAPEVENT:'' + sSapEvent + ''"]''));' ).
+    lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var fnNormalizeSapEventHref = function(sSapEvent, oSapEvent) {' ).
-    lo_buf->add( '    if (new RegExp(sSapEvent + "$" ).test(oSapEvent.href)' ).
-    lo_buf->add( '    || (new RegExp(sSapEvent + "\\?" ).test(oSapEvent.href))) {' ).
-    lo_buf->add( '      return oSapEvent.href.replace("sapevent:","");' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '  };' ).
+    lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var aSapEvents = document.querySelectorAll(''a[href^="sapevent:'' + sSapEvent + ''"]'');' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var aFilteredAndNormalizedSapEvents =' ).
-    lo_buf->add( '    [].map.call(aSapEvents, function(oSapEvent){' ).
-    lo_buf->add( '      return fnNormalizeSapEventHref(sSapEvent, oSapEvent);' ).
-    lo_buf->add( '    }).filter(function(elem){' ).
-    lo_buf->add( '      // remove false positives' ).
-    lo_buf->add( '      return (elem && !elem.includes("sapevent:"));' ).
-    lo_buf->add( '    });' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  return (aFilteredAndNormalizedSapEvents && aFilteredAndNormalizedSapEvents[0]);' ).
+    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
+    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '      return oSapEvent.href;' ).
+    lo_buf->add( '    })' ).
+    lo_buf->add( '    .filter(function(sapEventHref){' ).
+    lo_buf->add( '      // eliminate false positives' ).
+    lo_buf->add( '      return sapEventHref.match(new RegExp("\\b" + sSapEvent + "\\b"));' ).
+    lo_buf->add( '    })' ).
+    lo_buf->add( '    .pop();' ).
     lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -100950,5 +100958,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-03T15:35:28.265Z
+* abapmerge 0.14.2 - 2021-02-04T14:19:39.995Z
 ****************************************************
