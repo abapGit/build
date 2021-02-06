@@ -25399,7 +25399,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '/* STATE BLOCK COMMON*/' ).
     lo_buf->add( 'span.state-block {' ).
     lo_buf->add( '  margin-left: 1em;' ).
-    lo_buf->add( '  font-family: Consolas, Lucida Console, Courier, monospace;' ).
+    lo_buf->add( '  font-family: Consolas, "Lucida Console", Courier, monospace;' ).
     lo_buf->add( '  font-size: x-small;' ).
     lo_buf->add( '  vertical-align: 13%;' ).
     lo_buf->add( '  display: inline-block;' ).
@@ -26026,7 +26026,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.message-panel:hover .message-panel-commands {' ).
-    lo_buf->add( '  display: block' ).
+    lo_buf->add( '  display: block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Tooltip text */' ).
@@ -26336,7 +26336,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  font-size: 14px;' ).
     lo_buf->add( '  height: 2.5em;' ).
     lo_buf->add( '  background-color: #ddd;' ).
-    lo_buf->add( '  border: 1px solid #ddd;' ).
+    lo_buf->add( '  border: 1px solid #ccc;' ).
     lo_buf->add( '  padding: 0px 10px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog table tbody td {' ).
@@ -26371,7 +26371,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog fieldset legend {' ).
     lo_buf->add( '  font-size: large;' ).
-    lo_buf->add( '  font-style: bold;' ).
+    lo_buf->add( '  font-weight: bold;' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '  padding-right: 0.5em;' ).
     lo_buf->add( '}' ).
@@ -100973,5 +100973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-06T08:37:36.605Z
+* abapmerge 0.14.2 - 2021-02-06T08:40:06.699Z
 ****************************************************
