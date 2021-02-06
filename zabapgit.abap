@@ -7669,27 +7669,27 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_objects_super DEFINITION ABSTRACT.
+CLASS zcl_abapgit_objects_super DEFINITION
+  ABSTRACT
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
-    METHODS:
-      constructor
-        IMPORTING
-          is_item     TYPE zif_abapgit_definitions=>ty_item
-          iv_language TYPE spras.
+    CONSTANTS c_user_unknown TYPE xubname VALUE 'UNKNOWN'.
 
-    CLASS-METHODS:
-      jump_adt
-        IMPORTING iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
-                  iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
-                  iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-                  iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
-                  iv_line_number  TYPE i OPTIONAL
-        RAISING   zcx_abapgit_exception.
-
-    CONSTANTS: c_user_unknown TYPE xubname VALUE 'UNKNOWN'.
-
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras .
+    CLASS-METHODS jump_adt
+      IMPORTING
+        !iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
+        !iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
+        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+        !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+        !iv_line_number  TYPE i OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
@@ -51281,7 +51281,8 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_lxe_texts.
 
-    IF ii_xml->i18n_params( )-main_language_only = abap_true.
+    IF ii_xml->i18n_params( )-main_language_only = abap_true OR
+       ii_xml->i18n_params( )-translation_languages IS INITIAL.
       RETURN.
     ENDIF.
 
@@ -86741,11 +86742,18 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
 
     CALL FUNCTION 'LXE_OBJ_EXPAND_TRANSPORT_OBJ'
       EXPORTING
-        pgmid    = 'R3TR'
-        object   = iv_object_type
-        obj_name = lv_object_name
+        pgmid           = 'R3TR'
+        object          = iv_object_type
+        obj_name        = lv_object_name
       TABLES
-        ex_colob = rt_obj_list.
+        ex_colob        = rt_obj_list
+      EXCEPTIONS
+        unknown_object  = 1
+        unknown_ta_type = 2
+        OTHERS          = 3.
+    IF sy-subrc <> 0.
+      RETURN. " Ignore error and return empty list
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_translation_languages.
@@ -86821,6 +86829,10 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
     lt_obj_list = get_lxe_object_list(
                     iv_object_name = iv_object_name
                     iv_object_type = iv_object_type ).
+
+    IF lt_obj_list IS INITIAL.
+      RETURN.
+    ENDIF.
 
     " Get list of languages that need to be serialized (already resolves * and installed languages)
     lv_main_lang = get_lang_iso4( ii_xml->i18n_params( )-main_language ).
@@ -100961,5 +100973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-05T06:19:50.660Z
+* abapmerge 0.14.2 - 2021-02-06T08:37:36.605Z
 ****************************************************
