@@ -35080,7 +35080,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
     ri_html->add( ' from the top menu.' ).
     ri_html->add( '<li>abapGit will start tracking changes for the package ' ).
     ri_html->add( 'without linking it to an online git repository.</li>' ).
-    ri_html->add( '<li>You can link the package later or just export the package content as a zip file.</li>' ).
+    ri_html->add( '<li>You can link the package later or just export the package content as a ZIP file.</li>' ).
 
     ri_html->add( '</ul></p>' ).
 
@@ -43574,10 +43574,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       iv_txt = 'Database Utility'
       iv_act = zif_abapgit_definitions=>c_action-go_db
     )->add(
-      iv_txt = 'Package to Zip'
+      iv_txt = 'Package to ZIP'
       iv_act = zif_abapgit_definitions=>c_action-zip_package
     )->add(
-      iv_txt = 'Transport to Zip'
+      iv_txt = 'Transport to ZIP'
       iv_act = zif_abapgit_definitions=>c_action-zip_transport
     )->add(
       iv_txt = 'Object to Files'
@@ -100973,5 +100973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-06T08:40:06.699Z
+* abapmerge 0.14.2 - 2021-02-08T13:47:33.648Z
 ****************************************************
