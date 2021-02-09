@@ -67201,7 +67201,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
     lv_all_languages = abap_false.
 
-    IF io_xml->i18n_params( )-main_language_only = abap_true.
+    IF io_xml->i18n_params( )-main_language_only = abap_false.
       lv_all_languages = abap_true.
     ELSE.
       lv_language = mv_language.
@@ -100973,5 +100973,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-08T13:47:33.648Z
+* abapmerge 0.14.2 - 2021-02-09T06:32:26.034Z
 ****************************************************
