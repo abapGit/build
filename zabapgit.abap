@@ -12794,6 +12794,8 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS refresh
       IMPORTING
         !iv_drop_cache TYPE abap_bool DEFAULT abap_false
+        !iv_drop_log   TYPE abap_bool DEFAULT abap_true
+          PREFERRED PARAMETER iv_drop_cache
       RAISING
         zcx_abapgit_exception .
     METHODS update_local_checksums
@@ -48486,8 +48488,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
     DATA: lx_error TYPE REF TO zcx_abapgit_exception.
 
-    CREATE OBJECT ri_log TYPE zcl_abapgit_log.
-    ri_log->set_title( 'Uninstall Log' ).
+    ri_log = io_repo->create_new_log( 'Uninstall Log' ).
 
     IF io_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
@@ -48503,7 +48504,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
                                      ii_log    = ri_log ).
       CATCH zcx_abapgit_exception INTO lx_error.
         " If uninstall fails, repo needs a refresh to show which objects where deleted and which not
-        io_repo->refresh( ).
+        io_repo->refresh( iv_drop_log = abap_false ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
@@ -49466,7 +49467,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     mv_request_local_refresh = abap_true.
     reset_remote( ).
 
-    CLEAR mi_log.
+    IF iv_drop_log = abap_true.
+      CLEAR mi_log.
+    ENDIF.
 
     IF iv_drop_cache = abap_true.
       CLEAR mt_local.
@@ -100984,5 +100987,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-09T06:34:21.714Z
+* abapmerge 0.14.2 - 2021-02-09T06:38:08.911Z
 ****************************************************
