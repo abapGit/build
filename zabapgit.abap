@@ -7710,9 +7710,6 @@ CLASS zcl_abapgit_objects_super DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS jump_se11
-      IMPORTING
-        !iv_radio TYPE string
-        !iv_field TYPE string
       RAISING
         zcx_abapgit_exception .
     METHODS exists_a_lock_entry_for
@@ -33393,6 +33390,8 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ls_field-name  = iv_name.
     APPEND ls_field TO mt_fields.
 
+    ro_self = me.
+
   ENDMETHOD.
   METHOD number.
 
@@ -57696,8 +57695,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        jump_se11( iv_radio = 'RSRD1-VIMA'
-                   iv_field = 'RSRD1-VIMA_VAL' ).
+        jump_se11( ).
 
     ENDCASE.
 
@@ -59456,8 +59454,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    jump_se11( iv_radio = 'RSRD1-TYMA'
-               iv_field = 'RSRD1-TYMA_VAL' ).
+    jump_se11( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -59596,8 +59593,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-DDTYPE'
-               iv_field = 'RSRD1-DDTYPE_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -61531,8 +61527,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-DDTYPE'
-               iv_field = 'RSRD1-DDTYPE_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -66634,8 +66629,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-SHMA'
-               iv_field = 'RSRD1-SHMA_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -71992,8 +71986,6 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
   METHOD serialize_texts.
 
     DATA:
-      lv_name       TYPE ddobjname,
-      lv_index      TYPE i,
       ls_trnspacett TYPE trnspacett,
       lt_nspc_texts TYPE ty_nspc_texts,
       lt_i18n_langs TYPE TABLE OF langu.
@@ -72180,9 +72172,7 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
 
     DATA:
       ls_nspc       TYPE ty_nspc,
-      ls_nspc_text  TYPE ty_nspc_text,
-      ls_trnspacet  TYPE trnspacet,
-      ls_trnspacett TYPE trnspacett.
+      ls_nspc_text  TYPE ty_nspc_text.
 
     SELECT SINGLE * FROM trnspacet INTO CORRESPONDING FIELDS OF ls_nspc
       WHERE namespace = ms_item-obj_name.
@@ -77867,8 +77857,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-ENQU'
-               iv_field = 'RSRD1-ENQU_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -79296,8 +79285,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-DDTYPE'
-               iv_field = 'RSRD1-DDTYPE_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -80569,8 +80557,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
-    jump_se11( iv_radio = 'RSRD1-DOMA'
-               iv_field = 'RSRD1-DOMA_VAL' ).
+    jump_se11( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -100987,5 +100974,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-09T06:38:08.911Z
+* abapmerge 0.14.2 - 2021-02-09T14:51:38.832Z
 ****************************************************
