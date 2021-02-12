@@ -1511,28 +1511,6 @@ INTERFACE zif_abapgit_gui_error_handler .
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_gui_event .
-
-  DATA mv_action   TYPE string READ-ONLY.
-  DATA mv_getdata  TYPE string READ-ONLY.
-  DATA mt_postdata TYPE cnht_post_data_tab READ-ONLY.
-  DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services READ-ONLY.
-  DATA mv_current_page_name TYPE string.
-
-  METHODS query
-    RETURNING
-      VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
-    RAISING
-      zcx_abapgit_exception.
-
-  METHODS form_data
-    RETURNING
-      VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
-    RAISING
-      zcx_abapgit_exception.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_gui_event_handler .
 
   TYPES:
@@ -1797,13 +1775,21 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_html_viewer .
   CONSTANTS m_id_sapevent TYPE i VALUE 1 ##NO_TEXT.
 
+  TYPES ty_char256 TYPE c LENGTH 256.
+  TYPES ty_post_data TYPE STANDARD TABLE OF ty_char256 WITH DEFAULT KEY.
+  TYPES: BEGIN OF ty_name_value,
+           name  TYPE c LENGTH 30,
+           value TYPE c LENGTH 250,
+         END OF ty_name_value.
+  TYPES ty_query_table TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY.
+
   EVENTS sapevent
     EXPORTING
       VALUE(action) TYPE c OPTIONAL
       VALUE(frame) TYPE c OPTIONAL
       VALUE(getdata) TYPE c OPTIONAL
-      VALUE(postdata) TYPE cnht_post_data_tab OPTIONAL
-      VALUE(query_table) TYPE cnht_query_table OPTIONAL .
+      VALUE(postdata) TYPE ty_post_data OPTIONAL
+      VALUE(query_table) TYPE ty_query_table OPTIONAL .
 
   METHODS load_data
     IMPORTING
@@ -1834,6 +1820,28 @@ INTERFACE zif_abapgit_html_viewer .
       VALUE(rv_url) TYPE w3url.
   METHODS back .
   METHODS set_visiblity IMPORTING iv_visible TYPE abap_bool.
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_event .
+
+  DATA mv_action   TYPE string READ-ONLY.
+  DATA mv_getdata  TYPE string READ-ONLY.
+  DATA mt_postdata TYPE zif_abapgit_html_viewer=>ty_post_data READ-ONLY.
+  DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services READ-ONLY.
+  DATA mv_current_page_name TYPE string.
+
+  METHODS query
+    RETURNING
+      VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS form_data
+    RETURNING
+      VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_repo .
@@ -13673,7 +13681,7 @@ CLASS zcl_abapgit_gui DEFINITION
       IMPORTING
         !iv_action   TYPE c
         !iv_getdata  TYPE c OPTIONAL
-        !it_postdata TYPE cnht_post_data_tab OPTIONAL .
+        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data OPTIONAL .
     METHODS handle_error
       IMPORTING
         !ix_exception TYPE REF TO zcx_abapgit_exception .
@@ -13778,7 +13786,7 @@ CLASS zcl_abapgit_gui_event DEFINITION
         !ii_gui_services TYPE REF TO zif_abapgit_gui_services OPTIONAL
         !iv_action       TYPE clike
         !iv_getdata      TYPE clike OPTIONAL
-        !it_postdata     TYPE cnht_post_data_tab OPTIONAL .
+        !it_postdata     TYPE zif_abapgit_html_viewer=>ty_post_data OPTIONAL .
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mo_query TYPE REF TO zcl_abapgit_string_map.
@@ -15668,7 +15676,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         !iv_order_descending TYPE abap_bool .
     METHODS set_filter
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab .
+        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
     METHODS has_favorites
       RETURNING
         VALUE(rv_has_favorites) TYPE abap_bool .
@@ -16557,7 +16565,7 @@ CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
         zcx_abapgit_exception .
     METHODS parse_change_tag_type_request
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab .
+        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
     METHODS render_scripts
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -16803,7 +16811,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
 
     CLASS-METHODS parse_post_form_data
       IMPORTING
-        !it_post_data TYPE cnht_post_data_tab
+        !it_post_data TYPE zif_abapgit_html_viewer=>ty_post_data
         !iv_upper_cased TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_fields) TYPE tihttpnvp .
@@ -16820,7 +16828,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
         VALUE(rt_fields) TYPE tihttpnvp .
     CLASS-METHODS translate_postdata
       IMPORTING
-        !it_postdata TYPE cnht_post_data_tab
+        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data
       RETURNING
         VALUE(rv_string) TYPE string .
 
@@ -34033,7 +34041,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD translate_postdata.
 
-    DATA: lt_post_data       TYPE cnht_post_data_tab,
+    DATA: lt_post_data       TYPE zif_abapgit_html_viewer=>ty_post_data,
           ls_last_line       TYPE cnht_post_data_line,
           lv_last_line_index TYPE i.
 
@@ -100899,5 +100907,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-11T05:52:21.028Z
+* abapmerge 0.14.2 - 2021-02-12T10:06:53.994Z
 ****************************************************
