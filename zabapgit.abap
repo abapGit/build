@@ -53842,7 +53842,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
+CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
   METHOD get.
 
     DATA: lv_name TYPE cxsltdesc.
@@ -53959,6 +53959,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
         permission_failure    = 5
         OTHERS                = 6 ).
     IF sy-subrc <> 0.
+      lo_xslt->set_changeable( abap_false ). " unlock
       zcx_abapgit_exception=>raise( |Error from XSLT save, { sy-subrc }| ).
     ENDIF.
 
@@ -53970,6 +53971,7 @@ CLASS ZCL_ABAPGIT_OBJECT_XSLT IMPLEMENTATION.
 *        xtc_not_available = 4  downport/upport, does not exist in 751
         OTHERS            = 5 ).
     IF sy-subrc <> 0.
+      lo_xslt->set_changeable( abap_false ). " unlock
       zcx_abapgit_exception=>raise( |Error from XSLT activate, { sy-subrc }| ).
     ENDIF.
 
@@ -100907,5 +100909,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-12T10:06:53.994Z
+* abapmerge 0.14.2 - 2021-02-13T16:10:33.925Z
 ****************************************************
