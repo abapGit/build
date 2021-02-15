@@ -9203,7 +9203,9 @@ CLASS zcl_abapgit_object_iatu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                   ev_source TYPE string
         RAISING   zcx_abapgit_exception,
       save
-        IMPORTING is_attr   TYPE w3tempattr iv_source TYPE string
+        IMPORTING
+          is_attr   TYPE w3tempattr
+          iv_source TYPE string
         RAISING   zcx_abapgit_exception,
       w3_api_load
         IMPORTING is_name     TYPE iacikeyt
@@ -9301,7 +9303,9 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     DATA: mv_idoctyp TYPE edi_iapi00-idoctyp.
 
-    CLASS-METHODS clear_idoc_segement_field  IMPORTING iv_fieldname TYPE csequence CHANGING cg_structure TYPE any.
+    CLASS-METHODS clear_idoc_segement_field
+      IMPORTING iv_fieldname TYPE csequence
+      CHANGING cg_structure TYPE any.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -100926,5 +100930,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-14T08:31:04.586Z
+* abapmerge 0.14.2 - 2021-02-15T13:17:14.965Z
 ****************************************************
