@@ -50011,6 +50011,10 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
     rv_key = ms_user-repo_show.
 
+    IF rv_key IS INITIAL.
+      RETURN.
+    ENDIF.
+
     " Check if repo exists
     TRY.
         lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( rv_key ).
@@ -100921,5 +100925,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-20T16:23:34.009Z
+* abapmerge 0.14.2 - 2021-02-20T19:23:49.214Z
 ****************************************************
