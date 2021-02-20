@@ -30655,7 +30655,10 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lo_repo->select_commit( space ).
+    IF lo_repo->get_selected_commit( ) IS NOT INITIAL.
+      lo_repo->select_commit( space ).
+    ENDIF.
+
     lo_repo->select_branch( ls_branch-name ).
     COMMIT WORK AND WAIT.
 
@@ -100936,5 +100939,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-20T13:48:33.701Z
+* abapmerge 0.14.2 - 2021-02-20T16:17:54.041Z
 ****************************************************
