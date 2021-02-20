@@ -15686,9 +15686,6 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
     METHODS set_filter
       IMPORTING
         !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
-    METHODS has_favorites
-      RETURNING
-        VALUE(rv_has_favorites) TYPE abap_bool .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -38604,7 +38601,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -38656,12 +38653,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         OTHERS              = 2.
     ASSERT sy-subrc = 0.
 
-  ENDMETHOD.
-  METHOD has_favorites.
-    READ TABLE mt_overview WITH KEY favorite = abap_true TRANSPORTING NO FIELDS.
-    IF sy-subrc = 0.
-      rv_has_favorites = abap_true.
-    ENDIF.
   ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
@@ -38766,15 +38757,16 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     CONSTANTS: lc_separator TYPE string VALUE `<span class="separator">|</span>`.
 
     DATA:
-      lv_type_icon         TYPE string,
-      lv_favorite_icon     TYPE string,
-      lv_favorite_class    TYPE string,
-      lv_stage_link        TYPE string,
-      lv_patch_link        TYPE string,
-      lv_zip_import_link   TYPE string,
-      lv_zip_export_link   TYPE string,
-      lv_check_link        TYPE string,
-      lv_settings_link     TYPE string.
+      lv_type_icon       TYPE string,
+      lv_favorite_icon   TYPE string,
+      lv_favorite_class  TYPE string,
+      lv_stage_link      TYPE string,
+      lv_patch_link      TYPE string,
+      lv_zip_import_link TYPE string,
+      lv_zip_export_link TYPE string,
+      lv_check_link      TYPE string,
+      lv_text            TYPE string,
+      lv_settings_link   TYPE string.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -38809,9 +38801,13 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
                                        iv_act = |{ c_action-select }?key={ <ls_overview>-key }| ) }</td>| ).
 
       IF <ls_overview>-type = abap_false.
-        ii_html->add( |<td>{ ii_html->a( iv_txt = <ls_overview>-url
-                                         iv_act = |{ zif_abapgit_definitions=>c_action-url }?url=|
-                                               && |{ <ls_overview>-url }| ) }</td>| ).
+        lv_text = <ls_overview>-url.
+        REPLACE FIRST OCCURRENCE OF 'https://' IN lv_text WITH ''.
+        REPLACE FIRST OCCURRENCE OF 'http://' IN lv_text WITH ''.
+        ii_html->add( |<td>{ ii_html->a(
+          iv_txt   = lv_text
+          iv_title = <ls_overview>-url
+          iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ <ls_overview>-url }| ) }</td>| ).
       ELSE.
         ii_html->add( |<td></td>| ).
       ENDIF.
@@ -100940,5 +100936,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-20T09:18:49.490Z
+* abapmerge 0.14.2 - 2021-02-20T09:29:07.850Z
 ****************************************************
