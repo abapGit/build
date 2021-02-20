@@ -14278,19 +14278,21 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_package_name
       IMPORTING
-        !iv_package     TYPE devclass
-        !iv_interactive TYPE abap_bool DEFAULT abap_true
+        !iv_package        TYPE devclass
+        !iv_interactive    TYPE abap_bool DEFAULT abap_true
+        !iv_suppress_title TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ri_html)  TYPE REF TO zif_abapgit_html
+        VALUE(ri_html)     TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS render_user_name
       IMPORTING
-        !iv_username    TYPE xubname
-        !iv_interactive TYPE abap_bool DEFAULT abap_true
-        !iv_icon_only   TYPE abap_bool DEFAULT abap_false
+        !iv_username       TYPE xubname
+        !iv_interactive    TYPE abap_bool DEFAULT abap_true
+        !iv_icon_only      TYPE abap_bool DEFAULT abap_false
+        !iv_suppress_title TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ri_html)  TYPE REF TO zif_abapgit_html
+        VALUE(ri_html)     TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS render_transport
@@ -38788,7 +38790,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       ENDIF.
 
       ii_html->add( |<td>| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_package_name( <ls_overview>-package ) ).
+      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_package_name(
+        iv_package = <ls_overview>-package
+        iv_suppress_title = abap_true ) ).
       ii_html->add( |</td>| ).
 
       IF <ls_overview>-branch IS INITIAL.
@@ -38802,11 +38806,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       ENDIF.
 
       ii_html->add( |<td class="ro-detail">| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( <ls_overview>-deserialized_by ) ).
+      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name(
+        iv_username = <ls_overview>-deserialized_by
+        iv_suppress_title = abap_true ) ).
       ii_html->add( |</td>| ).
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-deserialized_at }</td>| ).
       ii_html->add( |<td class="ro-detail">| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( <ls_overview>-created_by ) ).
+      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name(
+        iv_username = <ls_overview>-created_by
+        iv_suppress_title = abap_true ) ).
       ii_html->add( |</td>| ).
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-created_at }</td>| ).
       ii_html->add( |<td class="ro-detail">{ <ls_overview>-key }</td>| ).
@@ -43963,8 +43971,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    SELECT SINGLE ctext FROM tdevct INTO lv_title
-      WHERE devclass = iv_package AND spras = sy-langu ##SUBRC_OK.
+    IF iv_suppress_title = abap_false.
+      SELECT SINGLE ctext FROM tdevct INTO lv_title
+        WHERE devclass = iv_package AND spras = sy-langu ##SUBRC_OK.
+    ENDIF.
 
     lv_obj_name = iv_package.
     lv_jump = zcl_abapgit_html_action_utils=>jump_encode(
@@ -44211,7 +44221,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF iv_username <> zcl_abapgit_objects_super=>c_user_unknown.
+    IF iv_username <> zcl_abapgit_objects_super=>c_user_unknown AND iv_suppress_title = abap_false.
       CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
         EXPORTING
           user_name              = iv_username
@@ -100911,5 +100921,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-20T16:19:41.987Z
+* abapmerge 0.14.2 - 2021-02-20T16:23:34.009Z
 ****************************************************
