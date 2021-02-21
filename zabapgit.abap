@@ -12704,6 +12704,8 @@ CLASS zcl_abapgit_repo DEFINITION
 
   PUBLIC SECTION.
 
+    DATA ms_data TYPE zif_abapgit_persistence=>ty_repo  READ-ONLY.
+
     METHODS bind_listener
       IMPORTING
         !ii_listener TYPE REF TO zif_abapgit_repo_listener .
@@ -12843,7 +12845,6 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
     DATA mv_request_local_refresh TYPE abap_bool .
-    DATA ms_data TYPE zif_abapgit_persistence=>ty_repo .
     DATA mv_request_remote_refresh TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mi_log TYPE REF TO zif_abapgit_log .
@@ -15695,8 +15696,6 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
           ct_overview TYPE ty_overviews,
 
       map_repo_list_to_overview
-        IMPORTING
-          it_repo_list       TYPE zif_abapgit_persistence=>ty_repos
         RETURNING
           VALUE(rt_overview) TYPE ty_overviews
         RAISING
@@ -34277,7 +34276,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -34360,19 +34359,19 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
           lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key,
-          lt_repo_list     TYPE zif_abapgit_persistence=>ty_repos.
+          lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
+
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
       WHEN zcl_abapgit_gui=>c_action-go_home.
         lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
-        lt_repo_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
-
+        lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
         IF lv_last_repo_key IS NOT INITIAL.
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_view
             EXPORTING
               iv_key = lv_last_repo_key.
-        ELSEIF lt_repo_list IS NOT INITIAL.
+        ELSEIF lt_repo_obj_list IS NOT INITIAL.
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
         ELSE.
           rs_handled-page = zcl_abapgit_gui_page_tutorial=>create( ).
@@ -38542,7 +38541,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -38597,29 +38596,31 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
-    DATA: ls_overview LIKE LINE OF rt_overview,
-          lo_repo_srv TYPE REF TO zcl_abapgit_repo,
-          lv_date     TYPE d,
-          lv_time     TYPE t.
+    DATA: ls_overview   LIKE LINE OF rt_overview,
+          lv_date       TYPE d,
+          lv_time       TYPE t,
+          lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
-    FIELD-SYMBOLS: <ls_repo> LIKE LINE OF it_repo_list.
-    LOOP AT it_repo_list ASSIGNING <ls_repo>.
+    FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_obj_list.
+
+    lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+
+    LOOP AT lt_repo_obj_list ASSIGNING <ls_repo>.
 
       CLEAR: ls_overview.
-      lo_repo_srv = zcl_abapgit_repo_srv=>get_instance( )->get( <ls_repo>-key ).
 
       ls_overview-favorite   = zcl_abapgit_persistence_user=>get_instance(
-        )->is_favorite_repo( <ls_repo>-key ).
-      ls_overview-type       = <ls_repo>-offline.
-      ls_overview-key        = <ls_repo>-key.
-      ls_overview-name       = lo_repo_srv->get_name( ).
-      ls_overview-url        = <ls_repo>-url.
-      ls_overview-package    = <ls_repo>-package.
-      ls_overview-branch     = <ls_repo>-branch_name.
-      ls_overview-created_by = <ls_repo>-created_by.
+        )->is_favorite_repo( <ls_repo>->ms_data-key ).
+      ls_overview-type       = <ls_repo>->ms_data-offline.
+      ls_overview-key        = <ls_repo>->ms_data-key.
+      ls_overview-name       = <ls_repo>->get_name( ).
+      ls_overview-url        = <ls_repo>->ms_data-url.
+      ls_overview-package    = <ls_repo>->ms_data-package.
+      ls_overview-branch     = <ls_repo>->ms_data-branch_name.
+      ls_overview-created_by = <ls_repo>->ms_data-created_by.
 
-      IF <ls_repo>-created_at IS NOT INITIAL.
-        CONVERT TIME STAMP <ls_repo>-created_at
+      IF <ls_repo>->ms_data-created_at IS NOT INITIAL.
+        CONVERT TIME STAMP <ls_repo>->ms_data-created_at
                 TIME ZONE mv_time_zone
                 INTO DATE lv_date
                      TIME lv_time.
@@ -38627,10 +38628,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
         ls_overview-created_at = |{ lv_date DATE = USER } { lv_time TIME = USER }|.
       ENDIF.
 
-      ls_overview-deserialized_by = <ls_repo>-deserialized_by.
+      ls_overview-deserialized_by = <ls_repo>->ms_data-deserialized_by.
 
-      IF <ls_repo>-deserialized_at IS NOT INITIAL.
-        CONVERT TIME STAMP <ls_repo>-deserialized_at
+      IF <ls_repo>->ms_data-deserialized_at IS NOT INITIAL.
+        CONVERT TIME STAMP <ls_repo>->ms_data-deserialized_at
                 TIME ZONE mv_time_zone
                 INTO DATE lv_date
                      TIME lv_time.
@@ -38837,6 +38838,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ii_html->add( |</tbody>| ).
 
   ENDMETHOD.
+
   METHOD render_table_header.
 
     CLEAR mt_col_spec.
@@ -38965,7 +38967,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    mt_overview = map_repo_list_to_overview( zcl_abapgit_persist_factory=>get_repo( )->list( ) ).
+    mt_overview = map_repo_list_to_overview( ).
     apply_order_by( CHANGING ct_overview = mt_overview ).
     apply_filter( CHANGING ct_overview = mt_overview ).
 
@@ -43960,23 +43962,27 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_repo_palette.
 
-    DATA li_repo_srv TYPE REF TO zif_abapgit_repo_srv.
+    DATA lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
     DATA lt_repo_list TYPE zif_abapgit_persistence=>ty_repos.
     DATA lv_repo_json TYPE string.
     DATA lv_size TYPE i.
-    FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_list.
+    DATA ls_repo_data LIKE LINE OF lt_repo_list.
 
-    li_repo_srv = zcl_abapgit_repo_srv=>get_instance( ).
-    lt_repo_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
+    FIELD-SYMBOLS:
+      <ls_repo>     LIKE LINE OF lt_repo_list,
+      <lr_repo_obj> LIKE LINE OF lt_repo_obj_list.
+
+    lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    LOOP AT lt_repo_obj_list ASSIGNING <lr_repo_obj>.
+      ls_repo_data = <lr_repo_obj>->ms_data.
+      ls_repo_data-local_settings-display_name = <lr_repo_obj>->get_name( ).
+      APPEND ls_repo_data TO lt_repo_list.
+    ENDLOOP.
+
     lv_size = lines( lt_repo_list ).
+    SORT lt_repo_list BY local_settings-display_name AS TEXT.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    " Sort list by display name
-    LOOP AT lt_repo_list ASSIGNING <ls_repo>.
-      <ls_repo>-local_settings-display_name = li_repo_srv->get( <ls_repo>-key )->get_name( ).
-    ENDLOOP.
-    SORT lt_repo_list BY local_settings-display_name AS TEXT.
 
     ri_html->add( 'var repoCatalog = [' ). " Maybe separate this into another method if needed in more places
     LOOP AT lt_repo_list ASSIGNING <ls_repo>.
@@ -47987,7 +47993,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     DATA: lo_repo LIKE LINE OF mt_list.
     LOOP AT mt_list INTO lo_repo.
-      IF lo_repo->get_key( ) = io_repo->get_key( ).
+      IF lo_repo->ms_data-key = io_repo->ms_data-key.
         IF lo_repo = io_repo.
           RETURN.
         ENDIF.
@@ -48157,7 +48163,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
         refresh( ).
       ENDIF.
       LOOP AT mt_list ASSIGNING <lo_list>.
-        IF <lo_list>->get_key( ) = iv_key.
+        IF <lo_list>->ms_data-key = iv_key.
           ro_repo = <lo_list>.
           RETURN.
         ENDIF.
@@ -100750,5 +100756,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-21T08:27:32.657Z
+* abapmerge 0.14.2 - 2021-02-21T10:29:52.267Z
 ****************************************************
