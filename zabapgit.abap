@@ -50289,11 +50289,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'update, url empty' ).
     ENDIF.
 
-    TRY.
-        ls_persistent_meta = zif_abapgit_persist_repo~read( iv_key ).
-      CATCH zcx_abapgit_not_found.
-        zcx_abapgit_exception=>raise( 'repo key not found' ).
-    ENDTRY.
+    ls_persistent_meta = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->ms_data.
 
     " Update
     LOOP AT mt_meta_fields ASSIGNING <lv_field>.
@@ -100763,5 +100759,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-21T15:22:38.215Z
+* abapmerge 0.14.2 - 2021-02-22T05:50:23.469Z
 ****************************************************
