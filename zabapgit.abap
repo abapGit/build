@@ -34771,6 +34771,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-jump.                          " Open object editor
         ls_item-obj_type = ii_event->query( )->get( 'TYPE' ).
         ls_item-obj_name = ii_event->query( )->get( 'NAME' ).
+        ls_item-obj_name = cl_http_utility=>unescape_url( |{ ls_item-obj_name }| ).
 
         li_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
 
@@ -100770,5 +100771,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-24T04:54:29.922Z
+* abapmerge 0.14.2 - 2021-02-24T04:56:25.854Z
 ****************************************************
