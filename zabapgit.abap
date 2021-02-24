@@ -80917,7 +80917,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ENDLOOP.
 
     " Remove TADIR entries for objects that do not exist anymore
-    SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE lt_tadir WHERE devclass = iv_package_name.
+    SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE lt_tadir
+      WHERE devclass = iv_package_name ##TOO_MANY_ITAB_FIELDS.
 
     LOOP AT lt_tadir INTO ls_tadir.
       ls_item-obj_type = ls_tadir-object.
@@ -100769,5 +100770,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-24T04:52:27.474Z
+* abapmerge 0.14.2 - 2021-02-24T04:54:29.922Z
 ****************************************************
