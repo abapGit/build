@@ -88787,7 +88787,8 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
           lt_tab_types      TYPE enhtype_tab,
           lt_tab_methods    TYPE enhnewmeth_tab,
-          lt_tab_eventdata  TYPE enhevent_tab.
+          lt_tab_eventdata  TYPE enhevent_tab,
+          lv_editorder      TYPE i.
 
     FIELD-SYMBOLS: <ls_attr>        LIKE LINE OF lt_tab_attributes,
                    <ls_type>        LIKE LINE OF lt_tab_types,
@@ -88819,12 +88820,16 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
              <ls_type>-descript_id.
     ENDLOOP.
 
+    lv_editorder = 0.
+    SORT lt_tab_methods BY meth_header-editorder.
     LOOP AT lt_tab_methods ASSIGNING <ls_meth>.
       CLEAR: <ls_meth>-meth_header-author,
              <ls_meth>-meth_header-createdon,
              <ls_meth>-meth_header-changedby,
              <ls_meth>-meth_header-changedon,
              <ls_meth>-meth_header-descript_id.
+      lv_editorder = lv_editorder + 1.
+      <ls_meth>-meth_header-editorder = lv_editorder.
       LOOP AT <ls_meth>-meth_param ASSIGNING <ls_param>.
         CLEAR: <ls_param>-author,
                <ls_param>-createdon,
@@ -88872,18 +88877,35 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
           lv_editorder   TYPE n LENGTH 3,
           lv_methname    TYPE seocpdname,
           lt_abap        TYPE rswsourcet,
-          lx_enh         TYPE REF TO cx_enh_root.
+          lx_enh         TYPE REF TO cx_enh_root,
+          lv_new_em      TYPE abap_bool,
+          lt_files       TYPE zif_abapgit_definitions=>ty_files_tt.
 
-    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods.
+    FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods,
+                   <ls_file>   TYPE zif_abapgit_definitions=>ty_file.
 
     ii_xml->read( EXPORTING iv_name = 'TAB_METHODS'
                   CHANGING cg_data = lt_tab_methods ).
 
+    lv_new_em = abap_false.
+    lt_files = mo_files->get_files( ).
+    LOOP AT lt_files ASSIGNING <ls_file>
+        WHERE filename CS 'enho.em_'.
+      lv_new_em = abap_true.
+      EXIT.
+    ENDLOOP.
+
+    SORT lt_tab_methods BY meth_header-editorder.
     LOOP AT lt_tab_methods ASSIGNING <ls_method>.
 
-      lv_editorder = <ls_method>-meth_header-editorder.
       lv_methname = <ls_method>-methkey-cmpname.
-      lt_abap = mo_files->read_abap( iv_extra = 'em' && lv_editorder ).
+      IF lv_new_em = abap_true.
+        lt_abap = mo_files->read_abap( iv_extra = 'em_' && lv_methname ).
+      ELSE.
+        " old way
+        lv_editorder = <ls_method>-meth_header-editorder.
+        lt_abap = mo_files->read_abap( iv_extra = 'em' && lv_editorder ).
+      ENDIF.
 
       TRY.
           io_class->add_change_new_method_source(
@@ -88925,7 +88947,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
           permission_error = 3
           OTHERS           = 4.
       IF sy-subrc = 0.
-        mo_files->add_abap( iv_extra = |EM{ <ls_include>-includenr }|
+        mo_files->add_abap( iv_extra = |EM_{ <ls_include>-cpdname }|
                             it_abap  = lt_source ).
       ENDIF.
     ENDLOOP.
@@ -100838,5 +100860,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-28T17:54:52.493Z
+* abapmerge 0.14.2 - 2021-02-28T18:41:58.125Z
 ****************************************************
