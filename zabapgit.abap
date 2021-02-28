@@ -55951,13 +55951,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
         CATCH zcx_abapgit_exception.
           zcx_abapgit_exception=>raise( 'Error Pretty Printing WDCC XML Content: ' && ms_item-obj_name ).
       ENDTRY.
-    ENDIF.
 
-    REPLACE FIRST OCCURRENCE
-      OF REGEX '<\?xml version="1\.0" encoding="[\w-]+"\?>'
-      IN lv_xml_string
-      WITH '<?xml version="1.0" encoding="utf-8"?>'.
-    ASSERT sy-subrc = 0.
+      REPLACE FIRST OCCURRENCE
+        OF REGEX '<\?xml version="1\.0" encoding="[\w-]+"\?>'
+        IN lv_xml_string
+        WITH '<?xml version="1.0" encoding="utf-8"?>'.
+      ASSERT sy-subrc = 0.
+    ENDIF.
 
     mo_files->add_string( iv_extra  = 'comp_config'
                           iv_ext    = 'xml'
@@ -100771,5 +100771,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-28T09:08:50.797Z
+* abapmerge 0.14.2 - 2021-02-28T09:11:02.783Z
 ****************************************************
