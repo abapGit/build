@@ -80998,51 +80998,88 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_lock.
+
     DATA: lv_changeable TYPE abap_bool.
 
     ii_package->get_changeable( IMPORTING e_changeable = lv_changeable ).
     IF lv_changeable <> iv_lock.
-      ii_package->set_changeable(
-        EXPORTING
-          i_changeable                = iv_lock
-        EXCEPTIONS
-          object_locked_by_other_user = 1
-          permission_failure          = 2
-          object_already_changeable   = 3
-          object_already_unlocked     = 4
-          object_just_created         = 5
-          object_deleted              = 6
-          object_modified             = 7
-          object_not_existing         = 8
-          object_invalid              = 9
-          unexpected_error            = 10
-          OTHERS                      = 11 ).
+      TRY.
+          CALL METHOD ii_package->('SET_CHANGEABLE')
+            EXPORTING
+              i_changeable                = iv_lock
+              i_suppress_dialog           = abap_true " Parameter missing in 702
+            EXCEPTIONS
+              object_locked_by_other_user = 1
+              permission_failure          = 2
+              object_already_changeable   = 3
+              object_already_unlocked     = 4
+              object_just_created         = 5
+              object_deleted              = 6
+              object_modified             = 7
+              object_not_existing         = 8
+              object_invalid              = 9
+              unexpected_error            = 10
+              OTHERS                      = 11.
+        CATCH cx_sy_dyn_call_param_not_found.
+          ii_package->set_changeable(
+            EXPORTING
+              i_changeable                = iv_lock
+            EXCEPTIONS
+              object_locked_by_other_user = 1
+              permission_failure          = 2
+              object_already_changeable   = 3
+              object_already_unlocked     = 4
+              object_just_created         = 5
+              object_deleted              = 6
+              object_modified             = 7
+              object_not_existing         = 8
+              object_invalid              = 9
+              unexpected_error            = 10
+              OTHERS                      = 11 ).
+      ENDTRY.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
     ENDIF.
 
-    ii_package->set_permissions_changeable(
-      EXPORTING
-        i_changeable                = iv_lock
-* downport, does not exist in 7.30. Let's see if we can get along without it
-*        i_suppress_dialog           = abap_true
-      EXCEPTIONS
-        object_already_changeable   = 1
-        object_already_unlocked     = 2
-        object_locked_by_other_user = 3
-        object_modified             = 4
-        object_just_created         = 5
-        object_deleted              = 6
-        permission_failure          = 7
-        object_invalid              = 8
-        unexpected_error            = 9
-        OTHERS                      = 10 ).
+    TRY.
+        CALL METHOD ii_package->('SET_PERMISSIONS_CHANGEABLE')
+          EXPORTING
+            i_changeable                = iv_lock
+            i_suppress_dialog           = abap_true " Parameter missing in 702
+          EXCEPTIONS
+            object_already_changeable   = 1
+            object_already_unlocked     = 2
+            object_locked_by_other_user = 3
+            object_modified             = 4
+            object_just_created         = 5
+            object_deleted              = 6
+            permission_failure          = 7
+            object_invalid              = 8
+            unexpected_error            = 9
+            OTHERS                      = 10.
+      CATCH cx_sy_dyn_call_param_not_found.
+        ii_package->set_permissions_changeable(
+          EXPORTING
+            i_changeable                = iv_lock
+          EXCEPTIONS
+            object_already_changeable   = 1
+            object_already_unlocked     = 2
+            object_locked_by_other_user = 3
+            object_modified             = 4
+            object_just_created         = 5
+            object_deleted              = 6
+            permission_failure          = 7
+            object_invalid              = 8
+            unexpected_error            = 9
+            OTHERS                      = 10 ).
+    ENDTRY.
     IF ( sy-subrc = 1 AND iv_lock = abap_true ) OR ( sy-subrc = 2 AND iv_lock = abap_false ).
       " There's no getter to find out beforehand...
     ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
   ENDMETHOD.
   METHOD update_pinf_usages.
     DATA: lt_current_permissions TYPE tpak_permission_to_use_list,
@@ -81160,45 +81197,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      TRY.
-          CALL METHOD li_package->('SET_CHANGEABLE')
-            EXPORTING
-              i_changeable                = abap_true
-              i_suppress_dialog           = abap_true " Parameter missing in 702
-            EXCEPTIONS
-              object_locked_by_other_user = 1
-              permission_failure          = 2
-              object_already_changeable   = 3
-              object_already_unlocked     = 4
-              object_just_created         = 5
-              object_deleted              = 6
-              object_modified             = 7
-              object_not_existing         = 8
-              object_invalid              = 9
-              unexpected_error            = 10
-              OTHERS                      = 11.
-
-        CATCH cx_root.
-          li_package->set_changeable(
-            EXPORTING
-              i_changeable                = abap_true
-            EXCEPTIONS
-              object_locked_by_other_user = 1
-              permission_failure          = 2
-              object_already_changeable   = 3
-              object_already_unlocked     = 4
-              object_just_created         = 5
-              object_deleted              = 6
-              object_modified             = 7
-              object_not_existing         = 8
-              object_invalid              = 9
-              unexpected_error            = 10
-              OTHERS                      = 11 ).
-      ENDTRY.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
+      set_lock( ii_package = li_package
+                iv_lock    = abap_true ).
 
       TRY.
           CALL METHOD li_package->('DELETE')
@@ -81224,6 +81224,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       ENDTRY.
 
       IF sy-subrc <> 0.
+        set_lock( ii_package = li_package
+                  iv_lock    = abap_false ).
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
@@ -81254,6 +81256,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
       ENDTRY.
       IF sy-subrc <> 0.
+        set_lock( ii_package = li_package
+                  iv_lock    = abap_false ).
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
@@ -81321,7 +81325,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     IF li_package IS BOUND.
       " Package already exists, change it
       set_lock( ii_package = li_package
-                iv_lock = abap_true ).
+                iv_lock    = abap_true ).
 
       li_package->set_all_attributes(
         EXPORTING
@@ -81347,6 +81351,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 *          superpackage_invalid       = 17  downport, does not exist in 7.30
           OTHERS                     = 18 ).
       IF sy-subrc <> 0.
+        set_lock( ii_package = li_package
+                  iv_lock    = abap_false ).
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
@@ -81415,11 +81421,14 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         object_invalid        = 4
         OTHERS                = 5 ).
     IF sy-subrc <> 0.
+      set_lock( ii_package = li_package
+                iv_lock    = abap_false ).
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     set_lock( ii_package = li_package
-              iv_lock = abap_false ).
+              iv_lock    = abap_false ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
     " Check remote package if deserialize has not been called before this
@@ -100829,5 +100838,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-28T16:08:30.467Z
+* abapmerge 0.14.2 - 2021-02-28T16:17:40.357Z
 ****************************************************
