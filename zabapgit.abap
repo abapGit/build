@@ -1417,6 +1417,7 @@ INTERFACE zif_abapgit_object_enhs.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_lxe_texts .
+
   TYPES:
     BEGIN OF ty_lxe_i18n,
       source_lang TYPE lxeisolang,
@@ -1445,6 +1446,7 @@ INTERFACE zif_abapgit_lxe_texts .
       !ii_xml           TYPE REF TO zif_abapgit_xml_input
     RAISING
       zcx_abapgit_exception .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_comparator .
@@ -2414,7 +2416,7 @@ INTERFACE zif_abapgit_definitions .
     END OF c_method .
 
   TYPES:
-    ty_languages TYPE STANDARD TABLE OF sy-langu WITH DEFAULT KEY.
+    ty_languages TYPE STANDARD TABLE OF laiso WITH DEFAULT KEY.
   TYPES:
     BEGIN OF ty_i18n_params,
       main_language         TYPE sy-langu,
@@ -7212,14 +7214,18 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
         !iv_main_language   TYPE spras
         !it_i18n_languages  TYPE zif_abapgit_definitions=>ty_languages
       RETURNING
-        VALUE(rt_languages) TYPE zif_abapgit_definitions=>ty_languages .
+        VALUE(rt_languages) TYPE zif_abapgit_definitions=>ty_languages
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS get_installed_languages
       RETURNING
-        VALUE(rt_languages) TYPE zif_abapgit_definitions=>ty_languages .
+        VALUE(rt_languages) TYPE zif_abapgit_definitions=>ty_languages
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS convert_lang_string_to_table
       IMPORTING
         !iv_langs              TYPE string
-        !iv_skip_main_language TYPE spras
+        !iv_skip_main_language TYPE spras OPTIONAL
       RETURNING
         VALUE(rt_languages)    TYPE zif_abapgit_definitions=>ty_languages
       RAISING
@@ -7231,15 +7237,27 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
         VALUE(rv_langs) TYPE string
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS detect_unsupported_languages
+      IMPORTING
+        !it_languages TYPE zif_abapgit_definitions=>ty_languages
+      RETURNING
+        VALUE(rt_unsupported_languages) TYPE zif_abapgit_definitions=>ty_languages
+      RAISING
+        zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-DATA gt_installed_languages_cache TYPE zif_abapgit_definitions=>ty_languages.
 
     METHODS
       get_lang_iso4
         IMPORTING
-          iv_src         TYPE spras
+          iv_src         TYPE laiso
         RETURNING
-          VALUE(rv_iso4) TYPE lxeisolang .
+          VALUE(rv_iso4) TYPE lxeisolang
+        RAISING
+          zcx_abapgit_exception.
     METHODS
       get_lxe_object_list
         IMPORTING
@@ -7247,6 +7265,22 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
           iv_object_name     TYPE sobj_name
         RETURNING
           VALUE(rt_obj_list) TYPE lxe_tt_colob .
+    CLASS-METHODS
+      langu_to_laiso_safe
+        IMPORTING
+          iv_langu TYPE sy-langu
+        RETURNING
+          VALUE(rv_laiso) TYPE laiso
+        RAISING
+          zcx_abapgit_exception.
+    CLASS-METHODS
+      check_langs_versus_installed
+        IMPORTING
+          it_languages TYPE zif_abapgit_definitions=>ty_languages
+          it_installed TYPE zif_abapgit_definitions=>ty_languages
+        EXPORTING
+          et_intersection TYPE zif_abapgit_definitions=>ty_languages
+          et_missfits TYPE zif_abapgit_definitions=>ty_languages.
 
 ENDCLASS.
 CLASS zcl_abapgit_sotr_handler DEFINITION
@@ -12685,16 +12719,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_requirements
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
-    METHODS get_i18n_langs
-      RETURNING
-        VALUE(rv_langs) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_i18n_langs
-      IMPORTING
-        !iv_langs TYPE string
-      RAISING
-        zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
@@ -36084,7 +36109,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -36203,7 +36228,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_val = |{ ls_dot-master_language } ({ lv_language })| ).
     mo_form_data->set(
       iv_key = c_id-i18n_langs
-      iv_val = lo_dot->get_i18n_langs( ) ).
+      iv_val = zcl_abapgit_lxe_texts=>convert_table_to_lang_string( lo_dot->get_i18n_languages( ) ) ).
     mo_form_data->set(
       iv_key = c_id-folder_logic
       iv_val = ls_dot-folder_logic ).
@@ -36271,7 +36296,11 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     lo_dot->set_folder_logic( mo_form_data->get( c_id-folder_logic ) ).
     lo_dot->set_starting_folder( mo_form_data->get( c_id-starting_folder ) ).
-    lo_dot->set_i18n_langs( mo_form_data->get( c_id-i18n_langs ) ).
+
+    lo_dot->set_i18n_languages(
+      zcl_abapgit_lxe_texts=>convert_lang_string_to_table(
+        iv_langs              = mo_form_data->get( c_id-i18n_langs )
+        iv_skip_main_language = lo_dot->get_main_language( ) ) ).
 
     " Remove all ignores
     lt_ignore = lo_dot->get_data( )-ignore.
@@ -49650,7 +49679,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -49717,11 +49746,6 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_folder_logic.
     rv_logic = ms_data-folder_logic.
-  ENDMETHOD.
-  METHOD get_i18n_langs.
-    " todo, replace with get_i18n_languages
-    rv_langs = zcl_abapgit_lxe_texts=>convert_table_to_lang_string( ms_data-i18n_languages ).
-
   ENDMETHOD.
   METHOD get_i18n_languages.
     rt_languages = ms_data-i18n_languages.
@@ -49811,14 +49835,6 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_folder_logic.
     ms_data-folder_logic = iv_logic.
-  ENDMETHOD.
-  METHOD set_i18n_langs.
-
-    " todo, replace with set_i18n_languages
-    ms_data-i18n_languages = zcl_abapgit_lxe_texts=>convert_lang_string_to_table(
-                              iv_langs              = iv_langs
-                              iv_skip_main_language = ms_data-master_language ).
-
   ENDMETHOD.
   METHOD set_i18n_languages.
     ms_data-i18n_languages = it_languages.
@@ -86483,17 +86499,35 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
+  METHOD check_langs_versus_installed.
+
+    DATA lt_installed_hash TYPE HASHED TABLE OF laiso WITH UNIQUE KEY table_line.
+    FIELD-SYMBOLS <lv_lang> LIKE LINE OF it_languages.
+
+    CLEAR: et_intersection, et_missfits.
+    lt_installed_hash = it_installed.
+
+    LOOP AT it_languages ASSIGNING <lv_lang>.
+      READ TABLE lt_installed_hash WITH KEY table_line = <lv_lang> TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+        APPEND <lv_lang> TO et_intersection.
+      ELSE.
+        APPEND <lv_lang> TO et_missfits.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD convert_lang_string_to_table.
 
     DATA:
       lt_langs_str TYPE string_table,
       lv_laiso     TYPE laiso,
-      lv_langu     TYPE spras.
+      lv_langu     TYPE spras,
+      lv_skip_main_lang_iso TYPE laiso.
 
     FIELD-SYMBOLS:
-      <lv_str>  LIKE LINE OF lt_langs_str,
-      <lv_lang> LIKE LINE OF rt_languages.
+      <lv_str>  LIKE LINE OF lt_langs_str.
 
     " Keep * as indicator for 'all installed languages'
     IF iv_langs = '*'.
@@ -86506,25 +86540,13 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
 
     LOOP AT lt_langs_str ASSIGNING <lv_str>.
       lv_laiso = condense( to_upper( <lv_str> ) ).
-
-      cl_i18n_languages=>sap2_to_sap1(
-        EXPORTING
-          im_lang_sap2      = lv_laiso
-        RECEIVING
-          re_lang_sap1      = lv_langu
-        EXCEPTIONS
-          no_assignment     = 1
-          no_representation = 2
-          OTHERS            = 3 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Unknown language code { <lv_str> }| ).
-      ENDIF.
-
-      APPEND INITIAL LINE TO rt_languages ASSIGNING <lv_lang>.
-      <lv_lang> = lv_langu.
+      APPEND lv_laiso TO rt_languages.
     ENDLOOP.
 
-    DELETE rt_languages WHERE table_line = iv_skip_main_language.
+    IF iv_skip_main_language IS NOT INITIAL.
+      lv_skip_main_lang_iso = langu_to_laiso_safe( iv_skip_main_language ).
+      DELETE rt_languages WHERE table_line = lv_skip_main_lang_iso.
+    ENDIF.
 
     SORT rt_languages.
     DELETE ADJACENT DUPLICATES FROM rt_languages.
@@ -86533,68 +86555,87 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   METHOD convert_table_to_lang_string.
 
     DATA:
-      lt_langs_str TYPE string_table,
-      lv_laiso     TYPE laiso.
+      lt_langs_str TYPE string_table.
 
     FIELD-SYMBOLS:
-      <lv_langu> LIKE LINE OF it_languages,
-      <lv_str>   TYPE string.
+      <lv_lang> LIKE LINE OF it_languages,
+      <lv_str>  TYPE string.
 
     " Convert table of sy-langu codes into string of 2-letter ISO languages
-    LOOP AT it_languages ASSIGNING <lv_langu>.
+    LOOP AT it_languages ASSIGNING <lv_lang>.
       " Keep * as indicator for 'all installed languages'
-      IF <lv_langu> = '*'.
+      IF <lv_lang> = '*'.
+        CLEAR lt_langs_str.
         APPEND '*' TO lt_langs_str.
         EXIT.
       ENDIF.
 
-      cl_i18n_languages=>sap1_to_sap2(
-        EXPORTING
-          im_lang_sap1  = <lv_langu>
-        RECEIVING
-          re_lang_sap2  = lv_laiso
-        EXCEPTIONS
-          no_assignment = 1
-          OTHERS        = 2 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Unknown language code { <lv_langu> }| ).
-      ENDIF.
-
       APPEND INITIAL LINE TO lt_langs_str ASSIGNING <lv_str>.
-      <lv_str> = lv_laiso.
+      <lv_str> = <lv_lang>.
     ENDLOOP.
 
     CONCATENATE LINES OF lt_langs_str INTO rv_langs SEPARATED BY ','.
+
+  ENDMETHOD.
+  METHOD detect_unsupported_languages.
+
+    check_langs_versus_installed(
+      EXPORTING
+        it_languages = it_languages
+        it_installed = get_installed_languages( )
+      IMPORTING
+        et_missfits = rt_unsupported_languages ).
 
   ENDMETHOD.
   METHOD get_installed_languages.
 
     DATA:
       lv_index               TYPE i,
+      lv_langu               TYPE sy-langu,
+      lv_laiso               TYPE laiso,
       lv_installed_languages TYPE string.
 
-    CALL FUNCTION 'SYSTEM_INSTALLED_LANGUAGES'
-      IMPORTING
-        languages       = lv_installed_languages
-      EXCEPTIONS
-        sapgparam_error = 1                " Error requesting profile parameter
-        OTHERS          = 2.
-    IF sy-subrc <> 0.
+    IF gt_installed_languages_cache IS INITIAL.
+      CALL FUNCTION 'SYSTEM_INSTALLED_LANGUAGES'
+        IMPORTING
+          languages       = lv_installed_languages
+        EXCEPTIONS
+          sapgparam_error = 1                " Error requesting profile parameter
+          OTHERS          = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Fail to get system SYSTEM_INSTALLED_LANGUAGES' ).
+      ENDIF.
+
+      DO strlen( lv_installed_languages ) TIMES.
+        lv_index = sy-index - 1.
+        lv_langu = lv_installed_languages+lv_index(1).
+        lv_laiso = langu_to_laiso_safe( lv_langu ).
+        APPEND lv_laiso TO gt_installed_languages_cache.
+      ENDDO.
     ENDIF.
 
-    DO strlen( lv_installed_languages ) TIMES.
-      lv_index = sy-index - 1.
-      APPEND lv_installed_languages+lv_index(1) TO rt_languages.
-    ENDDO.
+    rt_languages = gt_installed_languages_cache.
 
   ENDMETHOD.
   METHOD get_lang_iso4.
 
-    CALL FUNCTION 'LXE_T002_CONVERT_2_TO_4'
+    DATA lv_lang_iso639 TYPE i18_a_langiso2.
+    DATA lv_country TYPE land1.
+
+    cl_i18n_languages=>sap2_to_iso639_1(
       EXPORTING
-        old_r3_lang = iv_src
+        im_lang_sap2   = iv_src
       IMPORTING
-        new_lang    = rv_iso4.
+        ex_lang_iso639 = lv_lang_iso639
+        ex_country     = lv_country
+      EXCEPTIONS
+        no_assignment  = 1
+        OTHERS         = 2 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Failed to convert [{ iv_src }] lang to iso639| ).
+    ENDIF.
+
+    CONCATENATE lv_lang_iso639 lv_country INTO rv_iso4.
 
   ENDMETHOD.
   METHOD get_lxe_object_list.
@@ -86626,17 +86667,40 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
     " If the setting is `*`, all all installed system languages shall be serialized
     " Else, the setting shall contain all languages to be serialized
 
+    DATA lv_main_lang_laiso TYPE laiso.
+
     IF it_i18n_languages IS NOT INITIAL.
       READ TABLE it_i18n_languages TRANSPORTING NO FIELDS WITH KEY table_line = '*'.
       IF sy-subrc = 0.
         rt_languages = get_installed_languages( ).
       ELSE.
-        rt_languages = it_i18n_languages.
+        check_langs_versus_installed(
+          EXPORTING
+            it_languages = it_i18n_languages
+            it_installed = get_installed_languages( )
+          IMPORTING
+            et_intersection = rt_languages ).
       ENDIF.
     ENDIF.
 
     " Remove main language from translation languages
-    DELETE rt_languages WHERE table_line = iv_main_language.
+    lv_main_lang_laiso = langu_to_laiso_safe( iv_main_language ).
+    DELETE rt_languages WHERE table_line = lv_main_lang_laiso.
+
+  ENDMETHOD.
+  METHOD langu_to_laiso_safe.
+
+    cl_i18n_languages=>sap1_to_sap2(
+      EXPORTING
+        im_lang_sap1  = iv_langu
+      RECEIVING
+        re_lang_sap2  = rv_laiso
+      EXCEPTIONS
+        no_assignment = 1
+        OTHERS        = 2 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Could not convert lang [{ iv_langu }] to ISO| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_lxe_texts~deserialize.
@@ -86686,8 +86750,8 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
       ls_lxe_text_item TYPE zif_abapgit_lxe_texts=>ty_lxe_i18n.
 
     FIELD-SYMBOLS:
-      <lv_language>   TYPE langu,
-      <lv_lxe_object> TYPE lxe_colob.
+      <lv_language>   LIKE LINE OF lt_languages,
+      <lv_lxe_object> LIKE LINE OF lt_obj_list.
 
     lt_obj_list = get_lxe_object_list(
                     iv_object_name = iv_object_name
@@ -86698,7 +86762,7 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
     ENDIF.
 
     " Get list of languages that need to be serialized (already resolves * and installed languages)
-    lv_main_lang = get_lang_iso4( ii_xml->i18n_params( )-main_language ).
+    lv_main_lang = get_lang_iso4( langu_to_laiso_safe( ii_xml->i18n_params( )-main_language ) ).
     lt_languages = ii_xml->i18n_params( )-translation_languages.
 
     LOOP AT lt_obj_list ASSIGNING <lv_lxe_object>.
@@ -100860,5 +100924,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-02-28T18:41:58.125Z
+* abapmerge 0.14.2 - 2021-03-01T06:03:06.326Z
 ****************************************************
