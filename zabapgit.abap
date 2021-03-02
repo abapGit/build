@@ -57515,7 +57515,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
         et_dd28v = lt_dd28v ).
 
     IF ls_dd25v IS INITIAL.
-      RETURN. " does not exist in system
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd25v-as4user,
@@ -59270,7 +59270,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
+CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd40l INTO rv_user
@@ -59417,7 +59417,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TTYP IMPLEMENTATION.
     ENDIF.
 
     IF ls_dd40v IS INITIAL.
-      RETURN. " does not exist in system
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd40v-as4user,
@@ -61406,8 +61406,9 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from DDIF_TABL_GET' ).
     ENDIF.
+
     IF ls_dd02v IS INITIAL.
-      RETURN. " object does not exits
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd02v-as4user,
@@ -66520,8 +66521,9 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
     IF ls_dd30v IS INITIAL.
-      RETURN. " does not exist in system
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd30v-as4user,
@@ -77753,8 +77755,9 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
     IF ls_dd25v IS INITIAL.
-      RETURN. " does not exist in system
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd25v-as4user,
@@ -79164,13 +79167,14 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
           ls_dd04v TYPE dd04v.
 
     lv_name = ms_item-obj_name.
+
     SELECT SINGLE * FROM dd04l
       INTO CORRESPONDING FIELDS OF ls_dd04v
       WHERE rollname = lv_name
       AND as4local = 'A'
       AND as4vers = '0000'.
     IF sy-subrc <> 0 OR ls_dd04v IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Not found in DD04L' ).
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     SELECT SINGLE * FROM dd04t
@@ -80447,8 +80451,12 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       EXCEPTIONS
         illegal_input = 1
         OTHERS        = 2.
-    IF sy-subrc <> 0 OR ls_dd01v IS INITIAL.
+    IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    IF ls_dd01v IS INITIAL.
+      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
     ENDIF.
 
     CLEAR: ls_dd01v-as4user,
@@ -100924,5 +100932,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-01T15:04:04.755Z
+* abapmerge 0.14.2 - 2021-03-02T16:39:43.913Z
 ****************************************************
