@@ -53532,7 +53532,6 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD supported_list.
 
     DATA: lt_objects   TYPE STANDARD TABLE OF ko100,
-          lv_supported TYPE abap_bool,
           ls_item      TYPE zif_abapgit_definitions=>ty_item.
 
     FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_objects.
@@ -53551,11 +53550,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     LOOP AT lt_objects ASSIGNING <ls_object> WHERE pgmid = 'R3TR'.
       ls_item-obj_type = <ls_object>-object.
 
-      lv_supported = is_supported(
-        is_item        = ls_item
-        iv_native_only = abap_true ).
-
-      IF lv_supported = abap_true.
+      IF is_supported( ls_item ) = abap_true.
         INSERT <ls_object>-object INTO TABLE rt_types.
       ENDIF.
     ENDLOOP.
@@ -100985,5 +100980,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-06T15:07:28.552Z
+* abapmerge 0.14.2 - 2021-03-06T21:32:50.271Z
 ****************************************************
