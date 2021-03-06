@@ -23462,7 +23462,7 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
 
     CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
     DATA lv_time TYPE timestamp.
-    DATA lv_seconds TYPE tzntstmpl.
+    DATA lv_seconds TYPE i.
 
     GET TIME STAMP FIELD lv_time.
 
@@ -23470,8 +23470,7 @@ CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
       tstmp1 = lv_time
       tstmp2 = lc_epoch ).
 
-    rv_time = round( val = lv_seconds
-                     dec = 0 ).
+    rv_time = lv_seconds.
     CONDENSE rv_time.
     rv_time+11 = '+000000'.
 
@@ -100986,5 +100985,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-06T08:36:35.429Z
+* abapmerge 0.14.2 - 2021-03-06T15:07:28.552Z
 ****************************************************
