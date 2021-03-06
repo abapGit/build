@@ -3854,6 +3854,14 @@ INTERFACE zif_abapgit_exit .
       !cv_display_url TYPE csequence
     RAISING
       zcx_abapgit_exception .
+  METHODS pre_calculate_repo_status
+    IMPORTING
+      is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+    CHANGING
+      !ct_local  TYPE zif_abapgit_definitions=>ty_files_item_tt
+      !ct_remote TYPE zif_abapgit_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_merge .
@@ -21941,7 +21949,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_exit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -21952,6 +21960,21 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
     CREATE OBJECT ri_exit TYPE zcl_abapgit_exit.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~adjust_display_commit_url.
+
+    TRY.
+        gi_exit->adjust_display_commit_url(
+          EXPORTING
+            iv_repo_url           = iv_repo_url
+            iv_repo_name          = iv_repo_name
+            iv_repo_key           = iv_repo_key
+            iv_commit_hash        = iv_commit_hash
+          CHANGING
+            cv_display_url        = cv_display_url ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_exit~allow_sap_objects.
@@ -22076,22 +22099,19 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD zif_abapgit_exit~adjust_display_commit_url.
+  METHOD zif_abapgit_exit~pre_calculate_repo_status.
 
     TRY.
-        gi_exit->adjust_display_commit_url(
+        gi_exit->pre_calculate_repo_status(
           EXPORTING
-            iv_repo_url           = iv_repo_url
-            iv_repo_name          = iv_repo_name
-            iv_repo_key           = iv_repo_key
-            iv_commit_hash        = iv_commit_hash
+            is_repo_meta = is_repo_meta
           CHANGING
-            cv_display_url        = cv_display_url ).
+            ct_local  = ct_local
+            ct_remote = ct_remote ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_environment IMPLEMENTATION.
@@ -36637,7 +36657,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -40298,7 +40318,7 @@ CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -40492,6 +40512,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
           lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lt_status TYPE zif_abapgit_definitions=>ty_results_tt.
 
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
+
     FIELD-SYMBOLS: <ls_status> LIKE LINE OF lt_status.
 
     CLEAR: mt_diff_files.
@@ -40500,6 +40522,14 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     lt_local  = mo_repo->get_files_local( ).
     mo_repo->reset_status( ).
     lt_status = mo_repo->status( ).
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->pre_calculate_repo_status(
+      EXPORTING
+        is_repo_meta = mo_repo->ms_data
+      CHANGING
+        ct_local  = lt_local
+        ct_remote = lt_remote ).
 
     IF is_file IS NOT INITIAL.        " Diff for one file
 
@@ -92202,7 +92232,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -92734,6 +92764,8 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD status.
 
     DATA lt_local TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA lt_remote TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
 
     lt_local = io_repo->get_files_local( ii_log ).
 
@@ -92745,11 +92777,21 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       io_repo->find_remote_dot_abapgit( ).
     ENDIF.
 
+    lt_remote = io_repo->get_files_remote( ).
+
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->pre_calculate_repo_status(
+      EXPORTING
+        is_repo_meta = io_repo->ms_data
+      CHANGING
+        ct_local  = lt_local
+        ct_remote = lt_remote ).
+
     rt_results = calculate_status(
       iv_devclass  = io_repo->get_package( )
       io_dot       = io_repo->get_dot_abapgit( )
-      it_local     = io_repo->get_files_local( ii_log )
-      it_remote    = io_repo->get_files_remote( )
+      it_local     = lt_local
+      it_remote    = lt_remote
       it_cur_state = io_repo->get_local_checksums_per_file( ) ).
 
     run_checks(
@@ -100944,5 +100986,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-06T07:57:02.618Z
+* abapmerge 0.14.2 - 2021-03-06T08:36:35.429Z
 ****************************************************
