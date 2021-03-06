@@ -15923,8 +15923,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
       CHANGING
         !ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt .
     METHODS build_branch_dropdown
-      IMPORTING
-        !iv_wp_opt                LIKE zif_abapgit_html=>c_html_opt-crossout
       RETURNING
         VALUE(ro_branch_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
       RAISING
@@ -30256,7 +30254,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_git IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD checkout_commit.
 
     DATA: lo_repo            TYPE REF TO zcl_abapgit_repo_online,
@@ -30622,10 +30620,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
           ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
-    ENDIF.
 
     ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
       iv_url             = lo_repo->get_url( )
@@ -37504,7 +37498,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -37656,8 +37650,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ro_branch_dropdown->add( iv_txt = 'Overview'
                              iv_act = |{ zif_abapgit_definitions=>c_action-go_branch_overview }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Switch'
-                             iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?key={ mv_key }|
-                             iv_opt = iv_wp_opt ).
+                             iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Create'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_create }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Delete'
@@ -37707,7 +37700,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       lv_pull_opt = zif_abapgit_html=>c_html_opt-strong.
     ENDIF.
 
-    lo_tb_branch = build_branch_dropdown( lv_wp_opt ).
+    lo_tb_branch = build_branch_dropdown( ).
 
     lo_tb_tag = build_tag_dropdown( lv_wp_opt ).
 
@@ -100985,5 +100978,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-05T11:13:04.164Z
+* abapmerge 0.14.2 - 2021-03-06T07:44:38.936Z
 ****************************************************
