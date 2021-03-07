@@ -3475,7 +3475,7 @@ INTERFACE zif_abapgit_popups .
     RETURNING
       VALUE(rs_popup)    TYPE ty_popup
     RAISING
-      zcx_abapgit_exception  ##NO_TEXT.
+      zcx_abapgit_exception ##NO_TEXT.
   METHODS popup_to_confirm
     IMPORTING
       !iv_titlebar              TYPE clike
@@ -3488,12 +3488,6 @@ INTERFACE zif_abapgit_popups .
       !iv_display_cancel_button TYPE char1 DEFAULT abap_true
     RETURNING
       VALUE(rv_answer)          TYPE char1
-    RAISING
-      zcx_abapgit_exception .
-  METHODS popup_to_inform
-    IMPORTING
-      !iv_titlebar     TYPE clike
-      !iv_text_message TYPE clike
     RAISING
       zcx_abapgit_exception .
   METHODS popup_to_create_package
@@ -3544,13 +3538,6 @@ INTERFACE zif_abapgit_popups .
       !is_transport_type  TYPE zif_abapgit_definitions=>ty_transport_type
     RETURNING
       VALUE(rv_transport) TYPE trkorr
-    RAISING
-      zcx_abapgit_exception .
-  METHODS popup_proxy_bypass
-    IMPORTING
-      !it_proxy_bypass       TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
-    RETURNING
-      VALUE(rt_proxy_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url
     RAISING
       zcx_abapgit_exception .
   METHODS choose_pr_popup
@@ -31057,7 +31044,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31794,30 +31781,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_proxy_bypass.
-    rt_proxy_bypass = it_proxy_bypass.
-    CALL FUNCTION 'COMPLEX_SELECTIONS_DIALOG'
-      EXPORTING
-        title             = 'Bypass proxy settings for these Hosts & Domains'
-        signed            = abap_false
-        lower_case        = abap_true
-        no_interval_check = abap_true
-      TABLES
-        range             = rt_proxy_bypass
-      EXCEPTIONS
-        no_range_tab      = 1
-        cancelled         = 2
-        internal_error    = 3
-        invalid_fieldname = 4
-        OTHERS            = 5.
-    CASE sy-subrc.
-      WHEN 0.
-      WHEN 2.
-        RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'Error from COMPLEX_SELECTIONS_DIALOG' ).
-    ENDCASE.
-  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_search_help.
 
     DATA lt_ret TYPE TABLE OF ddshretval.
@@ -31937,23 +31900,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     rs_transport_branch-branch_name = lv_branch_name.
     rs_transport_branch-commit_text = lv_commit_text.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_to_inform.
-
-    DATA: lv_line1 TYPE c LENGTH 70,
-          lv_line2 TYPE c LENGTH 70.
-
-    lv_line1 = iv_text_message.
-    IF strlen( iv_text_message ) > 70.
-      lv_line2 = iv_text_message+70.
-    ENDIF.
-
-    CALL FUNCTION 'POPUP_TO_INFORM'
-      EXPORTING
-        titel = iv_titlebar
-        txt1  = lv_line1
-        txt2  = lv_line2.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_select_from_list.
@@ -100980,5 +100926,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-06T21:32:50.271Z
+* abapmerge 0.14.2 - 2021-03-07T11:16:28.862Z
 ****************************************************
