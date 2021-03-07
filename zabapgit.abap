@@ -33959,7 +33959,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD translate_postdata.
 
     DATA: lt_post_data       TYPE zif_abapgit_html_viewer=>ty_post_data,
-          ls_last_line       TYPE cnht_post_data_line,
+          ls_last_line       LIKE LINE OF it_postdata,
           lv_last_line_index TYPE i.
 
     IF it_postdata IS INITIAL.
@@ -34961,7 +34961,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -35021,14 +35021,11 @@ CLASS zcl_abapgit_gui_page_tag IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_change_tag_type_request.
 
-    FIELD-SYMBOLS: <lv_postdata> TYPE cnht_post_data_line.
+    FIELD-SYMBOLS <lv_postdata> LIKE LINE OF it_postdata.
 
-    READ TABLE it_postdata ASSIGNING <lv_postdata>
-                           INDEX 1.
+    READ TABLE it_postdata ASSIGNING <lv_postdata> INDEX 1.
     IF sy-subrc = 0.
-      FIND FIRST OCCURRENCE OF REGEX `type=(.*)`
-           IN <lv_postdata>
-           SUBMATCHES mv_selected_type.
+      FIND FIRST OCCURRENCE OF REGEX `type=(.*)` IN <lv_postdata> SUBMATCHES mv_selected_type.
     ENDIF.
 
     mv_selected_type = condense( mv_selected_type ).
@@ -100926,5 +100923,5 @@ AT SELECTION-SCREEN.
 INTERFACE lif_abapmerge_marker.
 ENDINTERFACE.
 ****************************************************
-* abapmerge 0.14.2 - 2021-03-07T11:16:28.862Z
+* abapmerge 0.14.2 - 2021-03-07T11:19:19.584Z
 ****************************************************
