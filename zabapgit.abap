@@ -12882,6 +12882,11 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS reset_status .
+    METHODS get_unsupported_objects_local
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -36802,7 +36807,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_INFO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -37011,15 +37016,18 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   METHOD read_stats.
 
     DATA:
-      lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-      lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
-      ls_item         TYPE zif_abapgit_definitions=>ty_item,
-      lt_local_items  TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY,
-      lt_remote_items TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY,
-      lt_results      TYPE zif_abapgit_definitions=>ty_results_tt,
-      lv_ignored      TYPE abap_bool,
-      lv_state        TYPE c LENGTH 1,
-      ls_stats        TYPE ty_stats.
+      lt_local              TYPE zif_abapgit_definitions=>ty_files_item_tt,
+      lt_remote             TYPE zif_abapgit_definitions=>ty_files_tt,
+      ls_item               TYPE zif_abapgit_definitions=>ty_item,
+      lt_local_items        TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY,
+      lt_remote_items       TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY,
+      lt_results            TYPE zif_abapgit_definitions=>ty_results_tt,
+      lt_unsupported_local  TYPE zif_abapgit_definitions=>ty_items_tt,
+      lt_supported_types    TYPE zcl_abapgit_objects=>ty_types_tt,
+      lv_unsupported_remote TYPE i,
+      lv_ignored            TYPE abap_bool,
+      lv_state              TYPE c LENGTH 1,
+      ls_stats              TYPE ty_stats.
 
     FIELD-SYMBOLS:
       <ls_local>  LIKE LINE OF lt_local,
@@ -37106,7 +37114,6 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
                   io_dot      = mo_repo->get_dot_abapgit( )
                 IMPORTING
                   es_item     = ls_item ).
-
               COLLECT ls_item INTO lt_remote_items.
             CATCH zcx_abapgit_exception ##NO_HANDLER.
           ENDTRY.
@@ -37126,6 +37133,21 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     DELETE lt_remote_items WHERE obj_type IS INITIAL OR obj_name IS INITIAL.
     ls_stats-remote = lines( lt_remote_items ).
 
+    APPEND ls_stats TO mt_stats.
+
+    CLEAR ls_stats.
+    lt_supported_types   = zcl_abapgit_objects=>supported_list( ).
+    ls_stats-measure     = 'Number of Unsupported Objects'.
+    lt_unsupported_local = mo_repo->get_unsupported_objects_local( ).
+    ls_stats-local       = lines( lt_unsupported_local ).
+
+    LOOP AT lt_remote_items INTO ls_item.
+      READ TABLE lt_supported_types WITH KEY table_line = ls_item-obj_type TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        lv_unsupported_remote = lv_unsupported_remote + 1.
+      ENDIF.
+    ENDLOOP.
+    ls_stats-remote        = lv_unsupported_remote.
     APPEND ls_stats TO mt_stats.
 
   ENDMETHOD.
@@ -48997,7 +49019,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -49287,6 +49309,31 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_package.
     rv_package = ms_data-package.
+  ENDMETHOD.
+  METHOD get_unsupported_objects_local.
+
+    DATA: lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_supported_types TYPE zcl_abapgit_objects=>ty_types_tt.
+
+    FIELD-SYMBOLS: <ls_tadir>  LIKE LINE OF lt_tadir,
+                   <ls_object> LIKE LINE OF rt_objects.
+
+    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+                      iv_package            = ms_data-package
+                      iv_ignore_subpackages = ms_data-local_settings-ignore_subpackages
+                      iv_only_local_objects = ms_data-local_settings-only_local_objects
+                      io_dot                = get_dot_abapgit( ) ).
+
+    lt_supported_types = zcl_abapgit_objects=>supported_list( ).
+    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+      READ TABLE lt_supported_types WITH KEY table_line = <ls_tadir>-object TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO rt_objects ASSIGNING <ls_object>.
+        MOVE-CORRESPONDING <ls_tadir> TO <ls_object>.
+        <ls_object>-obj_type = <ls_tadir>-object.
+      ENDIF.
+    ENDLOOP.
+
   ENDMETHOD.
   METHOD is_offline.
     rv_offline = ms_data-offline.
@@ -100918,6 +100965,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-09T06:23:18.463Z
+* abapmerge 0.14.3 - 2021-03-09T11:14:24.223Z
 ENDINTERFACE.
 ****************************************************
