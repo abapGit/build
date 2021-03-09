@@ -26,6 +26,410 @@ REPORT zabapgit_standalone LINE-SIZE 100.
 * SOFTWARE.
 ********************************************************************************
 
+INTERFACE zif_abapgit_version DEFERRED.
+INTERFACE zif_abapgit_stage_logic DEFERRED.
+INTERFACE zif_abapgit_sap_package DEFERRED.
+INTERFACE zif_abapgit_merge DEFERRED.
+INTERFACE zif_abapgit_exit DEFERRED.
+INTERFACE zif_abapgit_environment DEFERRED.
+INTERFACE zif_abapgit_definitions DEFERRED.
+INTERFACE zif_abapgit_code_inspector DEFERRED.
+INTERFACE zif_abapgit_branch_overview DEFERRED.
+INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_xml_output DEFERRED.
+INTERFACE zif_abapgit_xml_input DEFERRED.
+INTERFACE zif_abapgit_progress DEFERRED.
+INTERFACE zif_abapgit_log DEFERRED.
+INTERFACE zif_abapgit_tag_popups DEFERRED.
+INTERFACE zif_abapgit_services_repo DEFERRED.
+INTERFACE zif_abapgit_services_git DEFERRED.
+INTERFACE zif_abapgit_popups DEFERRED.
+INTERFACE zif_abapgit_html_viewer DEFERRED.
+INTERFACE zif_abapgit_html_form DEFERRED.
+INTERFACE zif_abapgit_gui_functions DEFERRED.
+INTERFACE zif_abapgit_frontend_services DEFERRED.
+INTERFACE zif_abapgit_html DEFERRED.
+INTERFACE zif_abapgit_gui_services DEFERRED.
+INTERFACE zif_abapgit_gui_renderable DEFERRED.
+INTERFACE zif_abapgit_gui_html_processor DEFERRED.
+INTERFACE zif_abapgit_gui_hotkeys DEFERRED.
+INTERFACE zif_abapgit_gui_hotkey_ctl DEFERRED.
+INTERFACE zif_abapgit_gui_event_handler DEFERRED.
+INTERFACE zif_abapgit_gui_event DEFERRED.
+INTERFACE zif_abapgit_gui_error_handler DEFERRED.
+INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
+INTERFACE zif_abapgit_repo_srv DEFERRED.
+INTERFACE zif_abapgit_repo_online DEFERRED.
+INTERFACE zif_abapgit_repo_listener DEFERRED.
+INTERFACE zif_abapgit_dot_abapgit DEFERRED.
+INTERFACE zif_abapgit_persistence DEFERRED.
+INTERFACE zif_abapgit_persist_user DEFERRED.
+INTERFACE zif_abapgit_persist_repo DEFERRED.
+INTERFACE zif_abapgit_objects DEFERRED.
+INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_comparator DEFERRED.
+INTERFACE zif_abapgit_lxe_texts DEFERRED.
+INTERFACE zif_abapgit_longtexts DEFERRED.
+INTERFACE zif_abapgit_lang_definitions DEFERRED.
+INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
+INTERFACE zif_abapgit_object_enhs DEFERRED.
+INTERFACE zif_abapgit_object_enho DEFERRED.
+INTERFACE zif_abapgit_ecatt_upload DEFERRED.
+INTERFACE zif_abapgit_ecatt_download DEFERRED.
+INTERFACE zif_abapgit_ecatt DEFERRED.
+INTERFACE zif_abapgit_tadir DEFERRED.
+INTERFACE zif_abapgit_ajson_writer DEFERRED.
+INTERFACE zif_abapgit_ajson_reader DEFERRED.
+INTERFACE zif_abapgit_ajson_mapping DEFERRED.
+INTERFACE zif_abapgit_ajson DEFERRED.
+INTERFACE zif_abapgit_http_response DEFERRED.
+INTERFACE zif_abapgit_http_agent DEFERRED.
+INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
+INTERFACE zif_abapgit_data_serializer DEFERRED.
+INTERFACE zif_abapgit_data_deserializer DEFERRED.
+INTERFACE zif_abapgit_data_config DEFERRED.
+INTERFACE zif_abapgit_cts_api DEFERRED.
+INTERFACE zif_abapgit_background DEFERRED.
+INTERFACE zif_abapgit_apack_definitions DEFERRED.
+CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
+CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
+CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
+CLASS zcl_abapgit_zip DEFINITION DEFERRED.
+CLASS zcl_abapgit_version DEFINITION DEFERRED.
+CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_stage DEFINITION DEFERRED.
+CLASS zcl_abapgit_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
+CLASS zcl_abapgit_news DEFINITION DEFERRED.
+CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
+CLASS zcl_abapgit_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_exit DEFINITION DEFERRED.
+CLASS zcl_abapgit_environment DEFINITION DEFERRED.
+CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
+CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
+CLASS zcl_abapgit_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
+CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
+CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
+CLASS zcl_abapgit_xml DEFINITION DEFERRED.
+CLASS zcl_abapgit_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
+CLASS zcl_abapgit_url DEFINITION DEFERRED.
+CLASS zcl_abapgit_time DEFINITION DEFERRED.
+CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
+CLASS zcl_abapgit_state DEFINITION DEFERRED.
+CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
+CLASS zcl_abapgit_progress DEFINITION DEFERRED.
+CLASS zcl_abapgit_path DEFINITION DEFERRED.
+CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
+CLASS zcl_abapgit_log DEFINITION DEFERRED.
+CLASS zcl_abapgit_language DEFINITION DEFERRED.
+CLASS zcl_abapgit_hash DEFINITION DEFERRED.
+CLASS zcl_abapgit_diff DEFINITION DEFERRED.
+CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_adt_link DEFINITION DEFERRED.
+CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_basis DEFINITION DEFERRED.
+CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
+CLASS zcl_abapgit_popups DEFINITION DEFERRED.
+CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
+CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_viewer_gui DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_hotkeys DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_pers DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_locl DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_info DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_sett_glob DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
+CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
+CLASS zcl_abapgit_free_sel_dialog DEFINITION DEFERRED.
+CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_parts DEFINITION DEFERRED.
+CLASS zcl_abapgit_html DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_html_processor DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_event DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui DEFINITION DEFERRED.
+CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_js DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
+CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
+CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
+CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_generic DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_xslt DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_xinx DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_webi DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_wdyn DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_wdya DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_wdcc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_wdca DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_wapa DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_w3xx_super DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_w3mi DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_w3ht DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_view DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_vcls DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ueno DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_udmo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ucsa DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_type DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ttyp DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_tran DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_tobj DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_tabl_compar DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_tabl DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sxci DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_suso DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sush DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_susc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sucu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_styl DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_stvi DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ssst DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ssfo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_srvd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_srvb DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_srfc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sqsc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sprx DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_splo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sots DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_smtg DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_smim DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sicf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_shma DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_shlp DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_shi8 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_shi5 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_shi3 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sfsw DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sfpi DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sfpf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sfbs DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sfbf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_scvi DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_scp1 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_saxx_super DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sapc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_samc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_prog DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_prag DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_pinf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_pers DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_pdts DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_para DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_otgr DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_odso DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_oa2p DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_nspc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_nrob DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_msag DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_jobd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwvb DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwsv DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwsg DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwpr DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwom DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iwmo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iobj DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_intf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iext DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_idoc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iaxu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iatu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iasp DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iarp DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_iamu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_g4bs DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_g4ba DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_fugr DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ftgl DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_form DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ensc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enqu DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhs DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecsp DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecsd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ecat DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_dtel DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_dtdc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_dsys DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_drul DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_doma DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_docv DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_doct DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_dial DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_devc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ddlx DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ddls DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_dcls DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_cus2 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_cus1 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_cus0 DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_cmpt DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_cmod DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_chdo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_char DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_bdef DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_avas DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_avar DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_asfc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_area DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
+CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
+CLASS zcl_abapgit_lxe_texts DEFINITION DEFERRED.
+CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
+CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
+CLASS zcl_abapgit_oo_interface DEFINITION DEFERRED.
+CLASS zcl_abapgit_oo_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_oo_class DEFINITION DEFERRED.
+CLASS zcl_abapgit_oo_base DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhs_hook_d DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enhs_badi_d DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_wdyn DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_wdyc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_intf DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_hook DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_fugr DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_system_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_system_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_sp_upload DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_sp_download DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_script_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_script_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_data_upload DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
+CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
+CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
+CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
+CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
+CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
+CLASS zcl_abapgit_ajson_utilities DEFINITION DEFERRED.
+CLASS zcl_abapgit_ajson_mapping DEFINITION DEFERRED.
+CLASS zcl_abapgit_ajson DEFINITION DEFERRED.
+CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
+CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
+CLASS zcl_abapgit_http_agent DEFINITION DEFERRED.
+CLASS zcl_abapgit_http DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enumerator DEFINITION DEFERRED.
+CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_url DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_deserializer DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_config DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_mass DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
+CLASS zcl_abapgit_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_cts_api DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
+CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
+CLASS zcl_abapgit_background DEFINITION DEFERRED.
+CLASS zcl_abapgit_apack_writer DEFINITION DEFERRED.
+CLASS zcl_abapgit_apack_reader DEFINITION DEFERRED.
+CLASS zcl_abapgit_apack_migration DEFINITION DEFERRED.
+CLASS zcl_abapgit_apack_helper DEFINITION DEFERRED.
 CLASS zcx_abapgit_ajson_error DEFINITION
   inheriting from CX_STATIC_CHECK
   final
@@ -572,410 +976,6 @@ ENDCLASS.
 CLASS zcx_abapgit_not_found IMPLEMENTATION.
 ENDCLASS.
 
-INTERFACE zif_abapgit_version DEFERRED.
-INTERFACE zif_abapgit_stage_logic DEFERRED.
-INTERFACE zif_abapgit_sap_package DEFERRED.
-INTERFACE zif_abapgit_merge DEFERRED.
-INTERFACE zif_abapgit_exit DEFERRED.
-INTERFACE zif_abapgit_environment DEFERRED.
-INTERFACE zif_abapgit_definitions DEFERRED.
-INTERFACE zif_abapgit_code_inspector DEFERRED.
-INTERFACE zif_abapgit_branch_overview DEFERRED.
-INTERFACE zif_abapgit_auth DEFERRED.
-INTERFACE zif_abapgit_xml_output DEFERRED.
-INTERFACE zif_abapgit_xml_input DEFERRED.
-INTERFACE zif_abapgit_progress DEFERRED.
-INTERFACE zif_abapgit_log DEFERRED.
-INTERFACE zif_abapgit_tag_popups DEFERRED.
-INTERFACE zif_abapgit_services_repo DEFERRED.
-INTERFACE zif_abapgit_services_git DEFERRED.
-INTERFACE zif_abapgit_popups DEFERRED.
-INTERFACE zif_abapgit_html_viewer DEFERRED.
-INTERFACE zif_abapgit_html_form DEFERRED.
-INTERFACE zif_abapgit_gui_functions DEFERRED.
-INTERFACE zif_abapgit_frontend_services DEFERRED.
-INTERFACE zif_abapgit_html DEFERRED.
-INTERFACE zif_abapgit_gui_services DEFERRED.
-INTERFACE zif_abapgit_gui_renderable DEFERRED.
-INTERFACE zif_abapgit_gui_html_processor DEFERRED.
-INTERFACE zif_abapgit_gui_hotkeys DEFERRED.
-INTERFACE zif_abapgit_gui_hotkey_ctl DEFERRED.
-INTERFACE zif_abapgit_gui_event_handler DEFERRED.
-INTERFACE zif_abapgit_gui_event DEFERRED.
-INTERFACE zif_abapgit_gui_error_handler DEFERRED.
-INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
-INTERFACE zif_abapgit_repo_srv DEFERRED.
-INTERFACE zif_abapgit_repo_online DEFERRED.
-INTERFACE zif_abapgit_repo_listener DEFERRED.
-INTERFACE zif_abapgit_dot_abapgit DEFERRED.
-INTERFACE zif_abapgit_persistence DEFERRED.
-INTERFACE zif_abapgit_persist_user DEFERRED.
-INTERFACE zif_abapgit_persist_repo DEFERRED.
-INTERFACE zif_abapgit_objects DEFERRED.
-INTERFACE zif_abapgit_object DEFERRED.
-INTERFACE zif_abapgit_comparator DEFERRED.
-INTERFACE zif_abapgit_lxe_texts DEFERRED.
-INTERFACE zif_abapgit_longtexts DEFERRED.
-INTERFACE zif_abapgit_lang_definitions DEFERRED.
-INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
-INTERFACE zif_abapgit_object_enhs DEFERRED.
-INTERFACE zif_abapgit_object_enho DEFERRED.
-INTERFACE zif_abapgit_ecatt_upload DEFERRED.
-INTERFACE zif_abapgit_ecatt_download DEFERRED.
-INTERFACE zif_abapgit_ecatt DEFERRED.
-INTERFACE zif_abapgit_tadir DEFERRED.
-INTERFACE zif_abapgit_ajson_writer DEFERRED.
-INTERFACE zif_abapgit_ajson_reader DEFERRED.
-INTERFACE zif_abapgit_ajson_mapping DEFERRED.
-INTERFACE zif_abapgit_ajson DEFERRED.
-INTERFACE zif_abapgit_http_response DEFERRED.
-INTERFACE zif_abapgit_http_agent DEFERRED.
-INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
-INTERFACE zif_abapgit_data_serializer DEFERRED.
-INTERFACE zif_abapgit_data_deserializer DEFERRED.
-INTERFACE zif_abapgit_data_config DEFERRED.
-INTERFACE zif_abapgit_cts_api DEFERRED.
-INTERFACE zif_abapgit_background DEFERRED.
-INTERFACE zif_abapgit_apack_definitions DEFERRED.
-CLASS zcl_abapgit_zlib_stream DEFINITION DEFERRED.
-CLASS zcl_abapgit_zlib_huffman DEFINITION DEFERRED.
-CLASS zcl_abapgit_zlib_convert DEFINITION DEFERRED.
-CLASS zcl_abapgit_zlib DEFINITION DEFERRED.
-CLASS zcl_abapgit_zip DEFINITION DEFERRED.
-CLASS zcl_abapgit_version DEFINITION DEFERRED.
-CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
-CLASS zcl_abapgit_stage DEFINITION DEFERRED.
-CLASS zcl_abapgit_settings DEFINITION DEFERRED.
-CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
-CLASS zcl_abapgit_news DEFINITION DEFERRED.
-CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
-CLASS zcl_abapgit_merge DEFINITION DEFERRED.
-CLASS zcl_abapgit_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_exit DEFINITION DEFERRED.
-CLASS zcl_abapgit_environment DEFINITION DEFERRED.
-CLASS zcl_abapgit_code_inspector DEFINITION DEFERRED.
-CLASS zcl_abapgit_branch_overview DEFINITION DEFERRED.
-CLASS zcl_abapgit_auth DEFINITION DEFERRED.
-CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
-CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
-CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
-CLASS zcl_abapgit_xml DEFINITION DEFERRED.
-CLASS zcl_abapgit_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
-CLASS zcl_abapgit_url DEFINITION DEFERRED.
-CLASS zcl_abapgit_time DEFINITION DEFERRED.
-CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
-CLASS zcl_abapgit_state DEFINITION DEFERRED.
-CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
-CLASS zcl_abapgit_progress DEFINITION DEFERRED.
-CLASS zcl_abapgit_path DEFINITION DEFERRED.
-CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
-CLASS zcl_abapgit_log DEFINITION DEFERRED.
-CLASS zcl_abapgit_language DEFINITION DEFERRED.
-CLASS zcl_abapgit_hash DEFINITION DEFERRED.
-CLASS zcl_abapgit_diff DEFINITION DEFERRED.
-CLASS zcl_abapgit_convert DEFINITION DEFERRED.
-CLASS zcl_abapgit_adt_link DEFINITION DEFERRED.
-CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_tag_popups DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_basis DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
-CLASS zcl_abapgit_popups DEFINITION DEFERRED.
-CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
-CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_viewer_gui DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_hotkeys DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_sett_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_sett_pers DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_sett_locl DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_sett_info DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_sett_glob DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
-CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
-CLASS zcl_abapgit_free_sel_dialog DEFINITION DEFERRED.
-CLASS zcl_abapgit_exception_viewer DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_parts DEFINITION DEFERRED.
-CLASS zcl_abapgit_html DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_html_processor DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_event DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui DEFINITION DEFERRED.
-CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_js DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
-CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
-CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
-CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
-CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
-CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
-CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_generic DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_xslt DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_xinx DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_webi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_wdyn DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_wdya DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_wdcc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_wdca DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_wapa DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_w3xx_super DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_w3mi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_w3ht DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_view DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_vcls DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ueno DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_udmo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ucsa DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_type DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ttyp DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_tran DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_tobj DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_tabl_compar DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_tabl DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sxci DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_suso DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sush DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_susc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sucu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_styl DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_stvi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ssst DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ssfo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_srvd DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_srvb DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_srfc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sqsc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sprx DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_splo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sots DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_smtg DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_smim DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sicf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_shma DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_shlp DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_shi8 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_shi5 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_shi3 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sfsw DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sfpi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sfpf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sfbs DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sfbf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_scvi DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_scp1 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_saxx_super DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_sapc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_samc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_prog DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_prag DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_pinf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_pers DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_pdts DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_para DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_otgr DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_odso DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_oa2p DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_nspc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_nrob DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_msag DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_jobd DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwvb DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwsv DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwsg DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwpr DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwom DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iwmo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iobj DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_intf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iext DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_idoc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iaxu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iatu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iasp DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iarp DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_iamu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_g4bs DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_g4ba DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_fugr DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ftgl DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_form DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ensc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enqu DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhs DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ecvo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ectd DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ectc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ecsp DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ecsd DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ecatt_super DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ecat DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_dtel DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_dtdc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_dsys DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_drul DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_doma DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_docv DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_doct DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_dial DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_devc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ddlx DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_ddls DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_dcls DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_cus2 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_cus1 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_cus0 DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_cmpt DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_cmod DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_clas DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_chdo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_char DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_bdef DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_avas DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_avar DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_asfc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_area DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
-CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
-CLASS zcl_abapgit_lxe_texts DEFINITION DEFERRED.
-CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_interface DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_class DEFINITION DEFERRED.
-CLASS zcl_abapgit_oo_base DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhs_hook_d DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enhs_badi_d DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_wdyn DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_wdyc DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_intf DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_hook DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_fugr DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_clif DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_class DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_enho_badi DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_val_obj_upl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_val_obj_down DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_system_upl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_system_downl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_sp_upload DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_sp_download DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_script_upl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_script_downl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_helper DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_data_upload DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
-CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
-CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
-CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
-CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
-CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
-CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
-CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
-CLASS zcl_abapgit_ajson_utilities DEFINITION DEFERRED.
-CLASS zcl_abapgit_ajson_mapping DEFINITION DEFERRED.
-CLASS zcl_abapgit_ajson DEFINITION DEFERRED.
-CLASS zcl_abapgit_proxy_config DEFINITION DEFERRED.
-CLASS zcl_abapgit_proxy_auth DEFINITION DEFERRED.
-CLASS zcl_abapgit_http_digest DEFINITION DEFERRED.
-CLASS zcl_abapgit_http_client DEFINITION DEFERRED.
-CLASS zcl_abapgit_http_agent DEFINITION DEFERRED.
-CLASS zcl_abapgit_http DEFINITION DEFERRED.
-CLASS zcl_abapgit_pr_enumerator DEFINITION DEFERRED.
-CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_url DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
-CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_factory DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_deserializer DEFINITION DEFERRED.
-CLASS zcl_abapgit_data_config DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_objects DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_mass DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport_2_branch DEFINITION DEFERRED.
-CLASS zcl_abapgit_transport DEFINITION DEFERRED.
-CLASS zcl_abapgit_default_transport DEFINITION DEFERRED.
-CLASS zcl_abapgit_cts_api DEFINITION DEFERRED.
-CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
-CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
-CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
-CLASS zcl_abapgit_background DEFINITION DEFERRED.
-CLASS zcl_abapgit_apack_writer DEFINITION DEFERRED.
-CLASS zcl_abapgit_apack_reader DEFINITION DEFERRED.
-CLASS zcl_abapgit_apack_migration DEFINITION DEFERRED.
-CLASS zcl_abapgit_apack_helper DEFINITION DEFERRED.
 INTERFACE zif_abapgit_background .
   TYPES:
     BEGIN OF ty_settings,
@@ -100915,9 +100915,9 @@ AT SELECTION-SCREEN.
   IF sy-dynnr = lcl_password_dialog=>c_dynnr.
     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).
   ENDIF.
+
 ****************************************************
 INTERFACE lif_abapmerge_marker.
+* abapmerge 0.14.3 - 2021-03-09T06:23:18.463Z
 ENDINTERFACE.
-****************************************************
-* abapmerge 0.14.2 - 2021-03-07T11:26:05.810Z
 ****************************************************
