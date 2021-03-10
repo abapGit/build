@@ -170,6 +170,7 @@ CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_ch_remote DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg_run DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_bkg DEFINITION DEFERRED.
@@ -14830,6 +14831,36 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_ch_remote DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS zif_abapgit_gui_event_handler~on_event
+        REDEFINITION .
+  PROTECTED SECTION.
+
+    METHODS render_content
+        REDEFINITION .
+  PRIVATE SECTION.
+
+    CONSTANTS c_remote_field TYPE string VALUE 'REMOTE' ##NO_TEXT.
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back TYPE string VALUE 'go_back',
+        save    TYPE string VALUE 'save',
+      END OF c_event .
+    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key .
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
@@ -17635,11 +17666,6 @@ CLASS zcl_abapgit_services_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS remote_detach
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS remote_change
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
@@ -29777,7 +29803,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -30099,35 +30125,6 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     lo_repo->select_branch( ls_popup-branch_name ).
 
     ls_loc = lo_repo->get_local_settings( ). " Just in case ... if switch affects LS state
-    ls_loc-display_name = ls_popup-display_name.
-    lo_repo->set_local_settings( ls_loc ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.
-  METHOD remote_change.
-
-    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
-          ls_loc   TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    ls_loc = lo_repo->get_local_settings( ).
-
-    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup(
-      iv_title          = 'Change repo remote ...'
-      iv_url            = lo_repo->get_url( )
-      iv_package        = lo_repo->get_package( )
-      iv_display_name   = ls_loc-display_name
-      iv_freeze_package = abap_true ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_url( ls_popup-url ).
-    lo_repo->select_branch( ls_popup-branch_name ).
-
     ls_loc-display_name = ls_popup-display_name.
     lo_repo->set_local_settings( ls_loc ).
 
@@ -34253,7 +34250,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -34656,15 +34653,17 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_attach.            " Remote attach
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_attach.
         zcl_abapgit_services_repo=>remote_attach( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_detach.            " Remote detach
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_detach.
         zcl_abapgit_services_repo=>remote_detach( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_change.            " Remote change
-        zcl_abapgit_services_repo=>remote_change( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-repo_remote_change.
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_ch_remote
+          EXPORTING
+            iv_key = lv_key.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -42207,6 +42206,67 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     ms_control-page_menu = build_menu( ).
     ri_html = super->zif_abapgit_gui_renderable~render( ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_PAGE_CH_REMOTE IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+    mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+    ms_control-page_title = 'Change Remote'.
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    CREATE OBJECT lo_map.
+
+    lo_form = zcl_abapgit_html_form=>create( ).
+
+    lo_form->text(
+      iv_name     = c_remote_field
+      iv_required = abap_true
+      iv_label = 'New GIT Repository URL'
+      iv_hint  = 'HTTPS address of the repository' ).
+    lo_map->set(
+      iv_key = c_remote_field
+      iv_val = mo_repo->get_url( ) ).
+
+    lo_form->command(
+      iv_label    = 'Save'
+      iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action   = c_event-save ).
+    lo_form->command(
+      iv_label  = 'Back'
+      iv_action = c_event-go_back ).
+
+    ri_html->add( lo_form->render( lo_map ) ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA lv_url TYPE string.
+
+    CASE ii_event->mv_action.
+      WHEN c_event-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-save.
+        lv_url = condense( ii_event->form_data( )->get( c_remote_field ) ).
+        ASSERT NOT lv_url IS INITIAL.
+
+        zcl_abapgit_repo_srv=>get_instance( )->validate_url( lv_url ).
+
+        mo_repo->set_url( lv_url ).
+        COMMIT WORK.
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -100965,6 +101025,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-09T16:50:54.734Z
+* abapmerge 0.14.3 - 2021-03-10T06:30:20.673Z
 ENDINTERFACE.
 ****************************************************
