@@ -2608,9 +2608,7 @@ INTERFACE zif_abapgit_tadir .
       !iv_object      TYPE tadir-object
       !iv_obj_name    TYPE tadir-obj_name
     RETURNING
-      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
-    RAISING
-      zcx_abapgit_exception .
+      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_oo_object_fnc.
@@ -17406,19 +17404,19 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-          FOR EVENT link_click OF cl_salv_events_table
+        FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
-          !row
-          !column .
+        !row
+        !column .
     METHODS on_select_list_function_click
-          FOR EVENT added_function OF cl_salv_events_table
+        FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
-          !e_salv_function .
+        !e_salv_function .
     METHODS on_double_click
-          FOR EVENT double_click OF cl_salv_events_table
+        FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
-          !row
-          !column .
+        !row
+        !column .
     METHODS extract_field_values
       IMPORTING
         it_fields           TYPE zif_abapgit_popups=>ty_sval_tt
@@ -31047,7 +31045,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31809,9 +31807,14 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
     IF lines( lt_ret ) > 0.
-      READ TABLE lt_ret INDEX 1 INTO ls_ret.
-      ASSERT sy-subrc = 0.
-      rv_value = ls_ret-fieldval.
+      READ TABLE lt_ret WITH KEY fieldname = lv_fieldname INTO ls_ret.
+      IF sy-subrc = 0.
+        rv_value = ls_ret-fieldval.
+      ELSE.
+        READ TABLE lt_ret INDEX 1 INTO ls_ret.
+        ASSERT sy-subrc = 0.
+        rv_value = ls_ret-fieldval.
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -37446,7 +37449,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -37870,7 +37873,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
       WHERE pgmna = sy-cprog
         AND cinfo = lc_report_tcode_hex.
 
-    IF lines( lt_tcodes ) = 1.
+    IF lines( lt_tcodes ) > 0.
       READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
     ENDIF.
   ENDMETHOD.
@@ -91115,8 +91118,6 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_tadir~read_single.
 
-* note that SICF has special handling, the obj_name is different in the system than serialized
-
     SELECT SINGLE * FROM tadir INTO CORRESPONDING FIELDS OF rs_tadir
       WHERE pgmid = iv_pgmid
       AND object = iv_object
@@ -101043,6 +101044,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-10T06:32:22.954Z
+* abapmerge 0.14.3 - 2021-03-11T13:52:59.548Z
 ENDINTERFACE.
 ****************************************************
