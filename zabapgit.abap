@@ -2613,6 +2613,14 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_oo_object_fnc.
 
+  CONSTANTS:
+    BEGIN OF c_parts,
+      locals_def  TYPE string VALUE 'locals_def',
+      locals_imp  TYPE string VALUE 'locals_imp',
+      macros      TYPE string VALUE 'macros',
+      testclasses TYPE string VALUE 'testclasses',
+    END OF c_parts.
+
   TYPES: BEGIN OF ty_includes,
            programm TYPE programm,
          END OF ty_includes,
@@ -2634,7 +2642,6 @@ INTERFACE zif_abapgit_oo_object_fnc.
     generate_locals
       IMPORTING
         is_key                   TYPE seoclskey
-        iv_force                 TYPE abap_bool DEFAULT abap_true
         it_local_definitions     TYPE seop_source_string OPTIONAL
         it_local_implementations TYPE seop_source_string OPTIONAL
         it_local_macros          TYPE seop_source_string OPTIONAL
@@ -7065,6 +7072,9 @@ CLASS zcl_abapgit_oo_class DEFINITION
       IMPORTING
         !iv_classname              TYPE seoclsname
         !iv_number_of_impl_methods TYPE i .
+    CLASS-METHODS delete_report
+      IMPORTING
+        !iv_program TYPE programm .
 ENDCLASS.
 CLASS zcl_abapgit_oo_factory DEFINITION.
 
@@ -12030,16 +12040,21 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
       CHANGING
         cs_adm TYPE rsmpe_adm.
 ENDCLASS.
-CLASS zcl_abapgit_object_clas DEFINITION INHERITING FROM zcl_abapgit_objects_program.
+CLASS zcl_abapgit_object_clas DEFINITION
+  INHERITING FROM zcl_abapgit_objects_program
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-    METHODS: constructor
-      IMPORTING
-        is_item     TYPE zif_abapgit_definitions=>ty_item
-        iv_language TYPE spras.
 
+    INTERFACES zif_abapgit_object .
+
+    ALIASES mo_files
+      FOR zif_abapgit_object~mo_files .
+
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras .
   PROTECTED SECTION.
     DATA: mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc,
           mv_skip_testclass             TYPE abap_bool,
@@ -53664,7 +53679,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     LOOP AT it_results ASSIGNING <ls_result> WHERE NOT obj_type IS INITIAL.
       IF <ls_result>-lstate IS NOT INITIAL
         AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>c_state-added
-        AND <ls_result>-rstate IS INITIAL ).
+        AND <ls_result>-rstate IS INITIAL )
+        OR ( <ls_result>-lstate IS INITIAL
+        AND <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted ).
         " current object has been modified or deleted locally, add to table
         CLEAR ls_overwrite.
         MOVE-CORRESPONDING <ls_result> TO ls_overwrite.
@@ -83340,7 +83357,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD deserialize_abap.
-* same as in zcl_abapgit_object_clas, but without "mo_object_oriented_object_fct->add_to_activation_list"
 
     DATA: ls_vseoclass             TYPE vseoclass,
           lt_source                TYPE seop_source_string,
@@ -83353,16 +83369,16 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_attributes            TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
     lt_source = mo_files->read_abap( ).
 
-    lt_local_definitions = mo_files->read_abap( iv_extra = 'locals_def'
+    lt_local_definitions = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
                                                 iv_error = abap_false ).
 
-    lt_local_implementations = mo_files->read_abap( iv_extra = 'locals_imp'
+    lt_local_implementations = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
                                                     iv_error = abap_false ).
 
-    lt_local_macros = mo_files->read_abap( iv_extra = 'macros'
+    lt_local_macros = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
                                            iv_error = abap_false ).
 
-    lt_test_classes = mo_files->read_abap( iv_extra = 'testclasses'
+    lt_test_classes = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
                                            iv_error = abap_false ).
 
     ls_class_key-clsname = ms_item-obj_name.
@@ -83373,6 +83389,11 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
                   CHANGING  cg_data = lt_attributes ).
 
+    " Remove code for test classes if they have been deleted
+    IF ls_vseoclass-with_unit_tests = abap_false.
+      CLEAR lt_test_classes.
+    ENDIF.
+
     mi_object_oriented_object_fct->create(
       EXPORTING
         iv_package    = iv_package
@@ -83382,7 +83403,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     mi_object_oriented_object_fct->generate_locals(
       is_key                   = ls_class_key
-      iv_force                 = abap_true
       it_local_definitions     = lt_local_definitions
       it_local_implementations = lt_local_implementations
       it_local_macros          = lt_local_macros
@@ -83399,6 +83419,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     mi_object_oriented_object_fct->update_descriptions(
       is_key          = ls_class_key
       it_descriptions = lt_descriptions ).
+
+    mi_object_oriented_object_fct->add_to_activation_list( ms_item ).
 
   ENDMETHOD.
   METHOD deserialize_docu.
@@ -83790,23 +83812,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     deserialize_docu( io_xml ).
 
-    " If a method was moved to an interface, abapGit does not remove the old
-    " method include and it's necessary to repair the class (#3833)
-    " TODO: Remove 2020-11 or replace with general solution
-    IF ms_item-obj_name = 'ZCX_ABAPGIT_EXCEPTION'.
-      ls_clskey-clsname = ms_item-obj_name.
-
-      CALL FUNCTION 'SEO_CLASS_REPAIR_CLASSPOOL'
-        EXPORTING
-          clskey       = ls_clskey
-        EXCEPTIONS
-          not_existing = 1
-          OTHERS       = 2.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Error repairing class { ms_item-obj_name }| ).
-      ENDIF.
-    ENDIF.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
     DATA: ls_class_key TYPE seoclskey.
@@ -83871,7 +83876,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_def ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'locals_def'
+      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
                           it_abap  = lt_source ).
     ENDIF.
 
@@ -83879,7 +83884,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_imp ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'locals_imp'
+      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
                           it_abap  = lt_source ).
     ENDIF.
 
@@ -83889,7 +83894,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     mv_skip_testclass = mi_object_oriented_object_fct->get_skip_test_classes( ).
     IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
-      mo_files->add_abap( iv_extra = 'testclasses'
+      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
                           it_abap  = lt_source ).
     ENDIF.
 
@@ -83897,7 +83902,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_macros ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = 'macros'
+      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
                           it_abap  = lt_source ).
     ENDIF.
 
@@ -87331,6 +87336,9 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
     ASSERT sy-subrc = 0.
   ENDMETHOD.
+  METHOD delete_report.
+    DELETE REPORT iv_program ##SUBRC_OK.
+  ENDMETHOD.
   METHOD determine_method_include.
 
     DATA: ls_mtdkey TYPE seocpdkey.
@@ -87761,15 +87769,11 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       iv_clsname = is_key-clsname
       io_scanner = lo_scanner ).
 
-* TODO, perhaps move this call to somewhere else, to be done while cleaning up the CLAS deserialization
-    zcl_abapgit_objects_activation=>add(
-      iv_type = 'CLAS'
-      iv_name = is_key-clsname ).
-
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~generate_locals.
 
     DATA: lv_program TYPE programm.
+
     IF lines( it_local_definitions ) > 0.
       lv_program = cl_oo_classname_service=>get_ccdef_name( is_key-clsname ).
       update_report( iv_program = lv_program
@@ -87788,10 +87792,13 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
                      it_source  = it_local_macros ).
     ENDIF.
 
+    lv_program = cl_oo_classname_service=>get_ccau_name( is_key-clsname ).
     IF lines( it_local_test_classes ) > 0.
-      lv_program = cl_oo_classname_service=>get_ccau_name( is_key-clsname ).
       update_report( iv_program = lv_program
                      it_source  = it_local_test_classes ).
+    ELSE.
+      " Drop the include to remove left-over test classes
+      delete_report( lv_program ).
     ENDIF.
 
   ENDMETHOD.
@@ -101044,6 +101051,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-12T06:03:30.945Z
+* abapmerge 0.14.3 - 2021-03-12T06:06:49.637Z
 ENDINTERFACE.
 ****************************************************
