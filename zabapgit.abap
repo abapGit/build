@@ -164,6 +164,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_ex_object DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
@@ -2387,7 +2388,6 @@ INTERFACE zif_abapgit_definitions .
       change_order_by               TYPE string VALUE 'change_order_by',
       goto_message                  TYPE string VALUE 'goto_message',
       direction                     TYPE string VALUE 'direction',
-      changed_by                    TYPE string VALUE 'changed_by',
       documentation                 TYPE string VALUE 'documentation',
       changelog                     TYPE string VALUE 'changelog',
     END OF c_action.
@@ -3443,11 +3443,6 @@ INTERFACE zif_abapgit_popups .
   METHODS popup_folder_logic
     RETURNING
       VALUE(rv_folder_logic) TYPE string
-    RAISING
-      zcx_abapgit_exception .
-  METHODS popup_object
-    RETURNING
-      VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir
     RAISING
       zcx_abapgit_exception .
   METHODS create_branch_popup
@@ -15370,6 +15365,51 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       RETURNING
         VALUE(rv_is_file_requested) TYPE abap_bool.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_ex_object DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_id,
+        object_type TYPE string VALUE 'object_type',
+        object_name TYPE string VALUE 'object_name',
+      END OF c_id.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back            TYPE string VALUE 'go-back',
+        export             TYPE string VALUE 'export',
+        choose_object_type TYPE string VALUE 'choose-object-type',
+      END OF c_event.
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
+
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+
+    METHODS export_object
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
   FINAL
@@ -17525,9 +17565,6 @@ CLASS zcl_abapgit_services_basis DEFINITION
         VALUE(rv_package)  TYPE devclass
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS test_changed_by
-      RAISING
-        zcx_abapgit_exception.
     CLASS-METHODS run_performance_test
       RAISING
         zcx_abapgit_exception.
@@ -19420,8 +19457,11 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS export_object
+      IMPORTING
+        iv_object_type TYPE trobjtype
+        iv_object_name TYPE sobj_name
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     CLASS-METHODS export_package
       EXPORTING
         !ev_xstr    TYPE xstring
@@ -20137,7 +20177,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
+CLASS zcl_abapgit_zip IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -20202,24 +20242,22 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
 
-    WHILE ls_tadir IS INITIAL.
+    ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
+        iv_object   = iv_object_type
+        iv_obj_name = iv_object_name ).
 
-      ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
-      IF ls_tadir IS INITIAL.
-        MESSAGE 'Object couldn''t be found' TYPE 'S' DISPLAY LIKE 'E'.
-      ENDIF.
-
-    ENDWHILE.
+    IF ls_tadir IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Object could not be found' ).
+    ENDIF.
 
     ls_files_item-item-obj_type = ls_tadir-object.
     ls_files_item-item-obj_name = ls_tadir-obj_name.
 
-    ls_files_item = zcl_abapgit_objects=>serialize( is_item = ls_files_item-item
+    ls_files_item = zcl_abapgit_objects=>serialize( is_item     = ls_files_item-item
                                                     iv_language = sy-langu ).
 
     IF lines( ls_files_item-files ) = 0.
-      MESSAGE 'Empty' TYPE 'S'.
-      RETURN.
+      zcx_abapgit_exception=>raise( 'Empty' ).
     ENDIF.
 
     cl_gui_frontend_services=>directory_browse(
@@ -20228,17 +20266,15 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       CHANGING
         selected_folder = lv_folder ).
     IF lv_folder IS INITIAL.
-      RETURN.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
     gv_prev = lv_folder.
-
     cl_gui_frontend_services=>get_file_separator( CHANGING file_separator = lv_sep ).
 
     LOOP AT ls_files_item-files ASSIGNING <ls_file>.
-      CONCATENATE lv_folder lv_sep <ls_file>-filename INTO lv_fullpath.
-
-      save_binstring_to_localfile( iv_filename = lv_fullpath
+      lv_fullpath = |{ lv_folder }{ lv_sep }{ <ls_file>-filename }|.
+      save_binstring_to_localfile( iv_filename  = lv_fullpath
                                    iv_binstring = <ls_file>-data ).
 
     ENDLOOP.
@@ -30810,25 +30846,6 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           ix_previous = lx_salv_error ).
     ENDTRY.
   ENDMETHOD.
-  METHOD test_changed_by.
-
-    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
-    DATA ls_item  TYPE zif_abapgit_definitions=>ty_item.
-    DATA lv_user  TYPE xubname.
-
-    ls_tadir = zcl_abapgit_ui_factory=>get_popups( )->popup_object( ).
-    IF ls_tadir IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    ls_item-obj_type = ls_tadir-object.
-    ls_item-obj_name = ls_tadir-obj_name.
-
-    lv_user = zcl_abapgit_objects=>changed_by( ls_item ).
-
-    MESSAGE lv_user TYPE 'S'.
-
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
@@ -31661,35 +31678,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_object.
 
-    DATA: lt_fields      TYPE TABLE OF sval.
-    DATA: lv_object_type TYPE spo_value.
-    DATA: lv_object_name TYPE spo_value.
-
-    CLEAR: rs_tadir-object, rs_tadir-obj_name.
-
-    add_field( EXPORTING iv_tabname   = 'TADIR'
-                         iv_fieldname = 'OBJECT'
-                         iv_fieldtext = 'Type'
-               CHANGING ct_fields     = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TADIR'
-                         iv_fieldname = 'OBJ_NAME'
-                         iv_fieldtext = 'Name'
-               CHANGING ct_fields     = lt_fields ).
-
-    _popup_3_get_values( EXPORTING iv_popup_title    = 'Object'
-                                   iv_no_value_check = abap_true
-                         IMPORTING ev_value_1        = lv_object_type
-                                   ev_value_2        = lv_object_name
-                         CHANGING  ct_fields         = lt_fields ).
-
-    rs_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
-      iv_object   = to_upper( lv_object_type )
-      iv_obj_name = to_upper( lv_object_name ) ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_package_export.
 
     DATA: lt_fields       TYPE TABLE OF sval.
@@ -34268,7 +34257,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -34653,9 +34642,6 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD other_utilities.
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-changed_by.
-        zcl_abapgit_services_basis=>test_changed_by( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-performance_test.
         zcl_abapgit_services_basis=>run_performance_test( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -34881,8 +34867,8 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         zcl_abapgit_transport_mass=>run( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_object.                      " Export object as ZIP
-        zcl_abapgit_zip=>export_object( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        rs_handled-page  = zcl_abapgit_gui_page_ex_object=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
   ENDMETHOD.
@@ -40300,6 +40286,98 @@ CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_gui_page_ex_object IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+    mo_form = get_form_schema( ).
+    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
+  ENDMETHOD.
+
+  METHOD create.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_ex_object.
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Export Object to Files'
+      ii_child_component = lo_component ).
+  ENDMETHOD.
+
+  METHOD get_form_schema.
+    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'export-object-to-files' ).
+
+    ro_form->text(
+      iv_label       = 'Object Type'
+      iv_name        = c_id-object_type
+      iv_required    = abap_true
+      iv_upper_case  = abap_true
+      iv_side_action = c_event-choose_object_type
+    )->text(
+      iv_label       = 'Object Name'
+      iv_name        = c_id-object_name
+      iv_required    = abap_true
+      iv_upper_case  = abap_true
+    )->command(
+      iv_label       = 'Export'
+      iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action      = c_event-export
+    )->command(
+      iv_label       = 'Back'
+      iv_action      = c_event-go_back ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_gui_event_handler~on_event.
+    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+
+    CASE ii_event->mv_action.
+      WHEN c_event-go_back.
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-export.
+
+        export_object( ).
+        MESSAGE 'Object successfully exported' TYPE 'S'.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-choose_object_type.
+
+        mo_form_data->set(
+          iv_key = 'object_type'
+          iv_val = zcl_abapgit_ui_factory=>get_popups( )->popup_search_help( 'TADIR-OBJECT' ) ).
+
+        IF mo_form_data->get( 'object_type' ) IS NOT INITIAL.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+    ENDCASE.
+  ENDMETHOD.
+  METHOD export_object.
+    DATA lv_object_type TYPE trobjtype.
+    DATA lv_object_name TYPE sobj_name.
+
+    lv_object_type = mo_form_data->get( c_id-object_type ).
+    lv_object_name = mo_form_data->get( c_id-object_name ).
+
+    zcl_abapgit_zip=>export_object(
+      iv_object_type = lv_object_type
+      iv_object_name = lv_object_name ).
+  ENDMETHOD.
+
+  METHOD zif_abapgit_gui_renderable~render.
+    gui_services( )->register_event_handler( me ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( mo_form->render(
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
@@ -43560,9 +43638,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     )->add(
       iv_txt = 'Object to Files'
       iv_act = zif_abapgit_definitions=>c_action-zip_object
-    )->add(
-      iv_txt = 'Test Changed by'
-      iv_act = zif_abapgit_definitions=>c_action-changed_by
     )->add(
       iv_txt = 'Debug Info'
       iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ).
@@ -101051,6 +101126,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-12T06:18:11.249Z
+* abapmerge 0.14.3 - 2021-03-12T11:32:28.149Z
 ENDINTERFACE.
 ****************************************************
