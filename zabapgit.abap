@@ -2470,15 +2470,13 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_cts_api .
   "! Returns the transport request / task the object is currently in
   "! @parameter is_item | Object
-  "! @parameter iv_resolve_task_to_request | Return the transport request number
   "! @parameter rv_transport | Transport request / task
   "! @raising zcx_abapgit_exception | Object is not in a transport
   METHODS get_transport_for_object
     IMPORTING
-      !is_item                    TYPE zif_abapgit_definitions=>ty_item
-      !iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_false
+      !is_item            TYPE zif_abapgit_definitions=>ty_item
     RETURNING
-      VALUE(rv_transport)         TYPE trkorr
+      VALUE(rv_transport) TYPE trkorr
     RAISING
       zcx_abapgit_exception .
   "! Check if change recording is possible for the given package
@@ -4254,28 +4252,26 @@ CLASS zcl_abapgit_cts_api DEFINITION
       zif_abapgit_cts_api.
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     "! Returns the transport request / task the object is currently locked in
     "! @parameter iv_program_id | Program ID
     "! @parameter iv_object_type | Object type
     "! @parameter iv_object_name | Object name
-    "! @parameter iv_resolve_task_to_request | Return the transport request number if the object is locked in a task
     "! @parameter rv_transport | Transport request / task
     "! @raising zcx_abapgit_exception | Object is not locked in a transport
     METHODS get_current_transport_for_obj
       IMPORTING
-        !iv_program_id              TYPE pgmid DEFAULT 'R3TR'
-        !iv_object_type             TYPE trobjtype
-        !iv_object_name             TYPE sobj_name
-        !iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_true
+        !iv_program_id      TYPE pgmid DEFAULT 'R3TR'
+        !iv_object_type     TYPE trobjtype
+        !iv_object_name     TYPE sobj_name
       RETURNING
-        VALUE(rv_transport)         TYPE trkorr
+        VALUE(rv_transport) TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     "! Returns the transport request / task that includes the object (even if not locked)
     "! @parameter iv_program_id | Program ID
     "! @parameter iv_object_type | Object type
     "! @parameter iv_object_name | Object name
-    "! @parameter iv_resolve_task_to_request | Return the transport request number if the object is in a task
     "! @parameter rv_transport | Transport request / task
     "! @raising zcx_abapgit_exception | Object is not locked in a transport
     METHODS get_current_transport_from_db
@@ -4283,7 +4279,6 @@ CLASS zcl_abapgit_cts_api DEFINITION
         !iv_program_id              TYPE pgmid DEFAULT 'R3TR'
         !iv_object_type             TYPE trobjtype
         !iv_object_name             TYPE sobj_name
-        !iv_resolve_task_to_request TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(rv_transport)         TYPE trkorr
       RAISING
@@ -35316,7 +35311,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -35511,9 +35506,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
       CLEAR ls_new.
       ls_new-item      = <ls_local>-item.
-      ls_new-transport = li_cts_api->get_transport_for_object(
-        is_item                    = <ls_local>-item
-        iv_resolve_task_to_request = abap_false ).
+      ls_new-transport = li_cts_api->get_transport_for_object( <ls_local>-item ).
 
       IF ls_new-transport IS NOT INITIAL.
         INSERT ls_new INTO TABLE ct_transports.
@@ -35550,9 +35543,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         CONTINUE.
       ELSE.
         ls_new-item      = ls_item.
-        ls_new-transport = li_cts_api->get_transport_for_object(
-          is_item                    = ls_item
-          iv_resolve_task_to_request = abap_false ).
+        ls_new-transport = li_cts_api->get_transport_for_object( ls_item ).
 
         IF ls_new-transport IS NOT INITIAL.
           INSERT ls_new INTO TABLE ct_transports.
@@ -35581,6 +35572,12 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     ri_page = lo_page.
 
+  ENDMETHOD.
+  METHOD init_files.
+    ms_files = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
+    IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
+      zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
+    ENDIF.
   ENDMETHOD.
   METHOD render_actions.
 
@@ -36040,14 +36037,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
-
-  METHOD init_files.
-    ms_files = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
-    IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
-      zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
-    ENDIF.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
@@ -99486,7 +99475,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_cts_api IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
   METHOD get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
           lv_locked            TYPE abap_bool,
@@ -99524,25 +99513,17 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Object type { iv_program_id }-{ iv_object_type } not lockable| ).
     ENDIF.
 
-    IF lv_task IS NOT INITIAL AND lv_task <> lv_transport_request AND iv_resolve_task_to_request = abap_false.
-      rv_transport = lv_task.
-    ELSE.
-      rv_transport = lv_transport_request.
-    ENDIF.
+    rv_transport = lv_transport_request.
+
   ENDMETHOD.
   METHOD get_current_transport_from_db.
 
-    DATA lv_strkorr TYPE e070-strkorr.
-
     " This method is used for objects that are included in transports but not locked
     " for example, namespaces (NSPC)
-    SELECT SINGLE a~trkorr a~strkorr FROM e070 AS a JOIN e071 AS b ON a~trkorr = b~trkorr
-      INTO (rv_transport, lv_strkorr)
+    SELECT SINGLE a~trkorr FROM e070 AS a JOIN e071 AS b ON a~trkorr = b~trkorr
+      INTO rv_transport
       WHERE ( a~trstatus = 'D' OR a~trstatus = 'L' )
       AND b~pgmid = iv_program_id AND b~object = iv_object_type AND b~obj_name = iv_object_name.
-    IF sy-subrc = 0 AND iv_resolve_task_to_request = abap_true.
-      rv_transport = lv_strkorr.
-    ENDIF.
 
   ENDMETHOD.
   METHOD is_object_locked_in_transport.
@@ -99624,16 +99605,14 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
            iv_object_name = is_item-obj_name ) = abap_true.
 
         rv_transport = get_current_transport_for_obj(
-                         iv_object_type             = is_item-obj_type
-                         iv_object_name             = is_item-obj_name
-                         iv_resolve_task_to_request = iv_resolve_task_to_request ).
+                         iv_object_type = is_item-obj_type
+                         iv_object_name = is_item-obj_name ).
 
       ELSEIF is_object_type_transportable( is_item-obj_type ) = abap_true.
 
         rv_transport = get_current_transport_from_db(
-                         iv_object_type             = is_item-obj_type
-                         iv_object_name             = is_item-obj_name
-                         iv_resolve_task_to_request = iv_resolve_task_to_request ).
+                         iv_object_type = is_item-obj_type
+                         iv_object_name = is_item-obj_name  ).
 
       ENDIF.
 
@@ -101126,6 +101105,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-12T11:32:28.149Z
+* abapmerge 0.14.3 - 2021-03-13T12:30:09.008Z
 ENDINTERFACE.
 ****************************************************
