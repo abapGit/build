@@ -30681,7 +30681,7 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_basis IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   METHOD create_package.
 
     DATA ls_package_data TYPE scompkdtln.
@@ -30772,19 +30772,9 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
           lt_result               TYPE zcl_abapgit_performance_test=>ty_results,
           lo_alv                  TYPE REF TO cl_salv_table,
           lx_salv_error           TYPE REF TO cx_salv_error,
-          lv_current_repo         TYPE zif_abapgit_persistence=>ty_value,
           lo_runtime_column       TYPE REF TO cl_salv_column,
           lo_seconds_column       TYPE REF TO cl_salv_column,
           li_popups               TYPE REF TO zif_abapgit_popups.
-
-    TRY.
-        lv_current_repo = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
-        IF lv_current_repo IS NOT INITIAL.
-          lv_package = zcl_abapgit_repo_srv=>get_instance( )->get( lv_current_repo )->get_package( ).
-        ENDIF.
-      CATCH zcx_abapgit_exception ##NO_HANDLER.
-    ENDTRY.
-
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_perf_test_parameters(
       IMPORTING
@@ -101101,6 +101091,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-15T14:31:20.385Z
+* abapmerge 0.14.3 - 2021-03-15T14:55:57.018Z
 ENDINTERFACE.
 ****************************************************
