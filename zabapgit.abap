@@ -52532,7 +52532,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD class_constructor.
 
     DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
@@ -52544,7 +52544,8 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
       FROM seometarel
       INTO TABLE lt_plugin_class
       WHERE refclsname LIKE 'ZCL_ABAPGITP_OBJECT%'
-      AND version = '1'.                                  "#EC CI_SUBRC
+      AND version = '1'
+      ORDER BY clsname.                                   "#EC CI_SUBRC
 
     CLEAR gt_objtype_map.
     LOOP AT lt_plugin_class INTO lv_plugin_class
@@ -56120,18 +56121,21 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
                           iv_ext    = 'xml'
                           iv_string = lv_xml_string ).
 
-    SELECT * FROM wdy_config_compt INTO TABLE lt_otr_texts WHERE config_id   = ls_orig_config-config_id
-                                                             AND config_type = ls_orig_config-config_type
-                                                             AND config_var  = ls_orig_config-config_var.
-
+    SELECT * FROM wdy_config_compt INTO TABLE lt_otr_texts
+      WHERE config_id   = ls_orig_config-config_id
+      AND config_type = ls_orig_config-config_type
+      AND config_var  = ls_orig_config-config_var
+      ORDER BY PRIMARY KEY.
     IF lt_otr_texts IS NOT INITIAL.
       io_xml->add( iv_name = 'OTR_TEXT'
                    ig_data = lt_otr_texts ).
     ENDIF.
 
-    SELECT * FROM wdy_config_datt INTO TABLE lt_cc_text WHERE config_id   = ls_orig_config-config_id
-                                                          AND config_type = ls_orig_config-config_type
-                                                          AND config_var  = ls_orig_config-config_var.
+    SELECT * FROM wdy_config_datt INTO TABLE lt_cc_text
+      WHERE config_id   = ls_orig_config-config_id
+      AND config_type = ls_orig_config-config_type
+      AND config_var  = ls_orig_config-config_var
+      ORDER BY PRIMARY KEY.
     IF lt_cc_text IS NOT INITIAL.
       io_xml->add( iv_name = 'DESCR_LANG'
                    ig_data = lt_cc_text ).
@@ -56611,13 +56615,12 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
           ls_latest LIKE LINE OF lt_pages.
     lv_name = ms_item-obj_name.
 
-    SELECT * FROM o2pagdir INTO TABLE lt_pages WHERE applname = lv_name.
+    SELECT * FROM o2pagdir INTO TABLE lt_pages WHERE applname = lv_name
+      ORDER BY changedon DESCENDING changetime DESCENDING.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
       RETURN.
     ENDIF.
-
-    SORT lt_pages BY changedon DESCENDING changetime DESCENDING.
 
     READ TABLE lt_pages INDEX 1 INTO ls_latest.
     ASSERT sy-subrc = 0.
@@ -58439,7 +58442,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
   METHOD access_free.
 
     " Release the lock on the object.
@@ -58714,9 +58717,10 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     SELECT * FROM dm41s
       INTO TABLE lt_udmo_entities
       WHERE dmoid = mv_data_model
-      AND as4local = mv_activation_state.
-    LOOP AT lt_udmo_entities ASSIGNING <ls_udmo_entity>.
+      AND as4local = mv_activation_state
+      ORDER BY PRIMARY KEY.
 
+    LOOP AT lt_udmo_entities ASSIGNING <ls_udmo_entity>.
       " You are reminded that administrative information, such as last changed by user, date, time is not serialised.
       CLEAR <ls_udmo_entity>-lstuser.
       CLEAR <ls_udmo_entity>-lstdate.
@@ -58724,7 +58728,6 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       CLEAR <ls_udmo_entity>-fstuser.
       CLEAR <ls_udmo_entity>-fstdate.
       CLEAR <ls_udmo_entity>-fsttime.
-
     ENDLOOP.
 
     " You are reminded that descriptions in other languages do not have to be in existence, although they may.
@@ -60275,7 +60278,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
   METHOD delete_extra.
 
     DELETE FROM tddat WHERE tabname = iv_tabname.
@@ -60290,7 +60293,8 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     SELECT SINGLE * FROM tvdir INTO rs_tobj-tvdir WHERE tabname = iv_tabname.
     CLEAR: rs_tobj-tvdir-gendate, rs_tobj-tvdir-gentime, rs_tobj-tvdir-devclass.
 
-    SELECT * FROM tvimf INTO TABLE rs_tobj-tvimf WHERE tabname = iv_tabname.
+    SELECT * FROM tvimf INTO TABLE rs_tobj-tvimf WHERE tabname = iv_tabname
+      ORDER BY PRIMARY KEY.
 
   ENDMETHOD.
   METHOD update_extra.
@@ -62986,9 +62990,10 @@ CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
            ls_transaction_variant-shdtvciu-chuser.
 
     SELECT *
-    FROM shdttciu
-    INTO TABLE ls_transaction_variant-shdttciu[]
-    WHERE tcvariant = ls_transaction_variant-shdtvciu-tcvariant.
+      FROM shdttciu
+      INTO TABLE ls_transaction_variant-shdttciu[]
+      WHERE tcvariant = ls_transaction_variant-shdtvciu-tcvariant
+      ORDER BY PRIMARY KEY.
 
     io_xml->add( iv_name = 'STVI'
                  ig_data = ls_transaction_variant ).
@@ -80852,7 +80857,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_dial IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -80998,13 +81003,14 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: ls_dialog_module TYPE ty_dialog_module.
+    DATA ls_dialog_module TYPE ty_dialog_module.
 
     ls_dialog_module-tdct = _read_tdct( ).
 
     SELECT * FROM diapar
-             INTO TABLE ls_dialog_module-dia_pars
-             WHERE dnam = ls_dialog_module-tdct-dnam.
+      INTO TABLE ls_dialog_module-dia_pars
+      WHERE dnam = ls_dialog_module-tdct-dnam
+      ORDER BY PRIMARY KEY.
 
     io_xml->add( iv_name = 'DIAL'
                  ig_data = ls_dialog_module ).
@@ -83381,19 +83387,22 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    SELECT * FROM modact INTO TABLE lt_modact WHERE name = ms_item-obj_name.
+    SELECT * FROM modact INTO TABLE lt_modact WHERE name = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'MODACT'
                    ig_data = lt_modact ).
     ENDIF.
 
-    SELECT * FROM modtext INTO TABLE lt_modtext WHERE name = ms_item-obj_name AND sprsl = mv_language.
+    SELECT * FROM modtext INTO TABLE lt_modtext WHERE name = ms_item-obj_name AND sprsl = mv_language
+      ORDER BY PRIMARY KEY.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'MODTEXT'
                    ig_data = lt_modtext ).
     ENDIF.
 
-    SELECT * FROM modattr INTO TABLE lt_modattr WHERE name = ms_item-obj_name.
+    SELECT * FROM modattr INTO TABLE lt_modattr WHERE name = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
     IF sy-subrc = 0.
       LOOP AT lt_modattr ASSIGNING <ls_modattr>.
         CLEAR:
@@ -84318,7 +84327,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_char IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
   METHOD instantiate_char_and_lock.
 
     DATA: lv_new  TYPE abap_bool,
@@ -84546,15 +84555,18 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
 
     SELECT * FROM cls_attributet INTO TABLE ls_char-cls_attributet
       WHERE name = ms_item-obj_name
-      AND activation_state = lc_active.
+      AND activation_state = lc_active
+      ORDER BY PRIMARY KEY.
 
     SELECT * FROM cls_attr_value INTO TABLE ls_char-cls_attr_value
       WHERE name = ms_item-obj_name
-      AND activation_state = lc_active.
+      AND activation_state = lc_active
+      ORDER BY PRIMARY KEY.
 
     SELECT * FROM cls_attr_valuet INTO TABLE ls_char-cls_attr_valuet
       WHERE name = ms_item-obj_name
-      AND activation_state = lc_active.
+      AND activation_state = lc_active
+      ORDER BY PRIMARY KEY.
 
     io_xml->add( iv_name = 'CHAR'
                  ig_data = ls_char ).
@@ -101105,6 +101117,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-13T12:30:09.008Z
+* abapmerge 0.14.3 - 2021-03-15T14:26:10.894Z
 ENDINTERFACE.
 ****************************************************
