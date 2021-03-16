@@ -38513,7 +38513,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -38681,6 +38681,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_check_link      TYPE string,
       lv_text            TYPE string,
       lv_settings_link   TYPE string.
+    DATA lv_new_length TYPE i.
 
     FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
 
@@ -38718,6 +38719,10 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         lv_text = <ls_overview>-url.
         REPLACE FIRST OCCURRENCE OF 'https://' IN lv_text WITH ''.
         REPLACE FIRST OCCURRENCE OF 'http://' IN lv_text WITH ''.
+        IF lv_text CP '*.git'.
+          lv_new_length = strlen( lv_text ) - 4.
+          lv_text  = lv_text(lv_new_length).
+        ENDIF.
         ii_html->add( |<td>{ ii_html->a(
           iv_txt   = lv_text
           iv_title = <ls_overview>-url
@@ -38810,7 +38815,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ii_html->add( |</tbody>| ).
 
   ENDMETHOD.
-
   METHOD render_table_header.
 
     CLEAR mt_col_spec.
@@ -101091,6 +101095,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-15T14:55:57.018Z
+* abapmerge 0.14.3 - 2021-03-16T15:52:18.449Z
 ENDINTERFACE.
 ****************************************************
