@@ -196,7 +196,6 @@ CLASS zcl_abapgit_gui_event DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_css_processor DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui DEFINITION DEFERRED.
-CLASS zcl_abapgit_performance_test DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_txt DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_json DEFINITION DEFERRED.
@@ -2267,9 +2266,6 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
                                           WITH DEFAULT KEY .
-  TYPES:
-    ty_object_type_range TYPE RANGE OF trobjtype,
-    ty_object_name_range TYPE RANGE OF sobj_name.
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -3544,16 +3540,6 @@ INTERFACE zif_abapgit_popups .
       !it_pulls      TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
     RETURNING
       VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
-    RAISING
-      zcx_abapgit_exception .
-  METHODS popup_perf_test_parameters
-    EXPORTING
-      !et_object_type_filter   TYPE zif_abapgit_definitions=>ty_object_type_range
-      !et_object_name_filter   TYPE zif_abapgit_definitions=>ty_object_name_range
-    CHANGING
-      !cv_package              TYPE devclass
-      !cv_include_sub_packages TYPE abap_bool
-      !cv_main_language_only   TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -13546,62 +13532,6 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
 
   PRIVATE SECTION.
 ENDCLASS.
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION DEFERRED.
-*"* use this source file for any type of declarations (class
-*"* definitions, interfaces or type declarations) you need for
-*"* components in the private section
-
-* renamed: zcl_abapgit_performance_test :: lcl_dummy_progress
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX DEFINITION.
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_progress.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
-
-"! Performance test run
-CLASS zcl_abapgit_performance_test DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    TYPES:
-      BEGIN OF ty_result,
-        pgmid    TYPE pgmid,
-        object   TYPE trobjtype,
-        obj_name TYPE sobj_name,
-        devclass TYPE devclass,
-        counter  TYPE i,
-        runtime  TYPE i,
-        seconds  TYPE p LENGTH 16 DECIMALS 6,
-      END OF ty_result,
-      ty_results TYPE STANDARD TABLE OF ty_result WITH KEY pgmid object obj_name.
-    METHODS:
-      constructor IMPORTING iv_package                    TYPE devclass
-                            iv_include_sub_packages       TYPE abap_bool DEFAULT abap_true
-                            iv_main_language_only TYPE abap_bool DEFAULT abap_true,
-      set_object_type_filter IMPORTING it_object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
-      set_object_name_filter IMPORTING it_object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
-      get_object_type_filter RETURNING VALUE(rt_object_type_range) TYPE zif_abapgit_definitions=>ty_object_type_range,
-      get_object_name_filter RETURNING VALUE(rt_object_name_range) TYPE zif_abapgit_definitions=>ty_object_name_range,
-      run_measurement RAISING zcx_abapgit_exception,
-      get_result RETURNING VALUE(rt_result) TYPE ty_results.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    METHODS:
-      select_tadir_entries RETURNING VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
-                           RAISING   zcx_abapgit_exception.
-    DATA:
-      mv_package                    TYPE devclass,
-      mv_include_sub_packages       TYPE abap_bool,
-      mv_main_language_only TYPE abap_bool,
-      BEGIN OF ms_filter_parameters,
-        object_type_range TYPE zif_abapgit_definitions=>ty_object_type_range,
-        object_name_range TYPE zif_abapgit_definitions=>ty_object_name_range,
-      END OF ms_filter_parameters,
-      mt_result TYPE ty_results.
-ENDCLASS.
 CLASS zcl_abapgit_gui DEFINITION
   CREATE PUBLIC .
 
@@ -17482,15 +17412,7 @@ CLASS zcl_abapgit_popups DEFINITION
                 ev_value_3        TYPE spo_value
       CHANGING  ct_fields         TYPE ty_lt_fields
       RAISING   zcx_abapgit_exception.
-    METHODS popup_get_from_free_selections
-      IMPORTING
-        iv_title      TYPE zcl_abapgit_free_sel_dialog=>ty_syst_title OPTIONAL
-        iv_frame_text TYPE zcl_abapgit_free_sel_dialog=>ty_syst_title OPTIONAL
-      CHANGING
-        ct_fields     TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field_tab
-      RAISING
-        zcx_abapgit_cancel
-        zcx_abapgit_exception.
+
     METHODS validate_folder_logic
       IMPORTING
         iv_folder_logic TYPE string
@@ -17547,20 +17469,17 @@ CLASS zcl_abapgit_services_basis DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS create_package
       IMPORTING
-        iv_prefill_package TYPE devclass OPTIONAL
+        !iv_prefill_package TYPE devclass OPTIONAL
       RETURNING
-        VALUE(rv_package)  TYPE devclass
+        VALUE(rv_package)   TYPE devclass
       RAISING
-        zcx_abapgit_exception.
-    CLASS-METHODS run_performance_test
-      RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS open_ie_devtools
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS raise_error_if_package_exists
@@ -30762,69 +30681,6 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD run_performance_test.
-    DATA: lo_performance          TYPE REF TO zcl_abapgit_performance_test,
-          lv_package              TYPE devclass,
-          lv_include_sub_packages TYPE abap_bool VALUE abap_true,
-          lv_main_language_only   TYPE abap_bool VALUE abap_true,
-          lt_object_type_filter   TYPE zif_abapgit_definitions=>ty_object_type_range,
-          lt_object_name_filter   TYPE zif_abapgit_definitions=>ty_object_name_range,
-          lt_result               TYPE zcl_abapgit_performance_test=>ty_results,
-          lo_alv                  TYPE REF TO cl_salv_table,
-          lx_salv_error           TYPE REF TO cx_salv_error,
-          lo_runtime_column       TYPE REF TO cl_salv_column,
-          lo_seconds_column       TYPE REF TO cl_salv_column,
-          li_popups               TYPE REF TO zif_abapgit_popups.
-    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    li_popups->popup_perf_test_parameters(
-      IMPORTING
-        et_object_type_filter   = lt_object_type_filter
-        et_object_name_filter   = lt_object_name_filter
-      CHANGING
-        cv_package              = lv_package
-        cv_include_sub_packages = lv_include_sub_packages
-        cv_main_language_only   = lv_main_language_only ).
-
-    CREATE OBJECT lo_performance
-      EXPORTING
-        iv_package              = lv_package
-        iv_include_sub_packages = lv_include_sub_packages
-        iv_main_language_only   = lv_main_language_only.
-    lo_performance->set_object_type_filter( lt_object_type_filter ).
-    lo_performance->set_object_name_filter( lt_object_name_filter ).
-
-    lo_performance->run_measurement( ).
-
-    lt_result = lo_performance->get_result( ).
-
-    TRY.
-        cl_salv_table=>factory(
-          IMPORTING
-            r_salv_table = lo_alv
-          CHANGING
-            t_table      = lt_result ).
-        lo_alv->get_functions( )->set_all( ).
-        lo_alv->get_display_settings( )->set_list_header( 'Serialization Performance Test Results' ).
-        lo_runtime_column = lo_alv->get_columns( )->get_column( 'RUNTIME' ).
-        lo_runtime_column->set_medium_text( 'Runtime' ).
-        lo_runtime_column->set_visible( abap_false ).
-        lo_seconds_column = lo_alv->get_columns( )->get_column( 'SECONDS' ).
-        lo_seconds_column->set_medium_text( 'Seconds' ).
-        lo_alv->get_columns( )->set_count_column( 'COUNTER' ).
-        lo_alv->get_aggregations( )->add_aggregation( lo_runtime_column->get_columnname( ) ).
-        lo_alv->get_aggregations( )->add_aggregation( lo_seconds_column->get_columnname( ) ).
-        lo_alv->set_screen_popup(
-          start_column = 1
-          end_column   = 180
-          start_line   = 1
-          end_line     = 25 ).
-        lo_alv->display( ).
-      CATCH cx_salv_error INTO lx_salv_error.
-        zcx_abapgit_exception=>raise(
-          iv_text     = lx_salv_error->get_text( )
-          ix_previous = lx_salv_error ).
-    ENDTRY.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
@@ -31056,7 +30912,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_popups IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31342,17 +31198,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     mo_select_list_popup->refresh( ).
 
-  ENDMETHOD.
-  METHOD popup_get_from_free_selections.
-    DATA: lo_free_sel_dialog TYPE REF TO zcl_abapgit_free_sel_dialog.
-
-    CREATE OBJECT lo_free_sel_dialog
-      EXPORTING
-        iv_title      = iv_title
-        iv_frame_text = iv_frame_text.
-
-    lo_free_sel_dialog->set_fields( CHANGING ct_fields = ct_fields ).
-    lo_free_sel_dialog->show( ).
   ENDMETHOD.
   METHOD validate_folder_logic.
 
@@ -31657,7 +31502,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_popups~popup_package_export.
 
     DATA: lt_fields       TYPE TABLE OF sval.
@@ -31697,73 +31541,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       CATCH zcx_abapgit_cancel.
     ENDTRY.
 
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_perf_test_parameters.
-    DATA: lt_fields TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field_tab.
-    FIELD-SYMBOLS: <ls_field> TYPE zcl_abapgit_free_sel_dialog=>ty_free_sel_field.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'PACKAGE'.
-    <ls_field>-only_parameter = abap_true.
-    <ls_field>-ddic_tabname = 'TADIR'.
-    <ls_field>-ddic_fieldname = 'DEVCLASS'.
-    <ls_field>-param_obligatory = abap_true.
-    <ls_field>-value = cv_package.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'PGMID'.
-    <ls_field>-only_parameter = abap_true.
-    <ls_field>-ddic_tabname = 'TADIR'.
-    <ls_field>-ddic_fieldname = 'PGMID'.
-    <ls_field>-value = 'R3TR'.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'OBJECT'.
-    <ls_field>-ddic_tabname = 'TADIR'.
-    <ls_field>-ddic_fieldname = 'OBJECT'.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'OBJ_NAME'.
-    <ls_field>-ddic_tabname = 'TADIR'.
-    <ls_field>-ddic_fieldname = 'OBJ_NAME'.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'INCLUDE_SUB_PACKAGES'.
-    <ls_field>-only_parameter = abap_true.
-    <ls_field>-ddic_tabname = 'TDEVC'.
-    <ls_field>-ddic_fieldname = 'IS_ENHANCEABLE'.
-    <ls_field>-text = 'Include subpackages'.
-    <ls_field>-value = cv_include_sub_packages.
-
-    APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
-    <ls_field>-name = 'MAIN_LANG_ONLY'.
-    <ls_field>-only_parameter = abap_true.
-    <ls_field>-ddic_tabname = 'TVDIR'.
-    <ls_field>-ddic_fieldname = 'FLAG'.
-    <ls_field>-text = 'Main language only'.
-    <ls_field>-value = cv_main_language_only.
-
-    popup_get_from_free_selections(
-      EXPORTING
-        iv_title       = 'Serialization Performance Test Parameters'
-        iv_frame_text  = 'Parameters'
-      CHANGING
-        ct_fields      = lt_fields ).
-
-    LOOP AT lt_fields ASSIGNING <ls_field>.
-      CASE <ls_field>-name.
-        WHEN 'PACKAGE'.
-          cv_package = <ls_field>-value.
-        WHEN 'OBJECT'.
-          et_object_type_filter = <ls_field>-value_range.
-        WHEN 'OBJ_NAME'.
-          et_object_name_filter = <ls_field>-value_range.
-        WHEN 'INCLUDE_SUB_PACKAGES'.
-          cv_include_sub_packages = boolc( <ls_field>-value IS NOT INITIAL ).
-        WHEN 'MAIN_LANG_ONLY'.
-          cv_main_language_only = boolc( <ls_field>-value IS NOT INITIAL ).
-      ENDCASE.
-    ENDLOOP.
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_search_help.
 
@@ -34236,7 +34013,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -34620,14 +34397,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD other_utilities.
 
-    CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-performance_test.
-        zcl_abapgit_services_basis=>run_performance_test( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-      WHEN zif_abapgit_definitions=>c_action-ie_devtools.
-        zcl_abapgit_services_basis=>open_ie_devtools( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-    ENDCASE.
+    IF ii_event->mv_action = zif_abapgit_definitions=>c_action-ie_devtools.
+      zcl_abapgit_services_basis=>open_ie_devtools( ).
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+    ENDIF.
 
   ENDMETHOD.
   METHOD remote_origin_manipulations.
@@ -43593,7 +43366,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -43624,10 +43397,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
         iv_txt = 'Open IE DevTools'
         iv_act = zif_abapgit_definitions=>c_action-ie_devtools ).
     ENDIF.
-
-    ro_menu->add(
-      iv_txt = 'Performance Test'
-      iv_act = zif_abapgit_definitions=>c_action-performance_test ).
 
   ENDMETHOD.
   METHOD class_constructor.
@@ -46732,103 +46501,6 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD zif_abapgit_gui_services~register_event_handler.
     ASSERT ii_event_handler IS BOUND.
     INSERT ii_event_handler INTO mt_event_handlers INDEX 1.
-  ENDMETHOD.
-ENDCLASS.
-
-*"* use this source file for the definition and implementation of
-*"* local helper classes, interface definitions and type
-*"* declarations
-CLASS kHGwlHkHxZmEuFZbkdsccOjvsqAbPX IMPLEMENTATION.
-  METHOD zif_abapgit_progress~set_total.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_progress~show.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_progress~off.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_performance_test IMPLEMENTATION.
-  METHOD constructor.
-    mv_package = iv_package.
-    mv_include_sub_packages = iv_include_sub_packages.
-    mv_main_language_only = iv_main_language_only.
-  ENDMETHOD.
-  METHOD get_object_name_filter.
-    rt_object_name_range = ms_filter_parameters-object_name_range.
-  ENDMETHOD.
-  METHOD get_object_type_filter.
-    rt_object_type_range = ms_filter_parameters-object_type_range.
-  ENDMETHOD.
-  METHOD get_result.
-    rt_result = mt_result.
-  ENDMETHOD.
-  METHOD run_measurement.
-    DATA: li_actual_progress TYPE REF TO zif_abapgit_progress,
-          lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tadir_single    TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lo_serializer      TYPE REF TO zcl_abapgit_serialize,
-          lv_start_runtime   TYPE i,
-          lv_end_runtime     TYPE i,
-          lx_exception       TYPE REF TO zcx_abapgit_exception,
-          lo_dummy_progress  TYPE REF TO kHGwlHkHxZmEuFZbkdsccOjvsqAbPX.
-    FIELD-SYMBOLS: <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir,
-                   <ls_result> TYPE ty_result.
-
-    CLEAR mt_result.
-
-    li_actual_progress = zcl_abapgit_progress=>get_instance( 1 ).
-    CREATE OBJECT lo_dummy_progress.
-    zcl_abapgit_progress=>set_instance( lo_dummy_progress ).
-
-    TRY.
-        lt_tadir = select_tadir_entries( ).
-
-        CREATE OBJECT lo_serializer
-          EXPORTING
-            iv_serialize_master_lang_only = mv_main_language_only.
-
-        LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-          INSERT <ls_tadir> INTO TABLE lt_tadir_single.
-
-          GET RUN TIME FIELD lv_start_runtime.
-
-          lo_serializer->serialize(
-            it_tadir            = lt_tadir_single
-            iv_force_sequential = abap_true ).
-
-          GET RUN TIME FIELD lv_end_runtime.
-
-          APPEND INITIAL LINE TO mt_result ASSIGNING <ls_result>.
-          <ls_result>-pgmid = <ls_tadir>-pgmid.
-          <ls_result>-object = <ls_tadir>-object.
-          <ls_result>-obj_name = <ls_tadir>-obj_name.
-          <ls_result>-devclass = <ls_tadir>-devclass.
-          <ls_result>-runtime = lv_end_runtime - lv_start_runtime.
-          <ls_result>-seconds = <ls_result>-runtime / 1000000.
-
-          CLEAR lt_tadir_single.
-        ENDLOOP.
-
-      CATCH zcx_abapgit_exception INTO lx_exception.
-        zcl_abapgit_progress=>set_instance( li_actual_progress ).
-        RAISE EXCEPTION lx_exception.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD select_tadir_entries.
-    rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = mv_package
-      iv_ignore_subpackages = boolc( mv_include_sub_packages = abap_false ) ).
-
-    DELETE rt_tadir WHERE object NOT IN ms_filter_parameters-object_type_range
-                       OR obj_name NOT IN ms_filter_parameters-object_name_range.
-  ENDMETHOD.
-  METHOD set_object_name_filter.
-    ms_filter_parameters-object_name_range = it_object_name_range.
-  ENDMETHOD.
-  METHOD set_object_type_filter.
-    ms_filter_parameters-object_type_range = it_object_type_range.
   ENDMETHOD.
 ENDCLASS.
 
@@ -101097,6 +100769,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-17T06:11:44.732Z
+* abapmerge 0.14.3 - 2021-03-17T06:14:01.950Z
 ENDINTERFACE.
 ****************************************************
