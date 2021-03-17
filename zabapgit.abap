@@ -50128,8 +50128,10 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
     " Check if repo exists
     TRY.
-        lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( rv_key ).
-      CATCH zcx_abapgit_exception.
+        zcl_abapgit_persistence_db=>get_instance( )->read(
+          iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+          iv_value = rv_key ).
+      CATCH zcx_abapgit_not_found.
         " remove invalid key
         CLEAR rv_key.
         zif_abapgit_persist_user~set_repo_show( rv_key ).
@@ -101095,6 +101097,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-16T15:57:19.080Z
+* abapmerge 0.14.3 - 2021-03-17T06:11:44.732Z
 ENDINTERFACE.
 ****************************************************
