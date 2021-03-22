@@ -164,6 +164,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
@@ -3425,13 +3426,6 @@ INTERFACE zif_abapgit_popups .
       !iv_tab_field   TYPE string
     RETURNING
       VALUE(rv_value) TYPE ddshretval-fieldval
-    RAISING
-      zcx_abapgit_exception .
-  METHODS popup_package_export
-    EXPORTING
-      !ev_package                    TYPE devclass
-      !ev_folder_logic               TYPE string
-      !ev_serialize_master_lang_only TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS popup_folder_logic
@@ -15336,6 +15330,52 @@ CLASS zcl_abapgit_gui_page_ex_object DEFINITION
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_id,
+        package        TYPE string VALUE 'package',
+        folder_logic   TYPE string VALUE 'folder_logic',
+        main_lang_only TYPE string VALUE 'main_lang_only',
+      END OF c_id.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        go_back        TYPE string VALUE 'go-back',
+        export_package TYPE string VALUE 'export-package',
+        choose_package TYPE string VALUE 'choose-object-type',
+      END OF c_event.
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
+
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+
+    METHODS export_package
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
   FINAL
@@ -19412,11 +19452,12 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS export_package
-      EXPORTING
-        !ev_xstr    TYPE xstring
-        !ev_package TYPE devclass
+      IMPORTING
+        VALUE(iv_package) TYPE devclass
+        iv_folder_logic   TYPE string
+        iv_main_lang_only TYPE abap_bool
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     CLASS-METHODS load
       IMPORTING
         !iv_xstr        TYPE xstring
@@ -20231,34 +20272,36 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
   ENDMETHOD.
   METHOD export_package.
 
-    DATA: ls_local_settings             TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lo_dot_abapgit                TYPE REF TO zcl_abapgit_dot_abapgit,
-          li_popups                     TYPE REF TO zif_abapgit_popups,
-          lv_folder_logic               TYPE string,
-          lv_package                    TYPE devclass,
-          lv_serialize_master_lang_only TYPE abap_bool.
-    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    li_popups->popup_package_export(
-      IMPORTING
-        ev_package                    = lv_package
-        ev_folder_logic               = lv_folder_logic
-        ev_serialize_master_lang_only = lv_serialize_master_lang_only ).
-    IF lv_package IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
+    DATA: ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          lo_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit,
+          lo_frontend_serv  TYPE REF TO zif_abapgit_frontend_services,
+          lv_default        TYPE string,
+          lv_path           TYPE string,
+          lv_zip_xstring    TYPE xstring.
 
-    ls_local_settings-serialize_master_lang_only = lv_serialize_master_lang_only.
+    ls_local_settings-serialize_master_lang_only = iv_main_lang_only.
 
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
-    lo_dot_abapgit->set_folder_logic( lv_folder_logic ).
+    lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
 
-    ev_xstr = export(
-      is_local_settings = ls_local_settings
-      iv_package        = lv_package
-      io_dot_abapgit    = lo_dot_abapgit ).
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
-    ev_package = lv_package.
+    REPLACE ALL OCCURRENCES OF '/' IN iv_package WITH '#'.
+    lv_default = |{ iv_package }_{ sy-datlo }_{ sy-timlo }|.
 
+    lv_zip_xstring = export(
+     is_local_settings = ls_local_settings
+     iv_package        = iv_package
+     io_dot_abapgit    = lo_dot_abapgit ).
+
+    lv_path = lo_frontend_serv->show_file_save_dialog(
+        iv_title            = 'Package Export'
+        iv_extension        = 'zip'
+        iv_default_filename = lv_default ).
+
+    lo_frontend_serv->file_download(
+        iv_path = lv_path
+        iv_xstr = lv_zip_xstring ).
   ENDMETHOD.
   METHOD filename.
 
@@ -31561,46 +31604,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_package_export.
 
-    DATA: lt_fields       TYPE TABLE OF sval.
-    DATA: lv_package      TYPE spo_value.
-    DATA: lv_folder_logic TYPE spo_value.
-    DATA: lv_serialize_master_lang_only TYPE spo_value.
-
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'DEVCLASS'
-                         iv_fieldtext = 'Package'
-               CHANGING  ct_fields    = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TDEVC'
-                         iv_fieldname = 'INTSYS'
-                         iv_fieldtext = 'Folder logic'
-                         iv_value     = 'PREFIX'
-               CHANGING  ct_fields    = lt_fields ).
-
-    add_field( EXPORTING iv_tabname   = 'TVDIR'
-                         iv_fieldname = 'FLAG'
-                         iv_fieldtext = 'Main language only'
-               CHANGING  ct_fields    = lt_fields ).
-
-    TRY.
-
-        _popup_3_get_values( EXPORTING iv_popup_title    = 'Export package'
-                                       iv_no_value_check = abap_true
-                             IMPORTING ev_value_1        = lv_package
-                                       ev_value_2        = lv_folder_logic
-                                       ev_value_3        = lv_serialize_master_lang_only
-                             CHANGING  ct_fields         = lt_fields ).
-
-        ev_package = to_upper( lv_package ).
-        ev_folder_logic = to_upper( lv_folder_logic ).
-        ev_serialize_master_lang_only = boolc( lv_serialize_master_lang_only IS NOT INITIAL ).
-
-      CATCH zcx_abapgit_cancel.
-    ENDTRY.
-
-  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_search_help.
 
     DATA lt_ret TYPE TABLE OF ddshretval.
@@ -34072,7 +34076,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -34625,11 +34629,10 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip_services.
 
-    DATA: lv_key     TYPE zif_abapgit_persistence=>ty_repo-key,
-          lo_repo    TYPE REF TO zcl_abapgit_repo,
-          lv_package TYPE devclass,
-          lv_path    TYPE string,
-          lv_xstr    TYPE xstring.
+    DATA: lv_key  TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_repo TYPE REF TO zcl_abapgit_repo,
+          lv_path TYPE string,
+          lv_xstr TYPE xstring.
 
     CONSTANTS:
       BEGIN OF lc_page,
@@ -34668,12 +34671,8 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
                        iv_xstr    = lv_xstr ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-zip_package.                     " Export package as ZIP
-        zcl_abapgit_zip=>export_package( IMPORTING
-          ev_xstr    = lv_xstr
-          ev_package = lv_package ).
-        file_download( iv_package = lv_package
-                       iv_xstr    = lv_xstr ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        rs_handled-page  = zcl_abapgit_gui_page_ex_pckage=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-zip_transport.                   " Export transports as ZIP
         zcl_abapgit_transport_mass=>run( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -40190,6 +40189,111 @@ CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    CREATE OBJECT mo_validation_log.
+    CREATE OBJECT mo_form_data.
+    mo_form = get_form_schema( ).
+    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
+  ENDMETHOD.
+  METHOD create.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_ex_pckage.
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Export Package to ZIP'
+      ii_child_component = lo_component ).
+  ENDMETHOD.
+  METHOD get_form_schema.
+    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'export-object-to-files' ).
+
+    ro_form->text(
+      iv_name          = c_id-package
+      iv_label         = 'Package'
+      iv_required      = abap_true
+      iv_upper_case    = abap_true
+      iv_side_action   = c_event-choose_package
+    )->radio(
+      iv_name          = c_id-folder_logic
+      iv_label         = 'Folder Logic'
+      iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      iv_hint          = 'Define how package folders are named in repository'
+    )->option(
+      iv_label         = 'Prefix'
+      iv_value         = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+    )->option(
+      iv_label         = 'Full'
+      iv_value         = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->checkbox(
+      iv_name          = c_id-main_lang_only
+      iv_label         = 'Serialize Main Language Only'
+      iv_hint          = 'Ignore translations, serialize just main language'
+    )->command(
+      iv_label         = 'Export Package to ZIP'
+      iv_action        = c_event-export_package
+      iv_cmd_type      = zif_abapgit_html_form=>c_cmd_type-input_main
+    )->command(
+      iv_label         = 'Back'
+      iv_action        = c_event-go_back ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+    gui_services( )->register_event_handler( me ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( mo_form->render(
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+
+    CASE ii_event->mv_action.
+      WHEN c_event-go_back.
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-export_package.
+
+        mo_validation_log = mo_form_util->validate( mo_form_data ).
+        IF mo_validation_log->is_empty( ) = abap_false.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          export_package( ).
+          MESSAGE 'Package successfully exported' TYPE 'S'.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+        ENDIF.
+
+      WHEN c_event-choose_package.
+
+        mo_form_data->set(
+          iv_key = c_id-package
+          iv_val = zcl_abapgit_ui_factory=>get_popups( )->popup_search_help( 'TDEVC-DEVCLASS' ) ).
+
+        IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ENDIF.
+    ENDCASE.
+  ENDMETHOD.
+  METHOD export_package.
+    DATA lv_package TYPE devclass.
+    DATA lv_folder_logic TYPE string.
+    DATA lv_main_lang_only TYPE abap_bool.
+
+    lv_package        = mo_form_data->get( c_id-package ).
+    lv_folder_logic   = mo_form_data->get( c_id-folder_logic ).
+    lv_main_lang_only = mo_form_data->get( c_id-main_lang_only ).
+
+    zcl_abapgit_zip=>export_package(
+        iv_package        = lv_package
+        iv_folder_logic   = lv_folder_logic
+        iv_main_lang_only = lv_main_lang_only ).
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_gui_page_ex_object IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -40248,10 +40352,10 @@ CLASS zcl_abapgit_gui_page_ex_object IMPLEMENTATION.
       WHEN c_event-choose_object_type.
 
         mo_form_data->set(
-          iv_key = 'object_type'
+          iv_key = c_id-object_type
           iv_val = zcl_abapgit_ui_factory=>get_popups( )->popup_search_help( 'TADIR-OBJECT' ) ).
 
-        IF mo_form_data->get( 'object_type' ) IS NOT INITIAL.
+        IF mo_form_data->get( c_id-object_type ) IS NOT INITIAL.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ELSE.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -100924,6 +101028,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-22T12:16:06.768Z
+* abapmerge 0.14.3 - 2021-03-22T12:19:04.309Z
 ENDINTERFACE.
 ****************************************************
