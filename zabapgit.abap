@@ -91665,7 +91665,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
     " Make sure that all changes are committed since any activation error will lead to a rollback
@@ -91716,10 +91716,11 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
 
       CALL FUNCTION 'DD_MASS_ACT_C3'
         EXPORTING
-          ddmode         = 'O'
-          medium         = 'T' " transport order
-          device         = 'T' " saves to table DDRPH?
-          version        = 'M' " activate newest
+          ddmode         = 'O'         " activate changes in Original System
+          frcact         = abap_true   " force Activation
+          medium         = 'T'         " transport order
+          device         = 'T'         " saves to table DDRPH?
+          version        = 'M'         " activate newest version
           logname        = lv_logname
           write_log      = abap_true
           log_head_tail  = abap_true
@@ -100891,6 +100892,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-18T18:09:03.493Z
+* abapmerge 0.14.3 - 2021-03-22T12:13:56.104Z
 ENDINTERFACE.
 ****************************************************
