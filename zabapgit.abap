@@ -3759,27 +3759,43 @@ INTERFACE zif_abapgit_exit .
   TYPES:
     ty_ci_repos TYPE TABLE OF ty_ci_repo .
 
-  METHODS change_local_host
+  METHODS adjust_display_commit_url
+    IMPORTING
+      !iv_repo_url    TYPE csequence
+      !iv_repo_name   TYPE csequence
+      !iv_repo_key    TYPE csequence
+      !iv_commit_hash TYPE zif_abapgit_definitions=>ty_sha1
     CHANGING
-      !ct_hosts TYPE ty_icm_sinfo2_tt .
+      !cv_display_url TYPE csequence
+    RAISING
+      zcx_abapgit_exception .
   METHODS allow_sap_objects
     RETURNING
       VALUE(rv_allowed) TYPE abap_bool .
-  METHODS change_proxy_url
-    IMPORTING
-      !iv_repo_url  TYPE csequence
+  METHODS change_local_host
     CHANGING
-      !cv_proxy_url TYPE string .
-  METHODS change_proxy_port
-    IMPORTING
-      !iv_repo_url   TYPE csequence
-    CHANGING
-      !cv_proxy_port TYPE string .
+      !ct_hosts TYPE ty_icm_sinfo2_tt .
   METHODS change_proxy_authentication
     IMPORTING
       !iv_repo_url             TYPE csequence
     CHANGING
       !cv_proxy_authentication TYPE abap_bool .
+  METHODS change_proxy_port
+    IMPORTING
+      !iv_repo_url   TYPE csequence
+    CHANGING
+      !cv_proxy_port TYPE string .
+  METHODS change_proxy_url
+    IMPORTING
+      !iv_repo_url  TYPE csequence
+    CHANGING
+      !cv_proxy_url TYPE string .
+  METHODS change_tadir
+    IMPORTING
+      !iv_package TYPE devclass
+      !ii_log     TYPE REF TO zif_abapgit_log
+    CHANGING
+      !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt .
   METHODS create_http_client
     IMPORTING
       !iv_url          TYPE string
@@ -3787,19 +3803,6 @@ INTERFACE zif_abapgit_exit .
       VALUE(ri_client) TYPE REF TO if_http_client
     RAISING
       zcx_abapgit_exception .
-  METHODS http_client
-    IMPORTING
-      !iv_url    TYPE string
-      !ii_client TYPE REF TO if_http_client .
-  METHODS change_tadir
-    IMPORTING
-      !iv_package TYPE devclass
-      !ii_log     TYPE REF TO zif_abapgit_log
-    CHANGING
-      !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt .
-  METHODS get_ssl_id
-    RETURNING
-      VALUE(rv_ssl_id) TYPE ssfapplssl .
   METHODS custom_serialize_abap_clif
     IMPORTING
       !is_class_key    TYPE seoclskey
@@ -3816,24 +3819,28 @@ INTERFACE zif_abapgit_exit .
       !iv_object   TYPE tadir-object
     CHANGING
       !ct_ci_repos TYPE ty_ci_repos .
-  METHODS adjust_display_commit_url
+  METHODS get_ssl_id
+    RETURNING
+      VALUE(rv_ssl_id) TYPE ssfapplssl .
+  METHODS http_client
     IMPORTING
-      !iv_repo_url    TYPE csequence
-      !iv_repo_name   TYPE csequence
-      !iv_repo_key    TYPE csequence
-      !iv_commit_hash TYPE zif_abapgit_definitions=>ty_sha1
-    CHANGING
-      !cv_display_url TYPE csequence
-    RAISING
-      zcx_abapgit_exception .
+      !iv_url    TYPE string
+      !ii_client TYPE REF TO if_http_client .
   METHODS pre_calculate_repo_status
     IMPORTING
-      is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+      !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
     CHANGING
-      !ct_local  TYPE zif_abapgit_definitions=>ty_files_item_tt
-      !ct_remote TYPE zif_abapgit_definitions=>ty_files_tt
+      !ct_local     TYPE zif_abapgit_definitions=>ty_files_item_tt
+      !ct_remote    TYPE zif_abapgit_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
+  METHODS wall_message_list
+    IMPORTING
+      ii_html TYPE REF TO zif_abapgit_html .
+  METHODS wall_message_repo
+    IMPORTING
+      is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+      ii_html      TYPE REF TO zif_abapgit_html .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_merge .
@@ -22122,6 +22129,24 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~wall_message_list.
+
+    TRY.
+        gi_exit->wall_message_list( ii_html ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~wall_message_repo.
+
+    TRY.
+        gi_exit->wall_message_repo(
+          is_repo_meta = is_repo_meta
+          ii_html      = ii_html ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_environment IMPLEMENTATION.
@@ -37318,7 +37343,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -37887,6 +37912,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
           iv_interactive_branch = abap_true ) ).
 
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
+
+        zcl_abapgit_exit=>get_instance( )->wall_message_repo(
+          is_repo_meta = mo_repo->ms_data
+          ii_html      = ri_html ).
 
         CREATE OBJECT lo_browser
           EXPORTING
@@ -38845,6 +38874,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     render_header_bar( ri_html ).
+
+    zcl_abapgit_exit=>get_instance( )->wall_message_list( ri_html ).
+
     render_table( ii_html     = ri_html
                   it_overview = mt_overview ).
 
@@ -100892,6 +100924,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-22T12:13:56.104Z
+* abapmerge 0.14.3 - 2021-03-22T12:16:06.768Z
 ENDINTERFACE.
 ****************************************************
