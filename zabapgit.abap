@@ -2502,6 +2502,8 @@ INTERFACE zif_abapgit_data_config .
     ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name .
 
   CONSTANTS c_default_path TYPE string VALUE '/data/' ##NO_TEXT.
+  CONSTANTS c_default_format TYPE string VALUE 'json' ##NO_TEXT.
+  CONSTANTS c_config TYPE string VALUE 'conf' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF c_data_type,
       tabu TYPE ty_data_type VALUE 'TABU',
@@ -2541,26 +2543,26 @@ INTERFACE zif_abapgit_data_config .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
-
   TYPES: BEGIN OF ty_result,
            table   TYPE tadir-obj_name,
            deletes TYPE REF TO data,
            updates TYPE REF TO data,
            inserts TYPE REF TO data,
          END OF ty_result.
+  TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY table.
 
   METHODS deserialize
     IMPORTING
       !ii_config       TYPE REF TO zif_abapgit_data_config
       !it_files        TYPE zif_abapgit_definitions=>ty_files_tt
     RETURNING
-      VALUE(rs_result) TYPE ty_result
+      VALUE(rt_result) TYPE ty_results
     RAISING
       zcx_abapgit_exception .
 
   METHODS actualize
     IMPORTING
-      is_result TYPE ty_result
+      it_result TYPE ty_results
     RAISING
       zcx_abapgit_exception .
 
@@ -4488,11 +4490,9 @@ CLASS zcl_abapgit_data_config DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_data_config .
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS c_extension TYPE string VALUE '.config.json'.
     DATA mt_config TYPE zif_abapgit_data_config=>ty_config_tt .
 
     METHODS dump
@@ -4510,15 +4510,40 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_data_deserializer .
+
   PROTECTED SECTION.
+
   PRIVATE SECTION.
 
-    METHODS read_json
+    METHODS convert_json_to_itab
       IMPORTING
         !is_file TYPE zif_abapgit_definitions=>ty_file
         !ir_data TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
+    METHODS preview_database_changes
+      IMPORTING
+        !iv_name         TYPE tadir-obj_name
+        !it_where        TYPE string_table
+        !ir_data         TYPE REF TO data
+      RETURNING
+        VALUE(rs_result) TYPE zif_abapgit_data_deserializer=>ty_result
+      RAISING
+        zcx_abapgit_exception .
+    METHODS write_database_table
+      IMPORTING
+        !iv_name TYPE tadir-obj_name
+        !ir_del  TYPE REF TO data
+        !ir_ins  TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read_database_table
+      IMPORTING
+        !iv_name       TYPE tadir-obj_name
+        !it_where      TYPE string_table
+      RETURNING
+        VALUE(rr_data) TYPE REF TO data .
+
 ENDCLASS.
 CLASS zcl_abapgit_data_factory DEFINITION
   CREATE PUBLIC
@@ -4559,9 +4584,14 @@ CLASS zcl_abapgit_data_serializer DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_data_serializer .
+
   PROTECTED SECTION.
 
-    METHODS dump_itab
+  PRIVATE SECTION.
+
+    CONSTANTS c_max_records TYPE i VALUE 10000 ##NO_TEXT.
+
+    METHODS convert_itab_to_json
       IMPORTING
         !ir_data       TYPE REF TO data
       RETURNING
@@ -4573,25 +4603,25 @@ CLASS zcl_abapgit_data_serializer DEFINITION
         !iv_name       TYPE tadir-obj_name
         !it_where      TYPE string_table
       RETURNING
-        VALUE(rr_data) TYPE REF TO data .
-  PRIVATE SECTION.
+        VALUE(rr_data) TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_utils DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
     CLASS-METHODS build_table_itab
       IMPORTING
         !iv_name       TYPE tadir-obj_name
       RETURNING
         VALUE(rr_data) TYPE REF TO data .
-
     CLASS-METHODS build_filename
       IMPORTING
-        is_config          TYPE zif_abapgit_data_config=>ty_config
+        !is_config         TYPE zif_abapgit_data_config=>ty_config
       RETURNING
-        VALUE(rv_filename) TYPE string.
-
+        VALUE(rv_filename) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -49069,7 +49099,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -49165,6 +49195,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD deserialize.
 
     DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+          lt_result        TYPE zif_abapgit_data_deserializer=>ty_results,
           lx_error         TYPE REF TO zcx_abapgit_exception.
 
     find_remote_dot_abapgit( ).
@@ -49185,6 +49216,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |No transport request was supplied| ).
     ENDIF.
 
+    " Deserialize objects
     TRY.
         lt_updated_files = zcl_abapgit_objects=>deserialize(
             io_repo   = me
@@ -49198,9 +49230,15 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
 
+    update_local_checksums( lt_updated_files ).
+
+    " Deserialize data (no save to database, just test for now)
+    lt_result = zcl_abapgit_data_factory=>get_deserializer( )->deserialize(
+      ii_config  = get_data_config( )
+      it_files   = get_files_remote( ) ).
+
     CLEAR: mt_local.
 
-    update_local_checksums( lt_updated_files ).
     update_last_deserialize( ).
     reset_status( ).
 
@@ -98311,10 +98349,12 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_data_utils IMPLEMENTATION.
   METHOD build_filename.
 
-    rv_filename = to_lower( |{ is_config-name }.{ is_config-type }.json| ).
+    rv_filename = to_lower( |{ is_config-name }.{ is_config-type }.{ zif_abapgit_data_config=>c_default_format }| ).
+
+    REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
 
   ENDMETHOD.
   METHOD build_table_itab.
@@ -98330,13 +98370,15 @@ CLASS ZCL_ABAPGIT_DATA_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
-  METHOD dump_itab.
+CLASS zcl_abapgit_data_serializer IMPLEMENTATION.
+  METHOD convert_itab_to_json.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
     DATA lv_string TYPE string.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+
     FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
+
     ASSIGN ir_data->* TO <lg_tab>.
 
     TRY.
@@ -98355,8 +98397,10 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_database_table.
 
+    DATA lv_records TYPE i.
     DATA lv_where LIKE LINE OF it_where.
-    FIELD-SYMBOLS: <lg_tab> TYPE ANY TABLE.
+
+    FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
 
     rr_data = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
     ASSIGN rr_data->* TO <lg_tab>.
@@ -98368,6 +98412,12 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
       SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
     ENDIF.
 
+    lv_records = lines( <lg_tab> ).
+    IF lv_records > c_max_records.
+      zcx_abapgit_exception=>raise( |Too many records selected from table { iv_name
+        } (selected { lv_records }, max { c_max_records })| ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_data_serializer~serialize.
 
@@ -98375,19 +98425,20 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     DATA ls_config LIKE LINE OF lt_configs.
     DATA ls_file LIKE LINE OF rt_files.
     DATA lr_data TYPE REF TO data.
+
     ls_file-path = zif_abapgit_data_config=>c_default_path.
     lt_configs = ii_config->get_configs( ).
 
     LOOP AT lt_configs INTO ls_config.
       ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
-      ASSERT NOT ls_config-name IS INITIAL.
+      ASSERT ls_config-name IS NOT INITIAL.
 
       lr_data = read_database_table(
         iv_name  = ls_config-name
         it_where = ls_config-where ).
 
       ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
-      ls_file-data = dump_itab( lr_data ).
+      ls_file-data = convert_itab_to_json( lr_data ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       APPEND ls_file TO rt_files.
 
@@ -98426,12 +98477,14 @@ CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
-  METHOD read_json.
+CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
+  METHOD convert_json_to_itab.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+
     FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
+
     ASSIGN ir_data->* TO <lg_tab>.
 
     TRY.
@@ -98442,9 +98495,98 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD preview_database_changes.
+
+* method currently distinguishes between records be deleted and inserted (comparison of complete record)
+* to-do: compare records based on database key of table to determine updates to existing records
+
+    DATA lr_data TYPE REF TO data.
+
+    FIELD-SYMBOLS <lg_old> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lg_new> TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_del> TYPE any.
+    FIELD-SYMBOLS <ls_ins> TYPE any.
+    FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
+
+    lr_data = read_database_table(
+      iv_name  = iv_name
+      it_where = it_where ).
+
+    ASSIGN lr_data->* TO <lg_old>.
+    ASSIGN ir_data->* TO <lg_new>.
+
+    rs_result-table = iv_name.
+    rs_result-deletes = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
+    rs_result-inserts = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
+    ASSIGN rs_result-deletes->* TO <lg_del>.
+    ASSIGN rs_result-inserts->* TO <lg_ins>.
+
+    <lg_del> = <lg_old>.
+    <lg_ins> = <lg_new>.
+
+    " Remove identical records
+    LOOP AT <lg_del> ASSIGNING <ls_del>.
+      READ TABLE <lg_ins> ASSIGNING <ls_ins> FROM <ls_del>.
+      IF sy-subrc = 0.
+        DELETE TABLE <lg_del> FROM <ls_del>.
+        DELETE TABLE <lg_ins> FROM <ls_ins>.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD read_database_table.
+
+    DATA lv_where LIKE LINE OF it_where.
+
+    FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
+
+    rr_data = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
+    ASSIGN rr_data->* TO <lg_tab>.
+
+    LOOP AT it_where INTO lv_where.
+      SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where).
+    ENDLOOP.
+    IF lines( it_where ) = 0.
+      SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD write_database_table.
+
+    FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
+
+    ASSIGN ir_del->* TO <lg_del>.
+    ASSIGN ir_ins->* TO <lg_ins>.
+
+    IF lines( <lg_del> ) > 0.
+      DELETE (iv_name) FROM TABLE <lg_del>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error deleting { lines( <lg_del> ) } records from table { iv_name }| ).
+      ENDIF.
+    ENDIF.
+
+    IF lines( <lg_ins> ) > 0.
+      INSERT (iv_name) FROM TABLE <lg_ins>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error inserting { lines( <lg_ins> ) } records into table { iv_name }| ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_data_deserializer~actualize.
 
-* todo, this method will update the database
+* this method updates the database
+
+    DATA ls_result LIKE LINE OF it_result.
+
+    LOOP AT it_result INTO ls_result.
+      write_database_table(
+        iv_name = ls_result-table
+        ir_del  = ls_result-deletes
+        ir_ins  = ls_result-inserts ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD zif_abapgit_data_deserializer~deserialize.
@@ -98455,6 +98597,8 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
     DATA ls_config LIKE LINE OF lt_configs.
     DATA lr_data  TYPE REF TO data.
     DATA ls_file LIKE LINE OF it_files.
+    DATA ls_result LIKE LINE OF rt_result.
+
     lt_configs = ii_config->get_configs( ).
 
     LOOP AT lt_configs INTO ls_config.
@@ -98465,28 +98609,34 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
         path = zif_abapgit_data_config=>c_default_path
         filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
       IF sy-subrc = 0.
-        read_json(
+        convert_json_to_itab(
           ir_data = lr_data
           is_file = ls_file ).
-      ENDIF.
 
-* todo
+        ls_result = preview_database_changes(
+          iv_name  = ls_config-name
+          it_where = ls_config-where
+          ir_data  = lr_data ).
+
+        INSERT ls_result INTO TABLE rt_result.
+      ENDIF.
 
     ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
+CLASS zcl_abapgit_data_config IMPLEMENTATION.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+
     TRY.
         lo_ajson = zcl_abapgit_ajson=>create_empty( ).
         lo_ajson->zif_abapgit_ajson_writer~set(
           iv_path = '/'
-          iv_val = is_config ).
+          iv_val  = is_config ).
         rv_json = zcl_abapgit_convert=>string_to_xstring_utf8( lo_ajson->stringify( 2 ) ).
       CATCH zcx_abapgit_ajson_error INTO lx_ajson.
         zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
@@ -98495,8 +98645,8 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_data_config~add_config.
 
-    ASSERT NOT is_config-type IS INITIAL.
-    ASSERT NOT is_config-name IS INITIAL.
+    ASSERT is_config-type IS NOT INITIAL.
+    ASSERT is_config-name IS NOT INITIAL.
     ASSERT is_config-name = to_upper( is_config-name ).
 
     INSERT is_config INTO TABLE mt_config.
@@ -98514,7 +98664,7 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
 
     CLEAR mt_config.
     LOOP AT it_files INTO ls_file WHERE path = zif_abapgit_data_config=>c_default_path
-        AND filename CP |*{ c_extension }|.
+        AND filename CP |*.{ zif_abapgit_data_config=>c_config }.{ zif_abapgit_data_config=>c_default_format }|.
       TRY.
           lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( ls_file-data ) ).
           lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = ls_config ).
@@ -98531,8 +98681,8 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_data_config~remove_config.
 
-    ASSERT NOT is_config-type IS INITIAL.
-    ASSERT NOT is_config-name IS INITIAL.
+    ASSERT is_config-type IS NOT INITIAL.
+    ASSERT is_config-name IS NOT INITIAL.
     ASSERT is_config-name = to_upper( is_config-name ).
 
     DELETE mt_config WHERE name = is_config-name AND type = is_config-type.
@@ -98549,9 +98699,10 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
     ls_file-path = zif_abapgit_data_config=>c_default_path.
 
     LOOP AT mt_config INTO ls_config.
-      ls_file-filename = to_lower( |{ ls_config-name }{ c_extension }| ).
       ls_file-data = dump( ls_config ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
+      ls_config-type = zif_abapgit_data_config=>c_config.
+      ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
       APPEND ls_file TO rt_files.
     ENDLOOP.
 
@@ -101029,6 +101180,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-23T05:35:45.883Z
+* abapmerge 0.14.3 - 2021-03-23T05:41:11.746Z
 ENDINTERFACE.
 ****************************************************
