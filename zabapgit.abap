@@ -64837,7 +64837,8 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
       WHEN 3.
         zcx_abapgit_exception=>raise( |Enter a permitted object type| ).
       WHEN 4.
-        zcx_abapgit_exception=>raise( |The concept will be created in the non-original system| ).
+        "The concept will be created in the non-original system (not an error)
+        RETURN.
       WHEN 5.
         zcx_abapgit_exception=>raise( |Invalid alias| ).
       WHEN 6.
@@ -101028,6 +101029,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-22T12:28:39.687Z
+* abapmerge 0.14.3 - 2021-03-23T05:35:45.883Z
 ENDINTERFACE.
 ****************************************************
