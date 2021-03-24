@@ -88901,7 +88901,7 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
+CLASS zcl_abapgit_object_enho_clif IMPLEMENTATION.
   METHOD deserialize.
 
     DATA: lt_tab_attributes TYPE enhclasstabattrib,
@@ -89002,6 +89002,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
                    <ls_type>        LIKE LINE OF lt_tab_types,
                    <ls_meth>        LIKE LINE OF lt_tab_methods,
                    <ls_param>       LIKE LINE OF <ls_meth>-meth_param,
+                   <ls_exc>         LIKE LINE OF <ls_meth>-meth_exc,
                    <ls_event>       LIKE LINE OF lt_tab_eventdata,
                    <ls_event_param> LIKE LINE OF <ls_event>-event_param.
     io_clif->get_enhattributes( IMPORTING tab_attributes = lt_tab_attributes ).
@@ -89044,6 +89045,13 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHO_CLIF IMPLEMENTATION.
                <ls_param>-changedby,
                <ls_param>-changedon,
                <ls_param>-descript_id.
+      ENDLOOP.
+      LOOP AT <ls_meth>-meth_exc ASSIGNING <ls_exc>.
+        CLEAR: <ls_exc>-author,
+               <ls_exc>-createdon,
+               <ls_exc>-changedby,
+               <ls_exc>-changedon,
+               <ls_exc>-descript_id.
       ENDLOOP.
     ENDLOOP.
 
@@ -101250,6 +101258,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-24T12:34:57.016Z
+* abapmerge 0.14.3 - 2021-03-24T13:56:21.096Z
 ENDINTERFACE.
 ****************************************************
