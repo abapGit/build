@@ -14742,7 +14742,6 @@ CLASS zcl_abapgit_gui_page_ch_remote DEFINITION
         go_back TYPE string VALUE 'go_back',
         save    TYPE string VALUE 'save',
       END OF c_event .
-    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
@@ -42724,7 +42723,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CH_REMOTE IMPLEMENTATION.
 
       WHEN c_event-save.
         lv_url = condense( ii_event->form_data( )->get( c_remote_field ) ).
-        ASSERT NOT lv_url IS INITIAL.
 
         zcl_abapgit_repo_srv=>get_instance( )->validate_url( lv_url ).
 
@@ -101252,6 +101250,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-24T11:56:53.271Z
+* abapmerge 0.14.3 - 2021-03-24T12:34:57.016Z
 ENDINTERFACE.
 ****************************************************
