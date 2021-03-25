@@ -78509,6 +78509,7 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
           lt_composite_childs TYPE enhcompositename_it,
           lt_enh_childs       TYPE enhname_it,
           lv_longtext_id      TYPE enhdocuobject,
+          lv_vers             TYPE enhcompheader-version,
           lv_shorttext        TYPE string.
 
     FIELD-SYMBOLS: <lv_composite_child> TYPE enhcompositename,
@@ -78523,6 +78524,24 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
                   CHANGING  cg_data = lt_enh_childs ).
     io_xml->read( EXPORTING iv_name = 'LONGTEXT_ID'
                   CHANGING  cg_data = lv_longtext_id ).
+
+    SELECT SINGLE version FROM enhcompheader INTO lv_vers WHERE enhcomposite = ms_item-obj_name.
+    IF sy-subrc = 0.
+      " If object exists already, then set TADIR entry to deleted
+      " otherwise create_enhancement_composite will fail
+      CALL FUNCTION 'TR_TADIR_INTERFACE'
+        EXPORTING
+          wi_test_modus     = abap_false
+          wi_tadir_pgmid    = 'R3TR'
+          wi_tadir_object   = ms_item-obj_type
+          wi_tadir_obj_name = ms_item-obj_name
+          iv_delflag        = abap_true
+        EXCEPTIONS
+          OTHERS            = 1.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+    ENDIF.
 
     TRY.
         cl_enh_factory=>create_enhancement_composite(
@@ -101396,6 +101415,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-25T06:57:20.414Z
+* abapmerge 0.14.3 - 2021-03-25T11:20:34.066Z
 ENDINTERFACE.
 ****************************************************
