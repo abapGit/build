@@ -92906,7 +92906,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     " Collect all namespaces based on name of xml-files
     LOOP AT it_results ASSIGNING <ls_result>.
-      FIND REGEX '#(.*)#.*\..*\.xml' IN <ls_result>-filename SUBMATCHES lv_namespace.
+      FIND REGEX '#([a-zA-Z0-9]+)#.*\..*\.xml' IN <ls_result>-filename SUBMATCHES lv_namespace.
       IF sy-subrc = 0.
         lv_namespace = '/' && to_upper( lv_namespace ) && '/'.
         COLLECT lv_namespace INTO lt_namespace.
@@ -101415,6 +101415,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-25T11:20:34.066Z
+* abapmerge 0.14.3 - 2021-03-26T05:46:55.521Z
 ENDINTERFACE.
 ****************************************************
