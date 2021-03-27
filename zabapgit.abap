@@ -562,6 +562,7 @@ CLASS zcx_abapgit_exception DEFINITION
     DATA msgv3 TYPE symsgv READ-ONLY .
     DATA msgv4 TYPE symsgv READ-ONLY .
     DATA mt_callstack TYPE abap_callstack READ-ONLY .
+    DATA mi_log TYPE REF TO zif_abapgit_log READ-ONLY.
 
     "! Raise exception with text
     "! @parameter iv_text | Text
@@ -571,6 +572,7 @@ CLASS zcx_abapgit_exception DEFINITION
       IMPORTING
         !iv_text     TYPE clike
         !ix_previous TYPE REF TO cx_root OPTIONAL
+        !ii_log      TYPE REF TO zif_abapgit_log OPTIONAL
       RAISING
         zcx_abapgit_exception .
     "! Raise exception with T100 message
@@ -592,6 +594,7 @@ CLASS zcx_abapgit_exception DEFINITION
         VALUE(iv_msgv2) TYPE symsgv DEFAULT sy-msgv2
         VALUE(iv_msgv3) TYPE symsgv DEFAULT sy-msgv3
         VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
+        !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
         !ix_previous    TYPE REF TO cx_root OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -604,6 +607,7 @@ CLASS zcx_abapgit_exception DEFINITION
       IMPORTING
         !textid   LIKE if_t100_message=>t100key OPTIONAL
         !previous LIKE previous OPTIONAL
+        !ii_log   TYPE REF TO zif_abapgit_log OPTIONAL
         !msgv1    TYPE symsgv OPTIONAL
         !msgv2    TYPE symsgv OPTIONAL
         !msgv3    TYPE symsgv OPTIONAL
@@ -642,7 +646,7 @@ CLASS zcx_abapgit_exception DEFINITION
       CHANGING
         !cs_itf TYPE tline .
 ENDCLASS.
-CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
+CLASS zcx_abapgit_exception IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
 
     super->constructor( previous = previous ).
@@ -651,6 +655,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     me->msgv2 = msgv2.
     me->msgv3 = msgv3.
     me->msgv4 = msgv4.
+    me->mi_log = ii_log.
 
     CLEAR me->textid.
     IF textid IS INITIAL.
@@ -819,7 +824,9 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
 
     split_text_to_symsg( lv_text ).
 
-    raise_t100( ix_previous = ix_previous ).
+    raise_t100(
+      ii_log      = ii_log
+      ix_previous = ix_previous ).
 
   ENDMETHOD.
   METHOD raise_t100.
@@ -839,6 +846,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     RAISE EXCEPTION TYPE zcx_abapgit_exception
       EXPORTING
         textid   = ls_t100_key
+        ii_log   = ii_log
         msgv1    = iv_msgv1
         msgv2    = iv_msgv2
         msgv3    = iv_msgv3
@@ -1582,6 +1590,11 @@ INTERFACE zif_abapgit_gui_services .
   METHODS get_html_parts
     RETURNING
       VALUE(ro_parts) TYPE REF TO zcl_abapgit_html_parts .
+  METHODS get_log
+    IMPORTING
+      iv_create_new TYPE abap_bool DEFAULT abap_false
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_html.
@@ -3581,6 +3594,22 @@ INTERFACE zif_abapgit_tag_popups.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_log .
+
+  CONSTANTS:
+    BEGIN OF c_status,
+      ok      TYPE sy-msgty VALUE 'S',
+      error   TYPE sy-msgty VALUE 'E',
+      warning TYPE sy-msgty VALUE 'W',
+    END OF c_status.
+
+  CONSTANTS:
+    BEGIN OF c_log_level,
+      empty   TYPE i VALUE 0,
+      info    TYPE i VALUE 1,
+      warning TYPE i VALUE 2,
+      error   TYPE i VALUE 3,
+    END OF c_log_level.
+
   TYPES:
     BEGIN OF ty_log_out,
       type      TYPE sy-msgty,
@@ -3596,6 +3625,7 @@ INTERFACE zif_abapgit_log .
     BEGIN OF ty_msg,
       text TYPE string,
       type TYPE sy-msgty,
+      level TYPE i,
     END OF ty_msg .
   TYPES:
     ty_msgs TYPE STANDARD TABLE OF ty_msg
@@ -3655,12 +3685,27 @@ INTERFACE zif_abapgit_log .
   METHODS get_status
     RETURNING
       VALUE(rv_status) TYPE sy-msgty .
+  METHODS get_log_level
+    RETURNING
+      VALUE(rv_level) TYPE i .
   METHODS get_title
     RETURNING
       VALUE(rv_title) TYPE string .
   METHODS set_title
     IMPORTING
-      !iv_title TYPE csequence .
+      !iv_title TYPE csequence
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log.
+  METHODS merge_with
+    IMPORTING
+      ii_log TYPE REF TO zif_abapgit_log
+      iv_min_level TYPE i DEFAULT 0
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log.
+  METHODS clone
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_xml_input .
@@ -13712,6 +13757,7 @@ CLASS zcl_abapgit_gui DEFINITION
     DATA mi_html_processor TYPE REF TO zif_abapgit_gui_html_processor .
     DATA mi_html_viewer TYPE REF TO zif_abapgit_html_viewer .
     DATA mo_html_parts TYPE REF TO zcl_abapgit_html_parts .
+    DATA mi_common_log TYPE REF TO zif_abapgit_log .
 
     METHODS cache_html
       IMPORTING
@@ -18257,16 +18303,22 @@ CLASS zcl_abapgit_log DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_log .
+
+    METHODS constructor
+      IMPORTING
+        iv_title TYPE string OPTIONAL.
+
+    CLASS-METHODS from_exception
+      IMPORTING
+        io_x TYPE REF TO cx_root
+      RETURNING
+        VALUE(ro_log) TYPE REF TO zcl_abapgit_log.
+
   PROTECTED SECTION.
 
     TYPES:
-      BEGIN OF ty_msg,
-        text TYPE string,
-        type TYPE sy-msgty,
-      END OF ty_msg .
-    TYPES:
       BEGIN OF ty_log, "in order of occurrence
-        msg       TYPE ty_msg,
+        msg       TYPE zif_abapgit_log=>ty_msg,
         rc        TYPE sy-subrc,
         item      TYPE zif_abapgit_definitions=>ty_item,
         exception TYPE REF TO cx_root,
@@ -24297,6 +24349,20 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
+  METHOD constructor.
+
+    zif_abapgit_log~set_title( iv_title ).
+
+  ENDMETHOD.
+  METHOD from_exception.
+
+    CREATE OBJECT ro_log.
+
+    IF io_x IS BOUND.
+      ro_log->zif_abapgit_log~add_exception( io_x ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_messages_status.
 
     DATA lr_msg TYPE REF TO zif_abapgit_log=>ty_msg.
@@ -24331,6 +24397,17 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     <ls_log>-item      = is_item.
     <ls_log>-exception = ix_exc.
 
+    CASE iv_type.
+      WHEN 'E' OR 'A' OR 'X'.
+        <ls_log>-msg-level = zif_abapgit_log=>c_log_level-error.
+      WHEN 'W'.
+        <ls_log>-msg-level = zif_abapgit_log=>c_log_level-warning.
+      WHEN 'S' OR 'I'.
+        <ls_log>-msg-level = zif_abapgit_log=>c_log_level-info.
+      WHEN OTHERS. "unknown
+        ASSERT 0 = 1.
+    ENDCASE.
+
   ENDMETHOD.
   METHOD zif_abapgit_log~add_error.
 
@@ -24344,7 +24421,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
 
     DATA lx_exc TYPE REF TO cx_root.
     DATA lv_msg TYPE string.
-    lx_exc ?= ix_exc.
+    lx_exc = ix_exc.
     DO.
       lv_msg = lx_exc->get_text( ).
       zif_abapgit_log~add( iv_msg  = lv_msg
@@ -24386,6 +24463,15 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD zif_abapgit_log~clear.
     CLEAR mt_log.
   ENDMETHOD.
+  METHOD zif_abapgit_log~clone.
+
+    DATA lo_log TYPE REF TO zcl_abapgit_log.
+
+    CREATE OBJECT lo_log EXPORTING iv_title = mv_title.
+    lo_log->mt_log = mt_log.
+    ri_log = lo_log.
+
+  ENDMETHOD.
   METHOD zif_abapgit_log~count.
     rv_count = lines( mt_log ).
   ENDMETHOD.
@@ -24425,6 +24511,22 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD zif_abapgit_log~get_log_level.
+
+    FIELD-SYMBOLS <ls_log> LIKE LINE OF mt_log.
+
+    rv_level = zif_abapgit_log=>c_log_level-empty.
+
+    LOOP AT mt_log ASSIGNING <ls_log>.
+      IF <ls_log>-msg-level = zif_abapgit_log=>c_log_level-error.
+        rv_level = zif_abapgit_log=>c_log_level-error.
+        EXIT.
+      ELSEIF <ls_log>-msg-level > rv_level.
+        rv_level = <ls_log>-msg-level.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD zif_abapgit_log~get_messages.
     DATA ls_msg TYPE zif_abapgit_log~ty_log_out.
     FIELD-SYMBOLS <ls_log> TYPE ty_log.
@@ -24440,22 +24542,22 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
   METHOD zif_abapgit_log~get_status.
 
     DATA lr_log TYPE REF TO ty_log.
-    rv_status = 'S'.
+    rv_status = zif_abapgit_log=>c_status-ok.
     LOOP AT mt_log REFERENCE INTO lr_log.
       CASE lr_log->msg-type.
         WHEN 'E' OR 'A' OR 'X'.
-          rv_status = 'E'. "not okay
+          rv_status = zif_abapgit_log=>c_status-error.
           EXIT.
         WHEN 'W'.
-          rv_status = 'W'. "maybe
+          rv_status = zif_abapgit_log=>c_status-warning.
           CONTINUE.
         WHEN 'S' OR 'I'.
-          IF rv_status <> 'W'.
-            rv_status = 'S'. "okay
+          IF rv_status <> zif_abapgit_log=>c_status-warning.
+            rv_status = zif_abapgit_log=>c_status-ok.
           ENDIF.
           CONTINUE.
         WHEN OTHERS. "unknown
-          CONTINUE.
+          ASSERT 0 = 1.
       ENDCASE.
     ENDLOOP.
 
@@ -24472,8 +24574,28 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
     rv_yes = boolc( sy-subrc = 0 ).
   ENDMETHOD.
+  METHOD zif_abapgit_log~merge_with.
+
+    DATA lo_log TYPE REF TO zcl_abapgit_log.
+    DATA lt_log_temp LIKE lo_log->mt_log.
+
+    IF ii_log IS BOUND.
+      lo_log ?= ii_log.
+      IF iv_min_level > 0.
+        lt_log_temp = lo_log->mt_log.
+        DELETE lt_log_temp WHERE msg-level < iv_min_level.
+        APPEND LINES OF lt_log_temp TO mt_log.
+      ELSE.
+        APPEND LINES OF lo_log->mt_log TO mt_log.
+      ENDIF.
+    ENDIF.
+
+    ri_log = me.
+
+  ENDMETHOD.
   METHOD zif_abapgit_log~set_title.
     mv_title = iv_title.
+    ri_log = me.
   ENDMETHOD.
 ENDCLASS.
 
@@ -25310,6 +25432,9 @@ CLASS kHGwlHozdwRdXiqHvuagHhZDCxeUTC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_html_parts.
   ENDMETHOD.
+  METHOD zif_abapgit_gui_services~get_log.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
@@ -46822,6 +46947,11 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         IF li_gui_error_handler IS BOUND AND li_gui_error_handler->handle_error( ix_exception ) = abap_true.
           " We rerender the current page to display the error box
           render( ).
+        ELSEIF ix_exception->mi_log IS BOUND.
+          mi_common_log = ix_exception->mi_log.
+          IF mi_common_log->get_log_level( ) >= zif_abapgit_log=>c_log_level-warning.
+            zcl_abapgit_log_viewer=>show_log( mi_common_log ).
+          ENDIF.
         ELSE.
           MESSAGE ix_exception TYPE 'S' DISPLAY LIKE 'E'.
         ENDIF.
@@ -46976,6 +47106,15 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_html_parts.
     ro_parts = mo_html_parts.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_services~get_log.
+
+    IF iv_create_new = abap_true OR mi_common_log IS NOT BOUND.
+      CREATE OBJECT mi_common_log TYPE zcl_abapgit_log.
+    ENDIF.
+
+    ri_log = mi_common_log.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~register_event_handler.
     ASSERT ii_event_handler IS BOUND.
@@ -101517,6 +101656,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-27T09:47:32.627Z
+* abapmerge 0.14.3 - 2021-03-27T09:58:57.254Z
 ENDINTERFACE.
 ****************************************************
