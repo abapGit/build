@@ -22529,17 +22529,17 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   ENDMETHOD.
   METHOD skip_object.
 
-    DATA: ls_trdir TYPE trdir.
+    DATA ls_program_type TYPE subc.
 
     CASE is_obj-objtype.
       WHEN 'PROG'.
 
-        SELECT SINGLE *
-          INTO ls_trdir
+        SELECT SINGLE subc
+          INTO ls_program_type
           FROM trdir
           WHERE name = is_obj-objname.
 
-        rv_skip = boolc( ls_trdir-subc = 'I' ). " Include program.
+        rv_skip = boolc( ls_program_type = 'I' ). " Include program.
 
       WHEN OTHERS.
         rv_skip = abap_false.
@@ -101422,6 +101422,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-03-26T08:12:42.668Z
+* abapmerge 0.14.3 - 2021-03-27T08:08:11.487Z
 ENDINTERFACE.
 ****************************************************
