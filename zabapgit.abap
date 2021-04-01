@@ -26845,7 +26845,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  background-color: #fff;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab th {' ).
-    lo_buf->add( '  color: #888888;' ).
+    lo_buf->add( '  color: var(--theme-link-color);' ).
     lo_buf->add( '  border-bottom-color: #ddd;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td {' ).
@@ -27066,7 +27066,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( 'table.db_tab td.data { color: #888; }' ).
     lo_buf->add( 'table.db_tab tbody tr:hover, tr:active { background-color: #f4f4f4; }' ).
     lo_buf->add( 'table.db_tab th {' ).
-    lo_buf->add( '  color: #888888;' ).
+    lo_buf->add( '  color: var(--theme-link-color);' ).
     lo_buf->add( '  border-bottom-color: #ddd;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -37992,12 +37992,19 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     CLEAR: ct_repo_items.
 
-    ls_sort-name       = mv_order_by.
     ls_sort-descending = mv_order_descending.
     ls_sort-astext     = abap_true.
+    ls_sort-name       = mv_order_by.
     INSERT ls_sort INTO TABLE lt_sort.
-    SORT lt_code_items BY (lt_sort).
-    SORT lt_diff_items BY (lt_sort).
+
+    " Combine state fields for order of 'Status' column
+    IF mv_order_by = 'LSTATE'.
+      ls_sort-name = 'RSTATE'.
+      INSERT ls_sort INTO TABLE lt_sort.
+    ENDIF.
+
+    SORT lt_code_items STABLE BY (lt_sort).
+    SORT lt_diff_items STABLE BY (lt_sort).
 
     INSERT LINES OF lt_non_code_and_metadata_items INTO TABLE ct_repo_items.
     INSERT LINES OF lt_diff_items INTO TABLE ct_repo_items.
@@ -38826,7 +38833,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_col_spec-allow_order_by = abap_true.
     APPEND ls_col_spec TO lt_col_spec.
 
-    APPEND INITIAL LINE TO lt_col_spec.
+    ls_col_spec-tech_name = 'LSTATE'.
+    ls_col_spec-display_name = 'Status'.
+    ls_col_spec-allow_order_by = abap_true.
+    ls_col_spec-css_class = 'cmd'.
+    APPEND ls_col_spec TO lt_col_spec.
 
     ri_html->add( |<thead>| ).
     ri_html->add( |<tr>| ).
@@ -101656,6 +101667,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-01T15:12:13.635Z
+* abapmerge 0.14.3 - 2021-04-01T15:13:45.755Z
 ENDINTERFACE.
 ****************************************************
