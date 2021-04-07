@@ -17469,7 +17469,10 @@ CLASS zcl_abapgit_html_viewer_gui DEFINITION
 
     INTERFACES zif_abapgit_html_viewer .
 
-    METHODS constructor .
+    METHODS constructor
+      IMPORTING
+        !io_container           TYPE REF TO cl_gui_container DEFAULT cl_gui_container=>screen0
+        !iv_disable_query_table TYPE abap_bool DEFAULT abap_true .
   PROTECTED SECTION.
 
     DATA mo_html_viewer TYPE REF TO cl_gui_html_viewer .
@@ -17990,8 +17993,11 @@ CLASS zcl_abapgit_ui_factory DEFINITION
       RETURNING
         VALUE(ri_fe_serv) TYPE REF TO zif_abapgit_frontend_services .
     CLASS-METHODS get_html_viewer
+      IMPORTING
+        !io_container           TYPE REF TO cl_gui_container DEFAULT cl_gui_container=>screen0
+        !iv_disable_query_table TYPE abap_bool DEFAULT abap_true
       RETURNING
-        VALUE(ri_viewer) TYPE REF TO zif_abapgit_html_viewer .
+        VALUE(ri_viewer)        TYPE REF TO zif_abapgit_html_viewer .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -25513,7 +25519,7 @@ CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   METHOD get_asset_manager.
 
     DATA lo_buf TYPE REF TO kHGwlUeWgGWXqMsZwpmucoVfByePXr.
@@ -29864,7 +29870,10 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_html_viewer.
 
     IF gi_html_viewer IS NOT BOUND.
-      CREATE OBJECT gi_html_viewer TYPE zcl_abapgit_html_viewer_gui.
+      CREATE OBJECT gi_html_viewer TYPE zcl_abapgit_html_viewer_gui
+        EXPORTING
+          io_container           = io_container
+          iv_disable_query_table = iv_disable_query_table.
     ENDIF.
 
     ri_viewer = gi_html_viewer.
@@ -32817,8 +32826,8 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
 
     CREATE OBJECT mo_html_viewer
       EXPORTING
-        query_table_disabled = abap_true
-        parent               = cl_gui_container=>screen0.
+        query_table_disabled = iv_disable_query_table
+        parent               = io_container.
 
     ls_event-eventid    = zif_abapgit_html_viewer=>m_id_sapevent.
     ls_event-appl_event = abap_true.
@@ -101700,6 +101709,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-07T15:49:55.402Z
+* abapmerge 0.14.3 - 2021-04-07T15:51:37.802Z
 ENDINTERFACE.
 ****************************************************
