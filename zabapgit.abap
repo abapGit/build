@@ -31192,7 +31192,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD open_abapgit_changelog.
 
     cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_repo && '/blob/master/changelog.txt'
+      EXPORTING document = c_abapgit_repo && '/blob/main/changelog.txt'
       EXCEPTIONS OTHERS = 1 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
@@ -101711,6 +101711,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-08T08:34:10.125Z
+* abapmerge 0.14.3 - 2021-04-08T11:03:28.924Z
 ENDINTERFACE.
 ****************************************************
