@@ -71445,12 +71445,8 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
           |Error when deleting ODSO: { ms_item-obj_name } { ls_msg-msgv1 } { ls_msg-msgv2 }| ).
         ENDIF.
 
-      CATCH cx_rs_cancelled.
+      CATCH cx_root.
         zcx_abapgit_exception=>raise( |Canceled deletion of ODSO: { ms_item-obj_name }| ).
-      CATCH cx_rs_existing.
-        zcx_abapgit_exception=>raise( |ODSO not exist: { ms_item-obj_name }| ).
-      CATCH cx_rs_not_found.
-        zcx_abapgit_exception=>raise( |ODSO not found: { ms_item-obj_name }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -101711,6 +101707,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-08T11:03:28.924Z
+* abapmerge 0.14.3 - 2021-04-10T08:56:55.889Z
 ENDINTERFACE.
 ****************************************************
