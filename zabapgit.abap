@@ -4619,8 +4619,9 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
         !iv_name       TYPE tadir-obj_name
         !it_where      TYPE string_table
       RETURNING
-        VALUE(rr_data) TYPE REF TO data .
-
+        VALUE(rr_data) TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_factory DEFINITION
   CREATE PUBLIC
@@ -4693,7 +4694,9 @@ CLASS zcl_abapgit_data_utils DEFINITION
       IMPORTING
         !iv_name       TYPE tadir-obj_name
       RETURNING
-        VALUE(rr_data) TYPE REF TO data .
+        VALUE(rr_data) TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS build_filename
       IMPORTING
         !is_config         TYPE zif_abapgit_data_config=>ty_config
@@ -6493,12 +6496,14 @@ CLASS zcl_abapgit_serialize DEFINITION
         zcx_abapgit_exception .
   PROTECTED SECTION.
 
-    TYPES: BEGIN OF ty_unsupported_count,
-             obj_type TYPE tadir-object,
-             obj_name TYPE tadir-obj_name,
-             count    TYPE i,
-           END OF ty_unsupported_count,
-           ty_unsupported_count_tt TYPE HASHED TABLE OF ty_unsupported_count WITH UNIQUE KEY obj_type.
+    TYPES:
+      BEGIN OF ty_unsupported_count,
+        obj_type TYPE tadir-object,
+        obj_name TYPE tadir-obj_name,
+        count    TYPE i,
+      END OF ty_unsupported_count .
+    TYPES:
+      ty_unsupported_count_tt TYPE HASHED TABLE OF ty_unsupported_count WITH UNIQUE KEY obj_type .
     TYPES:
       ty_char32 TYPE c LENGTH 32 .
 
@@ -6520,6 +6525,7 @@ CLASS zcl_abapgit_serialize DEFINITION
     METHODS add_data
       IMPORTING
         !ii_data_config TYPE REF TO zif_abapgit_data_config
+        !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit
       CHANGING
         !ct_files       TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
@@ -6568,7 +6574,7 @@ CLASS zcl_abapgit_serialize DEFINITION
         zcx_abapgit_exception .
     METHODS filter_unsupported_objects
       CHANGING
-        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+        !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
@@ -91340,7 +91346,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
+CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD add_apack.
 
     DATA ls_apack_file TYPE zif_abapgit_definitions=>ty_file.
@@ -91368,12 +91374,32 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
     LOOP AT lt_files INTO ls_file.
       APPEND INITIAL LINE TO ct_files ASSIGNING <ls_return>.
       <ls_return>-file = ls_file.
+
+      " Derive object from config filename (namespace + escaping)
+      zcl_abapgit_file_status=>identify_object(
+        EXPORTING
+          iv_filename = <ls_return>-file-filename
+          iv_path     = <ls_return>-file-path
+          io_dot      = io_dot_abapgit
+        IMPORTING
+          es_item     = <ls_return>-item ).
+
+      <ls_return>-item-obj_type = 'TABU'.
     ENDLOOP.
 
     lt_files = zcl_abapgit_data_factory=>get_serializer( )->serialize( ii_data_config ).
     LOOP AT lt_files INTO ls_file.
       APPEND INITIAL LINE TO ct_files ASSIGNING <ls_return>.
       <ls_return>-file = ls_file.
+
+      " Derive object from data filename (namespace + escaping)
+      zcl_abapgit_file_status=>identify_object(
+        EXPORTING
+          iv_filename = <ls_return>-file-filename
+          iv_path     = <ls_return>-file-path
+          io_dot      = io_dot_abapgit
+        IMPORTING
+          es_item     = <ls_return>-item ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -91521,6 +91547,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
     add_data(
       EXPORTING
         ii_data_config = ii_data_config
+        io_dot_abapgit = io_dot_abapgit
       CHANGING
         ct_files       = rt_files ).
 
@@ -98946,13 +98973,29 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_table_itab.
 
-    DATA lo_structure TYPE REF TO cl_abap_structdescr.
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    DATA lo_data TYPE REF TO cl_abap_datadescr.
     DATA lo_table TYPE REF TO cl_abap_tabledescr.
 
-    lo_structure ?= cl_abap_structdescr=>describe_by_name( iv_name ).
+    cl_abap_structdescr=>describe_by_name(
+      EXPORTING
+        p_name         = iv_name
+      RECEIVING
+        p_descr_ref    = lo_type
+      EXCEPTIONS
+        type_not_found = 1 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Table { iv_name } not found for data serialization| ).
+    ENDIF.
+
+    TRY.
+        lo_data ?= lo_type.
 * todo, also add unique key corresponding to the db table, so duplicates cannot be returned
-    lo_table = cl_abap_tabledescr=>create( lo_structure ).
-    CREATE DATA rr_data TYPE HANDLE lo_table.
+        lo_table = cl_abap_tabledescr=>create( lo_data ).
+        CREATE DATA rr_data TYPE HANDLE lo_table.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Error creating internal table for data serialization| ).
+    ENDTRY.
 
   ENDMETHOD.
 ENDCLASS.
@@ -101832,6 +101875,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-10T09:27:37.189Z
+* abapmerge 0.14.3 - 2021-04-12T12:54:14.322Z
 ENDINTERFACE.
 ****************************************************
