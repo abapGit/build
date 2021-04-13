@@ -93422,16 +93422,6 @@ CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
-* ENHS has to be handled before ENHO
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHS'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* ENHO has to be handled before ENHC
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHO'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
 * DDLS has to be handled before DCLS
     LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'DDLS'.
       APPEND <ls_result> TO rt_results.
@@ -93460,12 +93450,29 @@ CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
         AND obj_type <> 'DEVC'
         AND obj_type <> 'ENHS'
         AND obj_type <> 'ENHO'
+        AND obj_type <> 'ENHC'
+        AND obj_type <> 'ENSC'
         AND obj_type <> 'DDLS'
         AND obj_type <> 'SPRX'
         AND obj_type <> 'WEBI'
         AND obj_type <> 'IOBJ'
         AND obj_type <> 'TOBJ'
         AND obj_type <> 'OTGR'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+
+* Enhancements might refer to other objects of the repo so create them after
+* Order: spots, composite spots, implementations, composite implementations
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHS'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENSC'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHO'.
+      APPEND <ls_result> TO rt_results.
+    ENDLOOP.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHC'.
       APPEND <ls_result> TO rt_results.
     ENDLOOP.
 
@@ -101875,6 +101882,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-12T12:54:14.322Z
+* abapmerge 0.14.3 - 2021-04-13T04:40:34.126Z
 ENDINTERFACE.
 ****************************************************
