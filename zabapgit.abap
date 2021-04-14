@@ -26360,8 +26360,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding: 0.8em 0.7em 1em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'div.info-panel li {' ).
+    lo_buf->add( 'div.info-panel ul {' ).
     lo_buf->add( '  padding-left: 10px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'div.info-panel li {' ).
+    lo_buf->add( '  padding-left: 0px;' ).
     lo_buf->add( '  list-style-type: none;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -44376,6 +44380,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     DATA: lv_text TYPE string,
           lv_hint TYPE string,
+          lv_ul   TYPE abap_bool,
           lt_log  TYPE zcl_abapgit_news=>ty_logs.
 
     FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_log.
@@ -44398,13 +44403,21 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
         ELSE. " < 0
           lv_text = <ls_line>-text.
         ENDIF.
+        IF lv_ul = abap_true.
+          ri_html->add( |</ul>| ).
+        ENDIF.
         ri_html->add( |<h1>{ lv_text }</h1>| ).
+        ri_html->add( |<ul>| ).
+        lv_ul = abap_true.
       ELSE.
         <ls_line>-text = escape( val    = <ls_line>-text
                                  format = cl_abap_format=>e_html_text ).
         ri_html->add( |<li>{ <ls_line>-text }</li>| ).
       ENDIF.
     ENDLOOP.
+    IF lv_ul = abap_true.
+      ri_html->add( |</ul>| ).
+    ENDIF.
 
     " Wrap
     IF io_news->has_important( ) = abap_true.
@@ -101894,6 +101907,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-14T07:22:37.439Z
+* abapmerge 0.14.3 - 2021-04-14T07:25:08.473Z
 ENDINTERFACE.
 ****************************************************
