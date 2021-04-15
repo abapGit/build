@@ -12920,9 +12920,6 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_starting_folder
       IMPORTING
         !iv_path TYPE string .
-    METHODS get_master_language
-      RETURNING
-        VALUE(rv_language) TYPE spras .
     METHODS get_main_language
       RETURNING
         VALUE(rv_language) TYPE spras .
@@ -35965,15 +35962,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_main_language_warning.
 
-    DATA: ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
+    DATA lv_main_language TYPE spras.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ls_dot_abapgit = mo_repo->get_dot_abapgit( )->get_data( ).
+    lv_main_language = mo_repo->get_dot_abapgit( )->get_main_language( ).
 
-    IF ls_dot_abapgit-master_language <> sy-langu.
+    IF lv_main_language <> sy-langu.
       ri_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                        |Caution: Main language of the repo is '{ ls_dot_abapgit-master_language }', |
+                        |Caution: Main language of the repo is '{ lv_main_language }', |
                      && |but you're logged on in '{ sy-langu }'| ) ).
     ENDIF.
 
@@ -36186,7 +36183,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -36280,6 +36277,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
     DATA:
       lo_dot          TYPE REF TO zcl_abapgit_dot_abapgit,
       ls_dot          TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
+      lv_main_lang    TYPE spras,
       lv_language     TYPE t002t-sptxt,
       lv_ignore       TYPE string,
       ls_requirements LIKE LINE OF ls_dot-requirements,
@@ -36292,17 +36290,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
     " Get settings from DB
     lo_dot = mo_repo->get_dot_abapgit( ).
     ls_dot = lo_dot->get_data( ).
+    lv_main_lang = lo_dot->get_main_language( ).
 
     " Repository Settings
     SELECT SINGLE sptxt INTO lv_language FROM t002t
-      WHERE spras = sy-langu AND sprsl = ls_dot-master_language.
+      WHERE spras = sy-langu AND sprsl = lv_main_lang.
     IF sy-subrc <> 0.
       lv_language = 'Unknown language; Check your .abapgit.xml file'.
     ENDIF.
 
     mo_form_data->set(
       iv_key = c_id-main_language
-      iv_val = |{ ls_dot-master_language } ({ lv_language })| ).
+      iv_val = |{ lv_main_lang } ({ lv_language })| ).
     mo_form_data->set(
       iv_key = c_id-i18n_langs
       iv_val = zcl_abapgit_lxe_texts=>convert_table_to_lang_string( lo_dot->get_i18n_languages( ) ) ).
@@ -38478,7 +38477,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD is_repo_lang_logon_lang.
-    rv_repo_lang_is_logon_lang = boolc( mo_repo->get_dot_abapgit( )->get_master_language( ) = sy-langu ).
+    rv_repo_lang_is_logon_lang = boolc( mo_repo->get_dot_abapgit( )->get_main_language( ) = sy-langu ).
   ENDMETHOD.
   METHOD open_in_main_language.
 
@@ -38493,7 +38492,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
 
-    lv_main_language = mo_repo->get_dot_abapgit( )->get_master_language( ).
+    lv_main_language = mo_repo->get_dot_abapgit( )->get_main_language( ).
     lv_tcode = get_abapgit_tcode( ).
     ASSERT lv_tcode IS NOT INITIAL.
 
@@ -49527,16 +49526,16 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_language.
 
-    DATA lv_master_language TYPE spras.
+    DATA lv_main_language TYPE spras.
 
     " assumes find_remote_dot_abapgit has been called before
-    lv_master_language = get_dot_abapgit( )->get_master_language( ).
+    lv_main_language = get_dot_abapgit( )->get_main_language( ).
 
-    IF lv_master_language <> sy-langu.
+    IF lv_main_language <> sy-langu.
       zcx_abapgit_exception=>raise( |Current login language |
                                  && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ) }'|
                                  && | does not match main language |
-                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_master_language ) }'.|
+                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_main_language ) }'.|
                                  && | Select 'Advanced' > 'Open in Main Language'| ).
     ENDIF.
 
@@ -50154,7 +50153,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -50226,10 +50225,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     rt_languages = ms_data-i18n_languages.
   ENDMETHOD.
   METHOD get_main_language.
-    rv_language = ms_data-master_language.
-  ENDMETHOD.
-  METHOD get_master_language.
-    " todo, transition to get_main_language()
     rv_language = ms_data-master_language.
   ENDMETHOD.
   METHOD get_requirements.
@@ -53483,7 +53478,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     lt_items = map_results_to_items( lt_results ).
 
-    check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_master_language( )
+    check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                           it_items    = lt_items ).
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
@@ -53523,7 +53518,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           lo_xml = lo_files->read_xml( ).
 
           li_obj = create_object( is_item     = ls_item
-                                  iv_language = io_repo->get_dot_abapgit( )->get_master_language( )
+                                  iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                                   is_metadata = lo_xml->get_metadata( ) ).
 
           compare_remote_to_local(
@@ -91463,7 +91458,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     lt_found = serialize(
       it_tadir            = lt_tadir
-      iv_language         = io_dot_abapgit->get_master_language( )
+      iv_language         = io_dot_abapgit->get_main_language( )
       ii_log              = ii_log
       iv_force_sequential = lv_force ).
     APPEND LINES OF lt_found TO ct_files.
@@ -101909,6 +101904,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-14T10:44:31.954Z
+* abapmerge 0.14.3 - 2021-04-15T06:33:10.000Z
 ENDINTERFACE.
 ****************************************************
