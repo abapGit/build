@@ -98766,7 +98766,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD complete_heads_branch_name.
     IF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-heads.
       rv_name = iv_branch_name.
@@ -98923,6 +98923,9 @@ CLASS ZCL_ABAPGIT_GIT_BRANCH_LIST IMPLEMENTATION.
 
         SPLIT lv_name AT lv_char INTO lv_name lv_head_params.
         ev_head_symref = parse_head_params( lv_head_params ).
+        IF ev_head_symref IS INITIAL AND lv_name CS 'refs/heads/'.
+          ev_head_symref = lv_name.
+        ENDIF.
       ELSEIF sy-tabix > 1 AND strlen( lv_data ) > 45.
         lv_hash = lv_data+4.
         lv_name = lv_data+45.
@@ -101959,6 +101962,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-16T08:06:21.507Z
+* abapmerge 0.14.3 - 2021-04-18T09:19:24.593Z
 ENDINTERFACE.
 ****************************************************
