@@ -2298,7 +2298,7 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF c_git_branch,
-      master       TYPE string VALUE 'refs/heads/master',
+      main         TYPE string VALUE 'refs/heads/main',
       prefix       TYPE string VALUE 'refs/',
       heads_prefix TYPE string VALUE 'refs/heads/',
       heads        TYPE string VALUE 'refs/heads/*',
@@ -3496,7 +3496,6 @@ INTERFACE zif_abapgit_popups .
     IMPORTING
       !iv_url            TYPE string
       !iv_package        TYPE devclass OPTIONAL
-      !iv_branch         TYPE string DEFAULT zif_abapgit_definitions=>c_git_branch-master
       !iv_freeze_package TYPE abap_bool OPTIONAL
       !iv_freeze_url     TYPE abap_bool OPTIONAL
       !iv_title          TYPE clike DEFAULT 'New Online Project'
@@ -31725,9 +31724,9 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
 
     IF lt_branches IS INITIAL.
       IF iv_hide_head IS NOT INITIAL.
-        lv_text = 'master'.
+        lv_text = 'main'.
       ENDIF.
-      IF iv_hide_branch IS NOT INITIAL AND iv_hide_branch <> zif_abapgit_definitions=>c_git_branch-master.
+      IF iv_hide_branch IS NOT INITIAL AND iv_hide_branch <> zif_abapgit_definitions=>c_git_branch-main.
         IF lv_text IS INITIAL.
           lv_text = iv_hide_branch && ' is'.
         ELSE.
@@ -32316,7 +32315,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     lv_display_name = iv_display_name.
     lv_package = iv_package.
     lv_url     = iv_url.
-    lv_branch  = iv_branch.
 
     WHILE lv_finished = abap_false.
 
@@ -102074,6 +102072,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-19T15:13:24.989Z
+* abapmerge 0.14.3 - 2021-04-19T15:16:54.036Z
 ENDINTERFACE.
 ****************************************************
