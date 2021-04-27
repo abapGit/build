@@ -175,7 +175,6 @@ CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_ch_remote DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
@@ -2354,9 +2353,6 @@ INTERFACE zif_abapgit_definitions .
       repo_newonline                TYPE string VALUE 'repo_newonline',
       repo_newoffline               TYPE string VALUE 'repo_newoffline',
       repo_add_all_obj_to_trans_req TYPE string VALUE 'repo_add_all_obj_to_trans_req',
-      repo_remote_attach            TYPE string VALUE 'repo_remote_attach',
-      repo_remote_detach            TYPE string VALUE 'repo_remote_detach',
-      repo_remote_change            TYPE string VALUE 'repo_remote_change',
       repo_refresh_checksums        TYPE string VALUE 'repo_refresh_checksums',
       repo_toggle_fav               TYPE string VALUE 'repo_toggle_fav',
       repo_transport_to_branch      TYPE string VALUE 'repo_transport_to_branch',
@@ -2374,7 +2370,6 @@ INTERFACE zif_abapgit_definitions .
       ie_devtools                   TYPE string VALUE 'ie_devtools',
       git_pull                      TYPE string VALUE 'git_pull',
       git_reset                     TYPE string VALUE 'git_reset',
-      git_checkout_commit           TYPE string VALUE 'git_checkout_commit',
       git_branch_create             TYPE string VALUE 'git_branch_create',
       git_branch_switch             TYPE string VALUE 'git_branch_switch',
       git_branch_delete             TYPE string VALUE 'git_branch_delete',
@@ -3297,9 +3292,6 @@ INTERFACE zif_abapgit_repo_online .
       !iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit
     RAISING
       zcx_abapgit_exception .
-  METHODS get_switched_origin
-    RETURNING
-      VALUE(rv_url) TYPE zif_abapgit_persistence=>ty_repo-switched_origin .
   METHODS switch_origin
     IMPORTING
       !iv_url       TYPE zif_abapgit_persistence=>ty_repo-url
@@ -3451,17 +3443,6 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_popups .
   TYPES:
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
-  TYPES:
-    BEGIN OF ty_popup, " TODO remove, use zif_abapgit_services_repo=>ty_repo_params instead
-      url              TYPE string,
-      package          TYPE devclass,
-      branch_name      TYPE string,
-      display_name     TYPE string,
-      folder_logic     TYPE string,
-      ign_subpkg       TYPE abap_bool,
-      master_lang_only TYPE abap_bool,
-      cancel           TYPE abap_bool,
-    END OF ty_popup .
 
   CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
 
@@ -3496,18 +3477,6 @@ INTERFACE zif_abapgit_popups .
       VALUE(rs_branch)    TYPE zif_abapgit_definitions=>ty_git_branch
     RAISING
       zcx_abapgit_exception .
-  METHODS repo_popup
-    IMPORTING
-      !iv_url            TYPE string
-      !iv_package        TYPE devclass OPTIONAL
-      !iv_freeze_package TYPE abap_bool OPTIONAL
-      !iv_freeze_url     TYPE abap_bool OPTIONAL
-      !iv_title          TYPE clike DEFAULT 'New Online Project'
-      !iv_display_name   TYPE string OPTIONAL
-    RETURNING
-      VALUE(rs_popup)    TYPE ty_popup
-    RAISING
-      zcx_abapgit_exception ##NO_TEXT.
   METHODS popup_to_confirm
     IMPORTING
       !iv_titlebar              TYPE clike
@@ -13317,20 +13286,29 @@ CLASS zcl_abapgit_repo_online DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_repo_online.
 
-    ALIASES:
-      create_branch FOR zif_abapgit_repo_online~create_branch,
-      push FOR zif_abapgit_repo_online~push,
-      get_url FOR zif_abapgit_repo_online~get_url,
-      get_selected_branch FOR zif_abapgit_repo_online~get_selected_branch,
-      set_url FOR zif_abapgit_repo_online~set_url,
-      select_branch FOR zif_abapgit_repo_online~select_branch,
-      get_selected_commit FOR zif_abapgit_repo_online~get_selected_commit,
-      get_current_remote FOR zif_abapgit_repo_online~get_current_remote,
-      select_commit FOR zif_abapgit_repo_online~select_commit,
-      get_switched_origin FOR zif_abapgit_repo_online~get_switched_origin,
-      switch_origin FOR zif_abapgit_repo_online~switch_origin.
+    INTERFACES zif_abapgit_repo_online .
+
+    ALIASES create_branch
+      FOR zif_abapgit_repo_online~create_branch .
+    ALIASES get_current_remote
+      FOR zif_abapgit_repo_online~get_current_remote .
+    ALIASES get_selected_branch
+      FOR zif_abapgit_repo_online~get_selected_branch .
+    ALIASES get_selected_commit
+      FOR zif_abapgit_repo_online~get_selected_commit .
+    ALIASES get_url
+      FOR zif_abapgit_repo_online~get_url .
+    ALIASES push
+      FOR zif_abapgit_repo_online~push .
+    ALIASES select_branch
+      FOR zif_abapgit_repo_online~select_branch .
+    ALIASES select_commit
+      FOR zif_abapgit_repo_online~select_commit .
+    ALIASES set_url
+      FOR zif_abapgit_repo_online~set_url .
+    ALIASES switch_origin
+      FOR zif_abapgit_repo_online~switch_origin .
 
     METHODS get_files_remote
         REDEFINITION .
@@ -14398,6 +14376,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !iv_show_package       TYPE abap_bool DEFAULT abap_true
         !iv_show_branch        TYPE abap_bool DEFAULT abap_true
         !iv_show_commit        TYPE abap_bool DEFAULT abap_true
+        !iv_show_edit          TYPE abap_bool DEFAULT abap_false
         !iv_interactive_branch TYPE abap_bool DEFAULT abap_false
         !io_news               TYPE REF TO zcl_abapgit_news OPTIONAL
       RETURNING
@@ -14962,35 +14941,6 @@ CLASS zcl_abapgit_gui_page_boverview DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-ENDCLASS.
-CLASS zcl_abapgit_gui_page_ch_remote DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS constructor
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception .
-
-    METHODS zif_abapgit_gui_event_handler~on_event
-        REDEFINITION .
-  PROTECTED SECTION.
-
-    METHODS render_content
-        REDEFINITION .
-  PRIVATE SECTION.
-
-    CONSTANTS c_remote_field TYPE string VALUE 'REMOTE' ##NO_TEXT.
-    CONSTANTS:
-      BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
-        save    TYPE string VALUE 'save',
-      END OF c_event .
-    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
@@ -16061,8 +16011,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         toggle_changes           TYPE string VALUE 'toggle_changes' ##NO_TEXT,
         toggle_diff_first        TYPE string VALUE 'toggle_diff_first ' ##NO_TEXT,
         display_more             TYPE string VALUE 'display_more' ##NO_TEXT,
-        repo_switch_origin_to_pr TYPE string VALUE 'repo_switch_origin_to_pr',
-        repo_reset_origin        TYPE string VALUE 'repo_reset_origin',
         go_data                  TYPE string VALUE 'go_data',
       END OF c_actions .
 
@@ -16207,14 +16155,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         !io_tb_advanced   TYPE REF TO zcl_abapgit_html_toolbar
       RETURNING
         VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
-      RAISING
-        zcx_abapgit_exception .
-    METHODS switch_to_pr
-      IMPORTING
-        !it_fields         TYPE tihttpnvp OPTIONAL
-        !iv_revert         TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(rv_switched) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     METHODS build_main_menu
@@ -17182,13 +17122,6 @@ CLASS zcl_abapgit_gui_router DEFINITION
         VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
       RAISING
         zcx_abapgit_exception .
-    METHODS remote_origin_manipulations
-      IMPORTING
-        !ii_event         TYPE REF TO zif_abapgit_gui_event
-      RETURNING
-        VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
-      RAISING
-        zcx_abapgit_exception .
     METHODS sap_gui_actions
       IMPORTING
         !ii_event         TYPE REF TO zif_abapgit_gui_event
@@ -17872,6 +17805,9 @@ CLASS zcl_abapgit_popups DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    TYPES:
+      ty_lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
+
     CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
     CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
 
@@ -17910,33 +17846,18 @@ CLASS zcl_abapgit_popups DEFINITION
       IMPORTING
         !row
         !column .
-    METHODS extract_field_values
-      IMPORTING
-        it_fields           TYPE zif_abapgit_popups=>ty_sval_tt
-      EXPORTING
-        ev_url              TYPE abaptxt255-line
-        ev_package          TYPE tdevc-devclass
-        ev_branch           TYPE textl-line
-        ev_display_name     TYPE trm255-text
-        ev_folder_logic     TYPE string
-        ev_ign_subpkg       TYPE abap_bool
-        ev_master_lang_only TYPE abap_bool.
-    TYPES:
-      ty_lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
     METHODS _popup_3_get_values
-      IMPORTING iv_popup_title    TYPE string
-                iv_no_value_check TYPE abap_bool DEFAULT abap_false
-      EXPORTING ev_value_1        TYPE spo_value
-                ev_value_2        TYPE spo_value
-                ev_value_3        TYPE spo_value
-      CHANGING  ct_fields         TYPE ty_lt_fields
-      RAISING   zcx_abapgit_exception.
-
-    METHODS validate_folder_logic
       IMPORTING
-        iv_folder_logic TYPE string
+        !iv_popup_title    TYPE string
+        !iv_no_value_check TYPE abap_bool DEFAULT abap_false
+      EXPORTING
+        !ev_value_1        TYPE spo_value
+        !ev_value_2        TYPE spo_value
+        !ev_value_3        TYPE spo_value
+      CHANGING
+        !ct_fields         TYPE ty_lt_fields
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
   FINAL
@@ -18059,20 +17980,8 @@ CLASS zcl_abapgit_services_git DEFINITION
         !io_stage  TYPE REF TO zcl_abapgit_stage
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS checkout_commit
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    TYPES: BEGIN OF ty_commit_value_tab,
-             sha1     TYPE zif_abapgit_definitions=>ty_sha1,
-             message  TYPE c LENGTH 50,
-             datetime TYPE c LENGTH 20,
-           END OF ty_commit_value_tab.
-    TYPES: ty_commit_value_tab_tt TYPE STANDARD TABLE OF ty_commit_value_tab WITH DEFAULT KEY .
-
     CLASS-METHODS get_unnecessary_local_objs
       IMPORTING
         !io_repo                            TYPE REF TO zcl_abapgit_repo
@@ -18082,22 +17991,6 @@ CLASS zcl_abapgit_services_git DEFINITION
         zcx_abapgit_exception .
 
   PRIVATE SECTION.
-    CLASS-METHODS checkout_commit_build_list
-      IMPORTING
-        !io_repo     TYPE REF TO zcl_abapgit_repo_online
-      EXPORTING
-        et_value_tab TYPE ty_commit_value_tab_tt
-        et_commits   TYPE zif_abapgit_definitions=>ty_commit_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS checkout_commit_build_popup
-      IMPORTING
-        !it_commits               TYPE zif_abapgit_definitions=>ty_commit_tt
-        !it_value_tab             TYPE ty_commit_value_tab_tt
-      RETURNING
-        VALUE(rs_selected_commit) TYPE zif_abapgit_definitions=>ty_commit
-      RAISING
-        zcx_abapgit_exception .
 
 ENDCLASS.
 CLASS zcl_abapgit_services_repo DEFINITION
@@ -18135,16 +18028,6 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
       RETURNING
         VALUE(ro_repo)  TYPE REF TO zcl_abapgit_repo_offline
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS remote_attach
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS remote_detach
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS refresh_local_checksums
@@ -30453,7 +30336,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -30751,59 +30634,6 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
-  METHOD remote_attach.
-
-    DATA: ls_popup TYPE zif_abapgit_popups=>ty_popup,
-          ls_loc   TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lo_repo  TYPE REF TO zcl_abapgit_repo_online.
-
-    ls_loc = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_local_settings( ).
-
-    ls_popup = zcl_abapgit_ui_factory=>get_popups( )->repo_popup(
-      iv_title          = 'Attach repo to remote ...'
-      iv_url            = ''
-      iv_display_name   = ls_loc-display_name
-      iv_package        = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_package( )
-      iv_freeze_package = abap_true ).
-    IF ls_popup-cancel = abap_true.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->switch_repo_type( iv_offline = abap_false ).
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    lo_repo->set_url( ls_popup-url ).
-    lo_repo->select_branch( ls_popup-branch_name ).
-
-    ls_loc = lo_repo->get_local_settings( ). " Just in case ... if switch affects LS state
-    ls_loc-display_name = ls_popup-display_name.
-    lo_repo->set_local_settings( ls_loc ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.
-  METHOD remote_detach.
-
-    DATA: lv_answer TYPE c LENGTH 1.
-
-    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      iv_titlebar              = 'Make repository OFF-line'
-      iv_text_question         = 'This will detach the repo from remote and make it OFF-line'
-      iv_text_button_1         = 'Make OFF-line'
-      iv_icon_button_1         = 'ICON_WF_UNLINK'
-      iv_text_button_2         = 'Cancel'
-      iv_icon_button_2         = 'ICON_CANCEL'
-      iv_default_button        = '2'
-      iv_display_cancel_button = abap_false ).
-
-    IF lv_answer = '2'.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->switch_repo_type( iv_offline = abap_true ).
-
-    COMMIT WORK.
-
-  ENDMETHOD.
   METHOD remove.
 
     DATA: lv_answer    TYPE c LENGTH 1,
@@ -30877,128 +30707,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
-  METHOD checkout_commit.
-
-    DATA: lo_repo            TYPE REF TO zcl_abapgit_repo_online,
-          lt_value_tab       TYPE ty_commit_value_tab_tt,
-          lt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
-          ls_selected_commit TYPE zif_abapgit_definitions=>ty_commit.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot checkout. Local code is write-protected by repo config.' ).
-    ENDIF.
-
-    checkout_commit_build_list(
-      EXPORTING
-        io_repo        = lo_repo
-      IMPORTING
-        et_value_tab   = lt_value_tab
-        et_commits     = lt_commits ).
-
-    ls_selected_commit = checkout_commit_build_popup( it_commits   = lt_commits
-                                                      it_value_tab = lt_value_tab ).
-
-    lo_repo->select_commit( ls_selected_commit-sha1 ).
-    COMMIT WORK AND WAIT.
-
-  ENDMETHOD.
-  METHOD checkout_commit_build_list.
-
-    DATA: lv_unix_time   TYPE zcl_abapgit_time=>ty_unixtime,
-          lv_date        TYPE sy-datum,
-          lv_date_string TYPE c LENGTH 12,
-          lv_time        TYPE sy-uzeit,
-          lv_time_string TYPE c LENGTH 10.
-
-    FIELD-SYMBOLS: <ls_commit>    TYPE zif_abapgit_definitions=>ty_commit,
-                   <ls_value_tab> TYPE ty_commit_value_tab.
-
-    CLEAR: et_commits, et_value_tab.
-
-    et_commits = zcl_abapgit_git_commit=>get_by_branch( iv_branch_name  = io_repo->get_selected_branch( )
-                                                        iv_repo_url     = io_repo->get_url( )
-                                                        iv_deepen_level = 99 )-commits.
-
-    DELETE et_commits WHERE sha1 = io_repo->get_selected_commit( ).
-    SORT et_commits BY time DESCENDING.
-
-    IF et_commits IS INITIAL.
-      zcx_abapgit_exception=>raise( |No commits are available in this branch.| ).
-    ENDIF.
-
-    LOOP AT et_commits ASSIGNING <ls_commit>.
-
-      APPEND INITIAL LINE TO et_value_tab ASSIGNING <ls_value_tab>.
-      <ls_value_tab>-sha1    = <ls_commit>-sha1.
-      <ls_value_tab>-message = <ls_commit>-message.
-      lv_unix_time = <ls_commit>-time.
-      zcl_abapgit_time=>get_utc(
-        EXPORTING
-          iv_unix = lv_unix_time
-        IMPORTING
-          ev_time = lv_time
-          ev_date = lv_date ).
-      WRITE: lv_date TO lv_date_string,
-             lv_time TO lv_time_string.
-      <ls_value_tab>-datetime = |{ lv_date_string }, | &&
-                                |{ lv_time_string }|.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD checkout_commit_build_popup.
-
-    DATA: lt_columns         TYPE zif_abapgit_definitions=>ty_alv_column_tt,
-          li_popups          TYPE REF TO zif_abapgit_popups,
-          lt_selected_values TYPE ty_commit_value_tab_tt.
-
-    FIELD-SYMBOLS: <ls_value_tab> TYPE ty_commit_value_tab,
-                   <ls_column>    TYPE zif_abapgit_definitions=>ty_alv_column.
-
-    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
-    <ls_column>-name   = 'SHA1'.
-    <ls_column>-text   = 'Hash'.
-    <ls_column>-length = 8.
-    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
-    <ls_column>-name = 'MESSAGE'.
-    <ls_column>-text = 'Message'.
-    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
-    <ls_column>-name = 'DATETIME'.
-    <ls_column>-text = 'Datetime'.
-
-    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    li_popups->popup_to_select_from_list(
-      EXPORTING
-        it_list               = it_value_tab
-        iv_title              = |Checkout Commit|
-        iv_end_column         = 83
-        iv_striped_pattern    = abap_true
-        iv_optimize_col_width = abap_false
-        iv_selection_mode     = if_salv_c_selection_mode=>single
-        it_columns_to_display = lt_columns
-      IMPORTING
-        et_list              = lt_selected_values ).
-
-    IF lt_selected_values IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    READ TABLE lt_selected_values
-      ASSIGNING <ls_value_tab>
-      INDEX 1.
-
-    IF <ls_value_tab> IS NOT ASSIGNED.
-      zcx_abapgit_exception=>raise( |Though result set of popup wasn't empty selected value couldn't retrieved.| ).
-    ENDIF.
-
-    READ TABLE it_commits
-      INTO rs_selected_commit
-      WITH KEY sha1 = <ls_value_tab>-sha1.
-
-  ENDMETHOD.
+CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD commit.
 
     DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
@@ -31605,7 +31314,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -31686,49 +31395,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
       ENDCASE.
       INSERT <lg_line> INTO TABLE <lt_table>.
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD extract_field_values.
-
-    FIELD-SYMBOLS: <ls_field> LIKE LINE OF it_fields.
-
-    CLEAR: ev_url,
-           ev_package,
-           ev_branch,
-           ev_display_name,
-           ev_folder_logic,
-           ev_ign_subpkg.
-
-    READ TABLE it_fields INDEX 1 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_url = <ls_field>-value.
-
-    READ TABLE it_fields INDEX 2 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_package = <ls_field>-value.
-    TRANSLATE ev_package TO UPPER CASE.
-
-    READ TABLE it_fields INDEX 3 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_branch = <ls_field>-value.
-
-    READ TABLE it_fields INDEX 4 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_display_name = <ls_field>-value.
-
-    READ TABLE it_fields INDEX 5 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_folder_logic = <ls_field>-value.
-    TRANSLATE ev_folder_logic TO UPPER CASE.
-
-    READ TABLE it_fields INDEX 6 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_ign_subpkg = <ls_field>-value.
-    TRANSLATE ev_ign_subpkg TO UPPER CASE.
-
-    READ TABLE it_fields INDEX 7 ASSIGNING <ls_field>.
-    ASSERT sy-subrc = 0.
-    ev_master_lang_only = <ls_field>-value.
 
   ENDMETHOD.
   METHOD get_selected_rows.
@@ -31890,18 +31556,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDIF.
 
     mo_select_list_popup->refresh( ).
-
-  ENDMETHOD.
-  METHOD validate_folder_logic.
-
-    IF iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-        AND iv_folder_logic <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
-
-      zcx_abapgit_exception=>raise( |Invalid folder logic { iv_folder_logic }. |
-                                 && |Choose either { zif_abapgit_dot_abapgit=>c_folder_logic-prefix } |
-                                 && |or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
-
-    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
@@ -32195,7 +31849,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_popups~popup_search_help.
 
     DATA lt_ret TYPE TABLE OF ddshretval.
@@ -32486,165 +32139,6 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     ELSEIF sy-subrc > 1.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~repo_popup.
-
-    DATA: lv_returncode       TYPE c,
-          lv_icon_ok          TYPE icon-name,
-          lv_icon_br          TYPE icon-name,
-          lt_fields           TYPE TABLE OF sval,
-          lv_uattr            TYPE spo_fattr,
-          lv_pattr            TYPE spo_fattr,
-          lv_button2          TYPE svalbutton-buttontext,
-          lv_icon2            TYPE icon-name,
-          lv_package          TYPE tdevc-devclass,
-          lv_url              TYPE abaptxt255-line,
-          lv_branch           TYPE textl-line,
-          lv_display_name     TYPE trm255-text,
-          lv_folder_logic     TYPE string,
-          lv_ign_subpkg       TYPE abap_bool,
-          lv_finished         TYPE abap_bool,
-          lv_master_lang_only TYPE abap_bool,
-          lx_error            TYPE REF TO zcx_abapgit_exception.
-
-    IF iv_freeze_url = abap_true.
-      lv_uattr = '05'.
-    ENDIF.
-
-    IF iv_freeze_package = abap_true.
-      lv_pattr = '05'.
-    ENDIF.
-
-    IF iv_package IS INITIAL. " Empty package -> can be created
-      lv_button2 = 'Create package'.
-      lv_icon2   = icon_folder.
-    ENDIF.
-
-    lv_display_name = iv_display_name.
-    lv_package = iv_package.
-    lv_url     = iv_url.
-
-    WHILE lv_finished = abap_false.
-
-      CLEAR: lt_fields.
-
-      add_field( EXPORTING iv_tabname    = 'ABAPTXT255'
-                           iv_fieldname  = 'LINE'
-                           iv_fieldtext  = 'Git clone URL'
-                           iv_value      = lv_url
-                           iv_field_attr = lv_uattr
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TDEVC'
-                           iv_fieldname  = 'DEVCLASS'
-                           iv_fieldtext  = 'Package'
-                           iv_value      = lv_package
-                           iv_field_attr = lv_pattr
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TEXTL'
-                           iv_fieldname  = 'LINE'
-                           iv_fieldtext  = 'Branch'
-                           iv_value      = lv_branch
-                           iv_field_attr = '05'
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TRM255'
-                           iv_fieldname  = 'TEXT'
-                           iv_fieldtext  = 'Display name (opt.)'
-                           iv_value      = lv_display_name
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TADIR'
-                           iv_fieldname  = 'AUTHOR'
-                           iv_fieldtext  = 'Folder logic'
-                           iv_obligatory = abap_true
-                           iv_value      = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'TDEVC'
-                           iv_fieldname  = 'IS_ENHANCEABLE'
-                           iv_fieldtext  = 'Ignore subpackages'
-                           iv_value      = abap_false
-                 CHANGING ct_fields      = lt_fields ).
-
-      add_field( EXPORTING iv_tabname    = 'DOKIL'
-                           iv_fieldname  = 'MASTERLANG'
-                           iv_fieldtext  = 'Main language only'
-                           iv_value      = abap_true
-                  CHANGING ct_fields     = lt_fields ).
-
-      lv_icon_ok  = icon_okay.
-      lv_icon_br  = icon_workflow_fork.
-
-      CALL FUNCTION 'POPUP_GET_VALUES_USER_BUTTONS'
-        EXPORTING
-          popup_title       = iv_title
-          programname       = sy-cprog
-          formname          = 'BRANCH_POPUP'
-          ok_pushbuttontext = 'OK'
-          icon_ok_push      = lv_icon_ok
-          first_pushbutton  = 'Select branch'
-          icon_button_1     = lv_icon_br
-          second_pushbutton = lv_button2
-          icon_button_2     = lv_icon2
-        IMPORTING
-          returncode        = lv_returncode
-        TABLES
-          fields            = lt_fields
-        EXCEPTIONS
-          error_in_fields   = 1
-          OTHERS            = 2.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from POPUP_GET_VALUES' ).
-      ENDIF.
-
-      IF lv_returncode = c_answer_cancel.
-        rs_popup-cancel = abap_true.
-        RETURN.
-      ENDIF.
-
-      extract_field_values(
-        EXPORTING
-          it_fields       = lt_fields
-        IMPORTING
-          ev_url          = lv_url
-          ev_package      = lv_package
-          ev_branch       = lv_branch
-          ev_display_name = lv_display_name
-          ev_folder_logic = lv_folder_logic
-          ev_ign_subpkg   = lv_ign_subpkg
-          ev_master_lang_only = lv_master_lang_only ).
-
-      lv_finished = abap_true.
-
-      TRY.
-          IF iv_freeze_url = abap_false.
-            zcl_abapgit_url=>validate( |{ lv_url }| ).
-          ENDIF.
-          IF iv_freeze_package = abap_false.
-            zcl_abapgit_repo_srv=>get_instance( )->validate_package( iv_package    = lv_package
-                                                                     iv_ign_subpkg = lv_ign_subpkg
-                                                                     iv_chk_exists = abap_false ).
-          ENDIF.
-          validate_folder_logic( lv_folder_logic ).
-        CATCH zcx_abapgit_exception INTO lx_error.
-          MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-          " in case of validation errors we display the popup again
-          CLEAR lv_finished.
-      ENDTRY.
-
-    ENDWHILE.
-
-    rs_popup-url                = lv_url.
-    rs_popup-package            = lv_package.
-    rs_popup-branch_name        = lv_branch.
-    rs_popup-display_name       = lv_display_name.
-    rs_popup-folder_logic       = lv_folder_logic.
-    rs_popup-ign_subpkg         = lv_ign_subpkg.
-    rs_popup-master_lang_only   = lv_master_lang_only.
 
   ENDMETHOD.
   METHOD _popup_3_get_values.
@@ -34980,9 +34474,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-git_reset.                     " GIT Reset
         zcl_abapgit_services_git=>reset( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-git_checkout_commit.           " GIT Checkout commit
-        zcl_abapgit_services_git=>checkout_commit( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_create.             " GIT Create new branch
         zcl_abapgit_services_git=>create_branch( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -35059,26 +34550,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       zcl_abapgit_services_basis=>open_ie_devtools( ).
       rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDIF.
-
-  ENDMETHOD.
-  METHOD remote_origin_manipulations.
-
-    DATA lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
-    lv_key = ii_event->query( )->get( 'KEY' ).
-
-    CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_attach.
-        zcl_abapgit_services_repo=>remote_attach( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_detach.
-        zcl_abapgit_services_repo=>remote_detach( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_remote_change.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_ch_remote
-          EXPORTING
-            iv_key = lv_key.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-    ENDCASE.
 
   ENDMETHOD.
   METHOD repository_services.
@@ -35212,9 +34683,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     ENDIF.
     IF rs_handled-state IS INITIAL.
       rs_handled = abapgit_services_actions( ii_event ).
-    ENDIF.
-    IF rs_handled-state IS INITIAL.
-      rs_handled = remote_origin_manipulations( ii_event ).
     ENDIF.
     IF rs_handled-state IS INITIAL.
       rs_handled = sap_gui_actions( ii_event ).
@@ -36956,6 +36424,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     CREATE OBJECT mo_form_data.
 
     init( io_repo ).
+    mv_original_url = ms_repo_current-url.
 
     mo_form = get_form_schema( ).
     mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
@@ -37016,8 +36485,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_name        = c_id-url
       iv_label       = lv_label
       iv_hint        = lv_hint
-      iv_placeholder = lv_placeholder
-      iv_side_action = c_event-choose_url ).
+      iv_placeholder = lv_placeholder ).
 
     IF mv_mode <> c_mode-offline.
 
@@ -37102,7 +36570,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     ENDIF.
 
     ms_repo_new = ms_repo_current.
-    mv_original_url = ms_repo_current-url.
 
   ENDMETHOD.
   METHOD read_settings.
@@ -39033,13 +38500,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
 
     IF mo_repo->is_offline( ) = abap_false. " Online ?
-      ro_advanced_dropdown->add( iv_txt = 'Checkout commit'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-git_checkout_commit }?key={ mv_key }|
-                                 iv_opt = iv_wp_opt ).
-      ro_advanced_dropdown->add( iv_txt = 'Change Remote'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_change }?key={ mv_key }| ).
-      ro_advanced_dropdown->add( iv_txt = 'Make Off-line'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_detach }?key={ mv_key }| ).
       ro_advanced_dropdown->add( iv_txt = 'Force Stage'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }| ).
 
@@ -39051,10 +38511,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         iv_txt = 'Transport to Branch'
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_transport_to_branch }?key={ mv_key }|
         iv_opt = lv_crossout ).
-
-    ELSE.
-      ro_advanced_dropdown->add( iv_txt = 'Make On-line'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_attach }?key={ mv_key }| ).
     ENDIF.
 
     IF mv_are_changes_recorded_in_tr = abap_true.
@@ -39121,17 +38577,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_create }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Delete'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_delete }?key={ mv_key }| ).
-
-    lo_repo_online ?= mo_repo. " TODO refactor this disaster
-    IF lo_repo_online->get_switched_origin( ) IS NOT INITIAL.
-      ro_branch_dropdown->add(
-        iv_txt = 'Revert to Previous Branch'
-        iv_act = |{ c_actions-repo_reset_origin }| ).
-    ELSE.
-      ro_branch_dropdown->add(
-        iv_txt = 'Switch to PR Branch'
-        iv_act = |{ c_actions-repo_switch_origin_to_pr }| ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD build_dir_jump_link.
@@ -39530,6 +38975,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
           io_repo               = mo_repo
           io_news               = lo_news
+          iv_show_edit          = abap_true
           iv_interactive_branch = abap_true ) ).
 
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
@@ -39886,43 +39332,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
 
   ENDMETHOD.
-  METHOD switch_to_pr.
-
-    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
-    DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
-    DATA ls_pull LIKE LINE OF lt_pulls.
-
-    IF mo_repo->is_offline( ) = abap_true.
-      zcx_abapgit_exception=>raise( 'Unexpected PR switch for offline repo' ).
-    ENDIF.
-    IF mo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot switch branch. Local code is write-protected by repo config' ).
-    ENDIF.
-
-    lo_repo_online ?= mo_repo.
-
-    IF iv_revert = abap_true.
-      lo_repo_online->switch_origin( '' ).
-    ELSE.
-      lt_pulls = zcl_abapgit_pr_enumerator=>new( lo_repo_online )->get_pulls( ).
-      IF lines( lt_pulls ) = 0.
-        RETURN. " false
-      ENDIF.
-
-      SORT lt_pulls BY number DESCENDING.
-
-      ls_pull = zcl_abapgit_ui_factory=>get_popups( )->choose_pr_popup( lt_pulls ).
-      IF ls_pull IS INITIAL.
-        RETURN. " false
-      ENDIF.
-
-      lo_repo_online->switch_origin(
-        iv_url    = ls_pull-head_url
-        iv_branch = ls_pull-head_branch ).
-      rv_switched = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA lv_path TYPE string.
@@ -39979,18 +39388,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
       WHEN zif_abapgit_definitions=>c_action-repo_open_in_master_lang.
         open_in_main_language( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-
-      WHEN c_actions-repo_switch_origin_to_pr.
-        lv_switched = switch_to_pr( ).
-        IF lv_switched = abap_true.
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-        ELSE.
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-        ENDIF.
-
-      WHEN c_actions-repo_reset_origin.
-        switch_to_pr( iv_revert = abap_true ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN OTHERS.
@@ -43941,66 +43338,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_CH_REMOTE IMPLEMENTATION.
-  METHOD constructor.
-
-    super->constructor( ).
-    mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-    ms_control-page_title = 'Change Remote'.
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    DATA lo_form TYPE REF TO zcl_abapgit_html_form.
-    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    CREATE OBJECT lo_map.
-
-    lo_form = zcl_abapgit_html_form=>create( ).
-
-    lo_form->text(
-      iv_name     = c_remote_field
-      iv_required = abap_true
-      iv_label = 'New GIT Repository URL'
-      iv_hint  = 'HTTPS address of the repository' ).
-    lo_map->set(
-      iv_key = c_remote_field
-      iv_val = mo_repo->get_url( ) ).
-
-    lo_form->command(
-      iv_label    = 'Save'
-      iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
-      iv_action   = c_event-save ).
-    lo_form->command(
-      iv_label  = 'Back'
-      iv_action = c_event-go_back ).
-
-    ri_html->add( lo_form->render( lo_map ) ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-
-    DATA lv_url TYPE string.
-
-    CASE ii_event->mv_action.
-      WHEN c_event-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
-      WHEN c_event-save.
-        lv_url = condense( ii_event->form_data( )->get( c_remote_field ) ).
-
-        zcl_abapgit_repo_srv=>get_instance( )->validate_url( lv_url ).
-
-        mo_repo->set_url( lv_url ).
-        COMMIT WORK.
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-    ENDCASE.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
   METHOD body.
 
@@ -45563,22 +44900,28 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                       iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url=|
                               && |{ lo_repo_online->get_url( ) }|
                       iv_class = |url| ).
+    ENDIF.
 
-      IF iv_show_commit = abap_true.
+    IF iv_show_edit = abap_true.
+      ri_html->add_a( iv_txt   = ri_html->icon( iv_name  = 'edit-solid'
+                                                iv_class = 'pad-sides'
+                                                iv_hint  = 'Change remote' )
+                      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?| &&
+                                 |key={ io_repo->get_key( ) }|
+                      iv_class = |url| ).
+    ENDIF.
 
-        TRY.
-            render_repo_top_commit_hash( ii_html        = ri_html
-                                         io_repo_online = lo_repo_online ).
-          CATCH zcx_abapgit_exception INTO lx_error.
-            " In case of missing or wrong credentials, show message in status bar
-            lv_hint = lx_error->get_text( ).
-            IF lv_hint CS 'credentials'.
-              MESSAGE lv_hint TYPE 'S' DISPLAY LIKE 'E'.
-            ENDIF.
-        ENDTRY.
-
-      ENDIF.
-
+    IF io_repo->is_offline( ) = abap_false AND iv_show_commit = abap_true.
+      TRY.
+          render_repo_top_commit_hash( ii_html        = ri_html
+                                       io_repo_online = lo_repo_online ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          " In case of missing or wrong credentials, show message in status bar
+          lv_hint = lx_error->get_text( ).
+          IF lv_hint CS 'credentials'.
+            MESSAGE lv_hint TYPE 'S' DISPLAY LIKE 'E'.
+          ENDIF.
+      ENDTRY.
     ENDIF.
 
     " News
@@ -50026,9 +49369,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~get_selected_commit.
     rv_selected_commit = ms_data-selected_commit.
-  ENDMETHOD.
-  METHOD zif_abapgit_repo_online~get_switched_origin.
-    rv_url = ms_data-switched_origin.
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~get_url.
     rv_url = ms_data-url.
@@ -103065,6 +102405,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-27T16:59:05.220Z
+* abapmerge 0.14.3 - 2021-04-27T17:04:13.826Z
 ENDINTERFACE.
 ****************************************************
