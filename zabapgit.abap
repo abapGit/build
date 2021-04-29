@@ -36196,15 +36196,17 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
+
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
                     io_repo               = mo_repo
                     iv_show_commit        = abap_false
                     iv_interactive_branch = abap_true ) ).
-    ri_html->add( `</div>` ).
 
     ri_html->add( mo_form->render(
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -36917,15 +36919,17 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
+
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
                     io_repo               = mo_repo
                     iv_show_commit        = abap_false
                     iv_interactive_branch = abap_false ) ).
-    ri_html->add( `</div>` ).
 
     ri_html->add( mo_form->render(
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -37168,7 +37172,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -37357,15 +37361,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
+
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
                     io_repo               = mo_repo
                     iv_show_commit        = abap_false
                     iv_interactive_branch = abap_true ) ).
-    ri_html->add( `</div>` ).
 
     ri_html->add( mo_form->render(
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -37814,13 +37820,15 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
+
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
                     io_repo               = mo_repo
                     iv_show_commit        = abap_false
                     iv_interactive_branch = abap_true ) ).
-    ri_html->add( `</div>` ).
 
     ri_html->add( mo_form->render( mo_form_data ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -38352,15 +38360,17 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( `<div class="repo">` ).
+
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
                     io_repo               = mo_repo
                     iv_show_commit        = abap_false
                     iv_interactive_branch = abap_true ) ).
-    ri_html->add( `</div>` ).
 
     ri_html->add( mo_form->render(
       iv_form_class = 'w800px'
       io_values     = mo_form_data ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -102405,6 +102415,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-29T05:15:50.575Z
+* abapmerge 0.14.3 - 2021-04-29T15:21:42.160Z
 ENDINTERFACE.
 ****************************************************
