@@ -35385,7 +35385,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           IF ls_item IS INITIAL.
             CONTINUE.
           ENDIF.
-          APPEND <ls_local>-item TO lt_items.
+          APPEND ls_item TO lt_items.
         ENDLOOP.
 
         SORT lt_items BY obj_type obj_name.
@@ -102415,6 +102415,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-04-29T15:21:42.160Z
+* abapmerge 0.14.3 - 2021-05-01T07:47:20.379Z
 ENDINTERFACE.
 ****************************************************
