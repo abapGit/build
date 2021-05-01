@@ -22536,7 +22536,6 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
       lv_systemedit         TYPE tadir-edtflag,
       lv_sys_cliinddep_edit TYPE t000-ccnocliind,
       lv_is_shadow          TYPE abap_bool,
-      lv_component          TYPE uvers-component,
       ls_upginfo            TYPE uvers,
       lv_is_upgrade         TYPE abap_bool.
 
@@ -38139,8 +38138,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
     DATA:
       lt_methods TYPE zcl_abapgit_background=>ty_methods,
       ls_method  LIKE LINE OF lt_methods,
-      lv_hint    TYPE string,
-      lv_checked TYPE string.
+      lv_hint    TYPE string.
 
     lt_methods = zcl_abapgit_background=>list_methods( ).
 
@@ -38570,8 +38568,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD build_branch_dropdown.
-
-    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
 
     CREATE OBJECT ro_branch_dropdown.
 
@@ -39345,7 +39341,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA lv_path TYPE string.
-    DATA lv_switched TYPE abap_bool.
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_repo. " Switch to another repo
@@ -50795,8 +50790,6 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_repo_show.
-
-    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
 
     rv_key = ms_user-repo_show.
 
@@ -84353,8 +84346,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: ls_clskey TYPE seoclskey.
-
     deserialize_abap( ii_xml     = io_xml
                       iv_package = iv_package ).
 
@@ -87126,7 +87117,6 @@ CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
     DATA:
       lt_langs_str TYPE string_table,
       lv_laiso     TYPE laiso,
-      lv_langu     TYPE spras,
       lv_skip_main_lang_iso TYPE laiso.
 
     FIELD-SYMBOLS:
@@ -88708,8 +88698,7 @@ CLASS zcl_abapgit_object_enhs_hook_d IMPLEMENTATION.
           li_enh_object          TYPE REF TO if_enh_object,
           li_enh_object_docu     TYPE REF TO if_enh_object_docu,
           lo_hookdef_tool        TYPE REF TO cl_enh_tool_hook_def,
-          lx_enh_root            TYPE REF TO cx_enh_root,
-          lv_text                TYPE string.
+          lx_enh_root            TYPE REF TO cx_enh_root.
 
     FIELD-SYMBOLS: <ls_hook_definition> TYPE enh_hook_def_ext.
 
@@ -88792,7 +88781,6 @@ CLASS zcl_abapgit_object_enhs_badi_d IMPLEMENTATION.
           lv_enh_shorttext   TYPE string,
           li_enh_object      TYPE REF TO if_enh_object,
           li_enh_object_docu TYPE REF TO if_enh_object_docu,
-          lv_text            TYPE string,
           lx_enh_root        TYPE REF TO cx_enh_root.
 
     FIELD-SYMBOLS: <ls_enh_badi> LIKE LINE OF lt_enh_badi.
@@ -99418,9 +99406,8 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD skip_first_pkt.
 
     DATA: lv_hex     TYPE x LENGTH 1,
-          lt_strings TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-          lv_str     TYPE string,
           lv_length  TYPE i.
+
 * channel
     ASSERT iv_data(2) = '00'.
 
@@ -100774,8 +100761,6 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
   METHOD is_object_locked_in_transport.
     DATA: ls_object_key        TYPE e071,
           lv_type_check_result TYPE c LENGTH 1,
-          lv_name_too_long     TYPE c LENGTH 1,
-          lv_objlen            TYPE tlock-len,
           ls_lock_key          TYPE tlock_int,
           lv_lock_flag         TYPE c LENGTH 1.
 
@@ -102415,6 +102400,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-01T07:50:06.453Z
+* abapmerge 0.14.3 - 2021-05-01T07:52:06.021Z
 ENDINTERFACE.
 ****************************************************
