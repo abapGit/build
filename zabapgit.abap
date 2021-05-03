@@ -4850,6 +4850,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
     CLASS-METHODS reverse_sort_order
       CHANGING
         !ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
+    CLASS-METHODS clear_missing_parents CHANGING ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -4863,6 +4864,13 @@ CLASS zcl_abapgit_git_commit DEFINITION
         es_1st_commit   TYPE zif_abapgit_definitions=>ty_commit
       CHANGING
         ct_commits      TYPE zif_abapgit_definitions=>ty_commit_tt .
+
+    CLASS-METHODS is_missing
+      IMPORTING
+        it_commits       TYPE zif_abapgit_definitions=>ty_commit_tt
+        iv_sha1          TYPE zif_abapgit_definitions=>ty_sha1
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
 ENDCLASS.
 CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR DEFINITION DEFERRED.
 *"* use this source file for any type of declarations (class
@@ -19082,6 +19090,9 @@ CLASS zcl_abapgit_branch_overview DEFINITION
     METHODS determine_tags
       RAISING
         zcx_abapgit_exception .
+    METHODS get_deepen_level
+      RETURNING
+        VALUE(rv_result) TYPE i.
 ENDCLASS.
 CLASS zcl_abapgit_code_inspector DEFINITION
   CREATE PROTECTED
@@ -22906,7 +22917,7 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
+CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
   METHOD compress_internal.
 
     FIELD-SYMBOLS: <ls_temp>     LIKE LINE OF ct_temp,
@@ -22937,6 +22948,9 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     lt_objects = get_git_objects( io_repo ).
 
     mt_commits = zcl_abapgit_git_commit=>parse_commits( lt_objects ).
+    IF lines( mt_commits ) > 2000.
+      zcx_abapgit_exception=>raise( 'Too many commits to display overview' ).
+    ENDIF.
     zcl_abapgit_git_commit=>sort_commits( CHANGING ct_commits = mt_commits ).
 
     parse_annotated_tags( lt_objects ).
@@ -23163,7 +23177,7 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
       EXPORTING
         iv_url          = io_repo->get_url( )
         iv_branch_name  = io_repo->get_selected_branch( )
-        iv_deepen_level = 0
+        iv_deepen_level = get_deepen_level( )
         it_branches     = lt_branches_and_tags
       IMPORTING
         et_objects      = rt_objects ).
@@ -23262,6 +23276,21 @@ CLASS ZCL_ABAPGIT_BRANCH_OVERVIEW IMPLEMENTATION.
     rt_tags = mt_tags.
 
   ENDMETHOD.
+
+  METHOD get_deepen_level.
+
+    DATA: lv_deepen_level(10) TYPE c.
+
+    "Experimental: Use STVARV to get a locally configured value
+    SELECT SINGLE low
+      INTO lv_deepen_level
+      FROM tvarvc
+      WHERE name = 'ABAPGIT_TEST_LOG_LENGTH'  ##WARN_OK.
+
+    rv_result = lv_deepen_level.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_AUTH IMPLEMENTATION.
@@ -97420,7 +97449,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -97623,8 +97652,8 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   ENDMETHOD.
   METHOD upload_pack_by_branch.
 
-    DATA: lo_client  TYPE REF TO zcl_abapgit_http_client,
-          lt_hashes  TYPE zif_abapgit_definitions=>ty_sha1_tt.
+    DATA: lo_client TYPE REF TO zcl_abapgit_http_client,
+          lt_hashes TYPE zif_abapgit_definitions=>ty_sha1_tt.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF it_branches.
     CLEAR: et_objects,
@@ -98372,7 +98401,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
         ENDIF.
 
       ELSEIF lv_zlib = c_zlib_hmm.
-* cl_abap_gzip copmression works for header '789C', but does not work for
+* cl_abap_gzip compression works for header '789C', but does not work for
 * '7801', call custom implementation of DEFLATE algorithm.
 * The custom implementation could handle both, but most likely the kernel
 * implementation runs faster than the custom ABAP.
@@ -99201,10 +99230,45 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
         INSERT ls_next_commit INTO TABLE lt_sorted_commits.
       ENDDO.
 
-      ct_commits = lt_sorted_commits.
+    ENDIF.
+    ct_commits = lt_sorted_commits.
+
+  ENDMETHOD.
+
+  METHOD clear_missing_parents.
+
+    "Part of #4719 to handle cut commit sequences, todo
+
+    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
+
+    LOOP AT ct_commits ASSIGNING <ls_commit>.
+
+      IF is_missing( it_commits = ct_commits
+                     iv_sha1  = <ls_commit>-parent1 ) = abap_true.
+        CLEAR <ls_commit>-parent1.
+      ENDIF.
+
+      IF is_missing( it_commits = ct_commits
+                     iv_sha1  = <ls_commit>-parent2 ) = abap_true.
+        CLEAR <ls_commit>-parent2.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_missing.
+
+    IF iv_sha1 IS NOT INITIAL.
+
+      READ TABLE it_commits
+        TRANSPORTING NO FIELDS
+        WITH KEY sha1 = iv_sha1.
+      rv_result = boolc( sy-subrc <> 0 ).
+
     ENDIF.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
@@ -102400,6 +102464,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-01T07:52:06.021Z
+* abapmerge 0.14.3 - 2021-05-03T12:43:39.133Z
 ENDINTERFACE.
 ****************************************************
