@@ -27018,6 +27018,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo_name span.name { color: #333; }' ).
     lo_buf->add( '.repo_name span.url  { color: var(--theme-primary-font-color-reduced); }' ).
     lo_buf->add( '.repo_name a.url { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '.repo_name a.url:hover { color: var(--theme-link-color); }' ).
     lo_buf->add( '.repo_attr       { color: grey; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo_attr span.bg_marker {' ).
@@ -102464,6 +102465,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-03T12:43:39.133Z
+* abapmerge 0.14.3 - 2021-05-03T12:48:35.412Z
 ENDINTERFACE.
 ****************************************************
