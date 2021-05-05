@@ -92031,11 +92031,11 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
           ls_file_item TYPE zif_abapgit_objects=>ty_serialization.
     RECEIVE RESULTS FROM FUNCTION 'Z_ABAPGIT_SERIALIZE_PARALLEL'
       IMPORTING
-        ev_result = lv_result
-        ev_path   = lv_path
+        ev_result             = lv_result
+        ev_path               = lv_path
       EXCEPTIONS
-        error     = 1
-        system_failure = 2 MESSAGE lv_mess
+        error                 = 1
+        system_failure        = 2 MESSAGE lv_mess
         communication_failure = 3 MESSAGE lv_mess
         OTHERS = 4.
     IF sy-subrc <> 0.
@@ -92043,7 +92043,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         IF NOT lv_mess IS INITIAL.
           mi_log->add_error( lv_mess ).
         ELSE.
-          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }, { sy-subrc }| ).
+          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }| ).
         ENDIF.
       ENDIF.
     ELSE.
@@ -102471,6 +102471,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-03T13:57:07.530Z
+* abapmerge 0.14.3 - 2021-05-05T05:33:37.033Z
 ENDINTERFACE.
 ****************************************************
