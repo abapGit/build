@@ -51304,7 +51304,7 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
+CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
   METHOD get_instance.
 
     IF go_persist IS NOT BOUND.
@@ -102478,6 +102478,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-06T04:37:58.181Z
+* abapmerge 0.14.3 - 2021-05-06T12:31:58.198Z
 ENDINTERFACE.
 ****************************************************
