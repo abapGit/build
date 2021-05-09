@@ -6274,8 +6274,14 @@ CLASS zcl_abapgit_objects_activation DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    TYPES:
+      BEGIN OF ty_classes,
+        object  TYPE trobjtype,
+        clsname TYPE seoclsname,
+      END OF ty_classes.
+
     CLASS-DATA:
-      gt_classes TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY .
+      gt_classes TYPE STANDARD TABLE OF ty_classes WITH DEFAULT KEY .
     CLASS-DATA:
       gt_objects TYPE TABLE OF dwinactiv .
 
@@ -7189,10 +7195,13 @@ CLASS zcl_abapgit_object_enhs_hook_d DEFINITION.
            END OF ty_hook_defifnition.
 
 ENDCLASS.
-CLASS zcl_abapgit_oo_base DEFINITION ABSTRACT.
-  PUBLIC SECTION.
-    INTERFACES: zif_abapgit_oo_object_fnc.
+CLASS zcl_abapgit_oo_base DEFINITION
+  ABSTRACT
+  CREATE PUBLIC .
 
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_oo_object_fnc .
   PROTECTED SECTION.
     CLASS-METHODS:
       convert_attrib_to_vseoattrib
@@ -7201,18 +7210,8 @@ CLASS zcl_abapgit_oo_base DEFINITION ABSTRACT.
         RETURNING VALUE(rt_vseoattrib) TYPE seoo_attributes_r.
 
   PRIVATE SECTION.
-    DATA mv_skip_test_classes TYPE abap_bool.
 
-    METHODS deserialize_abap_source_old
-      IMPORTING is_clskey TYPE seoclskey
-                it_source TYPE zif_abapgit_definitions=>ty_string_tt
-      RAISING   zcx_abapgit_exception.
-
-    METHODS deserialize_abap_source_new
-      IMPORTING is_clskey TYPE seoclskey
-                it_source TYPE zif_abapgit_definitions=>ty_string_tt
-      RAISING   zcx_abapgit_exception
-                cx_sy_dyn_call_error.
+    DATA mv_skip_test_classes TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_oo_class DEFINITION
   INHERITING FROM zcl_abapgit_oo_base
@@ -7226,6 +7225,8 @@ CLASS zcl_abapgit_oo_class DEFINITION
         REDEFINITION .
     METHODS zif_abapgit_oo_object_fnc~delete
         REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~deserialize_source
+        REDEFINITION .
     METHODS zif_abapgit_oo_object_fnc~generate_locals
         REDEFINITION .
     METHODS zif_abapgit_oo_object_fnc~get_class_properties
@@ -7238,12 +7239,14 @@ CLASS zcl_abapgit_oo_class DEFINITION
         REDEFINITION .
     METHODS zif_abapgit_oo_object_fnc~read_text_pool
         REDEFINITION .
-    METHODS zif_abapgit_oo_object_fnc~deserialize_source
+    METHODS zif_abapgit_oo_object_fnc~exists
         REDEFINITION .
   PROTECTED SECTION.
-    TYPES: ty_char1 TYPE c LENGTH 1,
-           ty_char2 TYPE c LENGTH 2.
 
+    TYPES:
+      ty_char1 TYPE c LENGTH 1 .
+    TYPES:
+      ty_char2 TYPE c LENGTH 2 .
   PRIVATE SECTION.
 
     CLASS-METHODS update_source_index
@@ -7320,15 +7323,46 @@ CLASS zcl_abapgit_oo_factory DEFINITION.
     CLASS-DATA gi_object_oriented_object TYPE REF TO zif_abapgit_oo_object_fnc .
 ENDCLASS.
 CLASS zcl_abapgit_oo_interface DEFINITION
-  INHERITING FROM zcl_abapgit_oo_base.
+  INHERITING FROM zcl_abapgit_oo_base
+  CREATE PUBLIC .
+
   PUBLIC SECTION.
-    METHODS:
-      zif_abapgit_oo_object_fnc~create REDEFINITION,
-      zif_abapgit_oo_object_fnc~get_includes REDEFINITION,
-      zif_abapgit_oo_object_fnc~get_interface_properties REDEFINITION,
-      zif_abapgit_oo_object_fnc~delete REDEFINITION.
+
+    METHODS zif_abapgit_oo_object_fnc~create
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~delete
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~get_includes
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~get_interface_properties
+        REDEFINITION .
+    METHODS zif_abapgit_oo_object_fnc~deserialize_source
+        REDEFINITION .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-METHODS update_report
+      IMPORTING
+        !iv_program       TYPE programm
+        !it_source        TYPE string_table
+      RETURNING
+        VALUE(rv_updated) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS update_meta
+      IMPORTING
+        !iv_name   TYPE seoclsname
+        !it_source TYPE rswsourcet
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS init_scanner
+      IMPORTING
+        !it_source        TYPE zif_abapgit_definitions=>ty_string_tt
+        !iv_name          TYPE seoclsname
+      RETURNING
+        VALUE(ro_scanner) TYPE REF TO cl_oo_source_scanner_interface
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_oo_serializer DEFINITION
   CREATE PUBLIC .
@@ -88129,6 +88163,105 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
+  METHOD init_scanner.
+
+    DATA: lx_exc       TYPE REF TO cx_root,
+          lv_message   TYPE string,
+          lv_classname TYPE abap_abstypename.
+
+    FIELD-SYMBOLS: <lv_line> TYPE i.
+
+    TRY.
+        ro_scanner = cl_oo_source_scanner_interface=>create_interface_scanner(
+          clif_name = iv_name
+          source    = it_source ).
+        ro_scanner->scan( ).
+      CATCH cx_clif_scan_error.
+        zcx_abapgit_exception=>raise( 'error initializing INTF scanner' ).
+      CATCH cx_root INTO lx_exc.
+        lv_classname = cl_abap_classdescr=>get_class_name( lx_exc ).
+        IF lv_classname = '\CLASS=CX_OO_CLIF_SCAN_ERROR_DETAIL'.
+          ASSIGN lx_exc->('SOURCE_POSITION-LINE') TO <lv_line>.
+          ASSERT sy-subrc = 0.
+          lv_message = |{ lx_exc->get_text( ) }, line { <lv_line> }|.
+        ELSE.
+          lv_message = lx_exc->get_text( ).
+        ENDIF.
+        zcx_abapgit_exception=>raise( lv_message ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD update_meta.
+
+    DATA: lo_update     TYPE REF TO cl_oo_interface_section_source,
+          ls_clskey     TYPE seoclskey,
+          lv_scan_error TYPE abap_bool.
+    ls_clskey-clsname = iv_name.
+
+    TRY.
+        CALL FUNCTION 'SEO_BUFFER_REFRESH'
+          EXPORTING
+            cifkey  = ls_clskey
+            version = seoc_version_active.
+        CREATE OBJECT lo_update TYPE ('CL_OO_INTERFACE_SECTION_SOURCE')
+          EXPORTING
+            intkey                        = ls_clskey
+            state                         = 'A'
+            source                        = it_source
+          EXCEPTIONS
+            interface_not_existing        = 1
+            read_source_error             = 2
+            OTHERS                        = 3 ##SUBRC_OK.
+      CATCH cx_sy_dyn_call_param_not_found.
+* downport to 702, see https://github.com/abapGit/abapGit/issues/933
+* this will READ REPORT instead of using it_source, which should be okay
+        CREATE OBJECT lo_update TYPE cl_oo_interface_section_source
+          EXPORTING
+            intkey                 = ls_clskey
+            state                  = 'A'
+          EXCEPTIONS
+            interface_not_existing = 1
+            read_source_error      = 2
+            OTHERS                 = 3.
+    ENDTRY.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    lo_update->set_dark_mode( abap_true ).
+
+    lo_update->scan_section_source(
+      RECEIVING
+        scan_error             = lv_scan_error
+      EXCEPTIONS
+        scan_abap_source_error = 1
+        OTHERS                 = 2 ).
+    IF sy-subrc <> 0 OR lv_scan_error = abap_true.
+      zcx_abapgit_exception=>raise( |INTF, error while scanning source. Subrc = { sy-subrc }| ).
+    ENDIF.
+
+* this will update the SEO* database tables
+    lo_update->revert_scan_result( ).
+
+  ENDMETHOD.
+  METHOD update_report.
+
+    DATA: lt_old TYPE string_table.
+
+    READ REPORT iv_program INTO lt_old.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Fatal error. Include { iv_program } should have been created previously!| ).
+    ENDIF.
+
+    IF lt_old <> it_source.
+      INSERT REPORT iv_program FROM it_source.
+      ASSERT sy-subrc = 0.
+      rv_updated = abap_true.
+    ELSE.
+      rv_updated = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
     DATA: lt_vseoattrib TYPE seoo_attributes_r.
     FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
@@ -88145,6 +88278,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
           EXPORTING
             devclass        = iv_package
             overwrite       = iv_overwrite
+            version         = seoc_version_active
             suppress_dialog = abap_true " Parameter missing in 702
           CHANGING
             interface       = cg_properties
@@ -88162,6 +88296,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
           EXPORTING
             devclass        = iv_package
             overwrite       = iv_overwrite
+            version         = seoc_version_active
           CHANGING
             interface       = cg_properties
             attributes      = lt_vseoattrib
@@ -88192,6 +88327,37 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~deserialize_source.
+
+    DATA: lv_updated TYPE abap_bool,
+          lv_program TYPE program,
+          lo_scanner TYPE REF TO cl_oo_source_scanner_interface,
+          lt_public  TYPE seop_source_string.
+
+    "Buffer needs to be refreshed,
+    "otherwise standard SAP CLIF_SOURCE reorder methods alphabetically
+    CALL FUNCTION 'SEO_BUFFER_INIT'.
+    CALL FUNCTION 'SEO_BUFFER_REFRESH'
+      EXPORTING
+        cifkey  = is_key
+        version = seoc_version_inactive.
+
+    lo_scanner = init_scanner(
+      it_source = it_source
+      iv_name   = is_key-clsname ).
+
+    lt_public = lo_scanner->get_interface_section_source( ).
+    IF lt_public IS NOT INITIAL.
+      lv_program = cl_oo_classname_service=>get_intfsec_name( is_key-clsname ).
+      lv_updated = update_report( iv_program = lv_program
+                                  it_source  = lt_public ).
+      IF lv_updated = abap_true.
+        update_meta( iv_name   = is_key-clsname
+                     it_source = lt_public ).
+      ENDIF.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~get_includes.
     DATA lv_interface_name TYPE seoclsname.
@@ -88671,6 +88837,19 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       io_scanner = lo_scanner ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~exists.
+    CALL FUNCTION 'SEO_CLASS_EXISTENCE_CHECK'
+      EXPORTING
+        clskey        = is_object_name
+      EXCEPTIONS
+        not_specified = 1
+        not_existing  = 2
+        is_interface  = 3
+        no_text       = 4
+        inconsistent  = 5
+        OTHERS        = 6.
+    rv_exists = boolc( sy-subrc = 0 OR sy-subrc = 4 ).
+  ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~generate_locals.
 
     DATA: lv_program TYPE programm.
@@ -88807,87 +88986,6 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
     ENDLOOP.
     UNASSIGN <ls_attribute>.
   ENDMETHOD.
-  METHOD deserialize_abap_source_new.
-    DATA: lo_factory  TYPE REF TO object,
-          lo_source   TYPE REF TO object,
-          lo_settings TYPE REF TO object,
-          lr_settings TYPE REF TO data.
-
-    FIELD-SYMBOLS <lg_settings> TYPE any.
-    "Buffer needs to be refreshed,
-    "otherwise standard SAP CLIF_SOURCE reorder methods alphabetically
-    CALL FUNCTION 'SEO_BUFFER_INIT'.
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        cifkey  = is_clskey
-        version = seoc_version_inactive.
-
-    CALL METHOD ('CL_OO_FACTORY')=>('CREATE_INSTANCE')
-      RECEIVING
-        result = lo_factory.
-
-    "Enable modification mode to avoid exception CX_OO_ACCESS_PERMISSON when
-    "dealing with objects in foreign namespaces (namespace role = C)
-    CALL METHOD lo_factory->('CREATE_SETTINGS')
-      EXPORTING
-        modification_mode_enabled = abap_true
-      RECEIVING
-        result                    = lo_settings.
-
-    CREATE DATA lr_settings TYPE REF TO ('IF_OO_CLIF_SOURCE_SETTINGS').
-    ASSIGN lr_settings->* TO <lg_settings>.
-
-    <lg_settings> ?= lo_settings.
-
-    CALL METHOD lo_factory->('CREATE_CLIF_SOURCE')
-      EXPORTING
-        clif_name = is_clskey-clsname
-        settings  = <lg_settings>
-      RECEIVING
-        result    = lo_source.
-
-    TRY.
-        CALL METHOD lo_source->('IF_OO_CLIF_SOURCE~LOCK').
-      CATCH cx_oo_access_permission.
-        zcx_abapgit_exception=>raise( 'source_new, access permission exception' ).
-    ENDTRY.
-
-    CALL METHOD lo_source->('IF_OO_CLIF_SOURCE~SET_SOURCE')
-      EXPORTING
-        source = it_source.
-
-    CALL METHOD lo_source->('IF_OO_CLIF_SOURCE~SAVE').
-
-    CALL METHOD lo_source->('IF_OO_CLIF_SOURCE~UNLOCK').
-
-  ENDMETHOD.
-  METHOD deserialize_abap_source_old.
-    "for backwards compatability down to 702
-
-    DATA: lo_source TYPE REF TO cl_oo_source.
-
-    CREATE OBJECT lo_source
-      EXPORTING
-        clskey             = is_clskey
-      EXCEPTIONS
-        class_not_existing = 1
-        OTHERS             = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    TRY.
-        lo_source->access_permission( seok_access_modify ).
-        lo_source->set_source( it_source ).
-        lo_source->save( ).
-        lo_source->access_permission( seok_access_free ).
-      CATCH cx_oo_access_permission.
-        zcx_abapgit_exception=>raise( 'permission error' ).
-      CATCH cx_oo_source_save_failure.
-        zcx_abapgit_exception=>raise( 'save failure' ).
-    ENDTRY.
-
-  ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~add_to_activation_list.
     zcl_abapgit_objects_activation=>add_item( is_item ).
   ENDMETHOD.
@@ -88917,15 +89015,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
     ASSERT 0 = 1. "Subclass responsibility
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~deserialize_source.
-    TRY.
-        deserialize_abap_source_new(
-          is_clskey = is_key
-          it_source = it_source ).
-      CATCH cx_sy_dyn_call_error.
-        deserialize_abap_source_old(
-          is_clskey = is_key
-          it_source = it_source ).
-    ENDTRY.
+    ASSERT 0 = 1. "Subclass responsibility
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~exists.
     CALL FUNCTION 'SEO_CLASS_EXISTENCE_CHECK'
@@ -92873,7 +92963,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
+CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   METHOD activate.
 
     " Make sure that all changes are committed since any activation error will lead to a rollback
@@ -93052,10 +93142,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 * function module RS_INSERT_INTO_WORKING_AREA
 * class CL_WB_ACTIVATION_WORK_AREA
 
-    FIELD-SYMBOLS: <ls_object> TYPE dwinactiv.
+    FIELD-SYMBOLS: <ls_object>  TYPE dwinactiv,
+                   <ls_classes> LIKE LINE OF gt_classes.
 
-    IF iv_type = 'CLAS'.
-      APPEND iv_name TO gt_classes.
+    IF iv_type = 'CLAS' OR iv_type = 'INTF'.
+      APPEND INITIAL LINE TO gt_classes ASSIGNING <ls_classes>.
+      <ls_classes>-object  = iv_type.
+      <ls_classes>-clsname = iv_name.
     ELSE.
       APPEND INITIAL LINE TO gt_objects ASSIGNING <ls_object>.
       <ls_object>-object     = iv_type.
@@ -93140,20 +93233,25 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_where_used.
 
-    DATA: lv_class    LIKE LINE OF gt_classes,
+    DATA: ls_class    LIKE LINE OF gt_classes,
           lo_cross    TYPE REF TO cl_wb_crossreference,
           lv_include  TYPE programm,
           li_progress TYPE REF TO zif_abapgit_progress.
     li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
 
-    LOOP AT gt_classes INTO lv_class.
+    LOOP AT gt_classes INTO ls_class.
       IF sy-tabix MOD 20 = 0.
         li_progress->show(
           iv_current = sy-tabix
           iv_text    = 'Updating where-used lists' ).
       ENDIF.
 
-      lv_include = cl_oo_classname_service=>get_classpool_name( lv_class ).
+      CASE ls_class-object.
+        WHEN 'CLAS'.
+          lv_include = cl_oo_classname_service=>get_classpool_name( ls_class-clsname ).
+        WHEN 'INTF'.
+          lv_include = cl_oo_classname_service=>get_interfacepool_name( ls_class-clsname ).
+      ENDCASE.
 
       CREATE OBJECT lo_cross
         EXPORTING
@@ -102790,6 +102888,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-09T08:39:45.618Z
+* abapmerge 0.14.3 - 2021-05-09T08:41:42.171Z
 ENDINTERFACE.
 ****************************************************
