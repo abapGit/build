@@ -3637,7 +3637,6 @@ INTERFACE zif_abapgit_log .
     IMPORTING
       !iv_msg  TYPE csequence
       !iv_type TYPE sy-msgty DEFAULT 'E'
-      !iv_rc   TYPE sy-subrc OPTIONAL
       !is_item TYPE zif_abapgit_definitions=>ty_item OPTIONAL
       !ix_exc  TYPE REF TO cx_root OPTIONAL .
   METHODS add_error
@@ -3664,11 +3663,6 @@ INTERFACE zif_abapgit_log .
   METHODS count
     RETURNING
       VALUE(rv_count) TYPE i .
-  METHODS has_rc
-    IMPORTING
-      !iv_rc        TYPE sy-subrc
-    RETURNING
-      VALUE(rv_yes) TYPE abap_bool .
   METHODS get_messages
     RETURNING
       VALUE(rt_msg) TYPE ty_log_outs .
@@ -18587,7 +18581,6 @@ CLASS zcl_abapgit_log DEFINITION
     TYPES:
       BEGIN OF ty_log, "in order of occurrence
         msg       TYPE zif_abapgit_log=>ty_msg,
-        rc        TYPE sy-subrc,
         item      TYPE zif_abapgit_definitions=>ty_item,
         exception TYPE REF TO cx_root,
       END OF ty_log .
@@ -24683,7 +24676,6 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     APPEND INITIAL LINE TO mt_log ASSIGNING <ls_log>.
     <ls_log>-msg-text  = iv_msg.
     <ls_log>-msg-type  = iv_type.
-    <ls_log>-rc        = iv_rc.
     <ls_log>-item      = is_item.
     <ls_log>-exception = ix_exc.
 
@@ -24857,12 +24849,6 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
     IF rv_title IS INITIAL.
       rv_title = 'Log'.
     ENDIF.
-  ENDMETHOD.
-  METHOD zif_abapgit_log~has_rc.
-* todo, this method is only used in unit tests
-
-    READ TABLE mt_log WITH KEY rc = iv_rc TRANSPORTING NO FIELDS.
-    rv_yes = boolc( sy-subrc = 0 ).
   ENDMETHOD.
   METHOD zif_abapgit_log~merge_with.
 
@@ -93515,7 +93501,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -93733,8 +93719,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       IF sy-subrc <> 0 OR <ls_result>-path <> <ls_result_idx>-path. " All paths are same
         ii_log->add( iv_msg = |Files for object { <ls_result>-obj_type } {
                               <ls_result>-obj_name } are not placed in the same folder|
-                     iv_type = 'W'
-                     iv_rc   = '1' ).
+                     iv_type = 'W' ).
       ENDIF.
 
     ENDLOOP.
@@ -93754,14 +93739,12 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     LOOP AT lt_res_sort ASSIGNING <ls_result> WHERE obj_type <> 'DEVC' AND packmove = abap_false.
       IF <ls_result>-filename IS NOT INITIAL AND <ls_result>-filename = ls_file-filename.
         ii_log->add( iv_msg  = |Multiple files with same filename, { <ls_result>-filename }|
-                     iv_type = 'W'
-                     iv_rc   = '3' ).
+                     iv_type = 'W' ).
       ENDIF.
 
       IF <ls_result>-filename IS INITIAL.
         ii_log->add( iv_msg  = |Filename is empty for object { <ls_result>-obj_type } { <ls_result>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '4' ).
+                     iv_type = 'W' ).
       ENDIF.
 
       MOVE-CORRESPONDING <ls_result> TO ls_file.
@@ -93797,12 +93780,10 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
           OTHERS                 = 2.
       IF sy-subrc <> 0.
         ii_log->add( iv_msg  = |Namespace { lv_namespace } does not exist. Create it in transaction SE03|
-                     iv_type = 'W'
-                     iv_rc   = '6' ).
+                     iv_type = 'W' ).
       ELSEIF ls_trnspace-editflag <> 'X'.
         ii_log->add( iv_msg  = |Namespace { lv_namespace } is not modifiable. Check it in transaction SE03|
-                     iv_type = 'W'
-                     iv_rc   = '6' ).
+                     iv_type = 'W' ).
       ENDIF.
     ENDLOOP.
 
@@ -93828,8 +93809,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       IF lv_path <> <ls_result>-path.
         ii_log->add( iv_msg = |Package and path does not match for object, {
                        <ls_result>-obj_type } { <ls_result>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '2' ).
+                     iv_type = 'W' ).
       ENDIF.
 
     ENDLOOP.
@@ -93853,8 +93833,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       IF sy-subrc <> 0.
         ii_log->add( iv_msg  = |Changed package assignment for object {
                                <ls_result>-obj_type } { <ls_result>-obj_name }|
-                     iv_type = 'W'
-                     iv_rc   = '5' ).
+                     iv_type = 'W' ).
         APPEND INITIAL LINE TO lt_move_idx ASSIGNING <ls_result_move>.
         <ls_result_move>-obj_type = <ls_result>-obj_type.
         <ls_result_move>-obj_name = <ls_result>-obj_name.
@@ -102889,6 +102868,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-09T08:55:19.333Z
+* abapmerge 0.14.3 - 2021-05-09T08:59:32.391Z
 ENDINTERFACE.
 ****************************************************
