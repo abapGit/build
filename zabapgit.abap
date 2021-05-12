@@ -38738,7 +38738,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     IF mv_are_changes_recorded_in_tr = abap_true.
       ro_advanced_dropdown->add(
-          iv_txt  = 'Add all objects to transport request'
+          iv_txt  = 'Add All Objects to Transport'
           iv_act = |{ zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req }?key={ mv_key }| ).
     ENDIF.
 
@@ -102994,6 +102994,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-12T16:19:46.733Z
+* abapmerge 0.14.3 - 2021-05-12T16:30:35.513Z
 ENDINTERFACE.
 ****************************************************
