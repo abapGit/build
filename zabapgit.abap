@@ -28488,9 +28488,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Check list wrapper' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function CheckListWrapper(id, cbAction) {' ).
+    lo_buf->add( 'function CheckListWrapper(id, cbAction, cbActionOnlyMyChanges) {' ).
     lo_buf->add( '  this.id         = document.getElementById(id);' ).
     lo_buf->add( '  this.cbAction   = cbAction;' ).
+    lo_buf->add( '  this.cbActionOnlyMyChanges = cbActionOnlyMyChanges;' ).
     lo_buf->add( '  this.id.onclick = this.onClick.bind(this);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -28523,8 +28524,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    nodeLi.setAttribute("data-check", "");' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  // Action callback' ).
-    lo_buf->add( '  this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);' ).
+    lo_buf->add( '  // Action callback, special handling for "Only My Changes"' ).
+    lo_buf->add( '  if(option === "Only my changes") {' ).
+    lo_buf->add( '    this.cbActionOnlyMyChanges(nodeLi.getAttribute("data-aux"), newState);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // hide "Changed By" menu' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.cbAction(nodeLi.getAttribute("data-aux"), option, newState);' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -28551,7 +28558,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // Checklist wrapper' ).
     lo_buf->add( '  if (document.getElementById(params.ids.filterMenu)) {' ).
-    lo_buf->add( '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this));' ).
+    lo_buf->add( '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this), this.onFilterOnlyMyChanges.bind(this));' ).
     lo_buf->add( '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -28579,6 +28586,71 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'DiffHelper.prototype.onFilter = function(attr, target, state) {' ).
     lo_buf->add( '  this.applyFilter(attr, target, state);' ).
     lo_buf->add( '  this.highlightButton(state);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffHelper.prototype.onFilterOnlyMyChanges = function(username, state) {' ).
+    lo_buf->add( '  this.applyOnlyMyChangesFilter(username, state);' ).
+    lo_buf->add( '  this.counter = 0;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if(state) {' ).
+    lo_buf->add( '    this.dom.filterButton.classList.add("bgorange");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // apply logic on Changed By list items' ).
+    lo_buf->add( '  var changedByListItems = Array.prototype.slice.call(document.querySelectorAll("[data-aux*=changed-by]"));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  changedByListItems' ).
+    lo_buf->add( '    .map(function(item) {' ).
+    lo_buf->add( '      var nodeIcon = item.children[0].children[0];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      if (state === true) {' ).
+    lo_buf->add( '        if(item.innerText === username) { // current user' ).
+    lo_buf->add( '          item.style.display = "";' ).
+    lo_buf->add( '          item.setAttribute("data-check", "X");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '          if(nodeIcon) {' ).
+    lo_buf->add( '            nodeIcon.classList.remove("grey");' ).
+    lo_buf->add( '            nodeIcon.classList.add("blue");' ).
+    lo_buf->add( '          }' ).
+    lo_buf->add( '        } else { // other users' ).
+    lo_buf->add( '          item.style.display = "none";' ).
+    lo_buf->add( '          item.setAttribute("data-check", "");' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        item.style.display = "";' ).
+    lo_buf->add( '        item.setAttribute("data-check", "X");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '        if(nodeIcon) {' ).
+    lo_buf->add( '          nodeIcon.classList.remove("grey");' ).
+    lo_buf->add( '          nodeIcon.classList.add("blue");' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffHelper.prototype.applyOnlyMyChangesFilter = function (username, state) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
+    lo_buf->add( '    if (state === true) { // switching on "Only my changes" filter' ).
+    lo_buf->add( '      if (div.getAttribute("data-changed-by") === username) {' ).
+    lo_buf->add( '        div.style.display = state ? "" : "none";' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        div.style.display = state ? "none" : "";' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    } else { // disabling' ).
+    lo_buf->add( '      div.style.display = "";' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // hide the file in the jump list' ).
+    lo_buf->add( '    var dataFile = div.getAttribute("data-file");' ).
+    lo_buf->add( '    jumpListItems' ).
+    lo_buf->add( '      .filter(function(item){ return dataFile.includes(item.text) })' ).
+    lo_buf->add( '      .map(function(item){ item.style.display = div.style.display });' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Hide/show diff based on params' ).
@@ -41590,6 +41662,13 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     IF lines( lt_types ) > 1 OR lines( lt_users ) > 1.
       CREATE OBJECT lo_sub_filter EXPORTING iv_id = 'diff-filter'.
+
+      IF lines( lt_users ) > 1.
+        lo_sub_filter->add( iv_txt = 'Only my changes'
+                            iv_typ = zif_abapgit_html=>c_action_type-onclick
+                            iv_aux = |{ sy-uname }|
+                            iv_chk = abap_false ).
+      ENDIF.
 
       " File types
       IF lines( lt_types ) > 1.
@@ -102913,6 +102992,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-12T16:11:29.371Z
+* abapmerge 0.14.3 - 2021-05-12T16:14:21.727Z
 ENDINTERFACE.
 ****************************************************
