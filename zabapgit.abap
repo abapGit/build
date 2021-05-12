@@ -14678,8 +14678,15 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
 
   PROTECTED SECTION.
 
+    CONSTANTS:
+      BEGIN OF c_page_layout,
+        centered   TYPE string VALUE `centered`,
+        full_width TYPE string VALUE `full_width`,
+      END OF c_page_layout.
+
     TYPES:
       BEGIN OF ty_control,
+        page_layout TYPE string,
         page_title TYPE string,
         page_menu  TYPE REF TO zcl_abapgit_html_toolbar,
       END OF  ty_control .
@@ -14687,7 +14694,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     DATA ms_control TYPE ty_control .
 
     METHODS render_content
-          ABSTRACT
+      ABSTRACT
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
@@ -15433,6 +15440,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS build_menu
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
+    METHODS set_layout.
 
     METHODS render_content
         REDEFINITION .
@@ -25798,6 +25806,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'body {' ).
     lo_buf->add( '  overflow-x: hidden;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'body.centered {' ).
+    lo_buf->add( '  max-width: 1280px;' ).
+    lo_buf->add( '  margin: 0 auto;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'body.full_width {' ).
+    lo_buf->add( '  width:100%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'a, a:visited {' ).
     lo_buf->add( '  text-decoration:  none;' ).
     lo_buf->add( '}' ).
@@ -26834,17 +26852,19 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* DIALOGS */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.dialog {' ).
+    lo_buf->add( '  margin: 0 auto;' ).
+    lo_buf->add( '  margin-top: 1em;' ).
+    lo_buf->add( '  margin-bottom: 1em;' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  padding: 1em 1em;' ).
     lo_buf->add( '  border-radius: 6px;' ).
     lo_buf->add( '  text-align: left;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog-form {' ).
-    lo_buf->add( '  margin: 1em 1em 1em 1em; ' ).
     lo_buf->add( '  width: 600px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog-form-center {' ).
-    lo_buf->add( '  margin: 1em auto 1em; ' ).
+    lo_buf->add( '  margin: 1em auto 1em;' ).
     lo_buf->add( '  max-width: 600px;' ).
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '}' ).
@@ -28032,6 +28052,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function(forceDisplay){' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // change layout to wide if details are displayed' ).
+    lo_buf->add( '    if (this.isDetailsDisplayed) {' ).
+    lo_buf->add( '      document.body.classList.remove("centered");' ).
+    lo_buf->add( '      document.body.classList.add("full_width");' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      document.body.classList.add("centered");' ).
+    lo_buf->add( '      document.body.classList.remove("full_width");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
     lo_buf->add( '    this.actionCssClass.style.display = this.isDetailsDisplayed ? "none" : "";' ).
     lo_buf->add( '    var icon = document.getElementById("icon-filter-detail");' ).
@@ -40235,6 +40265,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
 
     " While patching we always want to be in split mode
     CLEAR: mv_unified.
+    set_layout( ).
     CREATE OBJECT mo_stage.
 
     ms_control-page_title = 'Patch'.
@@ -41535,7 +41566,7 @@ CLASS zcl_abapgit_gui_page_ex_object IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -41796,6 +41827,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_title = 'Diff'.
     mv_unified            = zcl_abapgit_persistence_user=>get_instance( )->get_diff_unified( ).
+    set_layout( ).
     mv_repo_key           = iv_key.
     mo_repo              ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
@@ -41814,6 +41846,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
 
     ms_control-page_menu = build_menu( ).
+
+  ENDMETHOD.
+
+  METHOD set_layout.
+
+    IF mv_unified = abap_true.
+      ms_control-page_layout = c_page_layout-centered.
+    ELSE.
+      ms_control-page_layout = c_page_layout-full_width.
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_normalized_fname_with_path.
@@ -41897,6 +41939,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     DATA: ls_diff_file LIKE LINE OF mt_diff_files,
           li_progress  TYPE REF TO zif_abapgit_progress.
+
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     li_progress = zcl_abapgit_progress=>get_instance( lines( mt_diff_files ) ).
@@ -42266,6 +42309,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
       WHEN c_actions-toggle_unified. " Toggle file diplay
 
         mv_unified = zcl_abapgit_persistence_user=>get_instance( )->toggle_diff_unified( ).
+        set_layout( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_actions-toggle_hidden_chars. " Toggle display of hidden characters
@@ -44138,11 +44182,12 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
     mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    ms_control-page_layout = c_page_layout-centered.
 
   ENDMETHOD.
   METHOD footer.
@@ -44350,7 +44395,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '<!DOCTYPE html>' ).
     ri_html->add( '<html lang="en">' ).
     ri_html->add( html_head( ) ).
-    ri_html->add( '<body>' ).
+    ri_html->add( |<body class="{ ms_control-page_layout }">| ).
     ri_html->add( title( ) ).
 
     ri_html->add( render_content( ) ). " TODO -> render child
@@ -102868,6 +102913,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-09T08:59:32.391Z
+* abapmerge 0.14.3 - 2021-05-12T16:11:29.371Z
 ENDINTERFACE.
 ****************************************************
