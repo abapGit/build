@@ -12776,8 +12776,8 @@ CLASS zcl_abapgit_persistence_db DEFINITION
   CREATE PRIVATE .
 
   PUBLIC SECTION.
-    CONSTANTS c_tabname TYPE tabname VALUE 'ZABAPGIT' ##NO_TEXT.
-    CONSTANTS c_lock TYPE viewname VALUE 'EZABAPGIT' ##NO_TEXT.
+    CONSTANTS c_tabname TYPE c LENGTH 30 VALUE 'ZABAPGIT' ##NO_TEXT.
+    CONSTANTS c_lock TYPE c LENGTH 30 VALUE 'EZABAPGIT' ##NO_TEXT.
 
     CONSTANTS:
       c_type_settings   TYPE zif_abapgit_persistence=>ty_type VALUE 'SETTINGS' ##NO_TEXT,
@@ -13716,10 +13716,11 @@ CLASS zcl_abapgit_syntax_css DEFINITION
     CLASS-METHODS class_constructor .
     METHODS constructor .
   PROTECTED SECTION.
+    TYPES: ty_token TYPE c LENGTH 1.
 
     TYPES: BEGIN OF ty_keyword,
              keyword TYPE string,
-             token   TYPE char1,
+             token   TYPE ty_token,
            END OF ty_keyword.
 
     CLASS-DATA gt_keywords TYPE HASHED TABLE OF ty_keyword WITH UNIQUE KEY keyword.
@@ -13729,7 +13730,7 @@ CLASS zcl_abapgit_syntax_css DEFINITION
     CLASS-METHODS insert_keywords
       IMPORTING
         iv_keywords TYPE string
-        iv_token    TYPE char1.
+        iv_token    TYPE ty_token.
     CLASS-METHODS is_keyword
       IMPORTING iv_chunk      TYPE string
       RETURNING VALUE(rv_yes) TYPE abap_bool.
@@ -13776,10 +13777,11 @@ CLASS zcl_abapgit_syntax_js DEFINITION
     CLASS-METHODS class_constructor .
     METHODS constructor .
   PROTECTED SECTION.
+    TYPES: ty_token TYPE c LENGTH 1.
 
     TYPES: BEGIN OF ty_keyword,
              keyword TYPE string,
-             token   TYPE char1,
+             token   TYPE ty_token,
            END OF ty_keyword.
 
     CLASS-DATA gt_keywords TYPE HASHED TABLE OF ty_keyword WITH UNIQUE KEY keyword.
@@ -13789,7 +13791,7 @@ CLASS zcl_abapgit_syntax_js DEFINITION
     CLASS-METHODS insert_keywords
       IMPORTING
         iv_keywords TYPE string
-        iv_token    TYPE char1.
+        iv_token    TYPE ty_token.
     CLASS-METHODS is_keyword
       IMPORTING iv_chunk      TYPE string
       RETURNING VALUE(rv_yes) TYPE abap_bool.
@@ -102992,6 +102994,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-12T16:14:21.727Z
+* abapmerge 0.14.3 - 2021-05-12T16:17:35.095Z
 ENDINTERFACE.
 ****************************************************
