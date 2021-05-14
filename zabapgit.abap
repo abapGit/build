@@ -3868,11 +3868,18 @@ INTERFACE zif_abapgit_exit .
       zcx_abapgit_exception .
   METHODS wall_message_list
     IMPORTING
-      ii_html TYPE REF TO zif_abapgit_html .
+      !ii_html TYPE REF TO zif_abapgit_html .
   METHODS wall_message_repo
     IMPORTING
-      is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
-      ii_html      TYPE REF TO zif_abapgit_html .
+      !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
+      !ii_html      TYPE REF TO zif_abapgit_html .
+  METHODS on_event
+    IMPORTING
+      !ii_event         TYPE REF TO zif_abapgit_gui_event
+    RETURNING
+      VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_merge .
@@ -22449,7 +22456,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -22595,6 +22602,14 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
         gi_exit->http_client(
           iv_url    = iv_url
           ii_client = ii_client ).
+      CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~on_event.
+
+    TRY.
+        rs_handled = gi_exit->on_event( ii_event ).
       CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
     ENDTRY.
 
@@ -34876,7 +34891,12 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
-    rs_handled = general_page_routing( ii_event ).
+
+    rs_handled = zcl_abapgit_exit=>get_instance( )->on_event( ii_event ).
+
+    IF rs_handled-state IS INITIAL.
+      rs_handled = general_page_routing( ii_event ).
+    ENDIF.
     IF rs_handled-state IS INITIAL.
       rs_handled = repository_services( ii_event ).
     ENDIF.
@@ -102982,6 +103002,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-14T08:56:50.223Z
+* abapmerge 0.14.3 - 2021-05-14T09:02:48.969Z
 ENDINTERFACE.
 ****************************************************
