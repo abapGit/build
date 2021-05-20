@@ -27462,6 +27462,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.tutorial h1, h2 { color: #404040; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '.nav-container ul li:hover { background-color: #fff; }' ).
     lo_buf->add( '.nav-container ul ul li:hover { background-color: #f6f6f6; }' ).
     lo_buf->add( '.nav-container > ul > li:hover > a { background-color: #ffffff80; }' ).
     lo_buf->add( '.nav-container ul ul { background-color: #fff; }' ).
@@ -103342,6 +103343,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-20T04:20:06.213Z
+* abapmerge 0.14.3 - 2021-05-20T05:26:05.354Z
 ENDINTERFACE.
 ****************************************************
