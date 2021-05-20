@@ -2031,7 +2031,11 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
-  TYPES: decision TYPE ty_yes_no,
+  TYPES:
+      action   TYPE i,
+      icon     TYPE icon_d,
+      text     TYPE string,
+      decision TYPE ty_yes_no,
     END OF ty_overwrite .
   TYPES:
     ty_overwrite_tt TYPE STANDARD TABLE OF ty_overwrite WITH DEFAULT KEY
@@ -2278,12 +2282,14 @@ INTERFACE zif_abapgit_definitions .
       prerelase       TYPE string,
       prerelase_patch TYPE i,
     END OF ty_version.
-  TYPES: BEGIN OF ty_alv_column,
-           name   TYPE string,
-           text   TYPE string,
-           length TYPE lvc_outlen,
-         END OF ty_alv_column,
-         ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
+  TYPES:
+    BEGIN OF ty_alv_column,
+      name      TYPE string,
+      text      TYPE string,
+      length    TYPE lvc_outlen,
+      show_icon TYPE abap_bool,
+    END OF ty_alv_column,
+    ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
   TYPES:
     ty_deserialization_step TYPE string.
   TYPES:
@@ -2948,6 +2954,17 @@ INTERFACE zif_abapgit_objects.
     ty_step_data_tt TYPE STANDARD TABLE OF ty_step_data
                                 WITH DEFAULT KEY .
 
+  CONSTANTS:
+    BEGIN OF c_deserialize_action,
+      " also used to determine priority if object has multiple changes, so don't change order
+      none       TYPE i VALUE 0,
+      add        TYPE i VALUE 1,
+      update     TYPE i VALUE 2,
+      overwrite  TYPE i VALUE 3,
+      delete     TYPE i VALUE 4,
+      delete_add TYPE i VALUE 5,
+    END OF c_deserialize_action.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_dot_abapgit.
@@ -3512,10 +3529,10 @@ INTERFACE zif_abapgit_popups .
       !it_list               TYPE STANDARD TABLE
       !iv_title              TYPE lvc_title DEFAULT space
       !iv_header_text        TYPE csequence DEFAULT space
-      !iv_start_column       TYPE i DEFAULT 2
-      !iv_end_column         TYPE i DEFAULT 65
+      !iv_start_column       TYPE i DEFAULT 10
+      !iv_end_column         TYPE i DEFAULT 90
       !iv_start_line         TYPE i DEFAULT 8
-      !iv_end_line           TYPE i DEFAULT 20
+      !iv_end_line           TYPE i DEFAULT 25
       !iv_striped_pattern    TYPE abap_bool DEFAULT abap_false
       !iv_optimize_col_width TYPE abap_bool DEFAULT abap_true
       !iv_selection_mode     TYPE salv_de_constant DEFAULT if_salv_c_selection_mode=>multiple
@@ -13076,7 +13093,7 @@ CLASS zcl_abapgit_repo DEFINITION
 
   PUBLIC SECTION.
 
-    DATA ms_data TYPE zif_abapgit_persistence=>ty_repo  READ-ONLY.
+    DATA ms_data TYPE zif_abapgit_persistence=>ty_repo READ-ONLY.
 
     METHODS bind_listener
       IMPORTING
@@ -18121,14 +18138,6 @@ CLASS zcl_abapgit_services_git DEFINITION
         zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    CLASS-METHODS get_unnecessary_local_objs
-      IMPORTING
-        !io_repo                            TYPE REF TO zcl_abapgit_repo
-      RETURNING
-        VALUE(rt_unnecessary_local_objects) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-
   PRIVATE SECTION.
 
 ENDCLASS.
@@ -18186,22 +18195,39 @@ CLASS zcl_abapgit_services_repo DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS gui_deserialize
       IMPORTING
-        !io_repo TYPE REF TO zcl_abapgit_repo
+        !io_repo      TYPE REF TO zcl_abapgit_repo
+        !iv_reset_all TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CLASS-METHODS delete_unnecessary_objects
+      IMPORTING
+        !io_repo   TYPE REF TO zcl_abapgit_repo
+        !ii_log    TYPE REF TO zif_abapgit_log
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS popup_decisions
+      IMPORTING
+        !io_repo      TYPE REF TO zcl_abapgit_repo
+        !iv_reset_all TYPE abap_bool
+      CHANGING
+        !cs_checks    TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      RAISING
+        zcx_abapgit_cancel
+        zcx_abapgit_exception .
     CLASS-METHODS popup_overwrite
       CHANGING
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS popup_package_overwrite
       CHANGING
         !ct_overwrite TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS check_package
       IMPORTING
         !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
@@ -30614,42 +30640,76 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD delete_unnecessary_objects.
+
+    DATA:
+      ls_checks TYPE zif_abapgit_definitions=>ty_delete_checks,
+      ls_tadir  TYPE zif_abapgit_definitions=>ty_tadir,
+      lt_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF is_checks-overwrite.
+
+    " get confirmed deletions
+    LOOP AT is_checks-overwrite ASSIGNING <ls_overwrite>
+      WHERE ( action = zif_abapgit_objects=>c_deserialize_action-delete
+      OR action = zif_abapgit_objects=>c_deserialize_action-delete_add )
+      AND decision = zif_abapgit_definitions=>gc_yes.
+
+      ls_tadir-pgmid    = 'R3TR'.
+      ls_tadir-object   = <ls_overwrite>-obj_type.
+      ls_tadir-obj_name = <ls_overwrite>-obj_name.
+      INSERT ls_tadir INTO TABLE lt_tadir.
+
+    ENDLOOP.
+
+    " todo, check if object type supports deletion of parts to avoid deleting complete object
+
+    " delete objects
+    IF lines( lt_tadir ) > 0.
+      ls_checks-transport = is_checks-transport.
+
+      zcl_abapgit_objects=>delete( it_tadir  = lt_tadir
+                                   is_checks = ls_checks
+                                   ii_log    = ii_log ).
+
+      io_repo->refresh( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD gui_deserialize.
 
-    DATA: ls_checks       TYPE zif_abapgit_definitions=>ty_deserialize_checks,
-          lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
-          lt_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies.
-* find troublesome objects
+    DATA:
+      ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks,
+      li_log    TYPE REF TO zif_abapgit_log.
+
+    " find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
-* and let the user decide what to do
+    " let the user decide what to do
     TRY.
-        popup_overwrite( CHANGING ct_overwrite = ls_checks-overwrite ).
-        popup_package_overwrite( CHANGING ct_overwrite = ls_checks-warning_package ).
-
-        IF ls_checks-requirements-met = zif_abapgit_definitions=>gc_no.
-          lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
-          zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
-          ls_checks-requirements-decision = zif_abapgit_definitions=>gc_yes.
-        ENDIF.
-
-        IF ls_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
-          lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
-          zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
-        ENDIF.
-
-        IF ls_checks-transport-required = abap_true.
-          ls_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request(
-            is_transport_type = ls_checks-transport-type ).
-        ENDIF.
+        popup_decisions(
+          EXPORTING
+            io_repo      = io_repo
+            iv_reset_all = iv_reset_all
+          CHANGING
+            cs_checks    = ls_checks ).
 
       CATCH zcx_abapgit_cancel.
         RETURN.
     ENDTRY.
 
-* and pass decisions to deserialize
-    io_repo->deserialize( is_checks = ls_checks
-                          ii_log    = io_repo->create_new_log( 'Pull Log' ) ).
+    li_log = io_repo->create_new_log( 'Pull Log' ).
+
+    " pass decisions to delete
+    delete_unnecessary_objects(
+      io_repo   = io_repo
+      is_checks = ls_checks
+      ii_log    = li_log ).
+
+    " pass decisions to deserialize
+    io_repo->deserialize(
+      is_checks = ls_checks
+      ii_log    = li_log ).
 
   ENDMETHOD.
   METHOD new_offline.
@@ -30697,6 +30757,71 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
+  METHOD popup_decisions.
+
+    DATA:
+      lt_decision     TYPE zif_abapgit_definitions=>ty_overwrite_tt,
+      lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
+      lt_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies.
+
+    FIELD-SYMBOLS:
+      <ls_overwrite> LIKE LINE OF cs_checks-overwrite,
+      <ls_decision>  LIKE LINE OF lt_decision.
+
+    lt_decision = cs_checks-overwrite.
+
+    " For regular pull, some objects are automatically handled (see below)
+    IF iv_reset_all IS INITIAL.
+      DELETE lt_decision
+        WHERE action = zif_abapgit_objects=>c_deserialize_action-add
+           OR action = zif_abapgit_objects=>c_deserialize_action-update
+           OR action = zif_abapgit_objects=>c_deserialize_action-delete
+           OR action = zif_abapgit_objects=>c_deserialize_action-delete_add.
+    ENDIF.
+
+    " Ask user what to do
+    popup_overwrite( CHANGING ct_overwrite = lt_decision ).
+    popup_package_overwrite( CHANGING ct_overwrite = cs_checks-warning_package ).
+
+    IF cs_checks-requirements-met = zif_abapgit_definitions=>gc_no.
+      lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
+      zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
+      cs_checks-requirements-decision = zif_abapgit_definitions=>gc_yes.
+    ENDIF.
+
+    IF cs_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
+      lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
+      zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
+    ENDIF.
+
+    IF cs_checks-transport-required = abap_true.
+      cs_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request(
+        is_transport_type = cs_checks-transport-type ).
+    ENDIF.
+
+    " Update decisions
+    LOOP AT cs_checks-overwrite ASSIGNING <ls_overwrite>.
+      READ TABLE lt_decision ASSIGNING <ls_decision> WITH KEY object_type_and_name COMPONENTS
+        obj_type = <ls_overwrite>-obj_type
+        obj_name = <ls_overwrite>-obj_name.
+      IF sy-subrc = 0.
+        <ls_overwrite>-decision = <ls_decision>-decision.
+      ELSE.
+        " If user was not asked (regular pull), deny deletions and confirm other changes (add and update)
+        CASE <ls_overwrite>-action.
+          WHEN zif_abapgit_objects=>c_deserialize_action-delete
+            OR zif_abapgit_objects=>c_deserialize_action-delete_add.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
+          WHEN zif_abapgit_objects=>c_deserialize_action-add
+            OR zif_abapgit_objects=>c_deserialize_action-update.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+          WHEN OTHERS.
+            ASSERT 0 = 1.
+        ENDCASE.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD popup_overwrite.
 
     DATA: lt_columns  TYPE zif_abapgit_definitions=>ty_alv_column_tt,
@@ -30713,14 +30838,22 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     <ls_column>-name = 'OBJ_TYPE'.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'OBJ_NAME'.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'ICON'.
+    <ls_column>-text = 'Action'.
+    <ls_column>-show_icon = abap_true.
+    <ls_column>-length = 5.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'TEXT'.
+    <ls_column>-text = 'Description'.
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_to_select_from_list(
       EXPORTING
         it_list               = ct_overwrite
-        iv_header_text        = |The following objects have been modified (or deleted) locally.|
-                             && | Select the objects which should be overwritten (or recreated).|
-        iv_select_column_text = 'Overwrite?'
+        iv_header_text        = |The following objects are different between local and remote repository.|
+                             && | Select the objects which should be brought in line with the remote version.|
+        iv_select_column_text = 'Change?'
         it_columns_to_display = lt_columns
       IMPORTING
         et_list               = lt_selected ).
@@ -30731,9 +30864,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                         obj_name = <ls_overwrite>-obj_name
                              TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
-        <ls_overwrite>-decision = 'Y'.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
       ELSE.
-        <ls_overwrite>-decision = 'N'.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
       ENDIF.
     ENDLOOP.
 
@@ -30776,9 +30909,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                         obj_name = <ls_overwrite>-obj_name
                              TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
-        <ls_overwrite>-decision = 'Y'.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
       ELSE.
-        <ls_overwrite>-decision = 'N'.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
       ENDIF.
 
     ENDLOOP.
@@ -31076,46 +31209,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     MESSAGE lv_text TYPE 'S'.
 
   ENDMETHOD.
-  METHOD get_unnecessary_local_objs.
-
-    DATA: lt_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_tadir_unique TYPE HASHED TABLE OF zif_abapgit_definitions=>ty_tadir
-                               WITH UNIQUE KEY pgmid object obj_name,
-          lt_status       TYPE zif_abapgit_definitions=>ty_results_tt,
-          lv_package      TYPE zif_abapgit_persistence=>ty_repo-package.
-
-    FIELD-SYMBOLS: <ls_status> TYPE zif_abapgit_definitions=>ty_result,
-                   <ls_tadir>  TYPE zif_abapgit_definitions=>ty_tadir.
-
-    " delete objects which are added locally but are not in remote repo
-    lt_status = io_repo->status( ).
-
-    lv_package = io_repo->get_package( ).
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
-    SORT lt_tadir BY pgmid ASCENDING object ASCENDING obj_name ASCENDING devclass ASCENDING.
-
-    LOOP AT lt_status ASSIGNING <ls_status>
-                      WHERE lstate = zif_abapgit_definitions=>c_state-added
-                         OR rstate = zif_abapgit_definitions=>c_state-deleted.
-
-      READ TABLE lt_tadir ASSIGNING <ls_tadir>
-                          WITH KEY pgmid    = 'R3TR'
-                                   object   = <ls_status>-obj_type
-                                   obj_name = <ls_status>-obj_name
-                                   devclass = <ls_status>-package
-                          BINARY SEARCH.
-      IF sy-subrc <> 0.
-* skip objects that does not exist locally
-        CONTINUE.
-      ENDIF.
-
-      INSERT <ls_tadir> INTO TABLE lt_tadir_unique.
-
-    ENDLOOP.
-
-    rt_unnecessary_local_objects = lt_tadir_unique.
-
-  ENDMETHOD.
   METHOD pull.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo.
@@ -31125,8 +31218,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     lo_repo->refresh( ).
 
     zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
-
-    COMMIT WORK.
 
   ENDMETHOD.
   METHOD reset.
@@ -31162,43 +31253,9 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lt_unnecessary_local_objs = get_unnecessary_local_objs( lo_repo ).
-
-    IF lines( lt_unnecessary_local_objs ) > 0.
-
-      APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
-      <ls_column>-name = 'OBJECT'.
-      APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
-      <ls_column>-name = 'OBJ_NAME'.
-
-      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-      li_popups->popup_to_select_from_list(
-        EXPORTING
-          it_list               = lt_unnecessary_local_objs
-          iv_header_text        = |Which unnecessary objects should be deleted?|
-          iv_select_column_text = 'Delete?'
-          it_columns_to_display = lt_columns
-        IMPORTING
-          et_list              = lt_selected ).
-
-      IF lines( lt_selected ) > 0.
-
-        ls_checks = lo_repo->delete_checks( ).
-        IF ls_checks-transport-required = abap_true.
-          ls_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups(
-                                            )->popup_transport_request( ls_checks-transport-type ).
-        ENDIF.
-
-        zcl_abapgit_objects=>delete( it_tadir  = lt_selected
-                                     is_checks = ls_checks ).
-
-        lo_repo->refresh( ).
-
-      ENDIF.
-
-    ENDIF.
-
-    zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
+    zcl_abapgit_services_repo=>gui_deserialize(
+      io_repo      = lo_repo
+      iv_reset_all = abap_true ).
 
   ENDMETHOD.
   METHOD switch_branch.
@@ -32322,6 +32379,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
               IF <ls_column_to_display>-length > 0.
                 lo_column->set_output_length( <ls_column_to_display>-length ).
+              ENDIF.
+
+              IF <ls_column_to_display>-show_icon = abap_true.
+                lo_column->set_icon( abap_true ).
               ENDIF.
 
             WHEN OTHERS.
@@ -93132,22 +93193,26 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   METHOD checks_adjust.
 
     warning_overwrite_adjust(
-      EXPORTING it_overwrite = is_checks-overwrite
-      CHANGING ct_results = ct_results ).
+      EXPORTING
+        it_overwrite = is_checks-overwrite
+      CHANGING
+        ct_results   = ct_results ).
 
     warning_package_adjust(
       EXPORTING
-        io_repo = io_repo
+        io_repo      = io_repo
         it_overwrite = is_checks-warning_package
       CHANGING
-        ct_results = ct_results ).
+        ct_results   = ct_results ).
 
   ENDMETHOD.
   METHOD deserialize_checks.
 
     DATA: lt_results TYPE zif_abapgit_definitions=>ty_results_tt,
           li_package TYPE REF TO zif_abapgit_sap_package.
-    lt_results = zcl_abapgit_file_deserialize=>get_results( io_repo ).
+
+    " get unfiltered status to evaluate properly which warnings are required
+    lt_results = zcl_abapgit_file_status=>status( io_repo ).
 
     rs_checks-overwrite = warning_overwrite_find( lt_results ).
 
@@ -93184,7 +93249,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
           <ls_overwrite>-obj_name } undecided| ).
       ENDIF.
 
-      IF ls_overwrite-decision = 'N'.
+      IF ls_overwrite-decision = zif_abapgit_definitions=>gc_no.
         DELETE ct_results WHERE
           obj_type = <ls_overwrite>-obj_type AND
           obj_name = <ls_overwrite>-obj_name.
@@ -93196,25 +93261,75 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   ENDMETHOD.
   METHOD warning_overwrite_find.
 
-    DATA: ls_overwrite LIKE LINE OF rt_overwrite.
+    DATA:
+      lv_status  TYPE c LENGTH 2,
+      lt_changes TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_overwrite WITH DEFAULT KEY.
 
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
+    FIELD-SYMBOLS:
+      <ls_result>  LIKE LINE OF it_results,
+      <ls_changes> LIKE LINE OF lt_changes.
 
+    " collect all actions for object that have been changed
     LOOP AT it_results ASSIGNING <ls_result> WHERE NOT obj_type IS INITIAL.
-      IF <ls_result>-lstate IS NOT INITIAL
-        AND NOT ( <ls_result>-lstate = zif_abapgit_definitions=>c_state-added
-        AND <ls_result>-rstate IS INITIAL )
-        OR ( <ls_result>-lstate IS INITIAL
-        AND <ls_result>-rstate = zif_abapgit_definitions=>c_state-deleted ).
-        " current object has been modified or deleted locally, add to table
-        CLEAR ls_overwrite.
-        MOVE-CORRESPONDING <ls_result> TO ls_overwrite.
-        APPEND ls_overwrite TO rt_overwrite.
-      ENDIF.
+
+      APPEND INITIAL LINE TO lt_changes ASSIGNING <ls_changes>.
+      MOVE-CORRESPONDING <ls_result> TO <ls_changes>.
+
+      CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
+
+      CASE lv_status.
+        WHEN '  '. " no changes
+          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-none.
+        WHEN ' A' OR 'D ' OR 'DM'. " added remotely or deleted locally
+          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-add.
+          <ls_changes>-icon   = icon_create.
+          <ls_changes>-text   = 'Add local object'.
+        WHEN 'A ' OR ' D' OR 'MD'. " added locally or deleted remotely
+          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-delete.
+          <ls_changes>-icon   = icon_delete.
+          <ls_changes>-text   = 'Delete local object'.
+        WHEN 'M ' OR 'MM'. " modified locally
+          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-overwrite.
+          <ls_changes>-icon   = icon_change.
+          <ls_changes>-text   = 'Overwrite local object'.
+        WHEN ' M'. " modified only remotely
+          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-update.
+          <ls_changes>-icon   = icon_change.
+          <ls_changes>-text   = 'Update local object'.
+        WHEN OTHERS.
+          ASSERT 0 = 1.
+      ENDCASE.
+
     ENDLOOP.
 
-    SORT rt_overwrite.
-    DELETE ADJACENT DUPLICATES FROM rt_overwrite.
+    " Remove duplicate actions
+    SORT lt_changes.
+    DELETE ADJACENT DUPLICATES FROM lt_changes.
+
+    " Check if deletions are for complete object or just a part
+    LOOP AT lt_changes ASSIGNING <ls_changes> WHERE action = zif_abapgit_objects=>c_deserialize_action-delete.
+
+      LOOP AT lt_changes TRANSPORTING NO FIELDS
+        WHERE obj_type = <ls_changes>-obj_type AND obj_name = <ls_changes>-obj_name
+          AND action <> zif_abapgit_objects=>c_deserialize_action-delete.
+        EXIT.
+      ENDLOOP.
+      IF sy-subrc = 0.
+        " There's some other action, so object will be recreated after deletion
+        <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-delete_add.
+        <ls_changes>-icon   = icon_adopt.
+        <ls_changes>-text   = 'Delete and recreate local object'.
+      ENDIF.
+
+    ENDLOOP.
+
+    DELETE lt_changes WHERE action = zif_abapgit_objects=>c_deserialize_action-none.
+
+    " If there are multiple changes in an object, keep highest priority action
+    SORT lt_changes BY obj_type obj_name action DESCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_changes COMPARING obj_type obj_name.
+
+    rt_overwrite = lt_changes.
 
   ENDMETHOD.
   METHOD warning_package_adjust.
@@ -93239,7 +93354,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
           <ls_overwrite>-obj_name } undecided| ).
       ENDIF.
 
-      IF ls_overwrite-decision = 'N'.
+      IF ls_overwrite-decision = zif_abapgit_definitions=>gc_no.
         DELETE ct_results WHERE
           obj_type = <ls_overwrite>-obj_type AND
           obj_name = <ls_overwrite>-obj_name.
@@ -93262,7 +93377,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-    LOOP AT it_results ASSIGNING <ls_result>.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE match IS INITIAL.
 
       lv_package = lo_folder_logic->path_to_package(
         iv_top  = io_repo->get_package( )
@@ -103227,6 +103342,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-19T14:06:55.785Z
+* abapmerge 0.14.3 - 2021-05-20T04:20:06.213Z
 ENDINTERFACE.
 ****************************************************
