@@ -3777,6 +3777,12 @@ INTERFACE zif_abapgit_branch_overview .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_environment.
+  TYPES:
+    BEGIN OF ty_release_sp,
+      release TYPE c LENGTH 10,
+      sp      TYPE c LENGTH 10,
+    END OF ty_release_sp.
+
   METHODS is_sap_cloud_platform
     RETURNING
       VALUE(rv_result) TYPE abap_bool.
@@ -3795,6 +3801,9 @@ INTERFACE zif_abapgit_environment.
   METHODS is_sap_object_allowed
     RETURNING
       VALUE(rv_allowed) TYPE abap_bool.
+  METHODS get_basis_release
+    RETURNING
+      VALUE(rs_result) TYPE ty_release_sp.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -22757,6 +22766,12 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_environment~compare_with_inactive.
     rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~get_basis_release.
+
+    SELECT SINGLE release extrelease FROM cvers INTO (rs_result-release, rs_result-sp)
+      WHERE component = 'SAP_BASIS' ##SUBRC_OK.
+
   ENDMETHOD.
   METHOD zif_abapgit_environment~is_merged.
     DATA lr_marker TYPE REF TO data ##NEEDED.
@@ -42578,6 +42593,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     DATA: lt_ver_tab     TYPE filetable,
           lv_rc          TYPE i,
+          ls_release     TYPE zif_abapgit_environment=>ty_release_sp,
           lv_gui_version TYPE string,
           ls_version     LIKE LINE OF lt_ver_tab,
           lv_devclass    TYPE devclass.
@@ -42614,6 +42630,8 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       iv_typ = zif_abapgit_html=>c_action_type-url ).
     ri_html->add( '</div>' ).
 
+    ls_release = zcl_abapgit_factory=>get_environment( )->get_basis_release( ).
+
     ri_html->add( '<h2>Environment</h2>' ).
 
     ri_html->add( |<table>| ).
@@ -42624,7 +42642,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
                   zcl_abapgit_apack_migration=>c_apack_interface_version }</td></tr>| ).
     ri_html->add( |<tr><td>LCL_TIME:       </td><td>{ zcl_abapgit_time=>get_unix( ) }</td></tr>| ).
     ri_html->add( |<tr><td>SY time:        </td><td>{ sy-datum } { sy-uzeit } { sy-tzone }</td></tr>| ).
-    ri_html->add( |<tr><td>SY release:     </td><td>{ sy-saprl }</td></tr>| ).
+    ri_html->add( |<tr><td>SY release:     </td><td>{ ls_release-release } SP { ls_release-sp }</td></tr>| ).
     ri_html->add( |</table>| ).
     ri_html->add( |<br>| ).
 
@@ -103343,6 +103361,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-20T05:26:05.354Z
+* abapmerge 0.14.3 - 2021-05-20T09:31:37.719Z
 ENDINTERFACE.
 ****************************************************
