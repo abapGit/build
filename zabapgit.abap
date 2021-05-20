@@ -20731,6 +20731,8 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
       ii_log            = li_log
       it_filter         = it_filter ).
 
+    FREE lo_serialize.
+
     IF li_log->count( ) > 0 AND iv_show_log = abap_true.
       zcl_abapgit_log_viewer=>show_log( li_log ).
     ENDIF.
@@ -92649,6 +92651,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
           lv_force  TYPE abap_bool,
           lt_found  LIKE ct_files,
           lt_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
     lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
       iv_package            = iv_package
       iv_ignore_subpackages = is_local_settings-ignore_subpackages
@@ -92979,6 +92982,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     WAIT UNTIL mv_free = lv_max UP TO 120 SECONDS.
     rt_files = mt_files.
+    FREE mt_files.
 
   ENDMETHOD.
 ENDCLASS.
@@ -103420,6 +103424,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-20T09:32:50.410Z
+* abapmerge 0.14.3 - 2021-05-20T09:34:43.656Z
 ENDINTERFACE.
 ****************************************************
