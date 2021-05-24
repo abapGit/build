@@ -1238,6 +1238,13 @@ INTERFACE zif_abapgit_ajson_writer .
     RAISING
       zcx_abapgit_ajson_error.
 
+  METHODS set_timestamp
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE timestamp
+    RAISING
+      zcx_abapgit_ajson_error.
+
   METHODS set_null
     IMPORTING
       iv_path TYPE string
@@ -5729,8 +5736,6 @@ CLASS zcl_abapgit_ajson DEFINITION
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_ajson_reader .
-    INTERFACES zif_abapgit_ajson_writer .
     INTERFACES zif_abapgit_ajson .
 
     ALIASES:
@@ -5754,6 +5759,7 @@ CLASS zcl_abapgit_ajson DEFINITION
       set_string FOR zif_abapgit_ajson_writer~set_string,
       set_integer FOR zif_abapgit_ajson_writer~set_integer,
       set_date FOR zif_abapgit_ajson_writer~set_date,
+      set_timestamp FOR zif_abapgit_ajson_writer~set_timestamp,
       set_null FOR zif_abapgit_ajson_writer~set_null,
       delete FOR zif_abapgit_ajson_writer~delete,
       touch_array FOR zif_abapgit_ajson_writer~touch_array,
@@ -96657,6 +96663,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     DATA lo_table TYPE REF TO cl_abap_tabledescr.
     DATA lo_ltype TYPE REF TO cl_abap_typedescr.
     DATA ls_next_prefix LIKE is_prefix.
+    DATA lv_tabix TYPE sy-tabix.
 
     FIELD-SYMBOLS <root> LIKE LINE OF ct_nodes.
     FIELD-SYMBOLS <tab> TYPE ANY TABLE.
@@ -96684,8 +96691,9 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     ls_next_prefix-path = is_prefix-path && is_prefix-name && '/'.
     ASSIGN iv_data TO <tab>.
 
+    lv_tabix = 1.
     LOOP AT <tab> ASSIGNING <val>.
-      ls_next_prefix-name = to_lower( |{ sy-tabix }| ).
+      ls_next_prefix-name = to_lower( |{ lv_tabix }| ).
 
       convert_any(
         EXPORTING
@@ -96697,6 +96705,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
           ct_nodes = ct_nodes ).
 
       <root>-children = <root>-children + 1.
+      lv_tabix = lv_tabix + 1.
     ENDLOOP.
 
   ENDMETHOD.
@@ -97276,6 +97285,37 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_val ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson_writer~set_timestamp.
+
+    DATA:
+      lv_tz            TYPE tznzone,
+      lv_date          TYPE d,
+      lv_time          TYPE t,
+      lv_timestamp_iso TYPE string.
+
+    IF iv_val IS INITIAL.
+      " The zero value is January 1, year 1, 00:00:00.000000000 UTC.
+      lv_date = '00010101'.
+    ELSE.
+
+      lv_tz = 'UTC'.
+      CONVERT TIME STAMP iv_val TIME ZONE lv_tz
+        INTO DATE lv_date TIME lv_time.
+
+    ENDIF.
+
+    lv_timestamp_iso =
+        lv_date+0(4) && '-' && lv_date+4(2) && '-' && lv_date+6(2) &&
+        'T' &&
+        lv_time+0(2) && '-' && lv_time+2(2) && '-' && lv_time+4(2) &&
+        'Z'.
+
+    zif_abapgit_ajson_writer~set(
+      iv_ignore_empty = abap_false
+      iv_path = iv_path
+      iv_val  = lv_timestamp_iso ).
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson_writer~stringify.
@@ -103424,6 +103464,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-22T04:24:41.972Z
+* abapmerge 0.14.3 - 2021-05-24T10:56:55.854Z
 ENDINTERFACE.
 ****************************************************
