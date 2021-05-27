@@ -11203,7 +11203,9 @@ CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
       pre_check
         RAISING
-          zcx_abapgit_exception.
+          zcx_abapgit_exception,
+
+      regenerate_sap_all.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_sxci DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -62900,6 +62902,26 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD regenerate_sap_all.
+
+    DATA: ls_e071  TYPE e071,
+          lt_e071  TYPE STANDARD TABLE OF e071,
+          lt_e071k TYPE STANDARD TABLE OF e071k.
+
+    ls_e071-pgmid = 'R3TR'.
+    ls_e071-object = ms_item-obj_type.
+    ls_e071-obj_name = ms_item-obj_name.
+    INSERT ls_e071 INTO TABLE lt_e071.
+
+    CALL FUNCTION 'PRGN_AFTER_IMP_SUSO_SAP_ALL'
+      EXPORTING
+        iv_tarclient  = '000'
+        iv_is_upgrade = space
+      TABLES
+        tt_e071       = lt_e071
+        tt_e071k      = lt_e071k.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -62927,6 +62949,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
         object    = mv_objectname
         type      = 'SUSO'
         operation = 'DELETE'.
+
+    regenerate_sap_all( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -62973,6 +62997,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
     INSERT tobjvordat FROM TABLE lt_tobjvordat.           "#EC CI_SUBRC
     DELETE FROM tobjvor WHERE objct = ms_item-obj_name.   "#EC CI_SUBRC
     INSERT tobjvor FROM TABLE lt_tobjvor.                 "#EC CI_SUBRC
+
+    regenerate_sap_all( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -103464,6 +103490,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-24T10:58:35.220Z
+* abapmerge 0.14.3 - 2021-05-27T04:06:28.078Z
 ENDINTERFACE.
 ****************************************************
