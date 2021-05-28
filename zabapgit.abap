@@ -216,6 +216,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_persist_packages DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
@@ -12795,6 +12796,58 @@ CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
         VALUE(rv_exists) TYPE abap_bool.
 
 ENDCLASS.
+CLASS zcl_abapgit_persist_packages DEFINITION
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_package,
+        devclass   TYPE scompkdtln-devclass,
+        component  TYPE scompkdtln-component,
+        comp_posid TYPE scompkdtln-comp_posid,
+      END OF ty_package .
+    TYPES:
+      ty_packages TYPE HASHED TABLE OF ty_package WITH UNIQUE KEY devclass .
+
+    METHODS init .
+    METHODS modify
+      IMPORTING
+        !iv_package    TYPE scompkdtln-devclass
+        !iv_component  TYPE scompkdtln-component OPTIONAL
+        !iv_comp_posid TYPE scompkdtln-comp_posid OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS read
+      IMPORTING
+        !iv_package       TYPE scompkdtln-devclass
+      RETURNING
+        VALUE(rs_package) TYPE ty_package .
+    CLASS-METHODS get_instance
+      RETURNING
+        VALUE(ro_persist) TYPE REF TO zcl_abapgit_persist_packages .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA go_persist TYPE REF TO zcl_abapgit_persist_packages.
+    DATA mt_packages TYPE ty_packages.
+
+    METHODS from_xml
+      IMPORTING
+        iv_xml             TYPE string
+      RETURNING
+        VALUE(rt_packages) TYPE ty_packages
+      RAISING
+        zcx_abapgit_exception.
+    METHODS to_xml
+      IMPORTING
+        it_packages   TYPE ty_packages
+      RETURNING
+        VALUE(rv_xml) TYPE string
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_persist_settings DEFINITION
   CREATE PRIVATE .
 
@@ -12828,6 +12881,7 @@ CLASS zcl_abapgit_persistence_db DEFINITION
       c_type_settings   TYPE zif_abapgit_persistence=>ty_type VALUE 'SETTINGS' ##NO_TEXT,
       c_type_repo       TYPE zif_abapgit_persistence=>ty_type VALUE 'REPO' ##NO_TEXT,
       c_type_background TYPE zif_abapgit_persistence=>ty_type VALUE 'BACKGROUND' ##NO_TEXT,
+      c_type_packages   TYPE zif_abapgit_persistence=>ty_type VALUE 'PACKAGES' ##NO_TEXT,
       c_type_user       TYPE zif_abapgit_persistence=>ty_type VALUE 'USER' ##NO_TEXT.
 
     CLASS-METHODS get_instance
@@ -46675,7 +46729,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
           ls_match  TYPE submatch_result,
           lv_cnt    TYPE i.
     CASE is_data-type.
-      WHEN 'REPO'.
+      WHEN zcl_abapgit_persistence_db=>c_type_repo.
         FIND FIRST OCCURRENCE OF REGEX '<url>(.*)</url>'
           IN is_data-data_str IGNORING CASE RESULTS ls_result.
         READ TABLE ls_result-submatches INTO ls_match INDEX 1.
@@ -46692,7 +46746,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
           rv_text = |Off-line, Name: <strong>{ rv_text }</strong>|.
         ENDIF.
 
-      WHEN 'BACKGROUND'.
+      WHEN zcl_abapgit_persistence_db=>c_type_background.
         FIND FIRST OCCURRENCE OF REGEX '<method>(.*)</method>'
           IN is_data-data_str IGNORING CASE RESULTS ls_result.
         READ TABLE ls_result-submatches INTO ls_match INDEX 1.
@@ -46702,10 +46756,10 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
         rv_text = |Method: { is_data-data_str+ls_match-offset(ls_match-length) }, |
                && |Repository: { zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
 
-      WHEN 'USER'.
-        rv_text = '-'. " No additional explanation for user
-      WHEN 'SETTINGS'.
-        rv_text = '-'.
+      WHEN zcl_abapgit_persistence_db=>c_type_user
+        OR zcl_abapgit_persistence_db=>c_type_settings
+        OR zcl_abapgit_persistence_db=>c_type_packages.
+        rv_text = '-'. " No additional explanation
       WHEN OTHERS.
         IF strlen( is_data-data_str ) >= 250.
           rv_text = is_data-data_str(250).
@@ -46820,8 +46874,11 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       SPLIT lv_filename AT '_' INTO ls_data-type ls_data-value.
 
       " Validate DB key
-      IF ls_data-type <> 'REPO' AND ls_data-type <> 'USER' AND
-          ls_data-type <> 'SETTINGS' AND ls_data-type <> 'BACKGROUND'.
+      IF ls_data-type <> zcl_abapgit_persistence_db=>c_type_repo AND
+         ls_data-type <> zcl_abapgit_persistence_db=>c_type_user AND
+         ls_data-type <> zcl_abapgit_persistence_db=>c_type_settings AND
+         ls_data-type <> zcl_abapgit_persistence_db=>c_type_background AND
+         ls_data-type <> zcl_abapgit_persistence_db=>c_type_packages.
         zcx_abapgit_exception=>raise( |Invalid DB key. This is not an abapGit Backup| ).
       ENDIF.
 
@@ -51874,6 +51931,95 @@ CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
     ENDTRY.
 
     mo_settings = ro_settings.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_persist_packages IMPLEMENTATION.
+  METHOD from_xml.
+
+    DATA lo_input TYPE REF TO zif_abapgit_xml_input.
+
+    CREATE OBJECT lo_input TYPE zcl_abapgit_xml_input EXPORTING iv_xml = iv_xml.
+
+    lo_input->read(
+      EXPORTING
+        iv_name = zcl_abapgit_persistence_db=>c_type_packages
+      CHANGING
+        cg_data = rt_packages ).
+
+  ENDMETHOD.
+  METHOD get_instance.
+
+    IF go_persist IS NOT BOUND.
+      CREATE OBJECT go_persist.
+    ENDIF.
+    ro_persist = go_persist.
+
+  ENDMETHOD.
+  METHOD init.
+
+    TRY.
+        " Might have changed in another session so always get latest
+        mt_packages = from_xml( zcl_abapgit_persistence_db=>get_instance( )->read(
+          iv_type  = zcl_abapgit_persistence_db=>c_type_packages
+          iv_value = '' ) ).
+      CATCH zcx_abapgit_exception zcx_abapgit_not_found ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD modify.
+
+    DATA ls_package LIKE LINE OF mt_packages.
+
+    FIELD-SYMBOLS <ls_package> LIKE LINE OF mt_packages.
+
+    init( ).
+
+    IF iv_component IS INITIAL AND iv_comp_posid IS INITIAL.
+      DELETE mt_packages WHERE devclass = iv_package.
+    ELSE.
+      READ TABLE mt_packages ASSIGNING <ls_package> WITH TABLE KEY devclass = iv_package.
+      IF sy-subrc = 0.
+        <ls_package>-component  = iv_component.
+        <ls_package>-comp_posid = iv_comp_posid.
+      ELSE.
+        ls_package-devclass   = iv_package.
+        ls_package-component  = iv_component.
+        ls_package-comp_posid = iv_comp_posid.
+        INSERT ls_package INTO TABLE mt_packages.
+      ENDIF.
+    ENDIF.
+
+    zcl_abapgit_persistence_db=>get_instance( )->modify(
+      iv_type       = zcl_abapgit_persistence_db=>c_type_packages
+      iv_value      = ''
+      iv_data       = to_xml( mt_packages ) ).
+
+    COMMIT WORK AND WAIT.
+
+  ENDMETHOD.
+  METHOD read.
+
+    init( ).
+
+    READ TABLE mt_packages INTO rs_package WITH TABLE KEY devclass = iv_package.
+    IF sy-subrc <> 0.
+      rs_package-devclass = iv_package. " no component
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD to_xml.
+
+    DATA li_output TYPE REF TO zif_abapgit_xml_output.
+
+    CREATE OBJECT li_output TYPE zcl_abapgit_xml_output.
+
+    li_output->add(
+      iv_name = zcl_abapgit_persistence_db=>c_type_packages
+      ig_data = it_packages ).
+
+    rv_xml = li_output->render( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -82619,6 +82765,10 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         RETURN.
       ENDIF.
 
+      IF lv_package(1) = '$'.
+        zcl_abapgit_persist_packages=>get_instance( )->modify( lv_package ).
+      ENDIF.
+
       set_lock( ii_package = li_package
                 iv_lock    = abap_true ).
 
@@ -82708,6 +82858,14 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ls_package_data-devclass = mv_local_devclass.
     IF li_package IS BOUND.
       ls_package_data-pdevclass = li_package->transport_layer.
+    ENDIF.
+
+    " For local packages store application component
+    IF ls_package_data-devclass(1) = '$'.
+      zcl_abapgit_persist_packages=>get_instance( )->modify(
+        iv_package    = ls_package_data-devclass
+        iv_component  = ls_package_data-component
+        iv_comp_posid = ls_package_data-comp_posid ).
     ENDIF.
 
     " Parent package is not changed. Assume the folder logic already created the package and set
@@ -82911,6 +83069,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: ls_package_data TYPE scompkdtln,
+          ls_package_comp TYPE zcl_abapgit_persist_packages=>ty_package,
           li_package      TYPE REF TO if_package,
           lt_intf_usages  TYPE tpak_permission_to_use_list,
           lt_usage_data   TYPE scomppdata,
@@ -82933,6 +83092,13 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         OTHERS          = 4 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    " For local packages get application component
+    IF is_local( ls_package_data-devclass ) = abap_true.
+      ls_package_comp = zcl_abapgit_persist_packages=>get_instance( )->read( ls_package_data-devclass ).
+      ls_package_data-component  = ls_package_comp-component.
+      ls_package_data-comp_posid = ls_package_comp-comp_posid.
     ENDIF.
 
     CLEAR: ls_package_data-devclass,
@@ -103493,6 +103659,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-27T14:41:20.947Z
+* abapmerge 0.14.3 - 2021-05-28T03:46:14.542Z
 ENDINTERFACE.
 ****************************************************
