@@ -3034,7 +3034,7 @@ INTERFACE zif_abapgit_persistence.
       only_local_objects           TYPE abap_bool,
       code_inspector_check_variant TYPE sci_chkv,
       block_commit                 TYPE abap_bool,
-      serialize_master_lang_only   TYPE abap_bool,
+      main_language_only           TYPE abap_bool,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -3371,25 +3371,25 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS new_offline
     IMPORTING
-      !iv_url              TYPE string
-      !iv_package          TYPE devclass
-      !iv_folder_logic     TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
-      !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
+      !iv_url            TYPE string
+      !iv_package        TYPE devclass
+      !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
+      !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(ro_repo)       TYPE REF TO zcl_abapgit_repo_offline
+      VALUE(ro_repo)     TYPE REF TO zcl_abapgit_repo_offline
     RAISING
       zcx_abapgit_exception .
   METHODS new_online
     IMPORTING
-      !iv_url              TYPE string
-      !iv_branch_name      TYPE string
-      !iv_display_name     TYPE string OPTIONAL
-      !iv_package          TYPE devclass
-      !iv_folder_logic     TYPE string DEFAULT 'PREFIX'
-      !iv_ign_subpkg       TYPE abap_bool DEFAULT abap_false
-      !iv_master_lang_only TYPE abap_bool DEFAULT abap_false
+      !iv_url            TYPE string
+      !iv_branch_name    TYPE string
+      !iv_display_name   TYPE string OPTIONAL
+      !iv_package        TYPE devclass
+      !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      !iv_ign_subpkg     TYPE abap_bool DEFAULT abap_false
+      !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(ro_repo)       TYPE REF TO zcl_abapgit_repo_online
+      VALUE(ro_repo)     TYPE REF TO zcl_abapgit_repo_online
     RAISING
       zcx_abapgit_exception .
   METHODS purge
@@ -6517,8 +6517,8 @@ CLASS zcl_abapgit_serialize DEFINITION
 
     METHODS constructor
       IMPORTING
-        !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false
-        !it_translation_langs          TYPE zif_abapgit_definitions=>ty_languages OPTIONAL.
+        !iv_main_language_only TYPE abap_bool DEFAULT abap_false
+        !it_translation_langs  TYPE zif_abapgit_definitions=>ty_languages OPTIONAL.
     METHODS on_end_of_task
       IMPORTING
         !p_task TYPE clike .
@@ -6562,7 +6562,7 @@ CLASS zcl_abapgit_serialize DEFINITION
     DATA mv_free TYPE i .
     DATA mi_log TYPE REF TO zif_abapgit_log .
     DATA mv_group TYPE rzlli_apcl .
-    DATA mv_serialize_master_lang_only TYPE abap_bool .
+    DATA mv_main_language_only TYPE abap_bool .
     DATA mt_translation_langs TYPE zif_abapgit_definitions=>ty_languages .
 
     METHODS add_apack
@@ -7709,12 +7709,12 @@ CLASS zcl_abapgit_objects DEFINITION
 
     CLASS-METHODS serialize
       IMPORTING
-        !is_item                       TYPE zif_abapgit_definitions=>ty_item
-        !iv_language                   TYPE spras
-        !iv_serialize_master_lang_only TYPE abap_bool DEFAULT abap_false
-        !it_translation_langs          TYPE zif_abapgit_definitions=>ty_languages OPTIONAL
+        !is_item                 TYPE zif_abapgit_definitions=>ty_item
+        !iv_language             TYPE spras
+        !iv_main_language_only   TYPE abap_bool DEFAULT abap_false
+        !it_translation_langs    TYPE zif_abapgit_definitions=>ty_languages OPTIONAL
       RETURNING
-        VALUE(rs_files_and_item)       TYPE ty_serialization
+        VALUE(rs_files_and_item) TYPE ty_serialization
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS deserialize
@@ -20792,8 +20792,8 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
 
     CREATE OBJECT lo_serialize
       EXPORTING
-        iv_serialize_master_lang_only = is_local_settings-serialize_master_lang_only
-        it_translation_langs          = lt_languages.
+        iv_main_language_only = is_local_settings-main_language_only
+        it_translation_langs  = lt_languages.
 
     lt_zip = lo_serialize->files_local(
       iv_package        = iv_package
@@ -20869,7 +20869,7 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
           lv_path            TYPE string,
           lv_zip_xstring     TYPE xstring.
 
-    ls_local_settings-serialize_master_lang_only = iv_main_lang_only.
+    ls_local_settings-main_language_only = iv_main_lang_only.
 
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
@@ -30812,10 +30812,10 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     " create new repo and add to favorites
     ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-      iv_url              = is_repo_params-url
-      iv_package          = is_repo_params-package
-      iv_folder_logic     = is_repo_params-folder_logic
-      iv_master_lang_only = is_repo_params-main_lang_only ).
+      iv_url            = is_repo_params-url
+      iv_package        = is_repo_params-package
+      iv_folder_logic   = is_repo_params-folder_logic
+      iv_main_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
     ro_repo->rebuild_local_checksums( ).
@@ -30832,13 +30832,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     check_package( is_repo_params ).
 
     ro_repo = zcl_abapgit_repo_srv=>get_instance( )->new_online(
-      iv_url              = is_repo_params-url
-      iv_branch_name      = is_repo_params-branch_name
-      iv_package          = is_repo_params-package
-      iv_display_name     = is_repo_params-display_name
-      iv_folder_logic     = is_repo_params-folder_logic
-      iv_ign_subpkg       = is_repo_params-ignore_subpackages
-      iv_master_lang_only = is_repo_params-main_lang_only ).
+      iv_url            = is_repo_params-url
+      iv_branch_name    = is_repo_params-branch_name
+      iv_package        = is_repo_params-package
+      iv_display_name   = is_repo_params-display_name
+      iv_folder_logic   = is_repo_params-folder_logic
+      iv_ign_subpkg     = is_repo_params-ignore_subpackages
+      iv_main_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
     ro_repo->rebuild_local_checksums( ).
@@ -37686,7 +37686,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_val = boolc( ms_settings-ignore_subpackages = abap_true ) ) ##TYPE.
     mo_form_data->set(
       iv_key = c_id-main_language_only
-      iv_val = boolc( ms_settings-serialize_master_lang_only = abap_true ) ) ##TYPE.
+      iv_val = boolc( ms_settings-main_language_only = abap_true ) ) ##TYPE.
     mo_form_data->set(
       iv_key = c_id-write_protected
       iv_val = boolc( ms_settings-write_protected = abap_true ) ) ##TYPE.
@@ -37708,7 +37708,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
     ms_settings-display_name                 = mo_form_data->get( c_id-display_name ).
     ms_settings-ignore_subpackages           = mo_form_data->get( c_id-ignore_subpackages ).
-    ms_settings-serialize_master_lang_only   = mo_form_data->get( c_id-main_language_only ).
+    ms_settings-main_language_only           = mo_form_data->get( c_id-main_language_only ).
     ms_settings-write_protected              = mo_form_data->get( c_id-write_protected ).
     ms_settings-only_local_objects           = mo_form_data->get( c_id-only_local_objects ).
     ms_settings-code_inspector_check_variant = mo_form_data->get( c_id-code_inspector_check_variant ).
@@ -49730,7 +49730,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     ro_repo ?= instantiate_and_add( ls_repo ).
 
-    ls_repo-local_settings-serialize_master_lang_only = iv_master_lang_only.
+    ls_repo-local_settings-main_language_only = iv_main_lang_only.
     ro_repo->set_local_settings( ls_repo-local_settings ).
 
   ENDMETHOD.
@@ -49780,7 +49780,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     IF ls_repo-local_settings-ignore_subpackages <> iv_ign_subpkg.
       ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
     ENDIF.
-    ls_repo-local_settings-serialize_master_lang_only = iv_master_lang_only.
+    ls_repo-local_settings-main_language_only = iv_main_lang_only.
     ro_repo->set_local_settings( ls_repo-local_settings ).
 
     ro_repo->refresh( ).
@@ -50699,8 +50699,8 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     CREATE OBJECT lo_serialize
       EXPORTING
-        iv_serialize_master_lang_only = ms_data-local_settings-serialize_master_lang_only
-        it_translation_langs          = lt_languages.
+        iv_main_language_only = ms_data-local_settings-main_language_only
+        it_translation_langs  = lt_languages.
 
     rt_files = lo_serialize->files_local(
       iv_package        = get_package( )
@@ -51566,7 +51566,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_USER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
   METHOD constructor.
 
     DATA ls_dummy_meta_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
@@ -51601,6 +51601,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       RESULT repo = rs_repo.
 
 * automatic migration of old fields
+* todo, keep for transition period until 2022-12-31, then remove all of these
     FIND FIRST OCCURRENCE OF '</HEAD_BRANCH><WRITE_PROTECT>X</WRITE_PROTECT>' IN lv_xml.
     IF sy-subrc = 0.
       rs_repo-local_settings-write_protected = abap_true.
@@ -51608,6 +51609,10 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     FIND FIRST OCCURRENCE OF '<IGNORE_SUBPACKAGES>X</IGNORE_SUBPACKAGES></REPO>' IN lv_xml.
     IF sy-subrc = 0.
       rs_repo-local_settings-ignore_subpackages = abap_true.
+    ENDIF.
+    FIND FIRST OCCURRENCE OF '<SERIALIZE_MASTER_LANG_ONLY>X</SERIALIZE_MASTER_LANG_ONLY>' IN lv_xml.
+    IF sy-subrc = 0.
+      rs_repo-local_settings-main_language_only = abap_true.
     ENDIF.
 
     IF rs_repo IS INITIAL.
@@ -54848,7 +54853,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     CREATE OBJECT li_xml TYPE zcl_abapgit_xml_output.
 
     ls_i18n_params-main_language         = iv_language.
-    ls_i18n_params-main_language_only    = iv_serialize_master_lang_only.
+    ls_i18n_params-main_language_only    = iv_main_language_only.
     ls_i18n_params-translation_languages = it_translation_langs.
 
     li_xml->i18n_params( ls_i18n_params ).
@@ -92929,7 +92934,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     ENDIF.
 
     mv_group = 'parallel_generators'.
-    mv_serialize_master_lang_only = iv_serialize_master_lang_only.
+    mv_main_language_only = iv_main_language_only.
     mt_translation_langs = it_translation_langs.
 
   ENDMETHOD.
@@ -93120,17 +93125,17 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         DESTINATION IN GROUP mv_group
         CALLING on_end_of_task ON END OF TASK
         EXPORTING
-          iv_obj_type                   = is_tadir-object
-          iv_obj_name                   = is_tadir-obj_name
-          iv_devclass                   = is_tadir-devclass
-          iv_language                   = iv_language
-          iv_path                       = is_tadir-path
-          iv_serialize_master_lang_only = mv_serialize_master_lang_only
+          iv_obj_type           = is_tadir-object
+          iv_obj_name           = is_tadir-obj_name
+          iv_devclass           = is_tadir-devclass
+          iv_language           = iv_language
+          iv_path               = is_tadir-path
+          iv_main_language_only = mv_main_language_only
         EXCEPTIONS
-          system_failure                = 1 MESSAGE lv_msg
-          communication_failure         = 2 MESSAGE lv_msg
-          resource_failure              = 3
-          OTHERS                        = 4.
+          system_failure        = 1 MESSAGE lv_msg
+          communication_failure = 2 MESSAGE lv_msg
+          resource_failure      = 3
+          OTHERS                = 4.
       IF sy-subrc = 3.
         lv_free = mv_free.
         WAIT UNTIL mv_free <> lv_free UP TO 1 SECONDS.
@@ -93154,10 +93159,10 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     TRY.
         ls_file_item = zcl_abapgit_objects=>serialize(
-          is_item                       = ls_file_item-item
-          iv_serialize_master_lang_only = mv_serialize_master_lang_only
-          it_translation_langs          = mt_translation_langs
-          iv_language                   = iv_language ).
+          is_item               = ls_file_item-item
+          iv_main_language_only = mv_main_language_only
+          it_translation_langs  = mt_translation_langs
+          iv_language           = iv_language ).
 
         add_to_return( is_file_item = ls_file_item
                        iv_path      = is_tadir-path ).
@@ -103687,6 +103692,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-28T04:23:54.337Z
+* abapmerge 0.14.3 - 2021-05-28T11:16:03.896Z
 ENDINTERFACE.
 ****************************************************
