@@ -1978,7 +1978,9 @@ INTERFACE zif_abapgit_definitions .
       display_name TYPE string,
     END OF ty_git_branch .
   TYPES:
-    ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY .
+    ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY
+                               WITH NON-UNIQUE SORTED KEY name_key
+                               COMPONENTS name.
   TYPES:
     BEGIN OF ty_git_tag,
       sha1         TYPE ty_sha1,
@@ -13532,6 +13534,11 @@ CLASS zcl_abapgit_repo_online DEFINITION
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS raise_error_if_branch_exists
+      IMPORTING
+        iv_name TYPE string
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_repo_srv DEFINITION
   FINAL
@@ -49968,6 +49975,8 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
       lv_sha1 = iv_from.
     ENDIF.
 
+    raise_error_if_branch_exists( iv_name ).
+
     zcl_abapgit_git_porcelain=>create_branch(
       iv_url  = get_url( )
       iv_name = iv_name
@@ -50097,6 +50106,25 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD raise_error_if_branch_exists.
+
+    DATA:
+      lt_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      lv_display_name TYPE string.
+
+    lt_branches = zcl_abapgit_git_transport=>branches( get_url( ) )->get_branches_only( ).
+
+    READ TABLE lt_branches WITH TABLE KEY name_key
+                           COMPONENTS name = iv_name
+                           TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      lv_display_name = zcl_abapgit_git_branch_list=>get_display_name( iv_name ).
+      zcx_abapgit_exception=>raise( |Branch '{ lv_display_name }' already exists| ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
@@ -103659,6 +103687,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-28T03:46:14.542Z
+* abapmerge 0.14.3 - 2021-05-28T04:10:27.635Z
 ENDINTERFACE.
 ****************************************************
