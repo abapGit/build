@@ -23239,7 +23239,8 @@ CLASS zcl_abapgit_branch_overview IMPLEMENTATION.
                    <ls_commit>                LIKE LINE OF mt_commits,
                    <ls_create>                LIKE LINE OF <ls_commit>-create.
 * Exchange HEAD, and make sure the branch determination starts with the HEAD branch
-    READ TABLE mt_branches ASSIGNING <ls_head> WITH KEY name = lc_head.
+    READ TABLE mt_branches ASSIGNING <ls_head>
+                           WITH TABLE KEY name_key COMPONENTS name = lc_head.
     ASSERT sy-subrc = 0.
     LOOP AT mt_branches ASSIGNING <ls_branch>
         WHERE sha1 = <ls_head>-sha1 AND name <> lc_head.
@@ -100497,7 +100498,8 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     ELSE.
 
       READ TABLE mt_branches INTO rs_branch
-        WITH KEY name = iv_branch_name.
+        WITH TABLE KEY name_key
+        COMPONENTS name = iv_branch_name.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( |Branch { get_display_name( iv_branch_name )
           } not found. Use 'Branch' > 'Switch' to select a different branch| ).
@@ -100513,11 +100515,13 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     lv_branch_name = iv_branch_name && '^{}'.
 
     READ TABLE mt_branches INTO rs_branch
-        WITH KEY name = lv_branch_name.
+        WITH TABLE KEY name_key
+        COMPONENTS name = lv_branch_name.
     IF sy-subrc <> 0.
 
       READ TABLE mt_branches INTO rs_branch
-        WITH KEY name = iv_branch_name.
+        WITH TABLE KEY name_key
+        COMPONENTS name = iv_branch_name.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'Branch not found' ).
       ENDIF.
@@ -103692,6 +103696,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-28T11:16:03.896Z
+* abapmerge 0.14.3 - 2021-05-31T05:48:35.807Z
 ENDINTERFACE.
 ****************************************************
