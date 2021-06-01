@@ -7599,7 +7599,6 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
         EXPORTING
           et_intersection TYPE zif_abapgit_definitions=>ty_languages
           et_missfits TYPE zif_abapgit_definitions=>ty_languages.
-
 ENDCLASS.
 CLASS zcl_abapgit_sotr_handler DEFINITION
   FINAL
@@ -7869,7 +7868,8 @@ CLASS zcl_abapgit_objects_generic DEFINITION
 
     METHODS constructor
       IMPORTING
-        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras DEFAULT sy-langu
       RAISING
         zcx_abapgit_exception .
     METHODS delete
@@ -7903,10 +7903,11 @@ CLASS zcl_abapgit_objects_generic DEFINITION
 
     DATA ms_object_header TYPE objh .
     DATA:
-      mt_object_table                TYPE STANDARD TABLE OF objsl WITH DEFAULT KEY .
+      mt_object_table TYPE STANDARD TABLE OF objsl WITH DEFAULT KEY .
     DATA:
-      mt_object_method               TYPE STANDARD TABLE OF objm WITH DEFAULT KEY .
+      mt_object_method TYPE STANDARD TABLE OF objm WITH DEFAULT KEY .
     DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
+    DATA mv_language TYPE spras .
 
     METHODS after_import .
     METHODS before_export .
@@ -8150,6 +8151,12 @@ CLASS zcl_abapgit_object_asfc DEFINITION
     INTERFACES zif_abapgit_object .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_auth DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -9253,7 +9260,6 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS order_check_and_insert
       RAISING
         zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_ftgl DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -9292,6 +9298,12 @@ CLASS zcl_abapgit_object_g4ba DEFINITION
     INTERFACES zif_abapgit_object .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_g4bs DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -9302,6 +9314,12 @@ CLASS zcl_abapgit_object_g4bs DEFINITION
     INTERFACES zif_abapgit_object .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_iamu DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -11131,6 +11149,12 @@ CLASS zcl_abapgit_object_sucu DEFINITION
 
     INTERFACES zif_abapgit_object .
   PROTECTED SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -11721,6 +11745,11 @@ CLASS zcl_abapgit_object_ueno DEFINITION
         it_docu TYPE ty_docu_lines
       RAISING
         zcx_abapgit_exception.
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_vcls DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -53542,6 +53571,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
       ORDER BY PRIMARY KEY.
 
     ms_item = is_item.
+    mv_language = iv_language.
 
   ENDMETHOD.
   METHOD corr_insert.
@@ -53554,7 +53584,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
         mode                = 'I'
         global_lock         = abap_true
         devclass            = iv_package
-        master_language     = sy-langu
+        master_language     = mv_language
         suppress_dialog     = abap_true
       EXCEPTIONS
         cancelled           = 1
@@ -53807,7 +53837,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
           lv_objkey_pos = lv_objkey_pos + 1.
 *       language
         ELSEIF <ls_object_table>-tobjkey+lv_next_objkey_pos(1) = 'L'.
-          ls_objkey-value = sy-langu.
+          ls_objkey-value = mv_language.
           INSERT ls_objkey INTO TABLE lt_objkey.
           CLEAR ls_objkey.
           lv_non_value_pos = lv_non_value_pos + 1.
@@ -59291,6 +59321,14 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
 
     ENDLOOP.
   ENDMETHOD.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
   METHOD is_name_permitted.
 
     " It is unlikely that a serialized entity will have a name that is not permitted. However
@@ -59412,12 +59450,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
     " The deletion of the documentation occurs before the deletion of
     " the associated tables - otherwise we don't know what
     " documentation needs deletion
@@ -59426,22 +59458,16 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     delete_docu_usp( ).
 
     " the deletion of the tables of the entity
-    lo_generic->delete( ).
+    get_generic( )->delete( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
-
-    DATA lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
 
     " Is the entity type name compliant with naming conventions?
     " Entity Type have their own conventions.
     is_name_permitted( ).
 
-    lo_generic->deserialize(
+    get_generic( )->deserialize(
       iv_package = iv_package
       io_xml     = io_xml ).
 
@@ -59454,13 +59480,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_generic->exists( ).
+    rv_bool = get_generic( )->exists( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -59526,13 +59546,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->serialize( io_xml ).
+    get_generic( )->serialize( io_xml ).
 
     serialize_docu_uen( io_xml ).
     serialize_docu_url( io_xml ).
@@ -62973,7 +62987,7 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SUSO IMPLEMENTATION.
+CLASS zcl_abapgit_object_suso IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -63725,43 +63739,33 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
+CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->delete( ).
+    get_generic( )->delete( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->deserialize(
+    get_generic( )->deserialize(
       iv_package = iv_package
       io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_generic->exists( ).
+    rv_bool = get_generic( )->exists( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -63791,13 +63795,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SUCU IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->serialize( io_xml ).
+    get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -74456,12 +74454,13 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWVB IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74519,12 +74518,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IWVB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWSV IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74613,12 +74613,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IWSV IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74673,12 +74674,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74735,12 +74737,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IWPR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWOM IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74795,12 +74798,13 @@ CLASS ZCL_ABAPGIT_OBJECT_IWOM IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWMO IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item = ms_item.
+        is_item     = ms_item
+        iv_language = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -77305,43 +77309,33 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_G4BS IMPLEMENTATION.
+CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->delete( ).
+    get_generic( )->delete( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->deserialize(
+    get_generic( )->deserialize(
       iv_package = iv_package
       io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_generic->exists( ).
+    rv_bool = get_generic( )->exists( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -77371,54 +77365,38 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->serialize( io_xml ).
+    get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
+CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->delete( ).
+    get_generic( )->delete( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->deserialize(
+    get_generic( )->deserialize(
       iv_package = iv_package
       io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_generic->exists( ).
+    rv_bool = get_generic( )->exists( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -77448,13 +77426,7 @@ CLASS ZCL_ABAPGIT_OBJECT_G4BA IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->serialize( io_xml ).
+    get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -78615,7 +78587,7 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FORM IMPLEMENTATION.
+CLASS zcl_abapgit_object_form IMPLEMENTATION.
   METHOD build_extra_from_header.
 
     DATA: lv_tdspras TYPE laiso.
@@ -82276,7 +82248,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     " no standard function to do this. SE61 does this
     " directly in its dialog modules
     ls_dokentry-username = sy-uname.
-    ls_dokentry-langu    = sy-langu.
+    ls_dokentry-langu    = mv_language.
     ls_dokentry-class    = c_id.
     MODIFY dokentry FROM ls_dokentry.
 
@@ -87120,43 +87092,33 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
+CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = zcl_abapgit_objects_super=>c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->delete( ).
+    get_generic( )->delete( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->deserialize(
+    get_generic( )->deserialize(
       iv_package = iv_package
       io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_generic->exists( ).
+    rv_bool = get_generic( )->exists( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -87186,19 +87148,12 @@ CLASS ZCL_ABAPGIT_OBJECT_ASFC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
-    DATA: lo_generic TYPE REF TO zcl_abapgit_objects_generic.
-
-    CREATE OBJECT lo_generic
-      EXPORTING
-        is_item = ms_item.
-
-    lo_generic->serialize( io_xml ).
+    get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_area IMPLEMENTATION.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_user TYPE string.
@@ -87366,7 +87321,7 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     CALL METHOD lr_area->('IF_RSAWBN_FOLDER_TREE~GET_TREE')
       EXPORTING
         i_objvers = 'A'
-        i_langu   = sy-langu
+        i_langu   = mv_language
       IMPORTING
         e_t_tree  = <lt_tree>.
 
@@ -87418,7 +87373,7 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     CALL METHOD lr_area->('IF_RSAWBN_FOLDER_TREE~GET_TREE')
       EXPORTING
         i_objvers = 'A'
-        i_langu   = sy-langu
+        i_langu   = mv_language
       IMPORTING
         e_t_tree  = <lt_tree>.
 
@@ -88134,7 +88089,7 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
+CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   METHOD check_langs_versus_installed.
 
     DATA lt_installed_hash TYPE HASHED TABLE OF laiso WITH UNIQUE KEY table_line.
@@ -103703,6 +103658,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-01T11:00:50.186Z
+* abapmerge 0.14.3 - 2021-06-01T11:03:33.362Z
 ENDINTERFACE.
 ****************************************************
