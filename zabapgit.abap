@@ -69666,7 +69666,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SCVI IMPLEMENTATION.
+CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_screen_variant TYPE scvariant.
@@ -69745,13 +69745,17 @@ CLASS ZCL_ABAPGIT_OBJECT_SCVI IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lo_screen_variant TYPE REF TO zcl_abapgit_objects_generic.
+    DATA: lv_screen_variant TYPE scvariant.
 
-    CREATE OBJECT lo_screen_variant
+    lv_screen_variant = ms_item-obj_name.
+
+    CALL FUNCTION 'RS_HDSYS_READ_SC_VARIANT_DB'
       EXPORTING
-        is_item = ms_item.
-
-    rv_bool = lo_screen_variant->exists( ).
+        scvariant  = lv_screen_variant
+      EXCEPTIONS
+        no_variant = 1
+        OTHERS     = 2.
+    rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -103658,6 +103662,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-01T11:03:33.362Z
+* abapmerge 0.14.3 - 2021-06-01T11:06:39.702Z
 ENDINTERFACE.
 ****************************************************
