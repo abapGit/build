@@ -29185,7 +29185,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.deployHintContainers = function() {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input[type=''checkbox'']");' ).
+    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input, textarea");' ).
     lo_buf->add( '  var codeCounter = this.getHintStartValue(hintTargets.length);' ).
     lo_buf->add( '  var hintsMap    = { first: codeCounter };' ).
     lo_buf->add( '' ).
@@ -29205,7 +29205,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    hint.pendingSpan.classList.add("pending");' ).
     lo_buf->add( '    hint.container.classList.add("link-hint");' ).
-    lo_buf->add( '    if (hint.parent.nodeName === "INPUT"){' ).
+    lo_buf->add( '    if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA"){' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-input");' ).
     lo_buf->add( '    } else {' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-a");' ).
@@ -29214,7 +29214,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    hint.container.classList.add("nodisplay");            // hide by default' ).
     lo_buf->add( '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT") {' ).
+    lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT" || hintTargets[i].nodeName === "TEXTAREA") {' ).
     lo_buf->add( '      // does not work if inside the input, so appending right after' ).
     lo_buf->add( '      hintTargets[i].insertAdjacentElement("afterend", hint.container);' ).
     lo_buf->add( '    } else {' ).
@@ -29237,11 +29237,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var activeElementType = (document.activeElement && document.activeElement.nodeName) || "";' ).
+    lo_buf->add( '  var activeElement = (document.activeElement && document.activeElement) || {};' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // link hints are disabled for input and textareas for obvious reasons.' ).
     lo_buf->add( '  // Maybe we must add other types here in the future' ).
-    lo_buf->add( '  if (event.key === this.linkHintHotKey && activeElementType !== "INPUT" && activeElementType !== "TEXTAREA") {' ).
+    lo_buf->add( '  if (event.key === this.linkHintHotKey && activeElement.type !== "text" && activeElement.type !== "number" && activeElement.nodeName !== "TEXTAREA") {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // on user hide hints, close an opened dropdown too' ).
     lo_buf->add( '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();' ).
@@ -29257,6 +29257,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate it' ).
     lo_buf->add( '      this.displayHints(false);' ).
+    lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '      this.hintActivate(hint);' ).
     lo_buf->add( '    } else {' ).
     lo_buf->add( '      // we are not there yet, but let''s filter the link so that only' ).
@@ -29300,6 +29301,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // probably it is a dropdown ...' ).
     lo_buf->add( '    this.activatedDropdown = hint.parent.parentElement;' ).
     lo_buf->add( '    this.activatedDropdown.classList.toggle("force-nav-hover");' ).
+    lo_buf->add( '    hint.parent.focus();' ).
+    lo_buf->add( '  } else if (hint.parent.type === "checkbox") {' ).
+    lo_buf->add( '    hint.parent.checked = !hint.parent.checked;' ).
+    lo_buf->add( '  } else if (hint.parent.type === "submit") {' ).
+    lo_buf->add( '    hint.parent.click();' ).
+    lo_buf->add( '  } else if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA") {' ).
     lo_buf->add( '    hint.parent.focus();' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    hint.parent.click();' ).
@@ -103696,6 +103703,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-05-31T10:27:49.180Z
+* abapmerge 0.14.3 - 2021-06-01T11:00:50.186Z
 ENDINTERFACE.
 ****************************************************
