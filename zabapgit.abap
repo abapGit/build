@@ -2818,18 +2818,18 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_lang_definitions .
 
   TYPES: BEGIN OF ty_i18n_tpool,
-           language TYPE langu,
+           language TYPE sy-langu,
            textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
          END OF ty_i18n_tpool,
          ty_i18n_tpools TYPE STANDARD TABLE OF ty_i18n_tpool.
 
   TYPES: BEGIN OF ty_i18n_line,
-           language TYPE langu,
+           language TYPE sy-langu,
            lines    TYPE tlinetab,
          END OF ty_i18n_line,
          ty_i18n_lines TYPE STANDARD TABLE OF ty_i18n_line.
 
-  TYPES: ty_langus TYPE STANDARD TABLE OF langu.
+  TYPES: ty_langus TYPE STANDARD TABLE OF sy-langu.
 
 ENDINTERFACE.
 
@@ -2856,7 +2856,7 @@ INTERFACE zif_abapgit_longtexts .
     IMPORTING
       !iv_longtext_name TYPE string DEFAULT 'LONGTEXTS'
       !ii_xml           TYPE REF TO zif_abapgit_xml_input
-      !iv_main_language TYPE langu
+      !iv_main_language TYPE sy-langu
     RAISING
       zcx_abapgit_exception .
   METHODS delete
@@ -6525,7 +6525,7 @@ CLASS zcl_abapgit_serialize DEFINITION
     METHODS serialize
       IMPORTING
         !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
-        !iv_language         TYPE langu DEFAULT sy-langu
+        !iv_language         TYPE sy-langu DEFAULT sy-langu
         !ii_log              TYPE REF TO zif_abapgit_log OPTIONAL
         !iv_force_sequential TYPE abap_bool DEFAULT abap_false
       RETURNING
@@ -6594,14 +6594,14 @@ CLASS zcl_abapgit_serialize DEFINITION
     METHODS run_parallel
       IMPORTING
         !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
-        !iv_language TYPE langu
+        !iv_language TYPE sy-langu
         !iv_task     TYPE ty_char32
       RAISING
         zcx_abapgit_exception .
     METHODS run_sequential
       IMPORTING
         !is_tadir    TYPE zif_abapgit_definitions=>ty_tadir
-        !iv_language TYPE langu
+        !iv_language TYPE sy-langu
       RAISING
         zcx_abapgit_exception .
     METHODS add_objects
@@ -12334,7 +12334,7 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
       IMPORTING
         !iv_program    TYPE programm
         !it_tpool      TYPE textpool_table
-        !iv_language   TYPE langu OPTIONAL
+        !iv_language   TYPE sy-langu OPTIONAL
         !iv_is_include TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
@@ -12544,7 +12544,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       ty_sobj_name_tt TYPE STANDARD TABLE OF sobj_name  WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_tpool_i18n,
-        language TYPE langu,
+        language TYPE sy-langu,
         textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
       END OF ty_tpool_i18n .
     TYPES:
@@ -12691,7 +12691,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
 
     TYPES:
       BEGIN OF ty_tpool_i18n,
-        language TYPE langu,
+        language TYPE sy-langu,
         textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
       END OF ty_tpool_i18n .
     TYPES:
@@ -18738,11 +18738,11 @@ CLASS zcl_abapgit_language DEFINITION
     CLASS-METHODS restore_login_language .
     CLASS-METHODS set_current_language
       IMPORTING
-        !iv_language TYPE langu .
+        !iv_language TYPE sy-langu .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CLASS-DATA gv_login_language TYPE langu .
+    CLASS-DATA gv_login_language TYPE sy-langu .
 ENDCLASS.
 CLASS zcl_abapgit_log DEFINITION
   CREATE PUBLIC .
@@ -52940,7 +52940,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_textpool.
 
-    DATA lv_language TYPE langu.
+    DATA lv_language TYPE sy-langu.
     DATA lv_state    TYPE c.
     DATA lv_delete   TYPE abap_bool.
 
@@ -62111,7 +62111,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     DATA: lv_name       TYPE ddobjname,
           ls_dd02v_tmp  TYPE dd02v,
-          lt_i18n_langs TYPE TABLE OF langu,
+          lt_i18n_langs TYPE TABLE OF sy-langu,
           lt_dd02_texts TYPE ty_dd02_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -62248,7 +62248,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd02v      TYPE dd02v,
           lt_dd02_texts TYPE ty_dd02_texts,
-          lt_i18n_langs TYPE TABLE OF langu.
+          lt_i18n_langs TYPE TABLE OF sy-langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd02_text> LIKE LINE OF lt_dd02_texts.
@@ -73384,7 +73384,7 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
 
     DATA:
       ls_trnspacett TYPE trnspacett,
-      lt_i18n_langs TYPE TABLE OF langu,
+      lt_i18n_langs TYPE TABLE OF sy-langu,
       lt_nspc_texts TYPE ty_nspc_texts.
 
     FIELD-SYMBOLS:
@@ -73423,7 +73423,7 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
     DATA:
       ls_trnspacett TYPE trnspacett,
       lt_nspc_texts TYPE ty_nspc_texts,
-      lt_i18n_langs TYPE TABLE OF langu.
+      lt_i18n_langs TYPE TABLE OF sy-langu.
 
     FIELD-SYMBOLS:
       <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -74022,7 +74022,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     DATA: lv_msg_id     TYPE rglif-message_id,
           lt_t100_texts TYPE ty_t100_texts,
           lt_t100t      TYPE TABLE OF t100t,
-          lt_i18n_langs TYPE TABLE OF langu.
+          lt_i18n_langs TYPE TABLE OF sy-langu.
 
     lv_msg_id = ms_item-obj_name.
 
@@ -80513,7 +80513,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     DATA: lv_name       TYPE ddobjname,
           ls_dd04v_tmp  TYPE dd04v,
-          lt_i18n_langs TYPE TABLE OF langu,
+          lt_i18n_langs TYPE TABLE OF sy-langu,
           lt_dd04_texts TYPE ty_dd04_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -80561,7 +80561,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd04v      TYPE dd04v,
           lt_dd04_texts TYPE ty_dd04_texts,
-          lt_i18n_langs TYPE TABLE OF langu.
+          lt_i18n_langs TYPE TABLE OF sy-langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
@@ -81730,7 +81730,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           lv_valpos     TYPE valpos,
           ls_dd01v_tmp  TYPE dd01v,
           lt_dd07v_tmp  TYPE TABLE OF dd07v,
-          lt_i18n_langs TYPE TABLE OF langu,
+          lt_i18n_langs TYPE TABLE OF sy-langu,
           lt_dd01_texts TYPE ty_dd01_texts,
           lt_dd07_texts TYPE ty_dd07_texts.
 
@@ -81806,7 +81806,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd01v      TYPE dd01v,
           lt_dd07v      TYPE TABLE OF dd07v,
-          lt_i18n_langs TYPE TABLE OF langu,
+          lt_i18n_langs TYPE TABLE OF sy-langu,
           lt_dd01_texts TYPE ty_dd01_texts,
           lt_dd07_texts TYPE ty_dd07_texts.
 
@@ -85150,7 +85150,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD serialize_docu.
 
     DATA: lt_lines      TYPE tlinetab,
-          lv_langu      TYPE langu,
+          lv_langu      TYPE sy-langu,
           lt_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_lines,
           ls_i18n_lines TYPE zif_abapgit_lang_definitions=>ty_i18n_line.
 
@@ -85193,7 +85193,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD serialize_tpool.
 
     DATA: lt_tpool      TYPE textpool_table,
-          lv_langu      TYPE langu,
+          lv_langu      TYPE sy-langu,
           lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpools,
           ls_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpool.
 
@@ -103662,6 +103662,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-01T11:06:39.702Z
+* abapmerge 0.14.3 - 2021-06-02T06:05:03.024Z
 ENDINTERFACE.
 ****************************************************
