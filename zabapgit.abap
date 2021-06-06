@@ -78457,7 +78457,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_FTGL IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -78504,6 +78504,8 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Cannot delete feature toggle { mv_toggle_id }. |
                                  && |Error {  sy-subrc } from cl_feature_toggle_object=>delete| ).
     ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -103699,6 +103701,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-06T07:42:00.928Z
+* abapmerge 0.14.3 - 2021-06-06T07:44:10.762Z
 ENDINTERFACE.
 ****************************************************
