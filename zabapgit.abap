@@ -2120,7 +2120,7 @@ INTERFACE zif_abapgit_definitions .
       object   TYPE tadir-object,
       obj_name TYPE tadir-obj_name,
       devclass TYPE tadir-devclass,
-      korrnum  TYPE tadir-korrnum,
+      korrnum  TYPE tadir-korrnum, " todo, I think this field can be removed after #2464 -Hvam
       delflag  TYPE tadir-delflag,
       genflag  TYPE tadir-genflag,
       path     TYPE string,
@@ -92449,7 +92449,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD add_local_packages.
 
     FIELD-SYMBOLS:
@@ -92531,6 +92531,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
         ENDTRY.
       ENDIF.
 
+      CLEAR <ls_tadir>-korrnum.
     ENDLOOP.
 
   ENDMETHOD.
@@ -92769,6 +92770,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       WHERE pgmid = iv_pgmid
       AND object = iv_object
       AND obj_name = iv_obj_name.                         "#EC CI_SUBRC
+    CLEAR rs_tadir-korrnum.
 
   ENDMETHOD.
 ENDCLASS.
@@ -103701,6 +103703,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-06T08:17:04.614Z
+* abapmerge 0.14.3 - 2021-06-07T12:50:03.549Z
 ENDINTERFACE.
 ****************************************************
