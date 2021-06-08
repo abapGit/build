@@ -2819,18 +2819,18 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_lang_definitions .
 
   TYPES: BEGIN OF ty_i18n_tpool,
-           language TYPE sy-langu,
+           language TYPE langu,
            textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
          END OF ty_i18n_tpool,
          ty_i18n_tpools TYPE STANDARD TABLE OF ty_i18n_tpool.
 
   TYPES: BEGIN OF ty_i18n_line,
-           language TYPE sy-langu,
+           language TYPE langu,
            lines    TYPE tlinetab,
          END OF ty_i18n_line,
          ty_i18n_lines TYPE STANDARD TABLE OF ty_i18n_line.
 
-  TYPES: ty_langus TYPE STANDARD TABLE OF sy-langu.
+  TYPES: ty_langus TYPE STANDARD TABLE OF langu.
 
 ENDINTERFACE.
 
@@ -12545,7 +12545,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       ty_sobj_name_tt TYPE STANDARD TABLE OF sobj_name  WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_tpool_i18n,
-        language TYPE sy-langu,
+        language TYPE langu,
         textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
       END OF ty_tpool_i18n .
     TYPES:
@@ -12692,7 +12692,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
 
     TYPES:
       BEGIN OF ty_tpool_i18n,
-        language TYPE sy-langu,
+        language TYPE langu,
         textpool TYPE zif_abapgit_definitions=>ty_tpool_tt,
       END OF ty_tpool_i18n .
     TYPES:
@@ -61880,7 +61880,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -62148,7 +62148,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     DATA: lv_name       TYPE ddobjname,
           ls_dd02v_tmp  TYPE dd02v,
-          lt_i18n_langs TYPE TABLE OF sy-langu,
+          lt_i18n_langs TYPE TABLE OF langu,
           lt_dd02_texts TYPE ty_dd02_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -62285,7 +62285,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd02v      TYPE dd02v,
           lt_dd02_texts TYPE ty_dd02_texts,
-          lt_i18n_langs TYPE TABLE OF sy-langu.
+          lt_i18n_langs TYPE TABLE OF langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd02_text> LIKE LINE OF lt_dd02_texts.
@@ -70589,7 +70589,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_prog IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -73405,7 +73405,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_NSPC IMPLEMENTATION.
   METHOD add_to_transport.
 
     DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
@@ -73421,7 +73421,7 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
 
     DATA:
       ls_trnspacett TYPE trnspacett,
-      lt_i18n_langs TYPE TABLE OF sy-langu,
+      lt_i18n_langs TYPE TABLE OF langu,
       lt_nspc_texts TYPE ty_nspc_texts.
 
     FIELD-SYMBOLS:
@@ -73460,7 +73460,7 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
     DATA:
       ls_trnspacett TYPE trnspacett,
       lt_nspc_texts TYPE ty_nspc_texts,
-      lt_i18n_langs TYPE TABLE OF sy-langu.
+      lt_i18n_langs TYPE TABLE OF langu.
 
     FIELD-SYMBOLS:
       <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -73911,7 +73911,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_msag IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
 
@@ -74059,7 +74059,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     DATA: lv_msg_id     TYPE rglif-message_id,
           lt_t100_texts TYPE ty_t100_texts,
           lt_t100t      TYPE TABLE OF t100t,
-          lt_i18n_langs TYPE TABLE OF sy-langu.
+          lt_i18n_langs TYPE TABLE OF langu.
 
     lv_msg_id = ms_item-obj_name.
 
@@ -77472,7 +77472,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -80547,12 +80547,12 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
           ls_dd04v_tmp  TYPE dd04v,
-          lt_i18n_langs TYPE TABLE OF sy-langu,
+          lt_i18n_langs TYPE TABLE OF langu,
           lt_dd04_texts TYPE ty_dd04_texts.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
@@ -80600,7 +80600,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd04v      TYPE dd04v,
           lt_dd04_texts TYPE ty_dd04_texts,
-          lt_i18n_langs TYPE TABLE OF sy-langu.
+          lt_i18n_langs TYPE TABLE OF langu.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
@@ -81762,14 +81762,14 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_doma IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
           lv_valpos     TYPE valpos,
           ls_dd01v_tmp  TYPE dd01v,
           lt_dd07v_tmp  TYPE TABLE OF dd07v,
-          lt_i18n_langs TYPE TABLE OF sy-langu,
+          lt_i18n_langs TYPE TABLE OF langu,
           lt_dd01_texts TYPE ty_dd01_texts,
           lt_dd07_texts TYPE ty_dd07_texts.
 
@@ -81845,7 +81845,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           lv_index      TYPE i,
           ls_dd01v      TYPE dd01v,
           lt_dd07v      TYPE TABLE OF dd07v,
-          lt_i18n_langs TYPE TABLE OF sy-langu,
+          lt_i18n_langs TYPE TABLE OF langu,
           lt_dd01_texts TYPE ty_dd01_texts,
           lt_dd07_texts TYPE ty_dd07_texts.
 
@@ -103703,6 +103703,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-07T12:50:03.549Z
+* abapmerge 0.14.3 - 2021-06-08T14:43:17.285Z
 ENDINTERFACE.
 ****************************************************
