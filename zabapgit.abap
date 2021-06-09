@@ -1854,6 +1854,9 @@ INTERFACE zif_abapgit_html_viewer .
       VALUE(rv_url) TYPE w3url.
   METHODS back .
   METHODS set_visiblity IMPORTING iv_visible TYPE abap_bool.
+  METHODS get_viewer
+    RETURNING
+      VALUE(ro_result) TYPE REF TO cl_gui_html_viewer .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_event .
@@ -14073,6 +14076,7 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS free .
+    METHODS set_focus .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -16177,6 +16181,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_overview,
         favorite        TYPE string,
@@ -16192,77 +16197,73 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         deserialized_by TYPE xubname,
         deserialized_at TYPE string,
         write_protected TYPE abap_bool,
-      END OF ty_overview,
+      END OF ty_overview .
+    TYPES:
       ty_overviews TYPE STANDARD TABLE OF ty_overview
-                   WITH NON-UNIQUE DEFAULT KEY.
+                     WITH NON-UNIQUE DEFAULT KEY .
+
     CONSTANTS:
       BEGIN OF c_action,
         select       TYPE string VALUE 'select',
         apply_filter TYPE string VALUE 'apply_filter',
       END OF c_action .
+    DATA mv_order_descending TYPE abap_bool .
+    DATA mv_filter TYPE string .
+    DATA mv_time_zone TYPE timezone .
+    DATA mt_col_spec TYPE zif_abapgit_definitions=>ty_col_spec_tt .
+    DATA mt_overview TYPE ty_overviews .
 
-    DATA: mv_order_descending TYPE abap_bool,
-          mv_filter           TYPE string,
-          mv_time_zone        TYPE timezone,
-          mt_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt,
-          mt_overview         TYPE ty_overviews.
-
-    METHODS: render_text_input
-      IMPORTING iv_name        TYPE string
-                iv_label       TYPE string
-                iv_value       TYPE string OPTIONAL
-                iv_max_length  TYPE string OPTIONAL
-      RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
-
-      apply_filter
-        CHANGING
-          ct_overview TYPE ty_overviews,
-
-      map_repo_list_to_overview
-        RETURNING
-          VALUE(rt_overview) TYPE ty_overviews
-        RAISING
-          zcx_abapgit_exception,
-
-      render_table_header
-        IMPORTING
-          ii_html TYPE REF TO zif_abapgit_html,
-
-      render_table
-        IMPORTING
-          ii_html     TYPE REF TO zif_abapgit_html
-          it_overview TYPE ty_overviews
-        RAISING
-          zcx_abapgit_exception,
-
-      render_table_body
-        IMPORTING
-          ii_html     TYPE REF TO zif_abapgit_html
-          it_overview TYPE ty_overviews
-        RAISING
-          zcx_abapgit_exception,
-
-      render_header_bar
-        IMPORTING
-          ii_html TYPE REF TO zif_abapgit_html,
-
-      apply_order_by
-        CHANGING ct_overview TYPE ty_overviews,
-
-      _add_column
-        IMPORTING
-          iv_tech_name      TYPE string OPTIONAL
-          iv_display_name   TYPE string OPTIONAL
-          iv_css_class      TYPE string OPTIONAL
-          iv_add_tz         TYPE abap_bool OPTIONAL
-          iv_title          TYPE string OPTIONAL
-          iv_allow_order_by TYPE any OPTIONAL.
-
+    METHODS render_text_input
+      IMPORTING
+        !iv_name       TYPE string
+        !iv_label      TYPE string
+        !iv_value      TYPE string OPTIONAL
+        !iv_max_length TYPE string OPTIONAL
+        !iv_autofocus  TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS apply_filter
+      CHANGING
+        !ct_overview TYPE ty_overviews .
+    METHODS map_repo_list_to_overview
+      RETURNING
+        VALUE(rt_overview) TYPE ty_overviews
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_table_header
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html .
+    METHODS render_table
+      IMPORTING
+        !ii_html     TYPE REF TO zif_abapgit_html
+        !it_overview TYPE ty_overviews
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_table_body
+      IMPORTING
+        !ii_html     TYPE REF TO zif_abapgit_html
+        !it_overview TYPE ty_overviews
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_header_bar
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html .
+    METHODS apply_order_by
+      CHANGING
+        !ct_overview TYPE ty_overviews .
+    METHODS _add_column
+      IMPORTING
+        !iv_tech_name      TYPE string OPTIONAL
+        !iv_display_name   TYPE string OPTIONAL
+        !iv_css_class      TYPE string OPTIONAL
+        !iv_add_tz         TYPE abap_bool OPTIONAL
+        !iv_title          TYPE string OPTIONAL
+        !iv_allow_order_by TYPE any OPTIONAL .
     METHODS render_scripts
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -33096,6 +33097,9 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
     cl_gui_cfw=>flush( ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_html_viewer~get_viewer.
+    ro_result = mo_html_viewer.
+  ENDMETHOD.
   METHOD zif_abapgit_html_viewer~load_data.
 
     mo_html_viewer->load_data(
@@ -39957,7 +39961,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     IF mv_filter IS NOT INITIAL.
@@ -40068,9 +40072,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ii_html->add( |<form class="inline" method="post" action="sapevent:{ c_action-apply_filter }">| ).
 
     ii_html->add( render_text_input(
-      iv_name  = |filter|
-      iv_label = |Filter: |
-      iv_value = mv_filter ) ).
+      iv_name      = |filter|
+      iv_label     = |Filter: |
+      iv_value     = mv_filter
+      iv_autofocus = abap_true ) ).
     ii_html->add( |<input type="submit" class="hidden-submit">| ).
     ii_html->add( |</form>| ).
 
@@ -40366,7 +40371,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ENDIF.
 
     IF iv_max_length IS NOT INITIAL.
-      lv_attrs = | maxlength="{ iv_max_length }"|.
+      lv_attrs = lv_attrs && | maxlength="{ iv_max_length }"|.
+    ENDIF.
+
+    IF iv_autofocus = abap_true.
+      lv_attrs = lv_attrs && | autofocus|.
     ENDIF.
 
     ri_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
@@ -47836,7 +47845,7 @@ CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -48074,6 +48083,9 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     lv_url = cache_html( lv_html ).
     mi_html_viewer->show_url( lv_url ).
 
+  ENDMETHOD.
+  METHOD set_focus.
+    cl_gui_control=>set_focus( mi_html_viewer->get_viewer( ) ).
   ENDMETHOD.
   METHOD startup.
 
@@ -103583,6 +103595,7 @@ FORM output.
     TABLES
       p_exclude = lt_ucomm.
 
+  zcl_abapgit_ui_factory=>get_gui( )->set_focus( ).
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
@@ -103703,6 +103716,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-08T14:53:26.889Z
+* abapmerge 0.14.3 - 2021-06-09T15:25:59.585Z
 ENDINTERFACE.
 ****************************************************
