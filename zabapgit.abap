@@ -9960,7 +9960,6 @@ CLASS zcl_abapgit_object_pdxx_super DEFINITION
 
     METHODS check_subrc_for IMPORTING iv_call TYPE clike OPTIONAL
                             RAISING   zcx_abapgit_exception.
-    METHODS is_experimental RETURNING VALUE(rv_result) TYPE abap_bool.
 
   PRIVATE SECTION.
 
@@ -71702,17 +71701,6 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
 
-  METHOD is_experimental.
-
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
-    DATA lo_settings_persistence TYPE REF TO zcl_abapgit_persist_settings.
-
-    lo_settings_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    lo_settings = lo_settings_persistence->read( ).
-    rv_result = lo_settings->get_experimental_features( ).
-
-  ENDMETHOD.
-
   METHOD check_subrc_for.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( iv_call && ' returned ' && sy-subrc ).
@@ -72171,14 +72159,6 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
 
-    IF is_experimental( ) = abap_false.
-      "Alpha version, known issues:
-      "- Container texts not de/serialized properly (functionally OK)
-      "- Container handling still a bad hack, needs refactoring with lots of debugging time
-      "- Probably has a few more bugs, more testing needed
-      zcx_abapgit_exception=>raise( 'PDTS not fully implemented, enable experimental features to test it' ).
-    ENDIF.
-
     ms_objkey-otype = 'TS'.
     ms_objkey-objid = ms_item-obj_name.
 
@@ -72219,7 +72199,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
         include_initial_values     = abap_true
         include_typenames          = abap_true
         include_change_data        = abap_true
-        include_texts              = abap_false  "Todo: Get texts to work properly
+        include_texts              = abap_false  "Todo: Get texts to work properly #4164
         include_extension_elements = abap_true
         save_delta_handling_info   = abap_true
         use_xslt                   = abap_false
@@ -103716,6 +103696,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-09T15:25:59.585Z
+* abapmerge 0.14.3 - 2021-06-10T08:04:23.836Z
 ENDINTERFACE.
 ****************************************************
