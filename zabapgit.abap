@@ -14075,7 +14075,9 @@ CLASS zcl_abapgit_gui DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS free .
-    METHODS set_focus .
+    METHODS set_focus
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -48084,7 +48086,16 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_focus.
-    cl_gui_control=>set_focus( mi_html_viewer->get_viewer( ) ).
+    cl_gui_control=>set_focus(
+      EXPORTING
+        control           = mi_html_viewer->get_viewer( )
+      EXCEPTIONS
+        cntl_error        = 1
+        cntl_system_error = 2
+        OTHERS            = 3 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error in: cl_gui_control=>set_focus - SUBRC = { sy-subrc }| ).
+    ENDIF.
   ENDMETHOD.
   METHOD startup.
 
@@ -103562,7 +103573,8 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_popups=>ty_sval_tt
 ENDFORM.                    "branch_popup
 
 FORM output.
-  DATA: lt_ucomm TYPE TABLE OF sy-ucomm.
+  DATA: lx_error TYPE REF TO zcx_abapgit_exception,
+        lt_ucomm TYPE TABLE OF sy-ucomm.
 
   PERFORM set_pf_status IN PROGRAM rsdbrunt IF FOUND.
 
@@ -103575,7 +103587,11 @@ FORM output.
     TABLES
       p_exclude = lt_ucomm.
 
-  zcl_abapgit_ui_factory=>get_gui( )->set_focus( ).
+  TRY.
+      zcl_abapgit_ui_factory=>get_gui( )->set_focus( ).
+    CATCH zcx_abapgit_exception INTO lx_error.
+      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+  ENDTRY.
 ENDFORM.
 
 FORM exit RAISING zcx_abapgit_exception.
@@ -103696,6 +103712,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-10T08:04:23.836Z
+* abapmerge 0.14.3 - 2021-06-14T08:58:56.090Z
 ENDINTERFACE.
 ****************************************************
