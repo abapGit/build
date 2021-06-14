@@ -40430,7 +40430,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       ii_html->add( column(
         iv_content = |<span class="link" title="Open">&rsaquo;{ lv_repo_go_link }</span>|
         iv_css_class = 'ro-go' ) ).
-
+      ii_html->add( `</tr>` ).
     ENDLOOP.
 
     ii_html->add( |</tbody>| ).
@@ -103974,6 +103974,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-14T12:45:36.604Z
+* abapmerge 0.14.3 - 2021-06-14T16:25:03.092Z
 ENDINTERFACE.
 ****************************************************
