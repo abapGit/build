@@ -14333,6 +14333,12 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_onclick   TYPE string OPTIONAL
       RETURNING
         VALUE(rv_str) TYPE string .
+    CLASS-METHODS checkbox
+      IMPORTING
+         iv_id         TYPE string OPTIONAL
+         iv_checked    TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(rv_html) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -14374,12 +14380,6 @@ CLASS zcl_abapgit_html DEFINITION
         !is_context      TYPE ty_indent_context
       RETURNING
         VALUE(rs_result) TYPE ty_study_result .
-    METHODS checkbox
-      IMPORTING
-        !iv_id         TYPE string
-        !iv_checked    TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(rv_html) TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_html_parts DEFINITION
   FINAL
@@ -16182,7 +16182,6 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
   PROTECTED SECTION.
   PRIVATE SECTION.
-
     TYPES:
       BEGIN OF ty_overview,
         favorite        TYPE string,
@@ -16198,73 +16197,95 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         deserialized_by TYPE xubname,
         deserialized_at TYPE string,
         write_protected TYPE abap_bool,
-      END OF ty_overview .
-    TYPES:
+      END OF ty_overview,
       ty_overviews TYPE STANDARD TABLE OF ty_overview
-                     WITH NON-UNIQUE DEFAULT KEY .
-
+                   WITH NON-UNIQUE DEFAULT KEY.
     CONSTANTS:
       BEGIN OF c_action,
         select       TYPE string VALUE 'select',
         apply_filter TYPE string VALUE 'apply_filter',
       END OF c_action .
-    DATA mv_order_descending TYPE abap_bool .
-    DATA mv_filter TYPE string .
-    DATA mv_time_zone TYPE timezone .
-    DATA mt_col_spec TYPE zif_abapgit_definitions=>ty_col_spec_tt .
-    DATA mt_overview TYPE ty_overviews .
 
-    METHODS render_text_input
-      IMPORTING
-        !iv_name       TYPE string
-        !iv_label      TYPE string
-        !iv_value      TYPE string OPTIONAL
-        !iv_max_length TYPE string OPTIONAL
-        !iv_autofocus  TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS apply_filter
-      CHANGING
-        !ct_overview TYPE ty_overviews .
-    METHODS map_repo_list_to_overview
-      RETURNING
-        VALUE(rt_overview) TYPE ty_overviews
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_table_header
-      IMPORTING
-        !ii_html TYPE REF TO zif_abapgit_html .
-    METHODS render_table
-      IMPORTING
-        !ii_html     TYPE REF TO zif_abapgit_html
-        !it_overview TYPE ty_overviews
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_table_body
-      IMPORTING
-        !ii_html     TYPE REF TO zif_abapgit_html
-        !it_overview TYPE ty_overviews
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_header_bar
-      IMPORTING
-        !ii_html TYPE REF TO zif_abapgit_html .
-    METHODS apply_order_by
-      CHANGING
-        !ct_overview TYPE ty_overviews .
-    METHODS _add_column
-      IMPORTING
-        !iv_tech_name      TYPE string OPTIONAL
-        !iv_display_name   TYPE string OPTIONAL
-        !iv_css_class      TYPE string OPTIONAL
-        !iv_add_tz         TYPE abap_bool OPTIONAL
-        !iv_title          TYPE string OPTIONAL
-        !iv_allow_order_by TYPE any OPTIONAL .
+    DATA: mv_order_descending TYPE abap_bool,
+          mv_filter           TYPE string,
+          mv_time_zone        TYPE timezone,
+          mt_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt,
+          mt_overview         TYPE ty_overviews.
+
+    METHODS: render_text_input
+      IMPORTING iv_name        TYPE string
+                iv_label       TYPE string
+                iv_value       TYPE string OPTIONAL
+                iv_max_length  TYPE string OPTIONAL
+                !iv_autofocus  TYPE abap_bool DEFAULT abap_false
+      RETURNING VALUE(ri_html) TYPE REF TO zif_abapgit_html,
+
+      apply_filter
+        CHANGING
+          ct_overview TYPE ty_overviews,
+
+      map_repo_list_to_overview
+        RETURNING
+          VALUE(rt_overview) TYPE ty_overviews
+        RAISING
+          zcx_abapgit_exception,
+
+      render_table_header
+        IMPORTING
+          ii_html TYPE REF TO zif_abapgit_html,
+
+      render_table
+        IMPORTING
+          ii_html     TYPE REF TO zif_abapgit_html
+          it_overview TYPE ty_overviews
+        RAISING
+          zcx_abapgit_exception,
+
+      render_table_body
+        IMPORTING
+          ii_html      TYPE REF TO zif_abapgit_html
+          it_repo_list TYPE ty_overviews
+        RAISING
+          zcx_abapgit_exception,
+
+      render_header_bar
+        IMPORTING
+          ii_html TYPE REF TO zif_abapgit_html,
+
+      apply_order_by
+        CHANGING ct_overview TYPE ty_overviews,
+
+      _add_column
+        IMPORTING
+          iv_tech_name      TYPE string OPTIONAL
+          iv_display_name   TYPE string OPTIONAL
+          iv_css_class      TYPE string OPTIONAL
+          iv_add_tz         TYPE abap_bool OPTIONAL
+          iv_title          TYPE string OPTIONAL
+          iv_allow_order_by TYPE any OPTIONAL.
+
     METHODS render_scripts
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
+
+    METHODS shorten_repo_url
+      IMPORTING iv_full_url         TYPE string
+                iv_max_length       TYPE i DEFAULT 60
+      RETURNING VALUE(rv_shortened) TYPE string.
+
+    METHODS render_actions
+      IMPORTING ii_html TYPE REF TO zif_abapgit_html.
+
+    METHODS column
+      IMPORTING iv_content     TYPE string OPTIONAL
+                iv_css_class   TYPE string OPTIONAL
+      RETURNING VALUE(rv_html) TYPE string.
+
+    METHODS action_link
+      IMPORTING iv_content     TYPE string
+      RETURNING VALUE(rv_html) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -26293,7 +26314,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo_tab tr:first-child td { border-top: 0px; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab tr:hover {' ).
-    lo_buf->add( '  background-color: rgb(245, 245, 245) !important;' ).
+    lo_buf->add( '  background-color: var(--theme-greyscale-dark) !important;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '' ).
@@ -26556,6 +26577,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  overflow-x: auto;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab{' ).
+    lo_buf->add( '  table-layout: fixed;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( 'table.db_tab pre {' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '  overflow: hidden;' ).
@@ -26574,10 +26598,28 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'table.db_tab td {' ).
     lo_buf->add( '  padding: 4px 8px;' ).
     lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '  word-break: break-all;' ).
+    lo_buf->add( '  max-width: 250px;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab th.package {' ).
+    lo_buf->add( '    width: 45ch;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.db_tab td.data {' ).
     lo_buf->add( '  font-style: italic;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.action_link.enabled{' ).
+    lo_buf->add( '  visibility: visible;' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'span.action_link:not(enabled){' ).
+    lo_buf->add( '  visibility: hidden;' ).
+    lo_buf->add( '  position: fixed; /* so it does not take up space when hidden */' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRY DISPLAY */' ).
     lo_buf->add( 'div.db_entry {' ).
@@ -26929,7 +26971,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo-overview { font-size: smaller; }' ).
     lo_buf->add( '.repo-overview tbody td { height: 2em; }' ).
     lo_buf->add( '.ro-detail { display: none; }' ).
-    lo_buf->add( '.ro-action { width: 260px; }' ).
     lo_buf->add( '.ro-go { font-size: 150%; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Branch Overview Page */' ).
@@ -27240,6 +27281,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  font-size: var(--theme-font-size);' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'a, a:visited  { color: var(--theme-link-color); }' ).
+    lo_buf->add( '.link  {' ).
+    lo_buf->add( '  color: var(--theme-link-color);' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'input, textarea, select     { border-color: #ddd; }' ).
     lo_buf->add( 'input:focus, textarea:focus { border-color: #8cadd9; }' ).
     lo_buf->add( '' ).
@@ -27553,8 +27599,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.syntax-hl span.variables    { color:purple; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DEBUG INFO STYLES */' ).
-    lo_buf->add( 'div.debug_container { ' ).
-    lo_buf->add( '  color: #444; ' ).
+    lo_buf->add( 'div.debug_container {' ).
+    lo_buf->add( '  color: #444;' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -27566,6 +27612,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'table.db_tab th {' ).
     lo_buf->add( '  color: var(--theme-link-color);' ).
     lo_buf->add( '  border-bottom-color: #ddd;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab tr.selected {' ).
+    lo_buf->add( '  background-color: rgba(191, 191, 191, 1) !important;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRY DISPLAY */' ).
@@ -27927,6 +27977,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-bottom-color: #333;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'table.db_tab tr.selected {' ).
+    lo_buf->add( '  background: rgba(92, 92, 92, 1) !important;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* ERROR LOGS */' ).
     lo_buf->add( 'div.log { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '.close-btn, .message-panel, .message-panel-commands a { color: var(--theme-greyscale-dark); }' ).
@@ -28072,6 +28126,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      return this.substring(pos, pos + search.length) === search;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// forEach polyfill, taken from https://developer.mozilla.org' ).
+    lo_buf->add( '// used for querySelectorAll results' ).
+    lo_buf->add( 'if (window.NodeList && !NodeList.prototype.forEach) {' ).
+    lo_buf->add( '  NodeList.prototype.forEach = Array.prototype.forEach;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -28238,16 +28298,161 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  icon = document.getElementById("icon-filter-favorite");' ).
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isOnlyFavoritesDisplayed);' ).
+    lo_buf->add( '  this.registerRowSelection();' ).
+    lo_buf->add( '  this.registerKeyboardShortcuts();' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function () {' ).
+    lo_buf->add( '  window.onload = this.onPageLoad.bind(this);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function () {' ).
+    lo_buf->add( '  var data = window.localStorage && JSON.parse(window.localStorage.getItem(this.pageId));' ).
+    lo_buf->add( '  if (data) {' ).
+    lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
+    lo_buf->add( '      this.toggleItemsDetail(true);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    if (data.isOnlyFavoritesDisplayed) {' ).
+    lo_buf->add( '      this.toggleItemsFavorites(true);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    if (data.selectedRepoKey) {' ).
+    lo_buf->add( '      this.selectRowByRepoKey(data.selectedRepoKey);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      this.selectRowByIndex(0);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.registerKeyboardShortcuts = function () {' ).
+    lo_buf->add( '  var self = this;' ).
+    lo_buf->add( '  document.addEventListener("keypress", function (event) {' ).
+    lo_buf->add( '    if (document.activeElement.id === "filter") {' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    var keycode = event.keyCode;' ).
+    lo_buf->add( '    var rows = Array.prototype.slice.call(self.getVisibleRows());' ).
+    lo_buf->add( '    var selected = document.querySelector(".repo.selected");' ).
+    lo_buf->add( '    var indexOfSelected = rows.indexOf(selected);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (keycode == 13) {' ).
+    lo_buf->add( '      // "enter" to open' ).
+    lo_buf->add( '      self.openSelectedRepo();' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    else if (keycode == 44 && indexOfSelected > 0) {' ).
+    lo_buf->add( '      // "<" for previous' ).
+    lo_buf->add( '      self.selectRowByIndex(indexOfSelected - 1);' ).
+    lo_buf->add( '    } else if (keycode == 46 && indexOfSelected < rows.length - 1) {' ).
+    lo_buf->add( '      // ">" for next' ).
+    lo_buf->add( '      self.selectRowByIndex(indexOfSelected + 1);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function () {' ).
+    lo_buf->add( '  this.selectedRepoKey = document.querySelector(".repo.selected").dataset.key;' ).
+    lo_buf->add( '  this.saveLocalStorage();' ).
+    lo_buf->add( '  document.querySelector(".repo.selected td.ro-go a").click();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByIndex = function (index) {' ).
+    lo_buf->add( '  var rows = this.getVisibleRows();' ).
+    lo_buf->add( '  if (rows.length >= index) {' ).
+    lo_buf->add( '    var selectedRow = rows[index];' ).
+    lo_buf->add( '    if (selectedRow.classList.contains("selected")) {' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    this.deselectAllRows();' ).
+    lo_buf->add( '    rows[index].classList.add("selected");' ).
+    lo_buf->add( '    this.selectedRepoKey = selectedRow.dataset.key;' ).
+    lo_buf->add( '    this.updateActionLinks(selectedRow);' ).
+    lo_buf->add( '    this.saveLocalStorage();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function (key) {' ).
+    lo_buf->add( '  var attributeQuery = "[data-key=''" + key + "'']";' ).
+    lo_buf->add( '  var row = document.querySelector(".repo" + attributeQuery);' ).
+    lo_buf->add( '  // navigation to already selected repo' ).
+    lo_buf->add( '  if (row.dataset.key === key && row.classList.contains("selected")) {' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.deselectAllRows();' ).
+    lo_buf->add( '  row.classList.add("selected");' ).
+    lo_buf->add( '  this.selectedRepoKey = key;' ).
+    lo_buf->add( '  this.updateActionLinks(row);' ).
+    lo_buf->add( '  this.saveLocalStorage();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.updateActionLinks = function (selectedRow) {' ).
+    lo_buf->add( '  // now we have a repo selected, determine which action buttons are relevant' ).
+    lo_buf->add( '  var selectedRepoKey = selectedRow.dataset.key;' ).
+    lo_buf->add( '  var selectedRepoIsOffline = selectedRow.dataset.offline === "X";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var actionLinks = document.querySelectorAll("a.action_link");' ).
+    lo_buf->add( '  actionLinks.forEach(function (link) {' ).
+    lo_buf->add( '    // adjust repo key in urls' ).
+    lo_buf->add( '    link.href = link.href.replace(/\?key=(#|\d+)/, "?key=" + selectedRepoKey);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // toggle button visibility' ).
+    lo_buf->add( '    if (link.classList.contains("action_offline_repo")) {' ).
+    lo_buf->add( '      if (selectedRepoIsOffline) {' ).
+    lo_buf->add( '        link.parentElement.classList.add("enabled");' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        link.parentElement.classList.remove("enabled");' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    else if (link.classList.contains("action_online_repo")) {' ).
+    lo_buf->add( '      if (!selectedRepoIsOffline) {' ).
+    lo_buf->add( '        link.parentElement.classList.add("enabled");' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        link.parentElement.classList.remove("enabled");' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    else {' ).
+    lo_buf->add( '      // if the action is for both repository types, it will only have the .action_link class' ).
+    lo_buf->add( '      // it still needs to be toggled as we want to hide everything if no repo is selected' ).
+    lo_buf->add( '      link.parentElement.classList.add("enabled");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.deselectAllRows = function () {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo").forEach(function (x) {' ).
+    lo_buf->add( '    x.classList.remove("selected");' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.getVisibleRows = function () {' ).
+    lo_buf->add( '  return document.querySelectorAll(".repo:not(.nodisplay)");' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.registerRowSelection = function () {' ).
+    lo_buf->add( '  var self = this;' ).
+    lo_buf->add( '  document.querySelectorAll(".repo td:not(.ro-go)").forEach(function (repoListRowCell) {' ).
+    lo_buf->add( '    repoListRowCell.addEventListener("click", function () {' ).
+    lo_buf->add( '      self.selectRowByRepoKey(this.parentElement.dataset.key);' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  document.querySelectorAll(".repo td.ro-go").forEach(function (openRepoIcon) {' ).
+    lo_buf->add( '    openRepoIcon.addEventListener("click", function () {' ).
+    lo_buf->add( '      var selectedRow = this.parentElement;' ).
+    lo_buf->add( '      self.selectRowByRepoKey(selectedRow.dataset.key);' ).
+    lo_buf->add( '      self.openSelectedRepo();' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListDetail = function (forceDisplay) {' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.toggleItemsDetail(forceDisplay);' ).
-    lo_buf->add( '    this.saveFilter();' ).
+    lo_buf->add( '    this.saveLocalStorage();' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function(forceDisplay){' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function (forceDisplay) {' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
     lo_buf->add( '' ).
@@ -28261,7 +28466,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
     lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
-    lo_buf->add( '    this.actionCssClass.style.display = this.isDetailsDisplayed ? "none" : "";' ).
     lo_buf->add( '    var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '    this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  }' ).
@@ -28279,10 +28483,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListFavorites = function (forceDisplay) {' ).
     lo_buf->add( '  this.toggleItemsFavorites(forceDisplay);' ).
-    lo_buf->add( '  this.saveFilter();' ).
+    lo_buf->add( '  this.saveLocalStorage();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsFavorites = function(forceDisplay){' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsFavorites = function (forceDisplay) {' ).
     lo_buf->add( '  this.isOnlyFavoritesDisplayed = forceDisplay || !this.isOnlyFavoritesDisplayed;' ).
     lo_buf->add( '  var repositories = document.getElementsByClassName("repo");' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-favorite");' ).
@@ -28291,38 +28495,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var repo = repositories[i];' ).
     lo_buf->add( '    if (this.isOnlyFavoritesDisplayed) {' ).
     lo_buf->add( '      if (!repo.classList.contains("favorite")) {' ).
-    lo_buf->add( '        repo.style.display = "none";' ).
+    lo_buf->add( '        repo.classList.add("nodisplay");' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '    } else {' ).
-    lo_buf->add( '      repo.style.display = "";' ).
+    lo_buf->add( '      repo.classList.remove("nodisplay");' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function () {' ).
-    lo_buf->add( '  window.onload = this.onPageLoad.bind(this);' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.saveFilter = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.saveLocalStorage = function () {' ).
     lo_buf->add( '  if (!window.localStorage) return;' ).
     lo_buf->add( '  var data = {' ).
     lo_buf->add( '    isDetailsDisplayed: this.isDetailsDisplayed,' ).
-    lo_buf->add( '    isOnlyFavoritesDisplayed: this.isOnlyFavoritesDisplayed' ).
+    lo_buf->add( '    isOnlyFavoritesDisplayed: this.isOnlyFavoritesDisplayed,' ).
+    lo_buf->add( '    selectedRepoKey: this.selectedRepoKey,' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '  window.localStorage.setItem(this.pageId, JSON.stringify(data));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function () {' ).
-    lo_buf->add( '  var data = window.localStorage && JSON.parse(window.localStorage.getItem(this.pageId));' ).
-    lo_buf->add( '  if (data) {' ).
-    lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
-    lo_buf->add( '      this.toggleItemsDetail(true);' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '    if (data.isOnlyFavoritesDisplayed) {' ).
-    lo_buf->add( '      this.toggleItemsFavorites(true);' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * STAGE PAGE Logic' ).
@@ -40017,9 +40207,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
-    DATA: ls_overview   LIKE LINE OF rt_overview,
-          lv_date       TYPE d,
-          lv_time       TYPE t,
+    DATA: ls_overview      LIKE LINE OF rt_overview,
+          lv_date          TYPE d,
+          lv_time          TYPE t,
           lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
     FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_obj_list.
@@ -40092,6 +40282,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_act = |gHelper.toggleRepoListDetail()|
       iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
 
+    render_actions( ii_html = ii_html ).
+
     ii_html->add( |</div>| ).
 
   ENDMETHOD.
@@ -40107,11 +40299,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD render_table.
 
     ii_html->add( |<div class="db_list repo-overview">| ).
-    ii_html->add( |<table class="db_tab w100">| ).
+    ii_html->add( |<table class="db_tab">| ).
 
     render_table_header( ii_html ).
     render_table_body( ii_html     = ii_html
-                       it_overview = it_overview ).
+                       it_repo_list = it_overview ).
 
     ii_html->add( |</table>| ).
     ii_html->add( |</div>| ).
@@ -40119,35 +40311,33 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_body.
 
-    CONSTANTS: lc_separator TYPE string VALUE `<span class="separator">|</span>`.
-
     DATA:
-      lv_type_icon       TYPE string,
-      lv_favorite_icon   TYPE string,
-      lv_favorite_class  TYPE string,
-      lv_stage_link      TYPE string,
-      lv_patch_link      TYPE string,
-      lv_zip_import_link TYPE string,
-      lv_zip_export_link TYPE string,
-      lv_check_link      TYPE string,
-      lv_text            TYPE string,
-      lv_lock            TYPE string,
-      lv_settings_link   TYPE string.
-    DATA lv_new_length TYPE i.
+      lv_type_icon            TYPE string,
+      lv_favorite_icon        TYPE string,
+      lv_favorite_class       TYPE string,
+      lv_stage_link           TYPE string,
+      lv_patch_link           TYPE string,
+      lv_zip_import_link      TYPE string,
+      lv_zip_export_link      TYPE string,
+      lv_check_link           TYPE string,
+      lv_text                 TYPE string,
+      lv_lock                 TYPE string,
+      lv_toggle_favorite_link TYPE string,
+      lv_repo_go_link TYPE string.
 
-    FIELD-SYMBOLS: <ls_overview> LIKE LINE OF it_overview.
+    FIELD-SYMBOLS: <ls_repo>     LIKE LINE OF it_repo_list.
 
     ii_html->add( '<tbody>' ).
 
-    LOOP AT it_overview ASSIGNING <ls_overview>.
+    LOOP AT it_repo_list ASSIGNING <ls_repo>.
 
-      IF <ls_overview>-type = abap_true.
+      IF <ls_repo>-type = abap_true.
         lv_type_icon = 'plug/darkgrey'.
       ELSE.
         lv_type_icon = 'cloud-upload-alt/darkgrey'.
       ENDIF.
 
-      IF <ls_overview>-favorite = abap_true.
+      IF <ls_repo>-favorite = abap_true.
         lv_favorite_icon = 'star/blue'.
         lv_favorite_class = 'favorite'.
       ELSE.
@@ -40155,125 +40345,184 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         lv_favorite_class = ''.
       ENDIF.
 
-      ii_html->add( |<tr class="repo { lv_favorite_class }">| ).
-      ii_html->add( |<td class="wmin">| ).
-      ii_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?key={ <ls_overview>-key }|
-                      iv_txt = ii_html->icon( iv_name  = lv_favorite_icon
-                                              iv_class = 'pad-sides'
-                                              iv_hint  = 'Click to toggle favorite' ) ).
-      ii_html->add( |</td>| ).
+      ii_html->add(
+        |<tr class="repo { lv_favorite_class }" data-key="{ <ls_repo>-key }" data-offline="{ <ls_repo>-type }">| ).
+
+      lv_toggle_favorite_link = ii_html->a(
+        iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?key={ <ls_repo>-key }|
+        iv_txt = ii_html->icon( iv_name  = lv_favorite_icon
+        iv_class = 'pad-sides'
+        iv_hint  = 'Click to toggle favorite' ) ).
+
+      ii_html->add(
+        column( iv_content = lv_toggle_favorite_link
+                iv_css_class = 'wmin' ) ).
+
       CLEAR lv_lock.
-      IF <ls_overview>-write_protected = abap_true.
+      IF <ls_repo>-write_protected = abap_true.
         lv_lock = ii_html->icon( iv_name  = 'lock/grey70'
                                  iv_class = 'm-em5-sides'
                                  iv_hint  = 'Locked from pulls' ).
       ENDIF.
 
-      ii_html->add( |<td class="wmin">{ ii_html->icon( lv_type_icon ) }</td>| ).
+      ii_html->add(
+        column( iv_content = ii_html->icon( lv_type_icon )
+                iv_css_class = 'wmin' ) ).
 
-      ii_html->add( |<td>{ ii_html->a( iv_txt = <ls_overview>-name
-                                       iv_act = |{ c_action-select }?key={ <ls_overview>-key }| ) }{ lv_lock }</td>| ).
+      ii_html->add(
+        column( iv_content = ii_html->a( iv_txt = <ls_repo>-name
+                                         iv_act = |{ c_action-select }?key={ <ls_repo>-key }| ) && lv_lock ) ).
 
-      IF <ls_overview>-type = abap_false.
-        lv_text = <ls_overview>-url.
-        REPLACE FIRST OCCURRENCE OF 'https://' IN lv_text WITH ''.
-        REPLACE FIRST OCCURRENCE OF 'http://' IN lv_text WITH ''.
-        IF lv_text CP '*.git'.
-          lv_new_length = strlen( lv_text ) - 4.
-          lv_text  = lv_text(lv_new_length).
-        ENDIF.
-        ii_html->add( |<td>{ ii_html->a(
+      ii_html->add(
+        column( iv_content = zcl_abapgit_gui_chunk_lib=>render_package_name(
+                            iv_package = <ls_repo>-package
+                            iv_suppress_title = abap_true )->render( ) ) ).
+
+      IF <ls_repo>-type = abap_false.
+        lv_text = shorten_repo_url( <ls_repo>-url ).
+        ii_html->add( column( iv_content = |{ ii_html->a(
           iv_txt   = lv_text
-          iv_title = <ls_overview>-url
-          iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ <ls_overview>-url }| ) }</td>| ).
+          iv_title = <ls_repo>-url
+          iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ <ls_repo>-url }| ) }| ) ).
       ELSE.
-        ii_html->add( |<td></td>| ).
+        ii_html->add( column( ) ).
       ENDIF.
 
-      ii_html->add( |<td>| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_package_name(
-        iv_package = <ls_overview>-package
-        iv_suppress_title = abap_true ) ).
-      ii_html->add( |</td>| ).
-
-      IF <ls_overview>-branch IS INITIAL.
-        ii_html->add( |<td>&nbsp;</td>| ).
+      IF <ls_repo>-branch IS INITIAL.
+        ii_html->add( column( iv_content = |&nbsp;| ) ).
       ELSE.
-        ii_html->add( |<td>| ).
-        ii_html->add( zcl_abapgit_gui_chunk_lib=>render_branch_name(
-                        iv_branch   = <ls_overview>-branch
-                        iv_repo_key = <ls_overview>-key ) ).
-        ii_html->add( |</td>| ).
+        ii_html->add(
+          column( iv_content = zcl_abapgit_gui_chunk_lib=>render_branch_name(
+                              iv_branch   = <ls_repo>-branch
+                              iv_repo_key = <ls_repo>-key )->render( ) ) ).
       ENDIF.
 
-      ii_html->add( |<td class="ro-detail">| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name(
-        iv_username = <ls_overview>-deserialized_by
-        iv_suppress_title = abap_true ) ).
-      ii_html->add( |</td>| ).
-      ii_html->add( |<td class="ro-detail">{ <ls_overview>-deserialized_at }</td>| ).
-      ii_html->add( |<td class="ro-detail">| ).
-      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name(
-        iv_username = <ls_overview>-created_by
-        iv_suppress_title = abap_true ) ).
-      ii_html->add( |</td>| ).
-      ii_html->add( |<td class="ro-detail">{ <ls_overview>-created_at }</td>| ).
-      ii_html->add( |<td class="ro-detail">{ <ls_overview>-key }</td>| ).
+      ii_html->add(
+        column( iv_content = zcl_abapgit_gui_chunk_lib=>render_user_name(
+                            iv_username = <ls_repo>-deserialized_by
+                            iv_suppress_title = abap_true )->render( )
+                iv_css_class = 'ro-detail' ) ).
 
-      ii_html->add( |<td class='ro-action'> | ).
+      ii_html->add(
+        column( iv_content = <ls_repo>-deserialized_at
+                iv_css_class = 'ro-detail' ) ).
 
-      lv_check_link = ii_html->a(
-        iv_txt = |Check|
-        iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?key={ <ls_overview>-key } | ).
+      ii_html->add(
+        column( iv_content = zcl_abapgit_gui_chunk_lib=>render_user_name(
+                    iv_username = <ls_repo>-created_by
+                    iv_suppress_title = abap_true )->render( )
+                iv_css_class = 'ro-detail' ) ).
 
-      ii_html->add( lv_check_link && lc_separator ).
+      ii_html->add(
+        column( iv_content = <ls_repo>-created_at
+                iv_css_class = 'ro-detail' ) ).
 
-      IF <ls_overview>-type = abap_false. " online repo
-        lv_stage_link = ii_html->a(
-          iv_txt = |Stage|
-          iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ <ls_overview>-key } | ).
+      ii_html->add(
+        column( iv_content = |{ <ls_repo>-key }|
+                iv_css_class = 'ro-detail' ) ).
 
-        ii_html->add( lv_stage_link && lc_separator ).
+      " the link is clicked in javascript
+      lv_repo_go_link = ii_html->a(
+        iv_txt = ``
+        iv_act = |{ c_action-select }?key={ <ls_repo>-key }|
+        iv_class = 'hidden' ).
 
-        lv_patch_link = ii_html->a(
-          iv_txt = |Patch|
-          iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?key={ <ls_overview>-key } | ).
-
-        ii_html->add( lv_patch_link && lc_separator ).
-      ELSE. " offline repo
-        lv_zip_import_link = ii_html->a(
-          iv_txt = |Import|
-          iv_act = |{ zif_abapgit_definitions=>c_action-zip_import }?key={ <ls_overview>-key } | ).
-
-        ii_html->add( lv_zip_import_link && lc_separator ).
-
-        lv_zip_export_link = ii_html->a(
-          iv_txt = |Export|
-          iv_act = |{ zif_abapgit_definitions=>c_action-zip_export }?key={ <ls_overview>-key } | ).
-
-        ii_html->add( lv_zip_export_link && lc_separator ).
-      ENDIF.
-
-      lv_settings_link = ii_html->a(
-        iv_txt = |Settings|
-        iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ <ls_overview>-key } | ).
-
-      ii_html->add( lv_settings_link ).
-
-      ii_html->add( |</td>| ).
-
-      ii_html->add( |<td class='ro-go'><span>{
-                ii_html->a(
-                  iv_txt = `&rsaquo;`
-                  iv_act = |{ c_action-select }?key={ <ls_overview>-key }| ) }</span></td>| ).
-
-      ii_html->add( |</tr>| ).
+      ii_html->add( column(
+        iv_content = |<span class="link" title="Open">&rsaquo;{ lv_repo_go_link }</span>|
+        iv_css_class = 'ro-go' ) ).
 
     ENDLOOP.
 
     ii_html->add( |</tbody>| ).
 
   ENDMETHOD.
+
+  METHOD render_actions.
+
+    CONSTANTS:
+      lc_separator     TYPE string VALUE `<span class="separator">|</span>`,
+      lc_dummy_key     TYPE string VALUE `?key=#`,
+      lc_offline_class TYPE string VALUE `action_offline_repo`,
+      lc_online_class  TYPE string VALUE `action_online_repo`,
+      lc_action_class  TYPE string VALUE `action_link`.
+
+    DATA:
+      lv_settings_link TYPE string,
+      lv_check_link    TYPE string,
+      lv_stage_link    TYPE string,
+      lv_patch_link    TYPE string.
+
+    DATA:
+      lv_zip_import_link TYPE string,
+      lv_zip_export_link TYPE string.
+
+    ii_html->add( |<div class="float-right">| ).
+
+    lv_check_link = ii_html->a(
+      iv_txt = |Check|
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class }| ).
+
+    ii_html->add( action_link( lv_check_link && lc_separator ) ).
+
+    lv_stage_link = ii_html->a(
+      iv_txt = |Stage|
+      iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_online_class } | ).
+
+    ii_html->add( action_link( lv_stage_link && lc_separator ) ).
+
+    lv_patch_link = ii_html->a(
+      iv_txt = |Patch|
+      iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_online_class } | ).
+
+    ii_html->add( action_link( lv_patch_link && lc_separator ) ).
+
+    lv_zip_import_link = ii_html->a(
+      iv_txt = |Import|
+      iv_act = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_offline_class }| ).
+
+    ii_html->add( action_link( lv_zip_import_link && lc_separator ) ).
+
+    lv_zip_export_link = ii_html->a(
+      iv_txt = |Export|
+      iv_act = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_offline_class }| ).
+
+    ii_html->add( action_link( lv_zip_export_link && lc_separator ) ).
+
+    lv_settings_link = ii_html->a(
+      iv_txt = |Settings|
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class }| ).
+
+    ii_html->add( action_link( lv_settings_link ) ).
+
+    ii_html->add( |</div>| ).
+  ENDMETHOD.
+
+  METHOD shorten_repo_url.
+    DATA lt_results TYPE match_result_tab.
+    DATA lv_new_length TYPE i.
+    DATA: lv_length_to_truncate_to TYPE i.
+
+    rv_shortened = iv_full_url.
+
+    REPLACE FIRST OCCURRENCE OF 'https://' IN rv_shortened WITH ''.
+    REPLACE FIRST OCCURRENCE OF 'http://' IN rv_shortened WITH ''.
+    IF rv_shortened CP '*.git'.
+      lv_new_length = strlen( rv_shortened ) - 4.
+      rv_shortened  = rv_shortened(lv_new_length).
+    ENDIF.
+
+    IF strlen( rv_shortened ) > iv_max_length.
+      lv_length_to_truncate_to = iv_max_length - 3.
+      rv_shortened = rv_shortened(lv_length_to_truncate_to) && `...`.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD render_table_header.
 
     CLEAR mt_col_spec.
@@ -40294,13 +40543,14 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'URL'
-      iv_display_name = 'Url'
+      iv_tech_name = 'PACKAGE'
+      iv_display_name = 'Package'
+      iv_css_class = 'package'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'PACKAGE'
-      iv_display_name = 'Package'
+      iv_tech_name = 'URL'
+      iv_display_name = 'Remote'
       iv_allow_order_by = abap_true ).
 
     _add_column(
@@ -40325,6 +40575,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_display_name = 'Created by'
       iv_css_class = 'ro-detail'
       iv_allow_order_by = abap_true ).
+
     _add_column(
       iv_tech_name = 'CREATED_AT'
       iv_display_name = 'Created at'
@@ -40337,12 +40588,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_display_name = 'Key'
       iv_css_class = 'ro-detail'
       iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name = 'ACTION'
-      iv_display_name = 'Action'
-      iv_css_class = 'ro-action'
-      iv_allow_order_by = abap_false ).
 
     _add_column(
       iv_tech_name = 'GO'
@@ -40433,6 +40678,19 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     <ls_col>-add_tz = iv_add_tz.
     <ls_col>-allow_order_by = iv_allow_order_by.
   ENDMETHOD.
+
+  METHOD column.
+    IF iv_css_class IS NOT INITIAL.
+      rv_html = |<td class="{ iv_css_class }">| && iv_content && |</td>|.
+    ELSE.
+      rv_html = |<td>| && iv_content && |</td>|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD action_link.
+    rv_html = |<span class="action_link">| && iv_content && |</span>|.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
@@ -47099,7 +47357,7 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
+CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -47108,8 +47366,12 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       lv_checked = |checked|.
     ENDIF.
 
-    rv_html = |<input type="checkbox" id="{ iv_id }" { lv_checked }>|.
+    rv_html = |<input type="checkbox" { lv_checked } |.
+    IF iv_id IS NOT INITIAL.
+      rv_html = rv_html && |id="{ iv_id }"|.
+    ENDIF.
 
+    rv_html = rv_html && `/>`.
   ENDMETHOD.
   METHOD class_constructor.
     CREATE OBJECT go_single_tags_re
@@ -103712,6 +103974,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-14T08:58:56.090Z
+* abapmerge 0.14.3 - 2021-06-14T12:45:36.604Z
 ENDINTERFACE.
 ****************************************************
