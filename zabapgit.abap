@@ -35345,12 +35345,15 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip_services.
 
-    DATA: lv_key  TYPE zif_abapgit_persistence=>ty_repo-key,
-          lo_repo TYPE REF TO zcl_abapgit_repo,
-          lv_path TYPE string,
-          lv_dest TYPE rfcdest,
-          lv_msg  TYPE c LENGTH 200,
-          lv_xstr TYPE xstring.
+    DATA: lv_key            TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_repo           TYPE REF TO zcl_abapgit_repo,
+          lv_path           TYPE string,
+          lv_dest           TYPE rfcdest,
+          lv_msg            TYPE c LENGTH 200,
+          lv_xstr           TYPE xstring,
+          lv_package        TYPE zif_abapgit_persistence=>ty_repo-package,
+          lv_folder_logic   TYPE string,
+          lv_main_lang_only TYPE zif_abapgit_persistence=>ty_local_settings-main_language_only.
 
     CONSTANTS:
       BEGIN OF lc_page,
@@ -35380,12 +35383,16 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
             RETURN.
           ENDIF.
 
+          lv_package            = lo_repo->get_package( ).
+          lv_folder_logic       = lo_repo->get_dot_abapgit( )->get_folder_logic( ).
+          lv_main_lang_only     = lo_repo->get_local_settings( )-main_language_only.
+
           CALL FUNCTION 'Z_ABAPGIT_SERIALIZE_PACKAGE'
             DESTINATION lv_dest
             EXPORTING
-              iv_package            = lo_repo->get_package( )
-              iv_folder_logic       = lo_repo->get_dot_abapgit( )->get_folder_logic( )
-              iv_main_lang_only     = lo_repo->get_local_settings( )-main_language_only
+              iv_package            = lv_package
+              iv_folder_logic       = lv_folder_logic
+              iv_main_lang_only     = lv_main_lang_only
             IMPORTING
               ev_xstring            = lv_xstr
             EXCEPTIONS
@@ -103974,6 +103981,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-14T16:25:03.092Z
+* abapmerge 0.14.3 - 2021-06-15T07:44:05.606Z
 ENDINTERFACE.
 ****************************************************
