@@ -57679,6 +57679,10 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCA IMPLEMENTATION.
       lx_err    TYPE REF TO cx_wd_configuration,
       lv_name   TYPE wdy_md_object_name.
 
+    FIELD-SYMBOLS:
+      <ls_data>        LIKE LINE OF et_data,
+      <ls_appl_params> LIKE LINE OF <ls_data>-appl_params.
+
     CLEAR: es_outline, et_data.
 
     ls_key = ms_item-obj_name.
@@ -57712,6 +57716,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCA IMPLEMENTATION.
                es_outline-changedon.
 
         et_data = lo_cfg->read_data( ).
+
+        " Clear descriptions since they are release and language-specific
+        LOOP AT et_data ASSIGNING <ls_data>.
+          LOOP AT <ls_data>-appl_params ASSIGNING <ls_appl_params>.
+            CLEAR <ls_appl_params>-description.
+          ENDLOOP.
+        ENDLOOP.
 
       CATCH cx_wd_configuration INTO lx_err.
         zcx_abapgit_exception=>raise( 'WDCA, read error:' && lx_err->get_text( ) ).
@@ -103981,6 +103992,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-06-15T07:44:05.606Z
+* abapmerge 0.14.3 - 2021-06-22T14:48:48.940Z
 ENDINTERFACE.
 ****************************************************
