@@ -1285,7 +1285,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson .
 
-  CONSTANTS version TYPE string VALUE 'v1.0.3'.
+  CONSTANTS version TYPE string VALUE 'v1.0.4'.
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'.
 
   INTERFACES zif_abapgit_ajson_reader.
@@ -104357,6 +104357,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-01T08:09:09.843Z
+* abapmerge 0.14.3 - 2021-07-01T12:14:48.666Z
 ENDINTERFACE.
 ****************************************************
