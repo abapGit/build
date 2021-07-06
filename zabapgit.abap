@@ -55896,7 +55896,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_object_webi IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -56202,7 +56202,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
             mi_vi->if_ws_md_lockable_object~unlock( ).
           CATCH cx_ws_md_exception ##no_handler.
         ENDTRY.
-        zcx_abapgit_exception=>raise( lx_root->if_message~get_text( ) ).
+        zcx_abapgit_exception=>raise_with_text( lx_root ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -56250,6 +56250,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_webi    TYPE ty_webi,
+          lx_error   TYPE REF TO cx_ws_md_exception,
           lt_modilog TYPE STANDARD TABLE OF smodilog WITH DEFAULT KEY,
           li_vi      TYPE REF TO if_ws_md_vif,
           lv_name    TYPE vepname.
@@ -56286,7 +56287,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
         webi_not_exist    = 2
         OTHERS            = 3.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from WEBI_GET_OBJECT' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     SORT ls_webi-pveptype BY
@@ -56298,8 +56299,8 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
     TRY.
         li_vi = cl_ws_md_factory=>get_vif_root( )->get_virtual_interface( lv_name ).
         ls_webi-veptext = li_vi->get_short_text( sews_c_vif_version-active ).
-      CATCH cx_ws_md_exception.
-        zcx_abapgit_exception=>raise( 'error serializing WEBI' ).
+      CATCH cx_ws_md_exception INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     LOOP AT ls_webi-pvepheader ASSIGNING <ls_vepheader>.
@@ -104412,6 +104413,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-06T09:42:42.248Z
+* abapmerge 0.14.3 - 2021-07-06T15:37:47.644Z
 ENDINTERFACE.
 ****************************************************
