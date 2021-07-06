@@ -26974,7 +26974,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  padding: 1px 7px;' ).
-    lo_buf->add( '  width: 1em;' ).
+    lo_buf->add( '  width: 3em;' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '  text-align: center;' ).
     lo_buf->add( '  margin-top: 0.2em;' ).
@@ -28358,9 +28358,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.registerKeyboardShortcuts = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.registerKeyboardShortcuts = function() {' ).
     lo_buf->add( '  var self = this;' ).
-    lo_buf->add( '  document.addEventListener("keypress", function (event) {' ).
+    lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
     lo_buf->add( '    if (document.activeElement.id === "filter") {' ).
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
@@ -28372,12 +28372,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    if (keycode == 13) {' ).
     lo_buf->add( '      // "enter" to open' ).
     lo_buf->add( '      self.openSelectedRepo();' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '    else if (keycode == 44 && indexOfSelected > 0) {' ).
-    lo_buf->add( '      // "<" for previous' ).
+    lo_buf->add( '    } else if ((keycode == 52 || keycode == 100) && indexOfSelected > 0) {' ).
+    lo_buf->add( '      // "4" for previous' ).
     lo_buf->add( '      self.selectRowByIndex(indexOfSelected - 1);' ).
-    lo_buf->add( '    } else if (keycode == 46 && indexOfSelected < rows.length - 1) {' ).
-    lo_buf->add( '      // ">" for next' ).
+    lo_buf->add( '    } else if ((keycode == 54 || keycode == 102) && indexOfSelected < rows.length - 1) {' ).
+    lo_buf->add( '      // "6" for next' ).
     lo_buf->add( '      self.selectRowByIndex(indexOfSelected + 1);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
@@ -35042,11 +35041,16 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           lv_answer                   TYPE c LENGTH 1,
           lv_question_text            TYPE string,
           lv_question_title           TYPE string,
-          lv_show_create_branch_popup TYPE c LENGTH 1.
+          lv_show_create_branch_popup TYPE c LENGTH 1,
+          lx_error                    TYPE REF TO cx_sy_move_cast_error.
 
     lv_key   = ii_event->query( )->get( 'KEY' ).
     lv_seed  = ii_event->query( )->get( 'SEED' ).
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+    TRY.
+        lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+      CATCH cx_sy_move_cast_error INTO lx_error.
+        zcx_abapgit_exception=>raise( `Staging is only possible for online repositories.` ).
+    ENDTRY.
 
     IF lo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
 
@@ -40919,7 +40923,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
       it_files  = it_files ).
 
     IF mo_repo->is_offline( ) = abap_true.
-      zcx_abapgit_exception=>raise( |Can't patch offline repos| ).
+      zcx_abapgit_exception=>raise( |Patching is only possible for online repositories.| ).
     ENDIF.
 
     mo_repo_online ?= mo_repo.
@@ -42000,6 +42004,37 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ls_hotkey_action-description   = |New offline repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newoffline.
     ls_hotkey_action-hotkey = |o|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Stage|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_stage.
+    ls_hotkey_action-hotkey = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Check|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_code_inspector.
+    ls_hotkey_action-hotkey = |c|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Patch|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
+    ls_hotkey_action-hotkey = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    " registered/handled in js
+    ls_hotkey_action-description = |Previous repository|.
+    ls_hotkey_action-action = `#`.
+    ls_hotkey_action-hotkey = |4|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Next repository|.
+    ls_hotkey_action-action = `##`.
+    ls_hotkey_action-hotkey = |6|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Open repository|.
+    ls_hotkey_action-action = `###`.
+    ls_hotkey_action-hotkey = |Enter|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
@@ -104358,6 +104393,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-06T09:12:21.944Z
+* abapmerge 0.14.3 - 2021-07-06T09:33:20.436Z
 ENDINTERFACE.
 ****************************************************
