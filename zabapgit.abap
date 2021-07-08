@@ -28371,8 +28371,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var selected = document.querySelector(".repo.selected");' ).
     lo_buf->add( '    var indexOfSelected = rows.indexOf(selected);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    if (keycode == 13) {' ).
-    lo_buf->add( '      // "enter" to open' ).
+    lo_buf->add( '    if (keycode == 13 && // "enter" to open' ).
+    lo_buf->add( '       document.activeElement.tagName.toLowerCase() != "input") { // prevent opening if command field has focus' ).
     lo_buf->add( '      self.openSelectedRepo();' ).
     lo_buf->add( '    } else if ((keycode == 52 || keycode == 100) && indexOfSelected > 0) {' ).
     lo_buf->add( '      // "4" for previous' ).
@@ -104413,6 +104413,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-06T15:37:47.644Z
+* abapmerge 0.14.3 - 2021-07-08T07:33:00.096Z
 ENDINTERFACE.
 ****************************************************
