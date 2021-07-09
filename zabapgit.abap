@@ -13578,6 +13578,12 @@ CLASS zcl_abapgit_repo_online DEFINITION
     ALIASES switch_origin
       FOR zif_abapgit_repo_online~switch_origin .
 
+    METHODS check_and_create_package
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+
     METHODS get_files_remote
         REDEFINITION .
     METHODS get_name
@@ -50246,6 +50252,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     ro_repo->refresh( ).
     ro_repo->find_remote_dot_abapgit( ).
+    ro_repo->check_and_create_package( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~purge.
@@ -50343,6 +50350,28 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+  METHOD check_and_create_package.
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+    DATA lv_package TYPE devclass.
+
+    ls_item-obj_type = 'DEVC'.
+    ls_item-obj_name = iv_package.
+
+    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
+      " Check if any package is included in remote
+      READ TABLE mt_remote TRANSPORTING NO FIELDS
+        WITH KEY filename = zcl_abapgit_filename_logic=>c_package_file.
+      IF sy-subrc <> 0.
+        " If not, prompt to create it
+        lv_package = zcl_abapgit_services_basis=>create_package( iv_package ).
+        IF lv_package IS NOT INITIAL.
+          COMMIT WORK AND WAIT.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -50420,6 +50449,23 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD has_remote_source.
     rv_yes = abap_true.
+  ENDMETHOD.
+  METHOD raise_error_if_branch_exists.
+
+    DATA:
+      lt_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      lv_display_name TYPE string.
+
+    lt_branches = zcl_abapgit_git_transport=>branches( get_url( ) )->get_branches_only( ).
+
+    READ TABLE lt_branches WITH TABLE KEY name_key
+                           COMPONENTS name = iv_name
+                           TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      lv_display_name = zcl_abapgit_git_branch_list=>get_display_name( iv_name ).
+      zcx_abapgit_exception=>raise( |Branch '{ lv_display_name }' already exists| ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD set_objects.
     mt_objects = it_objects.
@@ -50567,25 +50613,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD raise_error_if_branch_exists.
-
-    DATA:
-      lt_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
-      lv_display_name TYPE string.
-
-    lt_branches = zcl_abapgit_git_transport=>branches( get_url( ) )->get_branches_only( ).
-
-    READ TABLE lt_branches WITH TABLE KEY name_key
-                           COMPONENTS name = iv_name
-                           TRANSPORTING NO FIELDS.
-    IF sy-subrc = 0.
-      lv_display_name = zcl_abapgit_git_branch_list=>get_display_name( iv_name ).
-      zcx_abapgit_exception=>raise( |Branch '{ lv_display_name }' already exists| ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
@@ -104469,6 +104496,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-09T13:25:00.977Z
+* abapmerge 0.14.3 - 2021-07-09T13:29:53.835Z
 ENDINTERFACE.
 ****************************************************
