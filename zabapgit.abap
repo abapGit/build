@@ -8505,6 +8505,7 @@ CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
     ALIASES mo_files FOR zif_abapgit_object~mo_files.
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mi_persistence TYPE REF TO if_wb_object_persist .
     METHODS get_persistence
@@ -23269,8 +23270,7 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
 
         " ensure cleanup
         cleanup( lo_set ).
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
 
     ENDTRY.
 
@@ -63899,15 +63899,13 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
                 it_usobx = lt_usobx
                 it_usobt = lt_usobt.
           CATCH cx_static_check INTO lr_err.
-            zcx_abapgit_exception=>raise( iv_text     = lr_err->get_text( )
-                                          ix_previous = lr_err ).
+            zcx_abapgit_exception=>raise_with_text( lr_err ).
         ENDTRY.
 
         corr_insert( iv_package ).
 
       CATCH cx_static_check INTO lr_err.
-        zcx_abapgit_exception=>raise( iv_text     = lr_err->get_text( )
-                                      ix_previous = lr_err ).
+        zcx_abapgit_exception=>raise_with_text( lr_err ).
     ENDTRY.
 
   ENDMETHOD.
@@ -63982,8 +63980,7 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
                 et_usobx_ext = <lt_data_usobx_ext>
                 et_usobt_ext = <lt_data_usobt_ext>.
           CATCH cx_static_check INTO lr_err.
-            zcx_abapgit_exception=>raise( iv_text     = lr_err->get_text( )
-                                          ix_previous = lr_err ).
+            zcx_abapgit_exception=>raise_with_text( lr_err ).
         ENDTRY.
 
         "HEAD
@@ -64007,8 +64004,7 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
                      ig_data = <lt_data_usobt_ext> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -65240,9 +65236,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
         rv_user = li_object_data_model->get_changed_by( ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -65262,9 +65256,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
             transport_request = lv_transport_request.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -65370,9 +65362,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -65481,9 +65471,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
             iv_ext    = mc_source_file
             iv_string = lv_source ).
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -65578,9 +65566,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
             result      = mo_object_operator.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ro_object_operator = mo_object_operator.
@@ -65804,9 +65790,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         mi_persistence->delete( mv_service_binding_key ).
 
       CATCH cx_swb_exception INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -65856,9 +65840,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_swb_exception INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -65941,9 +65923,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         clear_fields( CHANGING cs_service_binding = <ls_service_binding> ).
 
       CATCH cx_swb_exception INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add(
@@ -66206,8 +66186,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
             if_transport_req = mv_transport.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -66255,8 +66234,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
         tadir_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -66313,8 +66291,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
             ef_descr   = ls_proxy-description.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add( iv_name = 'SQSC'
@@ -66340,8 +66317,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
             repair  = abap_true ).
 
       CATCH cx_proxy_gen_error INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = |{ lx_error->get_text( ) }|
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -67199,8 +67175,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
           EXPORTING
             iv_id = mv_template_id.
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -67298,8 +67273,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
             iv_wait   = abap_true.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -67385,9 +67359,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
             ig_data = <lg_template> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -72454,16 +72426,15 @@ CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ IMPLEMENTATION.
   METHOD iUFTsvrpxwdUTiJUSNzxoTkdegmNBa~import_container.
 
     DATA lt_exception_list TYPE swf_cx_tab.
-    DATA: lo_exception TYPE REF TO cx_swf_ifs_exception.
+    DATA lx_exception TYPE REF TO cx_swf_ifs_exception.
 
     mo_taskdef->container->import_from_xml(
             EXPORTING xml_stream     = iv_xml_string
             IMPORTING exception_list = lt_exception_list ).
 
     IF lt_exception_list IS NOT INITIAL.
-      READ TABLE lt_exception_list INDEX 1 INTO lo_exception.
-      zcx_abapgit_exception=>raise( iv_text     = lo_exception->get_text( )
-                                    ix_previous = lo_exception ).
+      READ TABLE lt_exception_list INDEX 1 INTO lx_exception.
+      zcx_abapgit_exception=>raise_with_text( lx_exception ).
     ENDIF.
 
   ENDMETHOD.
@@ -75890,8 +75861,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
         li_proxy_object->dequeue( ).
 
       CATCH cx_proxy_fault INTO lx_proxy_fault.
-        zcx_abapgit_exception=>raise( iv_text     = |{ lx_proxy_fault->get_text( ) }|
-                                      ix_previous = lx_proxy_fault ).
+        zcx_abapgit_exception=>raise_with_text( lx_proxy_fault ).
     ENDTRY.
 
   ENDMETHOD.
@@ -78995,9 +78965,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FTGL IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -79064,9 +79032,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FTGL IMPLEMENTATION.
             ro_toggle    = lo_toggle.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     CALL METHOD lo_toggle->('GET_CONTENT')
@@ -81762,9 +81728,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
             result      = mi_wb_object_operator.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ri_wb_object_operator = mi_wb_object_operator.
@@ -81787,9 +81751,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         rv_user = li_object_data_model->get_changed_by( ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -81810,9 +81772,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
             transport_request = lv_transport_request.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -81887,9 +81847,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -81980,9 +81938,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         clear_fields( CHANGING cs_dynamic_cache = <ls_dynamic_cache> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add(
@@ -82316,9 +82272,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
             result      = mi_wb_object_operator.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ri_wb_object_operator = mi_wb_object_operator.
@@ -82341,9 +82295,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         rv_user = li_object_data_model->get_changed_by( ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -82363,9 +82315,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
             transport_request = lv_transport_request.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -82440,9 +82390,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -82533,9 +82481,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         clear_fields( CHANGING cs_dependency_rule = <ls_dependency_rule> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add(
@@ -84104,8 +84050,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         ENDIF.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ri_persistence = mi_persistence.
@@ -84379,8 +84324,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
         ENDIF.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -84423,8 +84367,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
           rv_user = <lg_field>.
         ENDIF.
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     IF rv_user IS INITIAL.
@@ -84540,8 +84483,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
             name = ms_item-obj_name
             prid = 0.
 
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -84670,8 +84612,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
         ENDIF.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     APPEND 'AS4USER' TO lt_clr_comps.
@@ -84765,8 +84706,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
           rv_user = c_user_unknown.
         ENDIF.
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -84784,8 +84724,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
             iv_dclname = ms_item-obj_name.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -84826,8 +84765,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
             iv_access_mode = 'INSERT'.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -84850,8 +84788,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
             rv_exists     = rv_bool.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -84949,8 +84886,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
                      ig_data = <lg_data> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -87115,9 +87051,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
             result      = mi_wb_object_operator.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ri_wb_object_operator = mi_wb_object_operator.
@@ -87202,9 +87136,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
         rv_user = li_object_data_model->get_changed_by( ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -87225,9 +87157,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
             transport_request = lv_transport_request.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -87329,9 +87259,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -87424,9 +87352,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
         lv_source = <lv_source>.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add(
@@ -88370,9 +88296,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
             result      = mi_wb_object_operator.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     ri_wb_object_operator = mi_wb_object_operator.
@@ -88395,9 +88319,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
         rv_user = li_object_data_model->get_changed_by( ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -88417,9 +88339,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
             transport_request = lv_transport_request.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -88487,9 +88407,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
         corr_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -88572,9 +88490,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
         clear_fields( CHANGING cs_logical_db_schema = <ls_logical_db_schema> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     io_xml->add(
@@ -99248,9 +99164,7 @@ CLASS zcl_abapgit_pr_enum_github IMPLEMENTATION.
         ENDIF.
         li_pulls_json = mi_http_agent->request( lv_pull_url )->json( ).
       CATCH zcx_abapgit_ajson_error INTO lx_ajson.
-        zcx_abapgit_exception=>raise(
-          iv_text     = lx_ajson->get_text( )
-          ix_previous = lx_ajson ).
+        zcx_abapgit_exception=>raise_with_text( lx_ajson ).
     ENDTRY.
 
     rs_info-pulls = convert_list( li_pulls_json ).
@@ -104496,6 +104410,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-09T13:29:53.835Z
+* abapmerge 0.14.3 - 2021-07-13T07:14:30.476Z
 ENDINTERFACE.
 ****************************************************
