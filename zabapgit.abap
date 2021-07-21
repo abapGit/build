@@ -1497,7 +1497,7 @@ INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
     BEGIN OF ty_web_asset,
-      url          TYPE w3url,
+      url          TYPE string,
       type         TYPE c LENGTH 50,
       subtype      TYPE c LENGTH 50,
       content      TYPE xstring,
@@ -1587,11 +1587,11 @@ INTERFACE zif_abapgit_gui_services .
     IMPORTING
       !iv_text      TYPE string OPTIONAL
       !iv_xdata     TYPE xstring OPTIONAL
-      !iv_url       TYPE w3url OPTIONAL
+      !iv_url       TYPE string OPTIONAL
       !iv_type      TYPE c
       !iv_subtype   TYPE c
     RETURNING
-      VALUE(rv_url) TYPE w3url
+      VALUE(rv_url) TYPE string
     RAISING
       zcx_abapgit_exception .
   METHODS register_event_handler
@@ -1808,15 +1808,19 @@ INTERFACE zif_abapgit_html_form .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_html_viewer .
-  CONSTANTS m_id_sapevent TYPE i VALUE 1 ##NO_TEXT.
+  TYPES:
+    ty_char256 TYPE c LENGTH 256 .
+  TYPES:
+    ty_post_data TYPE STANDARD TABLE OF ty_char256 WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_name_value,
+      name  TYPE c LENGTH 30,
+      value TYPE c LENGTH 250,
+    END OF ty_name_value .
+  TYPES:
+    ty_query_table TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY .
 
-  TYPES ty_char256 TYPE c LENGTH 256.
-  TYPES ty_post_data TYPE STANDARD TABLE OF ty_char256 WITH DEFAULT KEY.
-  TYPES: BEGIN OF ty_name_value,
-           name  TYPE c LENGTH 30,
-           value TYPE c LENGTH 250,
-         END OF ty_name_value.
-  TYPES ty_query_table TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY.
+  CONSTANTS m_id_sapevent TYPE i VALUE 1 ##NO_TEXT.
 
   EVENTS sapevent
     EXPORTING
@@ -1828,33 +1832,35 @@ INTERFACE zif_abapgit_html_viewer .
 
   METHODS load_data
     IMPORTING
-      !iv_url          TYPE c OPTIONAL
+      !iv_url          TYPE string OPTIONAL
       !iv_type         TYPE c DEFAULT 'text'
       !iv_subtype      TYPE c DEFAULT 'html'
       !iv_size         TYPE i DEFAULT 0
     EXPORTING
-      !ev_assigned_url TYPE c
+      !ev_assigned_url TYPE string
     CHANGING
       !ct_data_table   TYPE STANDARD TABLE
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS set_registered_events
     IMPORTING
       !it_events TYPE cntl_simple_events
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS show_url
     IMPORTING
-      !iv_url TYPE c
+      !iv_url TYPE string
     RAISING
-      zcx_abapgit_exception.
+      zcx_abapgit_exception .
   METHODS free .
   METHODS close_document .
   METHODS get_url
     RETURNING
-      VALUE(rv_url) TYPE w3url.
+      VALUE(rv_url) TYPE string .
   METHODS back .
-  METHODS set_visiblity IMPORTING iv_visible TYPE abap_bool.
+  METHODS set_visiblity
+    IMPORTING
+      !iv_visible TYPE abap_bool .
   METHODS get_viewer
     RETURNING
       VALUE(ro_result) TYPE REF TO cl_gui_html_viewer .
@@ -14162,7 +14168,7 @@ CLASS zcl_abapgit_gui DEFINITION
       IMPORTING
         !iv_text      TYPE string
       RETURNING
-        VALUE(rv_url) TYPE w3url
+        VALUE(rv_url) TYPE string
       RAISING
         zcx_abapgit_exception .
     METHODS startup
@@ -33254,7 +33260,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -33301,8 +33307,10 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~get_url.
 
-    mo_html_viewer->get_current_url( IMPORTING url = rv_url ).
+    DATA lv_url TYPE c LENGTH 250.
+    mo_html_viewer->get_current_url( IMPORTING url = lv_url ).
     cl_gui_cfw=>flush( ).
+    rv_url = lv_url.
 
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~get_viewer.
@@ -33310,14 +33318,19 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~load_data.
 
+    DATA lv_url TYPE c LENGTH 250.
+    DATA lv_assigned TYPE c LENGTH 250.
+
+    ASSERT strlen( iv_url ) <= 250.
+    lv_url = iv_url.
     mo_html_viewer->load_data(
       EXPORTING
-        url                    = iv_url
+        url                    = lv_url
         type                   = iv_type
         subtype                = iv_subtype
         size                   = iv_size
       IMPORTING
-        assigned_url           = ev_assigned_url
+        assigned_url           = lv_assigned
       CHANGING
         data_table             = ct_data_table
       EXCEPTIONS
@@ -33328,6 +33341,7 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error loading data for HTML viewer' ).
     ENDIF.
+    ev_assigned_url = lv_assigned.
 
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~set_registered_events.
@@ -33357,9 +33371,11 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~show_url.
 
+    DATA lv_url TYPE c LENGTH 250.
+    lv_url = iv_url.
     mo_html_viewer->show_url(
       EXPORTING
-        url                    = iv_url
+        url                    = lv_url
       EXCEPTIONS
         cntl_error             = 1
         cnht_error_not_allowed = 2
@@ -48392,7 +48408,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD render.
 
-    DATA: lv_url  TYPE w3url,
+    DATA: lv_url  TYPE string,
           lv_html TYPE string,
           li_html TYPE REF TO zif_abapgit_html.
 
@@ -104687,6 +104703,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-21T09:40:50.539Z
+* abapmerge 0.14.3 - 2021-07-21T09:43:05.900Z
 ENDINTERFACE.
 ****************************************************
