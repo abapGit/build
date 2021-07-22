@@ -5345,13 +5345,6 @@ CLASS zcl_abapgit_git_transport DEFINITION
         receive TYPE string VALUE 'receive',                  "#EC NOTEXT
         upload  TYPE string VALUE 'upload',                   "#EC NOTEXT
       END OF c_service .
-    CONSTANTS:
-      BEGIN OF c_smart_response_check,
-        BEGIN OF get_refs,
-          content_regex TYPE string VALUE '^[0-9a-f]{4}#',
-          content_type  TYPE string VALUE 'application/x-git-<service>-pack-advertisement',
-        END OF get_refs,
-      END OF c_smart_response_check .
 
     CLASS-METHODS check_report_status
       IMPORTING
@@ -99593,7 +99586,7 @@ CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_git_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -99610,6 +99603,9 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   ENDMETHOD.
   METHOD branch_list.
 
+    CONSTANTS lc_content_regex TYPE string VALUE '^[0-9a-f]{4}#'.
+    CONSTANTS lc_content_type  TYPE string VALUE 'application/x-git-<service>-pack-advertisement'.
+
     DATA: lv_data TYPE string.
     DATA: lv_expected_content_type TYPE string.
 
@@ -99617,12 +99613,12 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
       iv_url     = iv_url
       iv_service = iv_service ).
 
-    lv_expected_content_type = c_smart_response_check-get_refs-content_type.
+    lv_expected_content_type = lc_content_type.
     REPLACE '<service>' IN lv_expected_content_type WITH iv_service.
 
     eo_client->check_smart_response(
         iv_expected_content_type = lv_expected_content_type
-        iv_content_regex         = c_smart_response_check-get_refs-content_regex ).
+        iv_content_regex         = lc_content_regex ).
 
     lv_data = eo_client->get_cdata( ).
 
@@ -104703,6 +104699,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-21T09:59:47.523Z
+* abapmerge 0.14.3 - 2021-07-22T04:57:42.097Z
 ENDINTERFACE.
 ****************************************************
