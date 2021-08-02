@@ -96899,7 +96899,9 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
     TRY.
         rt_json_tree = _parse( iv_json ).
       CATCH cx_sxml_error INTO lx_sxml.
-        zcx_abapgit_ajson_error=>raise( `SXML: ` && lx_sxml->get_text( ) ).
+        zcx_abapgit_ajson_error=>raise(
+        iv_msg      = |Json parsing error (SXML): { lx_sxml->get_text( ) }|
+        iv_location = '@PARSER' ).
     ENDTRY.
   ENDMETHOD.
 
@@ -104737,6 +104739,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-07-31T18:02:18.886Z
+* abapmerge 0.14.3 - 2021-08-02T04:58:19.227Z
 ENDINTERFACE.
 ****************************************************
