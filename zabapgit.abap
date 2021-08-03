@@ -99359,6 +99359,7 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
 
   ENDMETHOD.
 ENDCLASS.
+
 CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
   METHOD constructor.
 
@@ -99559,7 +99560,8 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GIT_UTILS IMPLEMENTATION.
   METHOD get_null.
 
-    DATA: lv_x TYPE x LENGTH 2 VALUE '0000'.
+* must be length 4, or it gives a syntax error on lower versions
+    DATA: lv_x TYPE x LENGTH 4 VALUE '00000000'.
     FIELD-SYMBOLS <lv_y> TYPE c.
 
     ASSIGN lv_x TO <lv_y> CASTING.
@@ -104724,6 +104726,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-03T04:50:50.067Z
+* abapmerge 0.14.3 - 2021-08-03T08:28:23.505Z
 ENDINTERFACE.
 ****************************************************
