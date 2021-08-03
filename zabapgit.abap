@@ -3829,8 +3829,6 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
   TYPES:
-    ty_icm_sinfo2_tt TYPE STANDARD TABLE OF icm_sinfo2 WITH DEFAULT KEY .
-  TYPES:
     BEGIN OF ty_ci_repo,
       name      TYPE string,
       clone_url TYPE string,
@@ -3853,7 +3851,7 @@ INTERFACE zif_abapgit_exit .
       VALUE(rv_allowed) TYPE abap_bool .
   METHODS change_local_host
     CHANGING
-      !ct_hosts TYPE ty_icm_sinfo2_tt .
+      !ct_hosts TYPE zif_abapgit_definitions=>ty_string_tt .
   METHODS change_proxy_authentication
     IMPORTING
       !iv_repo_url             TYPE csequence
@@ -99179,7 +99177,7 @@ CLASS ZCL_ABAPGIT_HTTP_AGENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
+CLASS zcl_abapgit_http IMPLEMENTATION.
   METHOD acquire_login_details.
 
     DATA: lv_default_user TYPE string,
@@ -99342,36 +99340,25 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD is_local_system.
 
     DATA: lv_host TYPE string,
-          lt_list TYPE zif_abapgit_exit=>ty_icm_sinfo2_tt,
+          lt_list TYPE zif_abapgit_definitions=>ty_string_tt,
           li_exit TYPE REF TO zif_abapgit_exit.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
-    CALL FUNCTION 'ICM_GET_INFO2'
-      TABLES
-        servlist    = lt_list
-      EXCEPTIONS
-        icm_error   = 1
-        icm_timeout = 2
-        OTHERS      = 3.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
+    cl_http_server=>get_location( IMPORTING host = lv_host ).
+    APPEND lv_host TO lt_list.
 
-    APPEND INITIAL LINE TO lt_list ASSIGNING <ls_list>.
-    <ls_list>-hostname = 'localhost'.
+    APPEND 'localhost' TO lt_list.
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_local_host( CHANGING ct_hosts = lt_list ).
 
-    FIND REGEX 'https?://([^/^:]*)' IN iv_url
-      SUBMATCHES lv_host.
+    FIND REGEX 'https?://([^/^:]*)' IN iv_url SUBMATCHES lv_host.
 
-    READ TABLE lt_list WITH KEY hostname = lv_host TRANSPORTING NO FIELDS.
+    READ TABLE lt_list WITH KEY table_line = lv_host TRANSPORTING NO FIELDS.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
 ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
   METHOD constructor.
 
@@ -104737,6 +104724,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-03T04:48:26.580Z
+* abapmerge 0.14.3 - 2021-08-03T04:50:50.067Z
 ENDINTERFACE.
 ****************************************************
