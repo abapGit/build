@@ -64,6 +64,7 @@ INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
+INTERFACE zif_abapgit_persist_settings DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
 INTERFACE zif_abapgit_objects DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
@@ -1491,6 +1492,19 @@ INTERFACE zif_abapgit_comparator .
       VALUE(rs_result) TYPE ty_result
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_persist_settings.
+
+  METHODS modify
+    IMPORTING
+      !io_settings TYPE REF TO zcl_abapgit_settings
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read
+    RETURNING
+      VALUE(ro_settings) TYPE REF TO zcl_abapgit_settings .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_asset_manager .
@@ -5726,6 +5740,7 @@ CLASS zcl_abapgit_proxy_config DEFINITION FINAL CREATE PUBLIC.
         RETURNING
           VALUE(rv_auth) TYPE abap_bool.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mo_settings TYPE REF TO zcl_abapgit_settings,
           mi_exit     TYPE REF TO zif_abapgit_exit.
@@ -12850,10 +12865,14 @@ CLASS zcl_abapgit_persist_factory DEFINITION
     CLASS-METHODS get_repo
       RETURNING
         VALUE(ri_repo) TYPE REF TO zif_abapgit_persist_repo .
+    CLASS-METHODS get_settings
+      RETURNING
+        VALUE(ri_settings) TYPE REF TO zif_abapgit_persist_settings .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     CLASS-DATA gi_repo TYPE REF TO zif_abapgit_persist_repo .
+    CLASS-DATA gi_settings TYPE REF TO zif_abapgit_persist_settings .
 ENDCLASS.
 CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
 
@@ -12931,26 +12950,17 @@ CLASS zcl_abapgit_persist_packages DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_persist_settings DEFINITION
-  CREATE PRIVATE .
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_persist_factory .
 
   PUBLIC SECTION.
 
-    METHODS modify
-      IMPORTING
-        !io_settings TYPE REF TO zcl_abapgit_settings
-      RAISING
-        zcx_abapgit_exception .
-    METHODS read
-      RETURNING
-        VALUE(ro_settings) TYPE REF TO zcl_abapgit_settings .
-    CLASS-METHODS get_instance
-      RETURNING
-        VALUE(ro_settings) TYPE REF TO zcl_abapgit_persist_settings .
+    INTERFACES zif_abapgit_persist_settings .
   PROTECTED SECTION.
   PRIVATE SECTION.
-
     DATA mo_settings TYPE REF TO zcl_abapgit_settings .
-    CLASS-DATA go_persist TYPE REF TO zcl_abapgit_persist_settings .
+
+    CLASS-DATA gi_persist TYPE REF TO zif_abapgit_persist_settings .
 ENDCLASS.
 CLASS zcl_abapgit_persistence_db DEFINITION
   CREATE PRIVATE .
@@ -23207,8 +23217,8 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   ENDMETHOD.
   METHOD decide_run_mode.
 
-    DATA: lo_settings TYPE REF TO zcl_abapgit_settings.
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
+    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     IF sy-batch = abap_true.
       " We have to disable parallelization in batch because of lock errors.
@@ -31920,7 +31930,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
     check_sapgui( ).
 
-    IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_show_default_repo( ) = abap_false.
       " Don't show the last seen repo at startup
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
     ENDIF.
@@ -34891,7 +34901,7 @@ CLASS zcl_abapgit_hotkeys IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -35229,7 +35239,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       lv_adt_link          TYPE string,
       lv_adt_jump_enabled  TYPE abap_bool.
 
-    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+    lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
     IF lv_adt_jump_enabled = abap_true.
       TRY.
           CALL METHOD ('CL_CTS_ADT_TM_URI_BUILDER')=>('CREATE_ADT_URI')
@@ -35792,7 +35802,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
                                        iv_label = 'tagger e-mail'
                                        iv_value = lv_email ) ).
 
-      lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+      lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
       lv_s_param = lo_settings->get_commitmsg_comment_length( ).
 
@@ -37704,7 +37714,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -37823,7 +37833,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   METHOD read_settings.
 
     " Get settings from DB
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
     ms_settings = mo_settings->get_user_settings( ).
 
     " Startup
@@ -37867,7 +37877,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   ENDMETHOD.
   METHOD save_settings.
 
-    DATA lo_persistence TYPE REF TO zcl_abapgit_persist_settings.
+    DATA li_persistence TYPE REF TO zif_abapgit_persist_settings.
 
     " Startup
     ms_settings-show_default_repo = mo_form_data->get( c_id-show_default_repo ).
@@ -37889,8 +37899,8 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
     " Store in DB
     mo_settings->set_user_settings( ms_settings ).
 
-    lo_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    lo_persistence->modify( mo_settings ).
+    li_persistence = zcl_abapgit_persist_factory=>get_settings( ).
+    li_persistence->modify( mo_settings ).
 
     COMMIT WORK AND WAIT.
 
@@ -38603,7 +38613,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -38717,7 +38727,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD read_settings.
 
     " Get settings from DB
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     " Proxy
     mo_form_data->set(
@@ -38782,7 +38792,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD save_settings.
 
     DATA:
-      lo_persistence TYPE REF TO zcl_abapgit_persist_settings,
+      li_persistence TYPE REF TO zif_abapgit_persist_settings,
       lv_value       TYPE i.
 
     " Proxy
@@ -38806,8 +38816,8 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
     ENDIF.
 
     " Store in DB
-    lo_persistence = zcl_abapgit_persist_settings=>get_instance( ).
-    lo_persistence->modify( mo_settings ).
+    li_persistence = zcl_abapgit_persist_factory=>get_settings( ).
+    li_persistence->modify( mo_settings ).
 
     COMMIT WORK AND WAIT.
 
@@ -39202,7 +39212,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -39589,7 +39599,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         ms_control-page_menu = build_main_menu( ).
 
         " Read global settings to get max # of objects to be listed
-        lo_settings     = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+        lo_settings     = zcl_abapgit_persist_factory=>get_settings( )->read( ).
         mv_max_lines    = lo_settings->get_max_lines( ).
         mv_max_setting  = mv_max_lines.
 
@@ -43599,7 +43609,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -43614,7 +43624,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
           lt_stage    TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     " Get setting for default comment text
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     rv_text = lo_settings->get_commitmsg_comment_default( ).
 
@@ -43779,7 +43789,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
                                      iv_label = 'Committer E-mail'
                                      iv_value = lv_email ) ).
 
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     lv_s_param = lo_settings->get_commitmsg_comment_length( ).
 
@@ -44008,7 +44018,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
 
     " see SCI_LCL_DYNP_530 / HANDLE_DOUBLE_CLICK
 
-    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+    lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
 
     TRY.
         IF lv_adt_jump_enabled = abap_true.
@@ -45097,11 +45107,11 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
     ms_control-page_layout = c_page_layout-centered.
 
   ENDMETHOD.
@@ -50949,7 +50959,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -50965,7 +50975,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
        sy-batch = abap_false AND
        sy-cprog = lc_abapgit_prog.
 
-      IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_show_default_repo( ) = abap_false.
+      IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_show_default_repo( ) = abap_false.
         MESSAGE 'abapGit was updated and will restart itself' TYPE 'I'.
       ENDIF.
 
@@ -52407,16 +52417,8 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
-  METHOD get_instance.
-
-    IF go_persist IS NOT BOUND.
-      CREATE OBJECT go_persist.
-    ENDIF.
-    ro_settings = go_persist.
-
-  ENDMETHOD.
-  METHOD modify.
+CLASS ZCL_ABAPGIT_PERSIST_SETTINGS IMPLEMENTATION.
+  METHOD zif_abapgit_persist_settings~modify.
 
     DATA: lv_settings      TYPE string,
           ls_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
@@ -52438,7 +52440,7 @@ CLASS zcl_abapgit_persist_settings IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD read.
+  METHOD zif_abapgit_persist_settings~read.
 
     IF mo_settings IS BOUND.
       " Return Buffered Settings
@@ -52775,6 +52777,15 @@ CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
     ENDIF.
 
     ri_repo = gi_repo.
+
+  ENDMETHOD.
+  METHOD get_settings.
+
+    IF gi_settings IS INITIAL.
+      CREATE OBJECT gi_settings TYPE zcl_abapgit_persist_settings.
+    ENDIF.
+
+    ri_settings = gi_settings.
 
   ENDMETHOD.
 ENDCLASS.
@@ -54636,7 +54647,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -55254,7 +55265,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Object { is_item-obj_type } { is_item-obj_name } doesn't exist| ).
     ENDIF.
 
-    lv_adt_jump_enabled = zcl_abapgit_persist_settings=>get_instance( )->read( )->get_adt_jump_enabled( ).
+    lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
 
     IF lv_adt_jump_enabled = abap_true.
 
@@ -93846,7 +93857,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_serialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
   METHOD add_apack.
 
     DATA ls_apack_file TYPE zif_abapgit_definitions=>ty_file.
@@ -93959,7 +93970,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     DATA lo_settings TYPE REF TO zcl_abapgit_settings.
 
-    lo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
         OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
@@ -94699,7 +94710,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   METHOD activate.
 
     " Make sure that all changes are committed since any activation error will lead to a rollback
@@ -94825,7 +94836,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
     IF gt_objects IS NOT INITIAL.
 
       IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
-        IF zcl_abapgit_persist_settings=>get_instance( )->read( )->get_activate_wo_popup( ) = abap_true.
+        IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_activate_wo_popup( ) = abap_true.
           lv_popup = abap_false.
         ELSE.
           lv_popup = abap_true.
@@ -98643,10 +98654,22 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_proxy_config IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PROXY_CONFIG IMPLEMENTATION.
+  METHOD bypass_proxy.
+
+    DATA lt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
+
+    lt_proxy_bypass = mo_settings->get_proxy_bypass( ).
+
+    IF lt_proxy_bypass IS NOT INITIAL
+    AND iv_repo_url IN lt_proxy_bypass.
+      rv_bypass_proxy = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
 
-    mo_settings = zcl_abapgit_persist_settings=>get_instance( )->read( ).
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     mi_exit = zcl_abapgit_exit=>get_instance( ).
 
@@ -98692,19 +98715,6 @@ CLASS zcl_abapgit_proxy_config IMPLEMENTATION.
         cv_proxy_url = rv_proxy_url ).
 
   ENDMETHOD.
-  METHOD bypass_proxy.
-
-    DATA lt_proxy_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url.
-
-    lt_proxy_bypass = mo_settings->get_proxy_bypass( ).
-
-    IF lt_proxy_bypass IS NOT INITIAL
-    AND iv_repo_url IN lt_proxy_bypass.
-      rv_bypass_proxy = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PROXY_AUTH IMPLEMENTATION.
@@ -104726,6 +104736,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-03T08:34:27.119Z
+* abapmerge 0.14.3 - 2021-08-03T13:14:11.955Z
 ENDINTERFACE.
 ****************************************************
