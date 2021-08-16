@@ -79,8 +79,6 @@ INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
-INTERFACE zif_abapgit_ajson_writer DEFERRED.
-INTERFACE zif_abapgit_ajson_reader DEFERRED.
 INTERFACE zif_abapgit_ajson_mapping DEFERRED.
 INTERFACE zif_abapgit_ajson DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
@@ -1079,7 +1077,7 @@ INTERFACE zif_abapgit_http_response .
       VALUE(rv_data) TYPE string .
   METHODS json
     RETURNING
-      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson_reader
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
     RAISING
       zcx_abapgit_ajson_error .
   METHODS is_ok
@@ -1099,198 +1097,11 @@ INTERFACE zif_abapgit_http_response .
   METHODS close .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_ajson_mapping.
+INTERFACE zif_abapgit_ajson.
 
-  TYPES:
-    BEGIN OF ty_mapping_field,
-      abap TYPE string,
-      json TYPE string,
-    END OF ty_mapping_field,
-    ty_mapping_fields TYPE STANDARD TABLE OF ty_mapping_field
-      WITH UNIQUE SORTED KEY abap COMPONENTS abap
-      WITH UNIQUE SORTED KEY json COMPONENTS json.
-
-  METHODS to_abap
-    IMPORTING
-      !iv_path         TYPE string
-      !iv_name         TYPE string
-    RETURNING
-      VALUE(rv_result) TYPE string.
-
-  METHODS to_json
-    IMPORTING
-      !iv_path         TYPE string
-      !iv_name         TYPE string
-    RETURNING
-      VALUE(rv_result) TYPE string.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_ajson_reader .
-
-  METHODS exists
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_exists) TYPE abap_bool.
-  METHODS members
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rt_members) TYPE string_table.
-  METHODS get
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE string.
-  METHODS get_node_type
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_node_type) TYPE string.
-  METHODS get_boolean
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE abap_bool.
-  METHODS get_integer
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE i.
-  METHODS get_number
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE f.
-  METHODS get_date
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE d.
-  METHODS get_timestamp
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE timestamp.
-  METHODS get_string
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rv_value) TYPE string.
-  METHODS slice
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson_reader.
-  METHODS to_abap
-    EXPORTING
-      ev_container TYPE any
-    RAISING
-      zcx_abapgit_ajson_error.
-  METHODS array_to_string_table
-    IMPORTING
-      iv_path TYPE string
-    RETURNING
-      VALUE(rt_string_table) TYPE string_table
-    RAISING
-      zcx_abapgit_ajson_error.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_ajson_writer .
-
-  METHODS clear
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE any
-      iv_ignore_empty TYPE abap_bool DEFAULT abap_true
-      iv_node_type TYPE string OPTIONAL
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_boolean
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE any
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_string
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE clike
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_integer
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE i
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_date
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE d
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_timestamp
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE timestamp
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS set_null
-    IMPORTING
-      iv_path TYPE string
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS delete
-    IMPORTING
-      iv_path TYPE string
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS touch_array
-    IMPORTING
-      iv_path TYPE string
-      iv_clear TYPE abap_bool DEFAULT abap_false
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS push
-    IMPORTING
-      iv_path TYPE string
-      iv_val TYPE any
-    RAISING
-      zcx_abapgit_ajson_error.
-
-  METHODS stringify
-    IMPORTING
-      iv_indent TYPE i DEFAULT 0
-    RETURNING
-      VALUE(rv_json) TYPE string
-    RAISING
-      zcx_abapgit_ajson_error.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_ajson .
-
-  CONSTANTS version TYPE string VALUE 'v1.0.4'.
-  CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'.
-
-  INTERFACES zif_abapgit_ajson_reader.
-  INTERFACES zif_abapgit_ajson_writer.
+  CONSTANTS version TYPE string VALUE 'v1.1.0-pre1'. "#EC NOTEXT
+  CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
+  CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
   CONSTANTS:
     BEGIN OF node_type,
@@ -1332,35 +1143,222 @@ INTERFACE zif_abapgit_ajson .
   " METHODS
 
   METHODS freeze.
-  METHODS keep_item_order.
+  METHODS keep_item_order
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
 
-  " METHODS (merged from reader/writer), maybe will completely move to this IF in future !
+  " METHODS ex.reader
 
-  ALIASES:
-    exists FOR zif_abapgit_ajson_reader~exists,
-    members FOR zif_abapgit_ajson_reader~members,
-    get FOR zif_abapgit_ajson_reader~get,
-    get_boolean FOR zif_abapgit_ajson_reader~get_boolean,
-    get_integer FOR zif_abapgit_ajson_reader~get_integer,
-    get_number FOR zif_abapgit_ajson_reader~get_number,
-    get_date FOR zif_abapgit_ajson_reader~get_date,
-    get_string FOR zif_abapgit_ajson_reader~get_string,
-    slice FOR zif_abapgit_ajson_reader~slice,
-    to_abap FOR zif_abapgit_ajson_reader~to_abap,
-    array_to_string_table FOR zif_abapgit_ajson_reader~array_to_string_table.
+  METHODS exists
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_exists) TYPE abap_bool.
 
-  ALIASES:
-    clear FOR zif_abapgit_ajson_writer~clear,
-    set FOR zif_abapgit_ajson_writer~set,
-    set_boolean FOR zif_abapgit_ajson_writer~set_boolean,
-    set_string FOR zif_abapgit_ajson_writer~set_string,
-    set_integer FOR zif_abapgit_ajson_writer~set_integer,
-    set_date FOR zif_abapgit_ajson_writer~set_date,
-    set_null FOR zif_abapgit_ajson_writer~set_null,
-    delete FOR zif_abapgit_ajson_writer~delete,
-    touch_array FOR zif_abapgit_ajson_writer~touch_array,
-    push FOR zif_abapgit_ajson_writer~push,
-    stringify FOR zif_abapgit_ajson_writer~stringify.
+  METHODS members
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rt_members) TYPE string_table.
+
+  METHODS get
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE string.
+
+  METHODS get_node_type
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_node_type) TYPE string.
+
+  METHODS get_boolean
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE abap_bool.
+
+  METHODS get_integer
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE i.
+
+  METHODS get_number
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE f.
+
+  METHODS get_date
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE d.
+
+  METHODS get_timestamp
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE timestamp.
+
+  METHODS get_string
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rv_value) TYPE string.
+
+  METHODS slice
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
+
+  METHODS to_abap
+    EXPORTING
+      ev_container TYPE any
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS array_to_string_table
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(rt_string_table) TYPE string_table
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  " METHODS ex.writer
+
+  METHODS clear
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE any
+      iv_ignore_empty TYPE abap_bool DEFAULT abap_true
+      iv_node_type TYPE string OPTIONAL
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_boolean
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE any
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_string
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE clike
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_integer
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE i
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_date
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE d
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_timestamp
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE timestamp
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS set_null
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS delete
+    IMPORTING
+      iv_path TYPE string
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS touch_array
+    IMPORTING
+      iv_path TYPE string
+      iv_clear TYPE abap_bool DEFAULT abap_false
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS push
+    IMPORTING
+      iv_path TYPE string
+      iv_val TYPE any
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS stringify
+    IMPORTING
+      iv_indent TYPE i DEFAULT 0
+    RETURNING
+      VALUE(rv_json) TYPE string
+    RAISING
+      zcx_abapgit_ajson_error.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_ajson_mapping.
+
+  TYPES:
+    BEGIN OF ty_mapping_field,
+      abap TYPE string,
+      json TYPE string,
+    END OF ty_mapping_field,
+    ty_mapping_fields TYPE STANDARD TABLE OF ty_mapping_field
+      WITH UNIQUE SORTED KEY abap COMPONENTS abap
+      WITH UNIQUE SORTED KEY json COMPONENTS json.
+
+  METHODS to_abap
+    IMPORTING
+      !iv_path         TYPE string
+      !iv_name         TYPE string
+    RETURNING
+      VALUE(rv_result) TYPE string.
+
+  METHODS to_json
+    IMPORTING
+      !iv_path         TYPE string
+      !iv_name         TYPE string
+    RETURNING
+      VALUE(rv_result) TYPE string.
 
 ENDINTERFACE.
 
@@ -5473,7 +5471,7 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION
 
     TYPES:
       BEGIN OF ty_info,
-        repo_json TYPE REF TO zif_abapgit_ajson_reader,
+        repo_json TYPE REF TO zif_abapgit_ajson,
         pulls     TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests,
       END OF ty_info.
 
@@ -5490,7 +5488,7 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION
 
     METHODS convert_list
       IMPORTING
-        ii_json         TYPE REF TO zif_abapgit_ajson_reader
+        ii_json         TYPE REF TO zif_abapgit_ajson
       RETURNING
         VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
 
@@ -5499,7 +5497,6 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION
         iv_url        TYPE string
       RETURNING
         VALUE(rv_url) TYPE string.
-
 ENDCLASS.
 CLASS zcl_abapgit_pr_enumerator DEFINITION
   FINAL
@@ -5761,32 +5758,32 @@ CLASS zcl_abapgit_ajson DEFINITION
     INTERFACES zif_abapgit_ajson .
 
     ALIASES:
-      exists FOR zif_abapgit_ajson_reader~exists,
-      members FOR zif_abapgit_ajson_reader~members,
-      get FOR zif_abapgit_ajson_reader~get,
-      get_boolean FOR zif_abapgit_ajson_reader~get_boolean,
-      get_integer FOR zif_abapgit_ajson_reader~get_integer,
-      get_number FOR zif_abapgit_ajson_reader~get_number,
-      get_date FOR zif_abapgit_ajson_reader~get_date,
-      get_timestamp FOR zif_abapgit_ajson_reader~get_timestamp,
-      get_string FOR zif_abapgit_ajson_reader~get_string,
-      slice FOR zif_abapgit_ajson_reader~slice,
-      to_abap FOR zif_abapgit_ajson_reader~to_abap,
-      array_to_string_table FOR zif_abapgit_ajson_reader~array_to_string_table.
+      exists FOR zif_abapgit_ajson~exists,
+      members FOR zif_abapgit_ajson~members,
+      get FOR zif_abapgit_ajson~get,
+      get_boolean FOR zif_abapgit_ajson~get_boolean,
+      get_integer FOR zif_abapgit_ajson~get_integer,
+      get_number FOR zif_abapgit_ajson~get_number,
+      get_date FOR zif_abapgit_ajson~get_date,
+      get_timestamp FOR zif_abapgit_ajson~get_timestamp,
+      get_string FOR zif_abapgit_ajson~get_string,
+      slice FOR zif_abapgit_ajson~slice,
+      to_abap FOR zif_abapgit_ajson~to_abap,
+      array_to_string_table FOR zif_abapgit_ajson~array_to_string_table.
 
     ALIASES:
-      clear FOR zif_abapgit_ajson_writer~clear,
-      set FOR zif_abapgit_ajson_writer~set,
-      set_boolean FOR zif_abapgit_ajson_writer~set_boolean,
-      set_string FOR zif_abapgit_ajson_writer~set_string,
-      set_integer FOR zif_abapgit_ajson_writer~set_integer,
-      set_date FOR zif_abapgit_ajson_writer~set_date,
-      set_timestamp FOR zif_abapgit_ajson_writer~set_timestamp,
-      set_null FOR zif_abapgit_ajson_writer~set_null,
-      delete FOR zif_abapgit_ajson_writer~delete,
-      touch_array FOR zif_abapgit_ajson_writer~touch_array,
-      push FOR zif_abapgit_ajson_writer~push,
-      stringify FOR zif_abapgit_ajson_writer~stringify.
+      clear FOR zif_abapgit_ajson~clear,
+      set FOR zif_abapgit_ajson~set,
+      set_boolean FOR zif_abapgit_ajson~set_boolean,
+      set_string FOR zif_abapgit_ajson~set_string,
+      set_integer FOR zif_abapgit_ajson~set_integer,
+      set_date FOR zif_abapgit_ajson~set_date,
+      set_timestamp FOR zif_abapgit_ajson~set_timestamp,
+      set_null FOR zif_abapgit_ajson~set_null,
+      delete FOR zif_abapgit_ajson~delete,
+      touch_array FOR zif_abapgit_ajson~touch_array,
+      push FOR zif_abapgit_ajson~push,
+      stringify FOR zif_abapgit_ajson~stringify.
 
     ALIASES:
       mt_json_tree FOR zif_abapgit_ajson~mt_json_tree,
@@ -5980,9 +5977,9 @@ CLASS zcl_abapgit_ajson_utilities DEFINITION
 
     DATA mo_json_a TYPE REF TO zif_abapgit_ajson .
     DATA mo_json_b TYPE REF TO zif_abapgit_ajson .
-    DATA mo_insert TYPE REF TO zif_abapgit_ajson_writer .
-    DATA mo_delete TYPE REF TO zif_abapgit_ajson_writer .
-    DATA mo_change TYPE REF TO zif_abapgit_ajson_writer .
+    DATA mo_insert TYPE REF TO zif_abapgit_ajson .
+    DATA mo_delete TYPE REF TO zif_abapgit_ajson .
+    DATA mo_change TYPE REF TO zif_abapgit_ajson .
 
     METHODS diff_a_b
       IMPORTING
@@ -96736,9 +96733,9 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         iv_first_json_upper = iv_first_json_upper.
 
   ENDMETHOD.
-  METHOD create_upper_case.
+  METHOD create_field_mapping.
 
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoayhtkOTSGN
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz
       EXPORTING
         it_mapping_fields = it_mapping_fields.
 
@@ -96750,9 +96747,9 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         it_mapping_fields = it_mapping_fields.
 
   ENDMETHOD.
-  METHOD create_field_mapping.
+  METHOD create_upper_case.
 
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoayhtkOTSGN
       EXPORTING
         it_mapping_fields = it_mapping_fields.
 
@@ -97464,11 +97461,11 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
 
   METHOD to_timestamp.
 
-    CONSTANTS lc_tzone_utc TYPE tznzone VALUE `UTC`.
+    CONSTANTS lc_utc TYPE c LENGTH 6 VALUE 'UTC'.
     CONSTANTS lc_regex_ts_with_hour TYPE string
-        VALUE `^(\d{4})-(\d{2})-(\d{2})(T)(\d{2}):(\d{2}):(\d{2})(\+)(\d{2}):(\d{2})`.
+      VALUE `^(\d{4})-(\d{2})-(\d{2})(T)(\d{2}):(\d{2}):(\d{2})(\+)(\d{2}):(\d{2})`.
     CONSTANTS lc_regex_ts_utc TYPE string
-        VALUE `^(\d{4})-(\d{2})-(\d{2})(T)(\d{2}):(\d{2}):(\d{2})(Z|$)`.
+      VALUE `^(\d{4})-(\d{2})-(\d{2})(T)(\d{2}):(\d{2}):(\d{2})(Z|$)`.
 
     DATA:
       BEGIN OF ls_timestamp,
@@ -97515,7 +97512,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
     CONCATENATE ls_timestamp-year ls_timestamp-month ls_timestamp-day INTO lv_date.
     CONCATENATE ls_timestamp-hour ls_timestamp-minute ls_timestamp-second INTO lv_time.
 
-    CONVERT DATE lv_date TIME lv_time INTO TIME STAMP lv_timestamp TIME ZONE lc_tzone_utc.
+    CONVERT DATE lv_date TIME lv_time INTO TIME STAMP lv_timestamp TIME ZONE lc_utc.
 
     TRY.
 
@@ -98170,7 +98167,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ASSERT lv_cur_path = iv_path. " Just in case
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~array_to_string_table.
+  METHOD zif_abapgit_ajson~array_to_string_table.
 
     DATA lv_normalized_path TYPE string.
     DATA lr_node TYPE REF TO zif_abapgit_ajson=>ty_node.
@@ -98207,7 +98204,32 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~exists.
+  METHOD zif_abapgit_ajson~clear.
+
+    IF mv_read_only = abap_true.
+      zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
+    ENDIF.
+
+    CLEAR mt_json_tree.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~delete.
+
+    IF mv_read_only = abap_true.
+      zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
+    ENDIF.
+
+    DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
+    ls_split_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( iv_path ).
+
+    delete_subtree(
+      iv_path = ls_split_path-path
+      iv_name = ls_split_path-name ).
+
+    ri_json = me.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~exists.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98216,7 +98238,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get.
+  METHOD zif_abapgit_ajson~freeze.
+    mv_read_only = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~get.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98225,7 +98250,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_boolean.
+  METHOD zif_abapgit_ajson~get_boolean.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98238,7 +98263,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_date.
+  METHOD zif_abapgit_ajson~get_date.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     DATA lv_y TYPE c LENGTH 4.
@@ -98255,7 +98280,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_integer.
+  METHOD zif_abapgit_ajson~get_integer.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98264,7 +98289,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_node_type.
+  METHOD zif_abapgit_ajson~get_node_type.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98273,7 +98298,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_number.
+  METHOD zif_abapgit_ajson~get_number.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98282,7 +98307,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_string.
+  METHOD zif_abapgit_ajson~get_string.
 
     DATA lv_item TYPE REF TO zif_abapgit_ajson=>ty_node.
     lv_item = get_item( iv_path ).
@@ -98291,7 +98316,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~get_timestamp.
+  METHOD zif_abapgit_ajson~get_timestamp.
 
     DATA lo_to_abap TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
     DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
@@ -98311,7 +98336,11 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~members.
+  METHOD zif_abapgit_ajson~keep_item_order.
+    mv_keep_item_order = abap_true.
+    ri_json = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~members.
 
     DATA lv_normalized_path TYPE string.
     FIELD-SYMBOLS <item> LIKE LINE OF mt_json_tree.
@@ -98323,74 +98352,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~slice.
-
-    DATA lo_section         TYPE REF TO zcl_abapgit_ajson.
-    DATA ls_item            LIKE LINE OF mt_json_tree.
-    DATA lv_normalized_path TYPE string.
-    DATA ls_path_parts      TYPE zif_abapgit_ajson=>ty_path_name.
-    DATA lv_path_len        TYPE i.
-
-    CREATE OBJECT lo_section.
-    lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
-    lv_path_len        = strlen( lv_normalized_path ).
-    ls_path_parts      = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( lv_normalized_path ).
-
-    LOOP AT mt_json_tree INTO ls_item.
-      " TODO potentially improve performance due to sorted tree (all path started from same prefix go in a row)
-      IF strlen( ls_item-path ) >= lv_path_len
-          AND substring( val = ls_item-path
-                         len = lv_path_len ) = lv_normalized_path.
-        ls_item-path = substring( val = ls_item-path
-                                  off = lv_path_len - 1 ). " less closing '/'
-        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
-      ELSEIF ls_item-path = ls_path_parts-path AND ls_item-name = ls_path_parts-name.
-        CLEAR: ls_item-path, ls_item-name. " this becomes a new root
-        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
-      ENDIF.
-    ENDLOOP.
-
-    ri_json = lo_section.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson_reader~to_abap.
-
-    DATA lo_to_abap TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
-
-    CLEAR ev_container.
-    kHGwlMWhQrsNKkKXALnpXxNdxsjJjI=>bind(
-      EXPORTING
-        ii_custom_mapping = mi_custom_mapping
-      CHANGING
-        c_obj             = ev_container
-        co_instance       = lo_to_abap ).
-    lo_to_abap->to_abap( mt_json_tree ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~clear.
-
-    IF mv_read_only = abap_true.
-      zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
-    ENDIF.
-
-    CLEAR mt_json_tree.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~delete.
-
-    IF mv_read_only = abap_true.
-      zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
-    ENDIF.
-
-    DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
-    ls_split_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( iv_path ).
-
-    delete_subtree(
-      iv_path = ls_split_path-path
-      iv_name = ls_split_path-name ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~push.
+  METHOD zif_abapgit_ajson~push.
 
     DATA lr_parent TYPE REF TO zif_abapgit_ajson=>ty_node.
     DATA lr_new_node TYPE REF TO zif_abapgit_ajson=>ty_node.
@@ -98427,8 +98389,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     lr_parent->children = lr_parent->children + 1.
     INSERT LINES OF lt_new_nodes INTO TABLE mt_json_tree.
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set.
+  METHOD zif_abapgit_ajson~set.
 
     DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
     DATA lr_parent TYPE REF TO zif_abapgit_ajson=>ty_node.
@@ -98508,18 +98472,22 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     lr_parent->children = lr_parent->children + 1.
     INSERT LINES OF lt_new_nodes INTO TABLE mt_json_tree.
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_boolean.
+  METHOD zif_abapgit_ajson~set_boolean.
 
     DATA lv_bool TYPE abap_bool.
     lv_bool = boolc( iv_val IS NOT INITIAL ).
-    zif_abapgit_ajson_writer~set(
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_bool ).
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_date.
+  METHOD zif_abapgit_ajson~set_date.
 
     DATA lv_val TYPE string.
 
@@ -98527,43 +98495,52 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       lv_val = iv_val+0(4) && '-' && iv_val+4(2) && '-' && iv_val+6(2).
     ENDIF.
 
-    zif_abapgit_ajson_writer~set(
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_val ).
 
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_integer.
+    ri_json = me.
 
-    zif_abapgit_ajson_writer~set(
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~set_integer.
+
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = iv_val ).
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_null.
+  METHOD zif_abapgit_ajson~set_null.
 
     DATA lv_null_ref TYPE REF TO data.
-    zif_abapgit_ajson_writer~set(
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_null_ref ).
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_string.
+  METHOD zif_abapgit_ajson~set_string.
 
     DATA lv_val TYPE string.
     lv_val = iv_val.
-    zif_abapgit_ajson_writer~set(
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_val ).
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~set_timestamp.
+  METHOD zif_abapgit_ajson~set_timestamp.
+
+    CONSTANTS lc_utc TYPE c LENGTH 6 VALUE 'UTC'.
 
     DATA:
-      lv_tz            TYPE tznzone,
       lv_date          TYPE d,
       lv_time          TYPE t,
       lv_timestamp_iso TYPE string.
@@ -98573,8 +98550,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       lv_date = '00010101'.
     ELSE.
 
-      lv_tz = 'UTC'.
-      CONVERT TIME STAMP iv_val TIME ZONE lv_tz
+      CONVERT TIME STAMP iv_val TIME ZONE lc_utc
         INTO DATE lv_date TIME lv_time.
 
     ENDIF.
@@ -98585,13 +98561,45 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         lv_time+0(2) && '-' && lv_time+2(2) && '-' && lv_time+4(2) &&
         'Z'.
 
-    zif_abapgit_ajson_writer~set(
+    zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_timestamp_iso ).
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~stringify.
+  METHOD zif_abapgit_ajson~slice.
+
+    DATA lo_section         TYPE REF TO zcl_abapgit_ajson.
+    DATA ls_item            LIKE LINE OF mt_json_tree.
+    DATA lv_normalized_path TYPE string.
+    DATA ls_path_parts      TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA lv_path_len        TYPE i.
+
+    CREATE OBJECT lo_section.
+    lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
+    lv_path_len        = strlen( lv_normalized_path ).
+    ls_path_parts      = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( lv_normalized_path ).
+
+    LOOP AT mt_json_tree INTO ls_item.
+      " TODO potentially improve performance due to sorted tree (all path started from same prefix go in a row)
+      IF strlen( ls_item-path ) >= lv_path_len
+          AND substring( val = ls_item-path
+                         len = lv_path_len ) = lv_normalized_path.
+        ls_item-path = substring( val = ls_item-path
+                                  off = lv_path_len - 1 ). " less closing '/'
+        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
+      ELSEIF ls_item-path = ls_path_parts-path AND ls_item-name = ls_path_parts-name.
+        CLEAR: ls_item-path, ls_item-name. " this becomes a new root
+        INSERT ls_item INTO TABLE lo_section->mt_json_tree.
+      ENDIF.
+    ENDLOOP.
+
+    ri_json = lo_section.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~stringify.
 
     rv_json = kHGwlMWhQrsNKkKXALnpFgyFungUrS=>stringify(
       it_json_tree       = mt_json_tree
@@ -98599,7 +98607,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_indent          = iv_indent ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_ajson_writer~touch_array.
+  METHOD zif_abapgit_ajson~touch_array.
 
     DATA lr_node TYPE REF TO zif_abapgit_ajson=>ty_node.
     DATA ls_new_node LIKE LINE OF mt_json_tree.
@@ -98645,12 +98653,22 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       zcx_abapgit_ajson_error=>raise( |Path [{ iv_path }] already used and is not array| ).
     ENDIF.
 
+    ri_json = me.
+
   ENDMETHOD.
-  METHOD zif_abapgit_ajson~freeze.
-    mv_read_only = abap_true.
-  ENDMETHOD.
-  METHOD zif_abapgit_ajson~keep_item_order.
-    mv_keep_item_order = abap_true.
+  METHOD zif_abapgit_ajson~to_abap.
+
+    DATA lo_to_abap TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
+
+    CLEAR ev_container.
+    kHGwlMWhQrsNKkKXALnpXxNdxsjJjI=>bind(
+      EXPORTING
+        ii_custom_mapping = mi_custom_mapping
+      CHANGING
+        c_obj             = ev_container
+        co_instance       = lo_to_abap ).
+    lo_to_abap->to_abap( mt_json_tree ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -99428,7 +99446,7 @@ CLASS ZCL_ABAPGIT_PR_ENUMERATOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_pr_enum_github IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
   METHOD clean_url.
     rv_url = replace(
       val = iv_url
@@ -99472,7 +99490,7 @@ CLASS zcl_abapgit_pr_enum_github IMPLEMENTATION.
   ENDMETHOD.
   METHOD fetch_repo_by_url.
 
-    DATA li_pulls_json TYPE REF TO zif_abapgit_ajson_reader.
+    DATA li_pulls_json TYPE REF TO zif_abapgit_ajson.
     DATA lv_pull_url TYPE string.
     DATA li_response TYPE REF TO zif_abapgit_http_response.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
@@ -101963,7 +101981,7 @@ CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
   METHOD convert_json_to_itab.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -101975,7 +101993,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
     TRY.
         lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( is_file-data ) ).
-        lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = <lg_tab> ).
+        lo_ajson->zif_abapgit_ajson~to_abap( IMPORTING ev_container = <lg_tab> ).
       CATCH zcx_abapgit_ajson_error INTO lx_ajson.
         zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
     ENDTRY.
@@ -102112,7 +102130,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_data_config IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -102120,7 +102138,7 @@ CLASS zcl_abapgit_data_config IMPLEMENTATION.
 
     TRY.
         lo_ajson = zcl_abapgit_ajson=>create_empty( ).
-        lo_ajson->zif_abapgit_ajson_writer~set(
+        lo_ajson->zif_abapgit_ajson~set(
           iv_path = '/'
           iv_val  = is_config ).
         rv_json = zcl_abapgit_convert=>string_to_xstring_utf8( lo_ajson->stringify( 2 ) ).
@@ -102153,7 +102171,7 @@ CLASS zcl_abapgit_data_config IMPLEMENTATION.
         AND filename CP |*.{ zif_abapgit_data_config=>c_config }.{ zif_abapgit_data_config=>c_default_format }|.
       TRY.
           lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( ls_file-data ) ).
-          lo_ajson->zif_abapgit_ajson_reader~to_abap( IMPORTING ev_container = ls_config ).
+          lo_ajson->zif_abapgit_ajson~to_abap( IMPORTING ev_container = ls_config ).
         CATCH zcx_abapgit_ajson_error INTO lx_ajson.
           zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
       ENDTRY.
@@ -104736,6 +104754,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-11T09:35:56.364Z
+* abapmerge 0.14.3 - 2021-08-16T06:21:03.403Z
 ENDINTERFACE.
 ****************************************************
