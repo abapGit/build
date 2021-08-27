@@ -54853,7 +54853,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
             is_item     = is_item
             iv_language = iv_language.
       CATCH cx_sy_create_object_error.
-        lv_message = |Object type { is_item-obj_type } not supported, serialize|.
+        lv_message = |Object type { is_item-obj_type } is not supported by this system|.
         IF iv_native_only = abap_false.
           TRY. " 2nd step, try looking for plugins
               CREATE OBJECT ri_obj TYPE zcl_abapgit_objects_bridge
@@ -104763,6 +104763,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-27T16:59:06.731Z
+* abapmerge 0.14.3 - 2021-08-27T18:54:16.891Z
 ENDINTERFACE.
 ****************************************************
