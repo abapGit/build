@@ -95259,7 +95259,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -95683,9 +95683,9 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
             " is required i.e. setting a parent package to iv_devclass (or one of its
             " subpackages). We don't this automatically since it's not clear where in the
             " hierarchy the new package should be located. (#4108)
-            lv_msg = |Package { ls_item-devclass } is not a subpackage of { iv_devclass
-                     }. Assign { ls_item-devclass } to package hierarchy of { iv_devclass
-                     } and repeat process.|.
+            lv_msg = |Package { ls_item-devclass } already exists but is not a subpackage of { iv_devclass
+                     }. Check your package and folder logic or assign { ls_item-devclass
+                     } to package hierarchy of { iv_devclass } to match the repository.|.
             zcx_abapgit_exception=>raise( lv_msg ).
           ELSE.
             CLEAR ls_item-devclass.
@@ -104763,6 +104763,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-27T16:47:37.897Z
+* abapmerge 0.14.3 - 2021-08-27T16:59:06.731Z
 ENDINTERFACE.
 ****************************************************
