@@ -27664,6 +27664,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'table.db_tab tr.selected {' ).
     lo_buf->add( '  background-color: rgba(191, 191, 191, 1) !important;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab a.remote_repo {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab a.remote_repo:hover { color: var(--theme-link-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRY DISPLAY */' ).
     lo_buf->add( 'div.db_entry {' ).
@@ -40416,7 +40420,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_text                 TYPE string,
       lv_lock                 TYPE string,
       lv_toggle_favorite_link TYPE string,
-      lv_repo_go_link TYPE string.
+      lv_repo_go_link         TYPE string,
+      lv_remote_icon_link     TYPE string.
 
     FIELD-SYMBOLS: <ls_repo>     LIKE LINE OF it_repo_list.
 
@@ -40470,9 +40475,17 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         column( iv_content = zcl_abapgit_gui_chunk_lib=>render_package_name(
                             iv_package = <ls_repo>-package
                             iv_suppress_title = abap_true )->render( ) ) ).
-
       IF <ls_repo>-type = abap_false.
-        lv_text = shorten_repo_url( <ls_repo>-url ).
+        lv_remote_icon_link = ii_html->a(
+          iv_txt   = ii_html->icon( iv_name  = 'edit-solid'
+                                    iv_class = 'pad-sides'
+                                    iv_hint  = 'Change remote' )
+          iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?| &&
+                     |key={ <ls_repo>-key }|
+          iv_class = |remote_repo| ).
+
+        lv_text = shorten_repo_url( <ls_repo>-url ) && lv_remote_icon_link.
+
         ii_html->add( column( iv_content = |{ ii_html->a(
           iv_txt   = lv_text
           iv_title = <ls_repo>-url
@@ -104763,6 +104776,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-28T15:49:21.753Z
+* abapmerge 0.14.3 - 2021-08-29T10:55:11.304Z
 ENDINTERFACE.
 ****************************************************
