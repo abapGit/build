@@ -34625,6 +34625,12 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     WHILE ls_last_line IS INITIAL.
       lv_last_line_index = lines( lt_post_data ).
       READ TABLE lt_post_data INTO ls_last_line INDEX lv_last_line_index.
+      "Avoid trailing null values (see isssue #4832)
+      "todo, keep until SAP GUI for Java is fixed (remove on 2022-12-31)
+      ls_last_line = replace( val  = ls_last_line
+                              sub  = zcl_abapgit_git_utils=>get_null( )
+                              with = space
+                              occ  = 0 ).
       DELETE lt_post_data INDEX lv_last_line_index.
     ENDWHILE.
 
@@ -104776,6 +104782,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-29T10:55:11.304Z
+* abapmerge 0.14.3 - 2021-08-29T11:06:06.070Z
 ENDINTERFACE.
 ****************************************************
