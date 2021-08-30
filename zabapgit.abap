@@ -97868,7 +97868,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
       <n>-type = zif_abapgit_ajson=>node_type-number.
       <n>-value = |{ iv_data }|.
     ELSE.
-      zcx_abapgit_ajson_error=>raise( |Unexpected elemetary type [{
+      zcx_abapgit_ajson_error=>raise( |Unexpected elementary type [{
         io_type->type_kind }] @{ is_prefix-path && is_prefix-name }| ).
     ENDIF.
 
@@ -98458,6 +98458,8 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
     ENDIF.
 
+    ri_json = me.
+
     IF iv_val IS INITIAL AND iv_ignore_empty = abap_true AND iv_node_type IS INITIAL.
       RETURN. " nothing to assign
     ENDIF.
@@ -98528,10 +98530,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     lr_parent->children = lr_parent->children + 1.
     INSERT LINES OF lt_new_nodes INTO TABLE mt_json_tree.
 
-    ri_json = me.
-
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_boolean.
+
+    ri_json = me.
 
     DATA lv_bool TYPE abap_bool.
     lv_bool = boolc( iv_val IS NOT INITIAL ).
@@ -98540,13 +98542,12 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_path = iv_path
       iv_val  = lv_bool ).
 
-    ri_json = me.
-
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_date.
 
-    DATA lv_val TYPE string.
+    ri_json = me.
 
+    DATA lv_val TYPE string.
     IF iv_val IS NOT INITIAL.
       lv_val = iv_val+0(4) && '-' && iv_val+4(2) && '-' && iv_val+6(2).
     ENDIF.
@@ -98556,20 +98557,20 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_path = iv_path
       iv_val  = lv_val ).
 
-    ri_json = me.
-
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_integer.
+
+    ri_json = me.
 
     zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = iv_val ).
 
-    ri_json = me.
-
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_null.
+
+    ri_json = me.
 
     DATA lv_null_ref TYPE REF TO data.
     zif_abapgit_ajson~set(
@@ -98577,10 +98578,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_path = iv_path
       iv_val  = lv_null_ref ).
 
-    ri_json = me.
-
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_string.
+
+    ri_json = me.
 
     DATA lv_val TYPE string.
     lv_val = iv_val.
@@ -98588,8 +98589,6 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_val ).
-
-    ri_json = me.
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_timestamp.
@@ -98600,6 +98599,8 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       lv_date          TYPE d,
       lv_time          TYPE t,
       lv_timestamp_iso TYPE string.
+
+    ri_json = me.
 
     IF iv_val IS INITIAL.
       " The zero value is January 1, year 1, 00:00:00.000000000 UTC.
@@ -98621,8 +98622,6 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_ignore_empty = abap_false
       iv_path = iv_path
       iv_val  = lv_timestamp_iso ).
-
-    ri_json = me.
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson~slice.
@@ -104819,6 +104818,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-30T05:32:44.277Z
+* abapmerge 0.14.3 - 2021-08-30T05:35:56.354Z
 ENDINTERFACE.
 ****************************************************
