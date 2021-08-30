@@ -50787,7 +50787,7 @@ CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -50861,7 +50861,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
       IF <ls_repo_item>-obj_type IS NOT INITIAL.
         MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+* foo        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
         CLEAR ls_item.
       ENDIF.
     ENDLOOP.
@@ -50915,7 +50915,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
       IF <ls_repo_item>-changes > 0 AND <ls_repo_item>-obj_type IS NOT INITIAL.
         MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+* bar        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
         CLEAR ls_item.
       ENDIF.
 
@@ -104818,6 +104818,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-30T05:35:56.354Z
+* abapmerge 0.14.3 - 2021-08-30T08:47:17.526Z
 ENDINTERFACE.
 ****************************************************
