@@ -37558,9 +37558,10 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     lo_repo ?= mo_repo.
 
-    IF iv_revert = abap_true.
-      lo_repo->switch_origin( '' ).
-    ELSE.
+    " Switching twice does not work so reset to original repo first
+    lo_repo->switch_origin( '' ).
+
+    IF iv_revert = abap_false.
       SPLIT iv_pull AT '@' INTO lv_url lv_branch.
       lo_repo->switch_origin(
         iv_url    = lv_url
@@ -104822,6 +104823,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-31T05:30:08.562Z
+* abapmerge 0.14.3 - 2021-08-31T05:32:11.480Z
 ENDINTERFACE.
 ****************************************************
