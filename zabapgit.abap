@@ -50861,7 +50861,9 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
       IF <ls_repo_item>-obj_type IS NOT INITIAL.
         MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-* foo        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+        IF zcl_abapgit_objects=>exists( ls_item ) = abap_true.
+          <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+        ENDIF.
         CLEAR ls_item.
       ENDIF.
     ENDLOOP.
@@ -50915,7 +50917,9 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
       IF <ls_repo_item>-changes > 0 AND <ls_repo_item>-obj_type IS NOT INITIAL.
         MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-* bar        <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+        IF zcl_abapgit_objects=>exists( ls_item ) = abap_true.
+          <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
+        ENDIF.
         CLEAR ls_item.
       ENDIF.
 
@@ -104818,6 +104822,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-08-30T11:20:53.969Z
+* abapmerge 0.14.3 - 2021-08-31T05:30:08.562Z
 ENDINTERFACE.
 ****************************************************
