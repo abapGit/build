@@ -104502,7 +104502,7 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     CLEAR p_pass.
     p_url      = iv_repo_url.
     p_user     = cv_user.
-    p_cmnt     = 'GitHub requires using tokens (since August 2021)'.
+    p_cmnt     = 'GitHub requires using personal tokens (since 8/2021)'.
     gv_confirm = abap_false.
     enrich_title_by_hostname( iv_repo_url ).
 
@@ -104823,6 +104823,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-01T08:19:51.952Z
+* abapmerge 0.14.3 - 2021-09-02T14:35:47.281Z
 ENDINTERFACE.
 ****************************************************
