@@ -260,6 +260,7 @@ CLASS zcl_abapgit_object_srvb DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_srfc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sqsc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sprx DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_sppf DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_splo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_sots DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_smtg DEFINITION DEFERRED.
@@ -10830,6 +10831,22 @@ CLASS zcl_abapgit_object_splo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_object_sppf DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_sprx DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -66685,6 +66702,67 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
+  METHOD get_generic.
+
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item     = ms_item
+        iv_language = mv_language.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    get_generic( )->delete( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    get_generic( )->deserialize(
+      iv_package = iv_package
+      io_xml     = io_xml ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    rv_bool = get_generic( )->exists( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+
+    rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    zcx_abapgit_exception=>raise( |TODO: Jump| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    get_generic( )->serialize( io_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
@@ -104823,6 +104901,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-10T14:59:39.769Z
+* abapmerge 0.14.3 - 2021-09-10T15:01:59.280Z
 ENDINTERFACE.
 ****************************************************
