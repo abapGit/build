@@ -1100,7 +1100,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.0-pre1'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.0'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -97949,7 +97949,11 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
       <n>-name  = is_prefix-name.
     ENDIF.
 
-    IF io_type->absolute_name = '\TYPE-POOL=ABAP\TYPE=ABAP_BOOL' OR io_type->absolute_name = '\TYPE=XFELD'.
+    IF io_type->absolute_name = '\TYPE-POOL=ABAP\TYPE=ABAP_BOOL'
+        OR io_type->absolute_name = '\TYPE=ABAP_BOOLEAN'
+        OR io_type->absolute_name = '\TYPE=XSDBOOLEAN'
+        OR io_type->absolute_name = '\TYPE=FLAG'
+        OR io_type->absolute_name = '\TYPE=XFELD'.
       <n>-type = zif_abapgit_ajson=>node_type-boolean.
       IF iv_data IS NOT INITIAL.
         <n>-value = 'true'.
@@ -104913,6 +104917,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-12T05:14:05.094Z
+* abapmerge 0.14.3 - 2021-09-12T05:32:03.991Z
 ENDINTERFACE.
 ****************************************************
