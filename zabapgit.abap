@@ -624,7 +624,7 @@ CLASS zcx_abapgit_exception DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS gc_generic_error_msg TYPE string VALUE `An error occured (ZCX_ABAPGIT_EXCEPTION)` ##NO_TEXT.
+    CONSTANTS c_generic_error_msg TYPE string VALUE `An error occured (ZCX_ABAPGIT_EXCEPTION)` ##NO_TEXT.
 
     CLASS-METHODS split_text_to_symsg
       IMPORTING
@@ -821,7 +821,7 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
     DATA lv_text TYPE string.
 
     IF iv_text IS INITIAL.
-      lv_text = gc_generic_error_msg.
+      lv_text = c_generic_error_msg.
     ELSE.
       lv_text = iv_text.
     ENDIF.
@@ -1931,12 +1931,12 @@ INTERFACE zif_abapgit_auth.
 
   TYPES: ty_authorization TYPE string.
 
-  CONSTANTS: BEGIN OF gc_authorization,
+  CONSTANTS: BEGIN OF c_authorization,
                uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
                create_repo           TYPE ty_authorization VALUE 'CREATE_REPO',
                transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
                update_local_checksum TYPE ty_authorization VALUE 'UPDATE_LOCAL_CHECKSUM',
-             END OF gc_authorization.
+             END OF c_authorization.
 
   METHODS:
     is_allowed
@@ -2452,9 +2452,9 @@ INTERFACE zif_abapgit_definitions .
     END OF c_action.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
-  CONSTANTS gc_yes TYPE ty_yes_no VALUE 'Y'.
-  CONSTANTS gc_no TYPE ty_yes_no VALUE 'N'.
-  CONSTANTS gc_partial TYPE ty_yes_no_partial VALUE 'P'.
+  CONSTANTS c_yes TYPE ty_yes_no VALUE 'Y'.
+  CONSTANTS c_no TYPE ty_yes_no VALUE 'N'.
+  CONSTANTS c_partial TYPE ty_yes_no_partial VALUE 'P'.
 
   TYPES:
     ty_method TYPE c LENGTH 1 .
@@ -19256,7 +19256,7 @@ CLASS zcl_abapgit_user_record DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS gc_cc_category TYPE string VALUE 'C'.
+    CONSTANTS c_cc_category TYPE string VALUE 'C'.
 
     CLASS-METHODS reset.
     CLASS-METHODS get_instance
@@ -24236,7 +24236,7 @@ CLASS zcl_abapgit_user_record IMPLEMENTATION.
 
     " Could not find the user Try other development clients
     SELECT mandt FROM t000 INTO TABLE lt_dev_clients
-        WHERE cccategory = gc_cc_category AND mandt <> sy-mandt
+        WHERE cccategory = c_cc_category AND mandt <> sy-mandt
         ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dev_clients ASSIGNING <lv_dev_client>.
@@ -24537,7 +24537,7 @@ CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
+CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
   METHOD get_requirement_met_status.
 
     DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
@@ -24586,9 +24586,9 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
 
     READ TABLE lt_met_status TRANSPORTING NO FIELDS WITH KEY met = abap_false.
     IF sy-subrc = 0.
-      rv_status = zif_abapgit_definitions=>gc_no.
+      rv_status = zif_abapgit_definitions=>c_no.
     ELSE.
-      rv_status = zif_abapgit_definitions=>gc_yes.
+      rv_status = zif_abapgit_definitions=>c_yes.
     ENDIF.
 
   ENDMETHOD.
@@ -31098,7 +31098,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     LOOP AT is_checks-overwrite ASSIGNING <ls_overwrite>
       WHERE ( action = zif_abapgit_objects=>c_deserialize_action-delete
       OR action = zif_abapgit_objects=>c_deserialize_action-delete_add )
-      AND decision = zif_abapgit_definitions=>gc_yes.
+      AND decision = zif_abapgit_definitions=>c_yes.
 
       ls_tadir-pgmid    = 'R3TR'.
       ls_tadir-object   = <ls_overwrite>-obj_type.
@@ -31228,13 +31228,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     popup_overwrite( CHANGING ct_overwrite = lt_decision ).
     popup_package_overwrite( CHANGING ct_overwrite = cs_checks-warning_package ).
 
-    IF cs_checks-requirements-met = zif_abapgit_definitions=>gc_no.
+    IF cs_checks-requirements-met = zif_abapgit_definitions=>c_no.
       lt_requirements = io_repo->get_dot_abapgit( )->get_data( )-requirements.
       zcl_abapgit_requirement_helper=>requirements_popup( lt_requirements ).
-      cs_checks-requirements-decision = zif_abapgit_definitions=>gc_yes.
+      cs_checks-requirements-decision = zif_abapgit_definitions=>c_yes.
     ENDIF.
 
-    IF cs_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
+    IF cs_checks-dependencies-met = zif_abapgit_definitions=>c_no.
       lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
       zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
     ENDIF.
@@ -31256,10 +31256,10 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
         CASE <ls_overwrite>-action.
           WHEN zif_abapgit_objects=>c_deserialize_action-delete
             OR zif_abapgit_objects=>c_deserialize_action-delete_add.
-            <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>c_no.
           WHEN zif_abapgit_objects=>c_deserialize_action-add
             OR zif_abapgit_objects=>c_deserialize_action-update.
-            <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
           WHEN OTHERS.
             ASSERT 0 = 1.
         ENDCASE.
@@ -31309,9 +31309,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                         obj_name = <ls_overwrite>-obj_name
                              TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
-        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
       ELSE.
-        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>c_no.
       ENDIF.
     ENDLOOP.
 
@@ -31354,9 +31354,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                         obj_name = <ls_overwrite>-obj_name
                              TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
-        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
       ELSE.
-        <ls_overwrite>-decision = zif_abapgit_definitions=>gc_no.
+        <ls_overwrite>-decision = zif_abapgit_definitions=>c_no.
       ENDIF.
 
     ENDLOOP.
@@ -31430,7 +31430,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     DATA: lv_answer   TYPE c,
           lv_question TYPE string,
           lo_repo     TYPE REF TO zcl_abapgit_repo.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-update_local_checksum ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
@@ -31515,7 +31515,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       lt_transport_headers   TYPE trwbo_request_headers,
       lt_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-transport_to_branch ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
@@ -39356,7 +39356,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                                  iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }| ).
 
       CLEAR lv_crossout.
-      IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-transport_to_branch ) = abap_false.
+      IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-transport_to_branch ) = abap_false.
         lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
       ENDIF.
       ro_advanced_dropdown->add(
@@ -39377,7 +39377,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?key={ mv_key }| ).
 
     CLEAR lv_crossout.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-update_local_checksum ) = abap_false.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-update_local_checksum ) = abap_false.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
     ro_advanced_dropdown->add( iv_txt = 'Update Local Checksums'
@@ -39401,7 +39401,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     CLEAR lv_crossout.
     IF mo_repo->get_local_settings( )-write_protected = abap_true
-        OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
+        OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-uninstall ) = abap_false.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
     ro_advanced_dropdown->add( iv_txt = 'Uninstall'
@@ -40018,6 +40018,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ri_html->add( '</tr>' ).
 
   ENDMETHOD.
+  METHOD render_item_changed_by.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    IF is_item-changes = 0 OR is_item-changed_by IS INITIAL.
+      ri_html->add( '&nbsp;' ).
+    ELSE.
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( is_item-changed_by ) ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD render_item_command.
 
     DATA: lv_difflink TYPE string,
@@ -40315,17 +40325,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings.
     ls_hotkey_action-hotkey = |x|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
-  ENDMETHOD.
-
-  METHOD render_item_changed_by.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    IF is_item-changes = 0 OR is_item-changed_by IS INITIAL.
-      ri_html->add( '&nbsp;' ).
-    ELSE.
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( is_item-changed_by ) ).
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -50283,7 +50282,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-create_repo ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
@@ -50327,7 +50326,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     lv_url = condense( iv_url ).
 
-    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-create_repo ) = abap_false.
+    IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-create_repo ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
@@ -50382,7 +50381,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     IF io_repo->get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot purge. Local code is write-protected by repo config' ).
-    ELSEIF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>gc_authorization-uninstall ) = abap_false.
+    ELSEIF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-uninstall ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
@@ -51067,7 +51066,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -51172,11 +51171,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
     check_write_protect( ).
     check_language( ).
 
-    IF is_checks-requirements-met = zif_abapgit_definitions=>gc_no AND is_checks-requirements-decision IS INITIAL.
+    IF is_checks-requirements-met = zif_abapgit_definitions=>c_no AND is_checks-requirements-decision IS INITIAL.
       zcx_abapgit_exception=>raise( 'Requirements not met and undecided' ).
     ENDIF.
 
-    IF is_checks-dependencies-met = zif_abapgit_definitions=>gc_no.
+    IF is_checks-dependencies-met = zif_abapgit_definitions=>c_no.
       zcx_abapgit_exception=>raise( 'APACK dependencies not met' ).
     ENDIF.
 
@@ -94831,7 +94830,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
           <ls_overwrite>-obj_name } undecided| ).
       ENDIF.
 
-      IF ls_overwrite-decision = zif_abapgit_definitions=>gc_no.
+      IF ls_overwrite-decision = zif_abapgit_definitions=>c_no.
         DELETE ct_results WHERE
           obj_type = <ls_overwrite>-obj_type AND
           obj_name = <ls_overwrite>-obj_name.
@@ -94936,7 +94935,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
           <ls_overwrite>-obj_name } undecided| ).
       ENDIF.
 
-      IF ls_overwrite-decision = zif_abapgit_definitions=>gc_no.
+      IF ls_overwrite-decision = zif_abapgit_definitions=>c_no.
         DELETE ct_results WHERE
           obj_type = <ls_overwrite>-obj_type AND
           obj_name = <ls_overwrite>-obj_name.
@@ -102681,7 +102680,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
     TYPES ty_filename TYPE string.
 
 * File extension
-    CONSTANTS gc_zip_ext TYPE string VALUE '.zip'.
+    CONSTANTS c_zip_ext TYPE string VALUE '.zip'.
 
     METHODS constructor  IMPORTING iv_folder TYPE ty_folder
                          RAISING   zcx_abapgit_exception.
@@ -102806,7 +102805,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
   METHOD get_filename.
 
 * Generate filename
-    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' mv_timestamp gc_zip_ext
+    CONCATENATE is_trkorr-trkorr '_' is_trkorr-as4text '_' mv_timestamp c_zip_ext
       INTO rv_filename.
 
 * Remove reserved characters (for Windows based systems)
@@ -103852,7 +103851,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
+CLASS zcl_abapgit_background_pull IMPLEMENTATION.
   METHOD zif_abapgit_background~get_description.
 
     rv_description = 'Automatic pull'.
@@ -103869,7 +103868,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PULL IMPLEMENTATION.
     ls_checks = io_repo->deserialize_checks( ).
 
     LOOP AT ls_checks-overwrite ASSIGNING <ls_overwrite>.
-      <ls_overwrite>-decision = zif_abapgit_definitions=>gc_yes.
+      <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
     ENDLOOP.
 
     io_repo->deserialize( is_checks = ls_checks
@@ -104390,20 +104389,20 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
     DATA: lt_dependencies_status TYPE ty_dependency_statuses.
 
     IF it_dependencies IS INITIAL.
-      rv_status = zif_abapgit_definitions=>gc_yes.
+      rv_status = zif_abapgit_definitions=>c_yes.
       RETURN.
     ENDIF.
 
     lt_dependencies_status = get_dependencies_met_status( it_dependencies ).
 
-    LOOP AT lt_dependencies_status TRANSPORTING NO FIELDS WHERE met <> zif_abapgit_definitions=>gc_yes.
+    LOOP AT lt_dependencies_status TRANSPORTING NO FIELDS WHERE met <> zif_abapgit_definitions=>c_yes.
       EXIT.
     ENDLOOP.
 
     IF sy-subrc = 0.
-      rv_status = zif_abapgit_definitions=>gc_no.
+      rv_status = zif_abapgit_definitions=>c_no.
     ELSE.
-      rv_status = zif_abapgit_definitions=>gc_yes.
+      rv_status = zif_abapgit_definitions=>c_yes.
     ENDIF.
 
   ENDMETHOD.
@@ -104438,14 +104437,14 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
         WITH KEY group_id    = ls_dependecy-group_id
                  artifact_id = ls_dependecy-artifact_id.
       IF sy-subrc <> 0.
-        ls_dependecy_popup-met = zif_abapgit_definitions=>gc_no.
+        ls_dependecy_popup-met = zif_abapgit_definitions=>c_no.
       ELSE.
         TRY.
             zcl_abapgit_version=>check_dependant_version( is_current   = ls_installed_package-sem_version
                                                           is_dependant = ls_dependecy-sem_version ).
-            ls_dependecy_popup-met = zif_abapgit_definitions=>gc_yes.
+            ls_dependecy_popup-met = zif_abapgit_definitions=>c_yes.
           CATCH zcx_abapgit_exception.
-            ls_dependecy_popup-met = zif_abapgit_definitions=>gc_partial.
+            ls_dependecy_popup-met = zif_abapgit_definitions=>c_partial.
         ENDTRY.
       ENDIF.
 
@@ -104595,13 +104594,13 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
           MOVE-CORRESPONDING <ls_dependency> TO <ls_line>.
 
           CASE <ls_line>-met.
-            WHEN zif_abapgit_definitions=>gc_yes.
+            WHEN zif_abapgit_definitions=>c_yes.
               <ls_line>-color     = lt_color_positive.
               <ls_line>-exception = '3'.
-            WHEN zif_abapgit_definitions=>gc_partial.
+            WHEN zif_abapgit_definitions=>c_partial.
               <ls_line>-color     = lt_color_normal.
               <ls_line>-exception = '2'.
-            WHEN zif_abapgit_definitions=>gc_no.
+            WHEN zif_abapgit_definitions=>c_no.
               <ls_line>-color     = lt_color_negative.
               <ls_line>-exception = '1'.
           ENDCASE.
@@ -105046,6 +105045,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-14T14:17:15.323Z
+* abapmerge 0.14.3 - 2021-09-14T14:48:57.439Z
 ENDINTERFACE.
 ****************************************************
