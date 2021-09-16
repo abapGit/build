@@ -6674,11 +6674,6 @@ CLASS zcl_abapgit_tadir DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    METHODS exists
-      IMPORTING
-        !is_item         TYPE zif_abapgit_definitions=>ty_item
-      RETURNING
-        VALUE(rv_exists) TYPE abap_bool .
     METHODS check_exists
       IMPORTING
         !it_tadir       TYPE zif_abapgit_definitions=>ty_tadir_tt
@@ -7767,9 +7762,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_item
       RETURNING
-        VALUE(rv_user) TYPE xubname
-      RAISING
-        zcx_abapgit_exception .
+        VALUE(rv_user) TYPE xubname .
     CLASS-METHODS is_supported
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
@@ -36143,29 +36136,26 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ENDLOOP.
 
     LOOP AT rt_changed_by ASSIGNING <ls_changed_by>.
-      TRY.
-          <ls_changed_by>-name = zcl_abapgit_objects=>changed_by( <ls_changed_by>-item ).
-        CATCH zcx_abapgit_exception.
-      ENDTRY.
+      <ls_changed_by>-name = zcl_abapgit_objects=>changed_by( <ls_changed_by>-item ).
     ENDLOOP.
 
     LOOP AT lt_changed_by_remote ASSIGNING <ls_changed_by>.
-      TRY.
-          " deleted files might still be in a transport
-          CLEAR lv_transport.
-          READ TABLE it_transports WITH KEY
-            obj_type = <ls_changed_by>-item-obj_type
-            obj_name = <ls_changed_by>-item-obj_name
-            INTO lv_transport.
-          IF sy-subrc = 0.
-            SELECT SINGLE as4user FROM e070 INTO lv_user
-              WHERE trkorr = lv_transport-trkorr.
-            <ls_changed_by>-name = lv_user.
-          ELSE.
-            <ls_changed_by>-name = zcl_abapgit_objects_super=>c_user_unknown.
-          ENDIF.
-        CATCH zcx_abapgit_exception.
-      ENDTRY.
+      " deleted files might still be in a transport
+      CLEAR lv_transport.
+      READ TABLE it_transports WITH KEY
+        obj_type = <ls_changed_by>-item-obj_type
+        obj_name = <ls_changed_by>-item-obj_name
+        INTO lv_transport.
+      IF sy-subrc = 0.
+        SELECT SINGLE as4user FROM e070 INTO lv_user
+          WHERE trkorr = lv_transport-trkorr.
+        IF sy-subrc = 0.
+          <ls_changed_by>-name = lv_user.
+        ENDIF.
+      ENDIF.
+      IF <ls_changed_by>-name IS INITIAL.
+        <ls_changed_by>-name = zcl_abapgit_objects_super=>c_user_unknown.
+      ENDIF.
     ENDLOOP.
 
     INSERT LINES OF lt_changed_by_remote INTO TABLE rt_changed_by.
@@ -93738,7 +93728,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD add_local_packages.
 
     FIELD-SYMBOLS:
@@ -93893,7 +93883,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       ls_item-obj_name = <ls_tadir>-obj_name.
       ls_item-devclass = <ls_tadir>-devclass.
 
-      IF exists( ls_item ) = abap_true.
+      IF zcl_abapgit_objects=>exists( ls_item ) = abap_true.
         APPEND <ls_tadir> TO rt_tadir.
       ENDIF.
     ENDLOOP.
@@ -93929,20 +93919,6 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
       <ls_tadir>-path = lv_path.
 
     ENDLOOP.
-  ENDMETHOD.
-  METHOD exists.
-
-    IF is_item IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    IF zcl_abapgit_objects=>is_supported( is_item ) = abap_false.
-      rv_exists = abap_true.
-      RETURN.
-    ENDIF.
-
-    rv_exists = zcl_abapgit_objects=>exists( is_item ).
-
   ENDMETHOD.
   METHOD select_objects.
 
@@ -94022,7 +93998,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
     ls_item-obj_type = ls_tadir-object.
     ls_item-obj_name = ls_tadir-obj_name.
     ls_item-devclass = ls_tadir-devclass.
-    IF exists( ls_item ) = abap_false.
+    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -105022,6 +104998,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-16T05:41:34.444Z
+* abapmerge 0.14.3 - 2021-09-16T07:45:08.128Z
 ENDINTERFACE.
 ****************************************************
