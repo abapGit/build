@@ -22762,7 +22762,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_exit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -22892,11 +22892,12 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
           rt_source = gi_exit->custom_serialize_abap_clif(
             is_class_key = is_class_key
             it_source    = it_source ).
-          IF rt_source IS INITIAL.
-            rt_source = it_source.
-          ENDIF.
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
+    ENDIF.
+
+    IF rt_source IS INITIAL.
+      rt_source = it_source.
     ENDIF.
 
   ENDMETHOD.
@@ -105015,6 +105016,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-18T04:24:02.013Z
+* abapmerge 0.14.3 - 2021-09-18T04:51:27.443Z
 ENDINTERFACE.
 ****************************************************
