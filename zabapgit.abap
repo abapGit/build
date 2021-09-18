@@ -3897,6 +3897,7 @@ INTERFACE zif_abapgit_exit .
   METHODS custom_serialize_abap_clif
     IMPORTING
       !is_class_key    TYPE seoclskey
+      !it_source       TYPE zif_abapgit_definitions=>ty_string_tt OPTIONAL
     RETURNING
       VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
     RAISING
@@ -22761,7 +22762,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -22880,9 +22881,20 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_exit~custom_serialize_abap_clif.
 
+    " This exit might be called twice per object
+    " 1st call: it_source = initial
+    "    Can be used for serializing complete source
+    "    If source is returned, there will be no second call
+    " 2nd call: it_source = code as serialized by abapGit
+    "    Can be used for post-processing of source
     IF gi_exit IS NOT INITIAL.
       TRY.
-          rt_source = gi_exit->custom_serialize_abap_clif( is_class_key ).
+          rt_source = gi_exit->custom_serialize_abap_clif(
+            is_class_key = is_class_key
+            it_source    = it_source ).
+          IF rt_source IS INITIAL.
+            rt_source = it_source.
+          ENDIF.
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -89996,6 +90008,11 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
       CATCH cx_sy_dyn_call_error.
         rt_source = serialize_abap_old( is_class_key ).
     ENDTRY.
+
+    " Call exit again for optional post-processing
+    rt_source = zcl_abapgit_exit=>get_instance( )->custom_serialize_abap_clif(
+      is_class_key = is_class_key
+      it_source    = rt_source ).
   ENDMETHOD.
   METHOD serialize_abap_new.
 
@@ -104998,6 +105015,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-16T07:45:08.128Z
+* abapmerge 0.14.3 - 2021-09-18T04:24:02.013Z
 ENDINTERFACE.
 ****************************************************
