@@ -104859,9 +104859,6 @@ INCLUDE zabapgit_gui_pages_userexit IF FOUND.
 *&  Include           ZABAPGIT_FORMS
 *&---------------------------------------------------------------------*
 
-*&---------------------------------------------------------------------*
-*&      Form  run
-*&---------------------------------------------------------------------*
 FORM run.
 
   DATA: lx_exception TYPE REF TO zcx_abapgit_exception.
@@ -104889,25 +104886,11 @@ FORM open_gui RAISING zcx_abapgit_exception.
 
 ENDFORM.
 
-*&---------------------------------------------------------------------*
-*&      Form  branch_popup
-*&---------------------------------------------------------------------*
-*       text
-*----------------------------------------------------------------------*
-*      -->TT_FIELDS      text
-*      -->PV_CODE        text
-*      -->CS_ERROR       text
-*      -->CV_SHOW_POPUP  text
-*      -->RAISING        text
-*      -->zcx_abapgit_exception  text
-*      -->##CALLED       text
-*      -->##NEEDED       text
-*----------------------------------------------------------------------*
 FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_popups=>ty_sval_tt
                   USING    pv_code TYPE clike
                   CHANGING cs_error TYPE svale
                            cv_show_popup TYPE c
-                  RAISING zcx_abapgit_exception ##called ##needed.
+                  RAISING zcx_abapgit_exception ##CALLED ##NEEDED.
 * called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
 
   DATA: lx_error  TYPE REF TO zcx_abapgit_exception,
@@ -104930,6 +104913,7 @@ FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_popups=>ty_sval_tt
 ENDFORM.                    "branch_popup
 
 FORM output.
+
   DATA: lx_error TYPE REF TO zcx_abapgit_exception,
         lt_ucomm TYPE TABLE OF sy-ucomm.
 
@@ -104949,9 +104933,12 @@ FORM output.
     CATCH zcx_abapgit_exception INTO lx_error.
       MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
   ENDTRY.
+
 ENDFORM.
 
-FORM exit RAISING zcx_abapgit_exception.
+FORM exit.
+
+  DATA lx_error TYPE REF TO zcx_abapgit_exception.
 
   " The exit logic should only be applied for our 'main' selection screen 1001.
   " All other selection-screens are called as popups and shouldn't influence
@@ -104960,14 +104947,19 @@ FORM exit RAISING zcx_abapgit_exception.
     RETURN.
   ENDIF.
 
-  CASE sy-ucomm.
-    WHEN 'CBAC' OR 'CCAN'.  "Back & Escape
-      IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
-        zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
-      ELSE.
-        LEAVE TO SCREEN 1001.
-      ENDIF.
-  ENDCASE.
+  TRY.
+      CASE sy-ucomm.
+        WHEN 'CBAC' OR 'CCAN'.  "Back & Escape
+          IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
+            zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
+          ELSE.
+            LEAVE TO SCREEN 1001.
+          ENDIF.
+      ENDCASE.
+    CATCH zcx_abapgit_exception INTO lx_error.
+      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+  ENDTRY.
+
 ENDFORM.
 
 FORM password_popup
@@ -105069,6 +105061,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-18T13:31:57.231Z
+* abapmerge 0.14.3 - 2021-09-22T13:13:06.851Z
 ENDINTERFACE.
 ****************************************************
