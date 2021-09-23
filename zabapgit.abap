@@ -86428,6 +86428,10 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
       REPLACE ALL OCCURRENCES OF iv_from_interface && '~descriptor' IN TABLE ct_source
                             WITH iv_to_interface && '~descriptor' IGNORING CASE.
+      REPLACE ALL OCCURRENCES OF iv_from_interface && '=>' IN TABLE ct_source
+                            WITH iv_to_interface && '=>' IGNORING CASE.
+      REPLACE ALL OCCURRENCES OF iv_from_interface && '->' IN TABLE ct_source
+                            WITH iv_to_interface && '->' IGNORING CASE.
     ENDIF.
 
   ENDMETHOD.
@@ -105061,6 +105065,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-22T13:13:06.851Z
+* abapmerge 0.14.3 - 2021-09-23T21:36:09.287Z
 ENDINTERFACE.
 ****************************************************
