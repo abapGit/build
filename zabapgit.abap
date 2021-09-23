@@ -38297,7 +38297,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-infos-form'
-                iv_help_page = 'https://docs.abapgit.org/guide-repo-infos.html' ).
+                iv_help_page = 'https://docs.abapgit.org/ref-settings-stats.html' ).
 
     IF mo_repo->is_offline( ) = abap_true.
       lv_label = 'ZIP File'.
@@ -105065,6 +105065,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-23T21:36:09.287Z
+* abapmerge 0.14.3 - 2021-09-23T21:45:38.915Z
 ENDINTERFACE.
 ****************************************************
