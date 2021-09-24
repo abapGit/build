@@ -83063,7 +83063,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -83261,11 +83261,11 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     FIELD-SYMBOLS <ls_dd07v> TYPE dd07v.
 
     io_xml->read( EXPORTING iv_name = 'DD01V'
-                  CHANGING cg_data = ls_dd01v ).
+                  CHANGING  cg_data = ls_dd01v ).
     io_xml->read( EXPORTING iv_name = 'DD07V_TAB'
-                  CHANGING cg_data = lt_dd07v ).
+                  CHANGING  cg_data = lt_dd07v ).
 
-    corr_insert( iv_package = iv_package
+    corr_insert( iv_package      = iv_package
                  ig_object_class = 'DICT' ).
 
     lv_name = ms_item-obj_name. " type conversion
@@ -83303,7 +83303,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: lv_domname TYPE dd01l-domname.
+    DATA lv_domname TYPE dd01l-domname.
 
     SELECT SINGLE domname FROM dd01l INTO lv_domname
       WHERE domname = ms_item-obj_name.
@@ -83338,6 +83338,9 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
           ls_dd01v   TYPE dd01v,
           lv_masklen TYPE c LENGTH 4,
           lt_dd07v   TYPE TABLE OF dd07v.
+
+    FIELD-SYMBOLS <ls_dd07v> TYPE dd07v.
+
     lv_name = ms_item-obj_name.
 
     CALL FUNCTION 'DDIF_DOMA_GET'
@@ -83379,6 +83382,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     SORT lt_dd07v BY
       valpos ASCENDING
       ddlanguage ASCENDING.
+
+    LOOP AT lt_dd07v ASSIGNING <ls_dd07v>.
+      CLEAR <ls_dd07v>-domname.
+    ENDLOOP.
 
     io_xml->add( iv_name = 'DD01V'
                  ig_data = ls_dd01v ).
@@ -105065,6 +105072,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-23T21:45:38.915Z
+* abapmerge 0.14.3 - 2021-09-24T04:31:44.488Z
 ENDINTERFACE.
 ****************************************************
