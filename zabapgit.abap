@@ -26744,7 +26744,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding: 4px 8px;' ).
     lo_buf->add( '  vertical-align: middle;' ).
     lo_buf->add( '  word-break: break-all;' ).
-    lo_buf->add( '  max-width: 250px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'table.db_tab th.package {' ).
@@ -47341,10 +47340,13 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
         rv_text = |Method: { is_data-data_str+ls_match-offset(ls_match-length) }, |
                && |Repository: { zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
 
-      WHEN zcl_abapgit_persistence_db=>c_type_user
-        OR zcl_abapgit_persistence_db=>c_type_settings
-        OR zcl_abapgit_persistence_db=>c_type_packages.
-        rv_text = '-'. " No additional explanation
+      WHEN zcl_abapgit_persistence_db=>c_type_user.
+        rv_text = |Personal Settings: <strong>{
+                  zcl_abapgit_user_record=>get_instance( is_data-value )->get_name( ) }</strong>|.
+      WHEN zcl_abapgit_persistence_db=>c_type_settings.
+        rv_text = 'Global Settings'.
+      WHEN zcl_abapgit_persistence_db=>c_type_packages.
+        rv_text = 'Local Package Details'.
       WHEN OTHERS.
         IF strlen( is_data-data_str ) >= 250.
           rv_text = is_data-data_str(250).
@@ -105226,6 +105228,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-09-29T06:03:35.380Z
+* abapmerge 0.14.3 - 2021-09-30T18:08:57.297Z
 ENDINTERFACE.
 ****************************************************
