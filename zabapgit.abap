@@ -53869,6 +53869,11 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
             CLEAR <ls_field>-foreignkey.
           ENDIF.
         ENDIF.
+
+        IF <ls_field>-from_dict = abap_true AND
+           <ls_field>-modific   <> 'F'.
+          CLEAR <ls_field>-text.
+        ENDIF.
       ENDLOOP.
 
       LOOP AT lt_containers ASSIGNING <ls_container>.
@@ -105228,6 +105233,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-01T06:05:34.995Z
+* abapmerge 0.14.3 - 2021-10-01T06:13:23.469Z
 ENDINTERFACE.
 ****************************************************
