@@ -12983,7 +12983,6 @@ CLASS zcl_abapgit_persist_settings DEFINITION
   PRIVATE SECTION.
     DATA mo_settings TYPE REF TO zcl_abapgit_settings .
 
-    CLASS-DATA gi_persist TYPE REF TO zif_abapgit_persist_settings .
 ENDCLASS.
 CLASS zcl_abapgit_persistence_db DEFINITION
   CREATE PRIVATE .
@@ -105065,6 +105064,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-01T06:44:25.362Z
+* abapmerge 0.14.3 - 2021-10-01T15:58:41.427Z
 ENDINTERFACE.
 ****************************************************
