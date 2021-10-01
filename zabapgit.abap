@@ -548,19 +548,19 @@ CLASS zcx_abapgit_exception DEFINITION
     INTERFACES if_t100_message .
 
     CONSTANTS:
-      BEGIN OF gc_section_text,
+      BEGIN OF c_section_text,
         cause           TYPE string VALUE `Cause`,
         system_response TYPE string VALUE `System response`,
         what_to_do      TYPE string VALUE `Procedure`,
         sys_admin       TYPE string VALUE `System administration`,
-      END OF gc_section_text .
+      END OF c_section_text .
     CONSTANTS:
-      BEGIN OF gc_section_token,
+      BEGIN OF c_section_token,
         cause           TYPE string VALUE `&CAUSE&`,
         system_response TYPE string VALUE `&SYSTEM_RESPONSE&`,
         what_to_do      TYPE string VALUE `&WHAT_TO_DO&`,
         sys_admin       TYPE string VALUE `&SYS_ADMIN&`,
-      END OF gc_section_token .
+      END OF c_section_token .
     DATA msgv1 TYPE symsgv READ-ONLY .
     DATA msgv2 TYPE symsgv READ-ONLY .
     DATA msgv3 TYPE symsgv READ-ONLY .
@@ -872,14 +872,14 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
   METHOD replace_section_head_with_text.
 
     CASE cs_itf-tdline.
-      WHEN gc_section_token-cause.
-        cs_itf-tdline = gc_section_text-cause.
-      WHEN gc_section_token-system_response.
-        cs_itf-tdline = gc_section_text-system_response.
-      WHEN gc_section_token-what_to_do.
-        cs_itf-tdline = gc_section_text-what_to_do.
-      WHEN gc_section_token-sys_admin.
-        cs_itf-tdline = gc_section_text-sys_admin.
+      WHEN c_section_token-cause.
+        cs_itf-tdline = c_section_text-cause.
+      WHEN c_section_token-system_response.
+        cs_itf-tdline = c_section_text-system_response.
+      WHEN c_section_token-what_to_do.
+        cs_itf-tdline = c_section_text-what_to_do.
+      WHEN c_section_token-sys_admin.
+        cs_itf-tdline = c_section_text-sys_admin.
     ENDCASE.
 
   ENDMETHOD.
@@ -45706,19 +45706,19 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     lv_longtext = ix_error->if_message~get_longtext( abap_true ).
 
     REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>gc_section_text-cause }{ cl_abap_char_utilities=>newline })|
+      |({ zcx_abapgit_exception=>c_section_text-cause }{ cl_abap_char_utilities=>newline })|
       IN lv_longtext WITH |<h3>$1</h3>|.
 
     REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>gc_section_text-system_response }{ cl_abap_char_utilities=>newline })|
+      |({ zcx_abapgit_exception=>c_section_text-system_response }{ cl_abap_char_utilities=>newline })|
       IN lv_longtext WITH |<h3>$1</h3>|.
 
     REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>gc_section_text-what_to_do }{ cl_abap_char_utilities=>newline })|
+      |({ zcx_abapgit_exception=>c_section_text-what_to_do }{ cl_abap_char_utilities=>newline })|
       IN lv_longtext WITH |<h3>$1</h3>|.
 
     REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>gc_section_text-sys_admin }{ cl_abap_char_utilities=>newline })|
+      |({ zcx_abapgit_exception=>c_section_text-sys_admin }{ cl_abap_char_utilities=>newline })|
       IN lv_longtext WITH |<h3>$1</h3>|.
 
     ri_html->add( |<div id="message" class="message-panel">| ).
@@ -105228,6 +105228,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-01T06:00:03.195Z
+* abapmerge 0.14.3 - 2021-10-01T06:05:34.995Z
 ENDINTERFACE.
 ****************************************************
