@@ -4058,8 +4058,8 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_version .
 
-  CONSTANTS gc_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
-  CONSTANTS gc_abap_version TYPE string VALUE '1.110.0' ##NO_TEXT.
+  CONSTANTS c_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
+  CONSTANTS c_abap_version TYPE string VALUE '1.110.0' ##NO_TEXT.
 
 ENDINTERFACE.
 
@@ -22089,7 +22089,7 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
     lv_url          = lo_repo_online->get_url( ).
 
     IF zcl_abapgit_url=>is_abapgit_repo( lv_url ) = abap_true.
-      lv_version = zif_abapgit_version=>gc_abap_version. " TODO refactor
+      lv_version = zif_abapgit_version=>c_abap_version. " TODO refactor
     ELSE.
 
       lo_apack = io_repo->get_dot_apack( ).
@@ -23924,7 +23924,7 @@ CLASS zcl_abapgit_xml_output IMPLEMENTATION.
 
     li_git = mi_xml_doc->create_element( c_abapgit_tag ).
     li_git->set_attribute( name = c_attr_version
-                           value = zif_abapgit_version=>gc_xml_version ).
+                           value = zif_abapgit_version=>c_xml_version ).
     IF NOT is_metadata IS INITIAL.
       li_git->set_attribute( name  = c_attr_serializer
                              value = is_metadata-class ).
@@ -23999,7 +23999,7 @@ CLASS zcl_abapgit_xml_input IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
+CLASS zcl_abapgit_xml IMPLEMENTATION.
   METHOD constructor.
     mi_ixml     = cl_ixml=>create( ).
     mi_xml_doc  = mi_ixml->create_document( ).
@@ -24010,7 +24010,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
     DATA: lv_version TYPE string.
     DATA: lv_file    TYPE string.
 
-    lv_version = |abapGit version: { zif_abapgit_version=>gc_abap_version }|.
+    lv_version = |abapGit version: { zif_abapgit_version=>c_abap_version }|.
     IF mv_filename IS NOT INITIAL.
       lv_file = |File: { mv_filename }|.
     ENDIF.
@@ -24067,7 +24067,7 @@ CLASS ZCL_ABAPGIT_XML IMPLEMENTATION.
                                                 name = c_abapgit_tag ).
     li_version = li_element->if_ixml_node~get_attributes(
       )->get_named_item_ns( c_attr_version ).
-    IF li_version->get_value( ) <> zif_abapgit_version=>gc_xml_version.
+    IF li_version->get_value( ) <> zif_abapgit_version=>c_xml_version.
       display_version_mismatch( ).
     ENDIF.
 
@@ -43286,8 +43286,8 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     ri_html->add( '<h2>Environment</h2>' ).
 
     ri_html->add( |<table>| ).
-    ri_html->add( |<tr><td>abapGit version:</td><td>{ zif_abapgit_version=>gc_abap_version }</td></tr>| ).
-    ri_html->add( |<tr><td>XML version:    </td><td>{ zif_abapgit_version=>gc_xml_version }</td></tr>| ).
+    ri_html->add( |<tr><td>abapGit version:</td><td>{ zif_abapgit_version=>c_abap_version }</td></tr>| ).
+    ri_html->add( |<tr><td>XML version:    </td><td>{ zif_abapgit_version=>c_xml_version }</td></tr>| ).
     ri_html->add( |<tr><td>GUI version:    </td><td>{ lv_gui_version }</td></tr>| ).
     ri_html->add( |<tr><td>APACK version:  </td><td>{
                   zcl_abapgit_apack_migration=>c_apack_interface_version }</td></tr>| ).
@@ -45211,7 +45211,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -45233,7 +45233,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( ri_html->icon( 'git-alt' ) ).
     ri_html->add( ri_html->icon( 'abapgit' ) ).
     ri_html->add( '</div>' ).
-    ri_html->add( |<div class="version">{ zif_abapgit_version=>gc_abap_version }</div>| ).
+    ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }</div>| ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '<td id="debug-output" class="w40"></td>' ).
@@ -99860,7 +99860,7 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
 
 * bitbucket require agent prefix = "git/"
 * also see https://github.com/abapGit/abapGit/issues/1432
-    rv_agent = |git/2.0 (abapGit { zif_abapgit_version=>gc_abap_version })|.
+    rv_agent = |git/2.0 (abapGit { zif_abapgit_version=>c_abap_version })|.
 
   ENDMETHOD.
   METHOD is_local_system.
@@ -105253,6 +105253,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-01T06:19:20.738Z
+* abapmerge 0.14.3 - 2021-10-01T06:21:21.628Z
 ENDINTERFACE.
 ****************************************************
