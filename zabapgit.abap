@@ -1816,6 +1816,7 @@ INTERFACE zif_abapgit_html_form .
       subitems      TYPE ty_subitems,
       readonly      TYPE abap_bool,
       password      TYPE abap_bool,
+      condense      TYPE abap_bool,
       min           TYPE i,
       max           TYPE i,
     END OF ty_field .
@@ -17742,6 +17743,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         !iv_upper_case  TYPE abap_bool DEFAULT abap_false
         !iv_readonly    TYPE abap_bool DEFAULT abap_false
         !iv_password    TYPE abap_bool DEFAULT abap_false
+        !iv_condense    TYPE abap_bool OPTIONAL
         !iv_placeholder TYPE csequence OPTIONAL
         !iv_side_action TYPE csequence OPTIONAL
         !iv_min         TYPE i DEFAULT cl_abap_math=>min_int4
@@ -24273,21 +24275,15 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
   ENDMETHOD.
   METHOD regex.
 
-    FIND REGEX '(https?://[^/]*)(.*/)(.*)\.git$' IN iv_url
+    FIND REGEX '^(https?://[^/]*)(.*/)(.*)\.git$' IN iv_url
       SUBMATCHES ev_host ev_path ev_name.
     IF sy-subrc <> 0.
-      FIND REGEX '(https?://[^/]*)(.*/)(.*)$' IN iv_url
+      FIND REGEX '^(https?://[^/]*)(.*/)(.*)$' IN iv_url
         SUBMATCHES ev_host ev_path ev_name.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( 'Malformed URL' ).
       ENDIF.
     ENDIF.
-
-  ENDMETHOD.
-  METHOD validate.
-
-    name( iv_url      = iv_url
-          iv_validate = abap_true ).
 
   ENDMETHOD.
   METHOD url_address.
@@ -24313,6 +24309,12 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
     ENDIF.
 
     rv_adress = |{ lv_host }{ lv_path }{ lv_name }|.
+
+  ENDMETHOD.
+  METHOD validate.
+
+    name( iv_url      = iv_url
+          iv_validate = abap_true ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -33606,7 +33608,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
   METHOD constructor.
     mo_form = io_form.
   ENDMETHOD.
@@ -33704,6 +33706,10 @@ CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
     LOOP AT lt_fields ASSIGNING <ls_field> WHERE type <> zif_abapgit_html_form=>c_field_type-field_group.
       CLEAR lv_value.
       lv_value = io_form_data->get( <ls_field>-name ).
+      IF <ls_field>-condense = abap_true.
+        lv_value = condense( val = lv_value
+                             del = ` ` ).
+      ENDIF.
 
       IF <ls_field>-type = zif_abapgit_html_form=>c_field_type-checkbox.
         ro_form_data->set(
@@ -33772,6 +33778,10 @@ CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
     lt_fields = mo_form->get_fields( ).
     LOOP AT lt_fields ASSIGNING <ls_field>.
       lv_value = io_form_data->get( <ls_field>-name ).
+      IF <ls_field>-condense = abap_true.
+        lv_value = condense( val = lv_value
+                             del = ` ` ).
+      ENDIF.
       IF <ls_field>-required IS NOT INITIAL AND lv_value IS INITIAL.
         ro_validation_log->set(
           iv_key = <ls_field>-name
@@ -34410,6 +34420,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ls_field-min        = iv_min.
     ls_field-max        = iv_max.
     ls_field-password   = iv_password.
+    ls_field-condense   = iv_condense.
     ls_field-hint       = iv_hint.
     ls_field-required   = iv_required.
     ls_field-placeholder = iv_placeholder.
@@ -37032,6 +37043,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_readonly    = abap_true
     )->text(
       iv_name        = c_id-url
+      iv_condense    = abap_true
       iv_label       = lv_label
       iv_hint        = lv_hint
       iv_placeholder = lv_placeholder ).
@@ -44560,6 +44572,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     ro_form->text(
       iv_name        = c_id-url
       iv_required    = abap_true
+      iv_condense    = abap_true
       iv_label       = 'Git Repository URL'
       iv_hint        = 'HTTPS address of the repository'
       iv_placeholder = 'https://github.com/...git'
@@ -105064,6 +105077,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-01T15:58:41.427Z
+* abapmerge 0.14.3 - 2021-10-02T07:10:17.074Z
 ENDINTERFACE.
 ****************************************************
