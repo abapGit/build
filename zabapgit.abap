@@ -104751,6 +104751,7 @@ CLASS lcl_password_dialog DEFINITION FINAL.
 
   PRIVATE SECTION.
     CLASS-DATA gv_confirm TYPE abap_bool.
+    CLASS-DATA gv_show_note TYPE abap_bool.
     CLASS-METHODS enrich_title_by_hostname
       IMPORTING
         iv_repo_url TYPE string.
@@ -104764,8 +104765,15 @@ CLASS lcl_password_dialog IMPLEMENTATION.
     CLEAR p_pass.
     p_url      = iv_repo_url.
     p_user     = cv_user.
-    p_cmnt     = 'GitHub requires using personal tokens (since 8/2021)'.
     gv_confirm = abap_false.
+
+    IF iv_repo_url CP '*github.com*'.
+      p_cmnt = 'GitHub requires using personal tokens (since 8/2021)'.
+      gv_show_note = abap_true.
+    ELSE.
+      gv_show_note = abap_false.
+    ENDIF.
+
     enrich_title_by_hostname( iv_repo_url ).
 
     CALL SELECTION-SCREEN c_dynnr STARTING AT 5 5 ENDING AT 80 8.
@@ -104799,6 +104807,16 @@ CLASS lcl_password_dialog IMPLEMENTATION.
         screen-input       = '0'.
         screen-intensified = '1'.
         screen-display_3d  = '0'.
+        MODIFY SCREEN.
+      ENDIF.
+      IF screen-name = 'P_CMNT' OR screen-name = 'S_CMNT'.
+        IF gv_show_note = abap_true.
+          screen-active    = '1'.
+          screen-invisible = '0'.
+        ELSE.
+          screen-active    = '0'.
+          screen-invisible = '1'.
+        ENDIF.
         MODIFY SCREEN.
       ENDIF.
       IF screen-name = 'P_PASS'.
@@ -105077,6 +105095,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-02T07:10:17.074Z
+* abapmerge 0.14.3 - 2021-10-03T20:44:27.871Z
 ENDINTERFACE.
 ****************************************************
