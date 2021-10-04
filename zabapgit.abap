@@ -57497,7 +57497,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'RELID'
                   CHANGING  cg_data = ls_orig_config-relid ).
 
-    SELECT SINGLE author createdon FROM wdy_config_data INTO ( ls_orig_config-author, ls_orig_config-createdon )
+    SELECT SINGLE author createdon FROM wdy_config_data INTO (ls_orig_config-author, ls_orig_config-createdon)
       WHERE config_id = lv_config_id AND
     config_type = lv_config_type AND
     config_var = lv_config_var.
@@ -105104,6 +105104,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-04T15:00:02.734Z
+* abapmerge 0.14.3 - 2021-10-04T16:11:37.040Z
 ENDINTERFACE.
 ****************************************************
