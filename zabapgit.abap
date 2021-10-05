@@ -3019,6 +3019,7 @@ INTERFACE zif_abapgit_objects.
       overwrite  TYPE i VALUE 3,
       delete     TYPE i VALUE 4,
       delete_add TYPE i VALUE 5,
+      packmove   TYPE i VALUE 6,
     END OF c_deserialize_action.
 
 ENDINTERFACE.
@@ -7885,6 +7886,10 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_obj_type TYPE tadir-object
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS change_package_assignments
+      IMPORTING
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !ii_log  TYPE REF TO zif_abapgit_log.
 ENDCLASS.
 CLASS zcl_abapgit_objects_generic DEFINITION
   CREATE PUBLIC .
@@ -54625,6 +54630,26 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD change_package_assignments.
+
+    CALL FUNCTION 'TR_TADIR_INTERFACE'
+      EXPORTING
+        wi_tadir_pgmid    = 'R3TR'
+        wi_tadir_object   = is_item-obj_type
+        wi_tadir_obj_name = is_item-obj_name
+        wi_tadir_devclass = is_item-devclass
+        wi_test_modus     = abap_false
+      EXCEPTIONS
+        OTHERS            = 1.
+    IF sy-subrc = 0.
+      ii_log->add_success( iv_msg  = |Object { is_item-obj_name } assigned to package { is_item-devclass }|
+                           is_item = is_item ).
+    ELSE.
+      ii_log->add_error( iv_msg  = |Package change of object { is_item-obj_name } failed|
+                         is_item = is_item ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD check_duplicates.
 
     DATA: lt_files          TYPE zif_abapgit_definitions=>ty_files_tt,
@@ -55028,6 +55053,16 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
             lv_path = <ls_result>-path.
           ENDIF.
 
+          IF <ls_result>-packmove = abap_true.
+            " Move object to new package
+            ls_item-devclass = lv_package.
+            change_package_assignments( is_item = ls_item
+                                        ii_log  = ii_log ).
+            " No other changes required
+            CONTINUE.
+          ENDIF.
+
+          " Create or update object
           CREATE OBJECT lo_files
             EXPORTING
               is_item = ls_item
@@ -94856,30 +94891,36 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_changes ASSIGNING <ls_changes>.
       MOVE-CORRESPONDING <ls_result> TO <ls_changes>.
 
-      CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
+      IF <ls_result>-packmove = abap_true.
+        <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-packmove.
+        <ls_changes>-icon   = icon_package_standard.
+        <ls_changes>-text   = 'Change package assignment'.
+      ELSE.
+        CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
 
-      CASE lv_status.
-        WHEN '  '. " no changes
-          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-none.
-        WHEN ' A' OR 'D ' OR 'DM'. " added remotely or deleted locally
-          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-add.
-          <ls_changes>-icon   = icon_create.
-          <ls_changes>-text   = 'Add local object'.
-        WHEN 'A ' OR ' D' OR 'MD'. " added locally or deleted remotely
-          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-delete.
-          <ls_changes>-icon   = icon_delete.
-          <ls_changes>-text   = 'Delete local object'.
-        WHEN 'M ' OR 'MM'. " modified locally
-          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-overwrite.
-          <ls_changes>-icon   = icon_change.
-          <ls_changes>-text   = 'Overwrite local object'.
-        WHEN ' M'. " modified only remotely
-          <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-update.
-          <ls_changes>-icon   = icon_change.
-          <ls_changes>-text   = 'Update local object'.
-        WHEN OTHERS.
-          ASSERT 0 = 1.
-      ENDCASE.
+        CASE lv_status.
+          WHEN '  '. " no changes
+            <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-none.
+          WHEN ' A' OR 'D ' OR 'DM'. " added remotely or deleted locally
+            <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-add.
+            <ls_changes>-icon   = icon_create.
+            <ls_changes>-text   = 'Add local object'.
+          WHEN 'A ' OR ' D' OR 'MD'. " added locally or deleted remotely
+            <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-delete.
+            <ls_changes>-icon   = icon_delete.
+            <ls_changes>-text   = 'Delete local object'.
+          WHEN 'M ' OR 'MM'. " modified locally
+            <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-overwrite.
+            <ls_changes>-icon   = icon_change.
+            <ls_changes>-text   = 'Overwrite local object'.
+          WHEN ' M'. " modified only remotely
+            <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-update.
+            <ls_changes>-icon   = icon_change.
+            <ls_changes>-text   = 'Update local object'.
+          WHEN OTHERS.
+            ASSERT 0 = 1.
+        ENDCASE.
+      ENDIF.
 
     ENDLOOP.
 
@@ -94958,7 +94999,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
-    LOOP AT it_results ASSIGNING <ls_result> WHERE match IS INITIAL.
+    LOOP AT it_results ASSIGNING <ls_result> WHERE match IS INITIAL AND packmove IS INITIAL.
 
       lv_package = lo_folder_logic->path_to_package(
         iv_top  = io_repo->get_package( )
@@ -105108,6 +105149,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-05T03:58:52.940Z
+* abapmerge 0.14.3 - 2021-10-05T04:03:18.939Z
 ENDINTERFACE.
 ****************************************************
