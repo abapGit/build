@@ -39616,6 +39616,15 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                                        iv_render_transports = mv_are_changes_recorded_in_tr ) ).
           ENDLOOP.
 
+          IF mv_changes_only = abap_true.
+            ri_html->add( `<tfoot><tr><td colspan="5">` ).
+            ri_html->add( `(Only changes are shown. ` ).
+            ri_html->add( ri_html->a(
+              iv_txt   = |Show All|
+              iv_act   = |{ c_actions-toggle_changes }| ) ).
+            ri_html->add( `)</td></tr></tfoot>` ).
+          ENDIF.
+
           ri_html->add( '</table>' ).
         ENDIF.
 
@@ -105155,6 +105164,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-05T12:58:05.883Z
+* abapmerge 0.14.3 - 2021-10-05T13:05:11.491Z
 ENDINTERFACE.
 ****************************************************
