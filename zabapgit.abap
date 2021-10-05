@@ -36483,7 +36483,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-settings-form'
-                iv_help_page = 'https://docs.abapgit.org/ref-dot-abapgit.html' ).
+                iv_help_page = 'https://docs.abapgit.org/settings-dot-abapgit.html' ).
 
     ro_form->start_group(
       iv_name        = c_id-dot
@@ -37024,7 +37024,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-remote-settings-form'
-                iv_help_page = 'https://docs.abapgit.org/ref-dot-abapgit.html' ).
+                iv_help_page = 'https://docs.abapgit.org/settings-remote.html' ).
 
     IF mv_mode = c_mode-offline.
       lv_button      = 'Switch to Online'.
@@ -37770,7 +37770,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-local-settings-form'
-                iv_help_page = 'https://docs.abapgit.org/guide-repo-local.html' ).
+                iv_help_page = 'https://docs.abapgit.org/settings-local.html' ).
 
     ro_form->start_group(
       iv_name        = c_id-local
@@ -38036,7 +38036,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-infos-form'
-                iv_help_page = 'https://docs.abapgit.org/ref-settings-stats.html' ).
+                iv_help_page = 'https://docs.abapgit.org/settings-stats.html' ).
 
     IF mo_repo->is_offline( ) = abap_true.
       lv_label = 'ZIP File'.
@@ -38707,7 +38707,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'repo-background-form'
-                iv_help_page = 'https://docs.abapgit.org/other-background-mode.html' ).
+                iv_help_page = 'https://docs.abapgit.org/settings-background-mode.html' ).
 
     ro_form->start_group(
       iv_name          = c_id-mode_selection
@@ -105164,6 +105164,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-05T16:41:52.453Z
+* abapmerge 0.14.3 - 2021-10-05T16:45:20.266Z
 ENDINTERFACE.
 ****************************************************
