@@ -67646,7 +67646,11 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     SELECT SINGLE chng_user FROM smimloio INTO rv_user
       WHERE loio_id = lv_loio.                          "#EC CI_GENBUFF
     IF sy-subrc <> 0 OR rv_user IS INITIAL.
-      rv_user = c_user_unknown.
+      SELECT SINGLE chng_user FROM smimphio INTO rv_user
+        WHERE loio_id = lv_loio.                        "#EC CI_GENBUFF
+      IF sy-subrc <> 0 OR rv_user IS INITIAL.
+        rv_user = c_user_unknown.
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -105104,6 +105108,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-04T16:11:37.040Z
+* abapmerge 0.14.3 - 2021-10-05T03:58:52.940Z
 ENDINTERFACE.
 ****************************************************
