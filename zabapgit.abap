@@ -2466,6 +2466,7 @@ INTERFACE zif_abapgit_definitions .
       goto_source                   TYPE string VALUE 'goto_source',
       show_callstack                TYPE string VALUE 'show_callstack',
       change_order_by               TYPE string VALUE 'change_order_by',
+      toggle_favorites              TYPE string VALUE 'toggle_favorites',
       goto_message                  TYPE string VALUE 'goto_message',
       direction                     TYPE string VALUE 'direction',
       documentation                 TYPE string VALUE 'documentation',
@@ -3154,6 +3155,11 @@ INTERFACE zif_abapgit_persist_repo .
       VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
     RAISING
       zcx_abapgit_exception .
+  METHODS list_favorites
+    IMPORTING it_keys         TYPE zif_abapgit_persistence=>ty_repo_keys
+    RETURNING VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
+    RAISING
+              zcx_abapgit_exception .
   METHODS lock
     IMPORTING
       !iv_mode TYPE enqmode
@@ -3412,10 +3418,11 @@ INTERFACE zif_abapgit_repo_srv .
     RAISING
       zcx_abapgit_exception .
   METHODS list
-    RETURNING
-      VALUE(rt_list) TYPE ty_repo_list
-    RAISING
-      zcx_abapgit_exception .
+    RETURNING VALUE(rt_list) TYPE ty_repo_list
+    RAISING zcx_abapgit_exception .
+  METHODS list_favorites
+    RETURNING VALUE(rt_list) TYPE ty_repo_list
+    RAISING zcx_abapgit_exception .
   METHODS new_offline
     IMPORTING
       !iv_url            TYPE string
@@ -13029,6 +13036,10 @@ CLASS zcl_abapgit_persistence_db DEFINITION
         !iv_type          TYPE zif_abapgit_persistence=>ty_type
       RETURNING
         VALUE(rt_content) TYPE zif_abapgit_persistence=>ty_contents .
+    METHODS list_by_keys
+      IMPORTING it_keys            TYPE zif_abapgit_persistence=>ty_repo_keys
+                iv_type            TYPE zif_abapgit_persistence=>ty_type
+      RETURNING VALUE(rt_contents) TYPE zif_abapgit_persistence=>ty_contents.
     METHODS lock
       IMPORTING
         !iv_mode  TYPE enqmode DEFAULT 'E'
@@ -13108,6 +13119,13 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
         VALUE(rv_next_repo_id) TYPE zif_abapgit_persistence=>ty_content-value
       RAISING
         zcx_abapgit_exception .
+    METHODS get_repo_from_content
+      IMPORTING
+        is_content    TYPE zif_abapgit_persistence=>ty_content
+      RETURNING
+        VALUE(rs_result) TYPE zif_abapgit_persistence=>ty_repo
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_persistence_user DEFINITION
   CREATE PRIVATE .
@@ -13698,7 +13716,8 @@ CLASS zcl_abapgit_repo_srv DEFINITION
       FOR zif_abapgit_repo_srv~validate_url .
 
     CLASS-DATA gi_ref TYPE REF TO zif_abapgit_repo_srv .
-    DATA mv_init TYPE abap_bool VALUE abap_false ##NO_TEXT.
+    DATA mv_init TYPE abap_bool.
+    DATA mv_only_favorites TYPE abap_bool.
     DATA mt_list TYPE zif_abapgit_repo_srv=>ty_repo_list .
 
     METHODS determine_branch_name
@@ -13709,7 +13728,10 @@ CLASS zcl_abapgit_repo_srv DEFINITION
         VALUE(rv_name) TYPE string
       RAISING
         zcx_abapgit_exception .
-    METHODS refresh
+    METHODS refresh_all
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_favorites
       RAISING
         zcx_abapgit_exception .
     METHODS instantiate_and_add
@@ -14774,9 +14796,10 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_repo_palette
       IMPORTING
-        !iv_action     TYPE string
+        iv_action         TYPE string
+        iv_only_favorites TYPE abap_bool
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+        VALUE(ri_html)    TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS advanced_submenu
@@ -15960,7 +15983,8 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
     INTERFACES: zif_abapgit_gui_hotkeys.
     METHODS:
       constructor
-        RAISING zcx_abapgit_exception,
+        IMPORTING iv_only_favorites TYPE abap_bool
+        RAISING   zcx_abapgit_exception,
       zif_abapgit_gui_event_handler~on_event REDEFINITION.
   PROTECTED SECTION.
     METHODS:
@@ -15976,8 +16000,9 @@ CLASS zcl_abapgit_gui_page_main DEFINITION
         abapgit_home TYPE string VALUE 'abapgit_home',
       END OF c_actions.
 
-    DATA: mo_repo_overview TYPE REF TO zcl_abapgit_gui_page_repo_over,
-          mv_repo_key      TYPE zif_abapgit_persistence=>ty_value.
+    DATA: mo_repo_overview  TYPE REF TO zcl_abapgit_gui_page_repo_over,
+          mv_repo_key       TYPE zif_abapgit_persistence=>ty_value,
+          mv_only_favorites TYPE abap_bool.
 
     METHODS build_main_menu
       RETURNING VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
@@ -16290,10 +16315,12 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
     INTERFACES zif_abapgit_gui_renderable .
 
     DATA mv_order_by TYPE string READ-ONLY .
+    DATA mv_only_favorites   TYPE abap_bool READ-ONLY.
 
     METHODS constructor
+      IMPORTING iv_only_favorites TYPE abap_bool
       RAISING
-        zcx_abapgit_exception .
+                zcx_abapgit_exception .
     METHODS set_order_by
       IMPORTING
         !iv_order_by TYPE string .
@@ -16302,7 +16329,12 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         !iv_order_descending TYPE abap_bool .
     METHODS set_filter
       IMPORTING
-        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
+        it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
+    METHODS set_only_favorites
+      IMPORTING
+        iv_only_favorites TYPE abap_bool.
+    METHODS
+      get_only_favorites RETURNING VALUE(rv_result) TYPE abap_bool.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -17622,9 +17654,12 @@ CLASS zcl_abapgit_gui_router DEFINITION
         VALUE(rv_state) TYPE i .
     METHODS get_state_db_edit
       IMPORTING
-        !ii_event       TYPE REF TO zif_abapgit_gui_event
+        ii_event        TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rv_state) TYPE i .
+    METHODS main_page
+      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_html_action_utils DEFINITION
   CREATE PUBLIC .
@@ -28396,8 +28431,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.actionCssClass = findStyleSheetByName(".ro-action");' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
-    lo_buf->add( '  icon = document.getElementById("icon-filter-favorite");' ).
-    lo_buf->add( '  this.toggleFilterIcon(icon, this.isOnlyFavoritesDisplayed);' ).
     lo_buf->add( '  this.registerRowSelection();' ).
     lo_buf->add( '  this.registerKeyboardShortcuts();' ).
     lo_buf->add( '}' ).
@@ -28411,9 +28444,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (data) {' ).
     lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
     lo_buf->add( '      this.toggleItemsDetail(true);' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '    if (data.isOnlyFavoritesDisplayed) {' ).
-    lo_buf->add( '      this.toggleItemsFavorites(true);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (data.selectedRepoKey) {' ).
     lo_buf->add( '      this.selectRowByRepoKey(data.selectedRepoKey);' ).
@@ -28577,28 +28607,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    icon.classList.remove("blue");' ).
     lo_buf->add( '    icon.classList.add("grey");' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListFavorites = function (forceDisplay) {' ).
-    lo_buf->add( '  this.toggleItemsFavorites(forceDisplay);' ).
-    lo_buf->add( '  this.saveLocalStorage();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsFavorites = function (forceDisplay) {' ).
-    lo_buf->add( '  this.isOnlyFavoritesDisplayed = forceDisplay || !this.isOnlyFavoritesDisplayed;' ).
-    lo_buf->add( '  var repositories = document.getElementsByClassName("repo");' ).
-    lo_buf->add( '  var icon = document.getElementById("icon-filter-favorite");' ).
-    lo_buf->add( '  this.toggleFilterIcon(icon, this.isOnlyFavoritesDisplayed);' ).
-    lo_buf->add( '  for (var i = 0; i < repositories.length; i++) {' ).
-    lo_buf->add( '    var repo = repositories[i];' ).
-    lo_buf->add( '    if (this.isOnlyFavoritesDisplayed) {' ).
-    lo_buf->add( '      if (!repo.classList.contains("favorite")) {' ).
-    lo_buf->add( '        repo.classList.add("nodisplay");' ).
-    lo_buf->add( '      }' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      repo.classList.remove("nodisplay");' ).
-    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -34688,12 +34696,12 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
     IF ii_event->mv_action = zif_abapgit_definitions=>c_action-abapgit_home.
-      CREATE OBJECT li_main_page.
+      CREATE OBJECT li_main_page EXPORTING iv_only_favorites = abap_true.
       rs_handled-page = li_main_page.
       rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDIF.
@@ -34771,26 +34779,24 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
           lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key,
-          lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
+          lt_repo_fav_list TYPE zif_abapgit_repo_srv=>ty_repo_list,
+          lt_repo_all_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
       WHEN zcl_abapgit_gui=>c_action-go_home.
         lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
-        lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+
         IF lv_last_repo_key IS NOT INITIAL.
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_repo_view
             EXPORTING
               iv_key = lv_last_repo_key.
-        ELSEIF lt_repo_obj_list IS NOT INITIAL.
-          CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
         ELSE.
-          rs_handled-page = zcl_abapgit_gui_page_tutorial=>create( ).
+          rs_handled-page = main_page( ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
         ENDIF.
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -34830,6 +34836,29 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD main_page.
+
+    DATA lt_repo_fav_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
+    DATA lt_repo_all_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
+
+    " for performance reasons, only load favorites
+    lt_repo_fav_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
+    IF lt_repo_fav_list IS INITIAL.
+      " if there are no favorites, check if there are any repositories at all
+      " if not, go to tutorial where the user can create the first repository
+      lt_repo_all_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+      IF lt_repo_all_list IS NOT INITIAL.
+        CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_main EXPORTING iv_only_favorites = abap_false.
+      ELSE.
+        ri_page = zcl_abapgit_gui_page_tutorial=>create( ).
+      ENDIF.
+
+    ELSE.
+      CREATE OBJECT ri_page TYPE zcl_abapgit_gui_page_main EXPORTING iv_only_favorites = abap_true.
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_page_branch_overview.
@@ -35093,7 +35122,7 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         zcl_abapgit_services_repo=>refresh( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_syntax        " Syntax check
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_syntax " Syntax check
           EXPORTING
             io_repo = lo_repo.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -35104,11 +35133,11 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo purge all objects (uninstall)
         zcl_abapgit_services_repo=>purge( lv_key ).
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main EXPORTING iv_only_favorites = abap_true.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
       WHEN zif_abapgit_definitions=>c_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main.
+        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main EXPORTING iv_only_favorites = abap_true.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.                  " New offline repo
         rs_handled-page  = zcl_abapgit_gui_page_addonline=>create( ).
@@ -39928,7 +39957,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
+      iv_action = zif_abapgit_definitions=>c_action-go_repo
+      iv_only_favorites = abap_true ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -40101,6 +40132,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     super->constructor( ).
     mv_order_by = |NAME|.
+    mv_only_favorites = iv_only_favorites.
 
     CALL FUNCTION 'GET_SYSTEM_TIMEZONE'
       IMPORTING
@@ -40120,7 +40152,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_repo> LIKE LINE OF lt_repo_obj_list.
 
-    lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    IF mv_only_favorites = abap_true.
+      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
+    ELSE.
+      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    ENDIF.
 
     LOOP AT lt_repo_obj_list ASSIGNING <ls_repo>.
 
@@ -40164,6 +40200,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_header_bar.
 
+    DATA: lv_new_toggle_favorites TYPE abap_bool,
+          lv_icon_class           TYPE string.
+
     ii_html->add( |<div class="form-container">| ).
 
     ii_html->add( |<form class="inline" method="post" action="sapevent:{ c_action-apply_filter }">| ).
@@ -40176,10 +40215,17 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ii_html->add( |<input type="submit" class="hidden-submit">| ).
     ii_html->add( |</form>| ).
 
+    lv_new_toggle_favorites = boolc( NOT mv_only_favorites = abap_true ).
+    " render icon for current state but filter value for new state
+    IF mv_only_favorites = abap_true.
+      lv_icon_class = `blue`.
+    ELSE.
+      lv_icon_class = `grey`.
+    ENDIF.
+
     ii_html->add( ii_html->a(
-      iv_txt = '<i id="icon-filter-favorite" class="icon icon-check"></i> Only Favorites'
-      iv_act = |gHelper.toggleRepoListFavorites()|
-      iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
+      iv_txt   = |<i id="icon-filter-favorite" class="icon icon-check { lv_icon_class }"></i> Only Favorites|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?favorites={ lv_new_toggle_favorites }| ) ).
 
     ii_html->add( `<span class="separator">|</span>` ).
 
@@ -40208,7 +40254,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ii_html->add( |<table class="db_tab">| ).
 
     render_table_header( ii_html ).
-    render_table_body( ii_html     = ii_html
+    render_table_body( ii_html      = ii_html
                        it_repo_list = it_overview ).
 
     ii_html->add( |</table>| ).
@@ -40338,8 +40384,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
       " the link is clicked in javascript
       lv_repo_go_link = ii_html->a(
-        iv_txt = ``
-        iv_act = |{ c_action-select }?key={ <ls_repo>-key }|
+        iv_txt   = ``
+        iv_act   = |{ c_action-select }?key={ <ls_repo>-key }|
         iv_class = 'hidden' ).
 
       ii_html->add( column(
@@ -40349,6 +40395,15 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ENDLOOP.
 
     ii_html->add( |</tbody>| ).
+
+    IF mv_only_favorites = abap_true.
+      ii_html->add( `<tfoot><tr><td colspan="5">` ).
+      ii_html->add( `(Only favorites are shown. ` ).
+      ii_html->add( ii_html->a(
+        iv_txt   = |Show All|
+        iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?favorites={ abap_false }| ) ).
+      ii_html->add( `)</td></tr></tfoot>` ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -40374,43 +40429,43 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ii_html->add( |<div class="float-right">| ).
 
     lv_check_link = ii_html->a(
-      iv_txt = |Check|
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
+      iv_txt   = |Check|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
       iv_class = |{ lc_action_class }| ).
 
     ii_html->add( action_link( lv_check_link && lc_separator ) ).
 
     lv_stage_link = ii_html->a(
-      iv_txt = |Stage|
-      iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
+      iv_txt   = |Stage|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
       iv_class = |{ lc_action_class } { lc_online_class } | ).
 
     ii_html->add( action_link( lv_stage_link && lc_separator ) ).
 
     lv_patch_link = ii_html->a(
-      iv_txt = |Patch|
-      iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
+      iv_txt   = |Patch|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
       iv_class = |{ lc_action_class } { lc_online_class } | ).
 
     ii_html->add( action_link( lv_patch_link && lc_separator ) ).
 
     lv_zip_import_link = ii_html->a(
-      iv_txt = |Import|
-      iv_act = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
+      iv_txt   = |Import|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
       iv_class = |{ lc_action_class } { lc_offline_class }| ).
 
     ii_html->add( action_link( lv_zip_import_link && lc_separator ) ).
 
     lv_zip_export_link = ii_html->a(
-      iv_txt = |Export|
-      iv_act = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
+      iv_txt   = |Export|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
       iv_class = |{ lc_action_class } { lc_offline_class }| ).
 
     ii_html->add( action_link( lv_zip_export_link && lc_separator ) ).
 
     lv_settings_link = ii_html->a(
-      iv_txt = |Settings|
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
+      iv_txt   = |Settings|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
       iv_class = |{ lc_action_class }| ).
 
     ii_html->add( action_link( lv_settings_link ) ).
@@ -40443,70 +40498,70 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     CLEAR mt_col_spec.
 
     _add_column(
-      iv_tech_name = 'FAVORITE'
-      iv_css_class = 'wmin'
+      iv_tech_name      = 'FAVORITE'
+      iv_css_class      = 'wmin'
       iv_allow_order_by = abap_false ).
 
     _add_column(
-      iv_tech_name = 'TYPE'
-      iv_css_class = 'wmin'
+      iv_tech_name      = 'TYPE'
+      iv_css_class      = 'wmin'
       iv_allow_order_by = abap_false ).
 
     _add_column(
-      iv_tech_name = 'NAME'
-      iv_display_name = 'Name'
+      iv_tech_name      = 'NAME'
+      iv_display_name   = 'Name'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'PACKAGE'
-      iv_display_name = 'Package'
-      iv_css_class = 'package'
+      iv_tech_name      = 'PACKAGE'
+      iv_display_name   = 'Package'
+      iv_css_class      = 'package'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'URL'
-      iv_display_name = 'Remote'
+      iv_tech_name      = 'URL'
+      iv_display_name   = 'Remote'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'BRANCH'
-      iv_display_name = 'Branch'
+      iv_tech_name      = 'BRANCH'
+      iv_display_name   = 'Branch'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'DESERIALIZED_BY'
-      iv_display_name = 'Deserialized by'
-      iv_css_class = 'ro-detail'
+      iv_tech_name      = 'DESERIALIZED_BY'
+      iv_display_name   = 'Deserialized by'
+      iv_css_class      = 'ro-detail'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'DESERIALIZED_AT'
-      iv_display_name = 'Deserialized at'
-      iv_css_class = 'ro-detail'
+      iv_tech_name      = 'DESERIALIZED_AT'
+      iv_display_name   = 'Deserialized at'
+      iv_css_class      = 'ro-detail'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'CREATED_BY'
-      iv_display_name = 'Created by'
-      iv_css_class = 'ro-detail'
+      iv_tech_name      = 'CREATED_BY'
+      iv_display_name   = 'Created by'
+      iv_css_class      = 'ro-detail'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'CREATED_AT'
-      iv_display_name = 'Created at'
-      iv_css_class = 'ro-detail'
-      iv_add_tz = abap_true
+      iv_tech_name      = 'CREATED_AT'
+      iv_display_name   = 'Created at'
+      iv_css_class      = 'ro-detail'
+      iv_add_tz         = abap_true
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'KEY'
-      iv_display_name = 'Key'
-      iv_css_class = 'ro-detail'
+      iv_tech_name      = 'KEY'
+      iv_display_name   = 'Key'
+      iv_css_class      = 'ro-detail'
       iv_allow_order_by = abap_true ).
 
     _add_column(
-      iv_tech_name = 'GO'
-      iv_css_class = 'ro-go'
+      iv_tech_name      = 'GO'
+      iv_css_class      = 'ro-go'
       iv_allow_order_by = abap_false ).
 
     ii_html->add( |<thead>| ).
@@ -40604,6 +40659,13 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
   METHOD action_link.
     rv_html = |<span class="action_link">| && iv_content && |</span>|.
+  ENDMETHOD.
+  METHOD set_only_favorites.
+    mv_only_favorites = iv_only_favorites.
+  ENDMETHOD.
+
+  METHOD get_only_favorites.
+    rv_result = mv_only_favorites.
   ENDMETHOD.
 
 ENDCLASS.
@@ -41785,6 +41847,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     super->constructor( ).
     ms_control-page_menu  = build_main_menu( ).
     ms_control-page_title = 'Repository List'.
+    mv_only_favorites = iv_only_favorites.
   ENDMETHOD.
   METHOD render_content.
 
@@ -41792,13 +41855,15 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
 
-    IF mo_repo_overview IS INITIAL.
-      CREATE OBJECT mo_repo_overview.
+    IF mo_repo_overview IS INITIAL OR mo_repo_overview->mv_only_favorites <> mv_only_favorites.
+      CREATE OBJECT mo_repo_overview EXPORTING iv_only_favorites = mv_only_favorites.
     ENDIF.
 
     ri_html->add( mo_repo_overview->zif_abapgit_gui_renderable~render( ) ).
 
-    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_actions-select ) ).
+    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
+      iv_action = c_actions-select
+      iv_only_favorites = mv_only_favorites ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -41829,6 +41894,11 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-change_order_by.
 
         mo_repo_overview->set_order_by( ii_event->query( )->get( 'ORDERBY' ) ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
+      WHEN zif_abapgit_definitions=>c_action-toggle_favorites.
+
+        mv_only_favorites = ii_event->query( )->get( 'FAVORITES' ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN zif_abapgit_definitions=>c_action-direction.
@@ -45436,8 +45506,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD normalize_program_name.
 
     rv_normalized_program_name = substring_before(
-                                     val   = iv_program_name
-                                     regex = `(=+CP)?$` ).
+      val   = iv_program_name
+      regex = `(=+CP)?$` ).
 
   ENDMETHOD.
   METHOD render_branch_name.
@@ -45566,10 +45636,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ri_html->add( |<div class="float-right">| ).
 
     ri_html->add_a(
-        iv_txt   = `&#x274c;`
-        iv_act   = `toggleDisplay('message')`
-        iv_class = `close-btn`
-        iv_typ   = zif_abapgit_html=>c_action_type-onclick ).
+      iv_txt   = `&#x274c;`
+      iv_act   = `toggleDisplay('message')`
+      iv_class = `close-btn`
+      iv_typ   = zif_abapgit_html=>c_action_type-onclick ).
 
     ri_html->add( |</div>| ).
 
@@ -45578,17 +45648,17 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     IF ix_error->if_t100_message~t100key-msgid IS NOT INITIAL.
 
       lv_title = get_t100_text(
-                    iv_msgid = ix_error->if_t100_message~t100key-msgid
-                    iv_msgno = ix_error->if_t100_message~t100key-msgno ).
+        iv_msgid = ix_error->if_t100_message~t100key-msgid
+        iv_msgno = ix_error->if_t100_message~t100key-msgno ).
 
       lv_text = |Message ({ ix_error->if_t100_message~t100key-msgid }/{ ix_error->if_t100_message~t100key-msgno })|.
 
       ri_html->add_a(
-          iv_txt   = lv_text
-          iv_typ   = zif_abapgit_html=>c_action_type-sapevent
-          iv_act   = zif_abapgit_definitions=>c_action-goto_message
-          iv_title = lv_title
-          iv_id    = `a_goto_message` ).
+        iv_txt   = lv_text
+        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+        iv_act   = zif_abapgit_definitions=>c_action-goto_message
+        iv_title = lv_title
+        iv_id    = `a_goto_message` ).
 
     ENDIF.
 
@@ -45597,17 +45667,17 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     lv_title = normalize_program_name( lv_program_name ).
 
     ri_html->add_a(
-        iv_txt   = `Goto source`
-        iv_act   = zif_abapgit_definitions=>c_action-goto_source
-        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
-        iv_title = lv_title
-        iv_id    = `a_goto_source` ).
+      iv_txt   = `Goto source`
+      iv_act   = zif_abapgit_definitions=>c_action-goto_source
+      iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+      iv_title = lv_title
+      iv_id    = `a_goto_source` ).
 
     ri_html->add_a(
-        iv_txt = `Callstack`
-        iv_act = zif_abapgit_definitions=>c_action-show_callstack
-        iv_typ = zif_abapgit_html=>c_action_type-sapevent
-        iv_id  = `a_callstack` ).
+      iv_txt = `Callstack`
+      iv_act = zif_abapgit_definitions=>c_action-show_callstack
+      iv_typ = zif_abapgit_html=>c_action_type-sapevent
+      iv_id  = `a_callstack` ).
 
     ri_html->add( |</div>| ).
     ri_html->add( |<div class="message-panel-commands">| ).
@@ -45845,8 +45915,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     lv_obj_name = iv_package.
     lv_jump = zcl_abapgit_html_action_utils=>jump_encode(
-                iv_obj_type = 'DEVC'
-                iv_obj_name = lv_obj_name ).
+      iv_obj_type = 'DEVC'
+      iv_obj_name = lv_obj_name ).
 
     ri_html->add( |<span class="package-box">| ).
     ri_html->add_icon( iv_name = 'box/grey70'
@@ -45873,7 +45943,12 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       <ls_repo>     LIKE LINE OF lt_repo_list,
       <lr_repo_obj> LIKE LINE OF lt_repo_obj_list.
 
-    lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    IF iv_only_favorites = abap_true.
+      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
+    ELSE.
+      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    ENDIF.
+
     LOOP AT lt_repo_obj_list ASSIGNING <lr_repo_obj>.
       ls_repo_data = <lr_repo_obj>->ms_data.
       ls_repo_data-local_settings-display_name = <lr_repo_obj>->get_name( ).
@@ -49894,11 +49969,22 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     add( ro_repo ).
 
   ENDMETHOD.
-  METHOD refresh.
+
+  METHOD zif_abapgit_repo_srv~list_favorites.
+
+    IF mv_init = abap_false OR mv_only_favorites = abap_false.
+      refresh_favorites( ).
+    ENDIF.
+
+    rt_list = mt_list.
+
+  ENDMETHOD.
+  METHOD refresh_all.
 
     DATA: lt_list TYPE zif_abapgit_persistence=>ty_repos.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+
     CLEAR mt_list.
 
     lt_list = zcl_abapgit_persist_factory=>get_repo( )->list( ).
@@ -49907,6 +49993,27 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDLOOP.
 
     mv_init = abap_true.
+    mv_only_favorites = abap_false.
+
+  ENDMETHOD.
+
+  METHOD refresh_favorites.
+
+    DATA: lt_list           TYPE zif_abapgit_persistence=>ty_repos,
+          lt_user_favorites TYPE zif_abapgit_persist_user=>ty_favorites.
+
+    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+
+    CLEAR mt_list.
+
+    lt_user_favorites = zcl_abapgit_persistence_user=>get_instance( )->get_favorites( ).
+    lt_list = zcl_abapgit_persist_factory=>get_repo( )->list_favorites( lt_user_favorites ).
+    LOOP AT lt_list ASSIGNING <ls_list>.
+      instantiate_and_add( <ls_list> ).
+    ENDLOOP.
+
+    mv_init = abap_true.
+    mv_only_favorites = abap_true.
 
   ENDMETHOD.
   METHOD reinstantiate_repo.
@@ -50006,13 +50113,13 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     FIELD-SYMBOLS: <lo_list> LIKE LINE OF mt_list.
 
     IF mv_init = abap_false.
-      refresh( ).
+      refresh_all( ).
     ENDIF.
 
     DO 2 TIMES.
       " Repo might have been created in another session. Try again after refresh
       IF sy-index = 2.
-        refresh( ).
+        refresh_all( ).
       ENDIF.
       LOOP AT mt_list ASSIGNING <lo_list>.
         IF <lo_list>->ms_data-key = iv_key.
@@ -50126,8 +50233,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~list.
 
-    IF mv_init = abap_false.
-      refresh( ).
+    IF mv_init = abap_false OR mv_only_favorites = abap_true.
+      refresh_all( ).
     ENDIF.
 
     rt_list = mt_list.
@@ -50316,6 +50423,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
@@ -52166,19 +52274,31 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
     DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents,
           ls_content LIKE LINE OF lt_content,
           ls_repo    LIKE LINE OF rt_repos.
+
     lt_content = mo_db->list_by_type( zcl_abapgit_persistence_db=>c_type_repo ).
 
     LOOP AT lt_content INTO ls_content.
-      MOVE-CORRESPONDING from_xml( ls_content-data_str ) TO ls_repo.
-      IF ls_repo-local_settings-write_protected = abap_false AND
-         zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_false.
-        ls_repo-local_settings-write_protected = abap_true.
-      ENDIF.
-      ls_repo-key = ls_content-value.
+      ls_repo = get_repo_from_content( ls_content ).
       INSERT ls_repo INTO TABLE rt_repos.
     ENDLOOP.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_persist_repo~list_favorites.
+    DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents,
+          ls_content LIKE LINE OF lt_content,
+          ls_repo    LIKE LINE OF rt_repos.
+
+    lt_content = mo_db->list_by_keys(
+      it_keys = it_keys
+      iv_type = zcl_abapgit_persistence_db=>c_type_repo ).
+
+    LOOP AT lt_content INTO ls_content.
+      ls_repo = get_repo_from_content( ls_content ).
+      INSERT ls_repo INTO TABLE rt_repos.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD zif_abapgit_persist_repo~lock.
 
     mo_db->lock( iv_mode  = iv_mode
@@ -52241,6 +52361,15 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
                    iv_data  = lv_blob ).
 
   ENDMETHOD.
+  METHOD get_repo_from_content.
+    MOVE-CORRESPONDING from_xml( is_content-data_str ) TO rs_result.
+    IF rs_result-local_settings-write_protected = abap_false AND
+       zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_false.
+      rs_result-local_settings-write_protected = abap_true.
+    ENDIF.
+    rs_result-key = is_content-value.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
@@ -52302,6 +52431,15 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       INTO TABLE rt_content
       WHERE type = iv_type
       ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
+  ENDMETHOD.
+  METHOD list_by_keys.
+    FIELD-SYMBOLS: <ls_key> LIKE LINE OF it_keys.
+    LOOP AT it_keys ASSIGNING <ls_key>.
+      SELECT * FROM (c_tabname)
+      APPENDING TABLE rt_contents
+      WHERE value = <ls_key> AND
+            type  = iv_type.
+    ENDLOOP.
   ENDMETHOD.
   METHOD lock.
     DATA: lv_dummy_update_function TYPE funcname.
@@ -105167,6 +105305,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-06T06:02:50.774Z
+* abapmerge 0.14.3 - 2021-10-06T06:05:10.684Z
 ENDINTERFACE.
 ****************************************************
