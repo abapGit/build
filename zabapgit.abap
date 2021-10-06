@@ -28816,10 +28816,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function (row, filter) {' ).
     lo_buf->add( '  // Collect data cells' ).
     lo_buf->add( '  var targets = this.filterTargets.map(function(attr) {' ).
+    lo_buf->add( '    // Get the innermost tag with the text we want to filter' ).
+    lo_buf->add( '    // <td>text</td>: elem = td-tag' ).
+    lo_buf->add( '    // <td><span><i></i><a>text</a></span></td>: elem = a-tag' ).
     lo_buf->add( '    var elem = row.cells[this.colIndex[attr]];' ).
-    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "SPAN") elem = elem.firstChild;' ).
-    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "I") elem = elem.nextChild;' ).
-    lo_buf->add( '    if (elem.firstChild && elem.firstChild.tagName === "A") elem = elem.firstChild;' ).
+    lo_buf->add( '    var elemA = elem.getElementsByTagName("A")[0];' ).
+    lo_buf->add( '    if (elemA) elem = elemA;' ).
     lo_buf->add( '    return {' ).
     lo_buf->add( '      elem:      elem,' ).
     lo_buf->add( '      plainText: elem.innerText.replace(/ /g, "\u00a0"), // without tags, with encoded spaces' ).
@@ -28832,8 +28834,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // Apply filter to cells, mark filtered text' ).
     lo_buf->add( '  for (var i = targets.length - 1; i >= 0; i--) {' ).
     lo_buf->add( '    var target = targets[i];' ).
+    lo_buf->add( '    // Ignore case of filter' ).
+    lo_buf->add( '    var regFilter = new RegExp("("+filter+")", "gi");' ).
     lo_buf->add( '    target.newHtml = (filter)' ).
-    lo_buf->add( '      ? target.plainText.replace(filter, "<mark>"+filter+"</mark>")' ).
+    lo_buf->add( '      ? target.plainText.replace(regFilter, "<mark>$1</mark>")' ).
     lo_buf->add( '      : target.plainText;' ).
     lo_buf->add( '    target.isChanged = target.newHtml !== target.curHtml;' ).
     lo_buf->add( '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;' ).
@@ -105343,6 +105347,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-06T18:11:18.406Z
+* abapmerge 0.14.3 - 2021-10-06T18:16:07.146Z
 ENDINTERFACE.
 ****************************************************
