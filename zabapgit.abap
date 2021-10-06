@@ -31129,6 +31129,11 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     " find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
 
+    IF ls_checks-overwrite IS INITIAL.
+      zcx_abapgit_exception=>raise(
+        'There is nothing to pull. The local state completely matches the remote repository.' ).
+    ENDIF.
+
     " let the user decide what to do
     TRY.
         popup_decisions(
@@ -40420,7 +40425,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_settings_link TYPE string,
       lv_check_link    TYPE string,
       lv_stage_link    TYPE string,
-      lv_patch_link    TYPE string.
+      lv_patch_link    TYPE string,
+      lv_diff_link     TYPE string,
+      lv_pull_link     TYPE string.
 
     DATA:
       lv_zip_import_link TYPE string,
@@ -40428,12 +40435,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ii_html->add( |<div class="float-right">| ).
 
-    lv_check_link = ii_html->a(
-      iv_txt   = |Check|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class }| ).
+    lv_pull_link = ii_html->a(
+      iv_txt   = |Pull|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_online_class }| ).
 
-    ii_html->add( action_link( lv_check_link && lc_separator ) ).
+    ii_html->add( action_link( lv_pull_link && lc_separator ) ).
 
     lv_stage_link = ii_html->a(
       iv_txt   = |Stage|
@@ -40448,6 +40455,20 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class = |{ lc_action_class } { lc_online_class } | ).
 
     ii_html->add( action_link( lv_patch_link && lc_separator ) ).
+
+    lv_diff_link = ii_html->a(
+      iv_txt   = |Diff|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-go_repo_diff }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class } { lc_online_class }| ).
+
+    ii_html->add( action_link( lv_diff_link && lc_separator ) ).
+
+    lv_check_link = ii_html->a(
+      iv_txt   = |Check|
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
+      iv_class = |{ lc_action_class }| ).
+
+    ii_html->add( action_link( lv_check_link && lc_separator ) ).
 
     lv_zip_import_link = ii_html->a(
       iv_txt   = |Import|
@@ -41952,9 +41973,19 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     ls_hotkey_action-hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-description   = |Diff|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_repo_diff.
+    ls_hotkey_action-hotkey = |d|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
     ls_hotkey_action-description = |Check|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_code_inspector.
     ls_hotkey_action-hotkey = |c|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description   = |Pull|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-git_reset.
+    ls_hotkey_action-hotkey = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-description = |Patch|.
@@ -42486,7 +42517,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         it_files  = it_files ).
 
     IF lines( mt_diff_files ) = 0.
-      zcx_abapgit_exception=>raise( 'PAGE_DIFF ERROR: No diff files found' ).
+      zcx_abapgit_exception=>raise(
+        'There are no differences to show. The local state completely matches the remote repository.' ).
     ENDIF.
 
     ms_control-page_menu = build_menu( ).
@@ -105311,6 +105343,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-06T13:39:24.785Z
+* abapmerge 0.14.3 - 2021-10-06T17:37:35.717Z
 ENDINTERFACE.
 ****************************************************
