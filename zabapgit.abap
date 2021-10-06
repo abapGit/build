@@ -45956,9 +45956,9 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     IF iv_interactive = abap_true.
       ri_html->add_a( iv_act   = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_jump }|
                       iv_title = lv_title
-                      iv_txt   = to_lower( iv_package ) ).
+                      iv_txt   = |{ iv_package }| ).
     ELSE.
-      ri_html->add( to_lower( iv_package ) ).
+      ri_html->add( iv_package ).
     ENDIF.
     ri_html->add( '</span>' ).
 
@@ -46183,9 +46183,9 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       IF iv_interactive = abap_true.
         ri_html->add_a( iv_act   = lv_jump
                         iv_title = lv_title
-                        iv_txt   = to_lower( iv_transport ) ).
+                        iv_txt   = |{ iv_transport }| ).
       ELSE.
-        ri_html->add( to_lower( iv_transport ) ).
+        ri_html->add( iv_transport ).
       ENDIF.
 
       ri_html->add( '</span>' ).
@@ -46233,9 +46233,9 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       IF iv_interactive = abap_true AND iv_username <> zcl_abapgit_objects_super=>c_user_unknown.
         ri_html->add_a( iv_act   = lv_jump
                         iv_title = lv_title
-                        iv_txt   = to_lower( iv_username ) ).
+                        iv_txt   = |{ iv_username }| ).
       ELSE.
-        ri_html->add( to_lower( iv_username ) ).
+        ri_html->add( iv_username ).
       ENDIF.
 
       ri_html->add( '</span>' ).
@@ -105343,6 +105343,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-06T18:09:13.767Z
+* abapmerge 0.14.3 - 2021-10-06T18:11:18.406Z
 ENDINTERFACE.
 ****************************************************
