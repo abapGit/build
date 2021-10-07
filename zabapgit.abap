@@ -27390,7 +27390,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-background-color: #E8E8E8;' ).
     lo_buf->add( '  --theme-container-background-color: #f2f2f2;' ).
     lo_buf->add( '  --theme-container-border-color: lightgrey;' ).
-    lo_buf->add( '  --theme-primary-font: Arial,Helvetica,sans-serif;' ).
+    lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
     lo_buf->add( '  --theme-primary-font-color: #333333;' ).
     lo_buf->add( '  --theme-primary-font-color-reduced: #ccc;' ).
     lo_buf->add( '  --theme-font-size: 12pt;' ).
@@ -105347,6 +105347,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-06T18:16:07.146Z
+* abapmerge 0.14.3 - 2021-10-07T08:12:10.182Z
 ENDINTERFACE.
 ****************************************************
