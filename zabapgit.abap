@@ -2350,6 +2350,14 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
                                           WITH DEFAULT KEY .
+  TYPES ty_sci_result TYPE c LENGTH 1.
+  CONSTANTS:
+    BEGIN OF c_sci_result,
+      no_run  TYPE ty_sci_result VALUE '',
+      failed  TYPE ty_sci_result VALUE 'F',
+      warning TYPE ty_sci_result VALUE 'W',
+      passed  TYPE ty_sci_result VALUE 'P',
+    END OF c_sci_result.
   CONSTANTS:
     BEGIN OF c_git_branch_type,
       branch          TYPE ty_git_branch_type VALUE 'HD',
@@ -14860,6 +14868,10 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html)  TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS render_sci_result
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html
+        iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
   PROTECTED SECTION.
 
     CLASS-METHODS render_repo_top_commit_hash
@@ -15396,6 +15408,10 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
         RAISING
           zcx_abapgit_exception,
 
+      is_nothing_to_display
+        RETURNING
+          VALUE(rv_yes) TYPE abap_bool,
+
       zif_abapgit_gui_event_handler~on_event
         REDEFINITION,
 
@@ -15458,6 +15474,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       IMPORTING
         io_repo  TYPE REF TO zcl_abapgit_repo_online
         io_stage TYPE REF TO zcl_abapgit_stage
+        iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
       RAISING
         zcx_abapgit_exception.
 
@@ -15480,6 +15497,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA mo_stage TYPE REF TO zcl_abapgit_stage .
     DATA ms_commit TYPE zif_abapgit_services_git=>ty_commit_fields .
+    DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
 
     METHODS render_menu
       RETURNING
@@ -17302,13 +17320,15 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
                  stage_filter  TYPE string VALUE 'stage_filter',
                END OF c_action.
 
-    METHODS:
-      constructor
-        IMPORTING
-                  io_repo TYPE REF TO zcl_abapgit_repo_online
-                  iv_seed TYPE string OPTIONAL
-        RAISING   zcx_abapgit_exception,
-      zif_abapgit_gui_event_handler~on_event REDEFINITION.
+    METHODS constructor
+      IMPORTING
+        io_repo TYPE REF TO zcl_abapgit_repo_online
+        iv_seed TYPE string OPTIONAL
+        iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS zif_abapgit_gui_event_handler~on_event REDEFINITION.
 
   PROTECTED SECTION.
     METHODS:
@@ -17328,6 +17348,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
     DATA mv_seed TYPE string .               " Unique page id to bind JS sessionStorage
     DATA mv_filter_value TYPE string .
+    DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
 
     METHODS check_selected
       IMPORTING
@@ -26235,6 +26256,32 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  margin-right: auto;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'span.boxed {' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 4px 7px;' ).
+    lo_buf->add( '  margin-left: 0.2em;' ).
+    lo_buf->add( '  margin-right: 0.2em;' ).
+    lo_buf->add( '  font-size: smaller;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.boxed i.icon {' ).
+    lo_buf->add( '  padding-right: 5px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.red-filled-set {' ).
+    lo_buf->add( '  border-width: 0px;' ).
+    lo_buf->add( '  color: hsl(0, 78%, 93%);' ).
+    lo_buf->add( '  background-color: hsl(0, 78%, 65%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.green-filled-set {' ).
+    lo_buf->add( '  border-width: 0px;' ).
+    lo_buf->add( '  color: hsl(120, 45%, 90%);' ).
+    lo_buf->add( '  background-color: hsl(120, 27%, 60%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.yellow-filled-set {' ).
+    lo_buf->add( '  border-width: 0px;' ).
+    lo_buf->add( '  color: hsl(45, 99%, 90%);' ).
+    lo_buf->add( '  background-color: hsl(45, 100%, 46%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
     lo_buf->add( 'div.panel {' ).
     lo_buf->add( '  border-radius: 3px;' ).
@@ -30538,40 +30585,41 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.icon-bolt:before { content: "\f105"; }' ).
     lo_buf->add( '.icon-box:before { content: "\f106"; }' ).
     lo_buf->add( '.icon-briefcase:before { content: "\f107"; }' ).
-    lo_buf->add( '.icon-check:before { content: "\f108"; }' ).
-    lo_buf->add( '.icon-chevron-down:before { content: "\f109"; }' ).
-    lo_buf->add( '.icon-chevron-left:before { content: "\f10a"; }' ).
-    lo_buf->add( '.icon-chevron-right:before { content: "\f10b"; }' ).
-    lo_buf->add( '.icon-chevron-up:before { content: "\f10c"; }' ).
-    lo_buf->add( '.icon-circle-solid:before { content: "\f10d"; }' ).
-    lo_buf->add( '.icon-cloud-commit:before { content: "\f10e"; }' ).
-    lo_buf->add( '.icon-cloud-solid:before { content: "\f10f"; }' ).
-    lo_buf->add( '.icon-cloud-upload-alt:before { content: "\f110"; }' ).
-    lo_buf->add( '.icon-code-branch:before { content: "\f111"; }' ).
-    lo_buf->add( '.icon-code-commit:before { content: "\f112"; }' ).
-    lo_buf->add( '.icon-cog:before { content: "\f113"; }' ).
-    lo_buf->add( '.icon-edit-solid:before { content: "\f114"; }' ).
-    lo_buf->add( '.icon-exclamation-circle:before { content: "\f115"; }' ).
-    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f116"; }' ).
-    lo_buf->add( '.icon-file-alt:before { content: "\f117"; }' ).
-    lo_buf->add( '.icon-file-code:before { content: "\f118"; }' ).
-    lo_buf->add( '.icon-file-image:before { content: "\f119"; }' ).
-    lo_buf->add( '.icon-file:before { content: "\f11a"; }' ).
-    lo_buf->add( '.icon-fire-alt:before { content: "\f11b"; }' ).
-    lo_buf->add( '.icon-folder:before { content: "\f11c"; }' ).
-    lo_buf->add( '.icon-git-alt:before { content: "\f11d"; }' ).
-    lo_buf->add( '.icon-info-circle-solid:before { content: "\f11e"; }' ).
-    lo_buf->add( '.icon-lock:before { content: "\f11f"; }' ).
-    lo_buf->add( '.icon-plug:before { content: "\f120"; }' ).
-    lo_buf->add( '.icon-question-circle-solid:before { content: "\f121"; }' ).
-    lo_buf->add( '.icon-server-solid:before { content: "\f122"; }' ).
-    lo_buf->add( '.icon-sliders-h:before { content: "\f123"; }' ).
-    lo_buf->add( '.icon-snowflake:before { content: "\f124"; }' ).
-    lo_buf->add( '.icon-star:before { content: "\f125"; }' ).
-    lo_buf->add( '.icon-times-solid:before { content: "\f126"; }' ).
-    lo_buf->add( '.icon-tools-solid:before { content: "\f127"; }' ).
-    lo_buf->add( '.icon-truck-solid:before { content: "\f128"; }' ).
-    lo_buf->add( '.icon-user-solid:before { content: "\f129"; }' ).
+    lo_buf->add( '.icon-bug-solid:before { content: "\f108"; }' ).
+    lo_buf->add( '.icon-check:before { content: "\f109"; }' ).
+    lo_buf->add( '.icon-chevron-down:before { content: "\f10a"; }' ).
+    lo_buf->add( '.icon-chevron-left:before { content: "\f10b"; }' ).
+    lo_buf->add( '.icon-chevron-right:before { content: "\f10c"; }' ).
+    lo_buf->add( '.icon-chevron-up:before { content: "\f10d"; }' ).
+    lo_buf->add( '.icon-circle-solid:before { content: "\f10e"; }' ).
+    lo_buf->add( '.icon-cloud-commit:before { content: "\f10f"; }' ).
+    lo_buf->add( '.icon-cloud-solid:before { content: "\f110"; }' ).
+    lo_buf->add( '.icon-cloud-upload-alt:before { content: "\f111"; }' ).
+    lo_buf->add( '.icon-code-branch:before { content: "\f112"; }' ).
+    lo_buf->add( '.icon-code-commit:before { content: "\f113"; }' ).
+    lo_buf->add( '.icon-cog:before { content: "\f114"; }' ).
+    lo_buf->add( '.icon-edit-solid:before { content: "\f115"; }' ).
+    lo_buf->add( '.icon-exclamation-circle:before { content: "\f116"; }' ).
+    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f117"; }' ).
+    lo_buf->add( '.icon-file-alt:before { content: "\f118"; }' ).
+    lo_buf->add( '.icon-file-code:before { content: "\f119"; }' ).
+    lo_buf->add( '.icon-file-image:before { content: "\f11a"; }' ).
+    lo_buf->add( '.icon-file:before { content: "\f11b"; }' ).
+    lo_buf->add( '.icon-fire-alt:before { content: "\f11c"; }' ).
+    lo_buf->add( '.icon-folder:before { content: "\f11d"; }' ).
+    lo_buf->add( '.icon-git-alt:before { content: "\f11e"; }' ).
+    lo_buf->add( '.icon-info-circle-solid:before { content: "\f11f"; }' ).
+    lo_buf->add( '.icon-lock:before { content: "\f120"; }' ).
+    lo_buf->add( '.icon-plug:before { content: "\f121"; }' ).
+    lo_buf->add( '.icon-question-circle-solid:before { content: "\f122"; }' ).
+    lo_buf->add( '.icon-server-solid:before { content: "\f123"; }' ).
+    lo_buf->add( '.icon-sliders-h:before { content: "\f124"; }' ).
+    lo_buf->add( '.icon-snowflake:before { content: "\f125"; }' ).
+    lo_buf->add( '.icon-star:before { content: "\f126"; }' ).
+    lo_buf->add( '.icon-times-solid:before { content: "\f127"; }' ).
+    lo_buf->add( '.icon-tools-solid:before { content: "\f128"; }' ).
+    lo_buf->add( '.icon-truck-solid:before { content: "\f129"; }' ).
+    lo_buf->add( '.icon-user-solid:before { content: "\f12a"; }' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/ag-icons.css'
       iv_type      = 'text/css'
@@ -30581,128 +30629,131 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
 ****************************************************
-    lo_buf->add( 'd09GRgABAAAAABVcAAsAAAAAJgAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
-    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU4QY21hcAAA' ).
-    lo_buf->add( 'AYQAAAD1AAADoPQtNdVnbHlmAAACfAAAD00AABswd4OtT2hlYWQAABHMAAAA' ).
-    lo_buf->add( 'MAAAADYgCs0taGhlYQAAEfwAAAAeAAAAJAmVB7tobXR4AAASHAAAAE4AAACo' ).
-    lo_buf->add( 'UVL/8WxvY2EAABJsAAAAVgAAAFaTGowKbWF4cAAAEsQAAAAfAAAAIAFPARxu' ).
-    lo_buf->add( 'YW1lAAAS5AAAASgAAAIWQeF35nBvc3QAABQMAAABTwAAAjNFvvooeJxjYGRg' ).
+    lo_buf->add( 'd09GRgABAAAAABXsAAsAAAAAJuwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
+    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU4SY21hcAAA' ).
+    lo_buf->add( 'AYQAAAD4AAADrhOU+N5nbHlmAAACfAAAD9EAABv8DrzPfGhlYWQAABJQAAAA' ).
+    lo_buf->add( 'MAAAADYhvmYnaGhlYQAAEoAAAAAeAAAAJAmVB7xobXR4AAASoAAAAE8AAACs' ).
+    lo_buf->add( 'U1P/8GxvY2EAABLwAAAAWAAAAFiU9ptsbWF4cAAAE0gAAAAfAAAAIAFQARxu' ).
+    lo_buf->add( 'YW1lAAATaAAAASgAAAIWQeF35nBvc3QAABSQAAABWwAAAj/k7uEyeJxjYGRg' ).
     lo_buf->add( 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm' ).
-    lo_buf->add( 'g4gCACY7BUgAeJxjYGR8zziBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
-    lo_buf->add( 'BKS5pjA4fGT8qMkE4uoxsTKAVDKCOADTkwlNAHic7dJXboQwAEXRy+BhGtN7' ).
-    lo_buf->add( '7wUpq8uC8pUN+j/SxI+XZcTS8RWWQQgDNIE8+UgCZN9kaHyl1axez+nW64HP' ).
-    lo_buf->add( 'ek/Qeqze7zRnmtN1qOdG2hvSEwtatOmk+3qU9BkwZMSYCVNmzFmwZMWaDVt2' ).
-    lo_buf->add( '7Dlw5MSZC1du3Hnw5EWVHlnwP0pN2c/fVaWvbvU5NAw1N51nDKaTiU3TWcfC' ).
-    lo_buf->add( 'UFuG2jbUjqF2Tf9A7BlqaXq72DfUgaEODXVkqGNDnRjq1FBnhjo31IWhLg11' ).
-    lo_buf->add( 'ZahrQ90Y6tZQd4a6N9SDoR4N9WSoZ0O9GOrVUG+GejfUh6E+DfVlqJVR/QK0' ).
-    lo_buf->add( 'KWTKAAAAeJytWGtsHNd1vmded2Znd/Yxr519P8iZ5ZLZXXJfFElRlChLpMyk' ).
-    lo_buf->add( 'tKLCamwgDKxahmQkrFqngG0VdO04AZIAhAMYCgy7BIK0zY8U+mEkAZrWrCy0' ).
-    lo_buf->add( 'BdqiQouiUAUDan+0P4LaMoqiCtose+7M7JJ6xU1bcve+77nnnHvuOd9ZEt0b' ).
-    lo_buf->add( 'EELf5AgpkQlynDxBLpGXyNvke+RvyQfkDsQJGe96DTgMPZe6ErU7vXYBqEk1' ).
-    lo_buf->add( 'MCXLXoR+ETwNKm6ndwTsI1AAe6bXbQCtSLTarVK7AHnQgPYXAfeZhlStuJ4Y' ).
-    lo_buf->add( 'UOz8XIoNQIr+yn63AO1FLqTaBJ+qmURa1NSRbs8KyI7jeW08Ailht4t0Zyxc' ).
-    lo_buf->add( 'WWQ7qxpnIWd9NtrvuBXJsLCnB4yEbBpSHMxxf/NhaHf9qoq8m0gHZ6028gZK' ).
-    lo_buf->add( 'WuKhM++e4Fd13Y7C/HQL8q1CXeNFTUlnE7pV/YDno26mtQD9ybSb4C5KeYEH' ).
-    lo_buf->add( 'gf/lSEbLWI6jOQrcdiSuM+ee5Fb1lB2DhVaLKzSLAREnkwDdrkKthyclxo3J' ).
-    lo_buf->add( 'Rgp6U3ZD54WnpBzPC6L5vJxPGGkb6clc9x16SBAUW53tzc5EMxFeAPlQein/' ).
-    lo_buf->add( 'hQ3uyefKJwuC8Gb6U2n8QDkj8RfFnMDxYgY2FCtixj+9wnPTfKkyxoPXsKeS' ).
-    lo_buf->add( 'X6wJIEiXexMAhbaE4lkpZN51M9Mc6HHIPUajsaIG/Jcc0FLw2PrJRYjHtusR' ).
-    lo_buf->add( 'kIT/0t3U+1IUJou1qah86n9I6IMJtu5UTIPW8RJSSya4DJITxcF/iqIwAS2k' ).
-    lo_buf->add( 'OPaZT0XpsYnmsigAcCePHj4hcLipIXwhocHF7z3PqdqXBP4Dy7ZRTnvwFh7N' ).
-    lo_buf->add( 'S3/vM3UFtwi1eV407Jc6HL9a9/gGz311qgZRmWQJ/sEe/CnhCSUqiROd2Dha' ).
-    lo_buf->add( 'JFXikUnSJG3SJ/PkCFkmJ8nj5JfIZ8mT5CnyefIc+TXyIu610Rqp3dfbZtUL' ).
-    lo_buf->add( 'v/1HtMWwb4c1+9IDbe9htSGxh4VWPGx4wwZMWqa5bFvmT/P5dr1eL5fXLGu+' ).
-    lo_buf->add( '1ara9tFCYSKfd4vFwR+3WvlyuVgux6pVM5vdsm2rWFwYG3NzuXdv3vydr3/9' ).
-    lo_buf->add( 'w83Nv3nvvZfSZdsup6/gF1ufCXrwcjlakStqefBh2k476cNp9jePrXR6BmsV' ).
-    lo_buf->add( 'v4vpFpaHcX4Bx5ccx1lPsr3peIJRsp9lPdtmauZ8Xd+FuyRK6oTonUWYKYDh' ).
-    lo_buf->add( 'v/Mj6BeseZjpHQbbmjkCvU4T3EocJKMI1oy8fOn1S8t+sb2iRRIRbQWdhUrp' ).
-    lo_buf->add( 'V6iBX2yZQJbDFcuX3LUfRjQt8sM1NmPQ1yh+DGzi8bzPwy5cx5su4u0SvczO' ).
-    lo_buf->add( '7LjVckViD9z+hH4Cdqii0MEGKx/RhpcVWmM9LHYe2kSTQ58Lx1ElqBqo9nvu' ).
-    lo_buf->add( 'JFTQ90ioBCpZ7Zm+3nOh9ut1XotuKxqUQFN/s4EdjV5F37bx26oeVe6oiWvR' ).
-    lo_buf->add( 'VBRa0TQZysYRDtCS48RBuujZJsFsj1eRNNemqOK2Lw4M2qKT+OZHg4+/mXDE' ).
-    lo_buf->add( 'Ge6jOzkDdowcnLwST+3upuJXaOmOkcsZdw7Qhdv4NtibIOOGhNwyzziiWO1X' ).
-    lo_buf->add( 'ux1fhjz6TizKfrfbhiWFok528zrs6Pnd7fW8jvW6nudI/jtbW1eZQlrbej6v' ).
-    lo_buf->add( 'b++0WNXK6+s4XUL2w3PfIwYhfc/toFnMFKHPCsugIFX+4PcoHaemvHlHNrFB' ).
-    lo_buf->add( 'Bzeptfq71KJjMhuTx7A5+AeZhLTgD+Er+7QWgdGyGC3Ue+Wvr1FcbdC33sLC' ).
-    lo_buf->add( 'ovQaNV695jeBjYE/eW2f1jjcYrR0n50CxNFu2f1V0G471YdshOSDB9xHa5yy' ).
-    lo_buf->add( '7ewxeG4vENYyIP8QYh89mlYoo24zsTRA5yS5jCdG7+MHt8HlhwoJB94qgYoG' ).
-    lo_buf->add( 'RgFmFqHTgIMPDe7uP8zwfXOvwD+ijXSCXSzum7h1HjD+dpnTYrEZg+ki9lyv' ).
-    lo_buf->add( 'h0W1QhtgB8G44wKZPDVZ73nHvG+kS83lRtF5tzpfmZuSZmv5tHlKliKRGD6w' ).
-    lo_buf->add( '27hKjp9q4rovy/VsudksZ+vylyvz1cYJJZmqzSbGpv6VrYxFhnb0CtpvDjuj' ).
-    lo_buf->add( 'Mw+whzbsM8RlwnOeDJmATXY65EOS+6f6J5F9mRntmU+gTvG5DB9OxQ3vV3rE' ).
-    lo_buf->add( 'mX90FN8FVY6qMr0gaMIFKj+Ki84me0ObBq7DZXj1wh7+wRb6gT5ZIqvkNPLF' ).
-    lo_buf->add( '4A4+VhuhjOT/d32WgkGT8YnqZ1eC+KbXb/f67H8RxmesINroQcgxJH04AlvN' ).
-    lo_buf->add( 'Y81SBsx0fCyn2QmniP2i41c5WzR01YFJs6qbkC4MbiCLGnIZVDeDCjbDe0sj' ).
-    lo_buf->add( 'KME/gW7T4V3SPw+bzoQiRzCYC1LEztTl+gW2U1MGW0GN7sWvw/iyt0f+DuVO' ).
-    lo_buf->add( 'kzK+AOaGNObCfeEO44NH+dg9DEW4ENNL9XpJz+hljJ56TInFkrEYR+LaZXX2' ).
-    lo_buf->add( 'xGzkspZIaJcj2FQvxxI/QVeLn2Ec+wj2EBGs46v1eh6qynPR28bBP8FzKbt+' ).
-    lo_buf->add( 'iXqur210MpKNQzbDokfA58i2cBNC6r5t+dp26VDF8C91SaojXky6vCzUsxVR' ).
-    lo_buf->add( '6PcFsZKtCzLvJlEX98+LPX9+kg/mf4KKO9ZsXneqVYeThe4Ez3GOHZ0WKESj' ).
-    lo_buf->add( 'QIXpqO1wHD/RFWTu/jWixNZIor8GBLYmxYgda4Zx4CiKHyN5MsewD/oYTnKP' ).
-    lo_buf->add( 'cL0Z9KmjcM3CN2+Wk23W8iMnIvUwUHRcXAXf+hzP33o6EoPILV7+7nS0pI7x' ).
-    lo_buf->add( '/OeQ/TF1d7D7zyJfkyR58E8sBMGGkYuLiOe+z+ZvRSAWefoWb0yruEXGPbil' ).
-    lo_buf->add( 'NPjwWVjiJ8R4zhjssE3vyJJU40fx/i78FP2YScaxHeCNAHvQodvx7AB9dPtB' ).
-    lo_buf->add( 'EDvo2O7q2aybzR6RqdgSKZZLIj3oBF9gs272u18TKBW+JlHqx8y9n6Guljme' ).
-    lo_buf->add( 'aBjhPbQSC5OKMp7cx3TFsvlHnczNyVImNSilMpJ8RymXlfpDjl9JMHyGUCSh' ).
-    lo_buf->add( 'qonBDx7CgOjL/QreFcM50+iPD2N/5H86PTzTotUA0wS4q+P2WT5VxrQp6c/j' ).
-    lo_buf->add( 'VXpmW08GSVASSlT8fZH6RXTYoOdR5beZyv/S0M5oW2vCcxFtB+Qcm2fFp4OK' ).
-    lo_buf->add( 'FT8evOtfKN4QLl1YG1yFkhZ5brCBrEo+v8xnmaitOqLuZfIrGKmn2dM6CAWZ' ).
-    lo_buf->add( 'baGtMVUNjQrZ9eyqjvbmY0hMKBmOwsUshrqeOc2e3nDvkNab5TIHXIqn3BzP' ).
-    lo_buf->add( 'z3GUT/I3z2goBeOwZOS21tbWB7d3kL/fEiTM+XghHdZsI66m/CEeP2zjd/J5' ).
-    lo_buf->add( 'TuZ0nu9h1ed4pDo4o6FiNnxqa4Yv6w5qxsX9P0Y6NKxPPLhzeHdMF0mM5Hlf' ).
-    lo_buf->add( 'G4jl7pcZc2s+FDk53u76788v+qNgeumgRJ21G0ycPXLbFiL8WU+ICF4LJ2u5' ).
-    lo_buf->add( 'HLxzD7uJtcE5n93B7dZWmufP1ni+dpUtrOVGb2qfv0/g7aFcPPrEoX/9E6xS' ).
-    lo_buf->add( 'pIItibpeEElD2ODykp/co9u0++hIJTheyNYPrX5+4fyL5xfK2UKvMjn7eCpe' ).
-    lo_buf->add( 'e2ZOkowU/FWuNNc9vtNbvLCIn+yZemPwF+nHZrNFp3V5WVVqZ4dxHE9FjJtl' ).
-    lo_buf->add( 'iPxekdjr4NHAbBQIbuz2ldi3hqbMpPgGDvwZbPWV4WPAYnAHSn0lSC/3mDyI' ).
-    lo_buf->add( 'EaZ8XeEV2T10PqyQ0CF4JtYVhHz9LuvRfUOHH12X00qtHUur4kwiKzrlJG2m' ).
-    lo_buf->add( 'ODMXidFkXBFnvirL1xVbeV8G47osT3RENR2bkVIlR8wlGy8qVTMSG6MvSdlo' ).
-    lo_buf->add( '+3VchkveV+z7fGLnPnw3io72QWcR/BISuI08tBHHHXSBy0nHqTjOKhXPsrce' ).
-    lo_buf->add( 'jbIS/RTWBz3pF9miijNgs2mRLvklFc9RMbzzXawcFrsBs4kQQ4U+angLkyGM' ).
-    lo_buf->add( 'hO30xInTJybSwxiRe3m7vlCH0srEiQn8rOSMXTaFxUqhXi+M7Jb5RIrZPeYx' ).
-    lo_buf->add( 'Aak82OWhH/TRULvLAnM7OM/zUVIeYS/ChNbAT/ISq/2l/moCm/+Bg7C5GdP1' ).
-    lo_buf->add( '2GZCoSWqlObOqs88o56dK/ndRDB3j84XyGP3xSGvEqKEAAow9RqUeTF60D/7' ).
-    lo_buf->add( 'mKzHFDOKWwe1+3EtnzV5TqjyET6haKlkXpGSnBNJUXEWA4eoZVS90qsG4eTg' ).
-    lo_buf->add( '7T2TjJcEhc/wIOg0omuqLEYw3dQzArsdkCVBTkTNUq6ZvRtEGhRFYTbt54Rx' ).
-    lo_buf->add( 'H21NIx5YJp8lT5NfRdnKgbHgnbEfzSRvyG512LD/H1bA7cESUy7sYnkYE35D' ).
-    lo_buf->add( '004F1bP/ixnY0GP+HBZn2cDwc/cXHMfYP9RNFRHiRYz95Xtz49DSgmsN7drb' ).
-    lo_buf->add( 'z5/LQ4sfrWk/sOZBOuEauDO46lveOrPUdb8JB9oDP+OG9f01N/zmjXubWwnf' ).
-    lo_buf->add( '0AMb3m/u/ELDvu8bYC5yDd/c9xlS9oM5g8keg70sPDdhNNZnPQzeXLc/jNMj' ).
-    lo_buf->add( 'eUfo0gzWsoDuDQO9H94ZsLbpg2PhuzrCmSPH+uBPTd1gLeMk5At+hBZHOYFT' ).
-    lo_buf->add( 'pfWVlXVJxSam5x5mKjIfE2sRfJxxHDVX5kRRFWOCg1JLioOtqCDMnbQgKsWp' ).
-    lo_buf->add( 'xCmeFMMdvPTzySlcQM46OScI95ATVUGYX/HJIQEkF8UsgH/bVjiV4gFg1esm' ).
-    lo_buf->add( '20xVTrGFqKQhSbsaHvBE/cwCZo/IUabB7qXh+MyK82fqTwTs0IqNzGnI5JAi' ).
-    lo_buf->add( 'Z9brFvzfKUZJ8FvJ3s+4KcTBDCewe2N3I/mXZTF14+27Ta6BOQF/9I1YHJQL' ).
-    lo_buf->add( 'Dofh7tVXMZJxzgUF4rE3jkq2DR++ZnJGWjn/RtSUpOPHJcmMvnFeSRtgvRaV' ).
-    lo_buf->add( 'ZTL6XWYDruK7Y7/LhDY0Mp3R/YfX7v3bOUWxIhnl3DklE7EUVt/TB/KIiWE/' ).
-    lo_buf->add( 'zLU5kRMxkrZ8H4hWjg7a63rUbtu+7QWHIZxmGbWfJDaZrbPckBlpj7KQz1Yd' ).
-    lo_buf->add( 'SAH//YVk07y4tbSxeFGVky+oxUhXfXeqqDt61lC4mPj4cfWUyNPx1axpwuno' ).
-    lo_buf->add( 'U4eu6ONd/eXo24Ez+40XkrJ6cXFjaeui2cTtalct/KCoq6nsqTHKi6fU448L' ).
-    lo_buf->add( 'GqcYWbOXP82fPvRtvTuuv1R6PfRgKJePh7bw3Xoo1yGyiHKh90GNsgA8yunm' ).
-    lo_buf->add( 'wf/doB2UgQcSh0KUh41+tdu2uc2Edk4zphAi+YE5Mbs+u4XfFlrRYCLEoVNB' ).
-    lo_buf->add( 'vbA9dW7neQPXt3yAhRtqs7M19vUdy2aARYPPjc1zyKqPsXYRk0YZZtQDLBPg' ).
-    lo_buf->add( 'GrTdilf1wcQIRzTgdnW+Upk/wYrLyepaNTm2OBYgibFFIOEMFqVEAmfqjI86' ).
-    lo_buf->add( 'Ngj5b/Ru1TgAAAB4nGNgZGBgAOJpaa8T4vltvjJwMzGAwJ01buIw+v/f/3/Z' ).
-    lo_buf->add( 'pzGxArkcDGBpAFI5DGZ4nGNgZGBgYgAB9qn///7/zT6NgZEBFWgBAHTXBV4A' ).
-    lo_buf->add( 'AHicTY3BEYBACAODH9u6UiyFJuyHImzHi3CC+NjJsDABAPaTc/MMxJzRc7vE' ).
-    lo_buf->add( '0msjSuJKPyp5y9r9sOojv16tP+FI383okCOdvvcPUu8idAAAAAAAAAF+AjQC' ).
-    lo_buf->add( 'dgK6AuQDEANMA3IDmAO+A+QECgQkBHAEngToBWQFmAYUBm4GqgbqB0IHyAgY' ).
-    lo_buf->add( 'CEgIggiwCPgJQgl0CbIKGgqoCy4MLgxkDJ4NCg1iDZgAAHicY2BkYGDQYhRg' ).
-    lo_buf->add( 'kGYAASYg5gJCBob/YD4DABDPAW0AeJxljUtuwjAURW/49ANSi1SpHdajDqgI' ).
-    lo_buf->add( 'nyELgDkDZh2E4ISgJI4cg8SsK+gSuoSuouoKuqBe3McEbMnvvPOubQA9/CDA' ).
-    lo_buf->add( 'cQW48edxNXDN7p+bpHvhFvlJuI0unoWv6PvCHbxiItzFA974QtC6pemhEm7g' ).
-    lo_buf->add( 'Du/CTfoP4Rb5U7iNR3wJX9F/C3ewxK9wFy9BP0oHWWzKeqHTXR7ZU3uqS23r' ).
-    lo_buf->add( 'zJRqHI5Oaq5LbSOn12p1UPU+nTiXqMSaQs1M6XSeG1VZs9WxCzfOVdPhMBEf' ).
-    lo_buf->add( 'xqZAhBQDZIhhUKLGAppmh5wTezE975dMW9bM9wpjhBhdpOZMlT4ZwbGumVzh' ).
-    lo_buf->add( 'wLPGntkJrUPCPmHGoCDN/N1jOuc2NJWfbWli+hAbf6vCFEPu5Cwf+t+LP9yI' ).
-    lo_buf->add( 'XDB4nG1Q2XLCMAzMQigkQAu97/vu5KMcRwkenCi1ncLnN+DC8FA9yLvWamU5' ).
-    lo_buf->add( '6AQ+esH/8YkOugjRwx76GCBCjCFGGGMfB5hgikMc4RgnOMUZznGBS1zhGje4' ).
-    lo_buf->add( 'xR3u8YBHPOEZL3jFG97xgU98BX2RirpQbrA6tarcgTCGF4lURmpKmjpMhbFh' ).
-    lo_buf->add( 'ytp1U15GqVGUS2GpJ2ck56M2/xiukowX1ZZoyt14Q4wqZi7esKYe/Vlb1iob' ).
-    lo_buf->add( 'Sc1NlkguS+WGnqwLE4+bWrPIEqHbImeUpEZUcuaxb+pKLmLKlPN9h7SUWpTC' ).
-    lo_buf->add( 'qXaYn3S8e+WMElWhaZCr9g2tb7QGK8N4jVQpCgpXsJWYtWQvZ52R6bfftKJT' ).
-    lo_buf->add( 'VeWc7G4RapbzsNZNcfLdkN2Z/belJfNDxpPItomMTWaRrXiRazGn0Dphhk6V' ).
-    lo_buf->add( 'ZL1o6Jj1FptGzj2OG7vxCYJfEFilqgA=' ).
+    lo_buf->add( 'g4gCACY7BUgAeJxjYGT8wDiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
+    lo_buf->add( 'BKS5pjA4fGT8qMUE4uoxsTKAVDKCOADT+QlPAHic7dJZboMwAEXRS3AIScg8' ).
+    lo_buf->add( 'z/OEsrwuqF/dHytI/XhdRi0dX2EZhDBAE0ijdxQg+SFB4zuuJvV6SqdeD3zV' ).
+    lo_buf->add( 'e4LWq/LziXOiOV6Hem7EvSE+MaNFTjve16WgR58BQ0aMmTBlxpwFS1as2bBl' ).
+    lo_buf->add( 'x54DR06cuXDlxp0HT16U8aEZ/6PQ1Mj/rkp9d6tPomGoqelEq2A6m6ppOu0q' ).
+    lo_buf->add( 'M9SWoeaG2jbUjukvqLqGWpjeruoZat9QB4Y6NNSRoY4NdWKoU0OdGercUBeG' ).
+    lo_buf->add( 'ujTUlaGuDXVjqFtD3Rnq3lAPhno01JOhng31YqhXQ70Z6t1QH4b6NNSXoZZG' ).
+    lo_buf->add( '+QtTQ2ZreJytWGtsHNd1vmded2Znd/Yxr30/yZnlktldcl8U3xJliZSZlFZU' ).
+    lo_buf->add( 'WI0NhIFVy5CMhFXrFLCsgq4dJ0ASgHAAQ4Fhl0CQtvmRQj+MJEDTmpWFtkBb' ).
+    lo_buf->add( 'VGhRFKpglO2P9EdQW0ZTVEGbZc+dmV1Sr7hpS87ee+c+zj3n3HPP+c6Q8H6f' ).
+    lo_buf->add( 'EPoGR0iRjJHj5AlyiVwmb5HvkL8l75M7ECVktOPWYR66DnUkare7rTxQk2pg' ).
+    lo_buf->add( 'Spa9AL0CuBqUnXZ3EexFyIM91e3UgZYlWulUqJ2HHGhAewuA60xDqpQdV/Qp' ).
+    lo_buf->add( 'tn8uxTogRW9mr5OH1gIXUG2AR9WMIy1q6ki3a/lkR3G/Fm6BlPC1g3SnLJxZ' ).
+    lo_buf->add( 'YCsrGmchZz3W22s7Zcmw8E33GQnYNKQomKPe4nlodbyqgrybSAdHrRbyBkpS' ).
+    lo_buf->add( '4qE965zgV3XdDsPsZBNyzXxN40VNSWZiulV5n+fDTro5B73xpBPjLko5gQeB' ).
+    lo_buf->add( '/+VQWktbqZSWUmAvJXHtGeckt6on7AjMNZtcvlHwiaTSMdDtClS7uFNs1Biv' ).
+    lo_buf->add( 'J6A7Ydd1XnhKyvK8IJrPy7mYkbSRnsx13qZHBEGx1enu9FQ4HeIFkI8kl3Kf' ).
+    lo_buf->add( '2+CefK50Mi8IbyQ/kcQHSmmJvyhmBY4X07ChWCEz+skVnpvki+URHty6PRH/' ).
+    lo_buf->add( 'fFUAQbrSHQPItyQUz0og846TnuRAj0L2MRqOFDTgv5ACLQGPrZ9cgGhkuxYC' ).
+    lo_buf->add( 'Sfgv3Um8J4VhvFCdCMun/oeE3h9j805FNGgeLyK1eIxLIzlR7P+nKApj0ESK' ).
+    lo_buf->add( 'I5/6RJgeG2ssiwIAd/Lo/AmBw0V14XMxDS5+53lO1b4g8O9bto1y2v03cWte' ).
+    lo_buf->add( '+nuPqau4RKjO8qJhX25z/GrN5es89+WJKoRlkiH4B/vwp4QnlKgkSnRiY2+B' ).
+    lo_buf->add( 'VIhLxkmDtEiPzJJFskxOksfJL5FPkyfJU+Sz5Dnya+RFXGujNVK7p7fMihv8' ).
+    lo_buf->add( 'eo9oi8G7HdTsRw+13YfVhsQuFlrxoOEOGjBumeaybZk/zeVatVqtVFqzrNlm' ).
+    lo_buf->add( 's2LbR/P5sVzOKRT6f9xs5kqlQqkUqVTMTGbLtq1CYW5kxMlm37l163e++tUP' ).
+    lo_buf->add( 'Njf/5t13LydLtl1KXsUftj7lv8FLpXBZLqul/gdJO5lKzifZ3yy2kskprFX8' ).
+    lo_buf->add( 'LSSbWM7j+Bz2L6VSqfU4W5uMxhgl+1n2ZttMzZyn67twl4RJjRC9vQBTeTC8' ).
+    lo_buf->add( 'e76IfsGahanuPNjW1CJ02w1wylGQjAJYU/LypdcuLXvF9ooWioW0FXQWKqVf' ).
+    lo_buf->add( 'ogb+sGUCWQ5mLF9y1r4f0rTQ99fYiEFfpfgY2MTteY+HXbiBJ13A0yV6ie3Z' ).
+    lo_buf->add( 'diqlssQuuP0x7zHYoYpC+xusfEQbXlJolb1hsfPQJpoc+lw4jipB1UCl13XG' ).
+    lo_buf->add( 'oYy+R0IlUMlqTfX0rgPVX6/xWnhb0aAImvqbdXzR6DX0bRu/reph5Y4aux5O' ).
+    lo_buf->add( 'hKEZTpKBbBzhAC05SlJIFz3bOJit0QqS5loUVdzyxIF+S0zFvv5h/6Ovx1Li' ).
+    lo_buf->add( 'FPfhnawBO0YWTl6NJnZ3E9GrtHjHyGaNO4fowh7eDXYnyKghIbfMMw4pVnqV' ).
+    lo_buf->add( 'TtuTIYe+E4uS99ppwZJCUSe7OR129Nzu9npOx3pdz3Ek962trWtMIc1tPZfT' ).
+    lo_buf->add( 't3earGrm9HUcLuKW+/jHAepoiawGu5oGtdHVlxsgHWxYdim7EovAWGJ3YxY6' ).
+    lo_buf->add( 'LrsiBWj18KIY6NPRf/NlDC+tdh0pGpGeNq/o6VC32qJiUqStajeU1pV5rRcx' ).
+    lo_buf->add( '9Mh0wxv7kdfXmI7o+/l2fi/f/sdIIlbMzbHeXvEnIqXiT4o9NnUuV4wlMvps' ).
+    lo_buf->add( '3RvyuuqzOui4DB9mcoEO3yUGIT2XMcvY67HCMihI5T/4PUpHqSlv3pFNbND+' ).
+    lo_buf->add( 'LWqt/i616IjM+uQRbPb/QR7Qgj+ELx3QWgBGy2K00IbKf32d4myDvvkmFhal' ).
+    lo_buf->add( '16nxynWvCawPvMHrB7RG4TajpXvs5CGKd5DZImrZaVceshDiD25wH61Rypaz' ).
+    lo_buf->add( 'i+06XV9Yy4DcQ4h9+GhagYy6zcTSAB2t5DCeGL2PHlwGVx4qJBzyOwTQCIw8' ).
+    lo_buf->add( 'TC0AGsJhpwF3D5xM4Ku4l+Gf0N7b/iqGYUxcisZVhw5zwAxnoGEt4JvjdrGo' ).
+    lo_buf->add( 'lGkdbB9YtB0g46fGa133mPu1ZLGxXC+k3qnMlmcmpOlqLmmekqVQKILOYg9n' ).
+    lo_buf->add( 'ydFTDZz3RbmWKTUapUxN/mJ5tlI/ocQT1enYyMS/spmR0MCOXsa7mMWX4Z6H' ).
+    lo_buf->add( '2MP76DHEpYN9ngyYgE22O+QCkge7ejuRA5kZ7amPoU7x6g+cQNkJzld6xJ5/' ).
+    lo_buf->add( 'dBTvOFWOqjK9IGjCBSo/iov2JvMHmwbOw2l49ALzAbCFPq3neYHTyBeDbuh4' ).
+    lo_buf->add( 'bIRlkvff8VjyO03GJ6qfHQlitW6v1e2x/wUYnbL8yKn74dOQ9EEPbDWONYpp' ).
+    lo_buf->add( 'MJPRkaxmx1IFfC+kvCpri4aupmDcrOgmJPP9m8iihlz61S2/gs3g3JIIsPBP' ).
+    lo_buf->add( 'oNt0cJb0z4NmakyRQwhMBClkp2ty7QJbqSn9Lb9GV+nVQazc3yd/h3InSQlv' ).
+    lo_buf->add( 'AHNzGgtHnnDzeOFRPnYOAxEuRPRirVbU03oJkYAeUSKReCTCkah2RZ0+MR26' ).
+    lo_buf->add( 'osVi2pUQNtUrkdiPMWzgM4jJH8I+opt1vLVu10VVuQ5Gjih4O7gOZccvUdfx' ).
+    lo_buf->add( 'tI1ORrKxy2a4ehE8jmwLF2F60LMtT9sOHagY/qUmSTXEvnGHl4VapiwKvZ4g' ).
+    lo_buf->add( 'ljM1QeadOOri/nGx642P8/74j1FxxxqNG6lKJcXJQmeM57iUHZ4UKITDQIXJ' ).
+    lo_buf->add( 'sJ3iOH6sI8jc/XNEic2RRG8OCGxOghE71ghi2lEUP0JyZIbhOPQxnOQsct0p' ).
+    lo_buf->add( '9KlD6MGgCG+W4i3W8lAAZh1B0Gs7OAu+8Rmev/10KAKh27z87clwUR3h+c8g' ).
+    lo_buf->add( '+yPqbn/3RyJflSS5/88snMKGkY2KiE2/y8ZvhyASevo2b0yquETGNbik2P/g' ).
+    lo_buf->add( 'WVjix8Ro1ujvsEVvy5JU5YfY5S78FP2YSUax7WMnH0fRgdtxbR9JdXp+fDzs' ).
+    lo_buf->add( '2O7qmYyTySzKVGyKFMslkR52gi+wUSfz7a8IlApfkSj14v/+z1BXyxxPNEQr' ).
+    lo_buf->add( 'LlqJhQlSCXfuYepl2fyjduZmZCmd6BcTaUm+o5RKSu0h26/EGNZEWBVT1Vj/' ).
+    lo_buf->add( 'ew9hQPTkfhnPimG2SfTH8/g+9D8s3E9ZtOLjMx9Dtp0eyw1LmALGvXE8Stds' ).
+    lo_buf->add( '6XE/oYtDkYq/z+I3FuFBg55Hle8xlf+loZ3RttaE50LaDshZNs6KT/oVK37Y' ).
+    lo_buf->add( 'f8c7UDwhnDq31r8GRS30XH8DWZU8fpnPMlFbNcwglsmvYKSeZFfrMKxltoW2' ).
+    lo_buf->add( 'xlQ1MCpk17UrOtqbh4cxOWaYECezGOq45iS7eoO1A1pvlEoIkxI85WZ4foaj' ).
+    lo_buf->add( 'fJy/dUZDKRiHRSO7tba23t/bQf5+S5Awf+WFZFCzhTib8kd4fNjCb+VynMzp' ).
+    lo_buf->add( 'PN/FqsfxSLV/RkPFbHjU1gxP1h3UjIPrf4h0aFCfeHDl4OyYLuIYyXOeNhCX' ).
+    lo_buf->add( '3i8zrXT4QOT4aKvj3T+v6A2D6aXDErXXbjJx9smeLYT4s64QEtwmDlazWXj7' ).
+    lo_buf->add( 'HnZja/1zHrv9veZWkufPVnm+eo1NrGaHd+qAv4/h7aFcPHrHgX/9E6wSpIwt' ).
+    lo_buf->add( 'iTquH0kD2ODwkvehAt2m3UNHKsHxfKZ2ZPWzc+dfPD9XyuS75fHpxxPR6jMz' ).
+    lo_buf->add( 'kmQk4K+yxZnO8Z3uwoUFfDJnavX+XyQfm84UUs0ry6pSPTuI47gr4vUMyy7u' ).
+    lo_buf->add( 'FYndDh4NzEaB4OZuT4l8Y2DKTIqvYcefwVZPGVwGLPp3AHGunyrvM3kQI0x4' ).
+    lo_buf->add( 'usIjsrvofFghoUNwTazLCPl6HfZGDwwdfnBDTirVViSpilOxjJgqxWkjwZnZ' ).
+    lo_buf->add( 'UITGo4o49WVZvqHYynsyGDdkeawtqsnIlJQopsRsvP6iUjFDkRF6WcqEW6/h' ).
+    lo_buf->add( 'NJzynmLf5xPb9+G7YXS0DzsL/6uO7zZygInBPcnjcjyVKqdSq1Q8y+56OMxK' ).
+    lo_buf->add( '9FNYH/akn2eTyqk+G8X8YckrqXiOisGZ72KVYrEbMFEJMFTgowanMB7ASNhO' ).
+    lo_buf->add( 'jp04fWIsOYgR2Ze2a3M1KK6MnRjDZyVr7LIhLFbytVp+aLfMJ1JSYTmZTyoH' ).
+    lo_buf->add( 'dmngBz001OqwwNzy93M9lJRD2Iswodn3EtbYam+ptxrD5n9gJ2xuRnQ9shlT' ).
+    lo_buf->add( 'aJEqxZmz6jPPqGdnit5rzB+7R+dz5LH74pBbDlCCDwWYeg3KvBg97J89TNZl' ).
+    lo_buf->add( 'ihnGrcPa/aiay5g8J1T4EB9TtEQ8p0hxLhVKUHEaA4eopVW93K344eTw6T0T' ).
+    lo_buf->add( 'jxYFhU/zIOg0pGuqLIYwddbTAjsdkCVBjoXNYraRuetHGhRFYTbt5bdRD21N' ).
+    lo_buf->add( 'Ih5YJp8mT5NfRdlKvrHgmbEPgJI7YLcyaNj/DzNgr7/ElAu7WM6HNM3QtFN+' ).
+    lo_buf->add( '9ez/YgQ29Ig3hsVZ1jF47v6C/Rj7B7qpIEK8iLG/dG+eH1iaf6yBXbsHqXlp' ).
+    lo_buf->add( 'YPHDOa0H5jxIJ5gDd/rXPMtbZ5a67jXhULvvfT2A9YM5N73mzXubWzHP0H0b' ).
+    lo_buf->add( 'Pmju/ELdnu/rYy5yHe/cdxlS9oI5g8kug70sPDdg2Ndjbxi8uU5vEKeH8g7R' ).
+    lo_buf->add( 'penPZQHdHQR6L7wzYG3TB/uCe7XImUPH+uBns44/l3ES8AU/QIujnMCp0vrK' ).
+    lo_buf->add( 'yrqkYhPTcxczFZmPiNUQXs4o9porM6KoihEhhVJLSgpbYUGYOWlBWIpSiVNc' ).
+    lo_buf->add( 'KYIreOnnk1M4n5x1ckYQ7iEnqoIwu+KRQwJILoxZAP+WrXAqxQ3AqtVMtpiq' ).
+    lo_buf->add( 'nGILYUlDknYl2OCJ2pk5zB6Ro3SdnUs95TErzp6pPeGzQ8s2MqchkwOKnFmr' ).
+    lo_buf->add( 'WfB/pxgm/reS/Z9xE4iDGU5g58bORvIOy2LqxtN3GlwdcwL+6OuRKCgXUhyG' ).
+    lo_buf->add( 'u1dewUjGpS4oEI28flSybfjgVZMzksr518OmJB0/Lklm+PXzStIA69WwLJPh' ).
+    lo_buf->add( 'd5kNuIb3jn2XCWxoaDrD8w+O3f23c4pihdLKuXNKOmQprL7nHcgjBgbvQa7N' ).
+    lo_buf->add( 'iZyIkbTp+UC0cnTQbseldsv2bM/fDOE0y6i9JLHBbJ3lhsxIu5SFfDbrUAr4' ).
+    lo_buf->add( '7y/EG+bFraWNhYuqHH9BLYQ66jsTBT2lZwyFi4iPH1dPiTwdXc2YJpwOP3Xk' ).
+    lo_buf->add( 'qj7a0V8Kv+U7s994IS6rFxc2lrYumg1crnbU/PcKuprInBqhvHhKPf64oHGK' ).
+    lo_buf->add( 'kTG7udP86SPf1Duj+uXia4EHQ7k8PLSF99ZFuY6QBZQLvQ9qlAXgYU43C953' ).
+    lo_buf->add( 'g5Zf+h5IHAhRGjR6lU7L5jZj2jnNmECI5AXm2PT69Bb+mmhF/bEAh0749dz2' ).
+    lo_buf->add( 'xLmd5w2c3/QAFi6oTk9X2c9zLJs+FvWfm5vnvO+eHn4AjK+IGXUfy/i4Bm23' ).
+    lo_buf->add( '7FY8MDHEEXXYq8yWy7MnWHElXlmrxEcWRnwkMbIAJBjBohiL4UiN8VHDBiH/' ).
+    lo_buf->add( 'DRYD80IAAAB4nGNgZGBgAOL7C3+LxPPbfGXgZmIAgbttQlNg9P+///+yT2Ni' ).
+    lo_buf->add( 'BXI5GMDSAGUwDPZ4nGNgZGBgYgAB9qn///7/zT6NgZEBFWgDAHTYBV8AAHic' ).
+    lo_buf->add( 'TY3BDcAwCANNPlkro3QUlug+DNF1Gpc0RPA4WdjIBoB+czbXhZgz8m4g0w8s' ).
+    lo_buf->add( 'Mk1ESTzhj6N85c8KdnZKr9Yt0rO5OuQKT/f/B3yHJHQAAAAAAAF+AjQCdgK6' ).
+    lo_buf->add( 'AuQDEANMA7ID2AP+BCQESgRwBIoE1gUEBU4FygX+BnoG1AcQB1AHqAguCH4I' ).
+    lo_buf->add( 'rgjoCRYJXgmoCdoKGAqACw4LlAyUDMoNBA1wDcgN/nicY2BkYGDQZhRgkGYA' ).
+    lo_buf->add( 'ASYg5gJCBob/YD4DABDqAW4AeJxljUtuwjAURW/49ANSi1SpHdajDqgInyEL' ).
+    lo_buf->add( 'gDkDZh2E4ISgJI4cg8SsK+gSuoSuouoKuqBe3McEbMnvvPOubQA9/CDAcQW4' ).
+    lo_buf->add( '8edxNXDN7p+bpHvhFvlJuI0unoWv6PvCHbxiItzFA974QtC6pemhEm7gDu/C' ).
+    lo_buf->add( 'TfoP4Rb5U7iNR3wJX9F/C3ewxK9wFy9BP0oHWWzKeqHTXR7ZU3uqS23rzJRq' ).
+    lo_buf->add( 'HI5Oaq5LbSOn12p1UPU+nTiXqMSaQs1M6XSeG1VZs9WxCzfOVdPhMBEfxqZA' ).
+    lo_buf->add( 'hBQDZIhhUKLGAppmh5wTezE975dMW9bM9wpjhBhdpOZMlT4ZwbGumVzhwLPG' ).
+    lo_buf->add( 'ntkJrUPCPmHGoCDN/N1jOuc2NJWfbWli+hAbf6vCFEPu5Cwf+t+LP9yIXDB4' ).
+    lo_buf->add( 'nG1Q21bbMBD0EIfETigQrr3SAm256aNkee3oRPa6uhA+H8ciOXnoPqxmtLsz' ).
+    lo_buf->add( 'WiUHSYxx8v94xgFGSDHGISaYIkOOGeY4wicc4wSnWOAM57jAJa5wjc/4gq/4' ).
+    lo_buf->add( 'hu/4gRv8xC/c4g73+I0/+IsHPOIJz3hJJrKQXa39dHMa3fpjaS2vhdJWGRKh' ).
+    lo_buf->add( 'SwtpXVqw8aOC37LCaqqUdJQVoRaOjS7HaklqNe/zq+VWlLxud8RQ5Y+2xOp6' ).
+    lo_buf->add( '6fMtC938w2RQmSvDoRSKm0b7WSRD4STi0BmWpZCmL3JJorCyVcuI49BIcZ1T' ).
+    lo_buf->add( 'qX2cW9CbMrKRXvdm0el8/8pbLdva0LTS/Rt63WwAG8F8QLqRNaUb2LfYoeWw' ).
+    lo_buf->add( 'YlOSnfQftqGnuq1Y7G+RGlartDOhvvgXyO15f2zpyL6SjSRzfSLrxDJzLa8r' ).
+    lo_buf->add( 'I1eUOi/tzOuGXGyaeWazwzaoVcR5cFudJHkH0zCpZwA=' ).
     lo_asset_man->register_asset(
       iv_url       = 'font/ag-icons.woff'
       iv_type      = 'font/woff'
@@ -34933,7 +34984,19 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         EXPORTING
           io_repo = lo_repo.
 
-      ri_page = lo_code_inspector_page.
+      IF lo_code_inspector_page->is_nothing_to_display( ) = abap_true.
+        " force refresh on stage, to make sure the latest local and remote files are used
+        lo_repo->refresh( ).
+        CREATE OBJECT lo_stage_page
+          EXPORTING
+            io_repo = lo_repo
+            iv_seed = lv_seed
+            iv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
+        ri_page = lo_stage_page.
+      ELSE.
+        ri_page = lo_code_inspector_page.
+      ENDIF.
+
     ELSEIF lo_repo->get_selected_branch( ) CP zif_abapgit_definitions=>c_git_branch-tags.
       lv_show_create_branch_popup = abap_true.
       lv_question_title = 'Staging on a tag'.
@@ -35794,7 +35857,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu.
@@ -35862,6 +35925,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ms_control-page_title = 'Stage'.
     mo_repo               = io_repo.
     mv_seed               = iv_seed.
+    mv_sci_result         = iv_sci_result.
 
     IF mv_seed IS INITIAL. " Generate based on time unless obtained from diff page
       GET TIME STAMP FIELD lv_ts.
@@ -36056,6 +36120,9 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ri_html->add( '<input class="stage-filter" id="objectSearch"' &&
                   ' type="search" placeholder="Filter Objects"' &&
                   | value="{ mv_filter_value }">| ).
+    zcl_abapgit_gui_chunk_lib=>render_sci_result(
+      ii_html       = ri_html
+      iv_sci_result = mv_sci_result ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '</tr>' ).
@@ -36426,7 +36493,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
             io_repo  = mo_repo
-            io_stage = lo_stage.
+            io_stage = lo_stage
+            iv_sci_result = mv_sci_result.
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
@@ -36437,7 +36505,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_commit
           EXPORTING
             io_repo  = mo_repo
-            io_stage = lo_stage.
+            io_stage = lo_stage
+            iv_sci_result = mv_sci_result.
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
@@ -43542,6 +43611,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     mo_repo   = io_repo.
     mo_stage  = io_stage.
+    mv_sci_result = iv_sci_result.
 
     ms_control-page_title = 'Commit'.
   ENDMETHOD.
@@ -43774,6 +43844,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
                      iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
 
     ri_html->add( '<div class="paddings">' ).
+
+    IF mv_sci_result <> zif_abapgit_definitions=>c_sci_result-no_run.
+      ri_html->add( '<span class="float-right">' ).
+      zcl_abapgit_gui_chunk_lib=>render_sci_result(
+        ii_html       = ri_html
+        iv_sci_result = mv_sci_result ).
+      ri_html->add( '</span>' ).
+    ENDIF.
+
     ri_html->add( lo_toolbar->render( ) ).
     ri_html->add( '</div>' ).
 
@@ -44142,7 +44221,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD ask_user_for_check_variant.
 
     DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
@@ -44233,6 +44312,9 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     rv_has_inspection_errors = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
+  METHOD is_nothing_to_display.
+    rv_yes = boolc( lines( mt_result ) = 0 ).
+  ENDMETHOD.
   METHOD is_stage_allowed.
 
     rv_is_stage_allowed = boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
@@ -44284,7 +44366,8 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+    DATA lv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
 
     CASE ii_event->mv_action.
       WHEN c_actions-stage.
@@ -44295,9 +44378,22 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
           " we need to refresh as the source might have changed
           lo_repo_online->refresh( ).
 
+          READ TABLE mt_result TRANSPORTING NO FIELDS WITH KEY kind = 'E'.
+          IF sy-subrc = 0.
+            lv_sci_result = zif_abapgit_definitions=>c_sci_result-failed.
+          ELSE.
+            READ TABLE mt_result TRANSPORTING NO FIELDS WITH KEY kind = 'W'.
+            IF sy-subrc = 0.
+              lv_sci_result = zif_abapgit_definitions=>c_sci_result-warning.
+            ELSE.
+              lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
+            ENDIF.
+          ENDIF.
+
           CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_stage
             EXPORTING
-              io_repo = lo_repo_online.
+              io_repo = lo_repo_online
+              iv_sci_result = lv_sci_result.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
         ELSE.
@@ -45458,7 +45554,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -46156,6 +46252,26 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       CATCH zcx_abapgit_exception.
         ii_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>| ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD render_sci_result.
+
+    DATA lv_icon TYPE string.
+
+    lv_icon = ii_html->icon(
+      iv_name = 'bug-solid'
+      iv_hint = 'Code inspector result' ).
+
+    CASE iv_sci_result.
+      WHEN zif_abapgit_definitions=>c_sci_result-passed.
+        ii_html->add( |<span class="boxed green-filled-set">{ lv_icon }PASSED</span>| ).
+      WHEN zif_abapgit_definitions=>c_sci_result-failed.
+        ii_html->add( |<span class="boxed red-filled-set">{ lv_icon }FAILED</span>| ).
+      WHEN zif_abapgit_definitions=>c_sci_result-warning.
+        ii_html->add( |<span class="boxed yellow-filled-set">{ lv_icon }WARN</span>| ).
+      WHEN OTHERS. " Including NO_RUN
+        RETURN.
+    ENDCASE.
 
   ENDMETHOD.
   METHOD render_transport.
@@ -105347,6 +105463,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-07T08:12:10.182Z
+* abapmerge 0.14.3 - 2021-10-09T05:05:52.666Z
 ENDINTERFACE.
 ****************************************************
