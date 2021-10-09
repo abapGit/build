@@ -15678,6 +15678,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_gui_hotkeys.
+
     TYPES:
       BEGIN OF ty_file_diff,
         path       TYPE string,
@@ -15716,6 +15719,23 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS zif_abapgit_gui_event_handler~on_event
         REDEFINITION.
   PROTECTED SECTION.
+    CONSTANTS:
+      BEGIN OF c_actions,
+        toggle_unified       TYPE string VALUE 'toggle_unified',
+        toggle_hidden_chars  TYPE string VALUE 'toggle_hidden_chars',
+        refresh_prefix       TYPE string VALUE 'refresh',
+        refresh_all          TYPE string VALUE 'refresh_all',
+        refresh_local        TYPE string VALUE 'refresh_local',
+        refresh_local_object TYPE string VALUE 'refresh_local_object',
+      END OF c_actions ,
+      BEGIN OF c_action_texts,
+        refresh_all   TYPE string VALUE `Refresh All`,
+        refresh_local TYPE string VALUE `Refresh Local`,
+      END OF c_action_texts,
+      BEGIN OF c_action_titles,
+        refresh_all   TYPE string VALUE `Refresh all local objects, without refreshing the remote`,
+        refresh_local TYPE string VALUE `Complete refresh of all objects, local and remote`,
+      END OF c_action_titles.
 
     DATA mv_unified TYPE abap_bool VALUE abap_true ##NO_TEXT.
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
@@ -15779,16 +15799,36 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS set_layout.
+    METHODS refresh
+      IMPORTING
+        iv_action TYPE clike
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_full
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local_object
+      IMPORTING
+        iv_action TYPE clike
+      RAISING
+        zcx_abapgit_exception .
+    METHODS is_refresh
+      IMPORTING
+        iv_action            TYPE string
+      RETURNING
+        VALUE(rv_is_refrseh) TYPE abap_bool.
+    METHODS modify_files_before_diff_calc
+      IMPORTING
+        it_diff_files_old TYPE ty_file_diffs
+      CHANGING
+        ct_files          TYPE zif_abapgit_definitions=>ty_stage_tt.
 
     METHODS render_content
         REDEFINITION .
   PRIVATE SECTION.
-
-    CONSTANTS:
-      BEGIN OF c_actions,
-        toggle_unified      TYPE string VALUE 'toggle_unified',
-        toggle_hidden_chars TYPE string VALUE 'toggle_hidden_chars',
-      END OF c_actions .
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
     DATA mv_seed TYPE string .                    " Unique page id to bind JS sessionStorage
@@ -15876,6 +15916,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         is_status                   TYPE zif_abapgit_definitions=>ty_result
       RETURNING
         VALUE(rv_is_file_requested) TYPE abap_bool.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -16177,8 +16218,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
   INHERITING FROM zcl_abapgit_gui_page_diff
   CREATE PUBLIC .
   PUBLIC SECTION.
-    INTERFACES zif_abapgit_gui_hotkeys.
-
     METHODS:
       constructor
         IMPORTING
@@ -16190,7 +16229,8 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         RAISING
           zcx_abapgit_exception,
 
-      zif_abapgit_gui_event_handler~on_event REDEFINITION.
+      zif_abapgit_gui_event_handler~on_event REDEFINITION,
+      zif_abapgit_gui_hotkeys~get_hotkey_actions REDEFINITION.
 
     CLASS-METHODS:
       get_patch_data
@@ -16205,24 +16245,24 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
   PROTECTED SECTION.
     METHODS:
       render_content REDEFINITION,
-      add_menu_end REDEFINITION,
       add_menu_begin REDEFINITION,
+      add_menu_end REDEFINITION,
       render_table_head_non_unified REDEFINITION,
       render_beacon_begin_of_row REDEFINITION,
       render_diff_head_after_state REDEFINITION,
       insert_nav REDEFINITION,
-      render_line_split_row REDEFINITION.
+      render_line_split_row REDEFINITION,
+      refresh REDEFINITION,
+      modify_files_before_diff_calc REDEFINITION.
+
   PRIVATE SECTION.
 
     TYPES ty_patch_action TYPE string .
 
     CONSTANTS:
-      BEGIN OF c_actions,
-        stage                TYPE string VALUE 'patch_stage',
-        refresh              TYPE string VALUE 'patch_refresh',
-        refresh_local        TYPE string VALUE 'patch_refresh_local',
-        refresh_local_object TYPE string VALUE 'patch_refresh_local_object',
-      END OF c_actions .
+      BEGIN OF c_patch_actions,
+        stage TYPE string VALUE 'patch_stage',
+      END OF c_patch_actions .
     CONSTANTS:
       BEGIN OF c_patch_action,
         add    TYPE ty_patch_action VALUE 'add',
@@ -16261,22 +16301,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS add_to_stage
-      RAISING
-        zcx_abapgit_exception .
-    METHODS refresh
-      IMPORTING
-        !iv_action TYPE clike
-      RAISING
-        zcx_abapgit_exception .
-    METHODS refresh_full
-      RAISING
-        zcx_abapgit_exception .
-    METHODS refresh_local
-      RAISING
-        zcx_abapgit_exception .
-    METHODS refresh_local_object
-      IMPORTING
-        !iv_action TYPE clike
       RAISING
         zcx_abapgit_exception .
     METHODS apply_patch_all
@@ -29765,7 +29789,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // Or a global function' ).
-    lo_buf->add( '      if (window[action]) {' ).
+    lo_buf->add( '      if (window[action] && typeof(window[action]) === "function") {' ).
     lo_buf->add( '        window[action].call(this);' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
@@ -29954,7 +29978,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'Patch.prototype.ACTION = {' ).
     lo_buf->add( '  PATCH_STAGE: "patch_stage",' ).
-    lo_buf->add( '  PATCH_REFRESH_LOCAL: "patch_refresh_local"' ).
+    lo_buf->add( '  REFRESH_LOCAL: "refresh_local"' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Patch.prototype.escape = function(sFileName){' ).
@@ -30083,9 +30107,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'Patch.prototype.registerStagePatch = function registerStagePatch(){' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var elStage = document.querySelector("#" + this.ID.STAGE);' ).
+    lo_buf->add( '  var REFRESH_PREFIX = "refresh";' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  elStage.addEventListener("click", this.submitPatch.bind(this, this.ACTION.PATCH_STAGE));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var aRefresh = document.querySelectorAll("[id*=patch_refresh]");' ).
+    lo_buf->add( '  var aRefresh = document.querySelectorAll("[id*=" + REFRESH_PREFIX + "]");' ).
     lo_buf->add( '  [].forEach.call( aRefresh, function(el) {' ).
     lo_buf->add( '    el.addEventListener("click", memoizeScrollPosition(this.submitPatch.bind(this, el.id)).bind(this));' ).
     lo_buf->add( '  }.bind(this));' ).
@@ -30096,7 +30122,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }.bind(this);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  window.refreshLocal = memoizeScrollPosition(function(){' ).
-    lo_buf->add( '    this.submitPatch(this.ACTION.PATCH_REFRESH_LOCAL);' ).
+    lo_buf->add( '    this.submitPatch(this.ACTION.REFRESH_LOCAL);' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
     lo_buf->add( '};' ).
@@ -40765,27 +40791,28 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
-  METHOD add_menu_begin.
 
-    io_menu->add(
-        iv_txt   = |Refresh Local|
-        iv_typ   = zif_abapgit_html=>c_action_type-dummy
-        iv_act   = c_actions-refresh_local
-        iv_id    = c_actions-refresh_local
-        iv_title = |Refresh all local objects, without refreshing the remote| ).
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
 
-    io_menu->add(
-        iv_txt   = |Refresh|
-        iv_typ   = zif_abapgit_html=>c_action_type-dummy
-        iv_act   = c_actions-refresh
-        iv_id    = c_actions-refresh
-        iv_title = |Complete refresh of all objects, local and remote| ).
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-ui_component = 'Patch'.
+
+    ls_hotkey_action-description = |Stage changes|.
+    ls_hotkey_action-action      = |stagePatch|.
+    ls_hotkey_action-hotkey      = |s|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Refresh local|.
+    ls_hotkey_action-action      = |refreshLocal|.
+    ls_hotkey_action-hotkey      = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
   METHOD add_menu_end.
 
     io_menu->add( iv_txt = 'Stage'
-                  iv_act = c_actions-stage
+                  iv_act = c_patch_actions-stage
                   iv_id  = 'stage'
                   iv_typ = zif_abapgit_html=>c_action_type-dummy ).
 
@@ -41021,67 +41048,6 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD refresh.
-
-    DATA:
-      lt_diff_files_old TYPE ty_file_diffs,
-      lt_files          TYPE zif_abapgit_definitions=>ty_stage_tt,
-      ls_file           LIKE LINE OF lt_files.
-
-    FIELD-SYMBOLS: <ls_diff_file_old> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
-    lt_diff_files_old = mt_diff_files.
-
-    CASE iv_action.
-      WHEN c_actions-refresh.
-        refresh_full( ).
-      WHEN c_actions-refresh_local.
-        refresh_local( ).
-      WHEN OTHERS.
-        refresh_local_object( iv_action ).
-    ENDCASE.
-
-    " We need to supply files again in calculate_diff. Because
-    " we only want to refresh the visible files. Otherwise all
-    " diff files would appear.
-    " Which is not wanted when we previously only selected particular files.
-    LOOP AT lt_diff_files_old ASSIGNING <ls_diff_file_old>.
-      CLEAR: ls_file.
-      MOVE-CORRESPONDING <ls_diff_file_old> TO ls_file-file.
-      INSERT ls_file INTO TABLE lt_files.
-    ENDLOOP.
-
-    calculate_diff( it_files = lt_files ).
-    restore_patch_flags( lt_diff_files_old ).
-
-  ENDMETHOD.
-  METHOD refresh_full.
-    mo_repo->refresh( abap_true ).
-  ENDMETHOD.
-  METHOD refresh_local.
-    mo_repo->refresh_local_objects( ).
-  ENDMETHOD.
-  METHOD refresh_local_object.
-
-    DATA:
-      lv_regex    TYPE string,
-      lv_obj_type TYPE tadir-object,
-      lv_obj_name TYPE tadir-obj_name.
-
-    lv_regex = c_actions-refresh_local_object && `_(\w{4})_(.*)`.
-
-    FIND FIRST OCCURRENCE OF REGEX lv_regex
-      IN iv_action
-      SUBMATCHES lv_obj_type lv_obj_name.
-
-    IF sy-subrc = 0.
-      mo_repo->refresh_local_object(
-          iv_obj_type = lv_obj_type
-          iv_obj_name = lv_obj_name ).
-    ELSE.
-      zcx_abapgit_exception=>raise( |Invalid refresh action { iv_action }| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD render_beacon_begin_of_row.
 
     mv_section_count = mv_section_count + 1.
@@ -41124,10 +41090,6 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
           iv_title = |Local refresh of this object| ).
 
     ENDIF.
-
-    super->render_diff_head_after_state(
-        ii_html = ii_html
-        is_diff = is_diff ).
 
   ENDMETHOD.
   METHOD render_line_split_row.
@@ -41250,7 +41212,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE ii_event->mv_action.
-      WHEN c_actions-stage.
+      WHEN c_patch_actions-stage.
 
         start_staging( ii_event ).
 
@@ -41262,8 +41224,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        FIND FIRST OCCURRENCE OF REGEX |^{ c_actions-refresh }| IN ii_event->mv_action.
-        IF sy-subrc = 0.
+        IF is_refresh( ii_event->mv_action ) = abap_true.
 
           apply_patch_from_form_fields( ii_event ).
           refresh( ii_event->mv_action ).
@@ -41278,23 +41239,53 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
+  METHOD refresh.
 
-    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+    DATA: lt_diff_files_old TYPE ty_file_diffs.
 
-    ls_hotkey_action-ui_component = 'Patch'.
+    lt_diff_files_old = mt_diff_files.
 
-    ls_hotkey_action-description = |Stage changes|.
-    ls_hotkey_action-action      = |stagePatch|.
-    ls_hotkey_action-hotkey      = |s|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    super->refresh( iv_action ).
 
-    ls_hotkey_action-description = |Refresh local|.
-    ls_hotkey_action-action      = |refreshLocal|.
-    ls_hotkey_action-hotkey      = |r|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    restore_patch_flags( lt_diff_files_old ).
 
   ENDMETHOD.
+  METHOD add_menu_begin.
+
+    io_menu->add(
+        iv_txt   = c_action_texts-refresh_local
+        iv_typ   = zif_abapgit_html=>c_action_type-dummy
+        iv_act   = c_actions-refresh_local
+        iv_id    = c_actions-refresh_local
+        iv_title = c_action_titles-refresh_local ).
+
+    io_menu->add(
+        iv_txt   = c_action_texts-refresh_all
+        iv_typ   = zif_abapgit_html=>c_action_type-dummy
+        iv_act   = c_actions-refresh_all
+        iv_id    = c_actions-refresh_all
+        iv_title = c_action_titles-refresh_all ).
+
+  ENDMETHOD.
+  METHOD modify_files_before_diff_calc.
+
+    DATA: ls_file LIKE LINE OF ct_files.
+
+    FIELD-SYMBOLS: <ls_diff_file_old> TYPE zcl_abapgit_gui_page_diff=>ty_file_diff.
+
+    " We need to supply files again in calculate_diff. Because
+    " we only want to refresh the visible files. Otherwise all
+    " diff files would appear.
+    " Which is not wanted when we previously only selected particular files.
+
+    LOOP AT it_diff_files_old ASSIGNING <ls_diff_file_old>.
+      CLEAR: ls_file.
+      MOVE-CORRESPONDING <ls_diff_file_old> TO ls_file-file.
+      INSERT ls_file INTO TABLE ct_files.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
@@ -42393,6 +42384,20 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_menu_begin.
 
+    io_menu->add(
+        iv_txt   = c_action_texts-refresh_local
+        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+        iv_act   = c_actions-refresh_local
+        iv_id    = c_actions-refresh_local
+        iv_title = c_action_titles-refresh_local ).
+
+    io_menu->add(
+        iv_txt   = c_action_texts-refresh_all
+        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+        iv_act   = c_actions-refresh_all
+        iv_id    = c_actions-refresh_all
+        iv_title = c_action_titles-refresh_all ).
+
   ENDMETHOD.
   METHOD add_menu_end.
 
@@ -42597,16 +42602,6 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ms_control-page_menu = build_menu( ).
 
   ENDMETHOD.
-
-  METHOD set_layout.
-
-    IF mv_unified = abap_true.
-      ms_control-page_layout = c_page_layout-centered.
-    ELSE.
-      ms_control-page_layout = c_page_layout-full_width.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_normalized_fname_with_path.
 
     rv_filename = normalize_path( is_diff-path )
@@ -42630,6 +42625,28 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     rv_yes = zcl_abapgit_utils=>is_binary( <lv_data> ).
 
   ENDMETHOD.
+  METHOD is_file_requested.
+
+    IF lines( it_files ) = 0.
+      rv_is_file_requested = abap_true.
+      RETURN.
+    ENDIF.
+
+    READ TABLE it_files WITH KEY file-path     = is_status-path
+                                 file-filename = is_status-filename
+                        TRANSPORTING NO FIELDS.
+    rv_is_file_requested = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD is_refresh.
+
+    FIND FIRST OCCURRENCE OF REGEX |^{ c_actions-refresh_prefix }| IN iv_action.
+    rv_is_refrseh = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD modify_files_before_diff_calc.
+
+  ENDMETHOD.
   METHOD normalize_filename.
 
     rv_normalized = replace( val  = iv_filename
@@ -42644,6 +42661,59 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
                              sub  = '/'
                              occ  = 0
                              with = '_' ).
+
+  ENDMETHOD.
+  METHOD refresh.
+
+    DATA:
+      lt_diff_files_old TYPE ty_file_diffs,
+      lt_files          TYPE zif_abapgit_definitions=>ty_stage_tt.
+    lt_diff_files_old = mt_diff_files.
+
+    CASE iv_action.
+      WHEN c_actions-refresh_all.
+        refresh_full( ).
+      WHEN c_actions-refresh_local.
+        refresh_local( ).
+      WHEN OTHERS.
+        refresh_local_object( iv_action ).
+    ENDCASE.
+
+    modify_files_before_diff_calc(
+      EXPORTING
+        it_diff_files_old = lt_diff_files_old
+      CHANGING
+        ct_files          = lt_files ).
+
+    calculate_diff( it_files = lt_files ).
+
+  ENDMETHOD.
+  METHOD refresh_full.
+    mo_repo->refresh( abap_true ).
+  ENDMETHOD.
+  METHOD refresh_local.
+    mo_repo->refresh_local_objects( ).
+  ENDMETHOD.
+  METHOD refresh_local_object.
+
+    DATA:
+      lv_regex    TYPE string,
+      lv_obj_type TYPE tadir-object,
+      lv_obj_name TYPE tadir-obj_name.
+
+    lv_regex = c_actions-refresh_local_object && `_(\w{4})_(.*)`.
+
+    FIND FIRST OCCURRENCE OF REGEX lv_regex
+      IN iv_action
+      SUBMATCHES lv_obj_type lv_obj_name.
+
+    IF sy-subrc = 0.
+      mo_repo->refresh_local_object(
+          iv_obj_type = lv_obj_type
+          iv_obj_name = lv_obj_name ).
+    ELSE.
+      zcx_abapgit_exception=>raise( |Invalid refresh action { iv_action }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD render_beacon.
@@ -42714,6 +42784,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     register_deferred_script( render_scripts( ) ).
 
     li_progress->off( ).
+
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
 
   ENDMETHOD.
   METHOD render_diff.
@@ -42802,9 +42874,24 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_diff_head_after_state.
 
+    DATA: lv_act_id TYPE string.
+
     IF is_diff-fstate = c_fstate-both AND mv_unified = abap_true.
       ii_html->add( '<span class="attention pad-sides">Attention: Unified mode'
                  && ' highlighting for MM assumes local file is newer ! </span>' ).
+    ENDIF.
+
+    IF is_diff-obj_type IS NOT INITIAL AND is_diff-obj_name IS NOT INITIAL.
+
+      lv_act_id = |{ c_actions-refresh_local_object }_{ is_diff-obj_type }_{ is_diff-obj_name }|.
+
+      ii_html->add_a(
+          iv_txt   = |Refresh|
+          iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+          iv_act   = lv_act_id
+          iv_id    = lv_act_id
+          iv_title = |Local refresh of this object| ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -43052,6 +43139,15 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ii_html->add( '<th>code</th>' ).
 
   ENDMETHOD.
+  METHOD set_layout.
+
+    IF mv_unified = abap_true.
+      ms_control-page_layout = c_page_layout-centered.
+    ELSE.
+      ms_control-page_layout = c_page_layout-full_width.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE ii_event->mv_action.
@@ -43068,22 +43164,30 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
+        IF is_refresh( ii_event->mv_action ) = abap_true.
+
+          refresh( ii_event->mv_action ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
+        ELSE.
+
+          rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
+
+        ENDIF.
 
     ENDCASE.
 
   ENDMETHOD.
-  METHOD is_file_requested.
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
 
-    IF lines( it_files ) = 0.
-      rv_is_file_requested = abap_true.
-      RETURN.
-    ENDIF.
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
-    READ TABLE it_files WITH KEY file-path     = is_status-path
-                                 file-filename = is_status-filename
-                        TRANSPORTING NO FIELDS.
-    rv_is_file_requested = boolc( sy-subrc = 0 ).
+    ls_hotkey_action-ui_component = 'Diff'.
+
+    ls_hotkey_action-description = |Refresh local|.
+    ls_hotkey_action-action      = c_actions-refresh_local.
+    ls_hotkey_action-hotkey      = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
 
@@ -105463,6 +105567,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-09T05:05:52.666Z
+* abapmerge 0.14.3 - 2021-10-09T05:07:47.390Z
 ENDINTERFACE.
 ****************************************************
