@@ -36908,7 +36908,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   METHOD checkout_commit_build_list.
 
     DATA: lv_unix_time   TYPE zcl_abapgit_time=>ty_unixtime,
@@ -37017,6 +37017,8 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     DATA:
       lo_repo   TYPE REF TO zcl_abapgit_repo_online,
+      lv_url    LIKE lo_repo->ms_data-url,
+      lv_branch_name LIKE lo_repo->ms_data-branch_name,
       ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -37025,9 +37027,16 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     lo_repo ?= mo_repo.
 
+    IF lo_repo->ms_data-switched_origin IS NOT INITIAL.
+      SPLIT lo_repo->ms_data-switched_origin AT '@' INTO lv_url lv_branch_name.
+    ELSE.
+      lv_url          = lo_repo->get_url( ).
+      lv_branch_name  = lo_repo->get_selected_branch( ).
+    ENDIF.
+
     ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
-      iv_url             = lo_repo->get_url( )
-      iv_default_branch  = lo_repo->get_selected_branch( )
+      iv_url             = lv_url
+      iv_default_branch  = lv_branch_name
       iv_show_new_option = abap_false ).
 
     IF ls_branch IS NOT INITIAL.
@@ -105567,6 +105576,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-09T05:07:47.390Z
+* abapmerge 0.14.3 - 2021-10-11T05:48:33.274Z
 ENDINTERFACE.
 ****************************************************
