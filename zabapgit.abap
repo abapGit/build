@@ -119,7 +119,6 @@ CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
-CLASS zcl_abapgit_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
@@ -393,6 +392,7 @@ CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
+CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_filename_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
@@ -2003,6 +2003,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES: ty_sha1_tt TYPE STANDARD TABLE OF ty_sha1 WITH DEFAULT KEY .
   TYPES:
     ty_adler32 TYPE x LENGTH 4 .
+  TYPES ty_item_state TYPE c LENGTH 1.
   TYPES:
     BEGIN OF ty_file_signature,
       path     TYPE string,
@@ -2140,8 +2141,8 @@ INTERFACE zif_abapgit_definitions .
       path       TYPE string,
       filename   TYPE string,
       is_changed TYPE abap_bool,
-      rstate     TYPE c LENGTH 1,
-      lstate     TYPE c LENGTH 1,
+      rstate     TYPE ty_item_state,
+      lstate     TYPE ty_item_state,
     END OF ty_repo_file .
   TYPES:
     ty_repo_file_tt TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
@@ -2181,8 +2182,8 @@ INTERFACE zif_abapgit_definitions .
       filename TYPE string,
       package  TYPE devclass,
       match    TYPE abap_bool,
-      lstate   TYPE c LENGTH 1,
-      rstate   TYPE c LENGTH 1,
+      lstate   TYPE ty_item_state,
+      rstate   TYPE ty_item_state,
       packmove TYPE abap_bool,
     END OF ty_result .
   TYPES:
@@ -2292,10 +2293,11 @@ INTERFACE zif_abapgit_definitions .
       path       TYPE string,
       is_dir     TYPE abap_bool,
       changes    TYPE i,
-      lstate     TYPE c LENGTH 1,
-      rstate     TYPE c LENGTH 1,
+      lstate     TYPE ty_item_state,
+      rstate     TYPE ty_item_state,
       files      TYPE ty_repo_file_tt,
       changed_by TYPE xubname,
+      packmove   TYPE abap_bool,
     END OF ty_repo_item .
   TYPES:
     ty_repo_item_tt TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
@@ -2391,11 +2393,11 @@ INTERFACE zif_abapgit_definitions .
     END OF c_type .
   CONSTANTS:
     BEGIN OF c_state, " https://git-scm.com/docs/git-status
-      unchanged TYPE c LENGTH 1 VALUE '',
-      added     TYPE c LENGTH 1 VALUE 'A',
-      modified  TYPE c LENGTH 1 VALUE 'M',
-      deleted   TYPE c LENGTH 1 VALUE 'D',
-      mixed     TYPE c LENGTH 1 VALUE '*',
+      unchanged TYPE ty_item_state VALUE '',
+      added     TYPE ty_item_state VALUE 'A',
+      modified  TYPE ty_item_state VALUE 'M',
+      deleted   TYPE ty_item_state VALUE 'D',
+      mixed     TYPE ty_item_state VALUE '*',
     END OF c_state .
   CONSTANTS:
     BEGIN OF c_chmod,
@@ -6304,6 +6306,45 @@ CLASS zcl_abapgit_folder_logic DEFINITION
       ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
         WITH UNIQUE KEY devclass .
     DATA mt_parent TYPE ty_devclass_info_tt .
+ENDCLASS.
+CLASS zcl_abapgit_item_state DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS local
+      RETURNING
+        VALUE(rv_state) TYPE zif_abapgit_definitions=>ty_item_state.
+    METHODS remote
+      RETURNING
+        VALUE(rv_state) TYPE zif_abapgit_definitions=>ty_item_state.
+    METHODS is_reassigned
+      RETURNING
+        VALUE(rv_is_reassigned) TYPE abap_bool.
+    METHODS is_unchanged
+      RETURNING
+        VALUE(rv_is_unchanged) TYPE abap_bool.
+    METHODS sum_with_repo_item
+      IMPORTING
+        !is_repo_item TYPE zif_abapgit_definitions=>ty_repo_item.
+    METHODS sum_with_status_item
+      IMPORTING
+        !is_status_item TYPE zif_abapgit_definitions=>ty_result.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mv_lstate TYPE zif_abapgit_definitions=>ty_item_state.
+    DATA mv_rstate TYPE zif_abapgit_definitions=>ty_item_state.
+    DATA mv_is_reassigned TYPE abap_bool.
+
+    CLASS-METHODS reduce
+      IMPORTING
+        iv_prev       TYPE zif_abapgit_definitions=>ty_item_state
+        iv_cur        TYPE zif_abapgit_definitions=>ty_item_state
+      RETURNING
+        VALUE(rv_new) TYPE zif_abapgit_definitions=>ty_item_state.
+
 ENDCLASS.
 CLASS zcl_abapgit_objects_activation DEFINITION
   CREATE PUBLIC .
@@ -16517,6 +16558,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
   PRIVATE SECTION.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
+    DATA mo_repo_aggregated_state TYPE REF TO zcl_abapgit_item_state.
     DATA mv_cur_dir TYPE string .
     DATA mv_hide_files TYPE abap_bool .
     DATA mv_max_lines TYPE i .
@@ -16530,17 +16572,11 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     DATA mv_are_changes_recorded_in_tr TYPE abap_bool .
 
     METHODS render_head_line
-      IMPORTING
-        !iv_lstate     TYPE char1
-        !iv_rstate     TYPE char1
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     METHODS build_head_menu
-      IMPORTING
-        !iv_lstate        TYPE char1
-        !iv_rstate        TYPE char1
       RETURNING
         VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
       RAISING
@@ -16629,8 +16665,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     METHODS build_advanced_dropdown
       IMPORTING
         !iv_wp_opt                  LIKE zif_abapgit_html=>c_html_opt-crossout
-        !iv_lstate                  TYPE char1
-        !iv_rstate                  TYPE char1
       RETURNING
         VALUE(ro_advanced_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
       RAISING
@@ -16638,8 +16672,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     METHODS build_main_toolbar
       IMPORTING
         !iv_pull_opt      LIKE zif_abapgit_html=>c_html_opt-crossout
-        !iv_lstate        TYPE char1
-        !iv_rstate        TYPE char1
         !io_tb_branch     TYPE REF TO zcl_abapgit_html_toolbar
         !io_tb_tag        TYPE REF TO zcl_abapgit_html_toolbar
         !io_tb_advanced   TYPE REF TO zcl_abapgit_html_toolbar
@@ -19117,19 +19149,6 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         !is_status     TYPE ty_requirement_status
       RETURNING
         VALUE(rv_true) TYPE abap_bool .
-ENDCLASS.
-CLASS zcl_abapgit_state DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS:
-      reduce
-        IMPORTING
-          !iv_cur  TYPE char1
-        CHANGING
-          !cv_prev TYPE char1 .
-
 ENDCLASS.
 CLASS zcl_abapgit_string_map DEFINITION
   FINAL
@@ -24567,20 +24586,6 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Component { lv_field } not found in target| ).
       ENDIF.
     ENDLOOP.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_STATE IMPLEMENTATION.
-  METHOD reduce.
-
-    IF cv_prev = iv_cur OR iv_cur IS INITIAL.
-      RETURN. " No change
-    ELSEIF cv_prev IS INITIAL.
-      cv_prev = iv_cur.
-    ELSE.
-      cv_prev = zif_abapgit_definitions=>c_state-mixed.
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -39138,7 +39143,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -39205,7 +39210,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     CREATE OBJECT ro_advanced_dropdown.
 
-    IF iv_rstate IS NOT INITIAL OR iv_lstate IS NOT INITIAL. " In case of asyncronicities
+    IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " In case of asyncronicities
       ro_advanced_dropdown->add( iv_txt = 'Selective Pull'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-git_reset }?key={ mv_key }|
                                  iv_opt = iv_wp_opt ).
@@ -39325,18 +39330,13 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     lo_tb_tag = build_tag_dropdown( lv_wp_opt ).
 
-    lo_tb_advanced = build_advanced_dropdown(
-                         iv_wp_opt = lv_wp_opt
-                         iv_rstate = iv_rstate
-                         iv_lstate = iv_lstate ).
+    lo_tb_advanced = build_advanced_dropdown( iv_wp_opt = lv_wp_opt ).
 
     ro_toolbar = build_main_toolbar(
-                     iv_pull_opt    = lv_pull_opt
-                     iv_rstate      = iv_rstate
-                     iv_lstate      = iv_lstate
-                     io_tb_branch   = lo_tb_branch
-                     io_tb_tag      = lo_tb_tag
-                     io_tb_advanced = lo_tb_advanced ).
+      iv_pull_opt    = lv_pull_opt
+      io_tb_branch   = lo_tb_branch
+      io_tb_tag      = lo_tb_tag
+      io_tb_advanced = lo_tb_advanced ).
 
   ENDMETHOD.
   METHOD build_inactive_object_code.
@@ -39377,17 +39377,18 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-repo'.
 
     IF mo_repo->is_offline( ) = abap_false.
-      IF iv_rstate IS NOT INITIAL. " Something new at remote
+      IF mo_repo_aggregated_state->remote( ) IS NOT INITIAL
+         OR mo_repo_aggregated_state->is_reassigned( ) = abap_true. " Something new at remote
         ro_toolbar->add( iv_txt = 'Pull'
                          iv_act = |{ zif_abapgit_definitions=>c_action-git_pull }?key={ mv_key }|
                          iv_opt = iv_pull_opt ).
       ENDIF.
-      IF iv_lstate IS NOT INITIAL. " Something new at local
+      IF mo_repo_aggregated_state->local( ) IS NOT INITIAL. " Something new at local
         ro_toolbar->add( iv_txt = 'Stage'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }|
                          iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
-      IF iv_rstate IS NOT INITIAL OR iv_lstate IS NOT INITIAL. " Any changes
+      IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " Any changes
         ro_toolbar->add( iv_txt = 'Diff'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_repo_diff }?key={ mv_key }|
                          iv_opt = zif_abapgit_html=>c_html_opt-strong ).
@@ -39402,7 +39403,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       ro_toolbar->add( iv_txt = 'Tag'
                        io_sub = io_tb_tag ).
     ELSE.
-      IF mo_repo->has_remote_source( ) = abap_true AND iv_rstate IS NOT INITIAL.
+      IF mo_repo->has_remote_source( ) = abap_true AND mo_repo_aggregated_state->remote( ) IS NOT INITIAL.
         ro_toolbar->add( iv_txt = 'Pull <sup>zip</sup>'
                          iv_act = |{ zif_abapgit_definitions=>c_action-git_pull }?key={ mv_key }|
                          iv_opt = zif_abapgit_html=>c_html_opt-strong ).
@@ -39658,8 +39659,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     DATA: lt_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt,
           lo_browser    TYPE REF TO zcl_abapgit_repo_content_list,
           lx_error      TYPE REF TO zcx_abapgit_exception,
-          lv_lstate     TYPE char1,
-          lv_rstate     TYPE char1,
           lv_max        TYPE abap_bool,
           lv_max_str    TYPE string,
           lv_add_str    TYPE string,
@@ -39671,6 +39670,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
     gui_services( )->register_event_handler( me ).
+    CREATE OBJECT mo_repo_aggregated_state.
 
     TRY.
         " Reinit, for the case of type change
@@ -39706,14 +39706,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         apply_order_by( CHANGING ct_repo_items = lt_repo_items ).
 
         LOOP AT lt_repo_items ASSIGNING <ls_item>.
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-lstate
-                                     CHANGING cv_prev = lv_lstate ).
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-rstate
-                                     CHANGING cv_prev = lv_rstate ).
+          mo_repo_aggregated_state->sum_with_repo_item( <ls_item> ).
         ENDLOOP.
 
-        ri_html->add( render_head_line( iv_lstate = lv_lstate
-                                        iv_rstate = lv_rstate ) ).
+        ri_html->add( render_head_line( ) ).
 
         li_log = lo_browser->get_log( ).
         IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
@@ -39728,7 +39724,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
         IF mo_repo->is_offline( ) = abap_true
             AND mo_repo->has_remote_source( ) = abap_true
-            AND lv_lstate IS INITIAL AND lv_rstate IS INITIAL.
+            AND mo_repo_aggregated_state->is_unchanged( ) = abap_true.
           " Offline match banner
           lv_msg = 'ZIP source is attached and completely <b>matches</b> the local state'.
         ELSEIF lines( lt_repo_items ) = 0.
@@ -39798,10 +39794,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         " and allow troubleshooting of issue
         zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( || ).
 
-        ri_html->add(
-          render_head_line(
-            iv_lstate = lv_lstate
-            iv_rstate = lv_rstate ) ).
+        ri_html->add( render_head_line( ) ).
+
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error(
           iv_extra_style = 'repo_banner'
           ix_error = lx_error ) ).
@@ -39815,8 +39809,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    lo_toolbar = build_head_menu( iv_lstate = iv_lstate
-                                  iv_rstate = iv_rstate ).
+    lo_toolbar = build_head_menu( ).
 
     ri_html->add( '<div class="paddings">' ).
     ri_html->add( '<table class="w100"><tr>' ).
@@ -51072,6 +51065,8 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
           ls_subitem  LIKE LINE OF ct_repo_items,
           ls_folder   LIKE LINE OF ct_repo_items.
 
+    DATA lo_state TYPE REF TO zcl_abapgit_item_state.
+
     FIELD-SYMBOLS <ls_item> LIKE LINE OF ct_repo_items.
     LOOP AT ct_repo_items ASSIGNING <ls_item>.
       lv_index = sy-tabix.
@@ -51097,16 +51092,15 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
         ls_folder-path    = <ls_item>-path.
         ls_folder-sortkey = c_sortkey-dir. " Directory
         ls_folder-is_dir  = abap_true.
+        CREATE OBJECT lo_state.
       ENDAT.
 
       ls_folder-changes = ls_folder-changes + <ls_item>-changes.
-
-      zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-lstate
-                                 CHANGING cv_prev = ls_folder-lstate ).
-      zcl_abapgit_state=>reduce( EXPORTING iv_cur = <ls_item>-rstate
-                                 CHANGING cv_prev = ls_folder-rstate ).
+      lo_state->sum_with_repo_item( <ls_item> ).
 
       AT END OF path.
+        ls_folder-lstate = lo_state->local( ).
+        ls_folder-rstate = lo_state->remote( ).
         APPEND ls_folder TO ct_repo_items.
       ENDAT.
     ENDLOOP.
@@ -51149,6 +51143,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_repo_items_with_remote.
 
     DATA:
+      lo_state  TYPE REF TO zcl_abapgit_item_state,
       ls_file       TYPE zif_abapgit_definitions=>ty_repo_file,
       lt_status     TYPE zif_abapgit_definitions=>ty_results_tt,
       ls_item       TYPE zif_abapgit_definitions=>ty_item,
@@ -51168,29 +51163,22 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
         <ls_repo_item>-sortkey  = c_sortkey-default. " Default sort key
         <ls_repo_item>-changes  = 0.
         <ls_repo_item>-path     = <ls_status>-path.
+        CREATE OBJECT lo_state.
       ENDAT.
 
       IF <ls_status>-filename IS NOT INITIAL.
-        ls_file-path       = <ls_status>-path.
-        ls_file-filename   = <ls_status>-filename.
+        MOVE-CORRESPONDING <ls_status> TO ls_file.
         ls_file-is_changed = boolc( <ls_status>-match = abap_false ). " TODO refactor
-        ls_file-rstate     = <ls_status>-rstate.
-        ls_file-lstate     = <ls_status>-lstate.
         APPEND ls_file TO <ls_repo_item>-files.
 
-        IF <ls_status>-inactive = abap_true
-            AND <ls_repo_item>-sortkey > c_sortkey-changed.
+        IF <ls_status>-inactive = abap_true AND <ls_repo_item>-sortkey > c_sortkey-changed.
           <ls_repo_item>-sortkey = c_sortkey-inactive.
         ENDIF.
 
         IF ls_file-is_changed = abap_true.
           <ls_repo_item>-sortkey = c_sortkey-changed. " Changed files
           <ls_repo_item>-changes = <ls_repo_item>-changes + 1.
-
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = ls_file-lstate
-                                     CHANGING cv_prev = <ls_repo_item>-lstate ).
-          zcl_abapgit_state=>reduce( EXPORTING iv_cur = ls_file-rstate
-                                     CHANGING cv_prev = <ls_repo_item>-rstate ).
+          lo_state->sum_with_status_item( <ls_status> ).
         ENDIF.
       ENDIF.
 
@@ -51210,6 +51198,9 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
         IF <ls_repo_item>-obj_type IS INITIAL.
           <ls_repo_item>-sortkey = c_sortkey-orphan. "Virtual objects
         ENDIF.
+        <ls_repo_item>-lstate = lo_state->local( ).
+        <ls_repo_item>-rstate = lo_state->remote( ).
+        <ls_repo_item>-packmove = lo_state->is_reassigned( ).
       ENDAT.
     ENDLOOP.
 
@@ -95766,6 +95757,57 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
+  METHOD is_reassigned.
+    rv_is_reassigned = mv_is_reassigned.
+  ENDMETHOD.
+  METHOD is_unchanged.
+    rv_is_unchanged = boolc( mv_is_reassigned = abap_false
+      AND mv_lstate = zif_abapgit_definitions=>c_state-unchanged
+      AND mv_rstate = zif_abapgit_definitions=>c_state-unchanged ).
+  ENDMETHOD.
+  METHOD local.
+    rv_state = mv_lstate.
+  ENDMETHOD.
+  METHOD reduce.
+
+    rv_new = iv_prev.
+    IF rv_new = iv_cur OR iv_cur IS INITIAL.
+      RETURN. " No change
+    ELSEIF rv_new IS INITIAL.
+      rv_new = iv_cur.
+    ELSE.
+      rv_new = zif_abapgit_definitions=>c_state-mixed.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD remote.
+    rv_state = mv_rstate.
+  ENDMETHOD.
+  METHOD sum_with_repo_item.
+
+    mv_lstate = reduce(
+      iv_prev = mv_lstate
+      iv_cur  = is_repo_item-lstate ).
+    mv_rstate = reduce(
+      iv_prev = mv_rstate
+      iv_cur  = is_repo_item-rstate ).
+    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_repo_item-packmove = abap_true ).
+
+  ENDMETHOD.
+  METHOD sum_with_status_item.
+
+    mv_lstate = reduce(
+      iv_prev = mv_lstate
+      iv_cur  = is_status_item-lstate ).
+    mv_rstate = reduce(
+      iv_prev = mv_rstate
+      iv_cur  = is_status_item-rstate ).
+    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_status_item-packmove = abap_true ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
   METHOD get_instance.
     CREATE OBJECT ro_instance.
@@ -105574,6 +105616,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-13T04:11:37.384Z
+* abapmerge 0.14.3 - 2021-10-13T04:13:13.964Z
 ENDINTERFACE.
 ****************************************************
