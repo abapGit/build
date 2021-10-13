@@ -31141,7 +31141,7 @@ CLASS ZCL_ABAPGIT_TAG_POPUPS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -31304,9 +31304,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     IF iv_reset_all IS INITIAL.
       DELETE lt_decision
         WHERE action = zif_abapgit_objects=>c_deserialize_action-add
-           OR action = zif_abapgit_objects=>c_deserialize_action-update
-           OR action = zif_abapgit_objects=>c_deserialize_action-delete
-           OR action = zif_abapgit_objects=>c_deserialize_action-delete_add.
+           OR action = zif_abapgit_objects=>c_deserialize_action-update.
     ENDIF.
 
     " Ask user what to do
@@ -105576,6 +105574,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-12T16:03:27.730Z
+* abapmerge 0.14.3 - 2021-10-13T04:11:37.384Z
 ENDINTERFACE.
 ****************************************************
