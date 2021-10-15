@@ -1770,6 +1770,13 @@ INTERFACE zif_abapgit_frontend_services.
       VALUE(rv_path)       TYPE string
     RAISING
       zcx_abapgit_exception .
+
+  METHODS clipboard_export
+    IMPORTING
+      iv_no_auth_check TYPE abap_bool DEFAULT abap_false
+      VALUE(it_data)   TYPE STANDARD TABLE
+    RAISING
+      zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_functions.
@@ -2481,6 +2488,7 @@ INTERFACE zif_abapgit_definitions .
       direction                     TYPE string VALUE 'direction',
       documentation                 TYPE string VALUE 'documentation',
       changelog                     TYPE string VALUE 'changelog',
+      clipboard                     TYPE string VALUE 'clipboard',
     END OF c_action.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
@@ -30633,28 +30641,31 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.icon-code-branch:before { content: "\f112"; }' ).
     lo_buf->add( '.icon-code-commit:before { content: "\f113"; }' ).
     lo_buf->add( '.icon-cog:before { content: "\f114"; }' ).
-    lo_buf->add( '.icon-edit-solid:before { content: "\f115"; }' ).
-    lo_buf->add( '.icon-exclamation-circle:before { content: "\f116"; }' ).
-    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f117"; }' ).
-    lo_buf->add( '.icon-file-alt:before { content: "\f118"; }' ).
-    lo_buf->add( '.icon-file-code:before { content: "\f119"; }' ).
-    lo_buf->add( '.icon-file-image:before { content: "\f11a"; }' ).
-    lo_buf->add( '.icon-file:before { content: "\f11b"; }' ).
-    lo_buf->add( '.icon-fire-alt:before { content: "\f11c"; }' ).
-    lo_buf->add( '.icon-folder:before { content: "\f11d"; }' ).
-    lo_buf->add( '.icon-git-alt:before { content: "\f11e"; }' ).
-    lo_buf->add( '.icon-info-circle-solid:before { content: "\f11f"; }' ).
-    lo_buf->add( '.icon-lock:before { content: "\f120"; }' ).
-    lo_buf->add( '.icon-plug:before { content: "\f121"; }' ).
-    lo_buf->add( '.icon-question-circle-solid:before { content: "\f122"; }' ).
-    lo_buf->add( '.icon-server-solid:before { content: "\f123"; }' ).
-    lo_buf->add( '.icon-sliders-h:before { content: "\f124"; }' ).
-    lo_buf->add( '.icon-snowflake:before { content: "\f125"; }' ).
-    lo_buf->add( '.icon-star:before { content: "\f126"; }' ).
-    lo_buf->add( '.icon-times-solid:before { content: "\f127"; }' ).
-    lo_buf->add( '.icon-tools-solid:before { content: "\f128"; }' ).
-    lo_buf->add( '.icon-truck-solid:before { content: "\f129"; }' ).
-    lo_buf->add( '.icon-user-solid:before { content: "\f12a"; }' ).
+    lo_buf->add( '.icon-copy-solid:before { content: "\f115"; }' ).
+    lo_buf->add( '.icon-edit-solid:before { content: "\f116"; }' ).
+    lo_buf->add( '.icon-exclamation-circle:before { content: "\f117"; }' ).
+    lo_buf->add( '.icon-exclamation-triangle:before { content: "\f118"; }' ).
+    lo_buf->add( '.icon-file-alt:before { content: "\f119"; }' ).
+    lo_buf->add( '.icon-file-code:before { content: "\f11a"; }' ).
+    lo_buf->add( '.icon-file-image:before { content: "\f11b"; }' ).
+    lo_buf->add( '.icon-file:before { content: "\f11c"; }' ).
+    lo_buf->add( '.icon-fire-alt:before { content: "\f11d"; }' ).
+    lo_buf->add( '.icon-folder:before { content: "\f11e"; }' ).
+    lo_buf->add( '.icon-git-alt:before { content: "\f11f"; }' ).
+    lo_buf->add( '.icon-info-circle-solid:before { content: "\f120"; }' ).
+    lo_buf->add( '.icon-lock:before { content: "\f121"; }' ).
+    lo_buf->add( '.icon-paste-solid:before { content: "\f122"; }' ).
+    lo_buf->add( '.icon-plug:before { content: "\f123"; }' ).
+    lo_buf->add( '.icon-question-circle-solid:before { content: "\f124"; }' ).
+    lo_buf->add( '.icon-redo-alt-solid:before { content: "\f125"; }' ).
+    lo_buf->add( '.icon-server-solid:before { content: "\f126"; }' ).
+    lo_buf->add( '.icon-sliders-h:before { content: "\f127"; }' ).
+    lo_buf->add( '.icon-snowflake:before { content: "\f128"; }' ).
+    lo_buf->add( '.icon-star:before { content: "\f129"; }' ).
+    lo_buf->add( '.icon-times-solid:before { content: "\f12a"; }' ).
+    lo_buf->add( '.icon-tools-solid:before { content: "\f12b"; }' ).
+    lo_buf->add( '.icon-truck-solid:before { content: "\f12c"; }' ).
+    lo_buf->add( '.icon-user-solid:before { content: "\f12d"; }' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/ag-icons.css'
       iv_type      = 'text/css'
@@ -30664,131 +30675,138 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 ****************************************************
 * abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
 ****************************************************
-    lo_buf->add( 'd09GRgABAAAAABXsAAsAAAAAJuwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
-    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU4SY21hcAAA' ).
-    lo_buf->add( 'AYQAAAD4AAADrhOU+N5nbHlmAAACfAAAD9EAABv8DrzPfGhlYWQAABJQAAAA' ).
-    lo_buf->add( 'MAAAADYhvmYnaGhlYQAAEoAAAAAeAAAAJAmVB7xobXR4AAASoAAAAE8AAACs' ).
-    lo_buf->add( 'U1P/8GxvY2EAABLwAAAAWAAAAFiU9ptsbWF4cAAAE0gAAAAfAAAAIAFQARxu' ).
-    lo_buf->add( 'YW1lAAATaAAAASgAAAIWQeF35nBvc3QAABSQAAABWwAAAj/k7uEyeJxjYGRg' ).
+    lo_buf->add( 'd09GRgABAAAAABcsAAsAAAAAKRAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
+    lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU4TY21hcAAA' ).
+    lo_buf->add( 'AYQAAAEEAAAD2PSMwI1nbHlmAAACiAAAEOcAAB247Mq4PWhlYWQAABNwAAAA' ).
+    lo_buf->add( 'MAAAADYhymHjaGhlYQAAE6AAAAAeAAAAJAmVB79obXR4AAATwAAAAFIAAAC4' ).
+    lo_buf->add( 'WNP/8GxvY2EAABQUAAAAXgAAAF6voKiAbWF4cAAAFHQAAAAfAAAAIAFTARxu' ).
+    lo_buf->add( 'YW1lAAAUlAAAASgAAAIWQeF35nBvc3QAABW8AAABbQAAAmvw8EJJeJxjYGRg' ).
     lo_buf->add( 'YOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiBm' ).
-    lo_buf->add( 'g4gCACY7BUgAeJxjYGT8wDiBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
-    lo_buf->add( 'BKS5pjA4fGT8qMUE4uoxsTKAVDKCOADT+QlPAHic7dJZboMwAEXRS3AIScg8' ).
-    lo_buf->add( 'z/OEsrwuqF/dHytI/XhdRi0dX2EZhDBAE0ijdxQg+SFB4zuuJvV6SqdeD3zV' ).
-    lo_buf->add( 'e4LWq/LziXOiOV6Hem7EvSE+MaNFTjve16WgR58BQ0aMmTBlxpwFS1as2bBl' ).
-    lo_buf->add( 'x54DR06cuXDlxp0HT16U8aEZ/6PQ1Mj/rkp9d6tPomGoqelEq2A6m6ppOu0q' ).
-    lo_buf->add( 'M9SWoeaG2jbUjukvqLqGWpjeruoZat9QB4Y6NNSRoY4NdWKoU0OdGercUBeG' ).
-    lo_buf->add( 'ujTUlaGuDXVjqFtD3Rnq3lAPhno01JOhng31YqhXQ70Z6t1QH4b6NNSXoZZG' ).
-    lo_buf->add( '+QtTQ2ZreJytWGtsHNd1vmded2Znd/Yxr30/yZnlktldcl8U3xJliZSZlFZU' ).
-    lo_buf->add( 'WI0NhIFVy5CMhFXrFLCsgq4dJ0ASgHAAQ4Fhl0CQtvmRQj+MJEDTmpWFtkBb' ).
-    lo_buf->add( 'VGhRFKpglO2P9EdQW0ZTVEGbZc+dmV1Sr7hpS87ee+c+zj3n3HPP+c6Q8H6f' ).
-    lo_buf->add( 'EPoGR0iRjJHj5AlyiVwmb5HvkL8l75M7ECVktOPWYR66DnUkare7rTxQk2pg' ).
-    lo_buf->add( 'Spa9AL0CuBqUnXZ3EexFyIM91e3UgZYlWulUqJ2HHGhAewuA60xDqpQdV/Qp' ).
-    lo_buf->add( 'tn8uxTogRW9mr5OH1gIXUG2AR9WMIy1q6ki3a/lkR3G/Fm6BlPC1g3SnLJxZ' ).
-    lo_buf->add( 'YCsrGmchZz3W22s7Zcmw8E33GQnYNKQomKPe4nlodbyqgrybSAdHrRbyBkpS' ).
-    lo_buf->add( '4qE965zgV3XdDsPsZBNyzXxN40VNSWZiulV5n+fDTro5B73xpBPjLko5gQeB' ).
-    lo_buf->add( '/+VQWktbqZSWUmAvJXHtGeckt6on7AjMNZtcvlHwiaTSMdDtClS7uFNs1Biv' ).
-    lo_buf->add( 'J6A7Ydd1XnhKyvK8IJrPy7mYkbSRnsx13qZHBEGx1enu9FQ4HeIFkI8kl3Kf' ).
-    lo_buf->add( '2+CefK50Mi8IbyQ/kcQHSmmJvyhmBY4X07ChWCEz+skVnpvki+URHty6PRH/' ).
-    lo_buf->add( 'fFUAQbrSHQPItyQUz0og846TnuRAj0L2MRqOFDTgv5ACLQGPrZ9cgGhkuxYC' ).
-    lo_buf->add( 'Sfgv3Um8J4VhvFCdCMun/oeE3h9j805FNGgeLyK1eIxLIzlR7P+nKApj0ESK' ).
-    lo_buf->add( 'I5/6RJgeG2ssiwIAd/Lo/AmBw0V14XMxDS5+53lO1b4g8O9bto1y2v03cWte' ).
-    lo_buf->add( '+nuPqau4RKjO8qJhX25z/GrN5es89+WJKoRlkiH4B/vwp4QnlKgkSnRiY2+B' ).
-    lo_buf->add( 'VIhLxkmDtEiPzJJFskxOksfJL5FPkyfJU+Sz5Dnya+RFXGujNVK7p7fMihv8' ).
-    lo_buf->add( 'eo9oi8G7HdTsRw+13YfVhsQuFlrxoOEOGjBumeaybZk/zeVatVqtVFqzrNlm' ).
-    lo_buf->add( 's2LbR/P5sVzOKRT6f9xs5kqlQqkUqVTMTGbLtq1CYW5kxMlm37l163e++tUP' ).
-    lo_buf->add( 'Njf/5t13LydLtl1KXsUftj7lv8FLpXBZLqul/gdJO5lKzifZ3yy2kskprFX8' ).
-    lo_buf->add( 'LSSbWM7j+Bz2L6VSqfU4W5uMxhgl+1n2ZttMzZyn67twl4RJjRC9vQBTeTC8' ).
-    lo_buf->add( 'e76IfsGahanuPNjW1CJ02w1wylGQjAJYU/LypdcuLXvF9ooWioW0FXQWKqVf' ).
-    lo_buf->add( 'ogb+sGUCWQ5mLF9y1r4f0rTQ99fYiEFfpfgY2MTteY+HXbiBJ13A0yV6ie3Z' ).
-    lo_buf->add( 'diqlssQuuP0x7zHYoYpC+xusfEQbXlJolb1hsfPQJpoc+lw4jipB1UCl13XG' ).
-    lo_buf->add( 'oYy+R0IlUMlqTfX0rgPVX6/xWnhb0aAImvqbdXzR6DX0bRu/reph5Y4aux5O' ).
-    lo_buf->add( 'hKEZTpKBbBzhAC05SlJIFz3bOJit0QqS5loUVdzyxIF+S0zFvv5h/6Ovx1Li' ).
-    lo_buf->add( 'FPfhnawBO0YWTl6NJnZ3E9GrtHjHyGaNO4fowh7eDXYnyKghIbfMMw4pVnqV' ).
-    lo_buf->add( 'TtuTIYe+E4uS99ppwZJCUSe7OR129Nzu9npOx3pdz3Ek962trWtMIc1tPZfT' ).
-    lo_buf->add( 't3earGrm9HUcLuKW+/jHAepoiawGu5oGtdHVlxsgHWxYdim7EovAWGJ3YxY6' ).
-    lo_buf->add( 'LrsiBWj18KIY6NPRf/NlDC+tdh0pGpGeNq/o6VC32qJiUqStajeU1pV5rRcx' ).
-    lo_buf->add( '9Mh0wxv7kdfXmI7o+/l2fi/f/sdIIlbMzbHeXvEnIqXiT4o9NnUuV4wlMvps' ).
-    lo_buf->add( '3RvyuuqzOui4DB9mcoEO3yUGIT2XMcvY67HCMihI5T/4PUpHqSlv3pFNbND+' ).
-    lo_buf->add( 'LWqt/i616IjM+uQRbPb/QR7Qgj+ELx3QWgBGy2K00IbKf32d4myDvvkmFhal' ).
-    lo_buf->add( '16nxynWvCawPvMHrB7RG4TajpXvs5CGKd5DZImrZaVceshDiD25wH61Rypaz' ).
-    lo_buf->add( 'i+06XV9Yy4DcQ4h9+GhagYy6zcTSAB2t5DCeGL2PHlwGVx4qJBzyOwTQCIw8' ).
-    lo_buf->add( 'TC0AGsJhpwF3D5xM4Ku4l+Gf0N7b/iqGYUxcisZVhw5zwAxnoGEt4JvjdrGo' ).
-    lo_buf->add( 'lGkdbB9YtB0g46fGa133mPu1ZLGxXC+k3qnMlmcmpOlqLmmekqVQKILOYg9n' ).
-    lo_buf->add( 'ydFTDZz3RbmWKTUapUxN/mJ5tlI/ocQT1enYyMS/spmR0MCOXsa7mMWX4Z6H' ).
-    lo_buf->add( '2MP76DHEpYN9ngyYgE22O+QCkge7ejuRA5kZ7amPoU7x6g+cQNkJzld6xJ5/' ).
-    lo_buf->add( 'dBTvOFWOqjK9IGjCBSo/iov2JvMHmwbOw2l49ALzAbCFPq3neYHTyBeDbuh4' ).
-    lo_buf->add( 'bIRlkvff8VjyO03GJ6qfHQlitW6v1e2x/wUYnbL8yKn74dOQ9EEPbDWONYpp' ).
-    lo_buf->add( 'MJPRkaxmx1IFfC+kvCpri4aupmDcrOgmJPP9m8iihlz61S2/gs3g3JIIsPBP' ).
-    lo_buf->add( 'oNt0cJb0z4NmakyRQwhMBClkp2ty7QJbqSn9Lb9GV+nVQazc3yd/h3InSQlv' ).
-    lo_buf->add( 'AHNzGgtHnnDzeOFRPnYOAxEuRPRirVbU03oJkYAeUSKReCTCkah2RZ0+MR26' ).
-    lo_buf->add( 'osVi2pUQNtUrkdiPMWzgM4jJH8I+opt1vLVu10VVuQ5Gjih4O7gOZccvUdfx' ).
-    lo_buf->add( 'tI1ORrKxy2a4ehE8jmwLF2F60LMtT9sOHagY/qUmSTXEvnGHl4VapiwKvZ4g' ).
-    lo_buf->add( 'ljM1QeadOOri/nGx642P8/74j1FxxxqNG6lKJcXJQmeM57iUHZ4UKITDQIXJ' ).
-    lo_buf->add( 'sJ3iOH6sI8jc/XNEic2RRG8OCGxOghE71ghi2lEUP0JyZIbhOPQxnOQsct0p' ).
-    lo_buf->add( '9KlD6MGgCG+W4i3W8lAAZh1B0Gs7OAu+8Rmev/10KAKh27z87clwUR3h+c8g' ).
-    lo_buf->add( '+yPqbn/3RyJflSS5/88snMKGkY2KiE2/y8ZvhyASevo2b0yquETGNbik2P/g' ).
-    lo_buf->add( 'WVjix8Ro1ujvsEVvy5JU5YfY5S78FP2YSUax7WMnH0fRgdtxbR9JdXp+fDzs' ).
-    lo_buf->add( '2O7qmYyTySzKVGyKFMslkR52gi+wUSfz7a8IlApfkSj14v/+z1BXyxxPNEQr' ).
-    lo_buf->add( 'LlqJhQlSCXfuYepl2fyjduZmZCmd6BcTaUm+o5RKSu0h26/EGNZEWBVT1Vj/' ).
-    lo_buf->add( 'ew9hQPTkfhnPimG2SfTH8/g+9D8s3E9ZtOLjMx9Dtp0eyw1LmALGvXE8Stds' ).
-    lo_buf->add( '6XE/oYtDkYq/z+I3FuFBg55Hle8xlf+loZ3RttaE50LaDshZNs6KT/oVK37Y' ).
-    lo_buf->add( 'f8c7UDwhnDq31r8GRS30XH8DWZU8fpnPMlFbNcwglsmvYKSeZFfrMKxltoW2' ).
-    lo_buf->add( 'xlQ1MCpk17UrOtqbh4cxOWaYECezGOq45iS7eoO1A1pvlEoIkxI85WZ4foaj' ).
-    lo_buf->add( 'fJy/dUZDKRiHRSO7tba23t/bQf5+S5Awf+WFZFCzhTib8kd4fNjCb+VynMzp' ).
-    lo_buf->add( 'PN/FqsfxSLV/RkPFbHjU1gxP1h3UjIPrf4h0aFCfeHDl4OyYLuIYyXOeNhCX' ).
-    lo_buf->add( '3i8zrXT4QOT4aKvj3T+v6A2D6aXDErXXbjJx9smeLYT4s64QEtwmDlazWXj7' ).
-    lo_buf->add( 'HnZja/1zHrv9veZWkufPVnm+eo1NrGaHd+qAv4/h7aFcPHrHgX/9E6wSpIwt' ).
-    lo_buf->add( 'iTquH0kD2ODwkvehAt2m3UNHKsHxfKZ2ZPWzc+dfPD9XyuS75fHpxxPR6jMz' ).
-    lo_buf->add( 'kmQk4K+yxZnO8Z3uwoUFfDJnavX+XyQfm84UUs0ry6pSPTuI47gr4vUMyy7u' ).
-    lo_buf->add( 'FYndDh4NzEaB4OZuT4l8Y2DKTIqvYcefwVZPGVwGLPp3AHGunyrvM3kQI0x4' ).
-    lo_buf->add( 'usIjsrvofFghoUNwTazLCPl6HfZGDwwdfnBDTirVViSpilOxjJgqxWkjwZnZ' ).
-    lo_buf->add( 'UITGo4o49WVZvqHYynsyGDdkeawtqsnIlJQopsRsvP6iUjFDkRF6WcqEW6/h' ).
-    lo_buf->add( 'NJzynmLf5xPb9+G7YXS0DzsL/6uO7zZygInBPcnjcjyVKqdSq1Q8y+56OMxK' ).
-    lo_buf->add( '9FNYH/akn2eTyqk+G8X8YckrqXiOisGZ72KVYrEbMFEJMFTgowanMB7ASNhO' ).
-    lo_buf->add( 'jp04fWIsOYgR2Ze2a3M1KK6MnRjDZyVr7LIhLFbytVp+aLfMJ1JSYTmZTyoH' ).
-    lo_buf->add( 'dmngBz001OqwwNzy93M9lJRD2Iswodn3EtbYam+ptxrD5n9gJ2xuRnQ9shlT' ).
-    lo_buf->add( 'aJEqxZmz6jPPqGdnit5rzB+7R+dz5LH74pBbDlCCDwWYeg3KvBg97J89TNZl' ).
-    lo_buf->add( 'ihnGrcPa/aiay5g8J1T4EB9TtEQ8p0hxLhVKUHEaA4eopVW93K344eTw6T0T' ).
-    lo_buf->add( 'jxYFhU/zIOg0pGuqLIYwddbTAjsdkCVBjoXNYraRuetHGhRFYTbt5bdRD21N' ).
-    lo_buf->add( 'Ih5YJp8mT5NfRdlKvrHgmbEPgJI7YLcyaNj/DzNgr7/ElAu7WM6HNM3QtFN+' ).
-    lo_buf->add( '9ez/YgQ29Ig3hsVZ1jF47v6C/Rj7B7qpIEK8iLG/dG+eH1iaf6yBXbsHqXlp' ).
-    lo_buf->add( 'YPHDOa0H5jxIJ5gDd/rXPMtbZ5a67jXhULvvfT2A9YM5N73mzXubWzHP0H0b' ).
-    lo_buf->add( 'Pmju/ELdnu/rYy5yHe/cdxlS9oI5g8kug70sPDdg2Ndjbxi8uU5vEKeH8g7R' ).
-    lo_buf->add( 'penPZQHdHQR6L7wzYG3TB/uCe7XImUPH+uBns44/l3ES8AU/QIujnMCp0vrK' ).
-    lo_buf->add( 'yrqkYhPTcxczFZmPiNUQXs4o9porM6KoihEhhVJLSgpbYUGYOWlBWIpSiVNc' ).
-    lo_buf->add( 'KYIreOnnk1M4n5x1ckYQ7iEnqoIwu+KRQwJILoxZAP+WrXAqxQ3AqtVMtpiq' ).
-    lo_buf->add( 'nGILYUlDknYl2OCJ2pk5zB6Ro3SdnUs95TErzp6pPeGzQ8s2MqchkwOKnFmr' ).
-    lo_buf->add( 'WfB/pxgm/reS/Z9xE4iDGU5g58bORvIOy2LqxtN3GlwdcwL+6OuRKCgXUhyG' ).
-    lo_buf->add( 'u1dewUjGpS4oEI28flSybfjgVZMzksr518OmJB0/Lklm+PXzStIA69WwLJPh' ).
-    lo_buf->add( 'd5kNuIb3jn2XCWxoaDrD8w+O3f23c4pihdLKuXNKOmQprL7nHcgjBgbvQa7N' ).
-    lo_buf->add( 'iZyIkbTp+UC0cnTQbseldsv2bM/fDOE0y6i9JLHBbJ3lhsxIu5SFfDbrUAr4' ).
-    lo_buf->add( '7y/EG+bFraWNhYuqHH9BLYQ66jsTBT2lZwyFi4iPH1dPiTwdXc2YJpwOP3Xk' ).
-    lo_buf->add( 'qj7a0V8Kv+U7s994IS6rFxc2lrYumg1crnbU/PcKuprInBqhvHhKPf64oHGK' ).
-    lo_buf->add( 'kTG7udP86SPf1Duj+uXia4EHQ7k8PLSF99ZFuY6QBZQLvQ9qlAXgYU43C953' ).
-    lo_buf->add( 'g5Zf+h5IHAhRGjR6lU7L5jZj2jnNmECI5AXm2PT69Bb+mmhF/bEAh0749dz2' ).
-    lo_buf->add( 'xLmd5w2c3/QAFi6oTk9X2c9zLJs+FvWfm5vnvO+eHn4AjK+IGXUfy/i4Bm23' ).
-    lo_buf->add( '7FY8MDHEEXXYq8yWy7MnWHElXlmrxEcWRnwkMbIAJBjBohiL4UiN8VHDBiH/' ).
-    lo_buf->add( 'DRYD80IAAAB4nGNgZGBgAOL7C3+LxPPbfGXgZmIAgbttQlNg9P+///+yT2Ni' ).
-    lo_buf->add( 'BXI5GMDSAGUwDPZ4nGNgZGBgYgAB9qn///7/zT6NgZEBFWgDAHTYBV8AAHic' ).
-    lo_buf->add( 'TY3BDcAwCANNPlkro3QUlug+DNF1Gpc0RPA4WdjIBoB+czbXhZgz8m4g0w8s' ).
-    lo_buf->add( 'Mk1ESTzhj6N85c8KdnZKr9Yt0rO5OuQKT/f/B3yHJHQAAAAAAAF+AjQCdgK6' ).
-    lo_buf->add( 'AuQDEANMA7ID2AP+BCQESgRwBIoE1gUEBU4FygX+BnoG1AcQB1AHqAguCH4I' ).
-    lo_buf->add( 'rgjoCRYJXgmoCdoKGAqACw4LlAyUDMoNBA1wDcgN/nicY2BkYGDQZhRgkGYA' ).
-    lo_buf->add( 'ASYg5gJCBob/YD4DABDqAW4AeJxljUtuwjAURW/49ANSi1SpHdajDqgInyEL' ).
-    lo_buf->add( 'gDkDZh2E4ISgJI4cg8SsK+gSuoSuouoKuqBe3McEbMnvvPOubQA9/CDAcQW4' ).
-    lo_buf->add( '8edxNXDN7p+bpHvhFvlJuI0unoWv6PvCHbxiItzFA974QtC6pemhEm7gDu/C' ).
-    lo_buf->add( 'TfoP4Rb5U7iNR3wJX9F/C3ewxK9wFy9BP0oHWWzKeqHTXR7ZU3uqS23rzJRq' ).
-    lo_buf->add( 'HI5Oaq5LbSOn12p1UPU+nTiXqMSaQs1M6XSeG1VZs9WxCzfOVdPhMBEfxqZA' ).
-    lo_buf->add( 'hBQDZIhhUKLGAppmh5wTezE975dMW9bM9wpjhBhdpOZMlT4ZwbGumVzhwLPG' ).
-    lo_buf->add( 'ntkJrUPCPmHGoCDN/N1jOuc2NJWfbWli+hAbf6vCFEPu5Cwf+t+LP9yIXDB4' ).
-    lo_buf->add( 'nG1Q21bbMBD0EIfETigQrr3SAm256aNkee3oRPa6uhA+H8ciOXnoPqxmtLsz' ).
-    lo_buf->add( 'WiUHSYxx8v94xgFGSDHGISaYIkOOGeY4wicc4wSnWOAM57jAJa5wjc/4gq/4' ).
-    lo_buf->add( 'hu/4gRv8xC/c4g73+I0/+IsHPOIJz3hJJrKQXa39dHMa3fpjaS2vhdJWGRKh' ).
-    lo_buf->add( 'SwtpXVqw8aOC37LCaqqUdJQVoRaOjS7HaklqNe/zq+VWlLxud8RQ5Y+2xOp6' ).
-    lo_buf->add( '6fMtC938w2RQmSvDoRSKm0b7WSRD4STi0BmWpZCmL3JJorCyVcuI49BIcZ1T' ).
-    lo_buf->add( 'qX2cW9CbMrKRXvdm0el8/8pbLdva0LTS/Rt63WwAG8F8QLqRNaUb2LfYoeWw' ).
-    lo_buf->add( 'YlOSnfQftqGnuq1Y7G+RGlartDOhvvgXyO15f2zpyL6SjSRzfSLrxDJzLa8r' ).
-    lo_buf->add( 'I1eUOi/tzOuGXGyaeWazwzaoVcR5cFudJHkH0zCpZwA=' ).
+    lo_buf->add( 'g4gCACY7BUgAeJxjYGR8xziBgZWBgXEaYxoDA4M7lP7KIMnQwsDAxMDKzIAV' ).
+    lo_buf->add( 'BKS5pjA4fGT8qMsE4uoxsTKAVDKCOADTjAlQAHic7dNXcoMwAEXRC8Yd9957' ).
+    lo_buf->add( 'NxvMgvKVzWkFjh4vywgzR3fQ0AYBUAUq0TvKIPkhQdt3nE3K+Qqtcj7jqzwm' ).
+    lo_buf->add( '03woPp84JhrjflaOaTw2i1esUadBM57XJqdDlx59BgwZMWbClBlzFixZsWbD' ).
+    lo_buf->add( 'lh17Dhw5cebClRt3Hjx5xfsX8dI1/rdcQ/r+2yv09q1cj9RQK6Z1DZlphULV' ).
+    lo_buf->add( 'tOahZqh1Q20YatNQW6ZvIbQNNTc9XegYatdQe4baN9SBoQ4NdWSoY0OdGOrU' ).
+    lo_buf->add( 'UGeGOjfUhaEuDXVlqGtD3Rjq1lB3hro31IOhHg31ZKhnQ70Y6tVQb4Z6N9SH' ).
+    lo_buf->add( 'oT4N9WWob9P/Gwqj+AXv7m5jeJytWGtsXMd1nnNfcx+7dx/33r37fpJ7l0tq' ).
+    lo_buf->add( 'd8l9UXyJEmWJkmmXdtRajQ2EgVVLkIyEVeu0ta2Crh3HQBKAcABDgWGXQJDW' ).
+    lo_buf->add( '+ZFCP4wkQNOalY02QFtUaFG0qmFU7Y/0R1BbRlNUQZtlz8y9S1KvuGlL3p2Z' ).
+    lo_buf->add( 'O3PmzDkzZ875ziWhnQEh9DWBkCIZI0fJI+QieY68Qb5F/oZ8QG5ChJDRrteA' ).
+    lo_buf->add( 'eehVaVWhbqfXzgN1qAmOknAXoF8Az4RytdM7BO4hyIM71es2gJYVWulWqJuH' ).
+    lo_buf->add( 'HJhA+wuA8xxbqZSrnuxz7PxMjg1Ajpyy381De0EIuDaBc3ViyIs6FvLtJXy2' ).
+    lo_buf->add( 'o7heG5dATvjaRb5TCaQssJkVU0igZH3W2+9Uy4qdwDfLFyQQ01Yi4IzyyfPQ' ).
+    lo_buf->add( '7vKqgrI7yAdHE22UDbSkIkJntnpMPGFZbghmJ1uQa+XrpiibWjITtRKVD0Qx' ).
+    lo_buf->add( 'VE235qA/nqxGhQtKThJBEn9RT5vpRCplpjS4kVKEzkz1uHDCirthmGu1hHyz' ).
+    lo_buf->add( '4DNJpaNguRWo9XCl6Kg93ohDb8JtWKL0uJIVRUl2nlZzUTvpIj9V6L5JD0qS' ).
+    lo_buf->add( '5hrTvempUFoXJVAPJhdzn10THjtXOp6XpNeSB5L4QCmtiBfkrCSIchrWtITu' ).
+    lo_buf->add( 'RB5aFoVJsVgeEcFruBOxz9UkkJRLvTGAfFtB9RJxFL5aTU8KYEUg+wANhQsm' ).
+    lo_buf->add( 'iJ9PgRmHB1aPL0AkvFnXQZH+y6rG31VCMF6oTYTUk/9DRh+MMbqTYRNaR4vI' ).
+    lo_buf->add( 'LRYV0shOlgf/KcvSGLSQ48jDB0L0yFhzSZYAhOOH549JAk5qSJ+NmnDhW08L' ).
+    lo_buf->add( 'hvl5Sfwg4bqopzt4HZcWlb/jQl3GKVJtVpRt97mOIJ6oe2JDFL40UYOQSjIE' ).
+    lo_buf->add( '/2AH/pSIhBKDRIhFXOwtkArxyDhpkjbpk1lyiCyR4+RB8gvkU+Qx8jj5DDlH' ).
+    lo_buf->add( 'fpU8i3NdtEbq9q22U/GCX/8+bTl4d4Oa/ei+tnev2lbYxUIrHja8YQPGE46z' ).
+    lo_buf->add( '5Cacn+Ry7Xq9XiqtJBKzrVbFdQ/n82O5XLVQGPxxq5UrlQqlUrhScTKZDddN' ).
+    lo_buf->add( 'FApzIyPVbPbt69d/98tf/nB9/a/feee5ZMl1S8nL+MPWw/4bPF8KldWyURp8' ).
+    lo_buf->add( 'mHSTqeR8kv3NYiuZnMLawN9CsoXlPI7PYf9iKpVajbG5yUiUcXKfYm+uy7ZZ' ).
+    lo_buf->add( '4Ht9C26REKkTYnUWYCoPNr/nh9AvJGZhqjcPbmLqEPQ6TaiWI6DYBUhMqUsX' ).
+    lo_buf->add( 'X764xIvNZVOP6uYyOguD0i9SG3/YcoAsBRRLF6sr39VNU//uChux6UsUHxub' ).
+    lo_buf->add( 'uLzIZdiG9/CkC3i6xCqxNTvVSqmssAvufsJ7FLaoptHBGivv04bnNVpjb1hs' ).
+    lo_buf->add( '3bOJJoc+F47iluDWQKXfq45DGX2PgptAlUR7qm/1qlD7tbpohjY1E4pgGr/R' ).
+    lo_buf->add( 'wBeTXkHftvY7hhXSbhrRq6F4CFqhJBnqJhAB0JIjJIV80bONg9MerSBroU1x' ).
+    lo_buf->add( 'i9tcHRi05VT0qx8NPv5qNCVPCR/dzNqwZWfh+OVIfHs7HrlMizftbNa+uY8v' ).
+    lo_buf->add( '3MC7we4EGbUVlJZ5xl2OlX6l2+E65NB3YlHir902LGoU92Q7Z8GWldveXM1Z' ).
+    lo_buf->add( 'WK9aOYHkvrGxcYVtSGvTyuWsza0Wq1o5axWHi7jkDv4JgHu0SE4Eqzo2ddHV' ).
+    lo_buf->add( 'l5ug7C1Y9ii7EoeAicTuxix0PXZFCtDu40Wx0aej/xbLGF7anQZytMN9c16z' ).
+    lo_buf->add( '0nqv1qZyUqbtWk9PW9q82Q/bVni6ycd+yPua02FrJ9/J38h3/jEcjxZzc6y3' ).
+    lo_buf->add( 'X/yxTKn842Kfkc7litF4xppt8CHe1Zi1wMJp+DCTC/bwHWIT0veYsEy8PisS' ).
+    lo_buf->add( 'NgWl/Ae/T+koddT1m6qDDTq4ThMnfo8m6IjK+tQRbA7+QR3ygj+EL+7xWgDG' ).
+    lo_buf->add( 'K8F4oQ2V/+oqRWqbvv46FglKr1L7xau8CawP+ODVPV6j8D7jZXFx8hDBO8hs' ).
+    lo_buf->add( 'EXe52qncYyLE7l7gDl6jlE1nF9ur9nxlEzbk7sHso/vzCnS0XKaWCeholSqT' ).
+    lo_buf->add( 'ifH7+O5pcOmeSsI+v0MAjcDOw9QCoCHsdxpwa8/JBL5KeAH+Ce29489iGMbB' ).
+    lo_buf->add( 'qWhcDegyB8xwBhrWAr5VvR4WlTJtgOsDi04VyPjJ8XrPO+J9JVlsLjUKqbcr' ).
+    lo_buf->add( 's+WZCWW6lks6J1VF18PoLG4glRo52US6L6j1TKnZLGXq6hfKs5XGMS0Wr01H' ).
+    lo_buf->add( 'Ryb+lVGG9aEdvYB3MYsvu2vuEw/vIxdISAfrPBYIAetsdcgFLPdW5SuRPZ0Z' ).
+    lo_buf->add( '76lP4E7x6g+dQLkanK9ynzX/6DDecaodNlR6XjKl81S9nxSddeYP1m2kQzI8' ).
+    lo_buf->add( 'eon5ANhAn9bnXuBRlItBN3Q8LsIyhf93uUh+p8PkxO1nR4JYrddv9/rsfwFG' ).
+    lo_buf->add( 'pxJ+5LT88Gkr1rAHNppHmsU0OMnISNZ0o6kCvhdSvMq6sm0ZKRh3KpYDyfzg' ).
+    lo_buf->add( 'GopoopR+dd2vYD04tyQCLPyT6CYdniX9QdBMjWmqjsBEUnQ3XVfr59lMUxts' ).
+    lo_buf->add( '+DW6Sl4HsXJnh/wt6p0kJbwBzM2ZLBxx5ebxwqN+7ByGKpwPW8V6vWilrRIi' ).
+    lo_buf->add( 'ASushcOxcFggEfOSMX1sWr9kRqPmJR2bxqVw9EcYNvAZxuSPYAfRzSreWq/n' ).
+    lo_buf->add( '4VZ5VYwcEeAreFXKjl+hXpXvNjoZxcUul+HqQ8AlchM4CdODvpvgu12lwy2G' ).
+    lo_buf->add( 'f6krSh2xb6wqqlI9U5alfl+Sy5m6pIrVGO7FneNyj4+Pi/74j3DjjjSb76Uq' ).
+    lo_buf->add( 'lZSgSt0xURBSbmhSohAKAZUmQ25KEMSxrqQKd9LICqNRZE4DEqOJM2ZHmgEO' ).
+    lo_buf->add( '+BNUP4ZIbwI1Z3lJCVOGGAsfMYxrFqJ/xYn5Ea4bQzNHX8vCabcDi6Y+uMkw' ).
+    lo_buf->add( 'xnLJfest1gAEJed087eOUF1ZW6zxrnXdHPy9W4LT55B8k3ep5tgRuqboe3H1' ).
+    lo_buf->add( 'MMoQJjkyw7Ak+jlBqR4SelO41i78YXBIdEqxNmtxJDIUiyETpIKvfVoU339C' ).
+    lo_buf->add( 'D4P+vqh+czJUNEZE8dO4hSPG9mD7h7JYUxR18M8spMOanY3IiI+/zcbf1yGs' ).
+    lo_buf->add( 'P/G+aE8aOEXFOTilOPjwKVgUx+RI1h5ssUlvqopSE3fx0y34CfpSh4xi28dv' ).
+    lo_buf->add( 'PpajQ9fnuT6a6/b9GL3fud6yMplqJnNIpXJLplguynS/I36GjVYz33xFolR6' ).
+    lo_buf->add( 'RaGU79XOT3GvlgSRmIiYPDyvBCZpJVy5j+lfwhXvt7Iwoyrp+KAYTyvqTa1U' ).
+    lo_buf->add( '0ur3WH45yvAuQruoYUQH37mHADLX+wU8K4YbJzEmzOP7rg9kNjOVoBUfI/o4' ).
+    lo_buf->add( 'tlPtx/bbFPOQntO2Yn5SGYMild9iGAKL0LBBz+KW32Bb/he2ecrcWJHQqLZA' ).
+    lo_buf->add( 'zbJxVjzkV6z4/uBtfqB4Qkg6tzK4AkVTPzdYQ1EVLi/zmw7uVh2zmCXyy4gW' ).
+    lo_buf->add( 'Jtn13g+tmW1xu95v6x3PrVhobxyTY4LOcCkSszhe9ZxJdv2Hc4e8XiuVEKrF' ).
+    lo_buf->add( 'RSrMiOKMQMWYeP2UiVowCYt2dmNlZXVwYwvl+21JwRxalJJBzSYiNRUPiviw' ).
+    lo_buf->add( 'id/I5QRVsESxh1VfEJHr4JSJG7PGua3YXNct3Jkqzv8+8qFBfezumcOzY3sR' ).
+    lo_buf->add( 'QzSR47uB2PhOnWmlKwYqx0bbXX7/eNHfDegX92vUWbnG1NkhN1xJF097ki55' ).
+    lo_buf->add( 'LRysZbPw5m3iRlcGZ7i4gxutjaQonq6JYu0KI6xld+/UnnyfINs9pbj/ikMf' ).
+    lo_buf->add( 'z3xdnJSxpdCq50fzALpURYV/LEHX7fbRmStwNJ+pHzzxmbmzz56dK2XyvfL4' ).
+    lo_buf->add( '9IPxSO3JGUWx4/CX2eJM9+hWb+H8Aj6ZU/XG4M+TD0xnCqnWpSVDq50eYglc' ).
+    lo_buf->add( 'FXOGDMtwbleJ3Q4RDcxFheDadl8Lf21oykyLr2DHn8FGXxteBiwGNwGxtp+u' ).
+    lo_buf->add( '7zB9EKdM8L3CI3J76HxYoaBD8Bysywg7+132RvcMHb73nprUau1w0pCnohk5' ).
+    lo_buf->add( 'VYrRZlxwsnqYxiKaPPUlVX1Pc7V3VbDfU9Wxjmwkw1NKvJiSs7HGs1rF0cMj' ).
+    lo_buf->add( '9DklE2q/jGRI8q7m3uETO3dgzN0I7e53Fv6XJd9t5ACTk9sS2KVYKlVOpU5Q' ).
+    lo_buf->add( '+TS766EQK9FPYb3fk36OEZVTAzaKOcwiL6l8hsrBmW9jlWL4ATBZCnBc4KOG' ).
+    lo_buf->add( 'pzAeQFnYTI4de/TYWHIYI7LPb9bn6lBcHjs2hs9y1t5mQ1gs5+t1ltNIgV0B' ).
+    lo_buf->add( 'euQiIsZZltMz3RhXXE2hQQCdhV2k5bYDn+n7RLTovlPptplv3Ci5r5j6I2q+' ).
+    lo_buf->add( 'nFcfYcHyXBFL2zSvYvjkwfYV8yKGTnqEwrJbWtbNSCwWwch6RTfhNxmhbd76' ).
+    lo_buf->add( 'AY+yLR6Lq8oa0g7vF/PdFGM95q++yjlwS0N/zZFju8tATNvfF48jyhymCAip' ).
+    lo_buf->add( 'WgOe3EdP9Bf7J6LY/A/shPX1sGWF16MaLVKtOHPaePJJ4/RMkb9G/bHbbGOO' ).
+    lo_buf->add( 'PHBHvPTKAaLyYRMzA5syb0v3xxGOX3vsAHfj634r+LiWyziiIFVEXYxqZjyW' ).
+    lo_buf->add( '05SYkNLjVJ7GACebacMq9yp+2NtvZU/GIkVJE9MiSBbVLdNQZR1Mw0pLzIpA' ).
+    lo_buf->add( 'VSQ1GnKK2Wbmlh8Rd/NFpk8T66mE2+c76Z8p5mUNtC9u/LiNQULKP8VyjYFM' ).
+    lo_buf->add( 'ni6PUDwp/WXdpHV3tnjg4caBhxqFgy4KX8NY8EvNJT8ZGymNUE5m2rTuJA88' ).
+    lo_buf->add( '/PhDBxxHBKQyxHw5SNOIxnwB/zYR4Uh5EnHUEvkUeYL8CspX8i8Z2jqX0Rtu' ).
+    lo_buf->add( 'X2XYcP8fKODGYJEdNmxjOe+b7Em/eup/MQJrVpiPYXHat+rAtn/OfsRMw72p' ).
+    lo_buf->add( 'ILq/gJipdPs3msDyfTML/IG391mlNPQUuzTtu2ju5hPQwM3BFX4TVtnNWeVN' ).
+    lo_buf->add( '2Nce8C8/sLpHc403r93e3Ijyi+ffqb3m1s/VzWPGAPPIq+gDvs2yHA6CWIrj' ).
+    lo_buf->add( 'sZSFwZom7Pb12RuCHqHbH+KbXX13Ubnj0zIg5A0BEodFLCly6d19wT0/JDi7' ).
+    lo_buf->add( 'AenuT55dn5ZJEsgF30OLo4IkGMrq8vKqYmCTYnTDLFMVw3JNR2cRwV5neUaW' ).
+    lo_buf->add( 'DTkspVBrRUthKyRJM8cTEFIiVBE0TwnjDFH52ew0wWeXOD4jSbexkw1Jml3m' ).
+    lo_buf->add( '7JABsgthBie+4WqCQXEBSNTrDptMDUFzpZBiIku3EizwSP3UHGb+KFG6wc6l' ).
+    lo_buf->add( 'keLCyrOn6o/44tCyi8KZKOSQo+DU6wn4v3MMEd9v7fxUmMD8geErdm7sbBR+' ).
+    lo_buf->add( 'WAm23Xj61abQwFxKPPxqOALa+ZSAMOHFFxEBCKnzGkTCrx5WXBc+fMkR7KR2' ).
+    lo_buf->add( '9tWQoyhHjyqKE3r1rJa0IfFSSFXJro9cgyt479g3tcCGdk1n9/yDY/f+7Yym' ).
+    lo_buf->add( 'JfS0duaMltYTGqtvewdyn4Hhe/CdRJAFGRFIi/tAtHIMGF7Xo27b5bbnL4ah' ).
+    lo_buf->add( 'ln0N4Ql+k9k6y+uZkfYog0qMal/6/u/PxJrOhY3FtYULhhp7xijoXePtiYKV' ).
+    lo_buf->add( 'sjK2JoTlB48aJ2WRjp7IOA48Gnr84GVrtGs9H3rDd2a//kxMNS4srC1uXHCa' ).
+    lo_buf->add( 'ON3oGvnvFCwjnjk5QkX5pHH0QckUNDvj9HKPio8e/LrVHbWeK74ceLAAYwgb' ).
+    lo_buf->add( 'eG891OsgWUC90PvgjjLgspsLzwL/5tP2S98DyUMlSsNGH5GGK6xHzTOmPYHQ' ).
+    lo_buf->add( 'kgOa6PTq9Ab+WmhFg7EAv0/49dzmxJmtp22kb3FgihNq09M19uOOZd3H8P5z' ).
+    lo_buf->add( 'bf0M/2bNcRdgvEesbfkY0A+JaLtlr8JB2C7+asCNymy5PHuMFZdilZVKbGRh' ).
+    lo_buf->add( 'xEdgIwtAghEsitEojtSZHHVsEPLfIyoztQB4nGNgZGBgAGJOxW198fw2Xxm4' ).
+    lo_buf->add( 'mRhA4G6PQBGM/v/3/1/2aUysQC4HA1gaACuOC5l4nGNgZGBgYgAB9qn///7/' ).
+    lo_buf->add( 'zT6NgZEBFegBAHTbBWIAAHicVY3REYAwCENDf1yLURyFJdyHIVzHRtriUT/e' ).
+    lo_buf->add( 'cSQhAMBxsbeYA/FAa28gS088PSvESNzV0TQzykemv+Ffbuv25f3/kpHpo0vO' ).
+    lo_buf->add( '1GzdveGGJfgAAAAAAAABfgI0AnYCugLkAxADTAOyA9gD/gQkBEoEcASKBNYF' ).
+    lo_buf->add( 'BAVOBcoF/gZ6BrwHFgdSB5IH6ghwCMAI8AkqCVgJoAnqChwKcAquCxYLXgvs' ).
+    lo_buf->add( 'DHINcg2oDeIOTg6mDtwAAHicY2BkYGDQYxRgkGYAASYg5gJCBob/YD4DABE7' ).
+    lo_buf->add( 'AXEAeJxljUtuwjAURW/49ANSi1SpHdajDqgInyELgDkDZh2E4ISgJI4cg8Ss' ).
+    lo_buf->add( 'K+gSuoSuouoKuqBe3McEbMnvvPOubQA9/CDAcQW48edxNXDN7p+bpHvhFvlJ' ).
+    lo_buf->add( 'uI0unoWv6PvCHbxiItzFA974QtC6pemhEm7gDu/CTfoP4Rb5U7iNR3wJX9F/' ).
+    lo_buf->add( 'C3ewxK9wFy9BP0oHWWzKeqHTXR7ZU3uqS23rzJRqHI5Oaq5LbSOn12p1UPU+' ).
+    lo_buf->add( 'nTiXqMSaQs1M6XSeG1VZs9WxCzfOVdPhMBEfxqZAhBQDZIhhUKLGAppmh5wT' ).
+    lo_buf->add( 'ezE975dMW9bM9wpjhBhdpOZMlT4ZwbGumVzhwLPGntkJrUPCPmHGoCDN/N1j' ).
+    lo_buf->add( 'Ouc2NJWfbWli+hAbf6vCFEPu5Cwf+t+LP9yIXDB4nG1Q13ajMBDlxjg24NRN' ).
+    lo_buf->add( 'tvfelP0mIQasY8EQlTj5+wCyc/yw8zC6d9odTXKURJsn/7cbHGGGFHMcY4El' ).
+    lo_buf->add( 'MuQosMIJTnGGc1zgEs9whWs8xwu8xCu8xhu8xTu8xwd8xCd8xhd8xTd8xw/8' ).
+    lo_buf->add( 'xC/8xh/8hcAN/iULWcq+0X45vkZ3/kxay1uhtFWGROjTUlqXlmz8rOT7rLSa' ).
+    lo_buf->add( 'aiUdZWVohGOjq7lak9qsBn9nuRMVb7snYqj2J3tidbP2+Z6FfrUTmaaslOFQ' ).
+    lo_buf->add( 'CcVtq30RyZQ4jzj0hmUlpBmSXJEorezUOuLYNFPc5Ir7h9iXU6V9hJd0r4xs' ).
+    lo_buf->add( 'pdeDbhS9Ogx5q2XXGFrWelhnkMgmMM7OJ6Rb2VA6wqHETiXHNZuK7GK43Ugv' ).
+    lo_buf->add( 'dFezOPxQalhtil46vw/0JjTXt4HcwR4xdWqp4nHM7haO7B3ZSDI3OLJOrDPX' ).
+    lo_buf->add( '8bY2ckOp89IWXrfkYlHhmc0TtkFtdkcIbj8nSR4BRSq34gAAAA==' ).
     lo_asset_man->register_asset(
       iv_url       = 'font/ag-icons.woff'
       iv_type      = 'font/woff'
@@ -35230,11 +35248,21 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD other_utilities.
+    TYPES ty_char600 TYPE c LENGTH 600.
+    DATA lv_clip_content TYPE string.
+    DATA lt_clipboard TYPE STANDARD TABLE OF ty_char600.
 
-    IF ii_event->mv_action = zif_abapgit_definitions=>c_action-ie_devtools.
-      zcl_abapgit_services_basis=>open_ie_devtools( ).
-      rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-    ENDIF.
+    CASE ii_event->mv_action.
+      WHEN zif_abapgit_definitions=>c_action-ie_devtools.
+        zcl_abapgit_services_basis=>open_ie_devtools( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-clipboard.
+        lv_clip_content = ii_event->query( )->get( 'CLIPBOARD' ).
+        APPEND lv_clip_content TO lt_clipboard.
+        zcl_abapgit_ui_factory=>get_frontend_services( )->clipboard_export( lt_clipboard ).
+        MESSAGE 'Successfully exported URL to Clipboard.' TYPE 'S'.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+    ENDCASE.
 
   ENDMETHOD.
   METHOD repository_services.
@@ -46297,6 +46325,17 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                       iv_class = |url| ).
     ENDIF.
 
+    IF io_repo->is_offline( ) = abap_false.
+      lo_repo_online ?= io_repo.
+
+      ri_html->add_a( iv_txt   = ri_html->icon( iv_name  = 'copy-solid'
+                                              iv_class = 'pad-sides'
+                                              iv_hint  = 'Copy URL to Clipboard' )
+                      iv_act   = |{ zif_abapgit_definitions=>c_action-clipboard }| &&
+                                 |?clipboard={ lo_repo_online->get_url( ) }|
+                      iv_class = |url| ).
+    ENDIF.
+
     IF io_repo->is_offline( ) = abap_false AND iv_show_commit = abap_true.
       TRY.
           render_repo_top_commit_hash( ii_html        = ri_html
@@ -46746,6 +46785,28 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~clipboard_export.
+    DATA lv_rc TYPE i.
+
+    " Note: do not use a string table for 'it_data'!
+    cl_gui_frontend_services=>clipboard_export(
+      EXPORTING
+        no_auth_check       = iv_no_auth_check
+      IMPORTING
+        data                = it_data
+      CHANGING
+        rc                   = lv_rc
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        no_authority         = 4
+        OTHERS               = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -105693,6 +105754,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-14T14:58:44.196Z
+* abapmerge 0.14.3 - 2021-10-15T05:31:35.628Z
 ENDINTERFACE.
 ****************************************************
