@@ -27963,6 +27963,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '.dialog input::placeholder { color: #ccc }' ).
     lo_buf->add( '.dialog input:-ms-input-placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog textarea::placeholder { color: #ccc }' ).
+    lo_buf->add( '.dialog textarea:-ms-input-placeholder { color: #ccc }' ).
     lo_buf->add( '.dialog {' ).
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: #f0f0f0;' ).
@@ -105836,6 +105838,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-15T05:35:57.486Z
+* abapmerge 0.14.3 - 2021-10-15T13:32:39.055Z
 ENDINTERFACE.
 ****************************************************
