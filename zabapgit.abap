@@ -30542,10 +30542,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (items.length === 0) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  items = items.map(function(item) {' ).
+    lo_buf->add( '    var action = "";' ).
     lo_buf->add( '    var anchor = item[0];' ).
+    lo_buf->add( '    if (anchor.href.includes("#")) {' ).
+    lo_buf->add( '      action = function(){' ).
+    lo_buf->add( '        anchor.click();' ).
+    lo_buf->add( '      };' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      action = anchor.href.replace("sapevent:", "");' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '    var prefix = item[1];' ).
     lo_buf->add( '    return {' ).
-    lo_buf->add( '      action:    anchor.href.replace("sapevent:", ""),' ).
+    lo_buf->add( '      action:    action,' ).
     lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText.trim()' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  });' ).
@@ -35963,7 +35971,7 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
-    CREATE OBJECT ro_menu.
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
 
     IF lines( ms_files-local ) > 0
     OR lines( ms_files-remote ) > 0.
@@ -42573,7 +42581,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD build_menu.
 
-    CREATE OBJECT ro_menu.
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
 
     add_menu_begin( ro_menu ).
     add_jump_sub_menu( ro_menu ).
@@ -105843,6 +105851,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-18T19:01:32.895Z
+* abapmerge 0.14.3 - 2021-10-18T19:07:41.190Z
 ENDINTERFACE.
 ****************************************************
