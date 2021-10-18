@@ -56123,19 +56123,9 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error from XSLT save, { sy-subrc }| ).
     ENDIF.
 
-    lo_xslt->activate(
-      EXCEPTIONS
-        generate_error    = 1
-        storage_error     = 2
-        syntax_errors     = 3
-*        xtc_not_available = 4  downport/upport, does not exist in 751
-        OTHERS            = 5 ).
-    IF sy-subrc <> 0.
-      lo_xslt->set_changeable( abap_false ). " unlock
-      zcx_abapgit_exception=>raise( |Error from XSLT activate, { sy-subrc }| ).
-    ENDIF.
-
     lo_xslt->set_changeable( abap_false ).
+
+    zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -105851,6 +105841,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-18T19:07:41.190Z
+* abapmerge 0.14.3 - 2021-10-18T19:09:46.704Z
 ENDINTERFACE.
 ****************************************************
