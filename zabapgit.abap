@@ -1764,6 +1764,9 @@ INTERFACE zif_abapgit_html.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_frontend_services.
+
+  TYPES ty_char1 TYPE c LENGTH 1.
+
   METHODS file_upload
     IMPORTING
       !iv_path       TYPE string
@@ -1802,6 +1805,48 @@ INTERFACE zif_abapgit_frontend_services.
       VALUE(it_data)   TYPE STANDARD TABLE
     RAISING
       zcx_abapgit_exception.
+
+  METHODS execute
+    IMPORTING
+      !iv_document          TYPE string OPTIONAL
+      !iv_application       TYPE string OPTIONAL
+      !iv_parameter         TYPE string OPTIONAL
+      !iv_default_directory TYPE string OPTIONAL
+      !iv_maximized         TYPE string OPTIONAL
+      !iv_minimized         TYPE string OPTIONAL
+      !iv_synchronous       TYPE string OPTIONAL
+      !iv_operation         TYPE string DEFAULT 'OPEN'
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get_system_directory
+    CHANGING
+      !cv_system_directory TYPE string
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS directory_browse
+    IMPORTING
+      iv_window_title    TYPE string OPTIONAL
+      iv_initial_folder  TYPE string OPTIONAL
+    CHANGING
+      cv_selected_folder TYPE string
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get_file_separator
+    CHANGING
+      cv_file_separator TYPE ty_char1
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get_gui_version
+    CHANGING
+      ct_version_table TYPE filetable
+      cv_rc            TYPE i
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_functions.
@@ -14794,11 +14839,11 @@ CLASS zcl_abapgit_free_sel_dialog DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_ui_factory .
+  FRIENDS ZCL_ABAPGIT_ui_factory.
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_frontend_services .
+    INTERFACES zif_abapgit_frontend_services.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -18420,6 +18465,7 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CONSTANTS c_abapgit_wikipage TYPE string VALUE 'https://docs.abapgit.org' ##NO_TEXT.
     CONSTANTS c_dotabap_homepage TYPE string VALUE 'https://dotabap.org' ##NO_TEXT.
     CONSTANTS c_abapgit_class TYPE seoclsname VALUE `ZCX_ABAPGIT_EXCEPTION` ##NO_TEXT.
+    CONSTANTS c_changelog_path TYPE string VALUE '/blob/main/changelog.txt' ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
       RAISING
@@ -18453,6 +18499,11 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CLASS-METHODS check_sapgui
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS open_url_in_browser
+      IMPORTING
+        !iv_url TYPE string
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_services_basis DEFINITION
   FINAL
@@ -21118,11 +21169,12 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
   ENDMETHOD.
   METHOD export_object.
 
-    DATA: ls_tadir      TYPE zif_abapgit_definitions=>ty_tadir,
-          lv_folder     TYPE string,
-          lv_fullpath   TYPE string,
-          lv_sep        TYPE c LENGTH 1,
-          ls_files_item TYPE zcl_abapgit_objects=>ty_serialization.
+    DATA: ls_tadir         TYPE zif_abapgit_definitions=>ty_tadir,
+          lv_folder        TYPE string,
+          lv_fullpath      TYPE string,
+          lv_sep           TYPE c LENGTH 1,
+          ls_files_item    TYPE zcl_abapgit_objects=>ty_serialization,
+          lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
 
@@ -21144,17 +21196,18 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Empty' ).
     ENDIF.
 
-    cl_gui_frontend_services=>directory_browse(
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+    lo_frontend_serv->directory_browse(
       EXPORTING
-        initial_folder  = gv_prev
+        iv_initial_folder  = gv_prev
       CHANGING
-        selected_folder = lv_folder ).
+        cv_selected_folder = lv_folder ).
     IF lv_folder IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
     gv_prev = lv_folder.
-    cl_gui_frontend_services=>get_file_separator( CHANGING file_separator = lv_sep ).
+    lo_frontend_serv->get_file_separator( CHANGING cv_file_separator = lv_sep ).
 
     LOOP AT ls_files_item-files ASSIGNING <ls_file>.
       lv_fullpath = |{ lv_folder }{ lv_sep }{ <ls_file>-filename }|.
@@ -31957,46 +32010,20 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   ENDMETHOD.
   METHOD open_ie_devtools.
     DATA: lv_system_directory TYPE string,
-          lv_exe_full_path    TYPE string.
+          lv_exe_full_path    TYPE string,
+          lo_frontend_serv    TYPE REF TO zif_abapgit_frontend_services.
 
     IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_windows( ) = abap_false.
       zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
     ENDIF.
 
-    cl_gui_frontend_services=>get_system_directory(
-      CHANGING
-        system_directory     = lv_system_directory
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from GET_SYSTEM_DIRECTORY sy-subrc: { sy-subrc }| ).
-    ENDIF.
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+    lo_frontend_serv->get_system_directory( CHANGING cv_system_directory = lv_system_directory ).
 
     cl_gui_cfw=>flush( ).
 
     lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING
-        application            = lv_exe_full_path
-      EXCEPTIONS
-        cntl_error             = 1
-        error_no_gui           = 2
-        bad_parameter          = 3
-        file_not_found         = 4
-        path_not_found         = 5
-        file_extension_unknown = 6
-        error_execute_failed   = 7
-        synchronous_failed     = 8
-        not_supported_by_gui   = 9
-        OTHERS                 = 10 ).
-    IF sy-subrc <> 0.
-      " IEChooser is only available on Windows 10
-      zcx_abapgit_exception=>raise( |Error from EXECUTE sy-subrc: { sy-subrc }| ).
-    ENDIF.
+    lo_frontend_serv->execute( iv_application = lv_exe_full_path ).
   ENDMETHOD.
   METHOD raise_error_if_package_exists.
 
@@ -32114,44 +32141,16 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD open_abapgit_changelog.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_repo && '/blob/main/changelog.txt'
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
+    open_url_in_browser( |{ c_abapgit_repo }{ c_changelog_path }| ).
   ENDMETHOD.
   METHOD open_abapgit_homepage.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_homepage
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
+    open_url_in_browser( c_abapgit_homepage ).
   ENDMETHOD.
   METHOD open_abapgit_wikipage.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_abapgit_wikipage
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
+    open_url_in_browser( c_abapgit_wikipage ).
   ENDMETHOD.
   METHOD open_dotabap_homepage.
-
-    cl_gui_frontend_services=>execute(
-      EXPORTING document = c_dotabap_homepage
-      EXCEPTIONS OTHERS = 1 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Opening page in external browser failed.' ).
-    ENDIF.
-
+    open_url_in_browser( c_dotabap_homepage ).
   ENDMETHOD.
   METHOD prepare_gui_startup.
 
@@ -32240,6 +32239,18 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD open_url_in_browser.
+    DATA lx_error TYPE REF TO zcx_abapgit_exception.
+
+    TRY.
+        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = iv_url ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = 'Opening page in external browser failed.'
+                                      ix_previous = lx_error ).
+    ENDTRY.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_popups IMPLEMENTATION.
@@ -34938,24 +34949,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD call_browser.
 
-    cl_gui_frontend_services=>execute(
-      EXPORTING
-        document               = |{ iv_url }|
-      EXCEPTIONS
-        cntl_error             = 1
-        error_no_gui           = 2
-        bad_parameter          = 3
-        file_not_found         = 4
-        path_not_found         = 5
-        file_extension_unknown = 6
-        error_execute_failed   = 7
-        synchronous_failed     = 8
-        not_supported_by_gui   = 9
-        OTHERS                 = 10 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = |{ iv_url }| ).
 
   ENDMETHOD.
   METHOD db_actions.
@@ -35304,13 +35298,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
               trnumber = iv_transport
             RECEIVING
               result   = lv_transport_adt_uri.
-          lv_adt_link = |adt://{ sy-sysid }{ lv_transport_adt_uri }|.
 
-          cl_gui_frontend_services=>execute( EXPORTING  document = lv_adt_link
-                                             EXCEPTIONS OTHERS   = 1 ).
-          IF sy-subrc <> 0.
-            zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
-          ENDIF.
+          lv_adt_link = |adt://{ sy-sysid }{ lv_transport_adt_uri }|.
+          zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
+
         CATCH cx_root.
           CALL FUNCTION 'TR_DISPLAY_REQUEST'
             EXPORTING
@@ -43388,16 +43379,21 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_debug_info.
 
-    DATA: lt_ver_tab     TYPE filetable,
-          lv_rc          TYPE i,
-          ls_release     TYPE zif_abapgit_environment=>ty_release_sp,
-          lv_gui_version TYPE string,
-          ls_version     LIKE LINE OF lt_ver_tab,
-          lv_devclass    TYPE devclass.
+    DATA: lt_ver_tab       TYPE filetable,
+          lv_rc            TYPE i,
+          ls_release       TYPE zif_abapgit_environment=>ty_release_sp,
+          lv_gui_version   TYPE string,
+          ls_version       LIKE LINE OF lt_ver_tab,
+          lv_devclass      TYPE devclass,
+          lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
 
-    cl_gui_frontend_services=>get_gui_version(
-      CHANGING version_table = lt_ver_tab rc = lv_rc
-      EXCEPTIONS OTHERS = 1 ).
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+    TRY.
+        lo_frontend_serv->get_gui_version( CHANGING ct_version_table = lt_ver_tab cv_rc = lv_rc ).
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+        " Continue rendering even if this fails
+    ENDTRY.
+
     READ TABLE lt_ver_tab INTO ls_version INDEX 1. " gui release
     lv_gui_version = ls_version-filename.
     READ TABLE lt_ver_tab INTO ls_version INDEX 2. " gui sp
@@ -46888,9 +46884,9 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
     " Note: do not use a string table for 'it_data'!
     cl_gui_frontend_services=>clipboard_export(
       EXPORTING
-        no_auth_check       = iv_no_auth_check
+        no_auth_check        = iv_no_auth_check
       IMPORTING
-        data                = it_data
+        data                 = it_data
       CHANGING
         rc                   = lv_rc
       EXCEPTIONS
@@ -46903,6 +46899,97 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
   ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~execute.
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        document               = iv_document
+        application            = iv_application
+        parameter              = iv_parameter
+        default_directory      = iv_default_directory
+        maximized              = iv_maximized
+        minimized              = iv_minimized
+        synchronous            = iv_synchronous
+        operation              = iv_operation
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~get_system_directory.
+    cl_gui_frontend_services=>get_system_directory(
+      CHANGING
+        system_directory     = cv_system_directory
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~directory_browse.
+    cl_gui_frontend_services=>directory_browse(
+      EXPORTING
+        window_title         = iv_window_title
+        initial_folder       = iv_initial_folder
+      CHANGING
+        selected_folder      = cv_selected_folder
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~get_file_separator.
+    cl_gui_frontend_services=>get_file_separator(
+      CHANGING
+        file_separator       = cv_file_separator
+      EXCEPTIONS
+        not_supported_by_gui = 1
+        error_no_gui         = 2
+        cntl_error           = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_frontend_services~get_gui_version.
+    cl_gui_frontend_services=>get_gui_version(
+      CHANGING
+        version_table            = ct_version_table
+        rc                       = cv_rc
+      EXCEPTIONS
+        get_gui_version_failed   = 1
+        cant_write_version_table = 2
+        gui_no_version           = 3
+        cntl_error               = 4
+        error_no_gui             = 5
+        not_supported_by_gui     = 6
+        OTHERS                   = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
@@ -53618,13 +53705,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
           iv_sub_obj_name = iv_sub_obj_name
           iv_line_number  = iv_line_number ).
 
-        cl_gui_frontend_services=>execute(
-          EXPORTING  document = lv_adt_link
-          EXCEPTIONS OTHERS   = 1 ).
-
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( |ADT Jump Error - failed to open link { lv_adt_link }. Subrc={ sy-subrc }| ).
-        ENDIF.
+        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise( iv_text = 'ADT Jump Error'
@@ -106227,6 +106308,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-20T15:51:57.951Z
+* abapmerge 0.14.3 - 2021-10-20T15:55:19.115Z
 ENDINTERFACE.
 ****************************************************
