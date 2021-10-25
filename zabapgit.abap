@@ -19171,8 +19171,8 @@ CLASS zcl_abapgit_login_manager DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_path DEFINITION
-  CREATE PUBLIC .
+CLASS zcl_abapgit_path DEFINITION FINAL
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -20492,8 +20492,8 @@ CLASS zcl_abapgit_zlib DEFINITION
         IMPORTING is_pair TYPE ty_pair.
 
 ENDCLASS.
-CLASS zcl_abapgit_zlib_convert DEFINITION
-  CREATE PUBLIC .
+CLASS zcl_abapgit_zlib_convert DEFINITION FINAL
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -20501,17 +20501,20 @@ CLASS zcl_abapgit_zlib_convert DEFINITION
       IMPORTING
         !iv_hex        TYPE xsequence
       RETURNING
-        VALUE(rv_bits) TYPE string .
+        VALUE(rv_bits) TYPE string.
+
     CLASS-METHODS bits_to_int
       IMPORTING
         !iv_bits      TYPE clike
       RETURNING
-        VALUE(rv_int) TYPE i .
+        VALUE(rv_int) TYPE i.
+
     CLASS-METHODS int_to_hex
       IMPORTING
         !iv_int       TYPE i
       RETURNING
-        VALUE(rv_hex) TYPE xstring .
+        VALUE(rv_hex) TYPE xstring.
+
 ENDCLASS.
 CLASS zcl_abapgit_zlib_huffman DEFINITION
   CREATE PUBLIC .
@@ -106308,6 +106311,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-20T15:55:19.115Z
+* abapmerge 0.14.3 - 2021-10-25T13:34:17.772Z
 ENDINTERFACE.
 ****************************************************
