@@ -15925,8 +15925,8 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         refresh_local TYPE string VALUE `Refresh Local`,
       END OF c_action_texts,
       BEGIN OF c_action_titles,
-        refresh_all   TYPE string VALUE `Refresh all local objects, without refreshing the remote`,
-        refresh_local TYPE string VALUE `Complete refresh of all objects, local and remote`,
+        refresh_local TYPE string VALUE `Refresh all local objects, without refreshing the remote`,
+        refresh_all   TYPE string VALUE `Complete refresh of all objects, local and remote`,
       END OF c_action_titles.
 
     DATA mv_unified TYPE abap_bool VALUE abap_true ##NO_TEXT.
@@ -106412,6 +106412,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-27T05:29:19.443Z
+* abapmerge 0.14.3 - 2021-10-27T15:12:52.045Z
 ENDINTERFACE.
 ****************************************************
