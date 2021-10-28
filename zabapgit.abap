@@ -19528,9 +19528,9 @@ CLASS zcl_abapgit_utils DEFINITION
 
     CLASS-METHODS is_binary
       IMPORTING
-        !iv_data      TYPE xstring
+        !iv_data            TYPE xstring
       RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
+        VALUE(rv_is_binary) TYPE abap_bool .
     CLASS-METHODS extract_author_data
       IMPORTING
         !iv_author TYPE string
@@ -24339,32 +24339,45 @@ CLASS ZCL_ABAPGIT_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_binary.
 
-    DATA: lv_len TYPE i,
-          lv_idx TYPE i,
-          lv_x   TYPE x.
+    " Previously we did a simple char range test described here
+    " stackoverflow.com/questions/277521/how-to-identify-the-file-content-as-ascii-or-binary
+    " but this is insufficient if the data contains german umlauts and other special characters.
+    " Therefore we adopted another algorithm, which is similarily used by AL11
+    " RSWATCH0 / GUESS_FILE_TYPE
+    " We count non-printable characters if there are more than XX% it's binary.
 
-    lv_len = xstrlen( iv_data ).
-    IF lv_len = 0.
+    CONSTANTS:
+      lc_binary_threshold TYPE i VALUE 10,
+      lc_bytes_to_check   TYPE i VALUE 1000.
+
+    DATA: lv_string_data           TYPE string,
+          lv_printable_chars_count TYPE i,
+          lv_percentage            TYPE i,
+          lv_data                  TYPE xstring,
+          lv_xlen                  TYPE i.
+
+    lv_xlen = xstrlen( iv_data ).
+    IF lv_xlen = 0.
       RETURN.
     ENDIF.
 
-    IF lv_len > 100.
-      lv_len = 100.
-    ENDIF.
+    lv_xlen = nmin(
+                val1 = lv_xlen
+                val2 = lc_bytes_to_check ).
 
-    " Simple char range test
-    " stackoverflow.com/questions/277521/how-to-identify-the-file-content-as-ascii-or-binary
-    DO lv_len TIMES. " I'm sure there is more efficient way ...
-      lv_idx = sy-index - 1.
-      lv_x = iv_data+lv_idx(1).
+    lv_data = iv_data(lv_xlen).
 
-      IF NOT ( lv_x BETWEEN 9 AND 13 OR lv_x BETWEEN 32 AND 126 ).
-        rv_yes = abap_true.
-        EXIT.
-      ENDIF.
-    ENDDO.
+    lv_string_data = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN lv_string_data WITH space.
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN lv_string_data WITH space.
+
+    FIND ALL OCCURRENCES OF REGEX '[^[:print:]]' IN lv_string_data MATCH COUNT lv_printable_chars_count.
+    lv_percentage = lv_printable_chars_count * 100 / strlen( lv_string_data ).
+    rv_is_binary = boolc( lv_percentage > lc_binary_threshold ).
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_user_record IMPLEMENTATION.
@@ -41564,26 +41577,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       ASSIGN iv_d2 TO <lv_data>.
     ENDIF.
 
-    lv_len = xstrlen( <lv_data> ).
-    IF lv_len = 0.
-      RETURN.
-    ENDIF.
-
-    IF lv_len > 100.
-      lv_len = 100.
-    ENDIF.
-
-    " Simple char range test
-    " stackoverflow.com/questions/277521/how-to-identify-the-file-content-as-ascii-or-binary
-    DO lv_len TIMES. " I'm sure there is more efficient way ...
-      lv_idx = sy-index - 1.
-      lv_x = <lv_data>+lv_idx(1).
-
-      IF NOT ( lv_x BETWEEN 9 AND 13 OR lv_x BETWEEN 32 AND 126 ).
-        rv_yes = abap_true.
-        EXIT.
-      ENDIF.
-    ENDDO.
+    rv_yes = zcl_abapgit_utils=>is_binary( <lv_data> ).
 
   ENDMETHOD.
   METHOD render_beacon.
@@ -106417,6 +106411,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-28T13:35:05.846Z
+* abapmerge 0.14.3 - 2021-10-28T13:37:04.893Z
 ENDINTERFACE.
 ****************************************************
