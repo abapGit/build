@@ -41425,6 +41425,10 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
         CONTINUE. " e.g. new objects
       ENDIF.
 
+      IF <ls_diff_file_old>-o_diff IS NOT BOUND.
+        CONTINUE. " e.g. binary files
+      ENDIF.
+
       lt_diff_old = <ls_diff_file_old>-o_diff->get( ).
 
       LOOP AT lt_diff_old ASSIGNING <ls_diff_old>
@@ -106412,6 +106416,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-27T15:12:52.045Z
+* abapmerge 0.14.3 - 2021-10-28T07:05:17.930Z
 ENDINTERFACE.
 ****************************************************
