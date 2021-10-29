@@ -54482,7 +54482,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         ENDIF.
 
         IF <ls_field>-from_dict = abap_true AND
-           <ls_field>-modific   <> 'F'.
+           <ls_field>-modific   <> 'F' AND
+           <ls_field>-modific   <> 'X'.
           CLEAR <ls_field>-text.
         ENDIF.
       ENDLOOP.
@@ -106411,6 +106412,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-10-29T05:47:36.809Z
+* abapmerge 0.14.3 - 2021-10-29T15:35:01.616Z
 ENDINTERFACE.
 ****************************************************
