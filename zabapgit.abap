@@ -15558,7 +15558,7 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
   PRIVATE SECTION.
-    CONSTANTS c_object_separator TYPE char1 VALUE '|'.
+    CONSTANTS c_object_separator TYPE c LENGTH 1 VALUE '|'.
     CONSTANTS c_ci_sig TYPE string VALUE 'cinav:'.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
@@ -15824,9 +15824,9 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS c_exit_standalone TYPE progname VALUE 'ZABAPGIT_USER_EXIT' ##NO_TEXT.
-    CONSTANTS c_exit_class TYPE seoclsname VALUE 'ZCL_ABAPGIT_USER_EXIT' ##NO_TEXT.
-    CONSTANTS c_exit_interface TYPE seoclsname VALUE 'ZIF_ABAPGIT_EXIT' ##NO_TEXT.
+    CONSTANTS c_exit_standalone TYPE c LENGTH 30 VALUE 'ZABAPGIT_USER_EXIT' ##NO_TEXT.
+    CONSTANTS c_exit_class TYPE c LENGTH 30 VALUE 'ZCL_ABAPGIT_USER_EXIT' ##NO_TEXT.
+    CONSTANTS c_exit_interface TYPE c LENGTH 30 VALUE 'ZIF_ABAPGIT_EXIT' ##NO_TEXT.
     CONSTANTS:
       BEGIN OF c_action,
         save TYPE string VALUE 'save',
@@ -15883,9 +15883,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         filename   TYPE string,
         obj_type   TYPE string,
         obj_name   TYPE string,
-        lstate     TYPE char1,
-        rstate     TYPE char1,
-        fstate     TYPE char1, " FILE state - Abstraction for shorter ifs
+        lstate     TYPE c LENGTH 1,
+        rstate     TYPE c LENGTH 1,
+        fstate     TYPE c LENGTH 1, " FILE state - Abstraction for shorter ifs
         o_diff     TYPE REF TO zcl_abapgit_diff,
         changed_by TYPE xubname,
         type       TYPE string,
@@ -15898,9 +15898,9 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
 
     CONSTANTS:
       BEGIN OF c_fstate,
-        local  TYPE char1 VALUE 'L',
-        remote TYPE char1 VALUE 'R',
-        both   TYPE char1 VALUE 'B',
+        local  TYPE c LENGTH 1 VALUE 'L',
+        remote TYPE c LENGTH 1 VALUE 'R',
+        both   TYPE c LENGTH 1 VALUE 'B',
       END OF c_fstate.
 
     METHODS constructor
@@ -17656,7 +17656,7 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
         REDEFINITION.
 
   PROTECTED SECTION.
-    CONSTANTS: c_variant TYPE sci_chkv VALUE 'SYNTAX_CHECK'.
+    CONSTANTS: c_variant TYPE c LENGTH 30 VALUE 'SYNTAX_CHECK'.
 
     METHODS:
       render_content REDEFINITION.
@@ -18426,14 +18426,14 @@ CLASS zcl_abapgit_popups DEFINITION
 
     INTERFACES zif_abapgit_popups .
 
-    CONSTANTS c_default_column TYPE lvc_fname VALUE `DEFAULT_COLUMN` ##NO_TEXT.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_default_column TYPE abap_componentdescr-name VALUE `DEFAULT_COLUMN` ##NO_TEXT.
 
     TYPES:
       ty_lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
 
-    CONSTANTS c_fieldname_selected TYPE lvc_fname VALUE `SELECTED` ##NO_TEXT.
+    CONSTANTS c_fieldname_selected TYPE abap_componentdescr-name VALUE `SELECTED` ##NO_TEXT.
     CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
 
     DATA mo_select_list_popup TYPE REF TO cl_salv_table .
@@ -27604,6 +27604,46 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.dialog .dialog-help {' ).
     lo_buf->add( '  float: left;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STICKY HEADERS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* https://www.w3schools.com/howto/howto_js_navbar_sticky.asp */' ).
+    lo_buf->add( '/* Note: We have to use JS since IE does not support CSS position:sticky */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* The sticky class is added to the navbar with JS when it reaches its scroll position */' ).
+    lo_buf->add( '.sticky {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  top: 0;' ).
+    lo_buf->add( '  z-index: 10;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  margin-bottom: 3px;' ).
+    lo_buf->add( '  max-height: 47px;' ).
+    lo_buf->add( '  max-width: 1265px; /* if set to 1280px, then actual width will be 1296px (strange) */' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.sticky_full_width {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  top: 0;' ).
+    lo_buf->add( '  z-index: 10;' ).
+    lo_buf->add( '  width: 100%;' ).
+    lo_buf->add( '  padding: 0.5em 0.5em;' ).
+    lo_buf->add( '  margin-bottom: 3px;' ).
+    lo_buf->add( '  max-height: 47px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.sticky_full_width .nav-container {' ).
+    lo_buf->add( '  margin-right: 18px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Add some top padding to the page content to prevent sudden quick movement' ).
+    lo_buf->add( '   as the navigation bar gets a new position at the top of the page */' ).
+    lo_buf->add( '.sticky + .not_sticky {' ).
+    lo_buf->add( '  padding-top: 50px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.sticky_full_width + .not_sticky {' ).
+    lo_buf->add( '  padding-top: 50px;' ).
+    lo_buf->add( '}' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -27705,7 +27745,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.dummydiv { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
-    lo_buf->add( 'div#header { border-bottom-color: var(--theme-container-border-color); }' ).
+    lo_buf->add( 'div#header {' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
+    lo_buf->add( '  border-bottom-color: var(--theme-container-border-color);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( 'div#header .page-title { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( 'div#footer .version { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( 'div#footer { border-top-color: var(--theme-container-border-color); }' ).
@@ -30028,7 +30071,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '      // Or a SAP event' ).
+    lo_buf->add( '      // Or a SAP event link' ).
     lo_buf->add( '      var sUiSapEventHref = this.getSapEventHref(action);' ).
     lo_buf->add( '      if (sUiSapEventHref) {' ).
     lo_buf->add( '        submitSapeventForm({}, sUiSapEventHref, "post");' ).
@@ -30851,6 +30894,33 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    saveScrollPosition();' ).
     lo_buf->add( '    return fn.call(this, fn.args);' ).
     lo_buf->add( '  }.bind(this);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* STICKY HEADERS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* https://www.w3schools.com/howto/howto_js_navbar_sticky.asp */' ).
+    lo_buf->add( '/* Note: We have to use JS since IE does not support CSS position:sticky */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// When the user scrolls the page, execute toggleSticky' ).
+    lo_buf->add( 'window.onscroll = function() { toggleSticky() };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Add the sticky class to the navbar when you reach its scroll position.' ).
+    lo_buf->add( '// Remove "sticky" when you leave the scroll position' ).
+    lo_buf->add( 'function toggleSticky() {' ).
+    lo_buf->add( '  var body = document.getElementsByTagName("body")[0];' ).
+    lo_buf->add( '  var header = document.getElementById("header");' ).
+    lo_buf->add( '  var sticky = header.offsetTop;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var stickyClass = "sticky";' ).
+    lo_buf->add( '  if (body.classList.contains("full_width")) {' ).
+    lo_buf->add( '    stickyClass = "sticky_full_width";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (window.pageYOffset >= sticky) {' ).
+    lo_buf->add( '    header.classList.add( stickyClass );' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    header.classList.remove( stickyClass );' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -43501,7 +43571,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD build_toolbar.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-debug'.
@@ -44391,7 +44461,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
   METHOD build_base_menu.
 
     DATA:
@@ -44547,13 +44617,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
          ( is_result-objtype = 'PROG' AND NOT is_result-sobjname+30(*) IS INITIAL ).
       TRY.
           CASE is_result-sobjname+30(*).
-            WHEN seop_incextapp_definition.
+            WHEN 'CCDEF'.
               lv_obj_txt = |CLAS { is_result-objname } : Local Definitions|.
-            WHEN seop_incextapp_implementation.
+            WHEN 'CCIMP'.
               lv_obj_txt = |CLAS { is_result-objname } : Local Implementations|.
-            WHEN seop_incextapp_macros.
+            WHEN 'CCMAC'.
               lv_obj_txt = |CLAS { is_result-objname } : Macros|.
-            WHEN seop_incextapp_testclasses.
+            WHEN 'CCAU'.
               lv_obj_txt = |CLAS { is_result-objname } : Test Classes|.
             WHEN 'CU'.
               lv_obj_txt = |CLAS { is_result-objname } : Public Section|.
@@ -45789,7 +45859,10 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( '<html lang="en">' ).
     ri_html->add( html_head( ) ).
     ri_html->add( |<body class="{ ms_control-page_layout }">| ).
+
     ri_html->add( title( ) ).
+
+    ri_html->add( '<div class="not_sticky">' ).
 
     ri_html->add( render_content( ) ). " TODO -> render child
 
@@ -45804,6 +45877,8 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     lv_total = ( lv_end - lv_start ) / 1000 / 1000.
 
     ri_html->add( footer( lv_total ) ).
+
+    ri_html->add( '</div>' ).
 
     li_script = scripts( ).
 
@@ -106528,6 +106603,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-02T13:14:07.453Z
+* abapmerge 0.14.3 - 2021-11-02T15:58:38.930Z
 ENDINTERFACE.
 ****************************************************
